@@ -413,13 +413,35 @@ exports.addModel = function(database) {
 
   User.prototype.getGenericTimeline = function(name, params) {
     var that = this
+    var p_timeline
+    var p_banIds
 
     return new Promise(function(resolve, reject) {
       that["get" + name + "TimelineId"](params)
         .then(function(timelineId) { return models.Timeline.findById(timelineId, params) })
         .then(function(timeline) {
-          that[name] = timeline
-          resolve(timeline)
+          p_timeline = timeline
+
+          return params && params.currentUser
+            ? models.User.findById(params.currentUser)
+            : null
+        })
+        .then(function(user) {
+          return user ? user.getBanIds() : []
+        })
+        .then(function(banIds) {
+          p_banIds = banIds
+          return p_timeline.getPosts(p_timeline.offset,
+                                     p_timeline.limit)
+        })
+        .then(function(posts) {
+          return Promise.map(posts, function(post) {
+            return p_banIds.indexOf(post.userId) >= 0 ? null : post
+          })
+        })
+        .then(function(posts) {
+          p_timeline.posts = posts.filter(Boolean)
+          resolve(p_timeline)
         })
     })
   }
@@ -763,15 +785,26 @@ exports.addModel = function(database) {
 
   User.prototype.validateCanSubscribe = function(timelineId) {
     var that = this
+    var _timeline
 
     return new Promise(function(resolve, reject) {
       that.getSubscriptionIds()
         .then(function(timelineIds) {
           if (_.includes(timelineIds, timelineId)) {
-          reject(new ForbiddenException("You already subscribed to that user"))
-        }
-        resolve(timelineId)
-      })
+            reject(new ForbiddenException("You already subscribed to that user"))
+          }
+          return models.Timeline.findById(timelineId)
+        })
+        .then(function(timeline) {
+          _timeline = timeline
+          return that.getBanIds()
+        })
+        .then(function(banIds) {
+          if (banIds.indexOf(_timeline.userId) >= 0) {
+            reject(new ForbiddenException("You cannot subscribe to a banned user"))
+          }
+          resolve(timelineId)
+        })
     })
   }
 
