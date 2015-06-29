@@ -414,33 +414,16 @@ exports.addModel = function(database) {
   User.prototype.getGenericTimeline = function(name, params) {
     var that = this
     var p_timeline
-    var p_banIds
 
     return new Promise(function(resolve, reject) {
       that["get" + name + "TimelineId"](params)
         .then(function(timelineId) { return models.Timeline.findById(timelineId, params) })
         .then(function(timeline) {
           p_timeline = timeline
-
-          return params && params.currentUser
-            ? models.User.findById(params.currentUser)
-            : null
-        })
-        .then(function(user) {
-          return user ? user.getBanIds() : []
-        })
-        .then(function(banIds) {
-          p_banIds = banIds
-          return p_timeline.getPosts(p_timeline.offset,
-                                     p_timeline.limit)
+          return timeline.getPosts(timeline.offset, timeline.limit)
         })
         .then(function(posts) {
-          return Promise.map(posts, function(post) {
-            return p_banIds.indexOf(post.userId) >= 0 ? null : post
-          })
-        })
-        .then(function(posts) {
-          p_timeline.posts = posts.filter(Boolean)
+          p_timeline.posts = posts.filter(Boolean) // @fixme already filtered in getPosts
           resolve(p_timeline)
         })
     })
@@ -601,6 +584,7 @@ exports.addModel = function(database) {
   User.prototype.ban = async function(username) {
     var currentTime = new Date().getTime()
     var user = await models.User.findByUsername(username)
+    await user.unsubscribeFrom(await this.getPostsTimelineId())
     return database.zaddAsync(mkKey(['user', this.id, 'bans']), currentTime, user.id)
   }
 
@@ -783,29 +767,22 @@ exports.addModel = function(database) {
     return Promise.resolve(this)
   }
 
-  User.prototype.validateCanSubscribe = function(timelineId) {
-    var that = this
-    var _timeline
-
-    return new Promise(function(resolve, reject) {
-      that.getSubscriptionIds()
-        .then(function(timelineIds) {
-          if (_.includes(timelineIds, timelineId)) {
-            reject(new ForbiddenException("You already subscribed to that user"))
-          }
-          return models.Timeline.findById(timelineId)
-        })
-        .then(function(timeline) {
-          _timeline = timeline
-          return that.getBanIds()
-        })
-        .then(function(banIds) {
-          if (banIds.indexOf(_timeline.userId) >= 0) {
-            reject(new ForbiddenException("You cannot subscribe to a banned user"))
-          }
-          resolve(timelineId)
-        })
-    })
+  User.prototype.validateCanSubscribe = async function(timelineId) {
+    var timelineIds = await this.getSubscriptionIds()
+    if (_.includes(timelineIds, timelineId)) {
+      throw new ForbiddenException("You are already subscribed to that user")
+    }
+    var timeline = await models.Timeline.findById(timelineId)
+    var banIds = await this.getBanIds()
+    if (banIds.indexOf(timeline.userId) >= 0) {
+      throw new ForbiddenException("You cannot subscribe to a banned user")
+    }
+    var user = await models.User.findById(timeline.userId)
+    var theirBanIds = await user.getBanIds()
+    if (theirBanIds.indexOf(this.id) >= 0) {
+      throw new ForbiddenException("This user prevented your from subscribing to them")
+    }
+    return timelineId
   }
 
   User.prototype.validateCanUnsubscribe = function(timelineId) {
