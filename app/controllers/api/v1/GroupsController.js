@@ -26,7 +26,28 @@ exports.addController = function(app) {
 
     try {
       var group = new Group(params)
-      await group.create(req.user.id)
+      await group.create(req.user.id, false)
+
+      var json = await new GroupSerializer(group).promiseToJSON()
+      res.jsonp(json)
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  GroupsController.sudoCreate = async function(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Not found', status: 'fail'})
+
+    var params = {
+      username: req.body.group.username,
+      screenName: req.body.group.screenName,
+      isPrivate: req.body.group.isPrivate
+    };
+
+    try {
+      var group = new Group(params)
+      await group.create(req.user.id, true)
 
       var json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)

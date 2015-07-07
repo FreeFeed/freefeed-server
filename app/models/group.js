@@ -52,19 +52,19 @@ exports.addModel = function(database) {
     }
   })
 
-  Group.prototype.isValidUsername = function() {
+  Group.prototype.isValidUsername = function(skip_stoplist) {
     var valid = this.username
         && this.username.length > 1
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
-        && models.FeedFactory.stopList().indexOf(this.username) == -1
+        && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return Promise.resolve(valid)
   }
 
-  Group.prototype.validate = async function() {
+  Group.prototype.validate = async function(skip_stoplist) {
     var valid
 
-    valid = this.isValidUsername().value()
+    valid = this.isValidUsername(skip_stoplist).value()
       && this.isValidScreenName().value()
 
     if (!valid)
@@ -73,13 +73,13 @@ exports.addModel = function(database) {
     return valid
   }
 
-  Group.prototype.create = async function(ownerId) {
+  Group.prototype.create = async function(ownerId, skip_stoplist) {
       this.createdAt = new Date().getTime()
       this.updatedAt = new Date().getTime()
       this.screenName = this.screenName || this.username
       this.id = uuid.v4()
 
-      var group = await this.validateOnCreate()
+      var group = await this.validateOnCreate(skip_stoplist)
 
       await* [
         database.setAsync(mkKey(['username', group.username, 'uid']), group.id),
