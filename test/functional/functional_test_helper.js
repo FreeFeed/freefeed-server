@@ -43,32 +43,45 @@ exports.createUser = function(username, password, attributes, callback) {
 exports.createUserCtx = function(context, username, password) {
   return exports.createUser(username, password, function(token) {
     context.authToken = token
+    context.username = username.toLowerCase()
+    context.password = password
   })
+}
+
+exports.subscribeToCtx = function(context, username) {
+  return function(done) {
+    request
+      .post(app.config.host + '/v1/users/' + username + '/subscribe')
+      .send({ authToken: context.authToken })
+      .end(function(err, res) {
+        done()
+      })
+  }
 }
 
 exports.createPost = function(context, body, callback) {
   return function(done) {
     request
-        .post(app.config.host + '/v1/posts')
-        .send({ post: { body: body }, authToken: context.authToken })
-        .end(function(err, res) {
-          context.post = res.body.posts
-          if (callback) {
-            callback(context.post)
-          }
-          done()
-        })
-  };
+      .post(app.config.host + '/v1/posts')
+      .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
+      .end(function(err, res) {
+        context.post = res.body.posts
+        if (typeof callback !== 'undefined')
+          callback(context.post)
+
+        done(err, res)
+      })
+  }
 }
 
 exports.createPostForTest = function(context, body, callback) {
   request
-      .post(app.config.host + '/v1/posts')
-      .send({ post: { body: body }, authToken: context.authToken })
-      .end(function(err, res) {
-        context.post = res.body.posts
-        callback(err, res)
-      })
+    .post(app.config.host + '/v1/posts')
+    .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
+    .end(function(err, res) {
+      context.post = res.body.posts
+      callback(err, res)
+    })
 }
 
 exports.createComment = function(body, postId, authToken, callback) {
@@ -85,6 +98,23 @@ exports.createComment = function(body, postId, authToken, callback) {
         done(err, res)
       })
   }(callback)
+}
+
+exports.createCommentCtx = function(context, body) {
+  return function(done) {
+    var comment = {
+      body: body,
+      postId: context.post.id
+    }
+
+    request
+      .post(app.config.host + '/v1/comments')
+      .send({ comment: comment, authToken: context.authToken })
+      .end(function(err, res) {
+        context.comment = res.body.comments
+        done(err, res)
+      })
+  }
 }
 
 exports.removeComment = function(commentId, authToken, callback) {
