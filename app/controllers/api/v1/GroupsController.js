@@ -6,6 +6,7 @@ var models = require('../../../models')
   , GroupSerializer = models.GroupSerializer
   , exceptions = require('../../../support/exceptions')
   , formidable = require('formidable')
+  , _ = require('lodash')
 
 exports.addController = function(app) {
   /**
@@ -36,9 +37,6 @@ exports.addController = function(app) {
   }
 
   GroupsController.sudoCreate = async function(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found', status: 'fail'})
-
     var params = {
       username: req.body.group.username,
       screenName: req.body.group.screenName,
@@ -46,10 +44,34 @@ exports.addController = function(app) {
     };
 
     try {
-      var group = new Group(params)
-      await group.create(req.user.id, true)
+      if (!_.isArray(req.body.admins)) {
+        throw new exceptions.BadRequestException('"admins" should be an array of strings')
+      }
 
-      var json = await new GroupSerializer(group).promiseToJSON()
+      let admins = await* req.body.admins.map(async (username) => {
+        try {
+          return await User.findByUsername(username)
+        } catch (e) {
+          return false
+        }
+      })
+      admins = admins.filter(Boolean);
+
+      let group = new Group(params)
+      await group.create(admins[0].id, true)
+
+      // starting iteration from the second admin
+      let promises = [];
+      for (let i = 1; i < admins.length; i++) {
+        let adminId = admins[i].id;
+
+        promises.push(group.addAdministrator(adminId))
+        promises.push(group.subscribeOwner(adminId))
+      }
+
+      await* promises
+
+      let json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch(e) {
       exceptions.reportError(res)(e)
