@@ -233,6 +233,23 @@ exports.addModel = function(database) {
     })
   }
 
+  Post.prototype.getSubscribedTimelines = function() {
+    var that = this
+
+    return new Promise(function(resolve, reject) {
+      that.getSubscribedTimelineIds()
+        .then(function(timelineIds) {
+          return Promise.map(timelineIds, function(timelineId) {
+            return models.Timeline.findById(timelineId)
+          })
+        })
+        .then(function(timelines) {
+          that.subscribedTimelines = timelines
+          resolve(timelines)
+        })
+    })
+  }
+
   Post.prototype.getTimelineIds = function() {
     var that = this
 
@@ -243,6 +260,11 @@ exports.addModel = function(database) {
           resolve(that.timelineIds)
         })
     })
+  }
+
+  Post.prototype.getTimelines = async function() {
+    var timelineIds = await this.getTimelineIds()
+    return await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
   }
 
   Post.prototype.getPostedToIds = function() {
@@ -402,27 +424,16 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.addComment = function(commentId) {
-    var that = this
-    var timelineIds = []
-    var user
+  Post.prototype.addComment = async function(commentId) {
+    var timelines = []
+    var comment = await models.Comment.findById(commentId)
 
-    return new Promise(function(resolve, reject) {
-      models.Comment.findById(commentId)
-        .then(function(comment) { return that.getCommentsFriendOfFriendTimelines(comment.userId) })
-        .then(function(timelines) {
-          return Promise.map(timelines, function(timeline) {
-            return timeline.updatePost(that.id)
-          })
-        })
-        .then(function() {
-          return database.rpushAsync(mkKey(['post', that.id, 'comments']), commentId)
-        })
-        .then(function() {
-          return pubSub.newComment(commentId)
-        })
-        .then(function(res) { resolve(res) })
-    })
+    if (!await this.isPrivate())
+      timelines = await this.getCommentsFriendOfFriendTimelines(comment.userId)
+
+    await* timelines.map((timeline) => timeline.updatePost(this.id))
+    await database.rpushAsync(mkKey(['post', this.id, 'comments']), commentId)
+    return pubSub.newComment(commentId)
   }
 
   Post.prototype.getOmittedComments = function() {
@@ -643,34 +654,35 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.addLike = function(userId) {
-    var that = this
+  Post.prototype.isPrivate = async function() {
+    var timelines = await this.getPostedTo()
+    var arr = await* timelines.map(async function(timeline) {
+      if (timeline.isDirects())
+        return true
 
-    return new Promise(function(resolve, reject) {
-
-      models.User.findById(userId)
-        .then(function(user) {
-          return user.validateCanLikePost(that.id)
-        })
-        .then(function() {
-          return that.getLikesFriendOfFriendTimelines(userId)
-        })
-        .then(function(timelines) {
-          var now = new Date().getTime()
-
-          return Promise.all([
-            Promise.map(timelines, function(timeline) {
-              return timeline.updatePost(that.id, 'like')
-            }),
-            database.zaddAsync(mkKey(['post', that.id, 'likes']), now, userId)
-          ])
-        })
-        .then(function() { return pubSub.newLike(that.id, userId)})
-        .then(function() { return models.Stats.findById(userId) })
-        .then(function(stats) { return stats.addLike() })
-        .then(function(res) { resolve(res) })
-        .catch(function(err) { reject(err) })
+      // we do not have private feeds yet so user can open any
+      // post if it's not a direct message
+      return false
     })
+    return _.every(arr, _.identity, true)
+  }
+
+  Post.prototype.addLike = async function(userId) {
+    var timelines = []
+    var user = await models.User.findById(userId)
+    await user.validateCanLikePost(this.id)
+
+    if (!await this.isPrivate())
+      timelines = await this.getLikesFriendOfFriendTimelines(userId)
+
+    var now = new Date().getTime()
+    var promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
+    promises.push(database.zaddAsync(mkKey(['post', this.id, 'likes']), now, userId))
+    await* promises
+
+    await pubSub.newLike(this.id, userId)
+    var stats = await models.Stats.findById(userId)
+    return stats.addLike()
   }
 
   Post.prototype.removeLike = function(userId) {
@@ -737,7 +749,30 @@ exports.addModel = function(database) {
     })
   }
 
+  Post.prototype.validateCanShow = function(userId) {
+    var that = this
 
+    return new Promise(function(resolve, reject) {
+      that.getPostedTo()
+        .then(function(timelines) {
+          return Promise.map(timelines, function(timeline) {
+            // if post is already in user's feed then she can read it
+            if (timeline.isDirects())
+                return timeline.userId === userId
+
+            // we do not have private feeds yet so user can open any
+            // post if it's not a direct message
+            return true
+
+            // // otherwise user can view post if and only if she is subscriber
+            // return timeline.getSubscriberIds()
+            //   .then(function(userIds) { return userIds.indexOf(userId) >= 0 })
+          })
+        })
+        .then(function(arr) { return _.reduce(arr, function(acc, x) { return acc || x }, false) })
+        .then(function(valid) { resolve(valid) })
+    })
+  }
 
   return Post
 }

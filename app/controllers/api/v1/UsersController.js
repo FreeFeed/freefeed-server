@@ -23,8 +23,9 @@ exports.addController = function(app) {
       }
 
       try {
-        var newUser = new models.User(params)
-        var user = await newUser.create(false)
+        var user = new models.User(params)
+        await user.create(false)
+
         var secret = config.secret
         var authToken = jwt.sign({ userId: user.id }, secret)
 
@@ -47,8 +48,9 @@ exports.addController = function(app) {
       }
 
       try {
-        var newUser = new models.User(params)
-        var user = await newUser.create(true)
+        var user = new models.User(params)
+        await user.create(true)
+
         var secret = config.secret
         var authToken = jwt.sign({ userId: user.id }, secret)
 

@@ -212,30 +212,29 @@ exports.addModel = function(database) {
     return Promise.resolve(valid)
   }
 
-  User.prototype.validate = function(skip_stoplist) {
-    return new Promise(function(resolve, reject) {
-      var valid
+  User.prototype.validate = async function(skip_stoplist) {
+    var valid
 
-      valid = this.isValidUsername(skip_stoplist).value()
-        && this.isValidScreenName().value()
-        && this.isValidEmail().value()
+    valid = this.isValidUsername(skip_stoplist).value()
+      && this.isValidScreenName().value()
+      && this.isValidEmail().value()
 
-      valid ? resolve(true) : reject(new Error("Invalid"))
-    }.bind(this))
+    if (!valid)
+      throw new Error("Invalid")
+
+    return true
   }
 
-  User.prototype.validateOnCreate = function(skip_stoplist) {
-    var that = this
+  User.prototype.validateOnCreate = async function(skip_stoplist) {
+    var promises = [
+      this.validate(skip_stoplist),
+      this.validateUniquness(mkKey(['username', this.username, 'uid'])),
+      this.validateUniquness(mkKey(['user', this.id]))
+    ];
 
-    return new Promise(function(resolve, reject) {
-      Promise.join(that.validate(skip_stoplist),
-                   that.validateUniquness(mkKey(['username', that.username, 'uid'])),
-                   that.validateUniquness(mkKey(['user', that.id])),
-                   function(valid, usernameIsUnique, idIsUnique) {
-                     resolve(that)
-                   })
-        .catch(function(e) { reject(e) })
-    })
+    await* promises
+
+    return this
   }
 
   //
@@ -249,46 +248,40 @@ exports.addModel = function(database) {
     return new Promise.resolve(true)
   }
 
-  User.prototype.create = function(skip_stoplist) {
-    var that = this
+  User.prototype.create = async function(skip_stoplist) {
+    this.createdAt = new Date().getTime()
+    this.updatedAt = new Date().getTime()
+    this.screenName = this.screenName || this.username
 
-    return new Promise(function(resolve, reject) {
-      that.createdAt = new Date().getTime()
-      that.updatedAt = new Date().getTime()
-      that.screenName = that.screenName || that.username
+    this.id = uuid.v4()
 
-      that.id = uuid.v4()
+    var user = await this.validateOnCreate(skip_stoplist)
+    await user.initPassword()
 
-      that.validateOnCreate(skip_stoplist)
-        .then(function(user) {
-          return user.initPassword()
-        })
-        .then(function(user) {
-          return Promise.all([
-            database.setAsync(mkKey(['username', user.username, 'uid']), user.id),
-            database.hmsetAsync(mkKey(['user', user.id]),
-                                { 'username': user.username,
-                                  'screenName': user.screenName,
-                                  'email': user.email,
-                                  'type': user.type,
-                                  'isPrivate': '0',
-                                  'createdAt': user.createdAt.toString(),
-                                  'updatedAt': user.updatedAt.toString(),
-                                  'hashedPassword': user.hashedPassword
-                                }),
-            user.createEmailIndex()
-            ])
-        })
-        .then(function() {
-          var stats = new models.Stats({
-            id: that.id
-          })
+    var promises = [
+      database.setAsync(mkKey(['username', user.username, 'uid']), user.id),
+      database.hmsetAsync(mkKey(['user', user.id]),
+                          { 'username': user.username,
+                            'screenName': user.screenName,
+                            'email': user.email,
+                            'type': user.type,
+                            'isPrivate': '0',
+                            'createdAt': user.createdAt.toString(),
+                            'updatedAt': user.updatedAt.toString(),
+                            'hashedPassword': user.hashedPassword
+                          }),
+      user.createEmailIndex()
+    ]
 
-          return stats.create()
-        })
-        .then(function(res) { resolve(that) })
-        .catch(function(e) { reject(e) })
+    await* promises
+
+    var stats = new models.Stats({
+      id: this.id
     })
+
+    await stats.create()
+
+    return this
   }
 
   User.prototype.update = function(params) {
@@ -512,6 +505,14 @@ exports.addModel = function(database) {
     return this.getGenericTimeline('Comments', params)
   }
 
+  User.prototype.getDirectsTimelineId = function(params) {
+    return this.getGenericTimelineId('Directs', params)
+  }
+
+  User.prototype.getDirectsTimeline = function(params) {
+    return this.getGenericTimeline('Directs', params)
+  }
+
   User.prototype.getTimelineIds = function() {
     return new Promise(function(resolve, reject) {
       database.hgetallAsync(mkKey(['user', this.id, 'timelines']))
@@ -556,6 +557,22 @@ exports.addModel = function(database) {
     this.subscriptions = await* subscriptionPromises
 
     return this.subscriptions
+  }
+
+  User.prototype.getSubscriberIds = async function() {
+    var timeline = await this.getPostsTimeline()
+    var subscriberIds = await timeline.getSubscriberIds()
+    this.subscriberIds = subscriberIds
+
+    return this.subscriberIds
+  }
+
+  User.prototype.getSubscribers = async function() {
+    var subscriberIds = await this.getSubscriberIds()
+    var subscriberPromises = subscriberIds.map(userId => models.User.findById(userId))
+    this.subscribers = await* subscriberPromises
+
+    return this.subscribers
   }
 
   User.prototype.getBanIds = function() {
@@ -761,10 +778,37 @@ exports.addModel = function(database) {
    * Checks if the specified user can post to the timeline of this user.
    */
   User.prototype.validateCanPost = function(postingUser) {
-    if (postingUser.username != this.username) {
-      return Promise.reject(new ForbiddenException("You can't post to another user's feed"))
-    }
-    return Promise.resolve(this)
+    var that = this
+      , subscriptionIds
+      , timelineIdA
+      , timelineIdB
+
+    // NOTE: when user is subscribed to another user she in fact is
+    // subscribed to her posts timeline
+    return new Promise(function(resolve, reject) {
+      postingUser.getPostsTimelineId()
+        .then(function(_timelineId) {
+          timelineIdA = _timelineId
+          return that.getPostsTimelineId()
+        })
+        .then(function(_timelineId) {
+          timelineIdB = _timelineId
+          return postingUser.getSubscriptionIds()
+        })
+        .then(function(_subscriptionIds) {
+          subscriptionIds = _subscriptionIds
+          return that.getSubscriptionIds()
+        })
+        .then(function(subscriberIds) {
+          if ((subscriberIds.indexOf(timelineIdA) == -1
+              || subscriptionIds.indexOf(timelineIdB) == -1)
+              && postingUser.username != that.username) {
+            return reject(new ForbiddenException("You can't send private messages to friends that are not mutual"))
+          }
+
+          return resolve(that)
+        })
+    })
   }
 
   User.prototype.validateCanSubscribe = async function(timelineId) {
@@ -808,6 +852,26 @@ exports.addModel = function(database) {
     return this.validateCanLikeOrUnlikePost('unlike', postId)
   }
 
+  User.prototype.validateCanComment = function(postId) {
+    var that = this
+
+    return new Promise(function(resolve, reject) {
+      models.Post.findById(postId)
+        .then(function(post) {
+          if (post)
+            return post.validateCanShow(that.id)
+          else
+            reject(new Error("Not found"))
+        })
+        .then(function(valid) {
+          if (valid)
+            resolve(that)
+          else
+            reject(new Error("Not found"))
+        })
+    })
+  }
+
   User.prototype.validateCanLikeOrUnlikePost = function(action, postId) {
     var that = this
 
@@ -822,7 +886,14 @@ exports.addModel = function(database) {
               reject(new ForbiddenException("You can't un-like post that you haven't yet liked"))
               break;
             default:
-              resolve(that);
+              models.Post.findById(postId)
+                .then(function(post) { return post.validateCanShow(that.id) })
+                .then(function(valid) {
+                  if (valid)
+                    resolve(that)
+                  else
+                    reject(new Error("Not found"))
+                })
               break;
           }
         }).catch(function(e) {
@@ -840,11 +911,7 @@ exports.addModel = function(database) {
       if (!that.isUser()) {
         // update group lastActivity for all subscribers
         var updatedAt = new Date().getTime()
-        that.getPostsTimeline()
-          .then(function(timeline) {
-            timelineId = timeline.id
-            return timeline.getSubscriberIds()
-          })
+        that.getSubscribers()
           .then(function(userIds) {
             return Promise.map(userIds, function(userId) {
               return database.zaddAsync(mkKey(['user', userId, 'subscriptions']), updatedAt, timelineId)

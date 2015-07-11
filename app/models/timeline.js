@@ -264,7 +264,7 @@ exports.addModel = function(database) {
       database.zrevrangeAsync(mkKey(['timeline', that.id, 'subscribers']), 0, -1)
         .then(function(userIds) {
           // A user is always subscribed to their own posts timeline.
-          if (includeSelf && that.isPosts()) {
+          if (includeSelf && (that.isPosts() || that.isDirects())) {
             userIds = _.uniq(userIds.concat([that.userId]))
           }
           that.subscriberIds = userIds
@@ -288,7 +288,7 @@ exports.addModel = function(database) {
    */
   Timeline.prototype.getSubscribedTimelineIds = async function() {
     var subscribers = await this.getSubscribers(true);
-    return subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId())
+    return await* subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId())
   }
 
   Timeline.prototype.isRiverOfNews = function() {
@@ -305,6 +305,10 @@ exports.addModel = function(database) {
 
   Timeline.prototype.isComments = function() {
     return this.name === "Comments"
+  }
+
+  Timeline.prototype.isDirects = function() {
+    return this.name === "Directs"
   }
 
   Timeline.prototype.isHides = function() {
