@@ -54,7 +54,8 @@ exports.addModel = function(database) {
 
   Group.prototype.isValidUsername = function(skip_stoplist) {
     var valid = this.username
-        && this.username.length > 1
+        && this.username.length >= 3   // per spec
+        && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
         && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
