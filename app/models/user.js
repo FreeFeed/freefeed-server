@@ -132,6 +132,7 @@ exports.addModel = function(database) {
 
             resolve(new models.Post(attrs))
           })
+          .catch(function(e) { reject(e) })
       } else {
         resolve(new models.Post(attrs))
       }
@@ -180,17 +181,33 @@ exports.addModel = function(database) {
     return bcrypt.compareAsync(clearPassword, this.hashedPassword)
   }
 
-  User.prototype.isValidEmail = function() {
-    var valid = true
-    if (this.email.length > 0) {
-      valid = validator.isEmail(this.email)
+  User.prototype.isValidEmail = async function() {
+    return User.emailIsValid(this.email)
+  }
+
+  User.emailIsValid = async function(email) {
+    if (email.length == 0) {
+      return true
     }
-    return Promise.resolve(valid)
+
+    if (!validator.isEmail(email)) {
+      return false
+    }
+
+    var uid = await database.getAsync(mkKey(['email', email, 'uid']))
+
+    if (uid) {
+      // email is taken
+      return false
+    }
+
+    return true
   }
 
   User.prototype.isValidUsername = function(skip_stoplist) {
     var valid = this.username
-        && this.username.length > 1
+        && this.username.length >= 3   // per the spec
+        && this.username.length <= 25  // per the spec
         && this.username.match(/^[A-Za-z0-9]+$/)
         && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
@@ -222,7 +239,7 @@ exports.addModel = function(database) {
 
     valid = this.isValidUsername(skip_stoplist).value()
       && this.isValidScreenName().value()
-      && this.isValidEmail().value()
+      && await this.isValidEmail()
 
     if (!valid)
       throw new Error("Invalid")
@@ -251,6 +268,10 @@ exports.addModel = function(database) {
       return database.setAsync(mkKey(['email', this.email, 'uid']), this.id)
     }
     return new Promise.resolve(true)
+  }
+
+  User.prototype.dropIndexForEmail = function(email) {
+    return database.delAsync(mkKey(['email', email, 'uid']))
   }
 
   User.prototype.create = async function(skip_stoplist) {
@@ -289,32 +310,69 @@ exports.addModel = function(database) {
     return this
   }
 
-  User.prototype.update = function(params) {
-    var that = this
+  User.prototype.update = async function(params) {
+    var hasChanges = false
+      , emailChanged = false
+      , oldEmail = ""
 
-    return new Promise(function(resolve, reject) {
-      that.updatedAt = new Date().getTime()
-      if (params.hasOwnProperty('screenName'))
-        that.screenName = params.screenName
-      if (params.hasOwnProperty('email'))
-        that.email = params.email
-      that.isPrivate = params.isPrivate
+    if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
+      if (!this.screenNameIsValid(params.screenName)) {
+        throw new Error("Invalid screenname")
+      }
 
-      that.validate(true)
-        .then(function() {
-          return Promise.all([
-            database.hmsetAsync(mkKey(['user', that.id]),
-                                { 'screenName': that.screenName,
-                                  'email': that.email,
-                                  'isPrivate': that.isPrivate,
-                                  'updatedAt': that.updatedAt.toString()
-                                }),
-            that.createEmailIndex()
-          ])
-        })
-        .then(function() { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+      this.screenName = params.screenName
+      hasChanges = true
+    }
+
+    if (params.hasOwnProperty('email') && params.email != this.email) {
+      if (!(await User.emailIsValid(params.email))) {
+        throw new Error("Invalid email")
+      }
+
+      oldEmail = this.email
+      this.email = params.email
+
+      hasChanges = true
+      emailChanged = true
+    }
+
+    if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
+      if (params.isPrivate != '0' && params.isPrivate != '1') {
+        // ???
+        throw new Error("bad input")
+      }
+
+      this.isPrivate = params.isPrivate
+      hasChanges = true
+    }
+
+    if (hasChanges) {
+      this.updatedAt = new Date().getTime()
+
+      var payload = {
+        'screenName': this.screenName,
+        'email':      this.email,
+        'isPrivate':  this.isPrivate,
+        'updatedAt':  this.updatedAt.toString()
+      };
+
+      var promises = [
+        database.hmsetAsync(mkKey(['user', this.id]), payload)
+      ]
+
+      if (emailChanged) {
+        if (oldEmail.length != "") {
+          promises.push(this.dropIndexForEmail(oldEmail))
+        }
+        if (this.email.length != "") {
+          promises.push(this.createEmailIndex())
+        }
+      }
+
+      await* promises
+    }
+
+    return this
   }
 
   User.prototype.updatePassword = async function(password, passwordConfirmation) {
@@ -756,7 +814,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getProfilePicturePath = function(uuid, size) {
-    return config.profilePictures.fsDir + this.getProfilePictureFilename(uuid, size)
+    return config.profilePictures.storage.rootDir + config.profilePictures.path + this.getProfilePictureFilename(uuid, size)
   }
 
   User.prototype.getProfilePictureFilename = function(uuid, size) {
@@ -767,7 +825,7 @@ exports.addModel = function(database) {
     if (_.isEmpty(this.profilePictureUuid)) {
       return Promise.resolve('')
     }
-    return Promise.resolve(config.profilePictures.urlDir + this.getProfilePictureFilename(
+    return Promise.resolve(config.profilePictures.url + config.profilePictures.path + this.getProfilePictureFilename(
         this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE))
   }
 
@@ -775,7 +833,7 @@ exports.addModel = function(database) {
     if (_.isEmpty(this.profilePictureUuid)) {
       return Promise.resolve('')
     }
-    return Promise.resolve(config.profilePictures.urlDir + this.getProfilePictureFilename(
+    return Promise.resolve(config.profilePictures.url + config.profilePictures.path + this.getProfilePictureFilename(
       this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM))
   }
 
