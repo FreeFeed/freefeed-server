@@ -482,10 +482,12 @@ exports.addModel = function(database) {
     }
   }
 
-  User.prototype.getAdministratorIds = function() {
-    return new Promise(function(resolve, reject) {
-      resolve([])
-    })
+  User.prototype.getAdministratorIds = async function() {
+    return [this.id]
+  }
+
+  User.prototype.getAdministrators = async function() {
+    return [this]
   }
 
   User.prototype.getMyDiscussionsTimeline = function(params) {
@@ -760,8 +762,11 @@ exports.addModel = function(database) {
   User.prototype.ban = async function(username) {
     var currentTime = new Date().getTime()
     var user = await models.User.findByUsername(username)
-    await user.unsubscribeFrom(await this.getPostsTimelineId())
-    return database.zaddAsync(mkKey(['user', this.id, 'bans']), currentTime, user.id)
+    return await* [
+      user.unsubscribeFrom(await this.getPostsTimelineId()),
+      this.rejectSubscriptionRequest(user.id),
+      database.zaddAsync(mkKey(['user', this.id, 'bans']), currentTime, user.id)
+    ]
   }
 
   User.prototype.unban = async function(username) {
@@ -1063,29 +1068,13 @@ exports.addModel = function(database) {
 
   }
 
-  User.prototype.updateLastActivityAt = function() {
-    var that = this
-    var timelineId
-
-    return new Promise(function(resolve, reject) {
-      if (!that.isUser()) {
-        // update group lastActivity for all subscribers
-        var updatedAt = new Date().getTime()
-        that.getSubscribers()
-          .then(function(userIds) {
-            return Promise.map(userIds, function(userId) {
-              return database.zaddAsync(mkKey(['user', userId, 'subscriptions']), updatedAt, timelineId)
-            })
-          })
-          .then(function() {
-            return database.hmsetAsync(mkKey(['user', that.id]),
-                                       { 'updatedAt': updatedAt.toString() })
-          })
-          .then(function() { resolve() })
-      } else {
-        resolve()
-      }
-    })
+  User.prototype.updateLastActivityAt = async function() {
+    if (!this.isUser()) {
+      // update group lastActivity for all subscribers
+      var updatedAt = new Date().getTime()
+      return database.hmsetAsync(mkKey(['user', this.id]),
+                                 { 'updatedAt': updatedAt.toString() })
+    }
   }
 
   User.prototype.sendSubscriptionRequest = async function(userId) {
@@ -1145,11 +1134,16 @@ exports.addModel = function(database) {
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
     var key = mkKey(['user', userId, 'requests'])
     var exists = await database.zscoreAsync(key, this.id)
-    var user = models.User.findById(userId)
+    var user = await models.User.findById(userId)
+    var banIds = await user.getBanIds()
 
     // user can send subscription request if and only if subscription
     // is a private and this is first time user is subscribing to it
-    return !exists && user.isPrivate === '1'
+    if (!exists && user.isPrivate === '1' &&
+       banIds.indexOf(this.id) === -1)
+      return true
+
+    throw new Error("Invalid")
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
