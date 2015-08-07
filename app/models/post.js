@@ -73,72 +73,63 @@ exports.addModel = function(database) {
     return this
   }
 
-  Post.prototype.validateOnCreate = function() {
-    var that = this
+  Post.prototype.validateOnCreate = async function() {
+    var promises = [
+      this.validate(),
+      this.validateUniquness(mkKey(['post', this.id]))
+    ]
 
-    return new Promise(function(resolve, reject) {
-      Promise.join(that.validate(),
-                   that.validateUniquness(mkKey(['post', that.id])),
-                   function(valid, idIsUnique) {
-                     resolve(that)
-                   })
-        .catch(function(e) { reject(e) })
-      })
+    await* promises
+
+    return this
   }
 
-  Post.prototype.create = function() {
-    var that = this
+  Post.prototype.create = async function() {
+    this.createdAt = new Date().getTime()
+    this.updatedAt = new Date().getTime()
+    this.id = uuid.v4()
 
-    return new Promise(function(resolve, reject) {
-      that.createdAt = new Date().getTime()
-      that.updatedAt = new Date().getTime()
-      that.id = uuid.v4()
+    await this.validateOnCreate()
 
-      that.validateOnCreate()
-        .then(function(post) {
-          return database.hmsetAsync(mkKey(['post', post.id]),
-                              { 'body': post.body,
-                                'userId': post.userId,
-                                'createdAt': post.createdAt.toString(),
-                                'updatedAt': post.updatedAt.toString()
+    // save post to the database
+    await database.hmsetAsync(mkKey(['post', this.id]),
+                              { 'body': this.body,
+                                'userId': this.userId,
+                                'createdAt': this.createdAt.toString(),
+                                'updatedAt': this.updatedAt.toString()
                               })
-        })
-        .then(function() {
-          return Promise.all([
-            that.linkAttachments(),
-            that.savePostedTo()
-          ])
-        })
-        .then(function() { return models.Timeline.publishPost(that) })
-        .then(function() { return models.Stats.findById(that.userId) })
-        .then(function(stats) { return stats.addPost() })
-        .then(function(res) { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+
+    // save nested resources
+    await* [
+      this.linkAttachments(),
+      this.savePostedTo()
+    ]
+
+    await models.Timeline.publishPost(this)
+    var stats = await models.Stats.findById(this.userId)
+    await stats.addPost()
+
+    return this
   }
 
   Post.prototype.savePostedTo = function() {
     return database.saddAsync(mkKey(['post', this.id, 'to']), this.timelineIds)
   }
 
-  Post.prototype.update = function(params) {
-    var that = this
+  Post.prototype.update = async function(params) {
+    this.updatedAt = new Date().getTime()
+    this.body = params.body
 
-    return new Promise(function(resolve, reject) {
-      that.updatedAt = new Date().getTime()
-      that.body = params.body
+    this.validate()
 
-      that.validate()
-        .then(function(post) {
-          return database.hmsetAsync(mkKey(['post', that.id]),
-                                { 'body': that.body,
-                                  'updatedAt': that.updatedAt.toString()
-                                })
-        })
-        .then(function() { return pubSub.updatePost(that.id) })
-        .then(function() { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+    await database.hmsetAsync(mkKey(['post', this.id]),
+                              { 'body': this.body,
+                                'updatedAt': this.updatedAt.toString()
+                              })
+
+    await pubSub.updatePost(this.id)
+
+    return this
   }
 
   Post.prototype.destroy = function() {
@@ -240,67 +231,37 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getSubscribedTimelines = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      that.getSubscribedTimelineIds()
-        .then(function(timelineIds) {
-          return Promise.map(timelineIds, function(timelineId) {
-            return models.Timeline.findById(timelineId)
-          })
-        })
-        .then(function(timelines) {
-          that.subscribedTimelines = timelines
-          resolve(timelines)
-        })
-    })
+  Post.prototype.getSubscribedTimelines = async function() {
+    var timelineIds = await this.getSubscribedTimelineIds()
+    var timelines = await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    this.subscribedTimelines = timelines
+    return this.subscribedTimelines
   }
 
-  Post.prototype.getTimelineIds = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      database.smembersAsync(mkKey(['post', that.id, 'timelines']))
-        .then(function(timelineIds) {
-          that.timelineIds = timelineIds || []
-          resolve(that.timelineIds)
-        })
-    })
+  Post.prototype.getTimelineIds = async function() {
+    var timelineIds = await database.smembersAsync(mkKey(['post', this.id, 'timelines']))
+    this.timelineIds = timelineIds || []
+    return this.timelineIds
   }
 
   Post.prototype.getTimelines = async function() {
     var timelineIds = await this.getTimelineIds()
-    return await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    var timelines = await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    this.timelines = timelines
+    return this.timelines
   }
 
-  Post.prototype.getPostedToIds = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      database.smembersAsync(mkKey(['post', that.id, 'to']))
-        .then(function(timelineIds) {
-          that.timelineIds = timelineIds || []
-          resolve(that.timelineIds)
-        })
-    })
+  Post.prototype.getPostedToIds = async function() {
+    var timelineIds = await database.smembersAsync(mkKey(['post', this.id, 'to']))
+    this.timelineIds = timelineIds || []
+    return this.timelineIds
   }
 
-  Post.prototype.getPostedTo = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      that.getPostedToIds()
-        .then(function(timelineIds) {
-          return Promise.map(timelineIds, function(timelineId) {
-            return models.Timeline.findById(timelineId)
-          })
-        })
-        .then(function(timelines) {
-          that.postedTo = timelines
-          resolve(timelines)
-        })
-    })
+  Post.prototype.getPostedTo = async function() {
+    var timelineIds = await this.getPostedToIds()
+    var timelines = await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    this.postedTo = timelines
+    return this.postedTo
   }
 
   Post.prototype.getGenericFriendOfFriendTimelineIds = function(userId, type) {
@@ -663,8 +624,10 @@ exports.addModel = function(database) {
 
   Post.prototype.isPrivate = async function() {
     var timelines = await this.getPostedTo()
-    var arr = await* timelines.map(async function(timeline) {
-      if (timeline.isDirects())
+    var arr = await* timelines.map(async (timeline) => {
+      var owner = await models.User.findById(timeline.userId)
+
+      if (timeline.isDirects() || owner.isPrivate === '1')
         return true
 
       // we do not have private feeds yet so user can open any
@@ -756,29 +719,30 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.validateCanShow = function(userId) {
-    var that = this
+  Post.prototype.validateCanShow = async function(userId) {
+    var timelines = await this.getPostedTo()
 
-    return new Promise(function(resolve, reject) {
-      that.getPostedTo()
-        .then(function(timelines) {
-          return Promise.map(timelines, function(timeline) {
-            // if post is already in user's feed then she can read it
-            if (timeline.isDirects())
-                return timeline.userId === userId
+    var arr = await* timelines.map(async function(timeline) {
+      // owner can read her posts
+      if (timeline.userId === userId)
+        return true
 
-            // we do not have private feeds yet so user can open any
-            // post if it's not a direct message
-            return true
+      // if post is already in user's feed then she can read it
+      if (timeline.isDirects())
+        return timeline.userId === userId
 
-            // // otherwise user can view post if and only if she is subscriber
-            // return timeline.getSubscriberIds()
-            //   .then(function(userIds) { return userIds.indexOf(userId) >= 0 })
-          })
-        })
-        .then(function(arr) { return _.reduce(arr, function(acc, x) { return acc || x }, false) })
-        .then(function(valid) { resolve(valid) })
+      // this is a public feed, anyone can read public posts, this is
+      // a free country
+      var user = await timeline.getUser()
+      if (user.isPrivate !== '1')
+        return true
+
+      // otherwise user can view post if and only if she is subscriber
+      var userIds = await timeline.getSubscriberIds()
+      return userIds.indexOf(userId) >= 0
     })
+
+    return _.reduce(arr, function(acc, x) { return acc || x }, false)
   }
 
   return Post

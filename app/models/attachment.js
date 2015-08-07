@@ -3,6 +3,7 @@
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , mmm = require('mmmagic')
+  , meta = require('musicmetadata')
   , _ = require('lodash')
   , config = require('../../config/config').load()
   , gm = require('gm')
@@ -30,6 +31,9 @@ exports.addModel = function(database) {
     this.noThumbnail = params.noThumbnail // if true, image thumbnail URL == original URL
     this.mediaType = params.mediaType // image | audio | general
 
+    this.artist = params.artist  // filled only for audio
+    this.title = params.title   // filled only for audio
+
     this.userId = params.userId
     this.postId = params.postId
 
@@ -45,34 +49,29 @@ exports.addModel = function(database) {
   Attachment.namespace = 'attachment'
   Attachment.findById = Attachment.super_.findById
 
-  Attachment.prototype.validate = function() {
-    return new Promise(function(resolve, reject) {
-      var valid = this.file
+  Attachment.prototype.validate = async function() {
+    var valid = this.file
         && Object.keys(this.file).length > 0
         && this.file.path
         && this.file.path.length > 0
         && this.userId
         && this.userId.length > 0
 
-      if (valid) {
-        resolve(valid)
-      } else {
-        reject(new Error('Invalid'))
-      }
-    }.bind(this))
+    if (!valid)
+      throw new Error('Invalid')
+
+    return true
   }
 
-  Attachment.prototype.validateOnCreate = function() {
-    var that = this
+  Attachment.prototype.validateOnCreate = async function() {
+    var promises = [
+      this.validate(),
+      this.validateUniquness(mkKey(['attachment', this.id]))
+    ]
 
-    return new Promise(function(resolve, reject) {
-      Promise.join(that.validate(),
-                   that.validateUniquness(mkKey(['attachment', that.id])),
-                   function(valid, idIsUnique) {
-                     resolve(that)
-                   })
-        .catch(function(e) { reject(e) })
-      })
+    await* promises
+
+    return this
   }
 
   Attachment.prototype.create = function() {
@@ -116,6 +115,12 @@ exports.addModel = function(database) {
             createdAt: attachment.createdAt.toString(),
             updatedAt: attachment.updatedAt.toString()
           }
+
+          if (attachment.mediaType === 'audio') {
+            params.artist = attachment.artist
+            params.title = attachment.title
+          }
+
           return database.hmsetAsync(mkKey(['attachment', attachment.id]), params)
         })
         .then(function(res) { resolve(that) })
@@ -188,8 +193,8 @@ exports.addModel = function(database) {
       // otherwise, we'll use the fallback provided by the user
     }
 
-    // Store a thumbnail for a compatible image
     if (supportedImageTypes.indexOf(this.mimeType) != -1) {
+      // Store a thumbnail for a compatible image
       let img = Promise.promisifyAll(gm(tmpAttachmentFile))
       let size = await img.sizeAsync()
 
@@ -216,8 +221,22 @@ exports.addModel = function(database) {
         this.noThumbnail = '1'
       }
     } else if (supportedAudioTypes.indexOf(this.mimeType) != -1) {
+      // analyze metadata to get Artist & Title
       this.noThumbnail = '1'
       this.mediaType = 'audio'
+
+      let readStream = fs.createReadStream(tmpAttachmentFile)
+      let asyncMeta = Promise.promisify(meta)
+
+      let metadata = await asyncMeta(readStream)
+
+      this.title = metadata.title
+
+      if (_.isArray(metadata.artist)) {
+        this.artist = metadata.artist[0]
+      } else {
+        this.artist = metadata.artist
+      }
     } else {
       this.noThumbnail = '1'
       this.mediaType = 'general'
@@ -246,8 +265,21 @@ exports.addModel = function(database) {
       Bucket: subConfig.storage.bucket,
       Key: subConfig.path + this.getFilename(),
       Body: fs.createReadStream(sourceFile),
-      ContentType: this.mimeType
+      ContentType: this.mimeType,
+      ContentDisposition: this.getContentDisposition()
     })
+  }
+
+  // Get cross-browser Content-Disposition header for attachment
+  Attachment.prototype.getContentDisposition = function() {
+    // Old browsers (IE8) need ASCII-only fallback filenames
+    let fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
+
+    // Modern browsers support UTF-8 filenames
+    let fileNameUtf8 = encodeURIComponent(this.fileName)
+
+    // Inline version of 'attfnboth' method (http://greenbytes.de/tech/tc2231/#attfnboth)
+    return `inline; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`
   }
 
   return Attachment
