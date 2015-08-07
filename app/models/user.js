@@ -442,22 +442,28 @@ exports.addModel = function(database) {
     // we need to review post by post as some strangers that are not
     // followers and friends could commented on or like my posts
     // let's find strangers first
-    var posts = await timeline.getPosts(0, -1)
-    var users = _.flatten(await* posts.map(async (post) => {
-      let timelines = await post.getTimelines()
-      let users = _.compact(await* timelines.map(async (timeline) => {
-        let user = await timeline.getUser()
+    let posts = await timeline.getPosts(0, -1)
 
-        if (subscriptionIds.indexOf(user.id) === -1 &&
-            user.id != this.id) {
-          return user
-        }
-      }))
-      return _.uniq(users, 'id')
-    }))
+    let allUsers = []
+
+    for (let post of posts) {
+      let timelines = await post.getTimelines()
+      let user_promises = timelines.map(timeline => timeline.getUser())
+      let users = await* user_promises
+
+      allUsers = _.uniq(allUsers.concat(users), 'id')
+    }
 
     // and remove all private posts from all strangers timelines
-    await* users.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true }))
+    let users = _.filter(
+      allUsers,
+      user => (subscriptionIds.indexOf(user.id) === -1 && user.id != this.id)
+    )
+
+    for (let chunk of _.chunk(users, 10)) {
+      let actions = chunk.map(user => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
+      await* actions
+    }
   }
 
   User.prototype.updatePassword = async function(password, passwordConfirmation) {
@@ -784,13 +790,15 @@ exports.addModel = function(database) {
     var timeline
 
     return new Promise(function(resolve, reject) {
-      models.Timeline.findById(timelineId).bind({})
+      let theUser
+
+      models.Timeline.findById(timelineId)
         .then(function(newTimeline) {
           timeline = newTimeline
           return models.FeedFactory.findById(newTimeline.userId)
         })
         .then(function(user) {
-          this.user = user
+          theUser = user
           if (user.username == that.username)
             throw new Error("Invalid")
 
@@ -808,7 +816,7 @@ exports.addModel = function(database) {
         .then(function(riverOfNewsId) { return timeline.merge(riverOfNewsId) })
         .then(function() { return models.Stats.findById(that.id) })
         .then(function(stats) { return stats.addSubscription() })
-        .then(function() { return models.Stats.findById(this.user.id) })
+        .then(function() { return models.Stats.findById(theUser.id) })
         .then(function(stats) { return stats.addSubscriber() })
         .then(function(res) { resolve(res) })
         .catch(function(e) { reject(e) })
@@ -824,14 +832,18 @@ exports.addModel = function(database) {
       throw new Error("Invalid")
 
     var timelineIds = await user.getPublicTimelineIds()
-    await* _.flatten(timelineIds.map((timelineId) => [
-      database.zremAsync(mkKey(['user', this.id, 'subscriptions']), timelineId),
-      database.zremAsync(mkKey(['timeline', timelineId, 'subscribers']), this.id)
-    ]))
 
-    var promises = [
-      timeline.unmerge(await this.getRiverOfNewsTimelineId())
-    ]
+    if (_.isUndefined(options.skip)) {
+      await* _.flatten(timelineIds.map((timelineId) => [
+        database.zremAsync(mkKey(['user', this.id, 'subscriptions']), timelineId),
+        database.zremAsync(mkKey(['timeline', timelineId, 'subscribers']), this.id)
+      ]))
+    }
+
+    var promises = []
+
+    if (_.isUndefined(options.skip))
+      promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineId()))
 
     // remove post from likes or comments timelines when user goes private
     if (options.likes)
