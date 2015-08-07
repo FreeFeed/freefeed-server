@@ -457,7 +457,7 @@ exports.addModel = function(database) {
     }))
 
     // and remove all private posts from all strangers timelines
-    await* users.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true }))
+    await* users.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
   }
 
   User.prototype.updatePassword = async function(password, passwordConfirmation) {
@@ -826,14 +826,18 @@ exports.addModel = function(database) {
       throw new Error("Invalid")
 
     var timelineIds = await user.getPublicTimelineIds()
-    await* _.flatten(timelineIds.map((timelineId) => [
-      database.zremAsync(mkKey(['user', this.id, 'subscriptions']), timelineId),
-      database.zremAsync(mkKey(['timeline', timelineId, 'subscribers']), this.id)
-    ]))
 
-    var promises = [
-      timeline.unmerge(await this.getRiverOfNewsTimelineId())
-    ]
+    if (_.isUndefined(options.skip)) {
+      await* _.flatten(timelineIds.map((timelineId) => [
+        database.zremAsync(mkKey(['user', this.id, 'subscriptions']), timelineId),
+        database.zremAsync(mkKey(['timeline', timelineId, 'subscribers']), this.id)
+      ]))
+    }
+
+    var promises = []
+
+    if (_.isUndefined(options.skip))
+      promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineId()))
 
     // remove post from likes or comments timelines when user goes private
     if (options.likes)
