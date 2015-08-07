@@ -393,37 +393,41 @@ exports.addModel = function(database) {
     var posts = await timeline.getPosts(0, -1)
 
     // first of all, let's revive likes
-    await* _.flatten(posts.map(async (post) => {
-      let likes = await post.getLikes()
-      return await* _.flatten(likes.map(async (user) => {
-        let timelineId = await user.getLikesTimelineId()
-        let time = await database.zscoreAsync(mkKey(['post', post.id, 'likes']), user.id)
+    for (let post of posts) {
+      let actions = []
 
-        return [
-          database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), time, post.id),
-          database.saddAsync(mkKey(['post', post.id, 'timelines']), timelineId)
-        ]
-      }))
-    }))
+      let [likes, comments] = await* [post.getLikes(), post.getComments()];
 
-    // and now reviving comments. oh, god save the queen!
-    await* _.flatten(posts.map(async (post) => {
-      let comments = await post.getComments()
-      let userIds = _.uniq(comments.map((comment) => comment.userId))
+      for (let likes_chunk of _.chunk(likes, 10)) {
+        let promises = likes_chunk.map(async (user) => {
+          let timelineId = await user.getLikesTimelineId()
+          let time = await database.zscoreAsync(mkKey(['post', post.id, 'likes']), user.id)
 
-      return await* _.flatten(userIds.map(async (userId) => {
-        let user = await models.User.findById(userId)
-        let timelineId = await user.getCommentsTimelineId()
-        // NOTE: I'm cheating with time when we supposed to add that
-        // post to comments timeline, but who notices this?
-        let time = post.updatedAt
+          actions.push(database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), time, post.id))
+          actions.push(database.saddAsync(mkKey(['post', post.id, 'timelines']), timelineId))
+        })
 
-        return [
-          database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), time, post.id),
-          database.saddAsync(mkKey(['post', post.id, 'timelines']), timelineId)
-        ]
-      }))
-    }))
+        await* promises
+      }
+
+      for (let comments_chunk of _.chunk(comments, 10)) {
+        let promises = comments_chunk.map(async (comment) => {
+          let user = await models.User.findById(comment.userId)
+          let timelineId = await user.getCommentsTimelineId()
+
+          // NOTE: I'm cheating with time when we supposed to add that
+          // post to comments timeline, but who notices this?
+          let time = post.updatedAt
+
+          actions.push(database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), time, post.id))
+          actions.push(database.saddAsync(mkKey(['post', post.id, 'timelines']), timelineId))
+        })
+
+        await* promises
+      }
+
+      await* actions
+    }
   }
 
   User.prototype.unsubscribeNonFriends = async function() {
