@@ -45,24 +45,20 @@ export default class pubSub {
     await* promises
   }
 
-  async newComment(commentId) {
-    var comment = await models.Comment.findById(commentId)
-    var post = await comment.getPost()
-    var timelines = await post.getTimelines()
+  async newComment(comment, timelines) {
+    let post = await comment.getPost()
 
-    var promises = timelines.map(async (timeline) => {
-      let isBanned = await post.isBannedFor(timeline.userId)
-      let isHidden = await post.isHiddenIn(timeline.id)
+    let promises = timelines.map(async (timeline) => {
+      if (await post.isHiddenIn(timeline))
+        return
 
-      if (!isHidden && !isBanned) {
-        let payload = JSON.stringify({ timelineId: timeline.id, commentId: commentId })
-        await this.database.publishAsync('comment:new', payload)
-      }
+      let payload = JSON.stringify({ timelineId: timeline.id, commentId: comment.id })
+      await this.database.publishAsync('comment:new', payload)
     })
 
     await* promises
 
-    let payload = JSON.stringify({ postId: post.id, commentId: commentId })
+    let payload = JSON.stringify({ postId: post.id, commentId: comment.id })
     await this.database.publishAsync('comment:new', payload)
   }
 
@@ -90,23 +86,19 @@ export default class pubSub {
     await* promises
   }
 
-  async newLike(postId, userId) {
-    var post = await models.Post.findById(postId)
-    var timelines = await post.getTimelines()
-
+  async newLike(post, userId, timelines) {
     var promises = timelines.map(async (timeline) => {
-      var isBanned = await post.isBannedFor(timeline.userId)
-      var isHidden = await post.isHiddenIn(timeline.id)
+      // no need to notify users about updates to hidden posts
+      if (await post.isHiddenIn(timeline))
+        return
 
-      if (!isHidden && !isBanned) {
-        let payload = JSON.stringify({ timelineId: timeline.id, userId: userId, postId: postId })
-        await this.database.publishAsync('like:new', payload)
-      }
+      let payload = JSON.stringify({ timelineId: timeline.id, userId: userId, postId: post.id })
+      await this.database.publishAsync('like:new', payload)
     })
 
     await* promises
 
-    let payload = JSON.stringify({ userId: userId, postId: postId })
+    let payload = JSON.stringify({ userId: userId, postId: post.id })
     await this.database.publishAsync('like:new', payload)
   }
 

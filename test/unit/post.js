@@ -322,7 +322,7 @@ describe('Post', function() {
     })
 
     it('should add like to friend of friend timelines', function(done) {
-      post.addLike(userA.id)
+      post.addLike(userA)
         .then(function(res) { return userC.getRiverOfNewsTimeline() })
         .then(function(timeline) { return timeline.getPosts() })
         .then(function(posts) {
@@ -333,10 +333,11 @@ describe('Post', function() {
           newPost.id.should.eql(post.id)
         })
         .then(function() { done() })
+        .catch(function(e) { done(e) })
     })
 
     it('should add user to likes', function(done) {
-      post.addLike(userA.id)
+      post.addLike(userA)
         .then(function(res) { return post.getLikes() })
         .then(function(users) {
           users.should.not.be.empty
@@ -346,6 +347,7 @@ describe('Post', function() {
           user.id.should.eql(userA.id)
         })
         .then(function() { done() })
+        .catch(function(e) { done(e) })
     })
   })
 
@@ -391,7 +393,7 @@ describe('Post', function() {
     })
 
     it('should remove like from friend of friend timelines', function(done) {
-      post.addLike(userA.id)
+      post.addLike(userA)
         .then(function(res) { return post.removeLike(userA.id) })
         .then(function(res) { return post.getLikes() })
         .then(function(users) {
@@ -402,7 +404,7 @@ describe('Post', function() {
     })
 
     it('should add user to likes', function(done) {
-      post.addLike(userA.id)
+      post.addLike(userA)
         .then(function(res) { return post.getLikes() })
         .then(function(users) {
           users.should.not.be.empty
@@ -412,6 +414,7 @@ describe('Post', function() {
           user.id.should.eql(userA.id)
         })
         .then(function() { done() })
+        .catch(function(e) { done(e) })
     })
   })
 
@@ -459,8 +462,10 @@ describe('Post', function() {
         body: 'Comment body',
         postId: post.id
       }
-      userA.newComment(commentAttrs)
-        .then(function(comment) { return comment.create() })
+
+      let comment = userA.newComment(commentAttrs)
+
+      comment.create()
         .then(function(res) { return userC.getRiverOfNewsTimeline() })
         .then(function(timeline) { return timeline.getPosts() })
         .then(function(posts) {
@@ -498,12 +503,10 @@ describe('Post', function() {
           }
           return userA.newComment(commentAttrs)
         })
-        .then(function(comment) { return comment.create() })
         .then(function(newComment) {
           comment = newComment
-          return comment
+          return comment.create()
         })
-
         .then(function(res) { done() })
     })
 
