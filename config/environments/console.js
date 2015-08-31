@@ -1,5 +1,8 @@
 "use strict";
 
+// Clustering for monitor-dogstats @todo replace in ansible-deploy
+process.env.MONITOR_PREFIX = 'development-console'
+
 var nodemailer = require('nodemailer')
 var transport = function() {
   return {
