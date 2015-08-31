@@ -122,13 +122,10 @@ exports.addModel = function(database) {
 
   User.prototype.newPost = async function(attrs) {
     attrs.userId = this.id
-
     if (!attrs.timelineIds || !attrs.timelineIds[0]) {
       let timelineId = await this.getPostsTimelineId()
-
       attrs.timelineIds = [timelineId]
     }
-
     return new models.Post(attrs)
   }
 
@@ -881,11 +878,8 @@ exports.addModel = function(database) {
   }
 
   User.prototype.newAttachment = function(attrs) {
-    return new Promise(function(resolve, reject) {
-      attrs.userId = this.id
-
-      resolve(new models.Attachment(attrs))
-    }.bind(this))
+    attrs.userId = this.id
+    return new models.Attachment(attrs)
   }
 
   User.prototype.updateProfilePicture = function(file) {
