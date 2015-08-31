@@ -6,6 +6,7 @@ import _ from 'lodash'
 import exceptions from '../../../support/exceptions'
 import formidable from 'formidable'
 import config_loader from '../../../../config/config'
+import monitor from 'monitor-dog'
 
 var config = config_loader.load()
 
@@ -106,9 +107,10 @@ exports.addController = function(app) {
     static async whoami(req, res) {
       if (!req.user)
         return res.status(401).jsonp({ err: 'Not found' })
-
+      var timer = monitor.timer('users.whoami-time')
       var json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
+      timer.stop()
     }
 
     static async show(req, res) {
@@ -256,6 +258,8 @@ exports.addController = function(app) {
       if (!req.user)
         return res.status(401).jsonp({ err: 'Not found' })
 
+      var timer = monitor.timer('users.unsubscribe-time')
+
       try {
         var user = await models.User.findByUsername(req.params.username)
         var timelineId = await user.getPostsTimelineId()
@@ -266,6 +270,8 @@ exports.addController = function(app) {
         res.jsonp(json)
       } catch(e) {
         exceptions.reportError(res)(e)
+      } finally {
+        timer.stop()
       }
    }
 

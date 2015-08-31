@@ -150,14 +150,17 @@ exports.addController = function(app) {
     }
   }
 
-  PostsController.unlike = function(req, res) {
+  PostsController.unlike = async function(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    models.Post.getById(req.params.postId)
-      .then(function(post) { return post.removeLike(req.user.id) })
-      .then(function() { res.status(200).send({}) })
-      .catch(exceptions.reportError(res))
+    try {
+      let post = await models.Post.getById(req.params.postId)
+      await post.removeLike(req.user.id)
+      res.status(200).send({})
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
   }
 
   PostsController.destroy = function(req, res) {
