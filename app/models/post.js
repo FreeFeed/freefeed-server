@@ -1,5 +1,8 @@
 "use strict";
 
+import config_file from '../../config/config'
+import monitor from 'monitor-dog'
+
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , GraphemeBreaker = require('grapheme-breaker')
@@ -91,6 +94,8 @@ exports.addModel = function(database) {
 
     await this.validateOnCreate()
 
+    var timer = monitor.timer('posts.create-time')
+
     // save post to the database
     await database.hmsetAsync(mkKey(['post', this.id]),
                               { 'body': this.body,
@@ -108,6 +113,9 @@ exports.addModel = function(database) {
     await models.Timeline.publishPost(this)
     var stats = await models.Stats.findById(this.userId)
     await stats.addPost()
+
+    timer.stop()
+    monitor.increment('posts.creates')
 
     return this
   }
@@ -197,7 +205,10 @@ exports.addModel = function(database) {
         .then(function() { return database.delAsync(mkKey(['post', that.id, 'comments'])) })
         .then(function() { return models.Stats.findById(that.userId) })
         .then(function(stats) { return stats.removePost() })
-        .then(function(res) { resolve(res) })
+        .then(function(res) {
+          monitor.increment('posts.destroys')
+          resolve(res)
+        })
     })
   }
 
@@ -644,6 +655,9 @@ exports.addModel = function(database) {
 
     await* promises
 
+    monitor.increment('posts.likes')
+    monitor.increment('posts.reactions')
+
     return timelines
   }
 
@@ -657,6 +671,9 @@ exports.addModel = function(database) {
             database.sremAsync(mkKey(['post', this.id, 'timelines']), timelineId)
           ]
     await pubSub.removeLike(this.id, userId)
+
+    monitor.increment('posts.unlikes')
+    monitor.increment('posts.unreactions')
 
     let stats = await models.Stats.findById(userId)
     return stats.removeLike()
