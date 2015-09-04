@@ -890,7 +890,7 @@ exports.addModel = function(database) {
     return new models.Comment(attrs)
   }
 
-  User.prototype.newAttachment = function(attrs) {
+  User.prototype.newAttachment = async function(attrs) {
     attrs.userId = this.id
     monitor.increment('users.attachments')
     return new models.Attachment(attrs)
