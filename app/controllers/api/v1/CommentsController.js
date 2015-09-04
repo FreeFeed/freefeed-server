@@ -2,12 +2,15 @@
 
 import models, {CommentSerializer, pubSub} from '../../../models'
 import exceptions, {ForbiddenException} from '../../../support/exceptions'
+import monitor from 'monitor-dog'
 
 exports.addController = function(app) {
   class CommentsController {
     static async create(req, res) {
       if (!req.user)
         return res.status(401).jsonp({ err: 'Not found' })
+
+      var timer = monitor.timer('comments.create-time')
 
       try {
         var valid = await req.user.validateCanComment(req.body.comment.postId)
@@ -27,14 +30,19 @@ exports.addController = function(app) {
         res.jsonp(json)
 
         await pubSub.newComment(comment, timelines)
+        monitor.increment('comments.creates')
       } catch (e) {
         exceptions.reportError(res)(e)
+      } finally {
+        timer.stop()
       }
     }
 
     static async update(req, res) {
       if (!req.user)
         return res.status(401).jsonp({ err: 'Not found' })
+
+      var timer = monitor.timer('comments.update-time')
 
       try {
         var comment = await models.Comment.getById(req.params.commentId)
@@ -52,14 +60,19 @@ exports.addController = function(app) {
         new CommentSerializer(comment).toJSON(function (err, json) {
           res.jsonp(json)
         })
+        monitor.increment('comments.updates')
       } catch (e) {
         exceptions.reportError(res)(e)
+      } finally {
+        timer.stop()
       }
     }
 
     static async destroy(req, res) {
       if (!req.user)
         return res.status(401).jsonp({ err: 'Not found' })
+
+      var timer = monitor.timer('comments.destroy-time')
 
       try {
         var comment = await models.Comment.getById(req.params.commentId);
@@ -73,8 +86,11 @@ exports.addController = function(app) {
         await comment.destroy()
 
         res.jsonp({})
+        monitor.increment('comments.destroys')
       } catch (e) {
         exceptions.reportError(res)(e)
+      } finally {
+        timer.stop()
       }
     }
   }

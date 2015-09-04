@@ -1,5 +1,8 @@
 "use strict";
 
+// Clustering for monitor-dogstats @todo replace in ansible-deploy
+process.env.MONITOR_PREFIX = 'tests'
+
 var stubTransport = require('nodemailer-stub-transport')
 
 exports.getConfig = function() {

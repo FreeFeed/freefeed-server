@@ -1,9 +1,12 @@
 "use strict";
 
+import config_file from '../../config/config'
+import monitor from 'monitor-dog'
+
 var Promise = require('bluebird')
   , crypto = Promise.promisifyAll(require('crypto'))
   , uuid = require('uuid')
-  , config = require('../../config/config').load()
+  , config = config_file.load()
   , inherits = require("util").inherits
   , models = require('../models')
   , exceptions = require('../support/exceptions')
@@ -122,13 +125,10 @@ exports.addModel = function(database) {
 
   User.prototype.newPost = async function(attrs) {
     attrs.userId = this.id
-
     if (!attrs.timelineIds || !attrs.timelineIds[0]) {
       let timelineId = await this.getPostsTimelineId()
-
       attrs.timelineIds = [timelineId]
     }
-
     return new models.Post(attrs)
   }
 
@@ -276,6 +276,8 @@ exports.addModel = function(database) {
     this.id = uuid.v4()
 
     var user = await this.validateOnCreate(skip_stoplist)
+
+    var timer = monitor.timer('users.create-time')
     await user.initPassword()
 
     var promises = [
@@ -300,6 +302,8 @@ exports.addModel = function(database) {
     })
 
     await stats.create()
+    timer.stop() // @todo finally {}
+    monitor.increment('users.creates')
 
     return this
   }
@@ -776,7 +780,8 @@ exports.addModel = function(database) {
     var user = await models.User.findByUsername(username)
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
-      database.zaddAsync(mkKey(['user', this.id, 'bans']), currentTime, user.id)
+      database.zaddAsync(mkKey(['user', this.id, 'bans']), currentTime, user.id),
+      monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request
     var requestIds = await this.getSubscriptionRequestIds()
@@ -787,6 +792,7 @@ exports.addModel = function(database) {
 
   User.prototype.unban = async function(username) {
     var user = await models.User.findByUsername(username)
+    monitor.increment('users.unbans')
     return database.zremAsync(mkKey(['user', this.id, 'bans']), user.id)
   }
 
@@ -822,6 +828,7 @@ exports.addModel = function(database) {
         .then(function(riverOfNewsId) { return timeline.mergeTo(riverOfNewsId) })
         .then(function() { return models.Stats.findById(that.id) })
         .then(function(stats) { return stats.addSubscription() })
+        .then(function() { monitor.increment('users.subscriptions') })
         .then(function() { return models.Stats.findById(theUser.id) })
         .then(function(stats) { return stats.addSubscriber() })
         .then(function(res) { resolve(res) })
@@ -868,6 +875,8 @@ exports.addModel = function(database) {
 
     await* promises
 
+    monitor.increment('users.unsubscriptions')
+
     return this
   }
 
@@ -877,15 +886,14 @@ exports.addModel = function(database) {
 
   User.prototype.newComment = function(attrs) {
     attrs.userId = this.id
+    monitor.increment('users.comments')
     return new models.Comment(attrs)
   }
 
   User.prototype.newAttachment = function(attrs) {
-    return new Promise(function(resolve, reject) {
-      attrs.userId = this.id
-
-      resolve(new models.Attachment(attrs))
-    }.bind(this))
+    attrs.userId = this.id
+    monitor.increment('users.attachments')
+    return new models.Attachment(attrs)
   }
 
   User.prototype.updateProfilePicture = function(file) {
