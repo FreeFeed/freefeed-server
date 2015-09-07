@@ -104,6 +104,7 @@ export default class PubsubListener {
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
+    
     let clientIds = Object.keys(sockets.adapter.rooms[room])
 
     await* clientIds.map(async (clientId) => {
@@ -148,10 +149,13 @@ export default class PubsubListener {
     let json = await new models.PostSerializer(post).promiseToJSON()
 
     let type = 'post:update'
-    let room = `timeline:${data.timelineId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    let room
 
-    room = `timeline:${data.timelineId}`
+    if (data.timelineId) {
+      room = `timeline:${data.timelineId}`
+    } else {
+      room = `post:${data.postId}`
+    }
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
@@ -190,20 +194,20 @@ export default class PubsubListener {
   }
 
   async onCommentDestroy(sockets, data) {
-    let json = { postId: data.postId, commentId: data.commentId }
-    let post = await models.Post.findById(data.postId)
+    let comment = await models.Comment.findById(data.commentId)
+    let post = await models.Post.findById(comment.postId)
+    let json = await new models.PubsubCommentSerializer(comment).promiseToJSON()
 
     let type = 'comment:destroy'
-    let room = `post:${data.postId}`
+    let room
+
+    if (data.timelineId) {
+      room = `timeline:${data.timelineId}`
+    } else {
+      room = `post:${data.postId}`
+    }
 
     await this.validateAndEmitMessage(sockets, room, type, json, post)
-
-    let timelineIds = await post.getTimelineIds()
-
-    timelineIds.map((timelineId) => {
-      room = `timeline:${timelineId}`
-      this.validateAndEmitMessage(sockets, room, type, json, post)
-    })
   }
 
   async onLikeNew(sockets, data) {
@@ -214,7 +218,6 @@ export default class PubsubListener {
 
     let type = 'like:new'
     let room
-
     if (data.timelineId) {
       room = `timeline:${data.timelineId}`
     } else {

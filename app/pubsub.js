@@ -43,11 +43,12 @@ export default class pubSub {
     })
 
     await* promises
+    let payload = JSON.stringify({ postId: postId})
+    await this.database.publishAsync('post:update', payload)
   }
 
   async newComment(comment, timelines) {
     let post = await comment.getPost()
-
     let promises = timelines.map(async (timeline) => {
       if (await post.isHiddenIn(timeline))
         return
@@ -65,9 +66,17 @@ export default class pubSub {
   async destroyComment(commentId) {
     var comment = await models.Comment.findById(commentId)
     var post = await comment.getPost()
-
     let payload = JSON.stringify({ postId: post.id, commentId: commentId })
     await this.database.publishAsync('comment:destroy', payload)
+
+    var timelineIds = await post.getTimelineIds()
+    var promises = timelineIds.map(async (timelineId) => {
+      let payload = JSON.stringify({ timelineId: timelineId, commentId: commentId })
+      await this.database.publishAsync('comment:destroy',payload)
+    })
+
+    await* promises
+
   }
 
   async updateComment(commentId) {
