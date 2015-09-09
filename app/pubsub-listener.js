@@ -104,17 +104,16 @@ export default class PubsubListener {
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
-    
     let clientIds = Object.keys(sockets.adapter.rooms[room])
-
     await* clientIds.map(async (clientId) => {
       let socket = sockets.connected[clientId]
       let user = socket.user
 
       let valid = await post.validateCanShow(user.id)
 
-      if (valid)
+      if (valid){
         socket.emit(type, json)
+	}
     })
   }
 
@@ -194,19 +193,16 @@ export default class PubsubListener {
   }
 
   async onCommentDestroy(sockets, data) {
-    let comment = await models.Comment.findById(data.commentId)
-    let post = await models.Post.findById(comment.postId)
-    let json = await new models.PubsubCommentSerializer(comment).promiseToJSON()
-
+    let json = { postId: data.postId, commentId: data.commentId }
+    let post = await models.Post.findById(data.postId)
+    
     let type = 'comment:destroy'
     let room
-
     if (data.timelineId) {
       room = `timeline:${data.timelineId}`
     } else {
       room = `post:${data.postId}`
     }
-
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
