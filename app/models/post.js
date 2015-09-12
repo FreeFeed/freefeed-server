@@ -393,6 +393,7 @@ exports.addModel = function(database) {
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
     promises.push(database.rpushAsync(mkKey(['post', this.id, 'comments']), comment.id))
+    promises.push(pubSub.newComment(comment, timelines))
 
     await* promises
 
