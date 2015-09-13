@@ -787,7 +787,8 @@ exports.addModel = function(database) {
     var requestIds = await this.getSubscriptionRequestIds()
     if (requestIds.indexOf(user.id) >= 0)
       promises.push(this.rejectSubscriptionRequest(user.id))
-    return await* promises
+    await* promises
+    return 1
   }
 
   User.prototype.unban = async function(username) {
