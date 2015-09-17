@@ -364,10 +364,10 @@ exports.addModel = function(database) {
       ]
 
       if (emailChanged) {
-        if (oldEmail.length != "") {
+        if (oldEmail != "") {
           promises.push(this.dropIndexForEmail(oldEmail))
         }
-        if (this.email.length != "") {
+        if (this.email != "") {
           promises.push(this.createEmailIndex())
         }
       }
