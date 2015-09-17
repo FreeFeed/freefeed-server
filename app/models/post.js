@@ -637,6 +637,7 @@ exports.addModel = function(database) {
   Post.prototype.addLike = async function(user) {
     await user.validateCanLikePost(this)
 
+    var timer = monitor.timer('posts.likes.time')
     let subscriberIds = await user.getSubscriberIds()
     let bannedIds = await user.getBanIds()
     let timelines = await this.getLikesFriendOfFriendTimelines(user)
@@ -656,6 +657,7 @@ exports.addModel = function(database) {
 
     await* promises
 
+    timer.stop()
     monitor.increment('posts.likes')
     monitor.increment('posts.reactions')
 
@@ -665,6 +667,7 @@ exports.addModel = function(database) {
   Post.prototype.removeLike = async function(userId) {
     let user = await models.User.findById(userId)
     await user.validateCanUnLikePost(this)
+    var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
     await* [
             database.zremAsync(mkKey(['post', this.id, 'likes']), userId),
@@ -673,6 +676,7 @@ exports.addModel = function(database) {
           ]
     await pubSub.removeLike(this.id, userId)
 
+    timer.stop()
     monitor.increment('posts.unlikes')
     monitor.increment('posts.unreactions')
 
