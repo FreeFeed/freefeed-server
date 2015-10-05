@@ -1,23 +1,24 @@
-var request = require('superagent')
-  , app = require('../../index')
-  , models = require('../../app/models')
-  , funcTestHelper = require('./functional_test_helper')
+import request from 'superagent'
+import fetch from 'node-fetch'
 
-describe("SessionController", function() {
+import app from '../../index'
+import models from '../../app/models'
+import funcTestHelper from './functional_test_helper'
+
+describe("SessionController", () => {
   beforeEach(funcTestHelper.flushDb())
 
-  describe("#create()", function() {
+  describe("#create()", () => {
     var user, userData;
 
-    beforeEach(function(done) {
+    beforeEach(async () => {
       userData = {
         username: 'Luna',
         password: 'password'
       }
       user = new models.User(userData)
 
-      user.create()
-        .then(function(newUser) { done() })
+      await user.create()
     })
 
     it("should sign in with a valid user", function(done) {
@@ -58,6 +59,14 @@ describe("SessionController", function() {
           res.body.err.should.equal('The password you provided does not match the password in our system.')
           done()
         })
+    })
+
+    it('should not signin with missing username', async () => {
+      let result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
+      let data = await result.json()
+
+      data.should.not.have.property('authToken')
+      data.should.have.property('err')
     })
   })
 })
