@@ -82,7 +82,7 @@ exports.addModel = function(database) {
       this.validateUniquness(mkKey(['post', this.id]))
     ]
 
-    await* promises
+    await Promise.all(promises)
 
     return this
   }
@@ -105,10 +105,10 @@ exports.addModel = function(database) {
                               })
 
     // save nested resources
-    await* [
+    await Promise.all([
       this.linkAttachments(),
       this.savePostedTo()
-    ]
+    ])
 
     await models.Timeline.publishPost(this)
     var stats = await models.Stats.findById(this.userId)
@@ -143,10 +143,10 @@ exports.addModel = function(database) {
                               })
 
     // Update post attachments in DB
-    await* [
+    await Promise.all([
       this.linkAttachments(addedAttachments),
       this.unlinkAttachments(removedAttachments)
-    ]
+    ])
 
     // Finally, publish changes
     await pubSub.updatePost(this.id)
@@ -258,7 +258,7 @@ exports.addModel = function(database) {
 
   Post.prototype.getSubscribedTimelines = async function() {
     var timelineIds = await this.getSubscribedTimelineIds()
-    var timelines = await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
     this.subscribedTimelines = timelines
     return this.subscribedTimelines
   }
@@ -271,7 +271,7 @@ exports.addModel = function(database) {
 
   Post.prototype.getTimelines = async function() {
     var timelineIds = await this.getTimelineIds()
-    var timelines = await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
     this.timelines = timelines
     return this.timelines
   }
@@ -284,7 +284,7 @@ exports.addModel = function(database) {
 
   Post.prototype.getPostedTo = async function() {
     var timelineIds = await this.getPostedToIds()
-    var timelines = await* timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
     this.postedTo = timelines
     return this.postedTo
   }
@@ -309,11 +309,11 @@ exports.addModel = function(database) {
     // otherwise this post will stay in group(s) timelines
     let groupOnly = true
 
-    if (_.any(await* userPromises)) {
+    if (_.any(await Promise.all(userPromises))) {
       groupOnly = false
 
       let feeds = await timeline.getSubscribers()
-      timelineIds.push(...await* feeds.map(feed => feed.getRiverOfNewsTimelineId()))
+      timelineIds.push(...await Promise.all(feeds.map(feed => feed.getRiverOfNewsTimelineId())))
     }
 
     timelineIds.push(...await this.getSubscribedTimelineIds(groupOnly))
@@ -327,7 +327,7 @@ exports.addModel = function(database) {
     let timelineIds = await this.getGenericFriendOfFriendTimelineIds(user, type)
     let promises = timelineIds.map(timelineId => models.Timeline.findById(timelineId))
 
-    return await* promises
+    return await Promise.all(promises)
   }
 
   Post.prototype.getPostsFriendOfFriendTimelineIds = function(user) {
@@ -338,8 +338,16 @@ exports.addModel = function(database) {
     return this.getGenericFriendOfFriendTimelines(user, 'Posts')
   }
 
+  Post.prototype.getLikesFriendOfFriendTimelineIds = function(user) {
+    return this.getGenericFriendOfFriendTimelineIds(user, 'Likes')
+  }
+
   Post.prototype.getLikesFriendOfFriendTimelines = function(user) {
     return this.getGenericFriendOfFriendTimelines(user, 'Likes')
+  }
+
+  Post.prototype.getCommentsFriendOfFriendTimelineIds = function(user) {
+    return this.getGenericFriendOfFriendTimelineIds(user, 'Comments')
   }
 
   Post.prototype.getCommentsFriendOfFriendTimelines = function(user) {
@@ -395,12 +403,18 @@ exports.addModel = function(database) {
 
     let subscriberIds = await user.getSubscriberIds()
     let bannedIds = await user.getBanIds()
-    let timelines = await this.getCommentsFriendOfFriendTimelines(user)
 
-    if (await this.isPrivate()) {
-      // only subscribers are allowed to read private posts
-      timelines = timelines.filter((timeline) => timeline.userId in subscriberIds)
+    let timelineIds = await this.getPostedToIds()
+
+    // only subscribers are allowed to read direct posts
+    if (!await this.isStrictlyDirect()) {
+      let moreTimelineIds = await this.getCommentsFriendOfFriendTimelineIds(user)
+      timelineIds.push(...moreTimelineIds)
+
+      timelineIds = _.uniq(timelineIds)
     }
+
+    let timelines = await Promise.all(timelineIds.map(id => models.Timeline.findById(id)))
 
     // no need to post updates to rivers of banned users
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
@@ -409,7 +423,7 @@ exports.addModel = function(database) {
     promises.push(database.rpushAsync(mkKey(['post', this.id, 'comments']), comment.id))
     promises.push(pubSub.newComment(comment, timelines))
 
-    await* promises
+    await Promise.all(promises)
 
     return timelines
   }
@@ -673,23 +687,35 @@ exports.addModel = function(database) {
     })
 
     // one public timeline is enough
-    return _.every(await* arr)
+    return _.every(await Promise.all(arr))
+  }
+
+  Post.prototype.isStrictlyDirect = async function() {
+    let timelines = await this.getPostedTo()
+    let flags = timelines.map((timeline) => timeline.isDirects())
+
+    // one non-direct timeline is enough
+    return _.every(flags)
   }
 
   Post.prototype.addLike = async function(user) {
     await user.validateCanLikePost(this)
 
     var timer = monitor.timer('posts.likes.time')
-    let subscriberIds = await user.getSubscriberIds()
-    let bannedIds = await user.getBanIds()
-    let timelines = await this.getLikesFriendOfFriendTimelines(user)
+    let timelineIds = await this.getPostedToIds()
 
-    if (await this.isPrivate()) {
-      // only subscribers are allowed to read private posts
-      timelines = timelines.filter((timeline) => timeline.userId in subscriberIds)
+    // only subscribers are allowed to read direct posts
+    if (!await this.isStrictlyDirect()) {
+      let moreTimelineIds = await this.getLikesFriendOfFriendTimelineIds(user)
+      timelineIds.push(...moreTimelineIds)
+
+      timelineIds = _.uniq(timelineIds)
     }
 
+    let timelines = await Promise.all(timelineIds.map(id => models.Timeline.findById(id)))
+
     // no need to post updates to rivers of banned users
+    let bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
@@ -697,7 +723,7 @@ exports.addModel = function(database) {
     var now = new Date().getTime()
     promises.push(database.zaddAsync(mkKey(['post', this.id, 'likes']), now, user.id))
 
-    await* promises
+    await Promise.all(promises)
 
     timer.stop()
     monitor.increment('posts.likes')
@@ -757,7 +783,7 @@ exports.addModel = function(database) {
   Post.prototype.validateCanShow = async function(userId) {
     var timelines = await this.getPostedTo()
 
-    var arr = await* timelines.map(async function(timeline) {
+    var arr = await Promise.all(timelines.map(async function(timeline) {
       // owner can read her posts
       if (timeline.userId === userId)
         return true
@@ -775,7 +801,7 @@ exports.addModel = function(database) {
       // otherwise user can view post if and only if she is subscriber
       var userIds = await timeline.getSubscriberIds()
       return userIds.indexOf(userId) >= 0
-    })
+    }))
 
     return _.reduce(arr, function(acc, x) { return acc || x }, false)
   }
