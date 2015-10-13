@@ -100,12 +100,17 @@ export default class PubsubListener {
     messageRoutes[channel](
       this.io.sockets,
       JSON.parse(msg)
-    ).catch(e => {throw e})
+    ).catch(e => {console.log(e)})
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
+    if (!(room in sockets.adapter.rooms)) {
+      return
+    }
+
     let clientIds = Object.keys(sockets.adapter.rooms[room])
-    await* clientIds.map(async (clientId) => {
+
+    await Promise.all(clientIds.map(async (clientId) => {
       let socket = sockets.connected[clientId]
       let user = socket.user
 
@@ -113,7 +118,7 @@ export default class PubsubListener {
 
       if (valid)
         socket.emit(type, json)
-    })
+    }))
   }
 
   // Message-handlers follow

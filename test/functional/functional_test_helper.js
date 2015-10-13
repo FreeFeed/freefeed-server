@@ -1,15 +1,18 @@
 "use strict";
 
-var request = require('superagent')
-    , app = require('../../index')
-    , _ = require('lodash')
+import bluebird from 'bluebird'
+import fetch from 'node-fetch'
+import request  from 'superagent'
+import _  from 'lodash'
 
-exports.flushDb = function() {
-  return function(done) {
-    $database.flushdbAsync()
-        .then(function () {
-          done()
-        })
+import app  from '../../index'
+
+
+let apiUrl = relativeUrl => `${app.config.host}${relativeUrl}`
+
+exports.flushDb = () => {
+  return async () => {
+    await $database.flushdbAsync()
   }
 }
 
@@ -57,7 +60,7 @@ exports.createUserCtx = function(context, username, password, attrs) {
 exports.subscribeToCtx = function(context, username) {
   return function(done) {
     request
-      .post(app.config.host + '/v1/users/' + username + '/subscribe')
+      .post(apiUrl(`/v1/users/${username}/subscribe`))
       .send({ authToken: context.authToken })
       .end(function(err, res) {
         done(err, res)
@@ -218,7 +221,7 @@ exports.getSubscribers = function(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    let url = `${app.config.host}/v1/users/${username}/subscribers`
+    let url = apiUrl(`/v1/users/${username}/subscribers`)
 
     request
       .get(url)
@@ -237,7 +240,7 @@ exports.getSubscriptions = function(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    let url = `${app.config.host}/v1/users/${username}/subscriptions`
+    let url = apiUrl(`/v1/users/${username}/subscriptions`)
 
     request
       .get(url)
@@ -247,4 +250,100 @@ exports.getSubscriptions = function(username, authToken, callback) {
       })
 
   }(callback)
+}
+
+function postJson(relativeUrl, data) {
+  return fetch(
+    apiUrl(relativeUrl),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    }
+  )
+}
+
+exports.like = (postId, authToken) => {
+  return postJson(`/v1/posts/${postId}/like`, { authToken })
+}
+
+exports.goPrivate = (userContext) => {
+  return postJson(
+    `/v1/users/${userContext.user.id}`,
+    {
+      authToken: userContext.authToken,
+      user: { isPrivate: "1" },
+      '_method': 'put'
+    }
+  )
+}
+
+exports.goPublic = (userContext) => {
+  return postJson(
+    `/v1/users/${userContext.user.id}`,
+    {
+      authToken: userContext.authToken,
+      user: { isPrivate: "0" },
+      '_method': 'put'
+    }
+  )
+}
+
+exports.mutualSubscriptions = async (userContexts) => {
+  let promises = []
+
+  for (let ctx1 of userContexts) {
+    for (let ctx2 of userContexts) {
+      if (ctx1.username == ctx2.username) {
+        continue
+      }
+
+      promises.push(postJson(`/v1/users/${ctx2.username}/subscribe`, {authToken: ctx1.authToken}))
+    }
+  }
+
+  await bluebird.all(promises)
+}
+
+exports.createAndReturnPost = async (userContext, body) => {
+  let response = await postJson(
+    '/v1/posts',
+    {
+      post: {body},
+      meta: {feeds: userContext.username},
+      authToken: userContext.authToken
+    }
+  )
+
+  let data = await response.json()
+
+  return data.posts
+}
+
+exports.createCommentAsync = (userContext, postId, body) => {
+  return postJson('/v1/comments', {comment: {body, postId}, authToken: userContext.authToken})
+}
+
+let getTimeline = async (relativeUrl, userContext) => {
+  let url = apiUrl(relativeUrl)
+
+  if (!_.isUndefined(userContext)) {
+    let encodedToken = encodeURIComponent(userContext.authToken)
+    url = `${url}?authToken=${encodedToken}`
+  }
+
+  let response = await fetch(url)
+  let data = await response.json()
+
+  return data
+}
+
+exports.getRiverOfNews = (userContext) => {
+  return getTimeline('/v1/timelines/home', userContext)
+}
+
+exports.getMyDiscussions = (userContext) => {
+  return getTimeline('/v1/timelines/filter/discussions', userContext)
 }

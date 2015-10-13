@@ -1,3 +1,5 @@
+import bluebird from 'bluebird'
+
 import models from './models'
 
 export default class pubSub {
@@ -18,7 +20,7 @@ export default class pubSub {
       }
     })
 
-    await* promises
+    await bluebird.all(promises)
   }
 
   async destroyPost(postId) {
@@ -30,7 +32,7 @@ export default class pubSub {
       await this.database.publishAsync('post:destroy', jsonedPost)
     })
 
-    await* promises
+    await bluebird.all(promises)
   }
 
   async updatePost(postId) {
@@ -42,7 +44,8 @@ export default class pubSub {
       await this.database.publishAsync('post:update', jsonedPost)
     })
 
-    await* promises
+    await bluebird.all(promises)
+
     let payload = JSON.stringify({ postId: postId})
     await this.database.publishAsync('post:update', payload)
   }
@@ -57,7 +60,7 @@ export default class pubSub {
       await this.database.publishAsync('comment:new', payload)
     })
 
-    await* promises
+    await bluebird.all(promises)
 
     let payload = JSON.stringify({ postId: post.id, commentId: comment.id })
     await this.database.publishAsync('comment:new', payload)
@@ -91,7 +94,7 @@ export default class pubSub {
       await this.database.publishAsync('comment:update', payload)
     })
 
-    await* promises
+    await bluebird.all(promises)
   }
 
   async newLike(post, userId, timelines) {
@@ -104,7 +107,7 @@ export default class pubSub {
       await this.database.publishAsync('like:new', payload)
     })
 
-    await* promises
+    await bluebird.all(promises)
 
     let payload = JSON.stringify({ userId: userId, postId: post.id })
     await this.database.publishAsync('like:new', payload)
@@ -119,7 +122,7 @@ export default class pubSub {
       await this.database.publishAsync('like:remove', payload)
     })
 
-    await* promises
+    await bluebird.all(promises)
 
     let payload = JSON.stringify({ userId: userId, postId: postId })
     await this.database.publishAsync('like:remove', payload)

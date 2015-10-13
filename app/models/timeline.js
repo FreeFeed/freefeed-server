@@ -190,7 +190,7 @@ exports.addModel = function(database) {
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
-    let posts = (await* postIds.map(postId => Post.findById(postId, { currentUser: this.currentUser }))).filter(Boolean)
+    let posts = (await Promise.all(postIds.map(postId => Post.findById(postId, { currentUser: this.currentUser })))).filter(Boolean)
 
     let usersCache = {}
     async function userById(id) {
@@ -204,7 +204,7 @@ exports.addModel = function(database) {
       return usersCache[id]
     }
 
-    posts = await* posts.map(async (post) => {
+    posts = await Promise.all(posts.map(async (post) => {
       if (post.userId === this.currentUser) {
         // shortcut for the author
         return post
@@ -228,7 +228,7 @@ exports.addModel = function(database) {
           return timeline.validateCanShow(this.currentUser)
         })
 
-        let wasPostedToReadableFeed = _.any(await* promises)
+        let wasPostedToReadableFeed = _.any(await Promise.all(promises))
 
         if (!wasPostedToReadableFeed) {
           return null
@@ -236,7 +236,7 @@ exports.addModel = function(database) {
       }
 
       return post
-    })
+    }))
 
     this.posts = posts.filter(Boolean)
 
@@ -260,7 +260,7 @@ exports.addModel = function(database) {
 
     let promises = postIds.map(postId => database.saddAsync(mkKey(['post', postId, 'timelines']), timelineId))
 
-    await* promises
+    await Promise.all(promises)
   }
 
   Timeline.prototype.unmerge = async function(timelineId) {
@@ -276,10 +276,10 @@ exports.addModel = function(database) {
       'AGGREGATE', 'MAX')
 
     var postIds = await database.zrangeAsync(randomKey, 0, -1)
-    await* _.flatten(postIds.map((postId) => [
+    await Promise.all(_.flatten(postIds.map((postId) => [
       database.sremAsync(mkKey(['post', postId, 'timelines']), timelineId),
       database.zremAsync(mkKey(['timeline', timelineId, 'posts']), postId)
-    ]))
+    ])))
 
     return database.delAsync(randomKey)
   }
@@ -291,27 +291,24 @@ exports.addModel = function(database) {
   /**
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
-  Timeline.prototype.getSubscriberIds = function(includeSelf) {
-    var that = this
+  Timeline.prototype.getSubscriberIds = async function(includeSelf) {
+    let userIds = await database.zrevrangeAsync(mkKey(['timeline', this.id, 'subscribers']), 0, -1)
 
-    return new Promise(function(resolve, reject) {
-      database.zrevrangeAsync(mkKey(['timeline', that.id, 'subscribers']), 0, -1)
-        .then(function(userIds) {
-          // A user is always subscribed to their own posts timeline.
-          if (includeSelf && (that.isPosts() || that.isDirects())) {
-            userIds = _.uniq(userIds.concat([that.userId]))
-          }
-          that.subscriberIds = userIds
-          resolve(userIds)
-        })
-    })
+    // A user is always subscribed to their own posts timeline.
+    if (includeSelf && (this.isPosts() || this.isDirects())) {
+      userIds = _.uniq(userIds.concat([this.userId]))
+    }
+
+    this.subscriberIds = userIds
+
+    return userIds
   }
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
     var userIds = await this.getSubscriberIds(includeSelf)
     var promises = userIds.map((userId) => models.User.findById(userId))
 
-    this.subscribers = await* promises
+    this.subscribers = await Promise.all(promises)
 
     return this.subscribers
   }
@@ -322,7 +319,7 @@ exports.addModel = function(database) {
    */
   Timeline.prototype.getSubscribedTimelineIds = async function() {
     var subscribers = await this.getSubscribers(true);
-    return await* subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId())
+    return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()))
   }
 
   Timeline.prototype.isRiverOfNews = function() {
@@ -358,11 +355,11 @@ exports.addModel = function(database) {
     if (action === "like" && score != null)
       return
 
-    await* [
+    await Promise.all([
       database.zaddAsync(mkKey(['timeline', this.id, 'posts']), currentTime, postId),
       database.saddAsync(mkKey(['post', postId, 'timelines']), this.id),
       database.hsetAsync(mkKey(['post', postId]), 'updatedAt', currentTime)
-    ]
+    ])
 
     var feed = await this.getUser()
 
