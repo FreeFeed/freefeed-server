@@ -22,32 +22,35 @@ exports.addModel = function(database) {
       return config.application.USERNAME_STOP_LIST
   }
 
-  FeedFactory.findById = function(identifier) {
-    return new Promise(function(resolve, reject) {
-      database.hgetAsync(mkKey(['user', identifier]), 'type')
-        .then(function(type) {
-          switch(type) {
-          case 'group':
-            Group.findById(identifier)
-              .then(function(group) { resolve(group) })
-            break
+  FeedFactory.findById = async function(identifier) {
+    let attrs = await database.hgetallAsync(mkKey(['user', identifier]))
 
-          default:
-            User.findById(identifier)
-              .then(function(user) { resolve(user) })
-            break
-          }
-        })
-    })
+    if (attrs.type === 'group') {
+      return Group.initObject(attrs, identifier)
+    } else {
+      return User.initObject(attrs, identifier)
+    }
   }
 
-  FeedFactory.findByUsername = function(username) {
-    return Promise.resolve(
-      database.getAsync(mkKey(['username', username, 'uid']))
-        .then(function(identifier) {
-          return FeedFactory.findById(identifier)
-        })
-    )
+  FeedFactory.findByIds = async function(identifiers) {
+    let keys = identifiers.map(id => mkKey(['user', id]))
+    let requests = keys.map(key => ['hgetall', key])
+
+    let responses = await database.batch(requests).execAsync()
+    let objects = responses.map((attrs, i) => {
+      if (attrs.type === 'group') {
+        return Group.initObject(attrs, identifiers[i])
+      } else {
+        return User.initObject(attrs, identifiers[i])
+      }
+    })
+
+    return objects
+  }
+
+  FeedFactory.findByUsername = async function(username) {
+    let identifier = await database.getAsync(mkKey(['username', username, 'uid']))
+    return FeedFactory.findById(identifier)
   }
 
   return FeedFactory
