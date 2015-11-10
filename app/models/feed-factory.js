@@ -1,13 +1,15 @@
 "use strict";
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require("../../app/models")
-  , AbstractModel = models.AbstractModel
-  , User = models.User
-  , Group = models.Group
-  , mkKey = require("../support/models").mkKey
-  , config = require('../../config/config').load()
+import Promise from "bluebird"
+import { inherits } from "util"
+
+import { AbstractModel, User, Group } from "../../app/models"
+import { mkKey } from "../support/models"
+import { load as configLoader } from "../../config/config"
+import { NotFoundException } from "../support/exceptions"
+
+let config = configLoader()
+
 
 exports.addModel = function(database) {
   var FeedFactory = function() {
@@ -22,32 +24,40 @@ exports.addModel = function(database) {
       return config.application.USERNAME_STOP_LIST
   }
 
-  FeedFactory.findById = function(identifier) {
-    return new Promise(function(resolve, reject) {
-      database.hgetAsync(mkKey(['user', identifier]), 'type')
-        .then(function(type) {
-          switch(type) {
-          case 'group':
-            Group.findById(identifier)
-              .then(function(group) { resolve(group) })
-            break
+  FeedFactory.findById = async function(identifier) {
+    let attrs = await database.hgetallAsync(mkKey(['user', identifier]))
 
-          default:
-            User.findById(identifier)
-              .then(function(user) { resolve(user) })
-            break
-          }
-        })
-    })
+    if (attrs.type === 'group') {
+      return Group.initObject(attrs, identifier)
+    } else {
+      return User.initObject(attrs, identifier)
+    }
   }
 
-  FeedFactory.findByUsername = function(username) {
-    return Promise.resolve(
-      database.getAsync(mkKey(['username', username, 'uid']))
-        .then(function(identifier) {
-          return FeedFactory.findById(identifier)
-        })
-    )
+  FeedFactory.findByIds = async function(identifiers) {
+    let keys = identifiers.map(id => mkKey(['user', id]))
+    let requests = keys.map(key => ['hgetall', key])
+
+    let responses = await database.batch(requests).execAsync()
+    let objects = responses.map((attrs, i) => {
+      if (attrs.type === 'group') {
+        return Group.initObject(attrs, identifiers[i])
+      } else {
+        return User.initObject(attrs, identifiers[i])
+      }
+    })
+
+    return objects
+  }
+
+  FeedFactory.findByUsername = async function(username) {
+    let identifier = await database.getAsync(mkKey(['username', username, 'uid']))
+
+    if (null === identifier) {
+      throw new NotFoundException(`user "${username}" is not found`)
+    }
+
+    return FeedFactory.findById(identifier)
   }
 
   return FeedFactory

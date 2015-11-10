@@ -47,7 +47,9 @@ exports.addModel = function(database) {
 
   Post.className = Post
   Post.namespace = "post"
+  Post.initObject = Post.super_.initObject
   Post.findById = Post.super_.findById
+  Post.findByIds = Post.super_.findByIds
   Post.getById = Post.super_.getById
 
   Object.defineProperty(Post.prototype, 'body', {
@@ -230,30 +232,21 @@ exports.addModel = function(database) {
     return models.User.findById(this.userId)
   }
 
-  Post.prototype.getSubscribedTimelineIds = function(groupOnly) {
-    var that = this
-    var timelineIds
+  Post.prototype.getSubscribedTimelineIds = async function(groupOnly) {
     if (typeof groupOnly === 'undefined')
       groupOnly = false
 
-    return new Promise(function(resolve, reject) {
-      FeedFactory.findById(that.userId)
-        .then(function(feed) {
-          var feeds = [feed.getRiverOfNewsTimelineId()]
-          if (!groupOnly)
-            feeds.push(feed.getPostsTimelineId())
-          return Promise.all(feeds)
-        })
-        .then(function(newTimelineIds) {
-          timelineIds = newTimelineIds
-          return that.getTimelineIds()
-        })
-        .then(function(newTimelineIds) {
-          timelineIds = timelineIds.concat(newTimelineIds)
-          timelineIds = _.uniq(timelineIds)
-          resolve(timelineIds)
-        })
-    })
+    let feed = await FeedFactory.findById(this.userId)
+
+    let feeds = [feed.getRiverOfNewsTimelineId()]
+    if (!groupOnly)
+      feeds.push(feed.getPostsTimelineId())
+
+    let timelineIds = await Promise.all(feeds)
+    let newTimelineIds = await this.getTimelineIds()
+
+    timelineIds = timelineIds.concat(newTimelineIds)
+    return _.uniq(timelineIds)
   }
 
   Post.prototype.getSubscribedTimelines = async function() {
@@ -271,8 +264,8 @@ exports.addModel = function(database) {
 
   Post.prototype.getTimelines = async function() {
     var timelineIds = await this.getTimelineIds()
-    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
-    this.timelines = timelines
+    this.timelines = await models.Timeline.findByIds(timelineIds)
+
     return this.timelines
   }
 
@@ -296,20 +289,15 @@ exports.addModel = function(database) {
     timelineIds.push(timeline.id)
 
     let postedToIds = await this.getPostedToIds()
-
-    let userPromises = postedToIds.map(async (timelineId) => {
-      let timeline = await models.Timeline.findById(timelineId)
-      let timelineOwner = await timeline.getUser()
-
-      return timelineOwner.isUser()
-    })
+    let timelines = await models.Timeline.findByIds(postedToIds)
+    let timelineOwners = await models.FeedFactory.findByIds(timelines.map(tl => tl.userId))
 
     // Adds the specified post to River of News if and only if
     // that post has been published to user's Post timeline,
     // otherwise this post will stay in group(s) timelines
     let groupOnly = true
 
-    if (_.any(await Promise.all(userPromises))) {
+    if (_.any(timelineOwners.map((owner) => owner.isUser()))) {
       groupOnly = false
 
       let feeds = await timeline.getSubscribers()
