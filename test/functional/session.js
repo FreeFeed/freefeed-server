@@ -61,7 +61,7 @@ describe("SessionController", () => {
         })
     })
 
-    it('should not signin with missing username', async () => {
+    it('should not sign in with missing username', async () => {
       let result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
       let data = await result.json()
 
