@@ -789,6 +789,14 @@ exports.addModel = function(database) {
     return this
   }
 
+  // Subscribe this user to `username`
+  User.prototype.subscribeToUsername = async function(username) {
+    var user = await models.User.findByUsername(username)
+    var timelineId = await user.getPostsTimelineId()
+    await this.validateCanSubscribe(timelineId)
+    return this.subscribeTo(timelineId)
+  }
+
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
     var timeline = await models.Timeline.findById(timelineId)
     var user = await models.FeedFactory.findById(timeline.userId)

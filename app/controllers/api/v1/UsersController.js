@@ -231,10 +231,7 @@ exports.addController = function(app) {
         return res.status(401).jsonp({ err: 'Not found' })
 
       try {
-        var user = await models.User.findByUsername(req.params.username)
-        var timelineId = await user.getPostsTimelineId()
-        await req.user.validateCanSubscribe(timelineId)
-        await req.user.subscribeTo(timelineId)
+        await req.user.subscribeToUsername(req.params.username)
 
         var json = await new MyProfileSerializer(req.user).promiseToJSON()
         res.jsonp(json)
