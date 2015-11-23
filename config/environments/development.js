@@ -28,7 +28,8 @@ exports.getConfig = function() {
     appRoot: '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel: 'warn'
+    logLevel: 'warn',
+    onboardingUsername: 'welcome'
   }
 
   config.host = 'http://localhost:' + config.port
