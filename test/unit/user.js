@@ -781,7 +781,7 @@ describe('User', function() {
         .then(function(user) { done() })
     })
 
-    it('should subscribe to timeline', async function(done) {
+    it('should subscribe to timeline', async function() {
       var attrs = {
         body: 'Post body'
       }
@@ -789,6 +789,45 @@ describe('User', function() {
       await post.create()
       let timelineId = await userB.getPostsTimelineId()
       await userA.subscribeTo(timelineId)
+      let timeline = await userA.getRiverOfNewsTimeline()
+      let posts = await timeline.getPosts()
+
+      posts.should.not.be.empty
+      posts.length.should.eql(1)
+      var newPost = posts[0]
+      newPost.should.have.property('body')
+      newPost.body.should.eql(post.body)
+      newPost.id.should.eql(post.id)
+    })
+  })
+
+  describe('#subscribeToUsername()', function() {
+    var userA
+      , userB
+
+    beforeEach(function(done) {
+      userA = new User({
+        username: 'Luna',
+        password: 'password'
+      })
+
+      userB = new User({
+        username: 'Mars',
+        password: 'password'
+      })
+
+      userA.create()
+        .then(function(user) { return userB.create() })
+        .then(function(user) { done() })
+    })
+
+    it('should subscribe to username', async function(done) {
+      var attrs = {
+        body: 'Post body'
+      }
+      var post = await userB.newPost(attrs)
+      await post.create()
+      await userA.subscribeToUsername(userB.username)
       let timeline = await userA.getRiverOfNewsTimeline()
       let posts = await timeline.getPosts()
 
