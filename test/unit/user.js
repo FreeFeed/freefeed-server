@@ -781,30 +781,25 @@ describe('User', function() {
         .then(function(user) { done() })
     })
 
-    it('should subscribe to timeline', function(done) {
+    it('should subscribe to timeline', async function(done) {
       var attrs = {
         body: 'Post body'
       }
-      var post
+      var post = await userB.newPost(attrs)
+      await post.create()
+      let timelineId = await userB.getPostsTimelineId()
+      await userA.subscribeTo(timelineId)
+      let timeline = await userA.getRiverOfNewsTimeline()
+      let posts = await timeline.getPosts()
 
-      userB.newPost(attrs)
-        .then(function(newPost) {
-          post = newPost
-          return newPost.create()
-        })
-        .then(function(post) { return userB.getPostsTimelineId() })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function() { return userA.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
-          posts.should.not.be.empty
-          posts.length.should.eql(1)
-          var newPost = posts[0]
-          newPost.should.have.property('body')
-          newPost.body.should.eql(post.body)
-          newPost.id.should.eql(post.id)
-        })
-        .then(function() { done() })
+      posts.should.not.be.empty
+      posts.length.should.eql(1)
+      var newPost = posts[0]
+      newPost.should.have.property('body')
+      newPost.body.should.eql(post.body)
+      newPost.id.should.eql(post.id)
+
+      done()
     })
   })
 
