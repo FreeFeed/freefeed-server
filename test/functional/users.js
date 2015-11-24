@@ -54,6 +54,41 @@ describe("UsersController", function() {
         })
     })
 
+    describe('onboarding', function() {
+      var onboardCtx = {}
+      beforeEach(funcTestHelper.createUserCtx(onboardCtx, 'welcome', 'pw'))
+
+      it('should subscribe created user to onboarding account', function(done) {
+        var user = {
+          username: 'Luna',
+          password: 'password'
+        }
+
+        request
+          .post(app.config.host + '/v1/users')
+          .send({ username: user.username, password: user.password })
+          .end(function(err, res) {
+            res.body.should.have.property('authToken')
+            let authToken = res.body.authToken
+
+            request
+              .get(app.config.host + '/v1/users/' + user.username + '/subscriptions')
+              .query({ authToken })
+              .end(function(err, res) {
+                res.body.should.not.be.empty
+                res.body.should.have.property('subscriptions')
+                var types = ['Comments', 'Likes', 'Posts']
+                async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
+                  callback(null, memo && (types.indexOf(user.name) >= 0) && (user.user == onboardCtx.user.id))
+                }, function(err, contains) {
+                  contains.should.eql(true)
+                  done()
+                })
+              })
+          })
+      })
+    })
+
     it('should not create an invalid user', function(done) {
       var user = {
         username: 'Luna',
