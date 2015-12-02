@@ -761,44 +761,40 @@ exports.addModel = function(database) {
     return database.zremAsync(mkKey(['user', this.id, 'bans']), user.id)
   }
 
-  User.prototype.subscribeTo = function(timelineId) {
-    var currentTime = new Date().getTime()
-    var that = this
-    var timeline
+  // Subscribe to user-owner of a given `timelineId`
+  User.prototype.subscribeTo = async function(timelineId) {
+    let timeline = await models.Timeline.findById(timelineId)
+    let user = await models.FeedFactory.findById(timeline.userId)
 
-    return new Promise(function(resolve, reject) {
-      let theUser
+    if (user.username == this.username)
+      throw new Error("Invalid")
 
-      models.Timeline.findById(timelineId)
-        .then(function(newTimeline) {
-          timeline = newTimeline
-          return models.FeedFactory.findById(newTimeline.userId)
-        })
-        .then(function(user) {
-          theUser = user
-          if (user.username == that.username)
-            throw new Error("Invalid")
+    let currentTime = new Date().getTime()
+    let timelineIds = await user.getPublicTimelineIds()
 
-          return user.getPublicTimelineIds()
-        })
-        .then(function(timelineIds) {
-          return Promise.map(timelineIds, function(timelineId) {
-            return Promise.all([
-              database.zaddAsync(mkKey(['user', that.id, 'subscriptions']), currentTime, timelineId),
-              database.zaddAsync(mkKey(['timeline', timelineId, 'subscribers']), currentTime, that.id)
-            ])
-          })
-        })
-        .then(function(res) { return that.getRiverOfNewsTimelineId() })
-        .then(function(riverOfNewsId) { return timeline.mergeTo(riverOfNewsId) })
-        .then(function() { return models.Stats.findById(that.id) })
-        .then(function(stats) { return stats.addSubscription() })
-        .then(function() { monitor.increment('users.subscriptions') })
-        .then(function() { return models.Stats.findById(theUser.id) })
-        .then(function(stats) { return stats.addSubscriber() })
-        .then(function(res) { resolve(res) })
-        .catch(function(e) { reject(e) })
-    })
+    let promises = _.flatten(timelineIds.map((timelineId) => [
+      database.zaddAsync(mkKey(['user', this.id, 'subscriptions']), currentTime, timelineId),
+      database.zaddAsync(mkKey(['timeline', timelineId, 'subscribers']), currentTime, this.id)
+    ]))
+
+    promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
+
+    promises.push((await models.Stats.findById(this.id)).addSubscription())
+    promises.push((await models.Stats.findById(user.id)).addSubscriber())
+
+    await Promise.all(promises)
+
+    monitor.increment('users.subscriptions')
+
+    return this
+  }
+
+  // Subscribe this user to `username`
+  User.prototype.subscribeToUsername = async function(username) {
+    var user = await models.User.findByUsername(username)
+    var timelineId = await user.getPostsTimelineId()
+    await this.validateCanSubscribe(timelineId)
+    return this.subscribeTo(timelineId)
   }
 
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {

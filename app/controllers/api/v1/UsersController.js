@@ -27,6 +27,13 @@ exports.addController = function(app) {
         var user = new models.User(params)
         await user.create(false)
 
+        try {
+          await models.FeedFactory.findByUsername(config.onboardingUsername)
+          await user.subscribeToUsername(config.onboardingUsername)
+        } catch (e /*if e instanceof NotFoundException*/) {
+          // if onboarding username is not found, just pass
+        }
+
         var secret = config.secret
         var authToken = jwt.sign({ userId: user.id }, secret)
 
@@ -51,6 +58,13 @@ exports.addController = function(app) {
       try {
         var user = new models.User(params)
         await user.create(true)
+
+        try {
+          await models.FeedFactory.findByUsername(config.onboardingUsername)
+          await user.subscribeToUsername(config.onboardingUsername)
+        } catch (e /*if e instanceof NotFoundException*/) {
+          // if onboarding username is not found, just pass
+        }
 
         var secret = config.secret
         var authToken = jwt.sign({ userId: user.id }, secret)
@@ -231,10 +245,7 @@ exports.addController = function(app) {
         return res.status(401).jsonp({ err: 'Not found' })
 
       try {
-        var user = await models.User.findByUsername(req.params.username)
-        var timelineId = await user.getPostsTimelineId()
-        await req.user.validateCanSubscribe(timelineId)
-        await req.user.subscribeTo(timelineId)
+        await req.user.subscribeToUsername(req.params.username)
 
         var json = await new MyProfileSerializer(req.user).promiseToJSON()
         res.jsonp(json)
