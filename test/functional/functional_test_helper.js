@@ -1,6 +1,5 @@
 "use strict";
 
-import bluebird from 'bluebird'
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _  from 'lodash'
@@ -304,7 +303,7 @@ exports.mutualSubscriptions = async (userContexts) => {
     }
   }
 
-  await bluebird.all(promises)
+  await Promise.all(promises)
 }
 
 exports.createAndReturnPost = async (userContext, body) => {
