@@ -180,6 +180,8 @@ exports.addModel = function(database) {
     return User.emailIsValid(this.email)
   }
 
+  User.emailRedisKey = (email) => mkKey(['email', email.toLowerCase(), 'uid'])
+
   User.emailIsValid = async function(email) {
     // email is optional
     if (!email || email.length == 0) {
@@ -190,7 +192,7 @@ exports.addModel = function(database) {
       return false
     }
 
-    var uid = await database.getAsync(mkKey(['email', email, 'uid']))
+    var uid = await database.getAsync(User.emailRedisKey(email))
 
     if (uid) {
       // email is taken
@@ -261,13 +263,13 @@ exports.addModel = function(database) {
   User.prototype.createEmailIndex = function() {
     // email is optional, so no need to index an empty key
     if (this.email && this.email.length > 0) {
-      return database.setAsync(mkKey(['email', this.email, 'uid']), this.id)
+      return database.setAsync(User.emailRedisKey(this.email), this.id)
     }
     return new Promise.resolve(true)
   }
 
   User.prototype.dropIndexForEmail = function(email) {
-    return database.delAsync(mkKey(['email', email, 'uid']))
+    return database.delAsync(User.emailRedisKey(email))
   }
 
   User.prototype.create = async function(skip_stoplist) {
