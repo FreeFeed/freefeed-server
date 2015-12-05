@@ -460,31 +460,26 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getComments = function() {
-    var that = this
-    var banIds
+  Post.prototype.getComments = async function() {
+    let banIds = []
 
-    return new Promise(function(resolve, reject) {
-      models.User.findById(that.currentUser)
-        .then(function(user) { return user ? user.getBanIds() : [] })
-        .then(function(feedIds) {
-          banIds = feedIds
-          return that.getCommentIds()
-        })
-        .then(function(commentIds) {
-          return Promise.map(commentIds, function(commentId) {
-            return models.Comment.findById(commentId)
-              .then(function(comment) {
-                return banIds.indexOf(comment.userId) >= 0 ? null : comment
-              })
-          })
-        })
-        .then(function(comments) {
-          // filter null comments
-          that.comments = comments.filter(Boolean)
-          resolve(that.comments)
-        })
+    if (this.currentUser) {
+      let user = await models.User.findById(this.currentUser)
+      if (user)
+        banIds = await user.getBanIds()
+    }
+
+    let commentIds = await this.getCommentIds()
+
+    let commentPromises = commentIds.map(async (commentId) => {
+      let comment = await models.Comment.findById(commentId)
+      return banIds.indexOf(comment.userId) >= 0 ? null : comment
     })
+
+    let comments = await Promise.all(commentPromises)
+    this.comments = comments.filter(Boolean)
+
+    return this.comments
   }
 
   Post.prototype.linkAttachments = function(attachmentList) {
@@ -568,51 +563,44 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getLikeIds = function() {
-    var that = this
+  Post.prototype.getLikeIds = async function() {
+    let length = await database.zcardAsync(mkKey(['post', this.id, 'likes']))
 
-    return new Promise(function(resolve, reject) {
-      database.zcardAsync(mkKey(['post', that.id, 'likes']))
-        .then(function(length) {
-          if (length > that.maxLikes && that.maxLikes != 'all') {
-            database.zscoreAsync(mkKey(['post', that.id, 'likes']), that.currentUser).bind({})
-              .then(function(score) { this.includeUser = score && score >= 0 })
-              .then(function() {
-                return database.zrevrangeAsync(mkKey(['post', that.id, 'likes']), 0, that.maxLikes - 1)
-              })
-              .then(function(likeIds) {
-                that.likeIds = likeIds
-                that.omittedLikes = length - that.maxLikes
+    if (length > this.maxLikes && this.maxLikes != 'all') {
+      let score = await database.zscoreAsync(mkKey(['post', this.id, 'likes']), this.currentUser)
+      let includeUser = score && score >= 0
 
-                if (this.includeUser) {
-                  if (likeIds.indexOf(that.currentUser) == -1) {
-                    that.likeIds = [that.currentUser].concat(that.likeIds.slice(0, -1))
-                  } else {
-                    that.likeIds = that.likeIds.sort(function(a, b) {
-                      if (a == that.currentUser) return -1
-                      if (b == that.currentUser) return 1
-                    })
-                  }
-                }
+      let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, this.maxLikes - 1)
 
-                resolve(that.likeIds.slice(0, that.maxLikes))
-              })
-          } else {
-            database.zrevrangeAsync(mkKey(['post', that.id, 'likes']), 0, -1)
-              .then(function(likeIds) {
-                var to = 0
-                var from = _.findIndex(likeIds, function(user) { return user == that.currentUser })
+      this.likeIds = likeIds
+      this.omittedLikes = length - this.maxLikes
 
-                if (from > 0) {
-                  likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
-                }
-                that.likeIds = likeIds
+      if (includeUser) {
+        if (likeIds.indexOf(this.currentUser) == -1) {
+          this.likeIds = [this.currentUser].concat(this.likeIds.slice(0, -1))
+        } else {
+          this.likeIds = this.likeIds.sort(function(a, b) {
+            if (a == this.currentUser) return -1
+            if (b == this.currentUser) return 1
+          })
+        }
+      }
 
-                resolve(that.likeIds)
-              })
-          }
-        })
-    })
+      return this.likeIds.slice(0, this.maxLikes)
+    } else {
+      let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, -1)
+
+      let to = 0
+      let from = _.findIndex(likeIds, user => (user == this.currentUser))
+
+      if (from > 0) {
+        likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
+      }
+
+      this.likeIds = likeIds
+
+      return this.likeIds
+    }
   }
 
   Post.prototype.getOmittedLikes = function() {
@@ -638,28 +626,29 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getLikes = function() {
-    var that = this
-    var banIds
+  Post.prototype.getLikes = async function() {
+    let banIds = []
 
-    return new Promise(function(resolve, reject) {
-      models.User.findById(that.currentUser)
-        .then(function(user) { return user ? user.getBanIds() : [] })
-        .then(function(feedIds) {
-          banIds = feedIds
-          return that.getLikeIds()
-        })
-        .then(function(userIds) {
-          return Promise.map(userIds, function(userId) {
-            return banIds.indexOf(userId) >= 0 ? null : models.User.findById(userId)
-          })
-        })
-        .then(function(users) {
-          // filter null comments
-          that.likes = users.filter(Boolean)
-          resolve(that.likes)
-        })
+    if (this.currentUser) {
+      let user = await models.User.findById(this.currentUser)
+
+      if (user) {
+        banIds = await user.getBanIds()
+      }
+    }
+
+    let userIds = await this.getLikeIds()
+
+    let userPromises = userIds.map(async (userId) => {
+      return banIds.indexOf(userId) >= 0 ? null : models.User.findById(userId)
     })
+
+    let users = await Promise.all(userPromises)
+
+    // filter null comments
+    this.likes = users.filter(Boolean)
+
+    return this.likes
   }
 
   Post.prototype.isPrivate = async function() {
