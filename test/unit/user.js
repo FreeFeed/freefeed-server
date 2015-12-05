@@ -70,7 +70,7 @@ describe('User', function() {
       'aaaaaaaaaaaaaaaaaaaaaaaaaa'  // 26 chars is 1 char too much
     ]
     invalid.forEach(function(username) {
-      it('should not allow invalid username ' + username, function(done) {
+      it('should not allow invalid username ' + username, async () => {
 
         var user = new User({
           username: username,
@@ -79,12 +79,20 @@ describe('User', function() {
           email: 'user@example.com'
         })
 
-        user.create()
-          .then(function() { done(new Error('FAIL')) })
-          .catch(function(e) {
-            e.message.should.eql("Invalid")
-            done()
-          })
+        let failed = false
+
+        try {
+          await user.create()
+          failed = true
+        } catch (e) {
+          if (e.message !== 'Invalid') {
+            throw e
+          }
+        }
+
+        if (failed) {
+          throw new Error('FAIL')
+        }
       })
     })
   })
