@@ -249,8 +249,9 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {
+    await this.validate(skip_stoplist)
+
     var promises = [
-      this.validate(skip_stoplist),
       this.validateUniquness(mkKey(['username', this.username, 'uid'])),
       this.validateUniquness(mkKey(['user', this.id]))
     ];
