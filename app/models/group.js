@@ -100,11 +100,14 @@ exports.addModel = function(database) {
         id: this.id
       })
 
-      await Promise.all([
-        this.addAdministrator(ownerId),
-        this.subscribeOwner(ownerId),
-        stats.create()
-      ])
+      let promises = [stats.create()]
+
+      if (ownerId) {
+        promises.push(this.addAdministrator(ownerId))
+        promises.push(this.subscribeOwner(ownerId))
+      }
+
+      await Promise.all(promises)
 
       return this
   }
