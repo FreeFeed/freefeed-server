@@ -8,40 +8,44 @@ exports.addController = function(app) {
   var PasswordsController = function() {
   }
 
-  PasswordsController.create = function(req, res) {
+  PasswordsController.create = async function(req, res) {
     var email = req.body.email
 
     if (email == null || email.length == 0) {
-      return res.jsonp({ err: "Email cannot be blank" })
+      res.jsonp({ err: "Email cannot be blank" })
+      return
     }
 
-    models.User.findByEmail(email).bind({})
-      .then(function(user) {
-        this.user = user
-        return user.updateResetPasswordToken()
-      })
-      .then(function(token) {
-        UserMailer.resetPassword(this.user, { user: this.user })
-        res.jsonp({ message: 'We will send a password reset link to ' + this.user.email + ' in a moment' })
-      })
-      .catch(exceptions.reportError(res))
+    try {
+      let user = await models.User.findByEmail(email)
+      let token = await user.updateResetPasswordToken()
+
+      UserMailer.resetPassword(user, { user })
+
+      res.jsonp({ message: 'We will send a password reset link to ' + user.email + ' in a moment' })
+    } catch (e) {
+      console.log(e)
+      exceptions.reportError(res)(e)
+    }
   }
 
-  PasswordsController.update = function(req, res) {
+  PasswordsController.update = async function(req, res) {
     var token = req.params.resetPasswordToken
 
     if (token == null || token.length == 0) {
-      return res.jsonp({ err: "Token cannot be blank" })
+      res.jsonp({ err: "Token cannot be blank" })
+      return
     }
 
-    models.User.findByResetToken(token).bind({})
-      .then(function(user) {
-        this.user = user
-        return user.updatePassword(req.body.newPassword, req.body.passwordConfirmation)
-      })
-      .then(function() { this.user.updateResetPasswordToken() })
-      .then(function(user) { res.jsonp({ message: 'Your new password has been saved' }) })
-      .catch(exceptions.reportError(res))
+    try {
+      let user = await models.User.findByResetToken(token)
+      await user.updatePassword(req.body.newPassword, req.body.passwordConfirmation)
+      await user.updateResetPasswordToken()
+
+      res.jsonp({ message: 'Your new password has been saved' })
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
   }
 
   return PasswordsController
