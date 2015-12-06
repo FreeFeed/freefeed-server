@@ -146,14 +146,19 @@ exports.addModel = function(database) {
           that.resetPasswordToken = token
           this.token = token
 
-          return Promise.all([
+          let promises = [
             database.hmsetAsync(mkKey(['user', that.id]),
-                                { 'resetPasswordToken': token,
-                                  'resetPasswordSentAt': now
-                                }),
-            database.delAsync(mkKey(['reset', oldToken, 'uid'])),
+              { 'resetPasswordToken': token,
+                'resetPasswordSentAt': now
+              }),
             database.setAsync(mkKey(['reset', token, 'uid']), that.id)
-          ])
+          ]
+
+          if (oldToken) {
+            promises.push(database.delAsync(mkKey(['reset', oldToken, 'uid'])))
+          }
+
+          return Promise.all(promises)
         })
         .then(function() {
           var expireAfter = 60*60*24 // 24 hours
@@ -246,8 +251,9 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {
+    await this.validate(skip_stoplist)
+
     var promises = [
-      this.validate(skip_stoplist),
       this.validateUniquness(mkKey(['username', this.username, 'uid'])),
       this.validateUniquness(mkKey(['user', this.id]))
     ];

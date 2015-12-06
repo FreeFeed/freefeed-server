@@ -336,18 +336,16 @@ describe('Post', function() {
         .catch(function(e) { done(e) })
     })
 
-    it('should add user to likes', function(done) {
-      post.addLike(userA)
-        .then(function(res) { return post.getLikes() })
-        .then(function(users) {
-          users.should.not.be.empty
-          users.length.should.eql(1)
-          var user = users[0]
-          user.should.have.property('id')
-          user.id.should.eql(userA.id)
-        })
-        .then(function() { done() })
-        .catch(function(e) { done(e) })
+    it('should add user to likes', async () => {
+      await post.addLike(userA)
+      let users = await post.getLikes()
+
+      users.should.not.be.empty
+      users.length.should.eql(1)
+
+      var user = users[0]
+      user.should.have.property('id')
+      user.id.should.eql(userA.id)
     })
   })
 

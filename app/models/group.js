@@ -100,11 +100,14 @@ exports.addModel = function(database) {
         id: this.id
       })
 
-      await Promise.all([
-        this.addAdministrator(ownerId),
-        this.subscribeOwner(ownerId),
-        stats.create()
-      ])
+      let promises = [stats.create()]
+
+      if (ownerId) {
+        promises.push(this.addAdministrator(ownerId))
+        promises.push(this.subscribeOwner(ownerId))
+      }
+
+      await Promise.all(promises)
 
       return this
   }
@@ -134,26 +137,17 @@ exports.addModel = function(database) {
     return mkKey(['user', this.id, 'administrators'])
   }
 
-  Group.prototype.subscribeOwner = function(ownerId) {
-    var that = this
+  Group.prototype.subscribeOwner = async function(ownerId) {
+    let owner = await User.findById(ownerId)
 
-    return new Promise(function(resolve, reject) {
-      let theOwner
+    if (!owner) {
+      return null
+    }
 
-      return User.findById(ownerId).then(function(owner) {
-        if (!owner) {
-          resolve(null)
-          return
-        }
-        theOwner = owner
-        return that.getPostsTimelineId()
-      })
-      .then(function(timelineId) {
-        return theOwner.subscribeTo(timelineId)
-      })
-      .then(function(res) { resolve(res)})
-      .catch(function(e) { reject(e) })
-    })
+    let timelineId = await this.getPostsTimelineId()
+    let res = await owner.subscribeTo(timelineId)
+
+    return res
   }
 
   Group.prototype.addAdministrator = function(feedId) {
