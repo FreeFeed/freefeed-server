@@ -81,7 +81,7 @@ describe("GroupsController", function() {
             err.should.not.be.empty
             err.status.should.eql(422)
             err.response.error.should.have.property('text')
-            JSON.parse(err.response.error.text).err.should.eql('Invalid')
+            JSON.parse(err.response.error.text).err.should.eql('Invalid username')
             done()
           })
     })
@@ -97,7 +97,7 @@ describe("GroupsController", function() {
             err.should.not.be.empty
             err.status.should.eql(422)
             err.response.error.should.have.property('text')
-            JSON.parse(err.response.error.text).err.should.eql('Invalid')
+            JSON.parse(err.response.error.text).err.should.eql('Invalid username')
             done()
           })
     })

@@ -61,19 +61,17 @@ exports.addModel = function(database) {
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
         && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
-    return Promise.resolve(valid)
+    return valid
   }
 
   Group.prototype.validate = async function(skip_stoplist) {
-    var valid
+    if (!this.isValidUsername(skip_stoplist)) {
+      throw new Error('Invalid username')
+    }
 
-    valid = this.isValidUsername(skip_stoplist).value()
-      && this.isValidScreenName().value()
-
-    if (!valid)
-      throw new Error("Invalid")
-
-    return valid
+    if (!this.isValidScreenName()) {
+      throw new Error('Invalid screenname')
+    }
   }
 
   Group.prototype.create = async function(ownerId, skip_stoplist) {

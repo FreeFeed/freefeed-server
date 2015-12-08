@@ -117,7 +117,7 @@ describe("UsersController", function() {
         .end(function(err, res) {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
-          res.body.err.should.eql('Invalid')
+          res.body.err.should.eql('Invalid username')
           done()
         })
     })
@@ -152,7 +152,7 @@ describe("UsersController", function() {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           err.response.error.should.have.property('text')
-          JSON.parse(err.response.error.text).err.should.eql('Invalid')
+          JSON.parse(err.response.error.text).err.should.eql('Invalid email')
           done()
         })
     })
