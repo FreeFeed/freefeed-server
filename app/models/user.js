@@ -214,13 +214,11 @@ exports.addModel = function(database) {
         && this.username.match(/^[A-Za-z0-9]+$/)
         && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
-    return Promise.resolve(valid)
+    return valid
   }
 
   User.prototype.isValidScreenName = function() {
-    var valid = this.screenNameIsValid(this.screenName)
-
-    return Promise.resolve(valid)
+    return this.screenNameIsValid(this.screenName)
   }
 
   User.prototype.screenNameIsValid = function(screenName) {
@@ -238,16 +236,17 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validate = async function(skip_stoplist) {
-    var valid
+    if (!this.isValidUsername(skip_stoplist)) {
+      throw new Error('Invalid username')
+    }
 
-    valid = this.isValidUsername(skip_stoplist).value()
-      && this.isValidScreenName().value()
-      && await this.isValidEmail()
+    if (!this.isValidScreenName()) {
+      throw new Error('Invalid screenname')
+    }
 
-    if (!valid)
-      throw new Error("Invalid")
-
-    return true
+    if (!await this.isValidEmail()) {
+      throw new Error('Invalid email')
+    }
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {

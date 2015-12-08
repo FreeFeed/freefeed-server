@@ -79,20 +79,14 @@ describe('User', function() {
           email: 'user@example.com'
         })
 
-        let failed = false
-
         try {
           await user.create()
-          failed = true
         } catch (e) {
-          if (e.message !== 'Invalid') {
-            throw e
-          }
+          e.message.should.eql('Invalid username')
+          return
         }
 
-        if (failed) {
-          throw new Error('FAIL')
-        }
+        throw new Error('FAIL')
       })
     })
   })
@@ -129,11 +123,11 @@ describe('User', function() {
 
       return user.create()
         .catch(function(e) {
-          expect(e.message).to.equal('Invalid');
+          expect(e.message).to.equal('Invalid email');
         })
     })
 
-    it('should not allow 2 users with same email', function(done) {
+    it('should not allow 2 users with same email', async () => {
       var user1 = new User({
         username: 'Luna1',
         password: 'password',
@@ -146,12 +140,16 @@ describe('User', function() {
         email: 'email@example.com'
       })
 
-      user1.create()
-        .then(function() { return user2.create() })
-        .catch(function(e) {
-          expect(e.message).to.equal('Invalid');
-          done()
-        })
+      await user1.create()
+
+      try {
+        await user2.create()
+      } catch (e) {
+        expect(e.message).to.equal('Invalid email')
+        return
+      }
+
+      throw new Error(`FAIL (should not allow 2 users for same email)`)
     })
   })
 
@@ -358,17 +356,20 @@ describe('User', function() {
         })
     })
 
-    it('should not create user from stop-list', function(done) {
+    it('should not create user from stop-list', async () => {
       var user = new User({
         username: 'Public',
         password: 'password'
       })
 
-      user.create()
-        .catch(function(e) {
-          e.message.should.eql("Invalid")
-          done()
-        })
+      try {
+        await user.create()
+      } catch (e) {
+        e.message.should.eql("Invalid username")
+        return
+      }
+
+      throw new Error(`FAIL ("Public" username is in a stop-list. should not be allowed)`)
     })
   })
 
