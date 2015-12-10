@@ -463,14 +463,9 @@ exports.addModel = function(database) {
     }
 
     let commentIds = await this.getCommentIds()
+    let comments = await models.Comment.findByIds(commentIds)
 
-    let commentPromises = commentIds.map(async (commentId) => {
-      let comment = await models.Comment.findById(commentId)
-      return banIds.indexOf(comment.userId) >= 0 ? null : comment
-    })
-
-    let comments = await Promise.all(commentPromises)
-    this.comments = comments.filter(Boolean)
+    this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
 
     return this.comments
   }

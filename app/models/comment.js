@@ -35,6 +35,7 @@ exports.addModel = function(database) {
   Comment.namespace = "comment"
   Comment.initObject = Comment.super_.initObject
   Comment.findById = Comment.super_.findById
+  Comment.findByIds = Comment.super_.findByIds
   Comment.getById = Comment.super_.getById
 
   Object.defineProperty(Comment.prototype, 'body', {
