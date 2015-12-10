@@ -187,7 +187,8 @@ exports.addModel = function(database) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await Promise.all(adminIds.map((userId) => models.User.findById(userId)))
+    this.administrators = await models.User.findByIds(adminIds)
+
     return this.administrators
   }
 
