@@ -556,14 +556,14 @@ exports.addModel = function(database) {
 
     if (length > this.maxLikes && this.maxLikes != 'all') {
       let score = await database.zscoreAsync(mkKey(['post', this.id, 'likes']), this.currentUser)
-      let includeUser = score && score >= 0
+      let includesUser = score && score >= 0
 
       let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, this.maxLikes - 1)
 
       this.likeIds = likeIds
       this.omittedLikes = length - this.maxLikes
 
-      if (includeUser) {
+      if (includesUser) {
         if (likeIds.indexOf(this.currentUser) == -1) {
           this.likeIds = [this.currentUser].concat(this.likeIds.slice(0, -1))
         } else {
