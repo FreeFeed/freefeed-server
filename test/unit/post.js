@@ -478,46 +478,56 @@ describe('Post', function() {
   })
 
   describe('#getComments()', function() {
-    var userA
+    let userA
       , post
-      , comment
+      , comments = []
 
-    beforeEach(function(done) {
-      userA = new User({
+    beforeEach(async () => {
+      const userAttrs = {
         username: 'Luna',
         password: 'password'
-      })
+      }
+      userA = new User(userAttrs)
+      await userA.create()
 
-      var postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' }
+      post = await userA.newPost(postAttrs)
+      await post.create()
 
-      userA.create()
-        .then(function(user) { return userA.newPost(postAttrs) })
-        .then(function(newPost) { return newPost.create() })
-        .then(function(newPost) {
-          post = newPost
-          var commentAttrs = {
-            body: 'Comment body',
-            postId: post.id
-          }
-          return userA.newComment(commentAttrs)
-        })
-        .then(function(newComment) {
-          comment = newComment
-          return comment.create()
-        })
-        .then(function(res) { done() })
+      for (let i=0; i<10; i++) {
+        const commentAttrs = {
+          body: 'Comment body',
+          postId: post.id
+        }
+        comments[i] = await userA.newComment(commentAttrs)
+        await comments[i].create()
+      }
     })
 
-    it('should get comments', function(done) {
-      post.getComments()
-        .then(function(comments) {
-          comments.should.not.be.empty
-          comments.length.should.eql(1)
-          var newComment = comments[0]
-          newComment.should.have.property('id')
-          newComment.id.should.eql(comment.id)
-        })
-        .then(function() { done() })
+    it('should get all comments', async () => {
+      post.maxComments = 'all'
+
+      let fetchedComments = await post.getComments()
+      fetchedComments.should.not.be.empty
+      fetchedComments.length.should.eql(10)
+
+      for (let i=0; i<10; i++) {
+        fetchedComments[i].should.have.property('id')
+        fetchedComments[i].id.should.eql(comments[i].id)
+      }
+    })
+
+    it('should get first and last comments', async () => {
+      post.maxComments = 4
+
+      let fetchedComments = await post.getComments()
+      fetchedComments.should.not.be.empty
+      fetchedComments.length.should.eql(4)
+
+      fetchedComments[0].id.should.eql(comments[0].id)
+      fetchedComments[1].id.should.eql(comments[1].id)
+      fetchedComments[2].id.should.eql(comments[2].id)
+      fetchedComments[3].id.should.eql(comments[9].id)
     })
   })
 

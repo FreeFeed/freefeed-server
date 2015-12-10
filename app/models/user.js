@@ -416,7 +416,8 @@ exports.addModel = function(database) {
         await Promise.all(promises)
       }
 
-      let commenters = _.uniq(await Promise.all(comments.map(comment => models.User.findById(comment.userId)), 'id'))
+      let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
+      let commenters = await models.User.findByIds(uniqueCommenterUids)
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
@@ -694,9 +695,7 @@ exports.addModel = function(database) {
    */
   User.prototype.getSubscriptions = async function() {
     var timelineIds = await this.getSubscriptionIds()
-
-    var subscriptionPromises = timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
-    this.subscriptions = await Promise.all(subscriptionPromises)
+    this.subscriptions = await models.Timeline.findByIds(timelineIds)
 
     return this.subscriptions
   }
@@ -704,12 +703,13 @@ exports.addModel = function(database) {
   User.prototype.getFriendIds = async function() {
     var timelines = await this.getSubscriptions()
     timelines = _.filter(timelines, _.method('isPosts'))
-    return await Promise.all(timelines.map((timeline) => timeline.userId))
+
+    return timelines.map((timeline) => timeline.userId)
   }
 
   User.prototype.getFriends = async function() {
     var userIds = await this.getFriendIds()
-    return await Promise.all(userIds.map((userId) => models.User.findById(userId)))
+    return await models.User.findByIds(userIds)
   }
 
   User.prototype.getSubscriberIds = async function() {
@@ -722,8 +722,7 @@ exports.addModel = function(database) {
 
   User.prototype.getSubscribers = async function() {
     var subscriberIds = await this.getSubscriberIds()
-    var subscriberPromises = subscriberIds.map(userId => models.User.findById(userId))
-    this.subscribers = await Promise.all(subscriberPromises)
+    this.subscribers = await models.User.findByIds(subscriberIds)
 
     return this.subscribers
   }
@@ -1103,7 +1102,7 @@ exports.addModel = function(database) {
 
   User.prototype.getPendingSubscriptionRequests = async function() {
     var pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
-    return await Promise.all(pendingSubscriptionRequestIds.map((userId) => models.User.findById(userId)))
+    return await models.User.findByIds(pendingSubscriptionRequestIds)
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
@@ -1113,7 +1112,7 @@ exports.addModel = function(database) {
 
   User.prototype.getSubscriptionRequests = async function() {
     var subscriptionRequestIds = await this.getSubscriptionRequestIds()
-    return await Promise.all(subscriptionRequestIds.map((userId) => models.User.findById(userId)))
+    return await models.User.findByIds(subscriptionRequestIds)
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
