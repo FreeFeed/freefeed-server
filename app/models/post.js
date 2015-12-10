@@ -251,8 +251,8 @@ exports.addModel = function(database) {
 
   Post.prototype.getSubscribedTimelines = async function() {
     var timelineIds = await this.getSubscribedTimelineIds()
-    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
-    this.subscribedTimelines = timelines
+    this.subscribedTimelines = await models.Timeline.findByIds(timelineIds)
+
     return this.subscribedTimelines
   }
 
@@ -277,8 +277,8 @@ exports.addModel = function(database) {
 
   Post.prototype.getPostedTo = async function() {
     var timelineIds = await this.getPostedToIds()
-    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
-    this.postedTo = timelines
+    this.postedTo = await models.Timeline.findByIds(timelineIds)
+
     return this.postedTo
   }
 
@@ -313,9 +313,7 @@ exports.addModel = function(database) {
 
   Post.prototype.getGenericFriendOfFriendTimelines = async function(user, type) {
     let timelineIds = await this.getGenericFriendOfFriendTimelineIds(user, type)
-    let promises = timelineIds.map(timelineId => models.Timeline.findById(timelineId))
-
-    return await Promise.all(promises)
+    return await models.Timeline.findByIds(timelineIds)
   }
 
   Post.prototype.getPostsFriendOfFriendTimelineIds = function(user) {
@@ -390,7 +388,6 @@ exports.addModel = function(database) {
     let user = await models.User.findById(comment.userId)
 
     let subscriberIds = await user.getSubscriberIds()
-    let bannedIds = await user.getBanIds()
 
     let timelineIds = await this.getPostedToIds()
 
@@ -402,9 +399,10 @@ exports.addModel = function(database) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await Promise.all(timelineIds.map(id => models.Timeline.findById(id)))
+    let timelines = await models.Timeline.findByIds(timelineIds)
 
     // no need to post updates to rivers of banned users
+    let bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
@@ -674,7 +672,7 @@ exports.addModel = function(database) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await Promise.all(timelineIds.map(id => models.Timeline.findById(id)))
+    let timelines = await models.Timeline.findByIds(timelineIds)
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()

@@ -694,9 +694,7 @@ exports.addModel = function(database) {
    */
   User.prototype.getSubscriptions = async function() {
     var timelineIds = await this.getSubscriptionIds()
-
-    var subscriptionPromises = timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
-    this.subscriptions = await Promise.all(subscriptionPromises)
+    this.subscriptions = await models.Timeline.findByIds(timelineIds)
 
     return this.subscriptions
   }
