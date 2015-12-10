@@ -625,15 +625,12 @@ exports.addModel = function(database) {
       }
     }
 
-    let userIds = await this.getLikeIds()
+    let userIds = (await this.getLikeIds())
+      .filter(userId => (banIds.indexOf(userId) === -1))
 
-    let userPromises = userIds.map(async (userId) => {
-      return banIds.indexOf(userId) >= 0 ? null : models.User.findById(userId)
-    })
+    let users = await models.User.findByIds(userIds)
 
-    let users = await Promise.all(userPromises)
-
-    // filter null comments
+    // filter non-existant likers
     this.likes = users.filter(Boolean)
 
     return this.likes
