@@ -432,32 +432,25 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getCommentIds = function() {
-    var that = this
+  Post.prototype.getCommentIds = async function() {
+    let length = await database.llenAsync(mkKey(['post', this.id, 'comments']))
 
-    return new Promise(function(resolve, reject) {
-      database.llenAsync(mkKey(['post', that.id, 'comments']))
-        .then(function(length) {
-          if (length > that.maxComments && length > 3 && that.maxComments != 'all') {
-            database.lrangeAsync(mkKey(['post', that.id, 'comments']), 0, that.maxComments - 2)
-              .then(function(commentIds) {
-                that.commentIds = commentIds
-                return database.lrangeAsync(mkKey(['post', that.id, 'comments']), -1, -1)
-              })
-              .then(function(commentIds) {
-                that.omittedComments = length - that.maxComments
-                that.commentIds = that.commentIds.concat(commentIds)
-                resolve(that.commentIds)
-              })
-          } else {
-            database.lrangeAsync(mkKey(['post', that.id, 'comments']), 0, -1)
-              .then(function(commentIds) {
-                that.commentIds = commentIds
-                resolve(commentIds)
-              })
-          }
-        })
-    })
+    if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
+      // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
+      // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
+      let commentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), 0, this.maxComments - 2)
+      // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
+      let moreCommentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), -1, -1)
+
+      this.omittedComments = length - this.maxComments
+      this.commentIds = commentIds.concat(moreCommentIds)
+
+      return this.commentIds
+    } else {
+      // get ALL comment ids
+      this.commentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), 0, -1)
+      return this.commentIds
+    }
   }
 
   Post.prototype.getComments = async function() {
