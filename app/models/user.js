@@ -703,7 +703,8 @@ exports.addModel = function(database) {
   User.prototype.getFriendIds = async function() {
     var timelines = await this.getSubscriptions()
     timelines = _.filter(timelines, _.method('isPosts'))
-    return await Promise.all(timelines.map((timeline) => timeline.userId))
+
+    return timelines.map((timeline) => timeline.userId)
   }
 
   User.prototype.getFriends = async function() {
