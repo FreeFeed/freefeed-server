@@ -1,7 +1,5 @@
-var models = require("../../app/models")
-  , User = models.User
-  , Post = models.Post
-  , Comment = models.Comment
+import Promise from 'bluebird'
+import { Comment, Post, User } from "../../app/models"
 
 describe('Post', function() {
   beforeEach(function(done) {
@@ -284,41 +282,33 @@ describe('Post', function() {
     var userA
       , userB
       , userC
+      , users
       , post
 
-    beforeEach(function(done) {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
+      userC = new User({ username: 'Zeus', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
+      await userA.create()
+      await userB.create()
+      await userC.create()
 
-      userC = new User({
-        username: 'Zeus',
-        password: 'password'
-      })
+      post = await userB.newPost({ body: 'Post body' })
+      await post.create()
 
-      var attrs = {
-        body: 'Post body'
+      let bTimelineId = await userB.getPostsTimelineId()
+      await userA.subscribeTo(bTimelineId)
+
+      let aTimelineId = await userA.getPostsTimelineId()
+      await userC.subscribeTo(aTimelineId)
+
+      let promises = [];
+      for (let i=0; i<10; i++) {
+        let user = new User({ username: `lunokhod${i}`, password: 'password' })
+        promises.push(user.create())
       }
-
-      userA.create()
-        .then(function(user) { return userC.create() })
-        .then(function(user) { return userB.create() })
-        .then(function(user) { return userB.newPost(attrs) })
-        .then(function(newPost) { return newPost.create() })
-        .then(function(newPost) {
-          post = newPost
-          return userB.getPostsTimelineId()
-        })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function(res) { return userA.getPostsTimelineId() })
-        .then(function(timelineId) { return userC.subscribeTo(timelineId) })
-        .then(function(res) { done() })
+      users = await Promise.all(promises)
     })
 
     it('should add like to friend of friend timelines', function(done) {
@@ -346,6 +336,30 @@ describe('Post', function() {
       var user = users[0]
       user.should.have.property('id')
       user.id.should.eql(userA.id)
+    })
+
+    it('should be possible to get all likes', async () => {
+      for (let i=0; i<10; i++) {
+        await post.addLike(users[i])
+      }
+
+      post.maxLikes = 'all'
+      let likes = await post.getLikes()
+      likes.length.should.eql(10)
+    })
+
+    it('should be possible to get some likes', async () => {
+      for (let i=0; i<10; i++) {
+        await post.addLike(users[i])
+      }
+
+      post.maxLikes = 4
+      let likes = await post.getLikes()
+      likes.length.should.eql(4)
+      likes[0].id.should.eql(users[9].id)
+      likes[1].id.should.eql(users[8].id)
+      likes[2].id.should.eql(users[7].id)
+      likes[3].id.should.eql(users[6].id)
     })
   })
 
