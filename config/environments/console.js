@@ -28,7 +28,10 @@ exports.getConfig = function() {
     appRoot: '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel: 'warn'
+    logLevel: 'warn',
+    recaptcha: {
+      enabled: false
+    }
   }
 
   config.host = 'http://localhost:' + config.port

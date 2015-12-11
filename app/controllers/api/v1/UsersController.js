@@ -7,6 +7,7 @@ import exceptions from '../../../support/exceptions'
 import formidable from 'formidable'
 import config_loader from '../../../../config/config'
 import monitor from 'monitor-dog'
+import recaptchaVerify from '../../../../lib/recaptcha'
 
 var config = config_loader.load()
 
@@ -24,6 +25,11 @@ exports.addController = function(app) {
       }
 
       try {
+        if (config.recaptcha.enabled) {
+          let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+          await recaptchaVerify(req.body.captcha, ip)
+        }
+
         var user = new models.User(params)
         await user.create(false)
 
