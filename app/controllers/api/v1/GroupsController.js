@@ -124,25 +124,24 @@ exports.addController = function(app) {
   }
 
   GroupsController.updateProfilePicture = async function(req, res) {
-    try {
-      let group = await Group.findByUsername(req.params.groupName)
-      await group.validateCanUpdate(req.user)
-
-      var form = new formidable.IncomingForm()
-
-      form.on('file', async (inputName, file) => {
-        try {
-          await group.updateProfilePicture(file)
-          res.jsonp({ message: 'The profile picture of the group has been updated' })
-        } catch (e) {
-          exceptions.reportError(res)(e)
-        }
+    Group.findByUsername(req.params.groupName).bind({})
+      .then(function(group) {
+        return group.validateCanUpdate(req.user)
       })
+      .then(function(group) {
+        var form = new formidable.IncomingForm()
 
-      form.parse(req)
-    } catch (e) {
-      exceptions.reportError(res)(e)
-    }
+        form.on('file', function(inputName, file) {
+          group.updateProfilePicture(file)
+            .then(function() {
+              res.jsonp({ message: 'The profile picture of the group has been updated' })
+            })
+            .catch(exceptions.reportError(res))
+        })
+
+        form.parse(req)
+      })
+      .catch(exceptions.reportError(res))
   }
 
   return GroupsController

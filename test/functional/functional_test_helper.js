@@ -80,6 +80,17 @@ exports.updateUserCtx = function(context, attrs) {
   }
 }
 
+exports.sendResetPassword = function(email) {
+  return function(done) {
+    request
+      .post(app.config.host + '/v1/passwords')
+      .send({ email: email })
+      .end(function(err, res) {
+        done(err, res)
+      })
+  }
+}
+
 exports.resetPassword = function(token) {
   return function(done) {
     request
@@ -257,23 +268,26 @@ exports.like = (postId, authToken) => {
   return postJson(`/v1/posts/${postId}/like`, { authToken })
 }
 
-exports.updateUserAsync = (userContext, user) => {
+exports.goPrivate = (userContext) => {
   return postJson(
     `/v1/users/${userContext.user.id}`,
     {
       authToken: userContext.authToken,
-      user,
+      user: { isPrivate: "1" },
       '_method': 'put'
     }
   )
 }
 
-exports.goPrivate = (userContext) => {
-  return exports.updateUserAsync(userContext, { isPrivate: "1" });
-}
-
 exports.goPublic = (userContext) => {
-  return exports.updateUserAsync(userContext, { isPrivate: "0" });
+  return postJson(
+    `/v1/users/${userContext.user.id}`,
+    {
+      authToken: userContext.authToken,
+      user: { isPrivate: "0" },
+      '_method': 'put'
+    }
+  )
 }
 
 exports.mutualSubscriptions = async (userContexts) => {
@@ -331,8 +345,4 @@ exports.getRiverOfNews = (userContext) => {
 
 exports.getMyDiscussions = (userContext) => {
   return getTimeline('/v1/timelines/filter/discussions', userContext)
-}
-
-exports.sendResetPassword = (email) => {
-  return postJson('/v1/passwords', { email })
 }

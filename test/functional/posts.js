@@ -1,11 +1,8 @@
-import request from 'superagent'
-import _ from 'lodash'
-import fetch from 'node-fetch'
-
-import app from '../../index'
-import models from '../../app/models'
-import funcTestHelper from './functional_test_helper'
-
+var request = require('superagent')
+  , _ = require('lodash')
+  , app = require('../../index')
+  , models = require('../../app/models')
+  , funcTestHelper = require('./functional_test_helper')
 
 describe("PostsController", function() {
   beforeEach(funcTestHelper.flushDb())
@@ -758,14 +755,6 @@ describe("PostsController", function() {
 
           done()
         })
-    })
-
-    it('should show a post to anonymous user', async () => {
-      let response = await fetch(`${app.config.host}/v1/posts/${context.post.id}`)
-      response.status.should.eql(200, `anonymous user couldn't read post`)
-
-      let data = await response.json()
-      data.posts.body.should.eql(context.post.body)
     })
 
     it('should return 404 given an invalid post ID', function(done) {

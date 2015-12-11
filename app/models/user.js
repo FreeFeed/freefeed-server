@@ -146,19 +146,14 @@ exports.addModel = function(database) {
           that.resetPasswordToken = token
           this.token = token
 
-          let promises = [
+          return Promise.all([
             database.hmsetAsync(mkKey(['user', that.id]),
-              { 'resetPasswordToken': token,
-                'resetPasswordSentAt': now
-              }),
+                                { 'resetPasswordToken': token,
+                                  'resetPasswordSentAt': now
+                                }),
+            database.delAsync(mkKey(['reset', oldToken, 'uid'])),
             database.setAsync(mkKey(['reset', token, 'uid']), that.id)
-          ]
-
-          if (oldToken) {
-            promises.push(database.delAsync(mkKey(['reset', oldToken, 'uid'])))
-          }
-
-          return Promise.all(promises)
+          ])
         })
         .then(function() {
           var expireAfter = 60*60*24 // 24 hours
@@ -185,8 +180,6 @@ exports.addModel = function(database) {
     return User.emailIsValid(this.email)
   }
 
-  User.emailRedisKey = (email) => mkKey(['email', email.toLowerCase(), 'uid'])
-
   User.emailIsValid = async function(email) {
     // email is optional
     if (!email || email.length == 0) {
@@ -197,7 +190,7 @@ exports.addModel = function(database) {
       return false
     }
 
-    var uid = await database.getAsync(User.emailRedisKey(email))
+    var uid = await database.getAsync(mkKey(['email', email, 'uid']))
 
     if (uid) {
       // email is taken
@@ -214,11 +207,13 @@ exports.addModel = function(database) {
         && this.username.match(/^[A-Za-z0-9]+$/)
         && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
-    return valid
+    return Promise.resolve(valid)
   }
 
   User.prototype.isValidScreenName = function() {
-    return this.screenNameIsValid(this.screenName)
+    var valid = this.screenNameIsValid(this.screenName)
+
+    return Promise.resolve(valid)
   }
 
   User.prototype.screenNameIsValid = function(screenName) {
@@ -236,23 +231,21 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validate = async function(skip_stoplist) {
-    if (!this.isValidUsername(skip_stoplist)) {
-      throw new Error('Invalid username')
-    }
+    var valid
 
-    if (!this.isValidScreenName()) {
-      throw new Error('Invalid screenname')
-    }
+    valid = this.isValidUsername(skip_stoplist).value()
+      && this.isValidScreenName().value()
+      && await this.isValidEmail()
 
-    if (!await this.isValidEmail()) {
-      throw new Error('Invalid email')
-    }
+    if (!valid)
+      throw new Error("Invalid")
+
+    return true
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {
-    await this.validate(skip_stoplist)
-
     var promises = [
+      this.validate(skip_stoplist),
       this.validateUniquness(mkKey(['username', this.username, 'uid'])),
       this.validateUniquness(mkKey(['user', this.id]))
     ];
@@ -268,13 +261,13 @@ exports.addModel = function(database) {
   User.prototype.createEmailIndex = function() {
     // email is optional, so no need to index an empty key
     if (this.email && this.email.length > 0) {
-      return database.setAsync(User.emailRedisKey(this.email), this.id)
+      return database.setAsync(mkKey(['email', this.email, 'uid']), this.id)
     }
     return new Promise.resolve(true)
   }
 
   User.prototype.dropIndexForEmail = function(email) {
-    return database.delAsync(User.emailRedisKey(email))
+    return database.delAsync(mkKey(['email', email, 'uid']))
   }
 
   User.prototype.create = async function(skip_stoplist) {
@@ -416,8 +409,7 @@ exports.addModel = function(database) {
         await Promise.all(promises)
       }
 
-      let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
-      let commenters = await models.User.findByIds(uniqueCommenterUids)
+      let commenters = _.uniq(await Promise.all(comments.map(comment => models.User.findById(comment.userId)), 'id'))
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
@@ -695,7 +687,9 @@ exports.addModel = function(database) {
    */
   User.prototype.getSubscriptions = async function() {
     var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await models.Timeline.findByIds(timelineIds)
+
+    var subscriptionPromises = timelineIds.map((timelineId) => models.Timeline.findById(timelineId))
+    this.subscriptions = await Promise.all(subscriptionPromises)
 
     return this.subscriptions
   }
@@ -703,13 +697,12 @@ exports.addModel = function(database) {
   User.prototype.getFriendIds = async function() {
     var timelines = await this.getSubscriptions()
     timelines = _.filter(timelines, _.method('isPosts'))
-
-    return timelines.map((timeline) => timeline.userId)
+    return await Promise.all(timelines.map((timeline) => timeline.userId))
   }
 
   User.prototype.getFriends = async function() {
     var userIds = await this.getFriendIds()
-    return await models.User.findByIds(userIds)
+    return await Promise.all(userIds.map((userId) => models.User.findById(userId)))
   }
 
   User.prototype.getSubscriberIds = async function() {
@@ -722,7 +715,8 @@ exports.addModel = function(database) {
 
   User.prototype.getSubscribers = async function() {
     var subscriberIds = await this.getSubscriberIds()
-    this.subscribers = await models.User.findByIds(subscriberIds)
+    var subscriberPromises = subscriberIds.map(userId => models.User.findById(userId))
+    this.subscribers = await Promise.all(subscriberPromises)
 
     return this.subscribers
   }
@@ -1102,7 +1096,7 @@ exports.addModel = function(database) {
 
   User.prototype.getPendingSubscriptionRequests = async function() {
     var pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
-    return await models.User.findByIds(pendingSubscriptionRequestIds)
+    return await Promise.all(pendingSubscriptionRequestIds.map((userId) => models.User.findById(userId)))
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
@@ -1112,7 +1106,7 @@ exports.addModel = function(database) {
 
   User.prototype.getSubscriptionRequests = async function() {
     var subscriptionRequestIds = await this.getSubscriptionRequestIds()
-    return await models.User.findByIds(subscriptionRequestIds)
+    return await Promise.all(subscriptionRequestIds.map((userId) => models.User.findById(userId)))
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {

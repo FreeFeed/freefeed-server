@@ -117,7 +117,7 @@ describe("UsersController", function() {
         .end(function(err, res) {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
-          res.body.err.should.eql('Invalid username')
+          res.body.err.should.eql('Invalid')
           done()
         })
     })
@@ -152,7 +152,7 @@ describe("UsersController", function() {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           err.response.error.should.have.property('text')
-          JSON.parse(err.response.error.text).err.should.eql('Invalid email')
+          JSON.parse(err.response.error.text).err.should.eql('Invalid')
           done()
         })
     })
@@ -697,6 +697,23 @@ describe("UsersController", function() {
           funcTestHelper.updateUserCtx(lunaContext, {email: marsContext.attributes.email})(function (err2, response2) {
             $should.not.exist(err2)
             done()
+          })
+        })
+      })
+
+      it('should let user "reset" password using newly set email', function(done) {
+        funcTestHelper.updateUserCtx(marsContext, {email: 'other@example.org'})(function (err, res) {
+          $should.not.exist(err)
+
+          funcTestHelper.sendResetPassword(marsContext.attributes.email)(function(err2, res2) {
+            $should.exist(err2)
+
+            funcTestHelper.sendResetPassword('other@example.org')(function(err3, res3) {
+              $should.not.exist(err3)
+              $should.exist(res3)
+              res3.body.message.should.eql('We will send a password reset link to other@example.org in a moment')
+              done()
+            })
           })
         })
       })

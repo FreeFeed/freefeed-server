@@ -251,8 +251,8 @@ exports.addModel = function(database) {
 
   Post.prototype.getSubscribedTimelines = async function() {
     var timelineIds = await this.getSubscribedTimelineIds()
-    this.subscribedTimelines = await models.Timeline.findByIds(timelineIds)
-
+    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
+    this.subscribedTimelines = timelines
     return this.subscribedTimelines
   }
 
@@ -277,8 +277,8 @@ exports.addModel = function(database) {
 
   Post.prototype.getPostedTo = async function() {
     var timelineIds = await this.getPostedToIds()
-    this.postedTo = await models.Timeline.findByIds(timelineIds)
-
+    var timelines = await Promise.all(timelineIds.map((timelineId) => models.Timeline.findById(timelineId)))
+    this.postedTo = timelines
     return this.postedTo
   }
 
@@ -313,7 +313,9 @@ exports.addModel = function(database) {
 
   Post.prototype.getGenericFriendOfFriendTimelines = async function(user, type) {
     let timelineIds = await this.getGenericFriendOfFriendTimelineIds(user, type)
-    return await models.Timeline.findByIds(timelineIds)
+    let promises = timelineIds.map(timelineId => models.Timeline.findById(timelineId))
+
+    return await Promise.all(promises)
   }
 
   Post.prototype.getPostsFriendOfFriendTimelineIds = function(user) {
@@ -388,6 +390,7 @@ exports.addModel = function(database) {
     let user = await models.User.findById(comment.userId)
 
     let subscriberIds = await user.getSubscriberIds()
+    let bannedIds = await user.getBanIds()
 
     let timelineIds = await this.getPostedToIds()
 
@@ -399,10 +402,9 @@ exports.addModel = function(database) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await models.Timeline.findByIds(timelineIds)
+    let timelines = await Promise.all(timelineIds.map(id => models.Timeline.findById(id)))
 
     // no need to post updates to rivers of banned users
-    let bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
@@ -430,42 +432,59 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getCommentIds = async function() {
-    let length = await database.llenAsync(mkKey(['post', this.id, 'comments']))
+  Post.prototype.getCommentIds = function() {
+    var that = this
 
-    if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
-      // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
-      // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
-      let commentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), 0, this.maxComments - 2)
-      // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
-      let moreCommentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), -1, -1)
-
-      this.omittedComments = length - this.maxComments
-      this.commentIds = commentIds.concat(moreCommentIds)
-
-      return this.commentIds
-    } else {
-      // get ALL comment ids
-      this.commentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), 0, -1)
-      return this.commentIds
-    }
+    return new Promise(function(resolve, reject) {
+      database.llenAsync(mkKey(['post', that.id, 'comments']))
+        .then(function(length) {
+          if (length > that.maxComments && length > 3 && that.maxComments != 'all') {
+            database.lrangeAsync(mkKey(['post', that.id, 'comments']), 0, that.maxComments - 2)
+              .then(function(commentIds) {
+                that.commentIds = commentIds
+                return database.lrangeAsync(mkKey(['post', that.id, 'comments']), -1, -1)
+              })
+              .then(function(commentIds) {
+                that.omittedComments = length - that.maxComments
+                that.commentIds = that.commentIds.concat(commentIds)
+                resolve(that.commentIds)
+              })
+          } else {
+            database.lrangeAsync(mkKey(['post', that.id, 'comments']), 0, -1)
+              .then(function(commentIds) {
+                that.commentIds = commentIds
+                resolve(commentIds)
+              })
+          }
+        })
+    })
   }
 
-  Post.prototype.getComments = async function() {
-    let banIds = []
+  Post.prototype.getComments = function() {
+    var that = this
+    var banIds
 
-    if (this.currentUser) {
-      let user = await models.User.findById(this.currentUser)
-      if (user)
-        banIds = await user.getBanIds()
-    }
-
-    let commentIds = await this.getCommentIds()
-    let comments = await models.Comment.findByIds(commentIds)
-
-    this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
-
-    return this.comments
+    return new Promise(function(resolve, reject) {
+      models.User.findById(that.currentUser)
+        .then(function(user) { return user ? user.getBanIds() : [] })
+        .then(function(feedIds) {
+          banIds = feedIds
+          return that.getCommentIds()
+        })
+        .then(function(commentIds) {
+          return Promise.map(commentIds, function(commentId) {
+            return models.Comment.findById(commentId)
+              .then(function(comment) {
+                return banIds.indexOf(comment.userId) >= 0 ? null : comment
+              })
+          })
+        })
+        .then(function(comments) {
+          // filter null comments
+          that.comments = comments.filter(Boolean)
+          resolve(that.comments)
+        })
+    })
   }
 
   Post.prototype.linkAttachments = function(attachmentList) {
@@ -549,44 +568,51 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getLikeIds = async function() {
-    let length = await database.zcardAsync(mkKey(['post', this.id, 'likes']))
+  Post.prototype.getLikeIds = function() {
+    var that = this
 
-    if (length > this.maxLikes && this.maxLikes != 'all') {
-      let score = await database.zscoreAsync(mkKey(['post', this.id, 'likes']), this.currentUser)
-      let includesUser = score && score >= 0
+    return new Promise(function(resolve, reject) {
+      database.zcardAsync(mkKey(['post', that.id, 'likes']))
+        .then(function(length) {
+          if (length > that.maxLikes && that.maxLikes != 'all') {
+            database.zscoreAsync(mkKey(['post', that.id, 'likes']), that.currentUser).bind({})
+              .then(function(score) { this.includeUser = score && score >= 0 })
+              .then(function() {
+                return database.zrevrangeAsync(mkKey(['post', that.id, 'likes']), 0, that.maxLikes - 1)
+              })
+              .then(function(likeIds) {
+                that.likeIds = likeIds
+                that.omittedLikes = length - that.maxLikes
 
-      let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, this.maxLikes - 1)
+                if (this.includeUser) {
+                  if (likeIds.indexOf(that.currentUser) == -1) {
+                    that.likeIds = [that.currentUser].concat(that.likeIds.slice(0, -1))
+                  } else {
+                    that.likeIds = that.likeIds.sort(function(a, b) {
+                      if (a == that.currentUser) return -1
+                      if (b == that.currentUser) return 1
+                    })
+                  }
+                }
 
-      this.likeIds = likeIds
-      this.omittedLikes = length - this.maxLikes
+                resolve(that.likeIds.slice(0, that.maxLikes))
+              })
+          } else {
+            database.zrevrangeAsync(mkKey(['post', that.id, 'likes']), 0, -1)
+              .then(function(likeIds) {
+                var to = 0
+                var from = _.findIndex(likeIds, function(user) { return user == that.currentUser })
 
-      if (includesUser) {
-        if (likeIds.indexOf(this.currentUser) == -1) {
-          this.likeIds = [this.currentUser].concat(this.likeIds.slice(0, -1))
-        } else {
-          this.likeIds = this.likeIds.sort(function(a, b) {
-            if (a == this.currentUser) return -1
-            if (b == this.currentUser) return 1
-          })
-        }
-      }
+                if (from > 0) {
+                  likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
+                }
+                that.likeIds = likeIds
 
-      return this.likeIds.slice(0, this.maxLikes)
-    } else {
-      let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, -1)
-
-      let to = 0
-      let from = _.findIndex(likeIds, user => (user == this.currentUser))
-
-      if (from > 0) {
-        likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
-      }
-
-      this.likeIds = likeIds
-
-      return this.likeIds
-    }
+                resolve(that.likeIds)
+              })
+          }
+        })
+    })
   }
 
   Post.prototype.getOmittedLikes = function() {
@@ -612,26 +638,28 @@ exports.addModel = function(database) {
     })
   }
 
-  Post.prototype.getLikes = async function() {
-    let banIds = []
+  Post.prototype.getLikes = function() {
+    var that = this
+    var banIds
 
-    if (this.currentUser) {
-      let user = await models.User.findById(this.currentUser)
-
-      if (user) {
-        banIds = await user.getBanIds()
-      }
-    }
-
-    let userIds = (await this.getLikeIds())
-      .filter(userId => (banIds.indexOf(userId) === -1))
-
-    let users = await models.User.findByIds(userIds)
-
-    // filter non-existant likers
-    this.likes = users.filter(Boolean)
-
-    return this.likes
+    return new Promise(function(resolve, reject) {
+      models.User.findById(that.currentUser)
+        .then(function(user) { return user ? user.getBanIds() : [] })
+        .then(function(feedIds) {
+          banIds = feedIds
+          return that.getLikeIds()
+        })
+        .then(function(userIds) {
+          return Promise.map(userIds, function(userId) {
+            return banIds.indexOf(userId) >= 0 ? null : models.User.findById(userId)
+          })
+        })
+        .then(function(users) {
+          // filter null comments
+          that.likes = users.filter(Boolean)
+          resolve(that.likes)
+        })
+    })
   }
 
   Post.prototype.isPrivate = async function() {
@@ -672,7 +700,7 @@ exports.addModel = function(database) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await models.Timeline.findByIds(timelineIds)
+    let timelines = await Promise.all(timelineIds.map(id => models.Timeline.findById(id)))
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()

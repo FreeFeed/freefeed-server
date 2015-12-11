@@ -42,16 +42,20 @@ exports.addModel = function(database) {
     return objects
   }
 
-  AbstractModel.findByAttribute = async function(attribute, value) {
+  AbstractModel.findByAttribute = function(attribute, value) {
+    var that = this
     value = value.trim().toLowerCase()
 
-    let identifier = await database.getAsync(mkKey([attribute, value, 'uid']))
-
-    if (!identifier) {
-      throw new NotFoundException("Record not found")
-    }
-
-    return this.className.findById(identifier)
+    return new Promise(function(resolve, reject) {
+      database.getAsync(mkKey([attribute, value, 'uid']))
+        .then(function(identifier) {
+          if (identifier) {
+            resolve(that.className.findById(identifier))
+          } else {
+            reject(new NotFoundException("Record not found"))
+          }
+        })
+    })
   }
 
   /**

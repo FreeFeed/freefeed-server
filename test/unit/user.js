@@ -70,7 +70,7 @@ describe('User', function() {
       'aaaaaaaaaaaaaaaaaaaaaaaaaa'  // 26 chars is 1 char too much
     ]
     invalid.forEach(function(username) {
-      it('should not allow invalid username ' + username, async () => {
+      it('should not allow invalid username ' + username, function(done) {
 
         var user = new User({
           username: username,
@@ -79,14 +79,12 @@ describe('User', function() {
           email: 'user@example.com'
         })
 
-        try {
-          await user.create()
-        } catch (e) {
-          e.message.should.eql('Invalid username')
-          return
-        }
-
-        throw new Error('FAIL')
+        user.create()
+          .then(function() { done(new Error('FAIL')) })
+          .catch(function(e) {
+            e.message.should.eql("Invalid")
+            done()
+          })
       })
     })
   })
@@ -123,11 +121,11 @@ describe('User', function() {
 
       return user.create()
         .catch(function(e) {
-          expect(e.message).to.equal('Invalid email');
+          expect(e.message).to.equal('Invalid');
         })
     })
 
-    it('should not allow 2 users with same email', async () => {
+    it('should not allow 2 users with same email', function(done) {
       var user1 = new User({
         username: 'Luna1',
         password: 'password',
@@ -140,16 +138,12 @@ describe('User', function() {
         email: 'email@example.com'
       })
 
-      await user1.create()
-
-      try {
-        await user2.create()
-      } catch (e) {
-        expect(e.message).to.equal('Invalid email')
-        return
-      }
-
-      throw new Error(`FAIL (should not allow 2 users for same email)`)
+      user1.create()
+        .then(function() { return user2.create() })
+        .catch(function(e) {
+          expect(e.message).to.equal('Invalid');
+          done()
+        })
     })
   })
 
@@ -356,20 +350,17 @@ describe('User', function() {
         })
     })
 
-    it('should not create user from stop-list', async () => {
+    it('should not create user from stop-list', function(done) {
       var user = new User({
         username: 'Public',
         password: 'password'
       })
 
-      try {
-        await user.create()
-      } catch (e) {
-        e.message.should.eql("Invalid username")
-        return
-      }
-
-      throw new Error(`FAIL ("Public" username is in a stop-list. should not be allowed)`)
+      user.create()
+        .catch(function(e) {
+          e.message.should.eql("Invalid")
+          done()
+        })
     })
   })
 
