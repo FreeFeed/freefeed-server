@@ -1,7 +1,6 @@
-var models = require("../../app/models")
-  , Comment = models.Comment
-  , User = models.User
-  , Post = models.Post
+import { isNull } from 'lodash'
+import { Comment, Post, User } from '../../app/models'
+
 
 describe('Comment', function() {
   beforeEach(function(done) {
@@ -205,7 +204,6 @@ describe('Comment', function() {
   describe('#destroy()', function() {
     var userA
       , post
-      , comment
 
     beforeEach(function(done) {
       userA = new User({
@@ -214,6 +212,7 @@ describe('Comment', function() {
       })
 
       var postAttrs = { body: 'Post body' }
+      let comment
 
       userA.create()
         .then(function(user) { return userA.newPost(postAttrs) })
@@ -233,17 +232,17 @@ describe('Comment', function() {
         .then(function(res) { done() })
     })
 
-    it('should destroy comment', function(done, reject) {
-      post.getComments().bind({})
-        .then(function(comments) { this.comment = comments[0]; return this.comment.destroy() })
-        .then(function() { return Comment.findById(this.comment.id) })
-        .then(function(oldComment) { (oldComment===null).should.be.true } )
-        .then(function() { return post.getComments() })
-        .then(function(comments) {
-          comments.should.be.empty
-        })
-        .then(function() { done() })
-        .catch(function(err) { done(err) })
+    it('should destroy comment', async () => {
+      let comments = await post.getComments()
+
+      let comment = comments[0]
+      await comment.destroy()
+
+      let oldComment = await Comment.findById(comment.id)
+      isNull(oldComment).should.be.true
+
+      comments = await post.getComments()
+      comments.should.be.empty
     })
   })
 })

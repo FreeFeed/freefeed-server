@@ -365,13 +365,16 @@ exports.addModel = function(database) {
   }
 
   Timeline.prototype.updatePost = async function(postId, action) {
+    if (action === "like") {
+      var score = await database.zscoreAsync(mkKey(['timeline', this.id, 'posts']), postId)
+
+      if (score != null) {
+        // For the time being, like does not bump post if it is already present in timeline
+        return
+      }
+    }
+
     var currentTime = new Date().getTime()
-
-    var score = await database.zscoreAsync(mkKey(['timeline', this.id, 'posts']), postId)
-
-    // For the time being like does not bump post
-    if (action === "like" && score != null)
-      return
 
     await Promise.all([
       database.zaddAsync(mkKey(['timeline', this.id, 'posts']), currentTime, postId),
@@ -379,13 +382,13 @@ exports.addModel = function(database) {
       database.hsetAsync(mkKey(['post', postId]), 'updatedAt', currentTime)
     ])
 
-    var feed = await this.getUser()
-
     // does not update lastActivity on like
-    if (action === 'like')
+    if (action === 'like') {
       return null
-    else
-      return feed.updateLastActivityAt()
+    }
+
+    var feed = await this.getUser()
+    return feed.updateLastActivityAt()
   }
 
   Timeline.prototype.turnIntoPrivate = function() {

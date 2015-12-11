@@ -48,21 +48,19 @@ describe('FeedFactory', function() {
         })
     })
 
-    it('should find group with a valid name', function(done) {
+    it('should find group with a valid name', async () => {
       var group = new Group({
         username: 'Luna'
       })
 
-      group.create()
-        .then(function(group) { return FeedFactory.findByUsername(group.username) })
-        .then(function(newGroup) {
-          newGroup.should.be.an.instanceOf(Group)
-          newGroup.should.not.be.empty
-          newGroup.should.have.property('id')
-          newGroup.id.should.eql(group.id)
+      await group.create()
 
-          done()
-        })
+      let newGroup = await FeedFactory.findByUsername(group.username)
+
+      newGroup.should.be.an.instanceOf(Group)
+      newGroup.should.not.be.empty
+      newGroup.should.have.property('id')
+      newGroup.id.should.eql(group.id)
     })
   })
 })

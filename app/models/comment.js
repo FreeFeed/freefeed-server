@@ -35,6 +35,7 @@ exports.addModel = function(database) {
   Comment.namespace = "comment"
   Comment.initObject = Comment.super_.initObject
   Comment.findById = Comment.super_.findById
+  Comment.findByIds = Comment.super_.findByIds
   Comment.getById = Comment.super_.getById
 
   Object.defineProperty(Comment.prototype, 'body', {
@@ -115,39 +116,31 @@ exports.addModel = function(database) {
     return models.Post.findById(this.postId)
   }
 
-  Comment.prototype.destroy = function() {
-    var that = this
+  Comment.prototype.destroy = async function() {
+    await pubSub.destroyComment(this.id, this.postId)
+    await database.delAsync(mkKey(['comment', this.id]))
+    await database.lremAsync(mkKey(['post', this.postId, 'comments']), 1, this.id)
 
-    return new Promise(function(resolve, reject) {
-      pubSub.destroyComment(that.id, that.postId)
-        .then(function(res) { return database.delAsync(mkKey(['comment', that.id])) })
-        .then(function(res) {
-          return database.lremAsync(mkKey(['post', that.postId, 'comments']), 1, that.id)
-        })
+    // look for comment from this user in this post
+    // if this is was the last one remove this post from user's comments timeline
+    let post = await Post.findById(this.postId)
+    let comments = await post.getComments()
 
-        // look for comment from this user in this post
-        // if this is was the last one remove this post from user's comments timeline
-        .then(function() { return Post.findById(that.postId) })
-        .then(function(post) { return post.getComments() })
-        .then(function(comments) {
-          if (_.any(comments, 'userId', that.userId)) {
-            return Promise.resolve(true);
-          }
+    if (_.any(comments, 'userId', this.userId)) {
+      return true
+    }
 
-          return User.findById(that.userId)
-            .then(function(user) { return user.getCommentsTimelineId() })
-            .then(function(timelineId) {
-                return Promise.all([
-                  database.zremAsync(mkKey(['timeline', timelineId, 'posts']), that.postId),
-                  database.sremAsync(mkKey(['post', that.postId, 'timelines']), timelineId)
-                ]);
-            })
+    let user = await User.findById(this.userId)
+    let timelineId = await user.getCommentsTimelineId()
 
-        })
-        .then(function() { return models.Stats.findById(that.userId) })
-        .then(function(stats) { return stats.removeComment() })
-        .then(function(res) { resolve(res) })
-    })
+    await Promise.all([
+      database.zremAsync(mkKey(['timeline', timelineId, 'posts']), this.postId),
+      database.sremAsync(mkKey(['post', this.postId, 'timelines']), timelineId)
+    ])
+
+    let stats = await models.Stats.findById(this.userId)
+    let res = await stats.removeComment()
+    return res
   }
 
   Comment.prototype.getCreatedBy = function() {
