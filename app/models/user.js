@@ -2,6 +2,7 @@
 
 import config_file from '../../config/config'
 import monitor from 'monitor-dog'
+import * as dbAdapter from '../support/DbAdapter'
 
 var Promise = require('bluebird')
   , crypto = Promise.promisifyAll(require('crypto'))
@@ -146,23 +147,25 @@ exports.addModel = function(database) {
           that.resetPasswordToken = token
           this.token = token
 
+          let payload = {
+            'resetPasswordToken':  token,
+            'resetPasswordSentAt': now
+          }
+
           let promises = [
-            database.hmsetAsync(mkKey(['user', that.id]),
-              { 'resetPasswordToken': token,
-                'resetPasswordSentAt': now
-              }),
-            database.setAsync(mkKey(['reset', token, 'uid']), that.id)
+            dbAdapter.updateUser(database, that.id, payload),
+            dbAdapter.createUserResetPasswordToken(database, that.id, token)
           ]
 
           if (oldToken) {
-            promises.push(database.delAsync(mkKey(['reset', oldToken, 'uid'])))
+            promises.push(dbAdapter.deleteUserResetPasswordToken(database, oldToken))
           }
 
           return Promise.all(promises)
         })
         .then(function() {
           var expireAfter = 60*60*24 // 24 hours
-          database.expireAsync(mkKey(['reset', this.token, 'uid']), expireAfter)
+          dbAdapter.setUserResetPasswordTokenExpireAfter(database, this.token, expireAfter)
         })
         .then(function() {
           resolve(this.token)
@@ -197,7 +200,7 @@ exports.addModel = function(database) {
       return false
     }
 
-    var uid = await database.getAsync(User.emailRedisKey(email))
+    var uid = await dbAdapter.getUserIdByEmail(database, User.emailRedisKey(email))
 
     if (uid) {
       // email is taken
@@ -268,13 +271,13 @@ exports.addModel = function(database) {
   User.prototype.createEmailIndex = function() {
     // email is optional, so no need to index an empty key
     if (this.email && this.email.length > 0) {
-      return database.setAsync(User.emailRedisKey(this.email), this.id)
+      return dbAdapter.createUserEmailIndex(database, this.id, User.emailRedisKey(this.email))
     }
     return new Promise.resolve(true)
   }
 
   User.prototype.dropIndexForEmail = function(email) {
-    return database.delAsync(User.emailRedisKey(email))
+    return dbAdapter.dropUserEmailIndex(database, User.emailRedisKey(email))
   }
 
   User.prototype.create = async function(skip_stoplist) {
@@ -289,18 +292,19 @@ exports.addModel = function(database) {
     var timer = monitor.timer('users.create-time')
     await user.initPassword()
 
+    let payload = {
+      'username':       user.username,
+      'screenName':     user.screenName,
+      'email':          user.email,
+      'type':           user.type,
+      'isPrivate':      '0',
+      'createdAt':      user.createdAt.toString(),
+      'updatedAt':      user.updatedAt.toString(),
+      'hashedPassword': user.hashedPassword
+    }
     var promises = [
-      database.setAsync(mkKey(['username', user.username, 'uid']), user.id),
-      database.hmsetAsync(mkKey(['user', user.id]),
-                          { 'username': user.username,
-                            'screenName': user.screenName,
-                            'email': user.email,
-                            'type': user.type,
-                            'isPrivate': '0',
-                            'createdAt': user.createdAt.toString(),
-                            'updatedAt': user.updatedAt.toString(),
-                            'hashedPassword': user.hashedPassword
-                          }),
+      dbAdapter.createUserUsernameIndex(database, user.id, user.username),
+      dbAdapter.createUser(database, user.id, payload),
       user.createEmailIndex()
     ]
 
@@ -369,7 +373,7 @@ exports.addModel = function(database) {
       }
 
       var promises = [
-        database.hmsetAsync(mkKey(['user', this.id]), payload)
+        dbAdapter.updateUser(database, this.id, payload)
       ]
 
       if (emailChanged) {
@@ -407,10 +411,10 @@ exports.addModel = function(database) {
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
           let likesTimelineId = await user.getLikesTimelineId()
-          let time = await database.zscoreAsync(mkKey(['post', post.id, 'likes']), user.id)
+          let time = await dbAdapter.getUserPostLikedTime(database, user.id, post.id)
 
-          actions.push(database.zaddAsync(mkKey(['timeline', likesTimelineId, 'posts']), time, post.id))
-          actions.push(database.saddAsync(mkKey(['post', post.id, 'timelines']), likesTimelineId))
+          actions.push(dbAdapter.addPostToTimeline(database, likesTimelineId, time, post.id))
+          actions.push(dbAdapter.createPostUsageInTimeline(database, post.id, likesTimelineId))
         })
 
         await Promise.all(promises)
@@ -427,8 +431,8 @@ exports.addModel = function(database) {
           // post to comments timeline, but who notices this?
           let time = post.updatedAt
 
-          actions.push(database.zaddAsync(mkKey(['timeline', commentsTimelineId, 'posts']), time, post.id))
-          actions.push(database.saddAsync(mkKey(['post', post.id, 'timelines']), commentsTimelineId))
+          actions.push(dbAdapter.addPostToTimeline(database, commentsTimelineId, time, post.id))
+          actions.push(dbAdapter.createPostUsageInTimeline(database, post.id, commentsTimelineId))
         })
 
         await Promise.all(promises)
@@ -506,10 +510,7 @@ exports.addModel = function(database) {
     try {
       this.hashedPassword = await bcrypt.hashAsync(password, 10)
 
-      await database.hmsetAsync(mkKey(['user', this.id]),
-        { 'updatedAt': this.updatedAt.toString(),
-          'hashedPassword': this.hashedPassword
-        })
+      await dbAdapter.setUserPassword(database, this.id, this.updatedAt, this.hashedPassword)
 
       return this
     } catch(e) {
@@ -550,12 +551,7 @@ exports.addModel = function(database) {
       await timeline.create()
     }
 
-    await database.zunionstoreAsync(
-      mkKey(['timeline', this.id, 'posts']), 2,
-      mkKey(['timeline', commentsId, 'posts']),
-      mkKey(['timeline', likesId, 'posts']),
-      'AGGREGATE', 'MAX'
-    )
+    await dbAdapter.createMergedPostsTimeline(database, this.id, commentsId, likesId)
 
     return models.Timeline.findById(this.id, params)
   }
@@ -614,7 +610,7 @@ exports.addModel = function(database) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let score = await database.zscoreAsync(mkKey(['timeline', hidesTimelineId, 'posts']), post.id)
+      let score = await dbAdapter.getTimelinePostTime(database, hidesTimelineId, post.id)
 
       if (score && score >= 0) {
         post.isHidden = true
@@ -659,7 +655,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getTimelineIds = async function() {
-    let timelineIds = await database.hgetallAsync(mkKey(['user', this.id, 'timelines']))
+    let timelineIds = await dbAdapter.getUserTimelinesIds(database, this.id)
     return timelineIds || {}
   }
 
@@ -686,7 +682,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await database.zrevrangeAsync(mkKey(['user', this.id, 'subscriptions']), 0, -1)
+    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(database, this.id)
     return this.subscriptionsIds
   }
 
@@ -728,7 +724,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getBanIds = async function() {
-    return database.zrevrangeAsync(mkKey(['user', this.id, 'bans']), 0, -1)
+    return dbAdapter.getUserBansIds(database, this.id)
   }
 
   User.prototype.getBans = function() {
@@ -750,7 +746,7 @@ exports.addModel = function(database) {
     var user = await models.User.findByUsername(username)
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
-      database.zaddAsync(mkKey(['user', this.id, 'bans']), currentTime, user.id),
+      dbAdapter.createUserBan(database, this.id, currentTime, user.id),
       monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request
@@ -764,7 +760,7 @@ exports.addModel = function(database) {
   User.prototype.unban = async function(username) {
     var user = await models.User.findByUsername(username)
     monitor.increment('users.unbans')
-    return database.zremAsync(mkKey(['user', this.id, 'bans']), user.id)
+    return dbAdapter.deleteUserBan(database, this.id, user.id)
   }
 
   // Subscribe to user-owner of a given `timelineId`
@@ -779,8 +775,8 @@ exports.addModel = function(database) {
     let timelineIds = await user.getPublicTimelineIds()
 
     let promises = _.flatten(timelineIds.map((timelineId) => [
-      database.zaddAsync(mkKey(['user', this.id, 'subscriptions']), currentTime, timelineId),
-      database.zaddAsync(mkKey(['timeline', timelineId, 'subscribers']), currentTime, this.id)
+      dbAdapter.createUserSubscription(database, this.id, currentTime, timelineId),
+      dbAdapter.addTimelineSubscriber(database, timelineId, currentTime, this.id)
     ]))
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
@@ -818,8 +814,8 @@ exports.addModel = function(database) {
       let timelineIds = await user.getPublicTimelineIds()
 
       let unsubPromises = _.flatten(timelineIds.map((timelineId) => [
-        database.zremAsync(mkKey(['user', this.id, 'subscriptions']), timelineId),
-        database.zremAsync(mkKey(['timeline', timelineId, 'subscribers']), this.id)
+        dbAdapter.deleteUserSubscription(database, this.id, timelineId),
+        dbAdapter.removeTimelineSubscriber(database, timelineId, this.id)
       ]))
 
       promises = promises.concat(unsubPromises)
@@ -884,11 +880,11 @@ exports.addModel = function(database) {
         .then(function() {
           that.updatedAt = new Date().getTime()
           that.profilePictureUuid = this.profilePictureUid
-          return database.hmsetAsync(mkKey(['user', that.id]),
-            {
-              'profilePictureUuid': that.profilePictureUuid,
-              'updatedAt': that.updatedAt.toString()
-            });
+          let payload = {
+            'profilePictureUuid': that.profilePictureUuid,
+            'updatedAt': that.updatedAt.toString()
+          }
+          return dbAdapter.updateUser(database, that.id, payload)
         })
   }
 
@@ -1036,7 +1032,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {
-    let result = await database.zscoreAsync(mkKey(['post', post.id, 'likes']), this.id)
+    let result = await dbAdapter.getUserPostLikedTime(database, this.id, post.id)
 
     if (result != null && action == 'like')
       throw new ForbiddenException("You can't like post that you have already liked")
@@ -1056,8 +1052,10 @@ exports.addModel = function(database) {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers
       var updatedAt = new Date().getTime()
-      return database.hmsetAsync(mkKey(['user', this.id]),
-                                 { 'updatedAt': updatedAt.toString() })
+      let payload = {
+        'updatedAt': updatedAt.toString()
+      }
+      return dbAdapter.updateUser(database, this.id, payload)
     }
   }
 
@@ -1066,8 +1064,8 @@ exports.addModel = function(database) {
 
     var currentTime = new Date().getTime()
     return await Promise.all([
-      database.zaddAsync(mkKey(['user', userId, 'requests']), currentTime, this.id),
-      database.zaddAsync(mkKey(['user', this.id, 'pending']), currentTime, userId)
+      dbAdapter.createUserSubscriptionRequest(database, this.id, currentTime,userId),
+      dbAdapter.createUserSubscriptionPendingRequest(database, this.id, currentTime, userId)
     ])
   }
 
@@ -1075,8 +1073,8 @@ exports.addModel = function(database) {
     await this.validateCanManageSubscriptionRequests(userId)
 
     await Promise.all([
-      database.zremAsync(mkKey(['user', this.id, 'requests']), userId),
-      database.zremAsync(mkKey(['user', userId, 'pending']), this.id)
+      dbAdapter.deleteUserSubscriptionRequest(database, this.id, userId),
+      dbAdapter.deleteUserSubscriptionPendingRequest(database, this.id, userId)
     ])
 
     var timelineId = await this.getPostsTimelineId()
@@ -1089,14 +1087,13 @@ exports.addModel = function(database) {
     await this.validateCanManageSubscriptionRequests(userId)
 
     return await Promise.all([
-      database.zremAsync(mkKey(['user', this.id, 'requests']), userId),
-      database.zremAsync(mkKey(['user', userId, 'pending']), this.id)
+      dbAdapter.deleteUserSubscriptionRequest(database, this.id, userId),
+      dbAdapter.deleteUserSubscriptionPendingRequest(database, this.id, userId)
     ])
   }
 
   User.prototype.getPendingSubscriptionRequestIds = async function() {
-    var key = mkKey(['user', this.id, 'pending'])
-    this.pendingSubscriptionRequestIds = await database.zrevrangeAsync(key, 0, -1)
+    this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(database, this.id)
     return this.pendingSubscriptionRequestIds
   }
 
@@ -1106,8 +1103,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
-    var key = mkKey(['user', this.id, 'requests'])
-    return database.zrevrangeAsync(key, 0, -1)
+    return await dbAdapter.getUserSubscriptionRequestsIds(database, this.id)
   }
 
   User.prototype.getSubscriptionRequests = async function() {
@@ -1116,8 +1112,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
-    var key = mkKey(['user', userId, 'requests'])
-    var exists = await database.zscoreAsync(key, this.id)
+    var exists = await dbAdapter.getUserSubscriptionRequestTime(database, this.id, userId)
     var user = await models.User.findById(userId)
     var banIds = await user.getBanIds()
 
@@ -1131,8 +1126,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
-    var key = mkKey(['user', this.id, 'requests'])
-    var exists = await database.zscoreAsync(key, userId)
+    var exists = await dbAdapter.getUserSubscriptionRequestTime(database, userId, this.id)
 
     if (!exists)
       throw new Error("Invalid")

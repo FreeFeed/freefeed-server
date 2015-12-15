@@ -1,5 +1,7 @@
 "use strict";
 
+import * as dbAdapter from '../support/DbAdapter'
+
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -82,16 +84,17 @@ exports.addModel = function(database) {
 
       var group = await this.validateOnCreate(skip_stoplist)
 
+      let payload = {
+        'username':   group.username,
+        'screenName': group.screenName,
+        'type':       group.type,
+        'createdAt':  group.createdAt.toString(),
+        'updatedAt':  group.updatedAt.toString(),
+        'isPrivate':  group.isPrivate
+      }
       await Promise.all([
-        database.setAsync(mkKey(['username', group.username, 'uid']), group.id),
-        database.hmsetAsync(mkKey(['user', group.id]),
-                            { 'username': group.username,
-                              'screenName': group.screenName,
-                              'type': group.type,
-                              'createdAt': group.createdAt.toString(),
-                              'updatedAt': group.updatedAt.toString(),
-                              'isPrivate': group.isPrivate
-                            })
+        dbAdapter.createUserUsernameIndex(database, group.id, group.username),
+        dbAdapter.createUser(database, group.id, payload)
       ])
 
       var stats = new models.Stats({
@@ -125,7 +128,7 @@ exports.addModel = function(database) {
         'updatedAt':  this.updatedAt.toString()
       }
 
-      await database.hmsetAsync(mkKey(['user', this.id]), payload)
+      await dbAdapter.updateUser(database, this.id, payload)
     }
 
     return this
@@ -153,7 +156,7 @@ exports.addModel = function(database) {
     var currentTime = new Date().getTime()
 
     return new Promise(function(resolve, reject) {
-      database.zaddAsync(that.mkAdminsKey(), currentTime, feedId)
+      dbAdapter.addAdministatorToGroup(database, that.mkAdminsKey(), currentTime, feedId)
         .then(function(res) { resolve(res) })
         .catch(function(e) { reject(e) })
     })
@@ -172,7 +175,7 @@ exports.addModel = function(database) {
               reject(new Error("Cannot remove last administrator"))
             }
             else {
-              database.zremAsync(that.mkAdminsKey(), feedId)
+              dbAdapter.removeAdministatorFromGroup(database, that.mkAdminsKey(), feedId)
                   .then(function(res) { resolve(res) })
                   .catch(function(e) { reject(e) })
             }
@@ -181,7 +184,7 @@ exports.addModel = function(database) {
   }
 
   Group.prototype.getAdministratorIds = async function() {
-    this.administratorIds = await database.zrevrangeAsync(this.mkAdminsKey(), 0, -1)
+    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(database, this.mkAdminsKey())
     return this.administratorIds
   }
 

@@ -1,5 +1,7 @@
 "use strict";
 
+import * as dbAdapter from '../support/DbAdapter'
+
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , mmm = require('mmmagic')
@@ -124,7 +126,7 @@ exports.addModel = function(database) {
             params.title = attachment.title
           }
 
-          return database.hmsetAsync(mkKey(['attachment', attachment.id]), params)
+          return dbAdapter.createAttachment(database, attachment.id, params)
         })
         .then(function(res) { resolve(that) })
         .catch(function(e) { reject(e) })

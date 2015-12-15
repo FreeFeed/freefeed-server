@@ -1,5 +1,7 @@
 "use strict";
 
+import * as dbAdapter from '../support/DbAdapter'
+
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -73,9 +75,9 @@ exports.addModel = function(database) {
           _.union(post.timelineIds, _.flatten(allSubscribedTimelineIds)))
         return Promise.map(allTimelines, function(timelineId) {
           return Promise.all([
-            database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), currentTime, post.id),
-            database.hsetAsync(mkKey(['post', post.id]), 'updatedAt', currentTime),
-            database.saddAsync(mkKey(['post', post.id, 'timelines']), timelineId)
+            dbAdapter.addPostToTimeline(database, timelineId, currentTime, post.id),
+            dbAdapter.setPostUpdatedAt(database, post.id, currentTime),
+            dbAdapter.createPostUsageInTimeline(database, post.id, timelineId)
           ])
         })
       })
@@ -119,15 +121,15 @@ exports.addModel = function(database) {
 
       that.validateOnCreate()
         .then(function(timeline) {
+          let payload = {
+            'name':      that.name,
+            'userId':    that.userId,
+            'createdAt': that.createdAt.toString(),
+            'updatedAt': that.updatedAt.toString()
+          }
           return Promise.all([
-            database.hmsetAsync(mkKey(['user', that.userId, 'timelines']),
-                                that.name, that.id),
-            database.hmsetAsync(mkKey(['timeline', that.id]),
-                                { 'name': that.name,
-                                  'userId': that.userId,
-                                  'createdAt': that.createdAt.toString(),
-                                  'updatedAt': that.updatedAt.toString()
-                                })
+            dbAdapter.createUserTimeline(database, that.userId, that.name, that.id),
+            dbAdapter.createTimeline(database, that.id, payload)
           ])
         })
         .then(function(res) { resolve(that) })
@@ -154,10 +156,7 @@ exports.addModel = function(database) {
     if (!valid)
       return []
 
-    this.postIds = await database.zrevrangeAsync(
-      mkKey(['timeline', this.id, 'posts']),
-      offset, offset + limit - 1
-    )
+    this.postIds = await dbAdapter.getTimelinePostsRange(database, this.id, offset, offset + limit - 1)
 
     return this.postIds
   }
@@ -166,7 +165,7 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      database.zrevrangebyscoreAsync(mkKey(['timeline', that.id, 'posts']), min, max)
+      dbAdapter.getTimelinePostsInTimeInterval(database, that.id, min, max)
         .then(function(postIds) {
           that.postIds = postIds
           resolve(that.postIds)
@@ -268,17 +267,12 @@ exports.addModel = function(database) {
    * @param timelineId
    */
   Timeline.prototype.mergeTo = async function(timelineId) {
-    await database.zunionstoreAsync(
-      mkKey(['timeline', timelineId, 'posts']), 2,
-      mkKey(['timeline', timelineId, 'posts']),
-      mkKey(['timeline', this.id, 'posts']),
-      'AGGREGATE', 'MAX'
-    )
+    await dbAdapter.createMergedPostsTimeline(database, timelineId, timelineId, this.id)
 
     let timeline = await Timeline.findById(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
-    let promises = postIds.map(postId => database.saddAsync(mkKey(['post', postId, 'timelines']), timelineId))
+    let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(database, postId, timelineId))
 
     await Promise.all(promises)
   }
@@ -288,20 +282,15 @@ exports.addModel = function(database) {
     // create a temporary storage
     var randomKey = mkKey(['timeline', this.id, 'random', uuid.v4()])
 
-    await database.zinterstoreAsync(
-      randomKey,
-      2,
-      mkKey(['timeline', timelineId, 'posts']),
-      mkKey(['timeline', this.id, 'posts']),
-      'AGGREGATE', 'MAX')
+    await dbAdapter.getPostsTimelinesIntersection(database, randomKey, timelineId, this.id)
 
-    var postIds = await database.zrangeAsync(randomKey, 0, -1)
+    var postIds = await dbAdapter.getTimelinesIntersectionPosts(database, randomKey)
     await Promise.all(_.flatten(postIds.map((postId) => [
-      database.sremAsync(mkKey(['post', postId, 'timelines']), timelineId),
-      database.zremAsync(mkKey(['timeline', timelineId, 'posts']), postId)
+      dbAdapter.deletePostUsageInTimeline(database, postId, timelineId),
+      dbAdapter.removePostFromTimeline(database, timelineId, postId)
     ])))
 
-    return database.delAsync(randomKey)
+    return dbAdapter.deleteRecord(database, randomKey)
   }
 
   Timeline.prototype.getUser = function() {
@@ -312,7 +301,7 @@ exports.addModel = function(database) {
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
   Timeline.prototype.getSubscriberIds = async function(includeSelf) {
-    let userIds = await database.zrevrangeAsync(mkKey(['timeline', this.id, 'subscribers']), 0, -1)
+    let userIds = await dbAdapter.getTimelineSubscribers(database, this.id)
 
     // A user is always subscribed to their own posts timeline.
     if (includeSelf && (this.isPosts() || this.isDirects())) {
@@ -366,7 +355,7 @@ exports.addModel = function(database) {
 
   Timeline.prototype.updatePost = async function(postId, action) {
     if (action === "like") {
-      var score = await database.zscoreAsync(mkKey(['timeline', this.id, 'posts']), postId)
+      var score = await dbAdapter.getTimelinePostTime(database, this.id, postId)
 
       if (score != null) {
         // For the time being, like does not bump post if it is already present in timeline
@@ -377,9 +366,9 @@ exports.addModel = function(database) {
     var currentTime = new Date().getTime()
 
     await Promise.all([
-      database.zaddAsync(mkKey(['timeline', this.id, 'posts']), currentTime, postId),
-      database.saddAsync(mkKey(['post', postId, 'timelines']), this.id),
-      database.hsetAsync(mkKey(['post', postId]), 'updatedAt', currentTime)
+      dbAdapter.addPostToTimeline(database, this.id, currentTime, postId),
+      dbAdapter.createPostUsageInTimeline(database, postId, this.id),
+      dbAdapter.setPostUpdatedAt(database, postId, currentTime)
     ])
 
     // does not update lastActivity on like

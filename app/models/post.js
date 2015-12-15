@@ -2,6 +2,7 @@
 
 import config_file from '../../config/config'
 import monitor from 'monitor-dog'
+import * as dbAdapter from '../support/DbAdapter'
 
 var Promise = require('bluebird')
   , uuid = require('uuid')
@@ -98,13 +99,14 @@ exports.addModel = function(database) {
 
     var timer = monitor.timer('posts.create-time')
 
+    let payload = {
+      'body':      this.body,
+      'userId':    this.userId,
+      'createdAt': this.createdAt.toString(),
+      'updatedAt': this.updatedAt.toString()
+    }
     // save post to the database
-    await database.hmsetAsync(mkKey(['post', this.id]),
-                              { 'body': this.body,
-                                'userId': this.userId,
-                                'createdAt': this.createdAt.toString(),
-                                'updatedAt': this.updatedAt.toString()
-                              })
+    await dbAdapter.createPost(database, this.id, payload)
 
     // save nested resources
     await Promise.all([
@@ -123,7 +125,7 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.savePostedTo = function() {
-    return database.saddAsync(mkKey(['post', this.id, 'to']), this.timelineIds)
+    return dbAdapter.createPostPostedTo(database, this.id, this.timelineIds)
   }
 
   Post.prototype.update = async function(params) {
@@ -139,10 +141,11 @@ exports.addModel = function(database) {
     let removedAttachments = oldAttachments.filter(i => newAttachments.indexOf(i) < 0)
 
     // Update post body in DB
-    await database.hmsetAsync(mkKey(['post', this.id]),
-                              { 'body': this.body,
-                                'updatedAt': this.updatedAt.toString()
-                              })
+    let payload = {
+      'body':      this.body,
+      'updatedAt': this.updatedAt.toString()
+    }
+    await dbAdapter.updatePost(database, this.id, payload)
 
     // Update post attachments in DB
     await Promise.all([
@@ -188,37 +191,37 @@ exports.addModel = function(database) {
               .then(function(timelineIds) {
                 Promise.map(timelineIds, function(timelineId) {
                   return Promise.all([
-                    database.sremAsync(mkKey(['post', that.id, 'timelines']), timelineId),
-                    database.zremAsync(mkKey(['timeline', timelineId, 'posts']), that.id),
+                    dbAdapter.deletePostUsageInTimeline(database, that.id, timelineId),
+                    dbAdapter.removePostFromTimeline(database, timelineId, that.id)
                   ])
                     .then(function() {
-                      database.zcardAsync(mkKey(['timeline', timelineId, 'posts']))
+                      dbAdapter.getTimelinePostsCount(database, timelineId)
                         .then(function(res) {
                           // that timeline is empty
                           if (res === 0)
-                            database.delAsync(mkKey(['post', that.id, 'timelines']))
+                            dbAdapter.deletePostUsagesInTimelineIndex(database, that.id)
                         })
                     })
                 })
               }),
             // delete posted to key
-            database.delAsync(mkKey(['post', that.id, 'to'])),
+            dbAdapter.deletePostPostedTo(database, that.id),
             // delete likes
-            database.delAsync(mkKey(['post', that.id, 'likes'])),
+            dbAdapter.deletePostLikes(database, that.id),
             // delete post
-            database.delAsync(mkKey(['post', that.id]))
+            dbAdapter.deletePost(database, that.id)
           ])
         })
         // delete orphaned keys
         .then(function() {
-          database.scardAsync(mkKey(['post', that.id, 'timelines']))
+          dbAdapter.getPostUsagesInTimelinesCount(database, that.id)
             .then(function(res) {
               // post does not belong to any timelines
               if (res === 0)
-                database.delAsync(mkKey(['post', that.id, 'timelines']))
+                dbAdapter.deletePostUsagesInTimelineIndex(database, that.id)
             })
         })
-        .then(function() { return database.delAsync(mkKey(['post', that.id, 'comments'])) })
+        .then(function() { return dbAdapter.deletePostComments(database, that.id) })
         .then(function() { return models.Stats.findById(that.userId) })
         .then(function(stats) { return stats.removePost() })
         .then(function(res) {
@@ -257,7 +260,7 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getTimelineIds = async function() {
-    var timelineIds = await database.smembersAsync(mkKey(['post', this.id, 'timelines']))
+    var timelineIds = await dbAdapter.getPostUsagesInTimelines(database, this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -270,7 +273,7 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getPostedToIds = async function() {
-    var timelineIds = await database.smembersAsync(mkKey(['post', this.id, 'to']))
+    var timelineIds = await dbAdapter.getPostPostedToIds(database, this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -354,8 +357,8 @@ exports.addModel = function(database) {
         .then(function() { return theUser.getHidesTimelineId() })
         .then(function(timelineId) {
           return Promise.all([
-            database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), that.updatedAt, that.id),
-            database.saddAsync(mkKey(['post', that.id, 'timelines']), timelineId)
+            dbAdapter.addPostToTimeline(database, timelineId, that.updatedAt, that.id),
+            dbAdapter.createPostUsageInTimeline(database, that.id, timelineId)
           ])
         })
         .then(function(res) { resolve(res) })
@@ -376,8 +379,8 @@ exports.addModel = function(database) {
         .then(function() { return theUser.getHidesTimelineId() })
         .then(function(timelineId) {
           return Promise.all([
-            database.zremAsync(mkKey(['timeline', timelineId, 'posts']), that.id),
-            database.sremAsync(mkKey(['post', that.id, 'timelines']), timelineId)
+            dbAdapter.removePostFromTimeline(database, timelineId, that.id),
+            dbAdapter.deletePostUsageInTimeline(database, that.id, timelineId)
           ])
         })
         .then(function(res) { resolve(res) })
@@ -406,7 +409,7 @@ exports.addModel = function(database) {
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
-    promises.push(database.rpushAsync(mkKey(['post', this.id, 'comments']), comment.id))
+    promises.push(dbAdapter.addCommentToPost(database, this.id, comment.id))
     promises.push(pubSub.newComment(comment, timelines))
 
     await Promise.all(promises)
@@ -418,7 +421,7 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      database.llenAsync(mkKey(['post', that.id, 'comments']))
+      dbAdapter.getPostCommentsCount(database, that.id)
         .then(function(length) {
           if (length > that.maxComments && length > 3 && that.maxComments != 'all') {
             that.omittedComments = length - that.maxComments
@@ -431,14 +434,14 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getCommentIds = async function() {
-    let length = await database.llenAsync(mkKey(['post', this.id, 'comments']))
+    let length = await dbAdapter.getPostCommentsCount(database, this.id)
 
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
       // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
       // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
-      let commentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), 0, this.maxComments - 2)
+      let commentIds = await dbAdapter.getPostCommentsRange(database, this.id, 0, this.maxComments - 2)
       // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
-      let moreCommentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), -1, -1)
+      let moreCommentIds = await dbAdapter.getPostCommentsRange(database, this.id, -1, -1)
 
       this.omittedComments = length - this.maxComments
       this.commentIds = commentIds.concat(moreCommentIds)
@@ -446,7 +449,7 @@ exports.addModel = function(database) {
       return this.commentIds
     } else {
       // get ALL comment ids
-      this.commentIds = await database.lrangeAsync(mkKey(['post', this.id, 'comments']), 0, -1)
+      this.commentIds = await dbAdapter.getPostCommentsRange(database, this.id, 0, -1)
       return this.commentIds
     }
   }
@@ -488,8 +491,8 @@ exports.addModel = function(database) {
 
             // Update connections in DB
             return Promise.all([
-              database.rpushAsync(mkKey(['post', that.id, 'attachments']), attachmentId),
-              database.hsetAsync(mkKey(['attachment', attachmentId]), 'postId', that.id)
+              dbAdapter.addAttachmentToPost(database, that.id, attachmentId),
+              dbAdapter.setAttachmentPostId(database, attachmentId, that.id)
             ])
           })
           .then(function(res) { resolve(res) })
@@ -509,8 +512,8 @@ exports.addModel = function(database) {
           .then(function(attachment) {
             // Update connections in DB
             return Promise.all([
-              database.lremAsync(mkKey(['post', that.id, 'attachments']), 0, attachmentId),
-              database.hsetAsync(mkKey(['attachment', attachmentId]), 'postId', '')
+              dbAdapter.removeAttachmentsFromPost(database, that.id, attachmentId),
+              dbAdapter.setAttachmentPostId(database, attachmentId, '')
             ])
           })
           .then(function(res) { resolve(res) })
@@ -524,7 +527,7 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      database.lrangeAsync(mkKey(['post', that.id, 'attachments']), 0, -1)
+      dbAdapter.getPostAttachments(database, that.id)
         .then(function(attachmentIds) {
           that.attachmentIds = attachmentIds
           resolve(attachmentIds)
@@ -550,13 +553,13 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getLikeIds = async function() {
-    let length = await database.zcardAsync(mkKey(['post', this.id, 'likes']))
+    let length = await dbAdapter.getPostLikesCount(database, this.id)
 
     if (length > this.maxLikes && this.maxLikes != 'all') {
-      let score = await database.zscoreAsync(mkKey(['post', this.id, 'likes']), this.currentUser)
+      let score = await dbAdapter.getUserPostLikedTime(database, this.currentUser, this.id)
       let includesUser = score && score >= 0
 
-      let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, this.maxLikes - 1)
+      let likeIds = await dbAdapter.getPostLikesRange(database, this.id, 0, this.maxLikes - 1)
 
       this.likeIds = likeIds
       this.omittedLikes = length - this.maxLikes
@@ -574,7 +577,7 @@ exports.addModel = function(database) {
 
       return this.likeIds.slice(0, this.maxLikes)
     } else {
-      let likeIds = await database.zrevrangeAsync(mkKey(['post', this.id, 'likes']), 0, -1)
+      let likeIds = await dbAdapter.getPostLikesRange(database, this.id, 0, -1)
 
       let to = 0
       let from = _.findIndex(likeIds, user => (user == this.currentUser))
@@ -593,13 +596,13 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      database.zcardAsync(mkKey(['post', that.id, 'likes']))
+      dbAdapter.getPostLikesCount(database, that.id)
         .then(function(length) {
           if (length > that.maxLikes && that.maxLikes != 'all') {
-            database.zscoreAsync(mkKey(['post', that.id, 'likes']), that.currentUser).bind({})
+            dbAdapter.getUserPostLikedTime(database, that.currentUser, that.id).bind({})
               .then(function(score) { this.includeUser = score && score >= 0 })
               .then(function() {
-                return database.zrevrangeAsync(mkKey(['post', that.id, 'likes']), 0, that.maxLikes - 1)
+                return dbAdapter.getPostLikesRange(database, that.id, 0, that.maxLikes - 1)
               })
               .then(function(likeIds) {
                 that.omittedLikes = length - that.maxLikes
@@ -681,7 +684,7 @@ exports.addModel = function(database) {
     let promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
 
     var now = new Date().getTime()
-    promises.push(database.zaddAsync(mkKey(['post', this.id, 'likes']), now, user.id))
+    promises.push(dbAdapter.createUserPostLike(database, this.id, now, user.id))
 
     await Promise.all(promises)
 
@@ -698,9 +701,9 @@ exports.addModel = function(database) {
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
     await* [
-            database.zremAsync(mkKey(['post', this.id, 'likes']), userId),
-            database.zremAsync(mkKey(['timeline', timelineId, 'posts']), this.id),
-            database.sremAsync(mkKey(['post', this.id, 'timelines']), timelineId)
+            dbAdapter.removeUserPostLike(database, this.id, userId),
+            dbAdapter.removePostFromTimeline(database, timelineId, this.id),
+            dbAdapter.deletePostUsageInTimeline(database, this.id, timelineId)
           ]
     await pubSub.removeLike(this.id, userId)
 
@@ -735,7 +738,7 @@ exports.addModel = function(database) {
     let owner = await timeline.getUser()
     let hidesTimelineId = await owner.getHidesTimelineId()
 
-    let score = await database.zscoreAsync(mkKey(['timeline', hidesTimelineId, 'posts']), this.id)
+    let score = await dbAdapter.getTimelinePostTime(database, hidesTimelineId, this.id)
 
     return (score && score >= 0)
   }

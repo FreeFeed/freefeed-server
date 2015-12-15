@@ -1,5 +1,7 @@
 "use strict";
 
+import * as dbAdapter from '../support/DbAdapter'
+
 var Promise = require('bluebird')
   , mkKey = require("../support/models").mkKey
   , _ = require('lodash')
@@ -23,7 +25,7 @@ exports.addModel = function(database) {
   }
 
   AbstractModel.findById = async function(identifier, params) {
-    let attrs = await database.hgetallAsync(mkKey([this.namespace, identifier]))
+    let attrs = await dbAdapter.findRecordById(database, this.namespace, identifier)
 
     if (attrs === null) {
       return null
@@ -33,10 +35,7 @@ exports.addModel = function(database) {
   }
 
   AbstractModel.findByIds = async function(identifiers, params) {
-    let keys = identifiers.map(id => mkKey([this.namespace, id]))
-    let requests = keys.map(key => ['hgetall', key])
-
-    let responses = await database.batch(requests).execAsync()
+    let responses = await dbAdapter.findRecordsByIds(database, this.namespace, identifiers)
     let objects = responses.map((attrs, i) => this.initObject(attrs, identifiers[i], params))
 
     return objects
@@ -45,7 +44,7 @@ exports.addModel = function(database) {
   AbstractModel.findByAttribute = async function(attribute, value) {
     value = value.trim().toLowerCase()
 
-    let identifier = await database.getAsync(mkKey([attribute, value, 'uid']))
+    let identifier = await dbAdapter.findUserByAttributeIndex(database, attribute, value)
 
     if (!identifier) {
       throw new NotFoundException("Record not found")
@@ -69,7 +68,7 @@ exports.addModel = function(database) {
 
   AbstractModel.prototype = {
     validateUniquness: async function(attribute) {
-      var res = await database.existsAsync(attribute)
+      var res = await dbAdapter.existsRecord(database, attribute)
 
       if (res === 0)
         return true

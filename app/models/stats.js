@@ -1,5 +1,7 @@
 "use strict";
 
+import * as dbAdapter from '../support/DbAdapter'
+
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -31,7 +33,7 @@ exports.addModel = function(database) {
       var valid = this.id
           && this.id.length > 0
 
-      database.existsAsync(mkKey(['user', this.id]))
+      dbAdapter.existsUser(database, this.id)
         .then(function(status) {
           valid && status == 1 ? resolve(true) : reject(new Error("Invalid"))
         })
@@ -44,19 +46,20 @@ exports.addModel = function(database) {
     return new Promise(function(resolve, reject) {
       that.validateOnCreate()
         .then(function() {
+          let payload = {
+            'posts':         that.posts.toString(),
+            'likes':         that.likes.toString(),
+            'comments':      that.comments.toString(),
+            'subscribers':   that.subscribers.toString(),
+            'subscriptions': that.subscriptions.toString()
+          }
           return Promise.all([
-            database.hmsetAsync(mkKey(['stats', that.id]), {
-              'posts' : that.posts.toString(),
-              'likes' : that.likes.toString(),
-              'comments' : that.comments.toString(),
-              'subscribers' : that.subscribers.toString(),
-              'subscriptions' : that.subscriptions.toString()
-            }),
-            database.zaddAsync(mkKey(['stats', 'likes']), that.likes, that.id),
-            database.zaddAsync(mkKey(['stats', 'posts']), that.posts, that.id),
-            database.zaddAsync(mkKey(['stats', 'comments']), that.comments, that.id),
-            database.zaddAsync(mkKey(['stats', 'subscribers']), that.subscribers, that.id),
-            database.zaddAsync(mkKey(['stats', 'subscriptions']), that.subscriptions, that.id)
+            dbAdapter.updateUserStats(database, that.id, payload),
+            dbAdapter.addUserLikesStats(database, that.id, that.likes),
+            dbAdapter.addUserPostsStats(database, that.id, that.posts),
+            dbAdapter.addUserCommentsStats(database, that.id, that.comments),
+            dbAdapter.addUserSubscribersStats(database, that.id, that.subscribers),
+            dbAdapter.addUserSubscriptionsStats(database, that.id, that.subscriptions)
           ])
         })
         .then(function(res) { resolve(res) })
@@ -66,10 +69,8 @@ exports.addModel = function(database) {
   Stats.prototype.changeProperty = function(property, value) {
     var that = this
     return new Promise(function(resolve, reject) {
-      database.hincrbyAsync('stats:' + that.id, property, value)
-        .then(function() { resolve(database.zincrbyAsync(mkKey(['stats', property]),
-                                                       value,
-                                                       that.id)) })
+      dbAdapter.changeUserStatsValue(database, that.id, property, value)
+        .then(function() { resolve(dbAdapter.changeUserStats(database, that.id, property, value)) })
     })
   }
 
