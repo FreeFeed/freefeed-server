@@ -13,11 +13,11 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async setUserPassword(userId, updatedAt, hashedPassword) {
-    return this.database.hmsetAsync(mkKey(['user', userId]),
-      {
-        'updatedAt':      updatedAt.toString(),
-        'hashedPassword': hashedPassword
-      })
+    let payload = {
+      'updatedAt':      updatedAt.toString(),
+      'hashedPassword': hashedPassword
+    }
+    return this.updateRecord(mkKey(['user', userId]), payload)
   }
 
   async createUser(userId, payload) {
@@ -25,7 +25,7 @@ export class DbAdapter{
   }
 
   async updateUser(userId, payload) {
-    return this.database.hmsetAsync(mkKey(['user', userId]), payload)
+    return this.updateRecord(mkKey(['user', userId]), payload)
   }
 
   async existsUser(userId) {
@@ -65,7 +65,7 @@ export class DbAdapter{
   }
 
   async updatePost(postId, payload) {
-    return this.database.hmsetAsync(mkKey(['post', postId]), payload)
+    return this.updateRecord(mkKey(['post', postId]), payload)
   }
 
   async setPostUpdatedAt(postId, time) {
@@ -366,7 +366,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async updateUserStats(userId, payload) {
-    return this.database.hmsetAsync(mkKey(['stats', userId]), payload)
+    return this.updateRecord(mkKey(['stats', userId]), payload)
   }
 
   async changeUserStatsValue(userId, property, value) {
@@ -407,7 +407,7 @@ export class DbAdapter{
   }
 
   async updateComment(commentId, payload) {
-    return this.database.hmsetAsync(mkKey(['comment', commentId]), payload)
+    return this.updateRecord(mkKey(['comment', commentId]), payload)
   }
 
   async deleteComment(commentId) {
@@ -467,6 +467,10 @@ export class DbAdapter{
   }
 
   async createRecord(key, payload){
+    return this.database.hmsetAsync(key, payload)
+  }
+
+  async updateRecord(key, payload){
     return this.database.hmsetAsync(key, payload)
   }
 
