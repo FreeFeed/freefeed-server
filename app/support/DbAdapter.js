@@ -367,6 +367,10 @@ export class DbAdapter{
     return this.database.hmsetAsync(mkKey(['stats', userId]), payload)
   }
 
+  async changeUserStatsValue(userId, property, value) {
+    return this.database.hincrbyAsync(mkKey(['stats', userId]), property, value)
+  }
+
   async addUserLikesStats(userId, likes) {
     return this.database.zaddAsync(mkKey(['stats', 'likes']), likes, userId)
   }
@@ -385,10 +389,6 @@ export class DbAdapter{
 
   async addUserSubscriptionsStats(userId, subscriptions) {
     return this.database.zaddAsync(mkKey(['stats', 'subscriptions']), subscriptions, userId)
-  }
-
-  async changeUserStatsValue(userId, property, value) {
-    return this.database.hincrbyAsync('stats:' + userId, property, value)
   }
 
   async changeUserStats(userId, property, value) {
