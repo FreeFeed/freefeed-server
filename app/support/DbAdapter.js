@@ -21,7 +21,7 @@ export class DbAdapter{
   }
 
   async createUser(userId, payload) {
-    return this.database.hmsetAsync(mkKey(['user', userId]), payload)
+    return this.createRecord(mkKey(['user', userId]), payload)
   }
 
   async updateUser(userId, payload) {
@@ -50,7 +50,9 @@ export class DbAdapter{
   }
 
   async createUserTimeline(userId, timelineName, timelineId) {
-    return this.database.hmsetAsync(mkKey(['user', userId, 'timelines']), timelineName, timelineId)
+    let payload = {}
+    payload[timelineName] = timelineId
+    return this.createRecord(mkKey(['user', userId, 'timelines']), payload)
   }
 
 
@@ -59,7 +61,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async createPost(postId, payload) {
-    return this.database.hmsetAsync(mkKey(['post', postId]), payload)
+    return this.createRecord(mkKey(['post', postId]), payload)
   }
 
   async updatePost(postId, payload) {
@@ -302,7 +304,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async createTimeline(timelineId, payload) {
-    return this.database.hmsetAsync(mkKey(['timeline', timelineId]), payload)
+    return this.createRecord(mkKey(['timeline', timelineId]), payload)
   }
 
   async addPostToTimeline(timelineId, time, postId) {
@@ -401,7 +403,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async createComment(commentId, payload) {
-    return this.database.hmsetAsync(mkKey(['comment', commentId]), payload)
+    return this.createRecord(mkKey(['comment', commentId]), payload)
   }
 
   async updateComment(commentId, payload) {
@@ -417,7 +419,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async createAttachment(attachmentId, payload) {
-    return this.database.hmsetAsync(mkKey(['attachment', attachmentId]), payload)
+    return this.createRecord(mkKey(['attachment', attachmentId]), payload)
   }
 
   async setAttachmentPostId(attachmentId, postId) {
@@ -462,6 +464,10 @@ export class DbAdapter{
 
   async existsRecord(key) {
     return this.database.existsAsync(key)
+  }
+
+  async createRecord(key, payload){
+    return this.database.hmsetAsync(key, payload)
   }
 
 
