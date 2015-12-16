@@ -132,10 +132,6 @@ exports.addModel = function(dbAdapter) {
     return this
   }
 
-  Group.prototype.mkAdminsKey = function() {
-    return mkKey(['user', this.id, 'administrators'])
-  }
-
   Group.prototype.subscribeOwner = async function(ownerId) {
     let owner = await User.findById(ownerId)
 
@@ -154,7 +150,7 @@ exports.addModel = function(dbAdapter) {
     var currentTime = new Date().getTime()
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.addAdministatorToGroup(that.mkAdminsKey(), currentTime, feedId)
+      dbAdapter.addAdministratorToGroup(that.id, currentTime, feedId)
         .then(function(res) { resolve(res) })
         .catch(function(e) { reject(e) })
     })
@@ -173,7 +169,7 @@ exports.addModel = function(dbAdapter) {
               reject(new Error("Cannot remove last administrator"))
             }
             else {
-              dbAdapter.removeAdministatorFromGroup(that.mkAdminsKey(), feedId)
+              dbAdapter.removeAdministratorFromGroup(that.id, feedId)
                   .then(function(res) { resolve(res) })
                   .catch(function(e) { reject(e) })
             }
@@ -182,7 +178,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Group.prototype.getAdministratorIds = async function() {
-    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.mkAdminsKey())
+    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.id)
     return this.administratorIds
   }
 

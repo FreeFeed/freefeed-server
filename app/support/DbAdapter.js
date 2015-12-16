@@ -285,16 +285,16 @@ export class DbAdapter{
   // Group administrators
   ///////////////////////////////////////////////////
 
-  async getGroupAdministratorsIds(groupAdminsKey) {
-    return this.database.zrevrangeAsync(groupAdminsKey, 0, -1)
+  async getGroupAdministratorsIds(groupId) {
+    return this.database.zrevrangeAsync(mkKey(['user', groupId, 'administrators']), 0, -1)
   }
 
-  async addAdministatorToGroup(groupAdminsKey, currentTime, adminId) {
-    return this.database.zaddAsync(groupAdminsKey, currentTime, adminId)
+  async addAdministratorToGroup(groupId, currentTime, adminId) {
+    return this.database.zaddAsync(mkKey(['user', groupId, 'administrators']), currentTime, adminId)
   }
 
-  async removeAdministatorFromGroup(groupAdminsKey, adminId) {
-    return this.database.zremAsync(groupAdminsKey, adminId)
+  async removeAdministratorFromGroup(groupId, adminId) {
+    return this.database.zremAsync(mkKey(['user', groupId, 'administrators']), adminId)
   }
 
   ///////////////////////////////////////////////////
