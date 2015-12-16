@@ -261,11 +261,6 @@ export class DbAdapter{
   // User indexes
   ///////////////////////////////////////////////////
 
-
-  async getUserIdByEmail(emailIndexKey) {
-    return this.database.getAsync(emailIndexKey)
-  }
-
   async getUserIdByUsername(username) {
     return this.database.getAsync(mkKey(['username', username, 'uid']))
   }
@@ -274,12 +269,16 @@ export class DbAdapter{
     return this.database.setAsync(mkKey(['username', username, 'uid']), userId)
   }
 
-  async createUserEmailIndex(userId, emailIndexKey) {
-    return this.database.setAsync(emailIndexKey, userId)
+  async getUserIdByEmail(email) {
+    return this.database.getAsync(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
   }
 
-  async dropUserEmailIndex(emailIndexKey) {
-    return this.database.delAsync(emailIndexKey)
+  async createUserEmailIndex(userId, email) {
+    return this.database.setAsync(mkKey(['email', this._normalizeUserEmail(email), 'uid']), userId)
+  }
+
+  async dropUserEmailIndex(email) {
+    return this.database.delAsync(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
   }
 
   ///////////////////////////////////////////////////
@@ -461,4 +460,8 @@ export class DbAdapter{
     return this.database.existsAsync(key)
   }
 
+
+  _normalizeUserEmail(email){
+    return email.toLowerCase()
+  }
 }
