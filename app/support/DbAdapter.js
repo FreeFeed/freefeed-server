@@ -69,11 +69,14 @@ export class DbAdapter{
   }
 
   async setPostUpdatedAt(postId, time) {
-    return this.database.hsetAsync(mkKey(['post', postId]), 'updatedAt', time)
+    let payload = {
+      'updatedAt': time
+    }
+    return this.updateRecord(mkKey(['post', postId]), payload)
   }
 
   async deletePost(postId) {
-    return this.database.delAsync(mkKey(['post', postId]))
+    return this.deleteRecord(mkKey(['post', postId]))
   }
 
   ///////////
@@ -99,7 +102,7 @@ export class DbAdapter{
   }
 
   async deletePostLikes(postId) {
-    return this.database.delAsync(mkKey(['post', postId, 'likes']))
+    return this.deleteRecord(mkKey(['post', postId, 'likes']))
   }
 
   ///////////
@@ -121,7 +124,7 @@ export class DbAdapter{
   }
 
   async deletePostUsagesInTimelineIndex(postId) {
-    return this.database.delAsync(mkKey(['post', postId, 'timelines']))
+    return this.deleteRecord(mkKey(['post', postId, 'timelines']))
   }
 
   ///////////
@@ -135,7 +138,7 @@ export class DbAdapter{
   }
 
   async deletePostPostedTo(postId) {
-    return this.database.delAsync(mkKey(['post', postId, 'to']))
+    return this.deleteRecord(mkKey(['post', postId, 'to']))
   }
 
   ///////////
@@ -157,7 +160,7 @@ export class DbAdapter{
   }
 
   async deletePostComments(postId) {
-    return this.database.delAsync(mkKey(['post', postId, 'comments']))
+    return this.deleteRecord(mkKey(['post', postId, 'comments']))
   }
 
   ///////////
@@ -188,7 +191,7 @@ export class DbAdapter{
   }
 
   async deleteUserResetPasswordToken(token) {
-    return this.database.delAsync(mkKey(['reset', token, 'uid']))
+    return this.deleteRecord(mkKey(['reset', token, 'uid']))
   }
 
   ///////////////////////////////////////////////////
@@ -280,7 +283,7 @@ export class DbAdapter{
   }
 
   async dropUserEmailIndex(email) {
-    return this.database.delAsync(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
+    return this.deleteRecord(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
   }
 
   ///////////////////////////////////////////////////
@@ -411,7 +414,7 @@ export class DbAdapter{
   }
 
   async deleteComment(commentId) {
-    return this.database.delAsync(mkKey(['comment', commentId]))
+    return this.deleteRecord(mkKey(['comment', commentId]))
   }
 
   ///////////////////////////////////////////////////
@@ -423,7 +426,10 @@ export class DbAdapter{
   }
 
   async setAttachmentPostId(attachmentId, postId) {
-    return this.database.hsetAsync(mkKey(['attachment', attachmentId]), 'postId', postId)
+    let payload = {
+      'postId': postId
+    }
+    return this.updateRecord(mkKey(['attachment', attachmentId]), payload)
   }
 
   ///////////////////////////////////////////////////
@@ -433,10 +439,6 @@ export class DbAdapter{
 
   async getTimelinesIntersectionPosts(key) {
     return this.database.zrangeAsync(key, 0, -1)
-  }
-
-  async deleteRecord(key) {
-    return this.database.delAsync(key)
   }
 
   ///////////////////////////////////////////////////
@@ -472,6 +474,10 @@ export class DbAdapter{
 
   async updateRecord(key, payload){
     return this.database.hmsetAsync(key, payload)
+  }
+
+  async deleteRecord(key) {
+    return this.database.delAsync(key)
   }
 
 
