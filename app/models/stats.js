@@ -1,7 +1,5 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -9,7 +7,7 @@ var Promise = require('bluebird')
   , AbstractModel = models.AbstractModel
   , mkKey = require("../support/models").mkKey
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   var Stats = function(params) {
     Stats.super_.call(this)
 
@@ -33,7 +31,7 @@ exports.addModel = function(database) {
       var valid = this.id
           && this.id.length > 0
 
-      dbAdapter.existsUser(database, this.id)
+      dbAdapter.existsUser(this.id)
         .then(function(status) {
           valid && status == 1 ? resolve(true) : reject(new Error("Invalid"))
         })
@@ -54,12 +52,12 @@ exports.addModel = function(database) {
             'subscriptions': that.subscriptions.toString()
           }
           return Promise.all([
-            dbAdapter.updateUserStats(database, that.id, payload),
-            dbAdapter.addUserLikesStats(database, that.id, that.likes),
-            dbAdapter.addUserPostsStats(database, that.id, that.posts),
-            dbAdapter.addUserCommentsStats(database, that.id, that.comments),
-            dbAdapter.addUserSubscribersStats(database, that.id, that.subscribers),
-            dbAdapter.addUserSubscriptionsStats(database, that.id, that.subscriptions)
+            dbAdapter.updateUserStats(that.id, payload),
+            dbAdapter.addUserLikesStats(that.id, that.likes),
+            dbAdapter.addUserPostsStats(that.id, that.posts),
+            dbAdapter.addUserCommentsStats(that.id, that.comments),
+            dbAdapter.addUserSubscribersStats(that.id, that.subscribers),
+            dbAdapter.addUserSubscriptionsStats(that.id, that.subscriptions)
           ])
         })
         .then(function(res) { resolve(res) })
@@ -69,8 +67,8 @@ exports.addModel = function(database) {
   Stats.prototype.changeProperty = function(property, value) {
     var that = this
     return new Promise(function(resolve, reject) {
-      dbAdapter.changeUserStatsValue(database, that.id, property, value)
-        .then(function() { resolve(dbAdapter.changeUserStats(database, that.id, property, value)) })
+      dbAdapter.changeUserStatsValue(that.id, property, value)
+        .then(function() { resolve(dbAdapter.changeUserStats(that.id, property, value)) })
     })
   }
 

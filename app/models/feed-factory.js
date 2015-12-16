@@ -1,7 +1,5 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 import Promise from "bluebird"
 import { inherits } from "util"
 
@@ -13,7 +11,7 @@ import { NotFoundException } from "../support/exceptions"
 let config = configLoader()
 
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   var FeedFactory = function() {
   }
 
@@ -27,7 +25,7 @@ exports.addModel = function(database) {
   }
 
   FeedFactory.findById = async function(identifier) {
-    let attrs = await dbAdapter.getUserById(database, identifier)
+    let attrs = await dbAdapter.getUserById(identifier)
 
     if (attrs.type === 'group') {
       return Group.initObject(attrs, identifier)
@@ -37,7 +35,7 @@ exports.addModel = function(database) {
   }
 
   FeedFactory.findByIds = async function(identifiers) {
-    let responses = await dbAdapter.getUsersByIds(database, identifiers)
+    let responses = await dbAdapter.getUsersByIds(identifiers)
     let objects = responses.map((attrs, i) => {
       if (attrs.type === 'group') {
         return Group.initObject(attrs, identifiers[i])
@@ -50,7 +48,7 @@ exports.addModel = function(database) {
   }
 
   FeedFactory.findByUsername = async function(username) {
-    let identifier = await dbAdapter.getUserIdByUsername(database, username)
+    let identifier = await dbAdapter.getUserIdByUsername(username)
 
     if (null === identifier) {
       throw new NotFoundException(`user "${username}" is not found`)

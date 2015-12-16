@@ -2,7 +2,6 @@
 
 import config_file from '../../config/config'
 import monitor from 'monitor-dog'
-import * as dbAdapter from '../support/DbAdapter'
 
 var Promise = require('bluebird')
   , crypto = Promise.promisifyAll(require('crypto'))
@@ -22,7 +21,7 @@ var Promise = require('bluebird')
   , gm = Promise.promisifyAll(require('gm'))
   , GraphemeBreaker = require('grapheme-breaker')
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    */
@@ -153,19 +152,19 @@ exports.addModel = function(database) {
           }
 
           let promises = [
-            dbAdapter.updateUser(database, that.id, payload),
-            dbAdapter.createUserResetPasswordToken(database, that.id, token)
+            dbAdapter.updateUser(that.id, payload),
+            dbAdapter.createUserResetPasswordToken(that.id, token)
           ]
 
           if (oldToken) {
-            promises.push(dbAdapter.deleteUserResetPasswordToken(database, oldToken))
+            promises.push(dbAdapter.deleteUserResetPasswordToken(oldToken))
           }
 
           return Promise.all(promises)
         })
         .then(function() {
           var expireAfter = 60*60*24 // 24 hours
-          dbAdapter.setUserResetPasswordTokenExpireAfter(database, this.token, expireAfter)
+          dbAdapter.setUserResetPasswordTokenExpireAfter(this.token, expireAfter)
         })
         .then(function() {
           resolve(this.token)
@@ -200,7 +199,7 @@ exports.addModel = function(database) {
       return false
     }
 
-    var uid = await dbAdapter.getUserIdByEmail(database, User.emailRedisKey(email))
+    var uid = await dbAdapter.getUserIdByEmail(User.emailRedisKey(email))
 
     if (uid) {
       // email is taken
@@ -271,13 +270,13 @@ exports.addModel = function(database) {
   User.prototype.createEmailIndex = function() {
     // email is optional, so no need to index an empty key
     if (this.email && this.email.length > 0) {
-      return dbAdapter.createUserEmailIndex(database, this.id, User.emailRedisKey(this.email))
+      return dbAdapter.createUserEmailIndex(this.id, User.emailRedisKey(this.email))
     }
     return new Promise.resolve(true)
   }
 
   User.prototype.dropIndexForEmail = function(email) {
-    return dbAdapter.dropUserEmailIndex(database, User.emailRedisKey(email))
+    return dbAdapter.dropUserEmailIndex(User.emailRedisKey(email))
   }
 
   User.prototype.create = async function(skip_stoplist) {
@@ -303,8 +302,8 @@ exports.addModel = function(database) {
       'hashedPassword': user.hashedPassword
     }
     var promises = [
-      dbAdapter.createUserUsernameIndex(database, user.id, user.username),
-      dbAdapter.createUser(database, user.id, payload),
+      dbAdapter.createUserUsernameIndex(user.id, user.username),
+      dbAdapter.createUser(user.id, payload),
       user.createEmailIndex()
     ]
 
@@ -373,7 +372,7 @@ exports.addModel = function(database) {
       }
 
       var promises = [
-        dbAdapter.updateUser(database, this.id, payload)
+        dbAdapter.updateUser(this.id, payload)
       ]
 
       if (emailChanged) {
@@ -411,10 +410,10 @@ exports.addModel = function(database) {
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
           let likesTimelineId = await user.getLikesTimelineId()
-          let time = await dbAdapter.getUserPostLikedTime(database, user.id, post.id)
+          let time = await dbAdapter.getUserPostLikedTime(user.id, post.id)
 
-          actions.push(dbAdapter.addPostToTimeline(database, likesTimelineId, time, post.id))
-          actions.push(dbAdapter.createPostUsageInTimeline(database, post.id, likesTimelineId))
+          actions.push(dbAdapter.addPostToTimeline(likesTimelineId, time, post.id))
+          actions.push(dbAdapter.createPostUsageInTimeline(post.id, likesTimelineId))
         })
 
         await Promise.all(promises)
@@ -431,8 +430,8 @@ exports.addModel = function(database) {
           // post to comments timeline, but who notices this?
           let time = post.updatedAt
 
-          actions.push(dbAdapter.addPostToTimeline(database, commentsTimelineId, time, post.id))
-          actions.push(dbAdapter.createPostUsageInTimeline(database, post.id, commentsTimelineId))
+          actions.push(dbAdapter.addPostToTimeline(commentsTimelineId, time, post.id))
+          actions.push(dbAdapter.createPostUsageInTimeline(post.id, commentsTimelineId))
         })
 
         await Promise.all(promises)
@@ -510,7 +509,7 @@ exports.addModel = function(database) {
     try {
       this.hashedPassword = await bcrypt.hashAsync(password, 10)
 
-      await dbAdapter.setUserPassword(database, this.id, this.updatedAt, this.hashedPassword)
+      await dbAdapter.setUserPassword(this.id, this.updatedAt, this.hashedPassword)
 
       return this
     } catch(e) {
@@ -551,7 +550,7 @@ exports.addModel = function(database) {
       await timeline.create()
     }
 
-    await dbAdapter.createMergedPostsTimeline(database, this.id, commentsId, likesId)
+    await dbAdapter.createMergedPostsTimeline(this.id, commentsId, likesId)
 
     return models.Timeline.findById(this.id, params)
   }
@@ -610,7 +609,7 @@ exports.addModel = function(database) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let score = await dbAdapter.getTimelinePostTime(database, hidesTimelineId, post.id)
+      let score = await dbAdapter.getTimelinePostTime(hidesTimelineId, post.id)
 
       if (score && score >= 0) {
         post.isHidden = true
@@ -655,7 +654,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getTimelineIds = async function() {
-    let timelineIds = await dbAdapter.getUserTimelinesIds(database, this.id)
+    let timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
     return timelineIds || {}
   }
 
@@ -682,7 +681,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(database, this.id)
+    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(this.id)
     return this.subscriptionsIds
   }
 
@@ -724,7 +723,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getBanIds = async function() {
-    return dbAdapter.getUserBansIds(database, this.id)
+    return dbAdapter.getUserBansIds(this.id)
   }
 
   User.prototype.getBans = function() {
@@ -746,7 +745,7 @@ exports.addModel = function(database) {
     var user = await models.User.findByUsername(username)
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
-      dbAdapter.createUserBan(database, this.id, currentTime, user.id),
+      dbAdapter.createUserBan(this.id, currentTime, user.id),
       monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request
@@ -760,7 +759,7 @@ exports.addModel = function(database) {
   User.prototype.unban = async function(username) {
     var user = await models.User.findByUsername(username)
     monitor.increment('users.unbans')
-    return dbAdapter.deleteUserBan(database, this.id, user.id)
+    return dbAdapter.deleteUserBan(this.id, user.id)
   }
 
   // Subscribe to user-owner of a given `timelineId`
@@ -775,8 +774,8 @@ exports.addModel = function(database) {
     let timelineIds = await user.getPublicTimelineIds()
 
     let promises = _.flatten(timelineIds.map((timelineId) => [
-      dbAdapter.createUserSubscription(database, this.id, currentTime, timelineId),
-      dbAdapter.addTimelineSubscriber(database, timelineId, currentTime, this.id)
+      dbAdapter.createUserSubscription(this.id, currentTime, timelineId),
+      dbAdapter.addTimelineSubscriber(timelineId, currentTime, this.id)
     ]))
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
@@ -814,8 +813,8 @@ exports.addModel = function(database) {
       let timelineIds = await user.getPublicTimelineIds()
 
       let unsubPromises = _.flatten(timelineIds.map((timelineId) => [
-        dbAdapter.deleteUserSubscription(database, this.id, timelineId),
-        dbAdapter.removeTimelineSubscriber(database, timelineId, this.id)
+        dbAdapter.deleteUserSubscription(this.id, timelineId),
+        dbAdapter.removeTimelineSubscriber(timelineId, this.id)
       ]))
 
       promises = promises.concat(unsubPromises)
@@ -884,7 +883,7 @@ exports.addModel = function(database) {
             'profilePictureUuid': that.profilePictureUuid,
             'updatedAt': that.updatedAt.toString()
           }
-          return dbAdapter.updateUser(database, that.id, payload)
+          return dbAdapter.updateUser(that.id, payload)
         })
   }
 
@@ -1032,7 +1031,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {
-    let result = await dbAdapter.getUserPostLikedTime(database, this.id, post.id)
+    let result = await dbAdapter.getUserPostLikedTime(this.id, post.id)
 
     if (result != null && action == 'like')
       throw new ForbiddenException("You can't like post that you have already liked")
@@ -1055,7 +1054,7 @@ exports.addModel = function(database) {
       let payload = {
         'updatedAt': updatedAt.toString()
       }
-      return dbAdapter.updateUser(database, this.id, payload)
+      return dbAdapter.updateUser(this.id, payload)
     }
   }
 
@@ -1064,8 +1063,8 @@ exports.addModel = function(database) {
 
     var currentTime = new Date().getTime()
     return await Promise.all([
-      dbAdapter.createUserSubscriptionRequest(database, this.id, currentTime,userId),
-      dbAdapter.createUserSubscriptionPendingRequest(database, this.id, currentTime, userId)
+      dbAdapter.createUserSubscriptionRequest(this.id, currentTime,userId),
+      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, userId)
     ])
   }
 
@@ -1073,8 +1072,8 @@ exports.addModel = function(database) {
     await this.validateCanManageSubscriptionRequests(userId)
 
     await Promise.all([
-      dbAdapter.deleteUserSubscriptionRequest(database, this.id, userId),
-      dbAdapter.deleteUserSubscriptionPendingRequest(database, this.id, userId)
+      dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
+      dbAdapter.deleteUserSubscriptionPendingRequest(this.id, userId)
     ])
 
     var timelineId = await this.getPostsTimelineId()
@@ -1087,13 +1086,13 @@ exports.addModel = function(database) {
     await this.validateCanManageSubscriptionRequests(userId)
 
     return await Promise.all([
-      dbAdapter.deleteUserSubscriptionRequest(database, this.id, userId),
-      dbAdapter.deleteUserSubscriptionPendingRequest(database, this.id, userId)
+      dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
+      dbAdapter.deleteUserSubscriptionPendingRequest(this.id, userId)
     ])
   }
 
   User.prototype.getPendingSubscriptionRequestIds = async function() {
-    this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(database, this.id)
+    this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(this.id)
     return this.pendingSubscriptionRequestIds
   }
 
@@ -1103,7 +1102,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
-    return await dbAdapter.getUserSubscriptionRequestsIds(database, this.id)
+    return await dbAdapter.getUserSubscriptionRequestsIds(this.id)
   }
 
   User.prototype.getSubscriptionRequests = async function() {
@@ -1112,7 +1111,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
-    var exists = await dbAdapter.getUserSubscriptionRequestTime(database, this.id, userId)
+    var exists = await dbAdapter.getUserSubscriptionRequestTime(this.id, userId)
     var user = await models.User.findById(userId)
     var banIds = await user.getBanIds()
 
@@ -1126,7 +1125,7 @@ exports.addModel = function(database) {
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
-    var exists = await dbAdapter.getUserSubscriptionRequestTime(database, userId, this.id)
+    var exists = await dbAdapter.getUserSubscriptionRequestTime(userId, this.id)
 
     if (!exists)
       throw new Error("Invalid")

@@ -1,7 +1,5 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , mmm = require('mmmagic')
@@ -17,7 +15,7 @@ var Promise = require('bluebird')
   , mkKey = require('../support/models').mkKey
   , aws = require('aws-sdk')
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    */
@@ -126,7 +124,7 @@ exports.addModel = function(database) {
             params.title = attachment.title
           }
 
-          return dbAdapter.createAttachment(database, attachment.id, params)
+          return dbAdapter.createAttachment(attachment.id, params)
         })
         .then(function(res) { resolve(that) })
         .catch(function(e) { reject(e) })

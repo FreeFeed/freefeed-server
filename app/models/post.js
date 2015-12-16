@@ -2,7 +2,6 @@
 
 import config_file from '../../config/config'
 import monitor from 'monitor-dog'
-import * as dbAdapter from '../support/DbAdapter'
 
 var Promise = require('bluebird')
   , uuid = require('uuid')
@@ -16,7 +15,7 @@ var Promise = require('bluebird')
   , _ = require('lodash')
   , pubSub = models.PubSub
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    * @extends AbstractModel
@@ -106,7 +105,7 @@ exports.addModel = function(database) {
       'updatedAt': this.updatedAt.toString()
     }
     // save post to the database
-    await dbAdapter.createPost(database, this.id, payload)
+    await dbAdapter.createPost(this.id, payload)
 
     // save nested resources
     await Promise.all([
@@ -125,7 +124,7 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.savePostedTo = function() {
-    return dbAdapter.createPostPostedTo(database, this.id, this.timelineIds)
+    return dbAdapter.createPostPostedTo(this.id, this.timelineIds)
   }
 
   Post.prototype.update = async function(params) {
@@ -145,7 +144,7 @@ exports.addModel = function(database) {
       'body':      this.body,
       'updatedAt': this.updatedAt.toString()
     }
-    await dbAdapter.updatePost(database, this.id, payload)
+    await dbAdapter.updatePost(this.id, payload)
 
     // Update post attachments in DB
     await Promise.all([
@@ -191,37 +190,37 @@ exports.addModel = function(database) {
               .then(function(timelineIds) {
                 Promise.map(timelineIds, function(timelineId) {
                   return Promise.all([
-                    dbAdapter.deletePostUsageInTimeline(database, that.id, timelineId),
-                    dbAdapter.removePostFromTimeline(database, timelineId, that.id)
+                    dbAdapter.deletePostUsageInTimeline(that.id, timelineId),
+                    dbAdapter.removePostFromTimeline(timelineId, that.id)
                   ])
                     .then(function() {
-                      dbAdapter.getTimelinePostsCount(database, timelineId)
+                      dbAdapter.getTimelinePostsCount(timelineId)
                         .then(function(res) {
                           // that timeline is empty
                           if (res === 0)
-                            dbAdapter.deletePostUsagesInTimelineIndex(database, that.id)
+                            dbAdapter.deletePostUsagesInTimelineIndex(that.id)
                         })
                     })
                 })
               }),
             // delete posted to key
-            dbAdapter.deletePostPostedTo(database, that.id),
+            dbAdapter.deletePostPostedTo(that.id),
             // delete likes
-            dbAdapter.deletePostLikes(database, that.id),
+            dbAdapter.deletePostLikes(that.id),
             // delete post
-            dbAdapter.deletePost(database, that.id)
+            dbAdapter.deletePost(that.id)
           ])
         })
         // delete orphaned keys
         .then(function() {
-          dbAdapter.getPostUsagesInTimelinesCount(database, that.id)
+          dbAdapter.getPostUsagesInTimelinesCount(that.id)
             .then(function(res) {
               // post does not belong to any timelines
               if (res === 0)
-                dbAdapter.deletePostUsagesInTimelineIndex(database, that.id)
+                dbAdapter.deletePostUsagesInTimelineIndex(that.id)
             })
         })
-        .then(function() { return dbAdapter.deletePostComments(database, that.id) })
+        .then(function() { return dbAdapter.deletePostComments(that.id) })
         .then(function() { return models.Stats.findById(that.userId) })
         .then(function(stats) { return stats.removePost() })
         .then(function(res) {
@@ -260,7 +259,7 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getTimelineIds = async function() {
-    var timelineIds = await dbAdapter.getPostUsagesInTimelines(database, this.id)
+    var timelineIds = await dbAdapter.getPostUsagesInTimelines(this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -273,7 +272,7 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getPostedToIds = async function() {
-    var timelineIds = await dbAdapter.getPostPostedToIds(database, this.id)
+    var timelineIds = await dbAdapter.getPostPostedToIds(this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -357,8 +356,8 @@ exports.addModel = function(database) {
         .then(function() { return theUser.getHidesTimelineId() })
         .then(function(timelineId) {
           return Promise.all([
-            dbAdapter.addPostToTimeline(database, timelineId, that.updatedAt, that.id),
-            dbAdapter.createPostUsageInTimeline(database, that.id, timelineId)
+            dbAdapter.addPostToTimeline(timelineId, that.updatedAt, that.id),
+            dbAdapter.createPostUsageInTimeline(that.id, timelineId)
           ])
         })
         .then(function(res) { resolve(res) })
@@ -379,8 +378,8 @@ exports.addModel = function(database) {
         .then(function() { return theUser.getHidesTimelineId() })
         .then(function(timelineId) {
           return Promise.all([
-            dbAdapter.removePostFromTimeline(database, timelineId, that.id),
-            dbAdapter.deletePostUsageInTimeline(database, that.id, timelineId)
+            dbAdapter.removePostFromTimeline(timelineId, that.id),
+            dbAdapter.deletePostUsageInTimeline(that.id, timelineId)
           ])
         })
         .then(function(res) { resolve(res) })
@@ -409,7 +408,7 @@ exports.addModel = function(database) {
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
-    promises.push(dbAdapter.addCommentToPost(database, this.id, comment.id))
+    promises.push(dbAdapter.addCommentToPost(this.id, comment.id))
     promises.push(pubSub.newComment(comment, timelines))
 
     await Promise.all(promises)
@@ -421,7 +420,7 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.getPostCommentsCount(database, that.id)
+      dbAdapter.getPostCommentsCount(that.id)
         .then(function(length) {
           if (length > that.maxComments && length > 3 && that.maxComments != 'all') {
             that.omittedComments = length - that.maxComments
@@ -434,14 +433,14 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getCommentIds = async function() {
-    let length = await dbAdapter.getPostCommentsCount(database, this.id)
+    let length = await dbAdapter.getPostCommentsCount(this.id)
 
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
       // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
       // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
-      let commentIds = await dbAdapter.getPostCommentsRange(database, this.id, 0, this.maxComments - 2)
+      let commentIds = await dbAdapter.getPostCommentsRange(this.id, 0, this.maxComments - 2)
       // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
-      let moreCommentIds = await dbAdapter.getPostCommentsRange(database, this.id, -1, -1)
+      let moreCommentIds = await dbAdapter.getPostCommentsRange(this.id, -1, -1)
 
       this.omittedComments = length - this.maxComments
       this.commentIds = commentIds.concat(moreCommentIds)
@@ -449,7 +448,7 @@ exports.addModel = function(database) {
       return this.commentIds
     } else {
       // get ALL comment ids
-      this.commentIds = await dbAdapter.getPostCommentsRange(database, this.id, 0, -1)
+      this.commentIds = await dbAdapter.getPostCommentsRange(this.id, 0, -1)
       return this.commentIds
     }
   }
@@ -491,8 +490,8 @@ exports.addModel = function(database) {
 
             // Update connections in DB
             return Promise.all([
-              dbAdapter.addAttachmentToPost(database, that.id, attachmentId),
-              dbAdapter.setAttachmentPostId(database, attachmentId, that.id)
+              dbAdapter.addAttachmentToPost(that.id, attachmentId),
+              dbAdapter.setAttachmentPostId(attachmentId, that.id)
             ])
           })
           .then(function(res) { resolve(res) })
@@ -512,8 +511,8 @@ exports.addModel = function(database) {
           .then(function(attachment) {
             // Update connections in DB
             return Promise.all([
-              dbAdapter.removeAttachmentsFromPost(database, that.id, attachmentId),
-              dbAdapter.setAttachmentPostId(database, attachmentId, '')
+              dbAdapter.removeAttachmentsFromPost(that.id, attachmentId),
+              dbAdapter.setAttachmentPostId(attachmentId, '')
             ])
           })
           .then(function(res) { resolve(res) })
@@ -527,7 +526,7 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.getPostAttachments(database, that.id)
+      dbAdapter.getPostAttachments(that.id)
         .then(function(attachmentIds) {
           that.attachmentIds = attachmentIds
           resolve(attachmentIds)
@@ -553,13 +552,13 @@ exports.addModel = function(database) {
   }
 
   Post.prototype.getLikeIds = async function() {
-    let length = await dbAdapter.getPostLikesCount(database, this.id)
+    let length = await dbAdapter.getPostLikesCount(this.id)
 
     if (length > this.maxLikes && this.maxLikes != 'all') {
-      let score = await dbAdapter.getUserPostLikedTime(database, this.currentUser, this.id)
+      let score = await dbAdapter.getUserPostLikedTime(this.currentUser, this.id)
       let includesUser = score && score >= 0
 
-      let likeIds = await dbAdapter.getPostLikesRange(database, this.id, 0, this.maxLikes - 1)
+      let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, this.maxLikes - 1)
 
       this.likeIds = likeIds
       this.omittedLikes = length - this.maxLikes
@@ -577,7 +576,7 @@ exports.addModel = function(database) {
 
       return this.likeIds.slice(0, this.maxLikes)
     } else {
-      let likeIds = await dbAdapter.getPostLikesRange(database, this.id, 0, -1)
+      let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, -1)
 
       let to = 0
       let from = _.findIndex(likeIds, user => (user == this.currentUser))
@@ -596,13 +595,13 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.getPostLikesCount(database, that.id)
+      dbAdapter.getPostLikesCount(that.id)
         .then(function(length) {
           if (length > that.maxLikes && that.maxLikes != 'all') {
-            dbAdapter.getUserPostLikedTime(database, that.currentUser, that.id).bind({})
+            dbAdapter.getUserPostLikedTime(that.currentUser, that.id).bind({})
               .then(function(score) { this.includeUser = score && score >= 0 })
               .then(function() {
-                return dbAdapter.getPostLikesRange(database, that.id, 0, that.maxLikes - 1)
+                return dbAdapter.getPostLikesRange(that.id, 0, that.maxLikes - 1)
               })
               .then(function(likeIds) {
                 that.omittedLikes = length - that.maxLikes
@@ -684,7 +683,7 @@ exports.addModel = function(database) {
     let promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
 
     var now = new Date().getTime()
-    promises.push(dbAdapter.createUserPostLike(database, this.id, now, user.id))
+    promises.push(dbAdapter.createUserPostLike(this.id, now, user.id))
 
     await Promise.all(promises)
 
@@ -701,9 +700,9 @@ exports.addModel = function(database) {
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
     await* [
-            dbAdapter.removeUserPostLike(database, this.id, userId),
-            dbAdapter.removePostFromTimeline(database, timelineId, this.id),
-            dbAdapter.deletePostUsageInTimeline(database, this.id, timelineId)
+            dbAdapter.removeUserPostLike(this.id, userId),
+            dbAdapter.removePostFromTimeline(timelineId, this.id),
+            dbAdapter.deletePostUsageInTimeline(this.id, timelineId)
           ]
     await pubSub.removeLike(this.id, userId)
 
@@ -738,7 +737,7 @@ exports.addModel = function(database) {
     let owner = await timeline.getUser()
     let hidesTimelineId = await owner.getHidesTimelineId()
 
-    let score = await dbAdapter.getTimelinePostTime(database, hidesTimelineId, this.id)
+    let score = await dbAdapter.getTimelinePostTime(hidesTimelineId, this.id)
 
     return (score && score >= 0)
   }

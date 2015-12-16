@@ -1,7 +1,5 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -13,7 +11,7 @@ var Promise = require('bluebird')
   , pubSub = models.PubSub
   , _ = require('lodash')
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    * @extends AbstractModel
@@ -83,7 +81,7 @@ exports.addModel = function(database) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    await dbAdapter.createComment(database, this.id, payload)
+    await dbAdapter.createComment(this.id, payload)
 
     let post = await Post.findById(this.postId)
     let timelines = await post.addComment(this)
@@ -107,7 +105,7 @@ exports.addModel = function(database) {
             'body':      that.body,
             'updatedAt': that.updatedAt.toString()
           }
-          return dbAdapter.updateComment(database, that.id, payload)
+          return dbAdapter.updateComment(that.id, payload)
         })
         .then(function() { return pubSub.updateComment(that.id) })
         .then(function() { resolve(that) })
@@ -121,8 +119,8 @@ exports.addModel = function(database) {
 
   Comment.prototype.destroy = async function() {
     await pubSub.destroyComment(this.id, this.postId)
-    await dbAdapter.deleteComment(database, this.id)
-    await dbAdapter.removeCommentFromPost(database, this.postId, this.id)
+    await dbAdapter.deleteComment(this.id)
+    await dbAdapter.removeCommentFromPost(this.postId, this.id)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
@@ -137,8 +135,8 @@ exports.addModel = function(database) {
     let timelineId = await user.getCommentsTimelineId()
 
     await Promise.all([
-      dbAdapter.removePostFromTimeline(database, timelineId, this.postId),
-      dbAdapter.deletePostUsageInTimeline(database, this.postId, timelineId)
+      dbAdapter.removePostFromTimeline(timelineId, this.postId),
+      dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
     ])
 
     let stats = await models.Stats.findById(this.userId)

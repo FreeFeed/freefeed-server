@@ -1,7 +1,5 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -13,7 +11,7 @@ var Promise = require('bluebird')
   , pubSub = models.PubSub
   , _ = require('lodash')
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    */
@@ -75,9 +73,9 @@ exports.addModel = function(database) {
           _.union(post.timelineIds, _.flatten(allSubscribedTimelineIds)))
         return Promise.map(allTimelines, function(timelineId) {
           return Promise.all([
-            dbAdapter.addPostToTimeline(database, timelineId, currentTime, post.id),
-            dbAdapter.setPostUpdatedAt(database, post.id, currentTime),
-            dbAdapter.createPostUsageInTimeline(database, post.id, timelineId)
+            dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
+            dbAdapter.setPostUpdatedAt(post.id, currentTime),
+            dbAdapter.createPostUsageInTimeline(post.id, timelineId)
           ])
         })
       })
@@ -128,8 +126,8 @@ exports.addModel = function(database) {
             'updatedAt': that.updatedAt.toString()
           }
           return Promise.all([
-            dbAdapter.createUserTimeline(database, that.userId, that.name, that.id),
-            dbAdapter.createTimeline(database, that.id, payload)
+            dbAdapter.createUserTimeline(that.userId, that.name, that.id),
+            dbAdapter.createTimeline(that.id, payload)
           ])
         })
         .then(function(res) { resolve(that) })
@@ -156,7 +154,7 @@ exports.addModel = function(database) {
     if (!valid)
       return []
 
-    this.postIds = await dbAdapter.getTimelinePostsRange(database, this.id, offset, offset + limit - 1)
+    this.postIds = await dbAdapter.getTimelinePostsRange(this.id, offset, offset + limit - 1)
 
     return this.postIds
   }
@@ -165,7 +163,7 @@ exports.addModel = function(database) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.getTimelinePostsInTimeInterval(database, that.id, min, max)
+      dbAdapter.getTimelinePostsInTimeInterval(that.id, min, max)
         .then(function(postIds) {
           that.postIds = postIds
           resolve(that.postIds)
@@ -267,12 +265,12 @@ exports.addModel = function(database) {
    * @param timelineId
    */
   Timeline.prototype.mergeTo = async function(timelineId) {
-    await dbAdapter.createMergedPostsTimeline(database, timelineId, timelineId, this.id)
+    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
 
     let timeline = await Timeline.findById(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
-    let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(database, postId, timelineId))
+    let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(postId, timelineId))
 
     await Promise.all(promises)
   }
@@ -282,15 +280,15 @@ exports.addModel = function(database) {
     // create a temporary storage
     var randomKey = mkKey(['timeline', this.id, 'random', uuid.v4()])
 
-    await dbAdapter.getPostsTimelinesIntersection(database, randomKey, timelineId, this.id)
+    await dbAdapter.getPostsTimelinesIntersection(randomKey, timelineId, this.id)
 
-    var postIds = await dbAdapter.getTimelinesIntersectionPosts(database, randomKey)
+    var postIds = await dbAdapter.getTimelinesIntersectionPosts(randomKey)
     await Promise.all(_.flatten(postIds.map((postId) => [
-      dbAdapter.deletePostUsageInTimeline(database, postId, timelineId),
-      dbAdapter.removePostFromTimeline(database, timelineId, postId)
+      dbAdapter.deletePostUsageInTimeline(postId, timelineId),
+      dbAdapter.removePostFromTimeline(timelineId, postId)
     ])))
 
-    return dbAdapter.deleteRecord(database, randomKey)
+    return dbAdapter.deleteRecord(randomKey)
   }
 
   Timeline.prototype.getUser = function() {
@@ -301,7 +299,7 @@ exports.addModel = function(database) {
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
   Timeline.prototype.getSubscriberIds = async function(includeSelf) {
-    let userIds = await dbAdapter.getTimelineSubscribers(database, this.id)
+    let userIds = await dbAdapter.getTimelineSubscribers(this.id)
 
     // A user is always subscribed to their own posts timeline.
     if (includeSelf && (this.isPosts() || this.isDirects())) {
@@ -355,7 +353,7 @@ exports.addModel = function(database) {
 
   Timeline.prototype.updatePost = async function(postId, action) {
     if (action === "like") {
-      var score = await dbAdapter.getTimelinePostTime(database, this.id, postId)
+      var score = await dbAdapter.getTimelinePostTime(this.id, postId)
 
       if (score != null) {
         // For the time being, like does not bump post if it is already present in timeline
@@ -366,9 +364,9 @@ exports.addModel = function(database) {
     var currentTime = new Date().getTime()
 
     await Promise.all([
-      dbAdapter.addPostToTimeline(database, this.id, currentTime, postId),
-      dbAdapter.createPostUsageInTimeline(database, postId, this.id),
-      dbAdapter.setPostUpdatedAt(database, postId, currentTime)
+      dbAdapter.addPostToTimeline(this.id, currentTime, postId),
+      dbAdapter.createPostUsageInTimeline(postId, this.id),
+      dbAdapter.setPostUpdatedAt(postId, currentTime)
     ])
 
     // does not update lastActivity on like

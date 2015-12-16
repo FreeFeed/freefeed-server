@@ -1,7 +1,5 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 var Promise = require('bluebird')
   , uuid = require('uuid')
   , inherits = require("util").inherits
@@ -13,7 +11,7 @@ var Promise = require('bluebird')
   , mkKey = require("../support/models").mkKey
   , _ = require('lodash')
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    * @extends User
@@ -93,8 +91,8 @@ exports.addModel = function(database) {
         'isPrivate':  group.isPrivate
       }
       await Promise.all([
-        dbAdapter.createUserUsernameIndex(database, group.id, group.username),
-        dbAdapter.createUser(database, group.id, payload)
+        dbAdapter.createUserUsernameIndex(group.id, group.username),
+        dbAdapter.createUser(group.id, payload)
       ])
 
       var stats = new models.Stats({
@@ -128,7 +126,7 @@ exports.addModel = function(database) {
         'updatedAt':  this.updatedAt.toString()
       }
 
-      await dbAdapter.updateUser(database, this.id, payload)
+      await dbAdapter.updateUser(this.id, payload)
     }
 
     return this
@@ -156,7 +154,7 @@ exports.addModel = function(database) {
     var currentTime = new Date().getTime()
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.addAdministatorToGroup(database, that.mkAdminsKey(), currentTime, feedId)
+      dbAdapter.addAdministatorToGroup(that.mkAdminsKey(), currentTime, feedId)
         .then(function(res) { resolve(res) })
         .catch(function(e) { reject(e) })
     })
@@ -175,7 +173,7 @@ exports.addModel = function(database) {
               reject(new Error("Cannot remove last administrator"))
             }
             else {
-              dbAdapter.removeAdministatorFromGroup(database, that.mkAdminsKey(), feedId)
+              dbAdapter.removeAdministatorFromGroup(that.mkAdminsKey(), feedId)
                   .then(function(res) { resolve(res) })
                   .catch(function(e) { reject(e) })
             }
@@ -184,7 +182,7 @@ exports.addModel = function(database) {
   }
 
   Group.prototype.getAdministratorIds = async function() {
-    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(database, this.mkAdminsKey())
+    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.mkAdminsKey())
     return this.administratorIds
   }
 

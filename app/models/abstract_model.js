@@ -1,14 +1,12 @@
 "use strict";
 
-import * as dbAdapter from '../support/DbAdapter'
-
 var Promise = require('bluebird')
   , mkKey = require("../support/models").mkKey
   , _ = require('lodash')
   , exceptions = require('../support/exceptions')
   , NotFoundException = exceptions.NotFoundException
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    */
@@ -25,7 +23,7 @@ exports.addModel = function(database) {
   }
 
   AbstractModel.findById = async function(identifier, params) {
-    let attrs = await dbAdapter.findRecordById(database, this.namespace, identifier)
+    let attrs = await dbAdapter.findRecordById(this.namespace, identifier)
 
     if (attrs === null) {
       return null
@@ -35,7 +33,7 @@ exports.addModel = function(database) {
   }
 
   AbstractModel.findByIds = async function(identifiers, params) {
-    let responses = await dbAdapter.findRecordsByIds(database, this.namespace, identifiers)
+    let responses = await dbAdapter.findRecordsByIds(this.namespace, identifiers)
     let objects = responses.map((attrs, i) => this.initObject(attrs, identifiers[i], params))
 
     return objects
@@ -44,7 +42,7 @@ exports.addModel = function(database) {
   AbstractModel.findByAttribute = async function(attribute, value) {
     value = value.trim().toLowerCase()
 
-    let identifier = await dbAdapter.findUserByAttributeIndex(database, attribute, value)
+    let identifier = await dbAdapter.findUserByAttributeIndex(attribute, value)
 
     if (!identifier) {
       throw new NotFoundException("Record not found")
@@ -68,7 +66,7 @@ exports.addModel = function(database) {
 
   AbstractModel.prototype = {
     validateUniquness: async function(attribute) {
-      var res = await dbAdapter.existsRecord(database, attribute)
+      var res = await dbAdapter.existsRecord(attribute)
 
       if (res === 0)
         return true
