@@ -29,7 +29,7 @@ export class DbAdapter{
   }
 
   async existsUser(userId) {
-    return this.database.existsAsync(mkKey(['user', userId]))
+    return this.existsRecord(mkKey(['user', userId]))
   }
 
   async getUserById(userId) {
@@ -456,9 +456,18 @@ export class DbAdapter{
     return this.database.getAsync(mkKey([attribute, value, 'uid']))
   }
 
+  ///////////////////////////////////////////////////
+  // Base methods
+  ///////////////////////////////////////////////////
+
   async existsRecord(key) {
     return this.database.existsAsync(key)
   }
+
+
+  ///////////////////////////////////////////////////
+  // Private
+  ///////////////////////////////////////////////////
 
 
   _normalizeUserEmail(email){
