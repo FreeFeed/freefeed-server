@@ -33,7 +33,7 @@ export class DbAdapter{
   }
 
   async getUserById(userId) {
-    return this.database.hgetallAsync(mkKey(['user', userId]))
+    return this.getRecord(mkKey(['user', userId]))
   }
 
   async getUsersByIds(userIds) {
@@ -46,7 +46,7 @@ export class DbAdapter{
   ///////////
 
   async getUserTimelinesIds(userId) {
-    return this.database.hgetallAsync(mkKey(['user', userId, 'timelines']))
+    return this.getRecord(mkKey(['user', userId, 'timelines']))
   }
 
   async createUserTimeline(userId, timelineName, timelineId) {
@@ -183,7 +183,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async createUserResetPasswordToken(userId, token) {
-    return this.database.setAsync(mkKey(['reset', token, 'uid']), userId)
+    return this.setIndexValue(mkKey(['reset', token, 'uid']), userId)
   }
 
   async setUserResetPasswordTokenExpireAfter(token, expireAfter) {
@@ -267,19 +267,19 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async getUserIdByUsername(username) {
-    return this.database.getAsync(mkKey(['username', username, 'uid']))
+    return this.getIndexValue(mkKey(['username', username, 'uid']))
   }
 
   async createUserUsernameIndex(userId, username) {
-    return this.database.setAsync(mkKey(['username', username, 'uid']), userId)
+    return this.setIndexValue(mkKey(['username', username, 'uid']), userId)
   }
 
   async getUserIdByEmail(email) {
-    return this.database.getAsync(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
+    return this.getIndexValue(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
   }
 
   async createUserEmailIndex(userId, email) {
-    return this.database.setAsync(mkKey(['email', this._normalizeUserEmail(email), 'uid']), userId)
+    return this.setIndexValue(mkKey(['email', this._normalizeUserEmail(email), 'uid']), userId)
   }
 
   async dropUserEmailIndex(email) {
@@ -446,7 +446,7 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async findRecordById(modelName, modelId) {
-    return this.database.hgetallAsync(mkKey([modelName, modelId]))
+    return this.getRecord(mkKey([modelName, modelId]))
   }
 
   async findRecordsByIds(modelName, modelIds) {
@@ -457,7 +457,7 @@ export class DbAdapter{
   }
 
   async findUserByAttributeIndex(attribute, value) {
-    return this.database.getAsync(mkKey([attribute, value, 'uid']))
+    return this.getIndexValue(mkKey([attribute, value, 'uid']))
   }
 
   ///////////////////////////////////////////////////
@@ -466,6 +466,10 @@ export class DbAdapter{
 
   async existsRecord(key) {
     return this.database.existsAsync(key)
+  }
+
+  async getRecord(key){
+    return this.database.hgetallAsync(key)
   }
 
   async createRecord(key, payload){
@@ -478,6 +482,14 @@ export class DbAdapter{
 
   async deleteRecord(key) {
     return this.database.delAsync(key)
+  }
+
+  async getIndexValue(key) {
+    return this.database.getAsync(key)
+  }
+
+  async setIndexValue(key, value) {
+    return this.database.setAsync(key, value)
   }
 
 
