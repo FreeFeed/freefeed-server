@@ -144,19 +144,19 @@ export class DbAdapter{
   ///////////
 
   async getPostCommentsCount(postId) {
-    return this.database.llenAsync(mkKey(['post', postId, 'comments']))
+    return this.getListElementsCount(mkKey(['post', postId, 'comments']))
   }
 
   async removeCommentFromPost(postId, commentId) {
-    return this.database.lremAsync(mkKey(['post', postId, 'comments']), 1, commentId)
+    return this.removeOneElementFromList(mkKey(['post', postId, 'comments']), commentId)
   }
 
   async getPostCommentsRange(postId, fromIndex, toIndex) {
-    return this.database.lrangeAsync(mkKey(['post', postId, 'comments']), fromIndex, toIndex)
+    return this.getListElementsRange(mkKey(['post', postId, 'comments']), fromIndex, toIndex)
   }
 
   async addCommentToPost(postId, commentId) {
-    return this.database.rpushAsync(mkKey(['post', postId, 'comments']), commentId)
+    return this.addElementToList(mkKey(['post', postId, 'comments']), commentId)
   }
 
   async deletePostComments(postId) {
@@ -166,15 +166,15 @@ export class DbAdapter{
   ///////////
 
   async getPostAttachments(postId) {
-    return this.database.lrangeAsync(mkKey(['post', postId, 'attachments']), 0, -1)
+    return this.getAllListElements(mkKey(['post', postId, 'attachments']))
   }
 
   async addAttachmentToPost(postId, attachmentId) {
-    return this.database.rpushAsync(mkKey(['post', postId, 'attachments']), attachmentId)
+    return this.addElementToList(mkKey(['post', postId, 'attachments']), attachmentId)
   }
 
   async removeAttachmentsFromPost(postId, attachmentId) {
-    return this.database.lremAsync(mkKey(['post', postId, 'attachments']), 0, attachmentId)
+    return this.removeAllElementsEqualToFromList(mkKey(['post', postId, 'attachments']), attachmentId)
   }
 
 
@@ -535,6 +535,33 @@ export class DbAdapter{
   async removeElementFromSet(key, element){
     return this.database.sremAsync(key, element)
   }
+
+  ///////////////////////////////////////////////////
+
+  async getListElementsCount(key) {
+    return this.database.llenAsync(key)
+  }
+
+  async getListElementsRange(key, fromIndex, toIndex) {
+    return this.database.lrangeAsync(key, fromIndex, toIndex)
+  }
+
+  async getAllListElements(key) {
+    return this.getListElementsRange(key, 0, -1)
+  }
+
+  async addElementToList(key, element) {
+    return this.database.rpushAsync(key, element)
+  }
+
+  async removeOneElementFromList(key, element) {
+    return this.database.lremAsync(key, 1, element)
+  }
+
+  async removeAllElementsEqualToFromList(key, element) {
+    return this.database.lremAsync(key, 0, element)
+  }
+
 
 
   ///////////////////////////////////////////////////
