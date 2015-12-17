@@ -108,19 +108,19 @@ export class DbAdapter{
   ///////////
 
   async createPostUsageInTimeline(postId, timelineId) {
-    return this.database.saddAsync(mkKey(['post', postId, 'timelines']), timelineId)
+    return this.addElementToSet(mkKey(['post', postId, 'timelines']), timelineId)
   }
 
   async getPostUsagesInTimelinesCount(postId) {
-    return this.database.scardAsync(mkKey(['post', postId, 'timelines']))
+    return this.getSetElementsCount(mkKey(['post', postId, 'timelines']))
   }
 
   async getPostUsagesInTimelines(postId) {
-    return this.database.smembersAsync(mkKey(['post', postId, 'timelines']))
+    return this.getSetElements(mkKey(['post', postId, 'timelines']))
   }
 
   async deletePostUsageInTimeline(postId, timelineId) {
-    return this.database.sremAsync(mkKey(['post', postId, 'timelines']), timelineId)
+    return this.removeElementFromSet(mkKey(['post', postId, 'timelines']), timelineId)
   }
 
   async deletePostUsagesInTimelineIndex(postId) {
@@ -130,11 +130,11 @@ export class DbAdapter{
   ///////////
 
   async getPostPostedToIds(postId) {
-    return this.database.smembersAsync(mkKey(['post', postId, 'to']))
+    return this.getSetElements(mkKey(['post', postId, 'to']))
   }
 
   async createPostPostedTo(postId, timelineIds) {
-    return this.database.saddAsync(mkKey(['post', postId, 'to']), timelineIds)
+    return this.addElementToSet(mkKey(['post', postId, 'to']), timelineIds)
   }
 
   async deletePostPostedTo(postId) {
@@ -518,6 +518,23 @@ export class DbAdapter{
     return this.database.zremAsync(key, element)
   }
 
+  ///////////////////////////////////////////////////
+
+  async getSetElementsCount(key){
+    return this.database.scardAsync(key)
+  }
+
+  async getSetElements(key){
+    return this.database.smembersAsync(key)
+  }
+
+  async addElementToSet(key, element) {
+    return this.database.saddAsync(key, element)
+  }
+
+  async removeElementFromSet(key, element){
+    return this.database.sremAsync(key, element)
+  }
 
 
   ///////////////////////////////////////////////////
