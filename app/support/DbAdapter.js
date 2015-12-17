@@ -82,23 +82,23 @@ export class DbAdapter{
   ///////////
 
   async createUserPostLike(postId, likedTime, userId) {
-    return this.database.zaddAsync(mkKey(['post', postId, 'likes']), likedTime, userId)
+    return this.addElementToSortedSet(mkKey(['post', postId, 'likes']), likedTime, userId)
   }
 
   async getPostLikesCount(postId) {
-    return this.database.zcardAsync(mkKey(['post', postId, 'likes']))
+    return this.getSortedSetElementsCount(mkKey(['post', postId, 'likes']))
   }
 
   async getPostLikesRange(postId, fromIndex, toIndex) {
-    return this.database.zrevrangeAsync(mkKey(['post', postId, 'likes']), fromIndex, toIndex)
+    return this.getSortedSetElements(mkKey(['post', postId, 'likes']), fromIndex, toIndex)
   }
 
   async getUserPostLikedTime(userId, postId) {
-    return this.database.zscoreAsync(mkKey(['post', postId, 'likes']), userId)
+    return this.getSortedSetElementScore(mkKey(['post', postId, 'likes']), userId)
   }
 
   async removeUserPostLike(postId, userId) {
-    return this.database.zremAsync(mkKey(['post', postId, 'likes']), userId)
+    return this.removeElementFromSortedSet(mkKey(['post', postId, 'likes']), userId)
   }
 
   async deletePostLikes(postId) {
@@ -199,19 +199,19 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async getUserSubscriptionRequestsIds(currentUserId) {
-    return this.database.zrevrangeAsync(mkKey(['user', currentUserId, 'requests']), 0, -1)
+    return this.getAllSortedSetElements(mkKey(['user', currentUserId, 'requests']))
   }
 
   async getUserSubscriptionRequestTime(currentUserId, followedUserId) {
-    return this.database.zscoreAsync(mkKey(['user', followedUserId, 'requests']), currentUserId)
+    return this.getSortedSetElementScore(mkKey(['user', followedUserId, 'requests']), currentUserId)
   }
 
   async createUserSubscriptionRequest(currentUserId, currentTime, followedUserId) {
-    return this.database.zaddAsync(mkKey(['user', followedUserId, 'requests']), currentTime, currentUserId)
+    return this.addElementToSortedSet(mkKey(['user', followedUserId, 'requests']), currentTime, currentUserId)
   }
 
   async deleteUserSubscriptionRequest(currentUserId, followerUserId) {
-    return this.database.zremAsync(mkKey(['user', currentUserId, 'requests']), followerUserId)
+    return this.removeElementFromSortedSet(mkKey(['user', currentUserId, 'requests']), followerUserId)
   }
 
   ///////////////////////////////////////////////////
@@ -219,15 +219,15 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async getUserSubscriptionPendingRequestsIds(currentUserId) {
-    return this.database.zrevrangeAsync(mkKey(['user', currentUserId, 'pending']), 0, -1)
+    return this.getAllSortedSetElements(mkKey(['user', currentUserId, 'pending']))
   }
 
   async createUserSubscriptionPendingRequest(currentUserId, currentTime, followedUserId) {
-    return this.database.zaddAsync(mkKey(['user', currentUserId, 'pending']), currentTime, followedUserId)
+    return this.addElementToSortedSet(mkKey(['user', currentUserId, 'pending']), currentTime, followedUserId)
   }
 
   async deleteUserSubscriptionPendingRequest(currentUserId, followerUserId) {
-    return this.database.zremAsync(mkKey(['user', followerUserId, 'pending']), currentUserId)
+    return this.removeElementFromSortedSet(mkKey(['user', followerUserId, 'pending']), currentUserId)
   }
 
   ///////////////////////////////////////////////////
@@ -235,15 +235,15 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async getUserSubscriptionsIds(userId) {
-    return this.database.zrevrangeAsync(mkKey(['user', userId, 'subscriptions']), 0, -1)
+    return this.getAllSortedSetElements(mkKey(['user', userId, 'subscriptions']))
   }
 
   async createUserSubscription(currentUserId, currentTime, timelineId) {
-    return this.database.zaddAsync(mkKey(['user', currentUserId, 'subscriptions']), currentTime, timelineId)
+    return this.addElementToSortedSet(mkKey(['user', currentUserId, 'subscriptions']), currentTime, timelineId)
   }
 
   async deleteUserSubscription(currentUserId, timelineId) {
-    return this.database.zremAsync(mkKey(['user', currentUserId, 'subscriptions']), timelineId)
+    return this.removeElementFromSortedSet(mkKey(['user', currentUserId, 'subscriptions']), timelineId)
   }
 
   ///////////////////////////////////////////////////
@@ -251,15 +251,15 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async getUserBansIds(userId) {
-    return this.database.zrevrangeAsync(mkKey(['user', userId, 'bans']), 0, -1)
+    return this.getAllSortedSetElements(mkKey(['user', userId, 'bans']))
   }
 
   async createUserBan(currentUserId, currentTime, bannedUserId) {
-    return this.database.zaddAsync(mkKey(['user', currentUserId, 'bans']), currentTime, bannedUserId)
+    return this.addElementToSortedSet(mkKey(['user', currentUserId, 'bans']), currentTime, bannedUserId)
   }
 
   async deleteUserBan(currentUserId, bannedUserId) {
-    return this.database.zremAsync(mkKey(['user', currentUserId, 'bans']), bannedUserId)
+    return this.removeElementFromSortedSet(mkKey(['user', currentUserId, 'bans']), bannedUserId)
   }
 
   ///////////////////////////////////////////////////
@@ -291,15 +291,15 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async getGroupAdministratorsIds(groupId) {
-    return this.database.zrevrangeAsync(mkKey(['user', groupId, 'administrators']), 0, -1)
+    return this.getAllSortedSetElements(mkKey(['user', groupId, 'administrators']))
   }
 
   async addAdministratorToGroup(groupId, currentTime, adminId) {
-    return this.database.zaddAsync(mkKey(['user', groupId, 'administrators']), currentTime, adminId)
+    return this.addElementToSortedSet(mkKey(['user', groupId, 'administrators']), currentTime, adminId)
   }
 
   async removeAdministratorFromGroup(groupId, adminId) {
-    return this.database.zremAsync(mkKey(['user', groupId, 'administrators']), adminId)
+    return this.removeElementFromSortedSet(mkKey(['user', groupId, 'administrators']), adminId)
   }
 
   ///////////////////////////////////////////////////
@@ -311,19 +311,19 @@ export class DbAdapter{
   }
 
   async addPostToTimeline(timelineId, time, postId) {
-    return this.database.zaddAsync(mkKey(['timeline', timelineId, 'posts']), time, postId)
+    return this.addElementToSortedSet(mkKey(['timeline', timelineId, 'posts']), time, postId)
   }
 
   async getTimelinePostTime(timelineId, postId) {
-    return this.database.zscoreAsync(mkKey(['timeline', timelineId, 'posts']), postId)
+    return this.getSortedSetElementScore(mkKey(['timeline', timelineId, 'posts']), postId)
   }
 
   async getTimelinePostsCount(timelineId) {
-    return this.database.zcardAsync(mkKey(['timeline', timelineId, 'posts']))
+    return this.getSortedSetElementsCount(mkKey(['timeline', timelineId, 'posts']))
   }
 
   async getTimelinePostsRange(timelineId, startIndex, finishIndex) {
-    return this.database.zrevrangeAsync(mkKey(['timeline', timelineId, 'posts']), startIndex, finishIndex)
+    return this.getSortedSetElements(mkKey(['timeline', timelineId, 'posts']), startIndex, finishIndex)
   }
 
   async getTimelinePostsInTimeInterval(timelineId, timeIntervalStart, timeIntervalEnd) {
@@ -331,7 +331,7 @@ export class DbAdapter{
   }
 
   async removePostFromTimeline(timelineId, postId) {
-    return this.database.zremAsync(mkKey(['timeline', timelineId, 'posts']), postId)
+    return this.removeElementFromSortedSet(mkKey(['timeline', timelineId, 'posts']), postId)
   }
 
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {
@@ -353,15 +353,15 @@ export class DbAdapter{
   }
 
   async getTimelineSubscribers(timelineId) {
-    return this.database.zrevrangeAsync(mkKey(['timeline', timelineId, 'subscribers']), 0, -1)
+    return this.getAllSortedSetElements(mkKey(['timeline', timelineId, 'subscribers']))
   }
 
   async addTimelineSubscriber(timelineId, currentTime, currentUserId) {
-    return this.database.zaddAsync(mkKey(['timeline', timelineId, 'subscribers']), currentTime, currentUserId)
+    return this.addElementToSortedSet(mkKey(['timeline', timelineId, 'subscribers']), currentTime, currentUserId)
   }
 
   async removeTimelineSubscriber(timelineId, currentUserId) {
-    return this.database.zremAsync(mkKey(['timeline', timelineId, 'subscribers']), currentUserId)
+    return this.removeElementFromSortedSet(mkKey(['timeline', timelineId, 'subscribers']), currentUserId)
   }
 
   ///////////////////////////////////////////////////
@@ -377,23 +377,23 @@ export class DbAdapter{
   }
 
   async addUserLikesStats(userId, likes) {
-    return this.database.zaddAsync(mkKey(['stats', 'likes']), likes, userId)
+    return this.addElementToSortedSet(mkKey(['stats', 'likes']), likes, userId)
   }
 
   async addUserPostsStats(userId, posts) {
-    return this.database.zaddAsync(mkKey(['stats', 'posts']), posts, userId)
+    return this.addElementToSortedSet(mkKey(['stats', 'posts']), posts, userId)
   }
 
   async addUserCommentsStats(userId, comments) {
-    return this.database.zaddAsync(mkKey(['stats', 'comments']), comments, userId)
+    return this.addElementToSortedSet(mkKey(['stats', 'comments']), comments, userId)
   }
 
   async addUserSubscribersStats(userId, subscribers) {
-    return this.database.zaddAsync(mkKey(['stats', 'subscribers']), subscribers, userId)
+    return this.addElementToSortedSet(mkKey(['stats', 'subscribers']), subscribers, userId)
   }
 
   async addUserSubscriptionsStats(userId, subscriptions) {
-    return this.database.zaddAsync(mkKey(['stats', 'subscriptions']), subscriptions, userId)
+    return this.addElementToSortedSet(mkKey(['stats', 'subscriptions']), subscriptions, userId)
   }
 
   async changeUserStats(userId, property, value) {
@@ -491,6 +491,33 @@ export class DbAdapter{
   async setIndexValue(key, value) {
     return this.database.setAsync(key, value)
   }
+
+  ///////////////////////////////////////////////////
+
+  async getSortedSetElementsCount(key){
+    return this.database.zcardAsync(key)
+  }
+
+  async getSortedSetElementScore(key, element){
+    return await this.database.zscoreAsync(key, element)
+  }
+
+  async getSortedSetElements(key, fromIndex, toIndex){
+    return this.database.zrevrangeAsync(key, fromIndex, toIndex)
+  }
+
+  async getAllSortedSetElements(key){
+    return this.getSortedSetElements(key, 0, -1)
+  }
+
+  async addElementToSortedSet(key, score, element){
+    return this.database.zaddAsync(key, score, element)
+  }
+
+  async removeElementFromSortedSet(key, element){
+    return this.database.zremAsync(key, element)
+  }
+
 
 
   ///////////////////////////////////////////////////
