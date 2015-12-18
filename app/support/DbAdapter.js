@@ -1,11 +1,17 @@
 "use strict";
 
+import {PubSubAdapter} from './PubSubAdapter'
 import modelsSupport from '../support/models'
 const mkKey = modelsSupport.mkKey
 
 export class DbAdapter{
   constructor(database) {
     this.database = database
+    this._pubsub = new PubSubAdapter(database)
+  }
+
+  get pubsub(){
+    return this._pubsub
   }
 
   ///////////////////////////////////////////////////

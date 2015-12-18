@@ -13,7 +13,7 @@ exports.Serializer         = require("./serializers/serializer").addSerializer()
 var PubSub = require('./pubsub')
 let dbAdapter = new DbAdapter(database)
 
-exports.PubSub = new PubSub(database)
+exports.PubSub = new PubSub(dbAdapter.pubsub)
 
 exports.AbstractModel = require('./models/abstract_model').addModel(dbAdapter)
 exports.User          = require('./models/user').addModel(dbAdapter)
