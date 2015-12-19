@@ -14,7 +14,6 @@ var Promise = require('bluebird')
   , AbstractModel = models.AbstractModel
   , FeedFactory = models.FeedFactory
   , Timeline = models.Timeline
-  , mkKey = require("../support/models").mkKey
   , _ = require('lodash')
   , validator = require('validator')
   , bcrypt = Promise.promisifyAll(require('bcrypt'))
@@ -249,11 +248,20 @@ exports.addModel = function(dbAdapter) {
     }
   }
 
+  User.prototype.validateUsernameUniqueness = async function() {
+    let res = await dbAdapter.existsUsername(this.username)
+
+    if (res === 0)
+      return true
+    else
+      throw new Error("Already exists")
+  }
+
   User.prototype.validateOnCreate = async function(skip_stoplist) {
     await this.validate(skip_stoplist)
 
     var promises = [
-      this.validateUniquness(mkKey(['username', this.username, 'uid'])),
+      this.validateUsernameUniqueness(),
       this.validateModelUniqueness(User, this.id)
     ];
 

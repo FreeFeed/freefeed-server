@@ -266,6 +266,10 @@ export class DbAdapter{
   // User indexes
   ///////////////////////////////////////////////////
 
+  async existsUsername(username){
+    return this.existsRecord(mkKey(['username', username, 'uid']))
+  }
+
   async getUserIdByUsername(username) {
     return this.getIndexValue(mkKey(['username', username, 'uid']))
   }
