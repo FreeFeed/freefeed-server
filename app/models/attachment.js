@@ -12,7 +12,6 @@ var Promise = require('bluebird')
   , models = require('../models')
   , AbstractModel = models.AbstractModel
   , Post = models.Post
-  , mkKey = require('../support/models').mkKey
   , aws = require('aws-sdk')
 
 exports.addModel = function(dbAdapter) {
@@ -67,7 +66,7 @@ exports.addModel = function(dbAdapter) {
   Attachment.prototype.validateOnCreate = async function() {
     var promises = [
       this.validate(),
-      this.validateUniquness(mkKey(['attachment', this.id]))
+      this.validateModelUniqueness(Attachment, this.id)
     ]
 
     await Promise.all(promises)

@@ -11,7 +11,6 @@ var Promise = require('bluebird')
   , AbstractModel = models.AbstractModel
   , FeedFactory = models.FeedFactory
   , Timeline = models.Timeline
-  , mkKey = require("../support/models").mkKey
   , _ = require('lodash')
   , pubSub = models.PubSub
 
@@ -81,7 +80,7 @@ exports.addModel = function(dbAdapter) {
   Post.prototype.validateOnCreate = async function() {
     var promises = [
       this.validate(),
-      this.validateUniquness(mkKey(['post', this.id]))
+      this.validateModelUniqueness(Post, this.id)
     ]
 
     await Promise.all(promises)

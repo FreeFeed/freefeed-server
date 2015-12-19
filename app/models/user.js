@@ -254,7 +254,7 @@ exports.addModel = function(dbAdapter) {
 
     var promises = [
       this.validateUniquness(mkKey(['username', this.username, 'uid'])),
-      this.validateUniquness(mkKey(['user', this.id]))
+      this.validateModelUniqueness(User, this.id)
     ];
 
     await Promise.all(promises)

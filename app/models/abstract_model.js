@@ -72,6 +72,16 @@ exports.addModel = function(dbAdapter) {
         return true
       else
         throw new Error("Already exists")
+    },
+
+    async validateModelUniqueness(modelClass, modelId) {
+      let key = mkKey([modelClass.namespace, modelId])
+      let res = await dbAdapter.existsRecord(key)
+
+      if (res === 0)
+        return true
+      else
+        throw new Error("Already exists")
     }
   }
 

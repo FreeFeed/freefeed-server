@@ -100,7 +100,7 @@ exports.addModel = function(dbAdapter) {
 
     return new Promise(function(resolve, reject) {
       Promise.join(that.validate(),
-                   that.validateUniquness(mkKey(['timeline', that.id])),
+                   that.validateModelUniqueness(Timeline, that.id),
                    function(valid, idIsUnique) {
                      resolve(that)
                    })
