@@ -1,5 +1,6 @@
 "use strict";
 
+import {default as uuid} from 'uuid'
 import modelsSupport from '../support/models'
 const mkKey = modelsSupport.mkKey
 
@@ -366,6 +367,19 @@ export class DbAdapter{
 
   async removeTimelineSubscriber(timelineId, currentUserId) {
     return this.removeElementFromSortedSet(mkKey(['timeline', timelineId, 'subscribers']), currentUserId)
+  }
+
+  async getTimelinesIntersectionPostIds(timelineId1, timelineId2){
+    // zinterstore saves results to a key. so we have to
+    // create a temporary storage
+
+    let randomKey = mkKey(['timeline', timelineId1, 'random', uuid.v4()])
+    await this.getPostsTimelinesIntersection(randomKey, timelineId2, timelineId1)
+
+    let postIds = await this.getTimelinesIntersectionPosts(randomKey)
+    await this.deleteRecord(randomKey)
+
+    return postIds
   }
 
   ///////////////////////////////////////////////////

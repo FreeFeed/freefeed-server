@@ -7,7 +7,6 @@ var Promise = require('bluebird')
   , AbstractModel = models.AbstractModel
   , FeedFactory = models.FeedFactory
   , Post = models.Post
-  , mkKey = require("../support/models").mkKey
   , pubSub = models.PubSub
   , _ = require('lodash')
 
@@ -276,19 +275,14 @@ exports.addModel = function(dbAdapter) {
   }
 
   Timeline.prototype.unmerge = async function(timelineId) {
-    // zinterstore saves results to a key. so we have to
-    // create a temporary storage
-    var randomKey = mkKey(['timeline', this.id, 'random', uuid.v4()])
+    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
 
-    await dbAdapter.getPostsTimelinesIntersection(randomKey, timelineId, this.id)
-
-    var postIds = await dbAdapter.getTimelinesIntersectionPosts(randomKey)
     await Promise.all(_.flatten(postIds.map((postId) => [
       dbAdapter.deletePostUsageInTimeline(postId, timelineId),
       dbAdapter.removePostFromTimeline(timelineId, postId)
     ])))
 
-    return dbAdapter.deleteRecord(randomKey)
+    return
   }
 
   Timeline.prototype.getUser = function() {
