@@ -1,7 +1,6 @@
 "use strict";
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , inherits = require("util").inherits
   , models = require('../models')
   , AbstractModel = models.AbstractModel
@@ -51,7 +50,7 @@ exports.addModel = function(dbAdapter) {
             'subscriptions': that.subscriptions.toString()
           }
           return Promise.all([
-            dbAdapter.updateUserStats(that.id, payload),
+            dbAdapter.createUserStats(that.id, payload),
             dbAdapter.addUserLikesStats(that.id, that.likes),
             dbAdapter.addUserPostsStats(that.id, that.posts),
             dbAdapter.addUserCommentsStats(that.id, that.comments),

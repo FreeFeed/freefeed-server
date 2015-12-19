@@ -1,7 +1,6 @@
 "use strict";
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , inherits = require("util").inherits
   , models = require('../models')
   , AbstractModel = models.AbstractModel
@@ -58,19 +57,11 @@ exports.addModel = function(dbAdapter) {
     return this
   }
 
-  Comment.prototype.validateOnCreate = async function() {
-    await Promise.all([
-      this.validate(),
-      this.validateModelUniqueness(Comment, this.id)
-    ])
-  }
-
   Comment.prototype.create = async function() {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
-    this.id = uuid.v4()
 
-    await this.validateOnCreate()
+    await this.validate()
 
     let payload = {
       'body': this.body,
@@ -80,7 +71,7 @@ exports.addModel = function(dbAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    await dbAdapter.createComment(this.id, payload)
+    this.id = await dbAdapter.createComment(payload)
 
     let post = await Post.findById(this.postId)
     let timelines = await post.addComment(this)

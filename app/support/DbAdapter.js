@@ -61,8 +61,17 @@ export class DbAdapter{
   // Post
   ///////////////////////////////////////////////////
 
-  async createPost(postId, payload) {
-    return this.createRecord(mkKey(['post', postId]), payload)
+  async createPost(payload) {
+    let postId = uuid.v4()
+    let key = mkKey(['post', postId])
+    let exists = await this.existsRecord(key)
+
+    if (exists !== 0){
+      throw new Error("Already exists")
+    }
+
+    await this.createRecord(key, payload)
+    return postId
   }
 
   async updatePost(postId, payload) {
@@ -396,7 +405,7 @@ export class DbAdapter{
   // Stats
   ///////////////////////////////////////////////////
 
-  async updateUserStats(userId, payload) {
+  async createUserStats(userId, payload) {
     return this.updateRecord(mkKey(['stats', userId]), payload)
   }
 
@@ -433,8 +442,17 @@ export class DbAdapter{
   // Comments
   ///////////////////////////////////////////////////
 
-  async createComment(commentId, payload) {
-    return this.createRecord(mkKey(['comment', commentId]), payload)
+  async createComment(payload) {
+    let commentId = uuid.v4()
+    let key = mkKey(['comment', commentId])
+    let exists = await this.existsRecord(key)
+
+    if (exists !== 0){
+      throw new Error("Already exists")
+    }
+
+    await this.createRecord(key, payload)
+    return commentId
   }
 
   async updateComment(commentId, payload) {

@@ -4,7 +4,6 @@ import config_file from '../../config/config'
 import monitor from 'monitor-dog'
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , GraphemeBreaker = require('grapheme-breaker')
   , inherits = require("util").inherits
   , models = require('../models')
@@ -77,23 +76,11 @@ exports.addModel = function(dbAdapter) {
     return this
   }
 
-  Post.prototype.validateOnCreate = async function() {
-    var promises = [
-      this.validate(),
-      this.validateModelUniqueness(Post, this.id)
-    ]
-
-    await Promise.all(promises)
-
-    return this
-  }
-
   Post.prototype.create = async function() {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
-    this.id = uuid.v4()
 
-    await this.validateOnCreate()
+    await this.validate()
 
     var timer = monitor.timer('posts.create-time')
 
@@ -104,7 +91,7 @@ exports.addModel = function(dbAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
     // save post to the database
-    await dbAdapter.createPost(this.id, payload)
+    this.id = await dbAdapter.createPost(payload)
 
     // save nested resources
     await Promise.all([
