@@ -14,8 +14,8 @@ export class PubSubAdapter{
     }
   }
 
-  constructor(database){
-    this.database = database
+  constructor(redisClient){
+    this.redisClient = redisClient
   }
 
   ///////////////////////////////////////////////////
@@ -67,6 +67,6 @@ export class PubSubAdapter{
   ///////////////////////////////////////////////////
 
   async publish(channel, payload){
-    return this.database.publishAsync(channel, payload)
+    return this.redisClient.publishAsync(channel, payload)
   }
 }
