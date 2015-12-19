@@ -94,6 +94,11 @@ export class DbAdapter{
     return this.getSortedSetElements(mkKey(['post', postId, 'likes']), fromIndex, toIndex)
   }
 
+  async hasUserLikedPost(userId, postId) {
+    let score = await this.getSortedSetElementScore(mkKey(['post', postId, 'likes']), userId)
+    return score && score >= 0
+  }
+
   async getUserPostLikedTime(userId, postId) {
     return this.getSortedSetElementScore(mkKey(['post', postId, 'likes']), userId)
   }
@@ -203,8 +208,9 @@ export class DbAdapter{
     return this.getAllSortedSetElements(mkKey(['user', currentUserId, 'requests']))
   }
 
-  async getUserSubscriptionRequestTime(currentUserId, followedUserId) {
-    return this.getSortedSetElementScore(mkKey(['user', followedUserId, 'requests']), currentUserId)
+  async isSubscriptionRequestPresent(currentUserId, followedUserId) {
+    let score = await this.getSortedSetElementScore(mkKey(['user', followedUserId, 'requests']), currentUserId)
+    return score && score >= 0
   }
 
   async createUserSubscriptionRequest(currentUserId, currentTime, followedUserId) {
@@ -319,8 +325,9 @@ export class DbAdapter{
     return this.addElementToSortedSet(mkKey(['timeline', timelineId, 'posts']), time, postId)
   }
 
-  async getTimelinePostTime(timelineId, postId) {
-    return this.getSortedSetElementScore(mkKey(['timeline', timelineId, 'posts']), postId)
+  async isPostPresentInTimeline(timelineId, postId) {
+    let score = await this.getSortedSetElementScore(mkKey(['timeline', timelineId, 'posts']), postId)
+    return score && score >= 0
   }
 
   async getTimelinePostsCount(timelineId) {

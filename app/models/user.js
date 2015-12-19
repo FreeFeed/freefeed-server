@@ -615,9 +615,9 @@ exports.addModel = function(dbAdapter) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let score = await dbAdapter.getTimelinePostTime(hidesTimelineId, post.id)
+      let postInTimeline = await dbAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
 
-      if (score && score >= 0) {
+      if (postInTimeline) {
         post.isHidden = true
       }
 
@@ -1037,12 +1037,12 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {
-    let result = await dbAdapter.getUserPostLikedTime(this.id, post.id)
+    let userLikedPost = await dbAdapter.hasUserLikedPost(this.id, post.id)
 
-    if (result != null && action == 'like')
+    if (userLikedPost && action == 'like')
       throw new ForbiddenException("You can't like post that you have already liked")
 
-    if (result == null && action == 'unlike')
+    if (!userLikedPost && action == 'unlike')
       throw new ForbiddenException("You can't un-like post that you haven't yet liked")
 
     let valid = await post.validateCanShow(this.id)
@@ -1117,7 +1117,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
-    var exists = await dbAdapter.getUserSubscriptionRequestTime(this.id, userId)
+    var exists = await dbAdapter.isSubscriptionRequestPresent(this.id, userId)
     var user = await models.User.findById(userId)
     var banIds = await user.getBanIds()
 
@@ -1131,7 +1131,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
-    var exists = await dbAdapter.getUserSubscriptionRequestTime(userId, this.id)
+    var exists = await dbAdapter.isSubscriptionRequestPresent(userId, this.id)
 
     if (!exists)
       throw new Error("Invalid")

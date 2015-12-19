@@ -554,8 +554,7 @@ exports.addModel = function(dbAdapter) {
     let length = await dbAdapter.getPostLikesCount(this.id)
 
     if (length > this.maxLikes && this.maxLikes != 'all') {
-      let score = await dbAdapter.getUserPostLikedTime(this.currentUser, this.id)
-      let includesUser = score && score >= 0
+      let includesUser = await dbAdapter.hasUserLikedPost(this.currentUser, this.id)
 
       let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, this.maxLikes - 1)
 
@@ -597,8 +596,8 @@ exports.addModel = function(dbAdapter) {
       dbAdapter.getPostLikesCount(that.id)
         .then(function(length) {
           if (length > that.maxLikes && that.maxLikes != 'all') {
-            dbAdapter.getUserPostLikedTime(that.currentUser, that.id).bind({})
-              .then(function(score) { this.includeUser = score && score >= 0 })
+            dbAdapter.hasUserLikedPost(that.currentUser, that.id).bind({})
+              .then(function(userLiked) { this.includeUser = userLiked })
               .then(function() {
                 return dbAdapter.getPostLikesRange(that.id, 0, that.maxLikes - 1)
               })
@@ -736,9 +735,7 @@ exports.addModel = function(dbAdapter) {
     let owner = await timeline.getUser()
     let hidesTimelineId = await owner.getHidesTimelineId()
 
-    let score = await dbAdapter.getTimelinePostTime(hidesTimelineId, this.id)
-
-    return (score && score >= 0)
+    return dbAdapter.isPostPresentInTimeline(hidesTimelineId, this.id)
   }
 
   Post.prototype.validateCanShow = async function(userId) {
