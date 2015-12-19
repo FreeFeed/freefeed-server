@@ -82,8 +82,9 @@ export class DbAdapter{
 
   ///////////
 
-  async createUserPostLike(postId, likedTime, userId) {
-    return this.addElementToSortedSet(mkKey(['post', postId, 'likes']), likedTime, userId)
+  async createUserPostLike(postId, userId) {
+    let now = new Date().getTime()
+    return this.addElementToSortedSet(mkKey(['post', postId, 'likes']), now, userId)
   }
 
   async getPostLikesCount(postId) {
@@ -261,8 +262,9 @@ export class DbAdapter{
     return this.getAllSortedSetElements(mkKey(['user', userId, 'bans']))
   }
 
-  async createUserBan(currentUserId, currentTime, bannedUserId) {
-    return this.addElementToSortedSet(mkKey(['user', currentUserId, 'bans']), currentTime, bannedUserId)
+  async createUserBan(currentUserId, bannedUserId) {
+    let now = new Date().getTime()
+    return this.addElementToSortedSet(mkKey(['user', currentUserId, 'bans']), now, bannedUserId)
   }
 
   async deleteUserBan(currentUserId, bannedUserId) {
@@ -305,8 +307,9 @@ export class DbAdapter{
     return this.getAllSortedSetElements(mkKey(['user', groupId, 'administrators']))
   }
 
-  async addAdministratorToGroup(groupId, currentTime, adminId) {
-    return this.addElementToSortedSet(mkKey(['user', groupId, 'administrators']), currentTime, adminId)
+  async addAdministratorToGroup(groupId, adminId) {
+    let now = new Date().getTime()
+    return this.addElementToSortedSet(mkKey(['user', groupId, 'administrators']), now, adminId)
   }
 
   async removeAdministratorFromGroup(groupId, adminId) {

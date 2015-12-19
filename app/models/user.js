@@ -747,11 +747,10 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.ban = async function(username) {
-    var currentTime = new Date().getTime()
     var user = await models.User.findByUsername(username)
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
-      dbAdapter.createUserBan(this.id, currentTime, user.id),
+      dbAdapter.createUserBan(this.id, user.id),
       monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request

@@ -680,8 +680,7 @@ exports.addModel = function(dbAdapter) {
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
 
-    var now = new Date().getTime()
-    promises.push(dbAdapter.createUserPostLike(this.id, now, user.id))
+    promises.push(dbAdapter.createUserPostLike(this.id, user.id))
 
     await Promise.all(promises)
 

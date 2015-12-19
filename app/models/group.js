@@ -146,10 +146,9 @@ exports.addModel = function(dbAdapter) {
 
   Group.prototype.addAdministrator = function(feedId) {
     var that = this
-    var currentTime = new Date().getTime()
 
     return new Promise(function(resolve, reject) {
-      dbAdapter.addAdministratorToGroup(that.id, currentTime, feedId)
+      dbAdapter.addAdministratorToGroup(that.id, feedId)
         .then(function(res) { resolve(res) })
         .catch(function(e) { reject(e) })
     })
