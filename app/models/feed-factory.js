@@ -4,7 +4,6 @@ import Promise from "bluebird"
 import { inherits } from "util"
 
 import { AbstractModel, User, Group } from "../../app/models"
-import { mkKey } from "../support/models"
 import { load as configLoader } from "../../config/config"
 import { NotFoundException } from "../support/exceptions"
 

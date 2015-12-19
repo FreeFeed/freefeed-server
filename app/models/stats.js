@@ -5,7 +5,6 @@ var Promise = require('bluebird')
   , inherits = require("util").inherits
   , models = require('../models')
   , AbstractModel = models.AbstractModel
-  , mkKey = require("../support/models").mkKey
 
 exports.addModel = function(dbAdapter) {
   var Stats = function(params) {

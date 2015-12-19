@@ -8,7 +8,6 @@ var Promise = require('bluebird')
   , ForbiddenException = exceptions.ForbiddenException
   , AbstractModel = models.AbstractModel
   , User = models.User
-  , mkKey = require("../support/models").mkKey
   , _ = require('lodash')
 
 exports.addModel = function(dbAdapter) {
