@@ -1,6 +1,7 @@
 "use strict";
 
 import {DbAdapter} from './support/DbAdapter'
+import {PubSubAdapter} from './support/PubSubAdapter'
 
 var redis = require('../config/database')
   , database = redis.connect()
@@ -12,8 +13,9 @@ exports.Serializer         = require("./serializers/serializer").addSerializer()
 
 var PubSub = require('./pubsub')
 let dbAdapter = new DbAdapter(database)
+let pubsubAdapter = new PubSubAdapter(database)
 
-exports.PubSub = new PubSub(dbAdapter.pubsub)
+exports.PubSub = new PubSub(pubsubAdapter)
 
 exports.AbstractModel = require('./models/abstract_model').addModel(dbAdapter)
 exports.User          = require('./models/user').addModel(dbAdapter)
