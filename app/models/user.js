@@ -539,12 +539,12 @@ exports.addModel = function(dbAdapter) {
     let timelineExists = await dbAdapter.existsTimeline(myDiscussionsTimelineId)
     if (!timelineExists){
       let timeline = new models.Timeline({
-        id: myDiscussionsTimelineId,
         name: "MyDiscussions",
         userId: this.id
       })
 
-      await timeline.create()
+      timeline = await timeline.createUserDiscussionsTimeline()
+      myDiscussionsTimelineId = timeline.id
     }
 
     await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)

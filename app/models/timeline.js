@@ -131,6 +131,29 @@ exports.addModel = function(dbAdapter) {
     })
   }
 
+  Timeline.prototype.createUserDiscussionsTimeline = function() {
+    var that = this
+
+    return new Promise(function(resolve, reject) {
+      that.createdAt = new Date().getTime()
+      that.updatedAt = new Date().getTime()
+
+      that.validate()
+        .then(function(timeline) {
+          let payload = {
+            'name':      that.name,
+            'userId':    that.userId,
+            'createdAt': that.createdAt.toString(),
+            'updatedAt': that.updatedAt.toString()
+          }
+          return dbAdapter.createUserDiscussionsTimeline(that.userId, payload)
+        })
+        .then(function(timelineId) { that.id = timelineId })
+        .then(function(res) { resolve(that) })
+        .catch(function(e) { reject(e) })
+    })
+  }
+
   Timeline.prototype.getPostIds = async function(offset, limit) {
     if (_.isUndefined(offset))
       offset = this.offset
