@@ -352,28 +352,20 @@ export class DbAdapter{
   // Timelines
   ///////////////////////////////////////////////////
 
-  async createTimeline(payload) {
+  createTimeline(payload) {
     let timelineId  = uuid.v4()
-    let timelineKey = mkKey(['timeline', timelineId])
     let userId      = payload.userId
-    let name        = payload.name
-    let exists      = await this.existsRecord(timelineKey)
 
-    if (exists !== 0){
-      throw new Error("Already exists")
-    }
-
-    let promises = [
-      this.createUserTimeline(userId, name, timelineId),
-      this.createRecord(mkKey(['timeline', timelineId]), payload)
-    ]
-
-    await* promises
-    return timelineId
+    return this._createTimeline(timelineId, userId, payload)
   }
 
-  async createUserDiscussionsTimeline(userId, payload) {
+  createUserDiscussionsTimeline(userId, payload) {
     let timelineId  = this.getUserDiscussionsTimelineId(userId)
+
+    return this._createTimeline(timelineId, userId, payload)
+  }
+
+  async _createTimeline(timelineId, userId, payload){
     let timelineKey = mkKey(['timeline', timelineId])
     let name        = payload.name
     let exists      = await this.existsRecord(timelineKey)

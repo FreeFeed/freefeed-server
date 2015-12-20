@@ -93,30 +93,15 @@ exports.addModel = function(dbAdapter) {
     }.bind(this))
   }
 
-  Timeline.prototype.create = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      that.createdAt = new Date().getTime()
-      that.updatedAt = new Date().getTime()
-
-      that.validate()
-        .then(function(timeline) {
-          let payload = {
-            'name':      that.name,
-            'userId':    that.userId,
-            'createdAt': that.createdAt.toString(),
-            'updatedAt': that.updatedAt.toString()
-          }
-          return dbAdapter.createTimeline(payload)
-        })
-        .then(function(timelineId) { that.id = timelineId })
-        .then(function(res) { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+  Timeline.prototype.create = async function() {
+    return this._createTimeline(false)
   }
 
   Timeline.prototype.createUserDiscussionsTimeline = function() {
+    return this._createTimeline(true)
+  }
+
+  Timeline.prototype._createTimeline = function (userDiscussionsTimeline) {
     var that = this
 
     return new Promise(function(resolve, reject) {
@@ -131,7 +116,11 @@ exports.addModel = function(dbAdapter) {
             'createdAt': that.createdAt.toString(),
             'updatedAt': that.updatedAt.toString()
           }
-          return dbAdapter.createUserDiscussionsTimeline(that.userId, payload)
+          if (userDiscussionsTimeline){
+            return dbAdapter.createUserDiscussionsTimeline(that.userId, payload)
+          }
+
+          return dbAdapter.createTimeline(payload)
         })
         .then(function(timelineId) { that.id = timelineId })
         .then(function(res) { resolve(that) })
