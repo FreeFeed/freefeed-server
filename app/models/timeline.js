@@ -1,7 +1,6 @@
 "use strict";
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , inherits = require("util").inherits
   , models = require('../models')
   , AbstractModel = models.AbstractModel
@@ -94,29 +93,14 @@ exports.addModel = function(dbAdapter) {
     }.bind(this))
   }
 
-  Timeline.prototype.validateOnCreate = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      Promise.join(that.validate(),
-                   that.validateModelUniqueness(Timeline, that.id),
-                   function(valid, idIsUnique) {
-                     resolve(that)
-                   })
-        .catch(function(e) { reject(e) })
-      })
-  }
-
   Timeline.prototype.create = function() {
     var that = this
 
     return new Promise(function(resolve, reject) {
       that.createdAt = new Date().getTime()
       that.updatedAt = new Date().getTime()
-      if (!that.id)
-        that.id = uuid.v4()
 
-      that.validateOnCreate()
+      that.validate()
         .then(function(timeline) {
           let payload = {
             'name':      that.name,
@@ -124,8 +108,9 @@ exports.addModel = function(dbAdapter) {
             'createdAt': that.createdAt.toString(),
             'updatedAt': that.updatedAt.toString()
           }
-          return dbAdapter.createTimeline(that.id, payload)
+          return dbAdapter.createTimeline(payload)
         })
+        .then(function(timelineId) { that.id = timelineId })
         .then(function(res) { resolve(that) })
         .catch(function(e) { reject(e) })
     })
