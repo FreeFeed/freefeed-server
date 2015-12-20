@@ -21,10 +21,16 @@ export class DbAdapter{
     return this.updateRecord(mkKey(['user', userId]), payload)
   }
 
-  async createUser(userId, payload) {
+  async createUser(payload) {
+    let userId   = uuid.v4()
     let username = payload.username
     let email    = payload.email
     let userKey  = mkKey(['user', userId])
+    let exists   = await this.existsRecord(userKey)
+
+    if (exists !== 0){
+      throw new Error("Already exists")
+    }
 
     let promises = [
       this.createUserUsernameIndex(userId, username),

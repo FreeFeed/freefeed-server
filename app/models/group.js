@@ -1,7 +1,6 @@
 "use strict";
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , inherits = require("util").inherits
   , models = require('../models')
   , exceptions = require('../support/exceptions')
@@ -77,7 +76,6 @@ exports.addModel = function(dbAdapter) {
       this.createdAt = new Date().getTime()
       this.updatedAt = new Date().getTime()
       this.screenName = this.screenName || this.username
-      this.id = uuid.v4()
 
       var group = await this.validateOnCreate(skip_stoplist)
 
@@ -89,7 +87,7 @@ exports.addModel = function(dbAdapter) {
         'updatedAt':  group.updatedAt.toString(),
         'isPrivate':  group.isPrivate
       }
-      await dbAdapter.createUser(group.id, payload)
+      this.id = await dbAdapter.createUser(payload)
 
       var stats = new models.Stats({
         id: this.id

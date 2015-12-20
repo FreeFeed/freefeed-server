@@ -259,11 +259,9 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {
-    await this.validate(skip_stoplist)
-
     var promises = [
-      this.validateUsernameUniqueness(),
-      this.validateModelUniqueness(User, this.id)
+      this.validate(skip_stoplist),
+      this.validateUsernameUniqueness()
     ];
 
     await Promise.all(promises)
@@ -291,8 +289,6 @@ exports.addModel = function(dbAdapter) {
     this.updatedAt = new Date().getTime()
     this.screenName = this.screenName || this.username
 
-    this.id = uuid.v4()
-
     var user = await this.validateOnCreate(skip_stoplist)
 
     var timer = monitor.timer('users.create-time')
@@ -308,7 +304,7 @@ exports.addModel = function(dbAdapter) {
       'updatedAt':      user.updatedAt.toString(),
       'hashedPassword': user.hashedPassword
     }
-    await dbAdapter.createUser(user.id, payload)
+    this.id = await dbAdapter.createUser(payload)
 
     var stats = new models.Stats({
       id: this.id
