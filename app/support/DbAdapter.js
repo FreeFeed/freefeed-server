@@ -69,6 +69,10 @@ export class DbAdapter{
     return this.getRecord(mkKey(['user', userId, 'timelines']))
   }
 
+  getUserDiscussionsTimelineId(userId){
+    return userId
+  }
+
   async createUserTimeline(userId, timelineName, timelineId) {
     let payload = {}
     payload[timelineName] = timelineId
@@ -358,6 +362,10 @@ export class DbAdapter{
 
     await* promises
     return timelineId
+  }
+
+  async existsTimeline(timelineId){
+    return this.existsRecord(mkKey(['timeline', timelineId]))
   }
 
   async addPostToTimeline(timelineId, time, postId) {

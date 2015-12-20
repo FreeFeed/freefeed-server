@@ -535,11 +535,11 @@ exports.addModel = function(dbAdapter) {
       }
     )
 
-    let timeline = await models.Timeline.findById(this.id, params)
-
-    if (!timeline) {
-      timeline = new models.Timeline({
-        id: this.id,
+    let myDiscussionsTimelineId = dbAdapter.getUserDiscussionsTimelineId(this.id)
+    let timelineExists = await dbAdapter.existsTimeline(myDiscussionsTimelineId)
+    if (!timelineExists){
+      let timeline = new models.Timeline({
+        id: myDiscussionsTimelineId,
         name: "MyDiscussions",
         userId: this.id
       })
@@ -547,9 +547,9 @@ exports.addModel = function(dbAdapter) {
       await timeline.create()
     }
 
-    await dbAdapter.createMergedPostsTimeline(this.id, commentsId, likesId)
+    await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
-    return models.Timeline.findById(this.id, params)
+    return models.Timeline.findById(myDiscussionsTimelineId, params)
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
