@@ -64,17 +64,5 @@ exports.addModel = function(dbAdapter) {
     throw new NotFoundException("Can't find " + this.namespace)
   }
 
-  AbstractModel.prototype = {
-    async validateModelUniqueness(modelClass, modelId) {
-      let key = mkKey([modelClass.namespace, modelId])
-      let res = await dbAdapter.existsRecord(key)
-
-      if (res === 0)
-        return true
-      else
-        throw new Error("Already exists")
-    }
-  }
-
   return AbstractModel
 }
