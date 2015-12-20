@@ -51,15 +51,16 @@ exports.addModel = function(dbAdapter) {
 
     this.profilePictureUuid = params.profilePictureUuid || ''
 
-    this.initPassword = function() {
+    this.initPassword = async function() {
       if (!_.isNull(password)) {
-        var future = this.updatePassword(password, password)
-        password = null
+        if (password.length === 0) {
+          throw new Error('Password cannot be blank')
+        }
 
-        return future
-      } else {
-        return Promise.resolve(this)
+        this.hashedPassword = await bcrypt.hashAsync(password, 10)
+        password = null
       }
+      return this
     }
   }
 
