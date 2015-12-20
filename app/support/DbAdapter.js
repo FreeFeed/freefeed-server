@@ -521,8 +521,21 @@ export class DbAdapter{
   // Attachments
   ///////////////////////////////////////////////////
 
-  async createAttachment(attachmentId, payload) {
-    return this.createRecord(mkKey(['attachment', attachmentId]), payload)
+  async createAttachment(payload) {
+    let attachmentId  = uuid.v4()
+    let attachmentKey = mkKey(['attachment', attachmentId])
+    let exists        = await this.existsRecord(attachmentKey)
+
+    if (exists !== 0) {
+      throw new Error("Already exists")
+    }
+
+    await this.createRecord(attachmentKey, payload)
+    return attachmentId
+  }
+
+  updateAttachment(attachmentId, payload) {
+    return this.updateRecord(mkKey(['attachment', attachmentId]), payload)
   }
 
   async setAttachmentPostId(attachmentId, postId) {

@@ -1,7 +1,6 @@
 "use strict";
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , mmm = require('mmmagic')
   , meta = require('musicmetadata')
   , _ = require('lodash')
@@ -63,17 +62,6 @@ exports.addModel = function(dbAdapter) {
     return true
   }
 
-  Attachment.prototype.validateOnCreate = async function() {
-    var promises = [
-      this.validate(),
-      this.validateModelUniqueness(Attachment, this.id)
-    ]
-
-    await Promise.all(promises)
-
-    return this
-  }
-
   Attachment.prototype.create = function() {
     var that = this
 
@@ -81,9 +69,19 @@ exports.addModel = function(dbAdapter) {
       that.createdAt = new Date().getTime()
       that.updatedAt = new Date().getTime()
       that.postId = that.postId || ''
-      that.id = uuid.v4()
 
-      that.validateOnCreate()
+      that.validate()
+        .then(function () {
+          return dbAdapter.createAttachment({
+            postId:    that.postId,
+            createdAt: that.createdAt.toString(),
+            updatedAt: that.updatedAt.toString()
+          })
+        })
+        .then(function (attachmentId) {
+          that.id = attachmentId
+          return that
+        })
         // Save file to FS or S3
         .then(function(attachment) {
           attachment.fileName = attachment.file.name
@@ -123,7 +121,7 @@ exports.addModel = function(dbAdapter) {
             params.title = attachment.title
           }
 
-          return dbAdapter.createAttachment(attachment.id, params)
+          return dbAdapter.updateAttachment(attachment.id, params)
         })
         .then(function(res) { resolve(that) })
         .catch(function(e) { reject(e) })
