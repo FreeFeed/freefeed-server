@@ -349,7 +349,15 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   async createTimeline(timelineId, payload) {
-    return this.createRecord(mkKey(['timeline', timelineId]), payload)
+    let userId = payload.userId
+    let name = payload.name
+    let promises = [
+      this.createUserTimeline(userId, name, timelineId),
+      this.createRecord(mkKey(['timeline', timelineId]), payload)
+    ]
+
+    await* promises
+    return timelineId
   }
 
   async addPostToTimeline(timelineId, time, postId) {

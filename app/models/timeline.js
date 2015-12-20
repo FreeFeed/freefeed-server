@@ -124,10 +124,7 @@ exports.addModel = function(dbAdapter) {
             'createdAt': that.createdAt.toString(),
             'updatedAt': that.updatedAt.toString()
           }
-          return Promise.all([
-            dbAdapter.createUserTimeline(that.userId, that.name, that.id),
-            dbAdapter.createTimeline(that.id, payload)
-          ])
+          return dbAdapter.createTimeline(that.id, payload)
         })
         .then(function(res) { resolve(that) })
         .catch(function(e) { reject(e) })
