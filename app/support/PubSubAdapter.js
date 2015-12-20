@@ -1,72 +1,72 @@
-export class PubSubAdapter{
-  static get CHANNEL_NAMES(){
-    return {
-      POST_CREATED:      'post:new',
-      POST_UPDATED:      'post:update',
-      POST_DESTROYED:    'post:destroy',
-      POST_HIDDEN:       'post:hide',
-      POST_UNHIDDEN:     'post:unhide',
-      COMMENT_CREATED:   'comment:new',
-      COMMENT_UPDATED:   'comment:update',
-      COMMENT_DESTROYED: 'comment:destroy',
-      LIKE_ADDED:        'like:new',
-      LIKE_REMOVED:      'like:remove'
-    }
-  }
+const CHANNEL_NAMES = {
+  POST_CREATED:      'post:new',
+  POST_UPDATED:      'post:update',
+  POST_DESTROYED:    'post:destroy',
+  POST_HIDDEN:       'post:hide',
+  POST_UNHIDDEN:     'post:unhide',
+  COMMENT_CREATED:   'comment:new',
+  COMMENT_UPDATED:   'comment:update',
+  COMMENT_DESTROYED: 'comment:destroy',
+  LIKE_ADDED:        'like:new',
+  LIKE_REMOVED:      'like:remove'
+}
 
+export class PubSubAdapter{
   constructor(redisClient){
     this.redisClient = redisClient
   }
 
   ///////////////////////////////////////////////////
 
-  async postCreated(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.POST_CREATED, payload)
+  postCreated(payload){
+    return this._publish(CHANNEL_NAMES.POST_CREATED, payload)
   }
 
-  async postUpdated(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.POST_UPDATED, payload)
+  postUpdated(payload){
+    return this._publish(CHANNEL_NAMES.POST_UPDATED, payload)
   }
 
-  async postDestroyed(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.POST_DESTROYED, payload)
+  postDestroyed(payload){
+    return this._publish(CHANNEL_NAMES.POST_DESTROYED, payload)
   }
 
-  async postHidden(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.POST_HIDDEN, payload)
+  postHidden(payload){
+    return this._publish(CHANNEL_NAMES.POST_HIDDEN, payload)
   }
 
-  async postUnhidden(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.POST_UNHIDDEN, payload)
-  }
-
-  ///////////////////////////////////////////////////
-
-  async commentCreated(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.COMMENT_CREATED, payload)
-  }
-
-  async commentUpdated(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.COMMENT_UPDATED, payload)
-  }
-
-  async commentDestroyed(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.COMMENT_DESTROYED, payload)
+  postUnhidden(payload){
+    return this._publish(CHANNEL_NAMES.POST_UNHIDDEN, payload)
   }
 
   ///////////////////////////////////////////////////
 
-  async likeAdded(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.LIKE_ADDED, payload)
+  commentCreated(payload){
+    return this._publish(CHANNEL_NAMES.COMMENT_CREATED, payload)
   }
 
-  async likeRemoved(payload){
-    return this.publish(PubSubAdapter.CHANNEL_NAMES.LIKE_REMOVED, payload)
+  commentUpdated(payload){
+    return this._publish(CHANNEL_NAMES.COMMENT_UPDATED, payload)
+  }
+
+  commentDestroyed(payload){
+    return this._publish(CHANNEL_NAMES.COMMENT_DESTROYED, payload)
   }
 
   ///////////////////////////////////////////////////
 
-  async publish(channel, payload){
+  likeAdded(payload){
+    return this._publish(CHANNEL_NAMES.LIKE_ADDED, payload)
+  }
+
+  likeRemoved(payload){
+    return this._publish(CHANNEL_NAMES.LIKE_REMOVED, payload)
+  }
+
+  ///////////////////////////////////////////////////
+
+  _publish(channel, payload){
     return this.redisClient.publishAsync(channel, payload)
   }
 }
+
+PubSubAdapter.CHANNEL_NAMES = CHANNEL_NAMES
