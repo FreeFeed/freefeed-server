@@ -308,13 +308,7 @@ exports.addModel = function(dbAdapter) {
       'updatedAt':      user.updatedAt.toString(),
       'hashedPassword': user.hashedPassword
     }
-    var promises = [
-      dbAdapter.createUserUsernameIndex(user.id, user.username),
-      dbAdapter.createUser(user.id, payload),
-      user.createEmailIndex()
-    ]
-
-    await Promise.all(promises)
+    await dbAdapter.createUser(user.id, payload)
 
     var stats = new models.Stats({
       id: this.id

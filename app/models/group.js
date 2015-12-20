@@ -89,10 +89,7 @@ exports.addModel = function(dbAdapter) {
         'updatedAt':  group.updatedAt.toString(),
         'isPrivate':  group.isPrivate
       }
-      await Promise.all([
-        dbAdapter.createUserUsernameIndex(group.id, group.username),
-        dbAdapter.createUser(group.id, payload)
-      ])
+      await dbAdapter.createUser(group.id, payload)
 
       var stats = new models.Stats({
         id: this.id

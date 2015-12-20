@@ -22,7 +22,20 @@ export class DbAdapter{
   }
 
   async createUser(userId, payload) {
-    return this.createRecord(mkKey(['user', userId]), payload)
+    let username = payload.username
+    let email    = payload.email
+    let userKey  = mkKey(['user', userId])
+
+    let promises = [
+      this.createUserUsernameIndex(userId, username),
+      this.createRecord(userKey, payload)
+    ]
+
+    if (email && email.length > 0) {
+      promises.push(this.createUserEmailIndex(userId, email))
+    }
+    await* promises
+    return userId
   }
 
   async updateUser(userId, payload) {
