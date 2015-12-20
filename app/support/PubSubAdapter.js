@@ -11,60 +11,60 @@ const CHANNEL_NAMES = {
   LIKE_REMOVED:      'like:remove'
 }
 
-export class PubSubAdapter{
-  constructor(redisClient){
+export class PubSubAdapter {
+  constructor(redisClient) {
     this.redisClient = redisClient
   }
 
   ///////////////////////////////////////////////////
 
-  postCreated(payload){
+  postCreated(payload) {
     return this._publish(CHANNEL_NAMES.POST_CREATED, payload)
   }
 
-  postUpdated(payload){
+  postUpdated(payload) {
     return this._publish(CHANNEL_NAMES.POST_UPDATED, payload)
   }
 
-  postDestroyed(payload){
+  postDestroyed(payload) {
     return this._publish(CHANNEL_NAMES.POST_DESTROYED, payload)
   }
 
-  postHidden(payload){
+  postHidden(payload) {
     return this._publish(CHANNEL_NAMES.POST_HIDDEN, payload)
   }
 
-  postUnhidden(payload){
+  postUnhidden(payload) {
     return this._publish(CHANNEL_NAMES.POST_UNHIDDEN, payload)
   }
 
   ///////////////////////////////////////////////////
 
-  commentCreated(payload){
+  commentCreated(payload) {
     return this._publish(CHANNEL_NAMES.COMMENT_CREATED, payload)
   }
 
-  commentUpdated(payload){
+  commentUpdated(payload) {
     return this._publish(CHANNEL_NAMES.COMMENT_UPDATED, payload)
   }
 
-  commentDestroyed(payload){
+  commentDestroyed(payload) {
     return this._publish(CHANNEL_NAMES.COMMENT_DESTROYED, payload)
   }
 
   ///////////////////////////////////////////////////
 
-  likeAdded(payload){
+  likeAdded(payload) {
     return this._publish(CHANNEL_NAMES.LIKE_ADDED, payload)
   }
 
-  likeRemoved(payload){
+  likeRemoved(payload) {
     return this._publish(CHANNEL_NAMES.LIKE_REMOVED, payload)
   }
 
   ///////////////////////////////////////////////////
 
-  _publish(channel, payload){
+  _publish(channel, payload) {
     return this.redisClient.publishAsync(channel, payload)
   }
 }

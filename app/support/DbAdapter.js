@@ -1,10 +1,9 @@
 "use strict";
 
 import {default as uuid} from 'uuid'
-import modelsSupport from '../support/models'
-const mkKey = modelsSupport.mkKey
+import {mkKey} from '../support/models'
 
-export class DbAdapter{
+export class DbAdapter {
   constructor(database) {
     this.database = database
   }
@@ -28,7 +27,7 @@ export class DbAdapter{
     let userKey  = mkKey(['user', userId])
     let exists   = await this._existsRecord(userKey)
 
-    if (exists !== 0){
+    if (exists !== 0) {
       throw new Error("Already exists")
     }
 
@@ -69,12 +68,12 @@ export class DbAdapter{
     return this._getRecord(mkKey(['user', userId, 'timelines']))
   }
 
-  getUserDiscussionsTimelineId(userId){
+  getUserDiscussionsTimelineId(userId) {
     return userId
   }
 
   _createUserTimeline(userId, timelineName, timelineId) {
-    let payload = {}
+    let payload           = {}
     payload[timelineName] = timelineId
     return this._createRecord(mkKey(['user', userId, 'timelines']), payload)
   }
@@ -86,10 +85,10 @@ export class DbAdapter{
 
   async createPost(payload) {
     let postId = uuid.v4()
-    let key = mkKey(['post', postId])
+    let key    = mkKey(['post', postId])
     let exists = await this._existsRecord(key)
 
-    if (exists !== 0){
+    if (exists !== 0) {
       throw new Error("Already exists")
     }
 
@@ -307,7 +306,7 @@ export class DbAdapter{
   // User indexes
   ///////////////////////////////////////////////////
 
-  existsUsername(username){
+  existsUsername(username) {
     return this._existsRecord(mkKey(['username', username, 'uid']))
   }
 
@@ -353,24 +352,24 @@ export class DbAdapter{
   ///////////////////////////////////////////////////
 
   createTimeline(payload) {
-    let timelineId  = uuid.v4()
-    let userId      = payload.userId
+    let timelineId = uuid.v4()
+    let userId     = payload.userId
 
     return this._createTimeline(timelineId, userId, payload)
   }
 
   createUserDiscussionsTimeline(userId, payload) {
-    let timelineId  = this.getUserDiscussionsTimelineId(userId)
+    let timelineId = this.getUserDiscussionsTimelineId(userId)
 
     return this._createTimeline(timelineId, userId, payload)
   }
 
-  async _createTimeline(timelineId, userId, payload){
+  async _createTimeline(timelineId, userId, payload) {
     let timelineKey = mkKey(['timeline', timelineId])
     let name        = payload.name
     let exists      = await this._existsRecord(timelineKey)
 
-    if (exists !== 0){
+    if (exists !== 0) {
       throw new Error("Already exists")
     }
 
@@ -383,7 +382,7 @@ export class DbAdapter{
     return timelineId
   }
 
-  existsTimeline(timelineId){
+  existsTimeline(timelineId) {
     return this._existsRecord(mkKey(['timeline', timelineId]))
   }
 
@@ -442,7 +441,7 @@ export class DbAdapter{
     return this._removeElementFromSortedSet(mkKey(['timeline', timelineId, 'subscribers']), currentUserId)
   }
 
-  async getTimelinesIntersectionPostIds(timelineId1, timelineId2){
+  async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
     // zinterstore saves results to a key. so we have to
     // create a temporary storage
 
@@ -498,10 +497,10 @@ export class DbAdapter{
 
   async createComment(payload) {
     let commentId = uuid.v4()
-    let key = mkKey(['comment', commentId])
-    let exists = await this._existsRecord(key)
+    let key       = mkKey(['comment', commentId])
+    let exists    = await this._existsRecord(key)
 
-    if (exists !== 0){
+    if (exists !== 0) {
       throw new Error("Already exists")
     }
 
@@ -581,15 +580,15 @@ export class DbAdapter{
     return this.database.existsAsync(key)
   }
 
-  _getRecord(key){
+  _getRecord(key) {
     return this.database.hgetallAsync(key)
   }
 
-  _createRecord(key, payload){
+  _createRecord(key, payload) {
     return this.database.hmsetAsync(key, payload)
   }
 
-  _updateRecord(key, payload){
+  _updateRecord(key, payload) {
     return this.database.hmsetAsync(key, payload)
   }
 
@@ -607,37 +606,37 @@ export class DbAdapter{
 
   ///////////////////////////////////////////////////
 
-  _getSortedSetElementsCount(key){
+  _getSortedSetElementsCount(key) {
     return this.database.zcardAsync(key)
   }
 
-  _getSortedSetElementScore(key, element){
+  _getSortedSetElementScore(key, element) {
     return this.database.zscoreAsync(key, element)
   }
 
-  _getSortedSetElements(key, fromIndex, toIndex){
+  _getSortedSetElements(key, fromIndex, toIndex) {
     return this.database.zrevrangeAsync(key, fromIndex, toIndex)
   }
 
-  _getAllSortedSetElements(key){
+  _getAllSortedSetElements(key) {
     return this._getSortedSetElements(key, 0, -1)
   }
 
-  _addElementToSortedSet(key, score, element){
+  _addElementToSortedSet(key, score, element) {
     return this.database.zaddAsync(key, score, element)
   }
 
-  _removeElementFromSortedSet(key, element){
+  _removeElementFromSortedSet(key, element) {
     return this.database.zremAsync(key, element)
   }
 
   ///////////////////////////////////////////////////
 
-  _getSetElementsCount(key){
+  _getSetElementsCount(key) {
     return this.database.scardAsync(key)
   }
 
-  _getSetElements(key){
+  _getSetElements(key) {
     return this.database.smembersAsync(key)
   }
 
@@ -645,7 +644,7 @@ export class DbAdapter{
     return this.database.saddAsync(key, element)
   }
 
-  _removeElementFromSet(key, element){
+  _removeElementFromSet(key, element) {
     return this.database.sremAsync(key, element)
   }
 
@@ -677,7 +676,7 @@ export class DbAdapter{
 
   ///////////////////////////////////////////////////
 
-  _normalizeUserEmail(email){
+  _normalizeUserEmail(email) {
     return email.toLowerCase()
   }
 }
