@@ -1,17 +1,15 @@
 "use strict";
 
 var Promise = require('bluebird')
-  , uuid = require('uuid')
   , inherits = require("util").inherits
   , models = require('../models')
   , AbstractModel = models.AbstractModel
   , Post = models.Post
   , User = models.User
-  , mkKey = require("../support/models").mkKey
   , pubSub = models.PubSub
   , _ = require('lodash')
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    * @extends AbstractModel
@@ -59,19 +57,11 @@ exports.addModel = function(database) {
     return this
   }
 
-  Comment.prototype.validateOnCreate = async function() {
-    await Promise.all([
-      this.validate(),
-      this.validateUniquness(mkKey(['comment', this.id]))
-    ])
-  }
-
   Comment.prototype.create = async function() {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
-    this.id = uuid.v4()
 
-    await this.validateOnCreate()
+    await this.validate()
 
     let payload = {
       'body': this.body,
@@ -81,7 +71,7 @@ exports.addModel = function(database) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    await database.hmsetAsync(mkKey(['comment', this.id]), payload)
+    this.id = await dbAdapter.createComment(payload)
 
     let post = await Post.findById(this.postId)
     let timelines = await post.addComment(this)
@@ -101,10 +91,11 @@ exports.addModel = function(database) {
 
       that.validate()
         .then(function(comment) {
-          return database.hmsetAsync(mkKey(['comment', that.id]),
-                                     { 'body': that.body,
-                                       'updatedAt': that.updatedAt.toString()
-                                     })
+          let payload = {
+            'body':      that.body,
+            'updatedAt': that.updatedAt.toString()
+          }
+          return dbAdapter.updateComment(that.id, payload)
         })
         .then(function() { return pubSub.updateComment(that.id) })
         .then(function() { resolve(that) })
@@ -118,8 +109,8 @@ exports.addModel = function(database) {
 
   Comment.prototype.destroy = async function() {
     await pubSub.destroyComment(this.id, this.postId)
-    await database.delAsync(mkKey(['comment', this.id]))
-    await database.lremAsync(mkKey(['post', this.postId, 'comments']), 1, this.id)
+    await dbAdapter.deleteComment(this.id)
+    await dbAdapter.removeCommentFromPost(this.postId, this.id)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
@@ -134,8 +125,8 @@ exports.addModel = function(database) {
     let timelineId = await user.getCommentsTimelineId()
 
     await Promise.all([
-      database.zremAsync(mkKey(['timeline', timelineId, 'posts']), this.postId),
-      database.sremAsync(mkKey(['post', this.postId, 'timelines']), timelineId)
+      dbAdapter.removePostFromTimeline(timelineId, this.postId),
+      dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
     ])
 
     let stats = await models.Stats.findById(this.userId)

@@ -1,5 +1,8 @@
 "use strict";
 
+import {DbAdapter} from './support/DbAdapter'
+import {PubSubAdapter} from './support/PubSubAdapter'
+
 var redis = require('../config/database')
   , database = redis.connect()
 
@@ -9,18 +12,20 @@ exports.AbstractSerializer = require('./serializers/abstract_serializer').addSer
 exports.Serializer         = require("./serializers/serializer").addSerializer()
 
 var PubSub = require('./pubsub')
+let dbAdapter = new DbAdapter(database)
+let pubsubAdapter = new PubSubAdapter(database)
 
-exports.PubSub = new PubSub(database)
+exports.PubSub = new PubSub(pubsubAdapter)
 
-exports.AbstractModel = require('./models/abstract_model').addModel(database)
-exports.User          = require('./models/user').addModel(database)
-exports.Group         = require('./models/group').addModel(database)
-exports.FeedFactory   = require('./models/feed-factory').addModel(database)
-exports.Post          = require('./models/post').addModel(database)
-exports.Timeline      = require('./models/timeline').addModel(database)
-exports.Attachment    = require('./models/attachment').addModel(database)
-exports.Comment       = require('./models/comment').addModel(database)
-exports.Stats         = require('./models/stats').addModel(database)
+exports.AbstractModel = require('./models/abstract_model').addModel(dbAdapter)
+exports.User          = require('./models/user').addModel(dbAdapter)
+exports.Group         = require('./models/group').addModel(dbAdapter)
+exports.FeedFactory   = require('./models/feed-factory').addModel(dbAdapter)
+exports.Post          = require('./models/post').addModel(dbAdapter)
+exports.Timeline      = require('./models/timeline').addModel(dbAdapter)
+exports.Attachment    = require('./models/attachment').addModel(dbAdapter)
+exports.Comment       = require('./models/comment').addModel(dbAdapter)
+exports.Stats         = require('./models/stats').addModel(dbAdapter)
 
 exports.AdminSerializer         = require('./serializers/v1/AdminSerializer').addSerializer()
 exports.UserSerializer         = require('./serializers/v1/UserSerializer').addSerializer()
