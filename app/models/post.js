@@ -683,11 +683,12 @@ exports.addModel = function(dbAdapter) {
     await user.validateCanUnLikePost(this)
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
-    await* [
+    let promises = [
             dbAdapter.removeUserPostLike(this.id, userId),
             dbAdapter.removePostFromTimeline(timelineId, this.id),
             dbAdapter.deletePostUsageInTimeline(this.id, timelineId)
           ]
+    await Promise.all(promises)
     await pubSub.removeLike(this.id, userId)
 
     timer.stop()

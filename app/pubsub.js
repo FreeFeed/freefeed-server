@@ -77,7 +77,7 @@ export default class pubSub {
       await this.publisher.commentDestroyed(payload)
     })
 
-    await* promises
+    await Promise.all(promises)
 
   }
 

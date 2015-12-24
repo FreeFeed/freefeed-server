@@ -39,7 +39,7 @@ export class DbAdapter {
     if (email && email.length > 0) {
       promises.push(this.createUserEmailIndex(userId, email))
     }
-    await* promises
+    await Promise.all(promises)
     return userId
   }
 
@@ -378,7 +378,7 @@ export class DbAdapter {
       this._createRecord(timelineKey, payload)
     ]
 
-    await* promises
+    await Promise.all(promises)
     return timelineId
   }
 
