@@ -1,11 +1,18 @@
 language: node_js
 node_js:
-- 4.2
-- 5.3
+  - 4.2
+  - 5.3
+env:
+  - CXX=g++-4.8
 services:
-- redis-server
-before_script:
-- sudo apt-get install -qq graphicsmagick
+  - redis-server
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
+      - graphicsmagick
 notifications:
   slack:
     secure: Cu2y76KVIdl4+uYcv/J595jteBN2U1Q4HCKs90J1PZaIHjz86sWg2y+1EIWLd0UUtw+d15gbLy/xqrrCo+y1pR+5e6Df3duHktxYX1FkBD31sg/9M2RI18hdxPZWZ11M/uF3xMOzD6LepOwXPBXN/rwSjalLydzcjNB2DpCSgIQ=
