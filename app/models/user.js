@@ -134,42 +134,32 @@ exports.addModel = function(dbAdapter) {
     return new models.Post(attrs)
   }
 
-  User.prototype.updateResetPasswordToken = function() {
-    var that = this
+  User.prototype.updateResetPasswordToken = async function() {
+    let now = new Date().getTime()
+    let oldToken = this.resetPasswordToken
 
-    return new Promise(function(resolve, reject) {
-      that.generateResetPasswordToken().bind({})
-        .then(function(token) {
-          var now = new Date().getTime()
-          var oldToken = that.resetPasswordToken
+    this.resetPasswordToken = await this.generateResetPasswordToken()
 
-          that.resetPasswordToken = token
-          this.token = token
+    let payload = {
+      'resetPasswordToken': this.resetPasswordToken,
+      'resetPasswordSentAt': now
+    }
 
-          let payload = {
-            'resetPasswordToken':  token,
-            'resetPasswordSentAt': now
-          }
+    let promises = [
+      dbAdapter.updateUser(this.id, payload),
+      dbAdapter.createUserResetPasswordToken(this.id, this.resetPasswordToken)
+    ]
 
-          let promises = [
-            dbAdapter.updateUser(that.id, payload),
-            dbAdapter.createUserResetPasswordToken(that.id, token)
-          ]
+    if (oldToken) {
+      promises.push(dbAdapter.deleteUserResetPasswordToken(oldToken))
+    }
 
-          if (oldToken) {
-            promises.push(dbAdapter.deleteUserResetPasswordToken(oldToken))
-          }
+    await Promise.all(promises)
 
-          return Promise.all(promises)
-        })
-        .then(function() {
-          var expireAfter = 60*60*24 // 24 hours
-          dbAdapter.setUserResetPasswordTokenExpireAfter(this.token, expireAfter)
-        })
-        .then(function() {
-          resolve(this.token)
-        })
-    })
+    let expireAfter = 60*60*24 // 24 hours
+    await dbAdapter.setUserResetPasswordTokenExpireAfter(this.resetPasswordToken, expireAfter)
+
+    return this.resetPasswordToken
   }
 
   User.prototype.generateResetPasswordToken = function() {
@@ -854,33 +844,36 @@ exports.addModel = function(dbAdapter) {
     return new models.Attachment(attrs)
   }
 
-  User.prototype.updateProfilePicture = function(file) {
-    var that = this
+  User.prototype.updateProfilePicture = async function(file) {
+    let image = Promise.promisifyAll(gm(file.path))
 
-    var image = Promise.promisifyAll(gm(file.path))
-    return image.sizeAsync()
-        .bind({})
-        .catch(function(err) {
-          return Promise.reject(new exceptions.BadRequestException("Not an image file"))
-        })
-        .then(function(originalSize) {
-          var newUuid = uuid.v4()
-          this.profilePictureUid = newUuid
-          return Promise.map([User.PROFILE_PICTURE_SIZE_LARGE,
-                              User.PROFILE_PICTURE_SIZE_MEDIUM,
-                              User.PROFILE_PICTURE_SIZE_SMALL], function (size) {
-            return that.saveProfilePictureWithSize(file.path, newUuid, originalSize, size)
-          })
-        })
-        .then(function() {
-          that.updatedAt = new Date().getTime()
-          that.profilePictureUuid = this.profilePictureUid
-          let payload = {
-            'profilePictureUuid': that.profilePictureUuid,
-            'updatedAt': that.updatedAt.toString()
-          }
-          return dbAdapter.updateUser(that.id, payload)
-        })
+    let originalSize
+
+    try {
+      originalSize  = await image.sizeAsync()
+    } catch (err) {
+      throw new exceptions.BadRequestException("Not an image file")
+    }
+
+    this.profilePictureUuid = uuid.v4()
+
+    let sizes = [
+      User.PROFILE_PICTURE_SIZE_LARGE,
+      User.PROFILE_PICTURE_SIZE_MEDIUM,
+      User.PROFILE_PICTURE_SIZE_SMALL
+    ]
+
+    let promises = sizes.map(size => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
+    await Promise.all(promises)
+
+    this.updatedAt = new Date().getTime()
+
+    let payload = {
+      'profilePictureUuid': this.profilePictureUuid,
+      'updatedAt': this.updatedAt.toString()
+    }
+
+    return dbAdapter.updateUser(this.id, payload)
   }
 
   User.prototype.saveProfilePictureWithSize = function(path, uuid, originalSize, size) {
