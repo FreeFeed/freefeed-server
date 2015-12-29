@@ -576,27 +576,15 @@ exports.addModel = function(dbAdapter) {
     }
   }
 
-  Post.prototype.getOmittedLikes = function() {
-    var that = this
+  Post.prototype.getOmittedLikes = async function() {
+    let length = await dbAdapter.getPostLikesCount(this.id)
+    if (length > this.maxLikes && this.maxLikes != 'all') {
+      this.omittedLikes = length - this.maxLikes
+    } else {
+      this.omittedLikes = 0
+    }
 
-    return new Promise(function(resolve, reject) {
-      dbAdapter.getPostLikesCount(that.id)
-        .then(function(length) {
-          if (length > that.maxLikes && that.maxLikes != 'all') {
-            dbAdapter.hasUserLikedPost(that.currentUser, that.id).bind({})
-              .then(function(userLiked) { this.includeUser = userLiked })
-              .then(function() {
-                return dbAdapter.getPostLikesRange(that.id, 0, that.maxLikes - 1)
-              })
-              .then(function(likeIds) {
-                that.omittedLikes = length - that.maxLikes
-                resolve(that.omittedLikes)
-              })
-          } else {
-            resolve(0)
-          }
-        })
-    })
+    return this.omittedLikes
   }
 
   Post.prototype.getLikes = async function() {
