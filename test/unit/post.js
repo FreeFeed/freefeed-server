@@ -365,12 +365,25 @@ describe('Post', function() {
       post.maxLikes = 4
       post.currentUser = users[5].id
 
-      let likes = await post.getLikes()
-      likes.length.should.eql(4)
-      likes[0].id.should.eql(users[5].id)
-      likes[1].id.should.eql(users[9].id)
-      likes[2].id.should.eql(users[8].id)
-      likes[3].id.should.eql(users[7].id)
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(4)
+        likes[0].id.should.eql(users[5].id)
+        likes[1].id.should.eql(users[9].id)
+        likes[2].id.should.eql(users[8].id)
+        likes[3].id.should.eql(users[7].id)
+      }
+
+      post.currentUser = users[8].id
+
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(4)
+        likes[0].id.should.eql(users[8].id)
+        likes[1].id.should.eql(users[9].id)
+        likes[2].id.should.eql(users[7].id)
+        likes[3].id.should.eql(users[6].id)
+      }
     })
   })
 
