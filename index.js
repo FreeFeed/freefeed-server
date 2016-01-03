@@ -1,5 +1,8 @@
 "use strict";
 
+global.Promise = require('bluebird')
+global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
+
 require("babel/register")({
   stage: 1
 })

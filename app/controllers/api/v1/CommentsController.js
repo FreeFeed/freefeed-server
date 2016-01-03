@@ -1,6 +1,6 @@
 "use strict";
 
-import models, {CommentSerializer, pubSub} from '../../../models'
+import models, {CommentSerializer, PubSub} from '../../../models'
 import exceptions, {ForbiddenException} from '../../../support/exceptions'
 import monitor from 'monitor-dog'
 
@@ -29,7 +29,7 @@ exports.addController = function(app) {
         let json = await new CommentSerializer(newComment).promiseToJSON()
         res.jsonp(json)
 
-        await pubSub.newComment(comment, timelines)
+        await PubSub.newComment(newComment, timelines)
         monitor.increment('comments.creates')
       } catch (e) {
         exceptions.reportError(res)(e)

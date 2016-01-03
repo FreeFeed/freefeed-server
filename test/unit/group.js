@@ -22,7 +22,7 @@ describe('Group', function() {
 
           return group
         })
-        .then(Group.findById(group.id))
+        .then((group) => { return Group.findById(group.id) })
         .then(function(newGroup) {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty

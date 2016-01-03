@@ -552,7 +552,7 @@ exports.addModel = function(dbAdapter) {
         if (likeIds.indexOf(this.currentUser) == -1) {
           this.likeIds = [this.currentUser].concat(this.likeIds.slice(0, -1))
         } else {
-          this.likeIds = this.likeIds.sort(function(a, b) {
+          this.likeIds = this.likeIds.sort((a, b) => {
             if (a == this.currentUser) return -1
             if (b == this.currentUser) return 1
           })

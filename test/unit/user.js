@@ -254,7 +254,7 @@ describe('User', function() {
 
           return user
         })
-        .then(User.findById(user.id))
+        .then((user) => User.findById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -281,7 +281,7 @@ describe('User', function() {
 
           return user
         })
-        .then(User.findById(user.id))
+        .then((user) => User.findById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -310,7 +310,7 @@ describe('User', function() {
 
           return user
         })
-        .then(User.findById(user.id))
+        .then(() => User.findById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
