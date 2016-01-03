@@ -1,3 +1,6 @@
+global.Promise = require('bluebird')
+global.Promise.onPossiblyUnhandledRejection((e) => { throw error; });
+
 require("babel/register")({
   stage: 1
 });
