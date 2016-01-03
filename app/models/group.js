@@ -61,19 +61,17 @@ exports.addModel = function(database) {
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
         && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
-    return Promise.resolve(valid)
+    return valid
   }
 
   Group.prototype.validate = async function(skip_stoplist) {
-    var valid
+    if (!this.isValidUsername(skip_stoplist)) {
+      throw new Error('Invalid username')
+    }
 
-    valid = this.isValidUsername(skip_stoplist).value()
-      && this.isValidScreenName().value()
-
-    if (!valid)
-      throw new Error("Invalid")
-
-    return valid
+    if (!this.isValidScreenName()) {
+      throw new Error('Invalid screenname')
+    }
   }
 
   Group.prototype.create = async function(ownerId, skip_stoplist) {
@@ -100,11 +98,14 @@ exports.addModel = function(database) {
         id: this.id
       })
 
-      await Promise.all([
-        this.addAdministrator(ownerId),
-        this.subscribeOwner(ownerId),
-        stats.create()
-      ])
+      let promises = [stats.create()]
+
+      if (ownerId) {
+        promises.push(this.addAdministrator(ownerId))
+        promises.push(this.subscribeOwner(ownerId))
+      }
+
+      await Promise.all(promises)
 
       return this
   }
@@ -134,26 +135,17 @@ exports.addModel = function(database) {
     return mkKey(['user', this.id, 'administrators'])
   }
 
-  Group.prototype.subscribeOwner = function(ownerId) {
-    var that = this
+  Group.prototype.subscribeOwner = async function(ownerId) {
+    let owner = await User.findById(ownerId)
 
-    return new Promise(function(resolve, reject) {
-      let theOwner
+    if (!owner) {
+      return null
+    }
 
-      return User.findById(ownerId).then(function(owner) {
-        if (!owner) {
-          resolve(null)
-          return
-        }
-        theOwner = owner
-        return that.getPostsTimelineId()
-      })
-      .then(function(timelineId) {
-        return theOwner.subscribeTo(timelineId)
-      })
-      .then(function(res) { resolve(res)})
-      .catch(function(e) { reject(e) })
-    })
+    let timelineId = await this.getPostsTimelineId()
+    let res = await owner.subscribeTo(timelineId)
+
+    return res
   }
 
   Group.prototype.addAdministrator = function(feedId) {
@@ -195,7 +187,8 @@ exports.addModel = function(database) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await Promise.all(adminIds.map((userId) => models.User.findById(userId)))
+    this.administrators = await models.User.findByIds(adminIds)
+
     return this.administrators
   }
 

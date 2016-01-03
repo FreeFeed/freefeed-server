@@ -64,17 +64,20 @@ describe('Group', function() {
         .then(function() { done() })
     })
 
-    it('should not create with tiny screenName', function(done) {
+    it('should not create with tiny screenName', async () => {
       var group = new Group({
         username: 'FriendFeed',
         screenName: 'a'
       })
 
-      group.create()
-        .catch(function(e) {
-          e.message.should.eql("Invalid")
-          done()
-        })
+      try {
+        await group.create()
+      } catch (e) {
+        e.message.should.eql("Invalid screenname")
+        return
+      }
+
+      throw new Error(`FAIL (screenname "a" should not be valid)`)
     })
 
     it('should not create with username that already exists', function(done) {
@@ -98,35 +101,31 @@ describe('Group', function() {
   })
 
   describe('#update()', function() {
-    it('should update without error', function(done) {
+    it('should update without error', async () => {
       var screenName = 'Pepyatka'
       var group = new Group({
         username: 'FriendFeed'
       })
 
-      group.create()
-        .then(function(group) {
-          group.should.be.an.instanceOf(Group)
-          group.should.not.be.empty
-          group.should.have.property('id')
-          group.should.have.property('screenName')
+      await group.create()
 
-          return group
-        })
-        .then(group.update({
-          screenName: screenName
-        }))
-        .then(function(newGroup) {
-          newGroup.should.be.an.instanceOf(Group)
-          newGroup.should.not.be.empty
-          newGroup.should.have.property('id')
-          newGroup.id.should.eql(group.id)
-          newGroup.should.have.property('type')
-          newGroup.type.should.eql('group')
-          group.should.have.property('screenName')
-          newGroup.screenName.should.eql(screenName)
-        })
-        .then(function() { done() })
+      group.should.be.an.instanceOf(Group)
+      group.should.not.be.empty
+      group.should.have.property('id')
+      group.should.have.property('screenName')
+
+      await group.update({
+        screenName: screenName
+      })
+
+      group.should.be.an.instanceOf(Group)
+      group.should.not.be.empty
+      group.should.have.property('id')
+      group.id.should.eql(group.id)
+      group.should.have.property('type')
+      group.type.should.eql('group')
+      group.should.have.property('screenName')
+      group.screenName.should.eql(screenName)
     })
 
     it('should update without screenName', function(done) {
@@ -157,20 +156,15 @@ describe('Group', function() {
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 35 chars is ok
     ]
     valid.forEach(function(username) {
-      it('should allow username ' + username, function(done) {
+      it('should allow username ' + username, async () => {
 
         var group = new Group({
           username: username,
           screenName: 'test'
         })
 
-        group.create()
-          .then(function(group) { return group.isValidEmail() })
-          .then(function(valid) {
-            valid.should.eql(true)
-          })
-          .then(function() { done() })
-          .catch(function(e) { done(e) })
+        await group.create();
+        (await group.isValidEmail()).should.eql(true)
       })
     })
 
@@ -179,19 +173,21 @@ describe('Group', function() {
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 36 chars is 1 char too much
     ]
     invalid.forEach(function(username) {
-      it('should not allow invalid username ' + username, function(done) {
+      it('should not allow invalid username ' + username, async () => {
 
         var group = new Group({
           username: username,
           screenName: 'test'
         })
 
-        group.create()
-          .then(function() { done(new Error('FAIL')) })
-          .catch(function(e) {
-            e.message.should.eql("Invalid")
-            done()
-          })
+        try {
+          await group.create()
+        } catch (e) {
+          e.message.should.eql("Invalid username")
+          return
+        }
+
+        throw new Error(`FAIL (username "${username}" should not be valid)`)
       })
     })
   })
