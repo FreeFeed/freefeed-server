@@ -1,6 +1,7 @@
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
+import Promise from 'bluebird'
 
 import app from '../../index'
 import models from '../../app/models'
@@ -577,26 +578,20 @@ describe("PostsController", function() {
       })
     })
 
-    it('should like post with a valid user not more than 1 time', function(done) {
-      request
-        .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
-        .send({ authToken: context.authToken })
-        .end(function(err, res) {
-          res.body.should.be.empty
-          $should.not.exist(err)
+    it('should like post with a valid user not more than 1 time', async () => {
+      {
+        let response = await funcTestHelper.like(context.post.id, context.authToken)
+        response.status.should.eql(200)
+      }
 
-          request
-            .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
-            .send({ authToken: context.authToken })
-            .end(function(err, res) {
-              err.should.not.be.empty
-              err.status.should.eql(403)
-              err.response.error.should.have.property('text')
-              JSON.parse(err.response.error.text).err.should.eql("You can't like post that you have already liked")
-              done()
-            })
+      {
+        let response = await funcTestHelper.like(context.post.id, context.authToken)
+        response.status.should.eql(403)
 
-        })
+        let data = await response.json()
+        data.should.have.property('err')
+        data.err.should.eql("You can't like post that you have already liked")
+      }
     })
 
     it('should not like post with an invalid user', function(done) {
@@ -778,6 +773,38 @@ describe("PostsController", function() {
 
             done()
           })
+    })
+
+    describe('with likes', async () => {
+      let users
+
+      beforeEach(async () => {
+        let promises = [];
+        for (let i=0; i<10; i++) {
+          promises.push(funcTestHelper.createUserAsync(`lunokhod${i}`, 'password'))
+        }
+        users = await Promise.all(promises)
+
+        for (let u of users) {
+          await funcTestHelper.subscribeToAsync(u, context)
+          await funcTestHelper.subscribeToAsync(context, u)
+        }
+
+        await funcTestHelper.goPrivate(context)
+
+        for (let u of users) {
+          await funcTestHelper.like(context.post.id, u.authToken)
+        }
+      })
+
+      it('should show all likes', async () => {
+        let response = await funcTestHelper.readPostAsync(context.post.id, users[5])
+        response.status.should.eql(200, `user couldn't read post`)
+
+        let data = await response.json()
+        data.posts.likes.length.should.eql(4)
+        data.posts.omittedLikes.should.eql(6)
+      })
     })
   })
 

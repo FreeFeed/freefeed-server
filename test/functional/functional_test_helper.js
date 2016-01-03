@@ -253,6 +253,35 @@ function postJson(relativeUrl, data) {
   )
 }
 
+exports.createUserAsync = async (username, password, attributes) => {
+  if (typeof attributes === 'undefined'){
+    attributes = {}
+  }
+
+  let user = {
+    username,
+    password
+  }
+
+  if (attributes.email) {
+    user.email = attributes.email
+  }
+
+  let response = await postJson(`/v1/users`, user)
+  let data = await response.json()
+
+  let userData = data.users
+  userData.password = password
+
+  return {
+    authToken: data.authToken,
+    user: userData,
+    username: username.toLowerCase(),
+    password,
+    attributes
+  }
+}
+
 exports.like = (postId, authToken) => {
   return postJson(`/v1/posts/${postId}/like`, { authToken })
 }
@@ -276,6 +305,10 @@ exports.goPublic = (userContext) => {
   return exports.updateUserAsync(userContext, { isPrivate: "0" });
 }
 
+exports.subscribeToAsync = (subscriber, victim) => {
+  return postJson(`/v1/users/${victim.username}/subscribe`, {authToken: subscriber.authToken})
+}
+
 exports.mutualSubscriptions = async (userContexts) => {
   let promises = []
 
@@ -285,7 +318,7 @@ exports.mutualSubscriptions = async (userContexts) => {
         continue
       }
 
-      promises.push(postJson(`/v1/users/${ctx2.username}/subscribe`, {authToken: ctx1.authToken}))
+      promises.push(exports.subscribeToAsync(ctx1, ctx2))
     }
   }
 
@@ -335,4 +368,16 @@ exports.getMyDiscussions = (userContext) => {
 
 exports.sendResetPassword = (email) => {
   return postJson('/v1/passwords', { email })
+}
+
+exports.readPostAsync = (postId, userContext) => {
+  let relativeUrl = `/v1/posts/${postId}?maxComments=all`
+  let url = apiUrl(relativeUrl)
+
+  if (!_.isUndefined(userContext)) {
+    let encodedToken = encodeURIComponent(userContext.authToken)
+    url = `${url}&authToken=${encodedToken}`
+  }
+
+  return fetch(url)
 }
