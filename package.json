@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "start": "iojs index",
-    "test": "./node_modules/jake/bin/cli.js test"
+    "test": "jake test"
   },
   "repository": {
     "type": "git",
