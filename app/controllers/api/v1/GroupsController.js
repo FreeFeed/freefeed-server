@@ -48,14 +48,15 @@ exports.addController = function(app) {
         throw new exceptions.BadRequestException('"admins" should be an array of strings')
       }
 
-      let admins = await* req.body.admins.map(async (username) => {
+      let adminPromises = req.body.admins.map(async (username) => {
         try {
           return await User.findByUsername(username)
         } catch (e) {
           return false
         }
       })
-      admins = admins.filter(Boolean);
+      let admins = await Promise.all(adminPromises)
+      admins = admins.filter(Boolean)
 
       let group = new Group(params)
       await group.create(admins[0].id, true)
@@ -69,7 +70,7 @@ exports.addController = function(app) {
         promises.push(group.subscribeOwner(adminId))
       }
 
-      await* promises
+      await Promise.all(promises)
 
       let json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)

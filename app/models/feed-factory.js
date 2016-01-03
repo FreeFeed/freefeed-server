@@ -4,14 +4,13 @@ import Promise from "bluebird"
 import { inherits } from "util"
 
 import { AbstractModel, User, Group } from "../../app/models"
-import { mkKey } from "../support/models"
 import { load as configLoader } from "../../config/config"
 import { NotFoundException } from "../support/exceptions"
 
 let config = configLoader()
 
 
-exports.addModel = function(database) {
+exports.addModel = function(dbAdapter) {
   var FeedFactory = function() {
   }
 
@@ -25,7 +24,7 @@ exports.addModel = function(database) {
   }
 
   FeedFactory.findById = async function(identifier) {
-    let attrs = await database.hgetallAsync(mkKey(['user', identifier]))
+    let attrs = await dbAdapter.getUserById(identifier)
 
     if (attrs.type === 'group') {
       return Group.initObject(attrs, identifier)
@@ -35,10 +34,7 @@ exports.addModel = function(database) {
   }
 
   FeedFactory.findByIds = async function(identifiers) {
-    let keys = identifiers.map(id => mkKey(['user', id]))
-    let requests = keys.map(key => ['hgetall', key])
-
-    let responses = await database.batch(requests).execAsync()
+    let responses = await dbAdapter.getUsersByIds(identifiers)
     let objects = responses.map((attrs, i) => {
       if (attrs.type === 'group') {
         return Group.initObject(attrs, identifiers[i])
@@ -51,7 +47,7 @@ exports.addModel = function(database) {
   }
 
   FeedFactory.findByUsername = async function(username) {
-    let identifier = await database.getAsync(mkKey(['username', username, 'uid']))
+    let identifier = await dbAdapter.getUserIdByUsername(username)
 
     if (null === identifier) {
       throw new NotFoundException(`user "${username}" is not found`)

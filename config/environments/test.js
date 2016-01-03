@@ -16,7 +16,10 @@ exports.getConfig = function() {
     acceptHashedPasswordsOnly: false,
 
     logLevel: 'warn',
-    onboardingUsername: 'welcome'
+    onboardingUsername: 'welcome',
+    recaptcha: {
+      enabled: false
+    }
   }
 
   config.host = 'http://localhost:' + config.port
