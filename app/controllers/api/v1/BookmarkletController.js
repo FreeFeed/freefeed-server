@@ -2,6 +2,7 @@
 
 import models, {PostSerializer} from '../../../models'
 import config_loader from '../../../../config/config'
+import exceptions from '../../../support/exceptions'
 import url from 'url'
 import path from 'path'
 import crypto from 'crypto'
@@ -90,8 +91,7 @@ exports.addController = function(app) {
         let json = await new PostSerializer(newPost).promiseToJSON()
         res.jsonp(json)
       } catch(e) {
-        console.log(e)
-        console.log(e.stack)
+        exceptions.reportError(res)(e)
       }
     }
   }

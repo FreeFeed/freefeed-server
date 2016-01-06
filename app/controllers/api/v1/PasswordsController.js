@@ -24,7 +24,6 @@ exports.addController = function(app) {
 
       res.jsonp({ message: 'We will send a password reset link to ' + user.email + ' in a moment' })
     } catch (e) {
-      console.log(e)
       exceptions.reportError(res)(e)
     }
   }
