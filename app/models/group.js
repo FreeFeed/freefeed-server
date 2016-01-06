@@ -1,15 +1,12 @@
-"use strict";
+import { inherits } from "util"
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , exceptions = require('../support/exceptions')
-  , ForbiddenException = exceptions.ForbiddenException
-  , AbstractModel = models.AbstractModel
-  , User = models.User
-  , _ = require('lodash')
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { AbstractModel, FeedFactory, Stats, User } from '../models'
+import { ForbiddenException } from '../support/exceptions'
+
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    * @extends User
@@ -57,7 +54,7 @@ exports.addModel = function(dbAdapter) {
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
-        && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
+        && FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return valid
   }
@@ -89,7 +86,7 @@ exports.addModel = function(dbAdapter) {
       }
       this.id = await dbAdapter.createUser(payload)
 
-      var stats = new models.Stats({
+      var stats = new Stats({
         id: this.id
       })
 
@@ -177,7 +174,7 @@ exports.addModel = function(dbAdapter) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await models.User.findByIds(adminIds)
+    this.administrators = await User.findByIds(adminIds)
 
     return this.administrators
   }

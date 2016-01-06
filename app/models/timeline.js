@@ -1,15 +1,11 @@
-"use strict";
+import { inherits } from "util"
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
-  , FeedFactory = models.FeedFactory
-  , Post = models.Post
-  , pubSub = models.PubSub
-  , _ = require('lodash')
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { AbstractModel, FeedFactory, Post, PubSub as pubSub, User } from '../models'
+
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */
@@ -175,14 +171,14 @@ exports.addModel = function(dbAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let reader = this.currentUser ? (await models.User.findById(this.currentUser)) : null
+    let reader = this.currentUser ? (await User.findById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
     let posts = (await Post.findByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
 
     let uids = _.uniq(posts.map(post => post.userId))
-    let users = (await models.User.findByIds(uids)).filter(Boolean)
+    let users = (await User.findByIds(uids)).filter(Boolean)
     let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
 
     let usersCache = {}
@@ -194,7 +190,7 @@ exports.addModel = function(dbAdapter) {
 
     async function userById(id) {
       if (!(id in usersCache)) {
-        let user = await models.User.findById(id)
+        let user = await User.findById(id)
 
         if (!user) {
           throw new Error(`no user for id=${id}`)
@@ -280,7 +276,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Timeline.prototype.getUser = function() {
-    return models.FeedFactory.findById(this.userId)
+    return FeedFactory.findById(this.userId)
   }
 
   /**
@@ -301,7 +297,7 @@ exports.addModel = function(dbAdapter) {
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
     var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await models.User.findByIds(userIds)
+    this.subscribers = await User.findByIds(userIds)
 
     return this.subscribers
   }

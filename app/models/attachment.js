@@ -1,19 +1,21 @@
-"use strict";
+import _fs from 'fs'
+import { inherits } from 'util'
 
-var Promise = require('bluebird')
-  , mmm = require('mmmagic')
-  , meta = require('musicmetadata')
-  , _ = require('lodash')
-  , config = require('../../config/config').load()
-  , gm = require('gm')
-  , fs = Promise.promisifyAll(require('fs'))
-  , inherits = require('util').inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
-  , Post = models.Post
-  , aws = require('aws-sdk')
+import aws from 'aws-sdk'
+import { promisifyAll } from 'bluebird'
+import gm from 'gm'
+import meta from 'musicmetadata'
+import mmm from 'mmmagic'
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { load as configLoader } from "../../config/config"
+import { AbstractModel, FeedFactory, Post } from '../models'
+
+
+let config = configLoader()
+let fs = promisifyAll(_fs)
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */
@@ -130,7 +132,7 @@ exports.addModel = function(dbAdapter) {
 
   // Get user who created the attachment (via Promise, for serializer)
   Attachment.prototype.getCreatedBy = function() {
-    return models.FeedFactory.findById(this.userId)
+    return FeedFactory.findById(this.userId)
   }
 
   // Get public URL of attachment (via Promise, for serializer)

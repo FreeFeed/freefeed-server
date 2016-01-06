@@ -1,12 +1,10 @@
-"use strict";
+import _ from 'lodash'
 
-var Promise = require('bluebird')
-  , mkKey = require("../support/models").mkKey
-  , _ = require('lodash')
-  , exceptions = require('../support/exceptions')
-  , NotFoundException = exceptions.NotFoundException
+import { mkKey } from "../support/models"
+import { NotFoundException } from '../support/exceptions'
 
-exports.addModel = function(dbAdapter) {
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */

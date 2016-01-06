@@ -1,11 +1,9 @@
-"use strict";
+import { inherits } from "util"
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
+import { AbstractModel } from '../models'
 
-exports.addModel = function(dbAdapter) {
+
+export function addModel(dbAdapter) {
   var Stats = function(params) {
     Stats.super_.call(this)
 

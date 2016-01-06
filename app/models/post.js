@@ -1,19 +1,13 @@
-"use strict";
+import { inherits } from "util"
 
-import config_file from '../../config/config'
 import monitor from 'monitor-dog'
+import GraphemeBreaker from 'grapheme-breaker'
+import _ from 'lodash'
 
-var Promise = require('bluebird')
-  , GraphemeBreaker = require('grapheme-breaker')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
-  , FeedFactory = models.FeedFactory
-  , Timeline = models.Timeline
-  , _ = require('lodash')
-  , pubSub = models.PubSub
+import { AbstractModel, Attachment, Comment, FeedFactory, Timeline, PubSub as pubSub, Stats, User } from '../models'
 
-exports.addModel = function(dbAdapter) {
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    * @extends AbstractModel
@@ -99,8 +93,8 @@ exports.addModel = function(dbAdapter) {
       this.savePostedTo()
     ])
 
-    await models.Timeline.publishPost(this)
-    var stats = await models.Stats.findById(this.userId)
+    await Timeline.publishPost(this)
+    var stats = await Stats.findById(this.userId)
     await stats.addPost()
 
     timer.stop()
@@ -161,7 +155,7 @@ exports.addModel = function(dbAdapter) {
         })
         .then(function(userIds) {
           return Promise.map(userIds, function(userId) {
-            return models.Stats.findById(userId).then(function(stats) {
+            return Stats.findById(userId).then(function(stats) {
               return stats.removeLike()
             })
           })
@@ -207,7 +201,7 @@ exports.addModel = function(dbAdapter) {
             })
         })
         .then(function() { return dbAdapter.deletePostComments(that.id) })
-        .then(function() { return models.Stats.findById(that.userId) })
+        .then(function() { return Stats.findById(that.userId) })
         .then(function(stats) { return stats.removePost() })
         .then(function(res) {
           monitor.increment('posts.destroys')
@@ -217,7 +211,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Post.prototype.getCreatedBy = function() {
-    return models.User.findById(this.userId)
+    return User.findById(this.userId)
   }
 
   Post.prototype.getSubscribedTimelineIds = async function(groupOnly) {
@@ -239,7 +233,7 @@ exports.addModel = function(dbAdapter) {
 
   Post.prototype.getSubscribedTimelines = async function() {
     var timelineIds = await this.getSubscribedTimelineIds()
-    this.subscribedTimelines = await models.Timeline.findByIds(timelineIds)
+    this.subscribedTimelines = await Timeline.findByIds(timelineIds)
 
     return this.subscribedTimelines
   }
@@ -252,7 +246,7 @@ exports.addModel = function(dbAdapter) {
 
   Post.prototype.getTimelines = async function() {
     var timelineIds = await this.getTimelineIds()
-    this.timelines = await models.Timeline.findByIds(timelineIds)
+    this.timelines = await Timeline.findByIds(timelineIds)
 
     return this.timelines
   }
@@ -265,7 +259,7 @@ exports.addModel = function(dbAdapter) {
 
   Post.prototype.getPostedTo = async function() {
     var timelineIds = await this.getPostedToIds()
-    this.postedTo = await models.Timeline.findByIds(timelineIds)
+    this.postedTo = await Timeline.findByIds(timelineIds)
 
     return this.postedTo
   }
@@ -277,8 +271,8 @@ exports.addModel = function(dbAdapter) {
     timelineIds.push(timeline.id)
 
     let postedToIds = await this.getPostedToIds()
-    let timelines = await models.Timeline.findByIds(postedToIds)
-    let timelineOwners = await models.FeedFactory.findByIds(timelines.map(tl => tl.userId))
+    let timelines = await Timeline.findByIds(postedToIds)
+    let timelineOwners = await FeedFactory.findByIds(timelines.map(tl => tl.userId))
 
     // Adds the specified post to River of News if and only if
     // that post has been published to user's Post timeline,
@@ -301,7 +295,7 @@ exports.addModel = function(dbAdapter) {
 
   Post.prototype.getGenericFriendOfFriendTimelines = async function(user, type) {
     let timelineIds = await this.getGenericFriendOfFriendTimelineIds(user, type)
-    return await models.Timeline.findByIds(timelineIds)
+    return await Timeline.findByIds(timelineIds)
   }
 
   Post.prototype.getPostsFriendOfFriendTimelineIds = function(user) {
@@ -334,7 +328,7 @@ exports.addModel = function(dbAdapter) {
     return new Promise(function(resolve, reject) {
       let theUser
 
-      models.User.findById(userId)
+      User.findById(userId)
         .then(function(user) {
           theUser = user
           return pubSub.hidePost(user.id, that.id)
@@ -356,7 +350,7 @@ exports.addModel = function(dbAdapter) {
     return new Promise(function(resolve, reject) {
       let theUser
 
-      models.User.findById(userId)
+      User.findById(userId)
         .then(function(user) {
           theUser = user
           return pubSub.unhidePost(user.id, that.id)
@@ -373,7 +367,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Post.prototype.addComment = async function(comment) {
-    let user = await models.User.findById(comment.userId)
+    let user = await User.findById(comment.userId)
 
     let subscriberIds = await user.getSubscriberIds()
 
@@ -387,7 +381,7 @@ exports.addModel = function(dbAdapter) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await models.Timeline.findByIds(timelineIds)
+    let timelines = await Timeline.findByIds(timelineIds)
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()
@@ -443,13 +437,13 @@ exports.addModel = function(dbAdapter) {
     let banIds = []
 
     if (this.currentUser) {
-      let user = await models.User.findById(this.currentUser)
+      let user = await User.findById(this.currentUser)
       if (user)
         banIds = await user.getBanIds()
     }
 
     let commentIds = await this.getCommentIds()
-    let comments = await models.Comment.findByIds(commentIds)
+    let comments = await Comment.findByIds(commentIds)
 
     this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
 
@@ -462,7 +456,7 @@ exports.addModel = function(dbAdapter) {
 
     var attachmentPromises = attachments.map(function(attachmentId, index) {
       return new Promise(function(resolve, reject) {
-        models.Attachment.findById(attachmentId)
+        Attachment.findById(attachmentId)
           .then(function(attachment) {
             // Replace attachment ids with attachment objects (on create-post)
             if (that.attachments) {
@@ -493,7 +487,7 @@ exports.addModel = function(dbAdapter) {
 
     var attachmentPromises = attachments.map(function(attachmentId, index) {
       return new Promise(function(resolve, reject) {
-        models.Attachment.findById(attachmentId)
+        Attachment.findById(attachmentId)
           .then(function(attachment) {
             // Update connections in DB
             return Promise.all([
@@ -527,7 +521,7 @@ exports.addModel = function(dbAdapter) {
       that.getAttachmentIds()
         .then(function(attachmentIds) {
           return Promise.map(attachmentIds, function(attachmentId) {
-            return models.Attachment.findById(attachmentId)
+            return Attachment.findById(attachmentId)
           })
         })
         .then(function(attachments) {
@@ -591,7 +585,7 @@ exports.addModel = function(dbAdapter) {
     let banIds = []
 
     if (this.currentUser) {
-      let user = await models.User.findById(this.currentUser)
+      let user = await User.findById(this.currentUser)
 
       if (user) {
         banIds = await user.getBanIds()
@@ -601,7 +595,7 @@ exports.addModel = function(dbAdapter) {
     let userIds = (await this.getLikeIds())
       .filter(userId => (banIds.indexOf(userId) === -1))
 
-    let users = await models.User.findByIds(userIds)
+    let users = await User.findByIds(userIds)
 
     // filter non-existant likers
     this.likes = users.filter(Boolean)
@@ -616,7 +610,7 @@ exports.addModel = function(dbAdapter) {
       if (timeline.isDirects())
         return true
 
-      let owner = await models.User.findById(timeline.userId)
+      let owner = await User.findById(timeline.userId)
 
       return (owner.isPrivate === '1')
     })
@@ -647,7 +641,7 @@ exports.addModel = function(dbAdapter) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await models.Timeline.findByIds(timelineIds)
+    let timelines = await Timeline.findByIds(timelineIds)
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()
@@ -667,7 +661,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Post.prototype.removeLike = async function(userId) {
-    let user = await models.User.findById(userId)
+    let user = await User.findById(userId)
     await user.validateCanUnLikePost(this)
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
@@ -683,19 +677,19 @@ exports.addModel = function(dbAdapter) {
     monitor.increment('posts.unlikes')
     monitor.increment('posts.unreactions')
 
-    let stats = await models.Stats.findById(userId)
+    let stats = await Stats.findById(userId)
     return stats.removeLike()
   }
 
   Post.prototype.getCreatedBy = function() {
-    return models.FeedFactory.findById(this.userId)
+    return FeedFactory.findById(this.userId)
   }
 
   Post.prototype.isBannedFor = function(userId) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      models.User.findById(userId)
+      User.findById(userId)
         .then(function(user) { return user.getBanIds() })
         .then(function(banIds) { return banIds.indexOf(that.userId) })
         .then(function(index) { resolve(index >= 0) })

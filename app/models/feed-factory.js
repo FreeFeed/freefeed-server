@@ -1,6 +1,3 @@
-"use strict";
-
-import Promise from "bluebird"
 import { inherits } from "util"
 
 import { AbstractModel, User, Group } from "../../app/models"
@@ -10,7 +7,7 @@ import { NotFoundException } from "../support/exceptions"
 let config = configLoader()
 
 
-exports.addModel = function(dbAdapter) {
+export function addModel(dbAdapter) {
   var FeedFactory = function() {
   }
 

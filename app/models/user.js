@@ -1,24 +1,25 @@
-"use strict";
+import { inherits } from "util"
+import _crypto from 'crypto'
 
-import config_file from '../../config/config'
+import _bcrypt from 'bcrypt'
+import { promisifyAll } from 'bluebird'
+import _gm from 'gm'
+import GraphemeBreaker from 'grapheme-breaker'
+import _ from 'lodash'
 import monitor from 'monitor-dog'
+import validator from 'validator'
+import uuid from 'uuid'
 
-var Promise = require('bluebird')
-  , crypto = Promise.promisifyAll(require('crypto'))
-  , uuid = require('uuid')
-  , config = config_file.load()
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , exceptions = require('../support/exceptions')
-  , ForbiddenException = exceptions.ForbiddenException
-  , AbstractModel = models.AbstractModel
-  , FeedFactory = models.FeedFactory
-  , Timeline = models.Timeline
-  , _ = require('lodash')
-  , validator = require('validator')
-  , bcrypt = Promise.promisifyAll(require('bcrypt'))
-  , gm = Promise.promisifyAll(require('gm'))
-  , GraphemeBreaker = require('grapheme-breaker')
+import { load as configLoader } from "../../config/config"
+import { BadRequestException, ForbiddenException } from '../support/exceptions'
+import { AbstractModel, Attachment, Comment, FeedFactory, Post, Stats, Timeline, User } from '../models'
+
+
+let bcrypt = promisifyAll(_bcrypt)
+let gm = promisifyAll(_gm)
+
+let config = configLoader()
+let crypto = promisifyAll(_crypto)
 
 exports.addModel = function(dbAdapter) {
   /**
@@ -131,7 +132,7 @@ exports.addModel = function(dbAdapter) {
       let timelineId = await this.getPostsTimelineId()
       attrs.timelineIds = [timelineId]
     }
-    return new models.Post(attrs)
+    return new Post(attrs)
   }
 
   User.prototype.updateResetPasswordToken = async function() {
@@ -202,7 +203,7 @@ exports.addModel = function(dbAdapter) {
         && this.username.length >= 3   // per the spec
         && this.username.length <= 25  // per the spec
         && this.username.match(/^[A-Za-z0-9]+$/)
-        && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
+        && FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return valid
   }
@@ -296,7 +297,7 @@ exports.addModel = function(dbAdapter) {
     }
     this.id = await dbAdapter.createUser(payload)
 
-    var stats = new models.Stats({
+    var stats = new Stats({
       id: this.id
     })
 
@@ -407,7 +408,7 @@ exports.addModel = function(dbAdapter) {
       }
 
       let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
-      let commenters = await models.User.findByIds(uniqueCommenterUids)
+      let commenters = await User.findByIds(uniqueCommenterUids)
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
@@ -528,7 +529,7 @@ exports.addModel = function(dbAdapter) {
     let myDiscussionsTimelineId = dbAdapter.getUserDiscussionsTimelineId(this.id)
     let timelineExists = await dbAdapter.existsTimeline(myDiscussionsTimelineId)
     if (!timelineExists){
-      let timeline = new models.Timeline({
+      let timeline = new Timeline({
         name: "MyDiscussions",
         userId: this.id
       })
@@ -539,7 +540,7 @@ exports.addModel = function(dbAdapter) {
 
     await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
-    return models.Timeline.findById(myDiscussionsTimelineId, params)
+    return Timeline.findById(myDiscussionsTimelineId, params)
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
@@ -549,12 +550,12 @@ exports.addModel = function(dbAdapter) {
 
     if (timelineIds[name]) {
       params = params || {}
-      timeline = await models.Timeline.findById(timelineIds[name], {
+      timeline = await Timeline.findById(timelineIds[name], {
         offset: params.offset,
         limit: params.limit
       })
     } else {
-      timeline = new models.Timeline({
+      timeline = new Timeline({
         name: name,
         userId: this.id
       })
@@ -568,7 +569,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.getGenericTimeline = async function(name, params) {
     let timelineId = await this[`get${name}TimelineId`](params)
 
-    let timeline = await models.Timeline.findById(timelineId, params)
+    let timeline = await Timeline.findById(timelineId, params)
     timeline.posts = await timeline.getPosts(timeline.offset, timeline.limit)
 
     return timeline
@@ -590,7 +591,7 @@ exports.addModel = function(dbAdapter) {
     let timelineId = await this.getRiverOfNewsTimelineId(params)
     let hidesTimelineId = await this.getHidesTimelineId(params)
 
-    let riverOfNewsTimeline = await models.Timeline.findById(timelineId, params)
+    let riverOfNewsTimeline = await Timeline.findById(timelineId, params)
     let banIds = await this.getBanIds()
     let posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
                                                    riverOfNewsTimeline.limit)
@@ -650,7 +651,7 @@ exports.addModel = function(dbAdapter) {
       this.getTimelineIds()
         .then(function(timelineIds) {
           return Promise.map(Object.keys(timelineIds), function(timelineId) {
-            return models.Timeline.findById(timelineIds[timelineId], params)
+            return Timeline.findById(timelineIds[timelineId], params)
           })
         })
         .then(function(timelines) {
@@ -677,7 +678,7 @@ exports.addModel = function(dbAdapter) {
    */
   User.prototype.getSubscriptions = async function() {
     var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await models.Timeline.findByIds(timelineIds)
+    this.subscriptions = await Timeline.findByIds(timelineIds)
 
     return this.subscriptions
   }
@@ -691,7 +692,7 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getFriends = async function() {
     var userIds = await this.getFriendIds()
-    return await models.User.findByIds(userIds)
+    return await User.findByIds(userIds)
   }
 
   User.prototype.getSubscriberIds = async function() {
@@ -704,7 +705,7 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getSubscribers = async function() {
     var subscriberIds = await this.getSubscriberIds()
-    this.subscribers = await models.User.findByIds(subscriberIds)
+    this.subscribers = await User.findByIds(subscriberIds)
 
     return this.subscribers
   }
@@ -720,7 +721,7 @@ exports.addModel = function(dbAdapter) {
       that.getBanIds()
         .then(function(userIds) {
           return Promise.map(userIds, function(userId) {
-            return models.findById(userId)
+            return User.findById(userId)
           })
         })
         .then(function(users) { resolve(users) })
@@ -728,7 +729,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.ban = async function(username) {
-    var user = await models.User.findByUsername(username)
+    var user = await User.findByUsername(username)
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
       dbAdapter.createUserBan(this.id, user.id),
@@ -743,15 +744,15 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.unban = async function(username) {
-    var user = await models.User.findByUsername(username)
+    var user = await User.findByUsername(username)
     monitor.increment('users.unbans')
     return dbAdapter.deleteUserBan(this.id, user.id)
   }
 
   // Subscribe to user-owner of a given `timelineId`
   User.prototype.subscribeTo = async function(timelineId) {
-    let timeline = await models.Timeline.findById(timelineId)
-    let user = await models.FeedFactory.findById(timeline.userId)
+    let timeline = await Timeline.findById(timelineId)
+    let user = await FeedFactory.findById(timeline.userId)
 
     if (user.username == this.username)
       throw new Error("Invalid")
@@ -766,8 +767,8 @@ exports.addModel = function(dbAdapter) {
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
 
-    promises.push((await models.Stats.findById(this.id)).addSubscription())
-    promises.push((await models.Stats.findById(user.id)).addSubscriber())
+    promises.push((await Stats.findById(this.id)).addSubscription())
+    promises.push((await Stats.findById(user.id)).addSubscriber())
 
     await Promise.all(promises)
 
@@ -778,15 +779,15 @@ exports.addModel = function(dbAdapter) {
 
   // Subscribe this user to `username`
   User.prototype.subscribeToUsername = async function(username) {
-    var user = await models.User.findByUsername(username)
+    var user = await User.findByUsername(username)
     var timelineId = await user.getPostsTimelineId()
     await this.validateCanSubscribe(timelineId)
     return this.subscribeTo(timelineId)
   }
 
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
-    var timeline = await models.Timeline.findById(timelineId)
-    var user = await models.FeedFactory.findById(timeline.userId)
+    var timeline = await Timeline.findById(timelineId)
+    var user = await FeedFactory.findById(timeline.userId)
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
@@ -818,8 +819,8 @@ exports.addModel = function(dbAdapter) {
       promises.push(timeline.unmerge(await this.getCommentsTimelineId()))
 
     // update counters for subscriber and her friend
-    promises.push((await models.Stats.findById(this.id)).removeSubscription())
-    promises.push((await models.Stats.findById(user.id)).removeSubscriber())
+    promises.push((await Stats.findById(this.id)).removeSubscription())
+    promises.push((await Stats.findById(user.id)).removeSubscriber())
 
     await Promise.all(promises)
 
@@ -829,19 +830,19 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getStatistics = function() {
-    return models.Stats.findById(this.id)
+    return Stats.findById(this.id)
   }
 
   User.prototype.newComment = function(attrs) {
     attrs.userId = this.id
     monitor.increment('users.comments')
-    return new models.Comment(attrs)
+    return new Comment(attrs)
   }
 
   User.prototype.newAttachment = async function(attrs) {
     attrs.userId = this.id
     monitor.increment('users.attachments')
-    return new models.Attachment(attrs)
+    return new Attachment(attrs)
   }
 
   User.prototype.updateProfilePicture = async function(file) {
@@ -852,7 +853,7 @@ exports.addModel = function(dbAdapter) {
     try {
       originalSize  = await image.sizeAsync()
     } catch (err) {
-      throw new exceptions.BadRequestException("Not an image file")
+      throw new BadRequestException("Not an image file")
     }
 
     this.profilePictureUuid = uuid.v4()
@@ -959,12 +960,12 @@ exports.addModel = function(dbAdapter) {
     if (_.includes(timelineIds, timelineId)) {
       throw new ForbiddenException("You are already subscribed to that user")
     }
-    var timeline = await models.Timeline.findById(timelineId)
+    var timeline = await Timeline.findById(timelineId)
     var banIds = await this.getBanIds()
     if (banIds.indexOf(timeline.userId) >= 0) {
       throw new ForbiddenException("You cannot subscribe to a banned user")
     }
-    var user = await models.User.findById(timeline.userId)
+    var user = await User.findById(timeline.userId)
     var theirBanIds = await user.getBanIds()
     if (theirBanIds.indexOf(this.id) >= 0) {
       throw new ForbiddenException("This user prevented your from subscribing to them")
@@ -1003,7 +1004,7 @@ exports.addModel = function(dbAdapter) {
     var that = this
 
     return new Promise(function(resolve, reject) {
-      models.Post.findById(postId)
+      Post.findById(postId)
         .then(function(post) {
           if (post)
             return post.validateCanShow(that.id)
@@ -1067,7 +1068,7 @@ exports.addModel = function(dbAdapter) {
 
     var timelineId = await this.getPostsTimelineId()
 
-    var user = await models.User.findById(userId)
+    var user = await User.findById(userId)
     return user.subscribeTo(timelineId)
   }
 
@@ -1087,7 +1088,7 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getPendingSubscriptionRequests = async function() {
     var pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
-    return await models.User.findByIds(pendingSubscriptionRequestIds)
+    return await User.findByIds(pendingSubscriptionRequestIds)
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
@@ -1096,12 +1097,12 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getSubscriptionRequests = async function() {
     var subscriptionRequestIds = await this.getSubscriptionRequestIds()
-    return await models.User.findByIds(subscriptionRequestIds)
+    return await User.findByIds(subscriptionRequestIds)
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
     var exists = await dbAdapter.isSubscriptionRequestPresent(this.id, userId)
-    var user = await models.User.findById(userId)
+    var user = await User.findById(userId)
     var banIds = await user.getBanIds()
 
     // user can send subscription request if and only if subscription

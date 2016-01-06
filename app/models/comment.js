@@ -1,15 +1,11 @@
-"use strict";
+import { inherits } from 'util'
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
-  , Post = models.Post
-  , User = models.User
-  , pubSub = models.PubSub
-  , _ = require('lodash')
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { AbstractModel, FeedFactory, Post, PubSub as pubSub, Stats, User } from '../models'
+
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    * @extends AbstractModel
@@ -76,7 +72,7 @@ exports.addModel = function(dbAdapter) {
     let post = await Post.findById(this.postId)
     let timelines = await post.addComment(this)
 
-    let stats = await models.Stats.findById(this.userId)
+    let stats = await Stats.findById(this.userId)
     await stats.addComment()
 
     return timelines
@@ -104,7 +100,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Comment.prototype.getPost = function() {
-    return models.Post.findById(this.postId)
+    return Post.findById(this.postId)
   }
 
   Comment.prototype.destroy = async function() {
@@ -129,13 +125,13 @@ exports.addModel = function(dbAdapter) {
       dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
     ])
 
-    let stats = await models.Stats.findById(this.userId)
+    let stats = await Stats.findById(this.userId)
     let res = await stats.removeComment()
     return res
   }
 
   Comment.prototype.getCreatedBy = function() {
-    return models.FeedFactory.findById(this.userId)
+    return FeedFactory.findById(this.userId)
   }
 
   return Comment
