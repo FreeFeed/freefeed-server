@@ -1,21 +1,12 @@
-"use strict";
+import formidable from 'formidable'
+import _ from 'lodash'
 
-var models = require('../../../models')
-  , Group = models.Group
-  , User = models.User
-  , GroupSerializer = models.GroupSerializer
-  , exceptions = require('../../../support/exceptions')
-  , formidable = require('formidable')
-  , _ = require('lodash')
+import { Group, GroupSerializer, User } from '../../../models'
+import exceptions  from '../../../support/exceptions'
 
-exports.addController = function(app) {
-  /**
-   * @constructor
-   */
-  var GroupsController = function() {
-  }
 
-  GroupsController.create = async function(req, res) {
+export default class GroupsController {
+  static async create(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found', status: 'fail'})
 
@@ -36,7 +27,7 @@ exports.addController = function(app) {
     }
   }
 
-  GroupsController.sudoCreate = async function(req, res) {
+  static async sudoCreate(req, res) {
     var params = {
       username: req.body.group.username,
       screenName: req.body.group.screenName,
@@ -79,25 +70,25 @@ exports.addController = function(app) {
     }
   }
 
-  GroupsController.update = async function(req, res) {
+  static async update(req, res) {
     var attrs = {
       screenName: req.body.user.screenName,
       isPrivate: req.body.user.isPrivate
     }
 
     try {
-      var group = await models.Group.getById(req.params.userId)
+      var group = await Group.getById(req.params.userId)
       await group.validateCanUpdate(req.user)
       group = await group.update(attrs)
 
-      var json = await new models.GroupSerializer(group).promiseToJSON()
+      var json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch(e) {
       exceptions.reportError(res)(e)
     }
   }
 
-  GroupsController.changeAdminStatus = async function(req, res, newStatus) {
+  static async changeAdminStatus(req, res, newStatus) {
     try {
       var group = await Group.findByUsername(req.params.groupName)
       await group.validateCanUpdate(req.user)
@@ -116,15 +107,15 @@ exports.addController = function(app) {
     }
   }
 
-  GroupsController.admin = function(req, res) {
+  static admin(req, res) {
     GroupsController.changeAdminStatus(req, res, true)
   }
 
-  GroupsController.unadmin = function(req, res) {
+  static unadmin(req, res) {
     GroupsController.changeAdminStatus(req, res, false)
   }
 
-  GroupsController.updateProfilePicture = async function(req, res) {
+  static async updateProfilePicture(req, res) {
     try {
       let group = await Group.findByUsername(req.params.groupName)
       await group.validateCanUpdate(req.user)
@@ -145,6 +136,4 @@ exports.addController = function(app) {
       exceptions.reportError(res)(e)
     }
   }
-
-  return GroupsController
 }

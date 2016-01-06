@@ -1,14 +1,9 @@
-"use strict";
+import { TimelineSerializer, User } from '../../../models'
+import exceptions from '../../../support/exceptions'
 
-var models = require('../../../models')
-  , TimelineSerializer = models.TimelineSerializer
-  , exceptions = require('../../../support/exceptions')
 
-exports.addController = function(app) {
-  var TimelineController = function() {
-  }
-
-  TimelineController.home = async function(req, res) {
+export default class TimelineController {
+  static async home(req, res) {
     if (!req.user) {
       res.status(401).jsonp({ err: 'Not found', status: 'fail'})
       return
@@ -28,9 +23,9 @@ exports.addController = function(app) {
     } catch (e) {
       exceptions.reportError(res)(e)
     }
-  }
+  };
 
-  TimelineController.directs = function(req, res) {
+  static async directs(req, res) {
     var user = req.user
 
     user.getDirectsTimeline({
@@ -44,13 +39,13 @@ exports.addController = function(app) {
         })
       })
       .catch(function(e) { exceptions.reportError(res)(e) })
-  }
+  };
 
-  TimelineController.posts = async function(req, res) {
+  static async posts(req, res) {
     try {
       var username = req.params.username
 
-      var user = await models.User.findByUsername(username)
+      var user = await User.findByUsername(username)
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getPostsTimeline({
         offset: req.query.offset,
@@ -63,13 +58,13 @@ exports.addController = function(app) {
     } catch(e) {
       exceptions.reportError(res)(e)
     }
-  }
+  };
 
-  TimelineController.likes = async function(req, res) {
+  static async likes(req, res) {
     try {
       var username = req.params.username
 
-      var user = await models.User.findByUsername(username)
+      var user = await User.findByUsername(username)
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getLikesTimeline({
         offset: req.query.offset,
@@ -83,13 +78,13 @@ exports.addController = function(app) {
     } catch(e) {
       exceptions.reportError(res)(e)
     }
-  }
+  };
 
-  TimelineController.comments = async function(req, res) {
+  static async comments(req, res) {
     try {
       var username = req.params.username
 
-      var user = await models.User.findByUsername(username)
+      var user = await User.findByUsername(username)
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getCommentsTimeline({
         offset: req.query.offset,
@@ -103,9 +98,9 @@ exports.addController = function(app) {
     } catch(e) {
       exceptions.reportError(res)(e)
     }
-  }
+  };
 
-  TimelineController.myDiscussions = async function(req, res) {
+  static async myDiscussions (req, res) {
     if (!req.user) {
       res.status(401).jsonp({ err: 'Not found', status: 'fail'})
       return
@@ -125,7 +120,5 @@ exports.addController = function(app) {
     } catch (e) {
       exceptions.reportError(res)(e)
     }
-  }
-
-  return TimelineController
+  };
 }

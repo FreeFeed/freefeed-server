@@ -1,22 +1,11 @@
-"use strict";
+import _ from 'lodash'
 
-var Promise = require('bluebird')
-  , models = require('../../../models')
-  , exceptions = require('../../../support/exceptions')
-  , PostSerializer = models.PostSerializer
-  , FeedFactory = models.FeedFactory
-  , pubSub = models.PubSub
-  , ForbiddenException = exceptions.ForbiddenException
-  , _ = require('lodash')
+import { FeedFactory, Post, PostSerializer, PubSub as pubSub, Stats, User } from '../../../models'
+import exceptions, { ForbiddenException } from '../../../support/exceptions'
 
-exports.addController = function(app) {
-  /**
-   * @constructor
-   */
-  var PostsController = function() {
-  }
 
-  PostsController.create = async function(req, res) {
+export default class PostsController {
+  static async create(req, res) {
     if (!req.user) {
       res.status(401).jsonp({ err: 'Not found' })
       return
@@ -72,11 +61,11 @@ exports.addController = function(app) {
     }
   }
 
-  PostsController.update = function(req, res) {
+  static update(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    models.Post.findById(req.params.postId)
+    Post.findById(req.params.postId)
       .then(function(post) {
         if (post.userId != req.user.id) {
           return Promise.reject(new ForbiddenException(
@@ -95,10 +84,10 @@ exports.addController = function(app) {
       .catch(exceptions.reportError(res))
   }
 
-  PostsController.show = async function(req, res) {
+  static async show(req, res) {
     try {
       var userId = req.user ? req.user.id : null
-      var post = await models.Post.getById(req.params.postId, {
+      var post = await Post.getById(req.params.postId, {
         maxComments: req.query.maxComments,
         maxLikes: req.query.maxLikes,
         currentUser: userId
@@ -111,13 +100,13 @@ exports.addController = function(app) {
         throw new ForbiddenException("Not found")
 
       if (post.currentUser) {
-        let author = await models.User.findById(post.userId)
+        let author = await User.findById(post.userId)
         let banIds = await author.getBanIds()
 
         if (banIds.indexOf(post.currentUser) >= 0)
           throw new ForbiddenException("This user has prevented you from seeing their posts")
 
-        let you = await models.User.findById(post.currentUser)
+        let you = await User.findById(post.currentUser)
 
         if (you) {
           let yourBanIds = await you.getBanIds()
@@ -135,17 +124,17 @@ exports.addController = function(app) {
     }
   }
 
-  PostsController.like = async function(req, res) {
+  static async like(req, res) {
     if (!req.user) {
       res.status(401).jsonp({ err: 'Not found' })
       return
     }
 
     try {
-      let post = await models.Post.getById(req.params.postId)
+      let post = await Post.getById(req.params.postId)
       let affectedTimelines = await post.addLike(req.user)
 
-      let stats = await models.Stats.findById(req.user.id)
+      let stats = await Stats.findById(req.user.id)
       await stats.addLike()
 
       res.status(200).send({})
@@ -156,12 +145,12 @@ exports.addController = function(app) {
     }
   }
 
-  PostsController.unlike = async function(req, res) {
+  static async unlike(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      let post = await models.Post.getById(req.params.postId)
+      let post = await Post.getById(req.params.postId)
       await post.removeLike(req.user.id)
       res.status(200).send({})
     } catch(e) {
@@ -169,11 +158,11 @@ exports.addController = function(app) {
     }
   }
 
-  PostsController.destroy = function(req, res) {
+  static async destroy(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    models.Post.getById(req.params.postId)
+    Post.getById(req.params.postId)
       .then(function(post) {
           if (post.userId != req.user.id) {
             return Promise.reject(new ForbiddenException(
@@ -185,25 +174,23 @@ exports.addController = function(app) {
       .catch(exceptions.reportError(res))
   }
 
-  PostsController.hide = function(req, res) {
+  static async hide(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    models.Post.getById(req.params.postId)
+    Post.getById(req.params.postId)
       .then(function(post) { return post.hide(req.user.id) })
       .then(function() { res.jsonp({} )})
       .catch(exceptions.reportError(res))
   }
 
-  PostsController.unhide = function(req, res) {
+  static async unhide(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    models.Post.getById(req.params.postId)
+    Post.getById(req.params.postId)
       .then(function(post) { return post.unhide(req.user.id) })
       .then(function() { res.jsonp({} )})
       .catch(exceptions.reportError(res))
   }
-
-  return PostsController
 }

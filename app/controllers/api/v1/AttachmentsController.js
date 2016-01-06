@@ -1,15 +1,11 @@
-"use strict";
-
 import formidable from 'formidable'
 
 import { AttachmentSerializer } from '../../../models'
 import exceptions from '../../../support/exceptions'
 
-exports.addController = function(app) {
-  var AttachmentsController = function() {
-  }
 
-  AttachmentsController.create = function(req, res) {
+export default class AttachmentsController {
+  static create(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
@@ -39,6 +35,4 @@ exports.addController = function(app) {
 
     form.parse(req)
   }
-
-  return AttachmentsController
 }
