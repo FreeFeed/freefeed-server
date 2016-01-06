@@ -1,4 +1,2 @@
-"use strict";
-
-exports.UserMailer = require('./mailers/UserMailer').addMailer()
+export { default as UserMailer } from './mailers/UserMailer'
 
