@@ -164,6 +164,12 @@ export default class PubsubListener {
 
   async onCommentNew(sockets, data) {
     let comment = await models.Comment.findById(data.commentId)
+
+    if (!comment) {
+      // might be outdated event
+      return
+    }
+
     let post = await models.Post.findById(comment.postId)
     let json = await new models.PubsubCommentSerializer(comment).promiseToJSON()
 
