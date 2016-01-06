@@ -1,8 +1,17 @@
+require("babel/register")({
+  stage: 1
+});
+
 global.Promise = require('bluebird')
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
-require("babel/register")({
-  stage: 1
+global.Promise.config({
+  // Enable warnings.
+  warnings: false,
+  // Enable long stack traces.
+  longStackTraces: true,
+  // Enable cancellation.
+  cancellation: true
 });
 
 GLOBAL.$redis = require('../config/database')

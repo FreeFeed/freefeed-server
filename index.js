@@ -1,11 +1,11 @@
 "use strict";
 
-global.Promise = require('bluebird')
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
-
 require("babel/register")({
   stage: 1
 })
+
+global.Promise = require('bluebird')
+global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
 require("console-stamp")(console, 'yyyy/mm/dd HH:MM:ss.l')
 
