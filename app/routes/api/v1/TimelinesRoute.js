@@ -1,8 +1,7 @@
-"use strict";
+import { TimelinesController } from '../../../controllers'
 
-var TimelinesController = require('../../../controllers').TimelinesController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.get('/v1/timelines/home',               TimelinesController.home)
   app.get('/v1/timelines/filter/discussions', TimelinesController.myDiscussions)
   app.get('/v1/timelines/filter/directs',     TimelinesController.directs)

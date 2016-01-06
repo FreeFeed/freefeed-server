@@ -1,9 +1,7 @@
-"use strict";
+import { FeedFactoriesController, UsersController } from '../../../controllers'
 
-var UsersController = require('../../../controllers').UsersController
-  , FeedFactoriesController = require('../../../controllers').FeedFactoriesController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.post('/v1/users',                          UsersController.create)
   app.post('/v1/users/sudo',                     UsersController.sudoCreate)
   app.post('/v1/users/acceptRequest/:username',  UsersController.acceptRequest)

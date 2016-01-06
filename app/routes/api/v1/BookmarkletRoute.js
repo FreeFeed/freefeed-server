@@ -1,7 +1,6 @@
-"use strict";
+import { BookmarkletController } from '../../../controllers'
 
-var BookmarkletController = require('../../../controllers').BookmarkletController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.post('/v1/bookmarklet', BookmarkletController.create)
 }

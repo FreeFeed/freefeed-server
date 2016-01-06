@@ -1,8 +1,7 @@
-"use strict";
+import { PasswordsController } from '../../../controllers'
 
-var PasswordsController = require('../../../controllers').PasswordsController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.post('/v1/passwords',                     PasswordsController.create)
   app.put( '/v1/passwords/:resetPasswordToken', PasswordsController.update)
 }

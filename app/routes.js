@@ -49,16 +49,16 @@ export default function(app) {
   app.options('/*', (req, res) => {
     res.status(200).send({})
   })
-  SessionRoute.addRoutes(app)
-  PasswordsRoute.addRoutes(app)
+  SessionRoute(app)
+  PasswordsRoute(app)
 
   // [at least optionally] authenticated routes
   app.all('/*', findUser)
-  BookmarkletRoute.addRoutes(app)
-  UsersRoute.addRoutes(app)
-  GroupsRoute.addRoutes(app)
-  TimelinesRoute.addRoutes(app)
-  PostsRoute.addRoutes(app)
-  AttachmentsRoute.addRoutes(app)
-  CommentsRoute.addRoutes(app)
+  BookmarkletRoute(app)
+  UsersRoute(app)
+  GroupsRoute(app)
+  TimelinesRoute(app)
+  PostsRoute(app)
+  AttachmentsRoute(app)
+  CommentsRoute(app)
 }

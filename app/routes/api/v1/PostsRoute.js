@@ -1,8 +1,7 @@
-"use strict";
+import { PostsController } from '../../../controllers'
 
-var PostsController = require('../../../controllers').PostsController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.post(  '/v1/posts',                PostsController.create)
   app.get(   '/v1/posts/:postId',        PostsController.show)
   app.put(   '/v1/posts/:postId',        PostsController.update)

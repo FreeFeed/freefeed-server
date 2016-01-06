@@ -1,7 +1,6 @@
-"use strict";
+import { SessionController } from '../../../controllers'
 
-var SessionController = require('../../../controllers').SessionController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.post('/v1/session', SessionController.create)
 }
