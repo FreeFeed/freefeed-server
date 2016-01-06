@@ -1,8 +1,7 @@
-var models = require('../../models')
-  , Serializer = models.Serializer
-  , UserSerializer = models.UserSerializer
+import { Serializer, UserSerializer } from '../../models'
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer('attachments', {
     select: ['id', 'fileName', 'fileSize', 'url', 'thumbnailUrl',
              'mediaType', 'createdAt', 'updatedAt', 'createdBy', 'artist', 'title'],

@@ -1,6 +1,7 @@
-var Serializer = require("../../models").Serializer
+import { Serializer } from '../../models'
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer('users', {
     select: ['id', 'username', 'screenName']
   })
