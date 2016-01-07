@@ -1053,7 +1053,7 @@ exports.addModel = function(dbAdapter) {
 
     var currentTime = new Date().getTime()
     return await Promise.all([
-      dbAdapter.createUserSubscriptionRequest(this.id, currentTime,userId),
+      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, userId),
       dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, userId)
     ])
   }
