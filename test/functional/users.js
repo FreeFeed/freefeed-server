@@ -5,10 +5,10 @@ import request from 'superagent'
 
 import app from '../../index'
 import { load as configLoader } from '../../config/config'
+import * as funcTestHelper from './functional_test_helper'
 
 
 const config = configLoader()
-const funcTestHelper = require('./functional_test_helper')
 
 describe("UsersController", function() {
   beforeEach(funcTestHelper.flushDb())

@@ -3,9 +3,8 @@ import fetch from 'node-fetch'
 
 import app from '../../index'
 import { User } from '../../app/models'
+import * as funcTestHelper from './functional_test_helper'
 
-
-const funcTestHelper = require('./functional_test_helper')
 
 describe("SessionController", () => {
   beforeEach(funcTestHelper.flushDb())

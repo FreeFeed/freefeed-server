@@ -3,9 +3,9 @@ import mkdirp from 'mkdirp'
 
 import app from '../../index'
 import { load as configLoader } from '../../config/config'
+import * as funcTestHelper from './functional_test_helper'
 
 
-const funcTestHelper = require('./functional_test_helper')
 const config = configLoader()
 
 describe("GroupsController", function() {

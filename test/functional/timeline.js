@@ -1,9 +1,8 @@
 import request from 'superagent'
 
 import app from '../../index'
+import * as funcTestHelper from './functional_test_helper'
 
-
-const funcTestHelper = require('./functional_test_helper')
 
 describe("TimelinesController", function() {
   beforeEach(funcTestHelper.flushDb())

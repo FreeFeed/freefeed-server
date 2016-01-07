@@ -7,13 +7,13 @@ import app  from '../../index'
 
 let apiUrl = relativeUrl => `${app.config.host}${relativeUrl}`
 
-exports.flushDb = () => {
-  return async () => {
-    await $database.flushdbAsync()
+export function flushDb() {
+  return () => {
+    $database.flushdbAsync()
   }
 }
 
-exports.createUser = function(username, password, attributes, callback) {
+export function createUser(username, password, attributes, callback) {
   return function(done) {
     if (typeof attributes === 'function') {
       callback = attributes
@@ -44,7 +44,7 @@ exports.createUser = function(username, password, attributes, callback) {
   }
 }
 
-exports.createUserCtx = function(context, username, password, attrs) {
+export function createUserCtx(context, username, password, attrs) {
   return exports.createUser(username, password, attrs, function(token, user) {
     context.user      = user
     context.authToken = token
@@ -54,7 +54,7 @@ exports.createUserCtx = function(context, username, password, attrs) {
   })
 }
 
-exports.subscribeToCtx = function(context, username) {
+export function subscribeToCtx(context, username) {
   return function(done) {
     request
       .post(apiUrl(`/v1/users/${username}/subscribe`))
@@ -65,7 +65,7 @@ exports.subscribeToCtx = function(context, username) {
   }
 }
 
-exports.updateUserCtx = function(context, attrs) {
+export function updateUserCtx(context, attrs) {
   return function(done) {
     request
       .post(app.config.host + '/v1/users/' + context.user.id)
@@ -78,7 +78,7 @@ exports.updateUserCtx = function(context, attrs) {
   }
 }
 
-exports.resetPassword = function(token) {
+export function resetPassword(token) {
   return function(done) {
     request
       .post(app.config.host + '/v1/passwords/token')
@@ -89,7 +89,7 @@ exports.resetPassword = function(token) {
   }
 }
 
-exports.createPost = function(context, body, callback) {
+export function createPost(context, body, callback) {
   return function(done) {
     request
       .post(app.config.host + '/v1/posts')
@@ -104,7 +104,7 @@ exports.createPost = function(context, body, callback) {
   }
 }
 
-exports.createPostForTest = function(context, body, callback) {
+export function createPostForTest(context, body, callback) {
   request
     .post(app.config.host + '/v1/posts')
     .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
@@ -114,7 +114,7 @@ exports.createPostForTest = function(context, body, callback) {
     })
 }
 
-exports.createComment = function(body, postId, authToken, callback) {
+export function createComment(body, postId, authToken, callback) {
   return function(done) {
     var comment = {
       body: body,
@@ -130,7 +130,7 @@ exports.createComment = function(body, postId, authToken, callback) {
   }(callback)
 }
 
-exports.createCommentCtx = function(context, body) {
+export function createCommentCtx(context, body) {
   return function(done) {
     var comment = {
       body: body,
@@ -147,7 +147,7 @@ exports.createCommentCtx = function(context, body) {
   }
 }
 
-exports.removeComment = function(commentId, authToken, callback) {
+export function removeComment(commentId, authToken, callback) {
   return function(done) {
 
     request
@@ -162,7 +162,7 @@ exports.removeComment = function(commentId, authToken, callback) {
   }(callback)
 }
 
-exports.getTimeline = function(timelinePath, authToken, callback) {
+export function getTimeline(timelinePath, authToken, callback) {
   return function(done) {
     var sendParams = {};
     if (authToken) {
@@ -178,7 +178,7 @@ exports.getTimeline = function(timelinePath, authToken, callback) {
   }(callback)
 }
 
-exports.getTimelinePaged = function(timelinePath, authToken, offset, limit, callback) {
+export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
   return function(done) {
     var sendParams = {};
     if (!_.isUndefined(authToken)) {
@@ -200,7 +200,7 @@ exports.getTimelinePaged = function(timelinePath, authToken, offset, limit, call
   }(callback)
 }
 
-exports.getSubscribers = function(username, authToken, callback) {
+export function getSubscribers(username, authToken, callback) {
   return function(done) {
     let sendParams = {};
     if (authToken) {
@@ -219,7 +219,7 @@ exports.getSubscribers = function(username, authToken, callback) {
   }(callback)
 }
 
-exports.getSubscriptions = function(username, authToken, callback) {
+export function getSubscriptions(username, authToken, callback) {
   return function(done) {
     let sendParams = {};
     if (authToken) {
@@ -251,7 +251,7 @@ function postJson(relativeUrl, data) {
   )
 }
 
-exports.createUserAsync = async (username, password, attributes) => {
+export async function createUserAsync(username, password, attributes) {
   if (typeof attributes === 'undefined'){
     attributes = {}
   }
@@ -280,11 +280,11 @@ exports.createUserAsync = async (username, password, attributes) => {
   }
 }
 
-exports.like = (postId, authToken) => {
+export function like(postId, authToken) {
   return postJson(`/v1/posts/${postId}/like`, { authToken })
 }
 
-exports.updateUserAsync = (userContext, user) => {
+export function updateUserAsync(userContext, user) {
   return postJson(
     `/v1/users/${userContext.user.id}`,
     {
@@ -295,19 +295,19 @@ exports.updateUserAsync = (userContext, user) => {
   )
 }
 
-exports.goPrivate = (userContext) => {
-  return exports.updateUserAsync(userContext, { isPrivate: "1" });
+export function goPrivate(userContext) {
+  return updateUserAsync(userContext, { isPrivate: "1" });
 }
 
-exports.goPublic = (userContext) => {
-  return exports.updateUserAsync(userContext, { isPrivate: "0" });
+export function goPublic(userContext) {
+  return updateUserAsync(userContext, { isPrivate: "0" });
 }
 
-exports.subscribeToAsync = (subscriber, victim) => {
+export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, {authToken: subscriber.authToken})
 }
 
-exports.mutualSubscriptions = async (userContexts) => {
+export async function mutualSubscriptions(userContexts) {
   let promises = []
 
   for (let ctx1 of userContexts) {
@@ -323,7 +323,7 @@ exports.mutualSubscriptions = async (userContexts) => {
   await Promise.all(promises)
 }
 
-exports.createAndReturnPost = async (userContext, body) => {
+export async function createAndReturnPost(userContext, body) {
   let response = await postJson(
     '/v1/posts',
     {
@@ -338,11 +338,11 @@ exports.createAndReturnPost = async (userContext, body) => {
   return data.posts
 }
 
-exports.createCommentAsync = (userContext, postId, body) => {
+export function createCommentAsync (userContext, postId, body) {
   return postJson('/v1/comments', {comment: {body, postId}, authToken: userContext.authToken})
 }
 
-let getTimeline = async (relativeUrl, userContext) => {
+const getTimelineAsync = async (relativeUrl, userContext) => {
   let url = apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
@@ -356,19 +356,19 @@ let getTimeline = async (relativeUrl, userContext) => {
   return data
 }
 
-exports.getRiverOfNews = (userContext) => {
-  return getTimeline('/v1/timelines/home', userContext)
+export function getRiverOfNews(userContext) {
+  return getTimelineAsync('/v1/timelines/home', userContext)
 }
 
-exports.getMyDiscussions = (userContext) => {
-  return getTimeline('/v1/timelines/filter/discussions', userContext)
+export function getMyDiscussions(userContext) {
+  return getTimelineAsync('/v1/timelines/filter/discussions', userContext)
 }
 
-exports.sendResetPassword = (email) => {
+export function sendResetPassword(email) {
   return postJson('/v1/passwords', { email })
 }
 
-exports.readPostAsync = (postId, userContext) => {
+export function readPostAsync(postId, userContext) {
   let relativeUrl = `/v1/posts/${postId}?maxComments=all`
   let url = apiUrl(relativeUrl)
 

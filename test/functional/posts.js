@@ -3,9 +3,8 @@ import _ from 'lodash'
 import fetch from 'node-fetch'
 
 import app from '../../index'
+import * as funcTestHelper from './functional_test_helper'
 
-
-const funcTestHelper = require('./functional_test_helper')
 
 describe("PostsController", function() {
   beforeEach(funcTestHelper.flushDb())

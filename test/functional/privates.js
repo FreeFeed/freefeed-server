@@ -2,9 +2,8 @@ import request from 'superagent'
 import _ from 'lodash'
 
 import app from '../../index'
+import * as funcTestHelper from './functional_test_helper'
 
-
-const funcTestHelper = require('./functional_test_helper')
 
 describe("Privates", function() {
   beforeEach(funcTestHelper.flushDb())
