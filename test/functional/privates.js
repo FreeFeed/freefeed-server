@@ -1,10 +1,7 @@
-import fetch from 'node-fetch'
 import request from 'superagent'
 import _ from 'lodash'
 
 import app from '../../index'
-import models from '../../app/models'
-
 import funcTestHelper from './functional_test_helper'
 
 

@@ -1,21 +1,25 @@
-"use strict";
+import fs from 'fs'
 
-var Promise = require('bluebird')
-  , redis = require('./database')
-  , database = redis.connect()
-  , config = require('./config').load()
-  , passport = require('passport')
-  , bodyParser = require('body-parser')
-  , auth = require('./initializers/passport').init(passport)
-  , env = process.env.NODE_ENV || 'development'
-  , morgan = require('morgan')
-  , fs = require('fs')
-  , winston = require('winston')
-  , origin = require('./initializers/origin')
-  , methodOverride = require('method-override')
+import bodyParser from 'body-parser'
+import methodOverride from 'method-override'
+import morgan from 'morgan'
+import passport from 'passport'
+import winston from 'winston'
 
-var selectEnvironment = async function(app) {
-  var logger = new (winston.Logger)({
+import { init as originInit } from './initializers/origin'
+import { load as configLoader } from "./config"
+import { connect as redisConnection, selectDatabase } from './database'
+import { init as passportInit } from './initializers/passport'
+
+
+const database = redisConnection()
+const config = configLoader()
+const auth = passportInit(passport)
+const env = process.env.NODE_ENV || 'development'
+
+async function selectEnvironment(app) {
+  app.config = config
+  app.logger = new (winston.Logger)({
     transports: [
       new (winston.transports.Console)({
         'timestamp': true,
@@ -24,13 +28,11 @@ var selectEnvironment = async function(app) {
       })
     ]
   })
-  app.logger = logger
-  app.config = config
 
   app.set('redisdb', config.database)
   app.set('port', process.env.PORT || config.port)
 
-  await redis.selectDatabase()
+  await selectDatabase()
 
   return app
 }
@@ -39,7 +41,7 @@ exports.init = async function(app) {
   app.use(bodyParser.json({limit: config.attachments.fileSizeLimit}))
   app.use(bodyParser.urlencoded({limit: config.attachments.fileSizeLimit, extended: true}))
   app.use(passport.initialize())
-  app.use(origin.init)
+  app.use(originInit)
   app.use(methodOverride(function(req, res) {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
       // look in urlencoded POST bodies and delete it

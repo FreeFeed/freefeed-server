@@ -2,7 +2,8 @@ import {Strategy as LocalStrategy} from 'passport-local'
 
 import {User} from '../../app/models'
 
-exports.init = function(passport) {
+
+export function init(passport) {
   passport.use(new LocalStrategy({
     usernameField: 'username',
     passwordField: 'password'

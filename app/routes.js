@@ -1,8 +1,8 @@
-import Promise from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import jwt from 'jsonwebtoken'
 import express from 'express'
 
-import config_loader from '../config/config'
+import { load as configLoader } from '../config/config'
 import {User} from './models'
 
 import SessionRoute from './routes/api/v1/SessionRoute'
@@ -16,9 +16,8 @@ import GroupsRoute from './routes/api/v1/GroupsRoute'
 import PasswordsRoute from './routes/api/v1/PasswordsRoute'
 
 
-let config = config_loader.load()
-Promise.promisifyAll(jwt)
-
+const config = configLoader()
+promisifyAll(jwt)
 
 var findUser = async (req, res, next) => {
   var authToken = req.headers['x-authentication-token']
