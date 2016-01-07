@@ -1,7 +1,9 @@
-var request = require('superagent')
-  , app = require('../../index')
-  , models = require('../../app/models')
-  , funcTestHelper = require('./functional_test_helper')
+import request from 'superagent'
+
+import app from '../../index'
+
+
+const funcTestHelper = require('./functional_test_helper')
 
 describe("CommentsController", function() {
   beforeEach(funcTestHelper.flushDb())

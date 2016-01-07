@@ -1,7 +1,7 @@
-var request = require('superagent')
-    , app = require('../../index')
-    , models = require('../../app/models')
-    , funcTestHelper = require('./functional_test_helper')
+import request from 'superagent'
+
+
+const funcTestHelper = require('./functional_test_helper')
 
 describe("PasswordsController", function() {
   beforeEach(funcTestHelper.flushDb())

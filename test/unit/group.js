@@ -1,5 +1,5 @@
-var models = require("../../app/models")
-  , Group = models.Group
+import { Group } from '../../app/models'
+
 
 describe('Group', function() {
   beforeEach(function(done) {

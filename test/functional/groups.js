@@ -1,9 +1,12 @@
-var request = require('superagent')
-  , app = require('../../index')
-  , models = require('../../app/models')
-  , funcTestHelper = require('./functional_test_helper')
-  , mkdirp = require('mkdirp')
-  , config = require('../../config/config').load()
+import request from 'superagent'
+import mkdirp from 'mkdirp'
+
+import app from '../../index'
+import { load as configLoader } from '../../config/config'
+
+
+const funcTestHelper = require('./functional_test_helper')
+const config = configLoader()
 
 describe("GroupsController", function() {
   beforeEach(funcTestHelper.flushDb())

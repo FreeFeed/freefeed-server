@@ -1,11 +1,14 @@
-var request = require('superagent')
-  , app = require('../../index')
-  , models = require('../../app/models')
-  , async = require('async')
-  , funcTestHelper = require('./functional_test_helper')
-  , mkdirp = require('mkdirp')
-  , config = require('../../config/config').load()
-  , _ = require('lodash')
+import async from 'async'
+import _ from 'lodash'
+import mkdirp from 'mkdirp'
+import request from 'superagent'
+
+import app from '../../index'
+import { load as configLoader } from '../../config/config'
+
+
+const config = configLoader()
+const funcTestHelper = require('./functional_test_helper')
 
 describe("UsersController", function() {
   beforeEach(funcTestHelper.flushDb())
