@@ -9,7 +9,7 @@ import mmm from 'mmmagic'
 import _ from 'lodash'
 
 import { load as configLoader } from "../../config/config"
-import { AbstractModel, FeedFactory, Post } from '../models'
+import { AbstractModel, FeedFactory } from '../models'
 
 
 let config = configLoader()

@@ -2,7 +2,7 @@ import { inherits } from "util"
 
 import _ from 'lodash'
 
-import { AbstractModel, FeedFactory, Stats, User } from '../models'
+import { FeedFactory, Stats, User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 

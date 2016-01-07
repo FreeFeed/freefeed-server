@@ -313,8 +313,6 @@ export function addModel(dbAdapter) {
   Post.prototype.addComment = async function(comment) {
     let user = await User.findById(comment.userId)
 
-    let subscriberIds = await user.getSubscriberIds()
-
     let timelineIds = await this.getPostedToIds()
 
     // only subscribers are allowed to read direct posts

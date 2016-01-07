@@ -8,14 +8,14 @@ import winston from 'winston'
 
 import { init as originInit } from './initializers/origin'
 import { load as configLoader } from "./config"
-import { connect as redisConnection, selectDatabase } from './database'
+import { selectDatabase } from './database'
 import { init as passportInit } from './initializers/passport'
 
 
-const database = redisConnection()
 const config = configLoader()
-const auth = passportInit(passport)
 const env = process.env.NODE_ENV || 'development'
+
+passportInit(passport)
 
 async function selectEnvironment(app) {
   app.config = config
@@ -42,7 +42,7 @@ exports.init = async function(app) {
   app.use(bodyParser.urlencoded({limit: config.attachments.fileSizeLimit, extended: true}))
   app.use(passport.initialize())
   app.use(originInit)
-  app.use(methodOverride(function(req, res) {
+  app.use(methodOverride(function(req) {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
       // look in urlencoded POST bodies and delete it
       var method = req.body._method

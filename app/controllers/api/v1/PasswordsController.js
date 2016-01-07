@@ -14,7 +14,7 @@ export default class PasswordsController {
 
     try {
       const user = await User.findByEmail(email)
-      const token = await user.updateResetPasswordToken()
+      await user.updateResetPasswordToken()
 
       await UserMailer.resetPassword(user, { user })
 

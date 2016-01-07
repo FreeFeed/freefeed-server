@@ -1,0 +1,18 @@
+{
+  "extends": "eslint:recommended",
+  "parser": "babel-eslint",
+  "plugins": [
+  ],
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "ecmaFeatures": {
+    "blockBindings": true,
+    "forOf": true,
+    "modules": true
+  },
+  "rules": {
+    "strict": 0
+  }
+}
