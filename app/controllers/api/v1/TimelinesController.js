@@ -5,7 +5,7 @@ import exceptions from '../../../support/exceptions'
 export default class TimelineController {
   static async home(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found', status: 'fail'})
+      res.status(401).jsonp({ err: 'Not found', status: 'fail' })
       return
     }
 
@@ -23,23 +23,23 @@ export default class TimelineController {
     } catch (e) {
       exceptions.reportError(res)(e)
     }
-  };
+  }
 
   static async directs(req, res) {
-    var user = req.user
-
-    user.getDirectsTimeline({
-      offset: req.query.offset,
-      limit: req.query.limit,
-      currentUser: req.user ? req.user.id : null
-    })
-      .then(function(timeline) {
-        new TimelineSerializer(timeline).toJSON(function(err, json) {
-          res.jsonp(json)
-        })
+    try {
+      const user = req.user
+      const timeline = await user.getDirectsTimeline({
+        offset: req.query.offset,
+        limit: req.query.limit,
+        currentUser: user ? user.id : null
       })
-      .catch(function(e) { exceptions.reportError(res)(e) })
-  };
+
+      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      res.jsonp(json)
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
+  }
 
   static async posts(req, res) {
     try {
@@ -53,12 +53,12 @@ export default class TimelineController {
         currentUser: currentUser
       })
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON();
-      res.jsonp(json);
+      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      res.jsonp(json)
     } catch(e) {
       exceptions.reportError(res)(e)
     }
-  };
+  }
 
   static async likes(req, res) {
     try {
@@ -72,13 +72,12 @@ export default class TimelineController {
         currentUser: currentUser
       })
 
-      new TimelineSerializer(timeline).toJSON(function(err, json) {
-        res.jsonp(json)
-      })
+      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      res.jsonp(json)
     } catch(e) {
       exceptions.reportError(res)(e)
     }
-  };
+  }
 
   static async comments(req, res) {
     try {
@@ -92,13 +91,12 @@ export default class TimelineController {
         currentUser: currentUser
       })
 
-      new TimelineSerializer(timeline).toJSON(function(err, json) {
-        res.jsonp(json)
-      })
+      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      res.jsonp(json)
     } catch(e) {
       exceptions.reportError(res)(e)
     }
-  };
+  }
 
   static async myDiscussions (req, res) {
     if (!req.user) {
@@ -120,5 +118,5 @@ export default class TimelineController {
     } catch (e) {
       exceptions.reportError(res)(e)
     }
-  };
+  }
 }

@@ -61,27 +61,27 @@ export default class PostsController {
     }
   }
 
-  static update(req, res) {
+  static async update(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    Post.findById(req.params.postId)
-      .then(function(post) {
-        if (post.userId != req.user.id) {
-          return Promise.reject(new ForbiddenException(
-              "You can't update another user's post"))
-        }
-        return post.update({
-          body: req.body.post.body,
-          attachments: req.body.post.attachments
-        })
+    try {
+      const post = await Post.findById(req.params.postId)
+
+      if (post.userId != req.user.id) {
+        throw new ForbiddenException("You can't update another user's post")
+      }
+
+      await post.update({
+        body: req.body.post.body,
+        attachments: req.body.post.attachments
       })
-      .then(function(post) {
-        new PostSerializer(post).toJSON(function(err, json) {
-          res.jsonp(json)
-        })
-      })
-      .catch(exceptions.reportError(res))
+
+      let json = await new PostSerializer(post).promiseToJSON()
+      res.jsonp(json)
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
   }
 
   static async show(req, res) {
@@ -162,35 +162,43 @@ export default class PostsController {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    Post.getById(req.params.postId)
-      .then(function(post) {
-          if (post.userId != req.user.id) {
-            return Promise.reject(new ForbiddenException(
-                "You can't delete another user's post"))
-          }
-          return post.destroy()
-        })
-      .then(function(status) { res.jsonp({}) })
-      .catch(exceptions.reportError(res))
+    try {
+      const post = await Post.getById(req.params.postId)
+
+      if (post.userId != req.user.id) {
+        throw new ForbiddenException("You can't delete another user's post")
+      }
+
+      await post.destroy()
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
   }
 
   static async hide(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    Post.getById(req.params.postId)
-      .then(function(post) { return post.hide(req.user.id) })
-      .then(function() { res.jsonp({} )})
-      .catch(exceptions.reportError(res))
+    try {
+      const post = await Post.getById(req.params.postId)
+      await post.hide(req.user.id)
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
   }
 
   static async unhide(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    Post.getById(req.params.postId)
-      .then(function(post) { return post.unhide(req.user.id) })
-      .then(function() { res.jsonp({} )})
-      .catch(exceptions.reportError(res))
+    try {
+      const post = await Post.getById(req.params.postId)
+      await post.unhide(req.user.id)
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
   }
 }

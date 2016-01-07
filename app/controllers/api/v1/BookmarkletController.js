@@ -3,84 +3,77 @@ import fs from 'fs'
 import path from 'path'
 import url from 'url'
 
+import { promisifyAll } from 'bluebird'
 import request from 'request'
 
 import { PostSerializer } from '../../../models'
 import exceptions from '../../../support/exceptions'
 
 
+promisifyAll(request)
+promisifyAll(fs)
+
+const getAttachments = async function(author, imageUrl) {
+  if (!url) {
+    return []
+  }
+
+  const p = url.parse(imageUrl)
+
+  let ext = path.extname(p.pathname).split('.')
+  ext = ext[ext.length - 1]
+
+  const originalFileName = p.pathname.split('/').pop()
+
+  const bytes = crypto.randomBytes(4).readUInt32LE(0)
+  const fileName = `pepyatka${bytes}tmp.${ext}`
+  const filePath = `/tmp/${fileName}`
+
+  let [response, body] = await request.getAsync({ url: imageUrl, encoding: null })
+
+  const fileType = response.headers['content-type']
+  await fs.writeFileAsync(filePath, body)
+
+  const stats = await fs.statAsync(filePath)
+
+  const file = {
+    name: originalFileName,
+    size: stats.size,
+    type: fileType,
+    path: filePath
+  }
+
+  const newAttachment = await author.newAttachment({ file })
+  await newAttachment.create()
+
+  return [newAttachment.id]
+}
+
 export default class BookmarkletController {
   static async create(req, res) {
     try {
-      var getAttachments = async function(imageUrl) {
-        if (!imageUrl) {
-          return []
-        }
-
-        var p = url.parse(imageUrl)
-
-        var ext = path.extname(p.pathname).split('.')
-        ext = ext[ext.length - 1]
-
-        var originalFileName = p.pathname.split('/').pop()
-
-        var fileName = 'pepyatka' + crypto.randomBytes(4).readUInt32LE(0) + 'tmp.' + ext
-        var filePath = '/tmp/' + fileName
-        var fileType;
-
-        Promise.promisifyAll(request)
-        Promise.promisifyAll(fs)
-
-        let attachmentIds = await request.getAsync({ url: imageUrl, encoding: null })
-          .spread(function(response, body) {
-            fileType = response.headers['content-type']
-            return fs.writeFileAsync(filePath, body)
-          })
-          .then(function() {
-            return fs.statAsync(filePath)
-          })
-          .then(function(stats) {
-            let file = {
-              name: originalFileName,
-              size: stats.size,
-              type: fileType,
-              path: filePath
-            }
-
-            return req.user.newAttachment({ file: file })
-              .then(function(newAttachment) {
-                return newAttachment.create()
-              })
-              .then(function(newAttachment) {
-                return [newAttachment.id]
-              })
-          })
-
-        return attachmentIds
-      }
-
       if (!req.user) {
         return res.status(401).jsonp({err: 'Not found'})
       }
 
       // Download image and create attachment
-      let attachments = await getAttachments(req.body.image)
+      let attachments = await getAttachments(req.user, req.body.image)
 
       // Create post
       let newPost = await req.user.newPost({
         body: req.body.title,
         attachments: attachments
       })
-      let post = await newPost.create()
+      await newPost.create()
 
       // Create comment
       if (req.body.comment) {
         var newComment = await req.user.newComment({
           body: req.body.comment,
-          postId: post.id
+          postId: newPost.id
         })
 
-        let comment = await newComment.create()
+        await newComment.create()
       }
 
       // Send response with the created post
