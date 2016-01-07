@@ -1,32 +1,42 @@
-"use strict";
+import bluebird from 'bluebird'
+import consoleStamp from 'console-stamp'
+import express from 'express'
+import http from 'http'
 
-require("babel/register")({
-  stage: 1
-})
+import PubsubListener from './app/pubsub-listener'
+import routesInit from './app/routes'
 
-global.Promise = require('bluebird')
+
+global.Promise = bluebird
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
-require("console-stamp")(console, 'yyyy/mm/dd HH:MM:ss.l')
+consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
 
-var express = require('express')
-  , app = express()
-  , environment = require('./config/environment')
-  , http = require('http')
-  , server = http.createServer(app)
+const app = express()
+export default app
 
-module.exports = app
+async function init() {
+  const environment = require('./config/environment')
+  const server = http.createServer(app)
 
-environment.init(app)
-  .then(function(app) {
-    var PubsubListener = require('./app/pubsub-listener')
-      , pubsub = new PubsubListener(server, app)
-    var routes = require('./app/routes')(app)
+  await environment.init(app)
+  routesInit(app)
 
-    var port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'))
+  const port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'))
 
-    server.listen(port, function() {
-      app.logger.info("Express server is listening on port " + port);
-      app.logger.info("Server is running in " + (process.env.NODE_ENV || "development") + " mode")
-    })
+  server.listen(port, () => {
+    const mode = process.env.NODE_ENV || "development"
+
+    app.logger.info(`Express server is listening on port ${port}`);
+    app.logger.info(`Server is running in ${mode} mode`)
+  })
+}
+
+init()
+  .then(() => {
+    app.logger.info(`Server initialization is complete`)
+  })
+  .catch((e) => {
+    process.stderr.write(`${e.message}\n`)
+    process.exit(1)
   })

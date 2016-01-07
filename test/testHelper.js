@@ -1,5 +1,6 @@
 require("babel/register")({
-  stage: 1
+  stage: 1,
+  ignore: /node_modules/
 });
 
 global.Promise = require('bluebird')
