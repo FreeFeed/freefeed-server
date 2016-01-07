@@ -1,11 +1,10 @@
-"use strict";
+import stubTransport from 'nodemailer-stub-transport'
+
 
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
 process.env.MONITOR_PREFIX = 'tests'
 
-var stubTransport = require('nodemailer-stub-transport')
-
-exports.getConfig = function() {
+export function getConfig() {
   var config = {
     port: 31337,
     database: 3,
