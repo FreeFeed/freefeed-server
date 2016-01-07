@@ -78,25 +78,21 @@ export function addModel(dbAdapter) {
     return timelines
   }
 
-  Comment.prototype.update = function(params) {
-    var that = this
+  Comment.prototype.update = async function(params) {
+    this.updatedAt = new Date().getTime()
+    this.body = params.body
 
-    return new Promise(function(resolve, reject) {
-      that.updatedAt = new Date().getTime()
-      that.body = params.body
+    await this.validate()
 
-      that.validate()
-        .then(function(comment) {
-          let payload = {
-            'body':      that.body,
-            'updatedAt': that.updatedAt.toString()
-          }
-          return dbAdapter.updateComment(that.id, payload)
-        })
-        .then(function() { return pubSub.updateComment(that.id) })
-        .then(function() { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+    let payload = {
+      'body':      this.body,
+      'updatedAt': this.updatedAt.toString()
+    }
+    await dbAdapter.updateComment(this.id, payload)
+
+    await pubSub.updateComment(this.id)
+
+    return this
   }
 
   Comment.prototype.getPost = function() {

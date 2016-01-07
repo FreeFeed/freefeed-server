@@ -137,34 +137,21 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.addAdministrator = function(feedId) {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      dbAdapter.addAdministratorToGroup(that.id, feedId)
-        .then(function(res) { resolve(res) })
-        .catch(function(e) { reject(e) })
-    })
+    return dbAdapter.addAdministratorToGroup(this.id, feedId)
   }
 
-  Group.prototype.removeAdministrator = function(feedId) {
-    var that = this
+  Group.prototype.removeAdministrator = async function(feedId) {
+    let adminIds = await this.getAdministratorIds()
 
-    return new Promise(function(resolve, reject) {
-      that.getAdministratorIds()
-          .then(function(adminIds) {
-            if (adminIds.indexOf(feedId) == -1) {
-              reject(new Error("Not an administrator"))
-            }
-            else if (adminIds.length == 1) {
-              reject(new Error("Cannot remove last administrator"))
-            }
-            else {
-              dbAdapter.removeAdministratorFromGroup(that.id, feedId)
-                  .then(function(res) { resolve(res) })
-                  .catch(function(e) { reject(e) })
-            }
-          })
-    })
+    if (adminIds.indexOf(feedId) == -1) {
+      throw new Error("Not an administrator")
+    }
+
+    if (adminIds.length == 1) {
+      throw new Error("Cannot remove last administrator")
+    }
+
+    return dbAdapter.removeAdministratorFromGroup(this.id, feedId)
   }
 
   Group.prototype.getAdministratorIds = async function() {
@@ -182,41 +169,33 @@ export function addModel(dbAdapter) {
   /**
    * Checks if the specified user can post to the timeline of this group.
    */
-  Group.prototype.validateCanPost = function(postingUser) {
-    var that = this
+  Group.prototype.validateCanPost = async function(postingUser) {
+    let timeline = await this.getPostsTimeline()
+    let ids = await timeline.getSubscriberIds()
 
-    return this.getPostsTimeline()
-        .then(function(timeline) {
-          return timeline.getSubscriberIds()
-        })
-        .then(function(ids) {
-          if (_.includes(ids, postingUser.id)) {
-            return Promise.resolve(that)
-          }
-          return Promise.reject(new ForbiddenException(
-              "You can't post to a group to which you aren't subscribed"))
-        })
+    if (!_.includes(ids, postingUser.id)) {
+      throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
+    }
+
+    return this
   }
 
   /**
    * Checks if the specified user can update the settings of this group
    * (i.e. is an admin in the group).
    */
-  Group.prototype.validateCanUpdate = function(updatingUser) {
-    var that = this
-
+  Group.prototype.validateCanUpdate = async function(updatingUser) {
     if (!updatingUser) {
-      return Promise.reject(new ForbiddenException(
-        "You need to log in before you can manage groups"))
+      throw new ForbiddenException("You need to log in before you can manage groups")
     }
 
-    return this.getAdministratorIds().then(function(adminIds) {
-      if (_.includes(adminIds, updatingUser.id)) {
-        return Promise.resolve(that)
-      }
-      return Promise.reject(new ForbiddenException(
-        "You aren't an administrator of this group"))
-    })
+    let adminIds = await this.getAdministratorIds()
+
+    if (!_.includes(adminIds, updatingUser.id)) {
+      throw new ForbiddenException("You aren't an administrator of this group")
+    }
+
+    return this
   }
 
   return Group

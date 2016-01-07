@@ -45,48 +45,45 @@ export function addModel(dbAdapter) {
    * timeline of the posting user and the River of News timelines of all
    * subscribers of the feeds to which it is posted).
    */
-  Timeline.publishPost = function(post) {
-    var that = this
-    var currentTime = new Date().getTime()
+  Timeline.publishPost = async function(post) {
+    const currentTime = new Date().getTime()
 
     // We can use post.timelineIds here instead of post.getPostedToIds
     // because we are about to create that post and have just received
     // a request from user, so postedToIds == timelineIds here
-    return Promise.map(post.timelineIds, function(timelineId) {
-      return Timeline.findById(timelineId)
+    const timelines = await Timeline.findByIds(post.timelineIds)
+
+    let promises = timelines.map(async (timeline) => {
+      const feed = await timeline.getUser()
+      await feed.updateLastActivityAt()
+
+      const ids = await timeline.getSubscribedTimelineIds()
+      return ids
     })
-      .then(function(timelines) {
-        return Promise.map(timelines, function(timeline) {
-          return timeline.getUser()
-            .then(function(feed) { return feed.updateLastActivityAt() })
-            .then(function() { return timeline.getSubscribedTimelineIds() })
-        })
-      })
-      .then(function(allSubscribedTimelineIds) {
-        var allTimelines = _.uniq(
-          _.union(post.timelineIds, _.flatten(allSubscribedTimelineIds)))
-        return Promise.map(allTimelines, function(timelineId) {
-          return Promise.all([
-            dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
-            dbAdapter.setPostUpdatedAt(post.id, currentTime),
-            dbAdapter.createPostUsageInTimeline(post.id, timelineId)
-          ])
-        })
-      })
-      .then(function() { return pubSub.newPost(post.id) })
+
+    const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
+    const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
+
+    promises = allTimelines.map(timelineId => [
+      dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
+      dbAdapter.setPostUpdatedAt(post.id, currentTime),
+      dbAdapter.createPostUsageInTimeline(post.id, timelineId)
+    ])
+
+    await Promise.all(_.flatten(promises))
+    await pubSub.newPost(post.id)
   }
 
   Timeline.prototype.validate = function() {
-    return new Promise(function(resolve, reject) {
-      var valid
+    const valid = this.name
+      && this.name.length > 0
+      && this.userId
+      && this.userId.length > 0
 
-      valid = this.name
-        && this.name.length > 0
-        && this.userId
-        && this.userId.length > 0
+    if (!valid)
+      throw new Error('Invalid')
 
-      valid ? resolve(valid) : reject(new Error("Invalid"))
-    }.bind(this))
+    return true
   }
 
   Timeline.prototype.create = async function() {
@@ -97,31 +94,28 @@ export function addModel(dbAdapter) {
     return this._createTimeline(true)
   }
 
-  Timeline.prototype._createTimeline = function (userDiscussionsTimeline) {
-    var that = this
+  Timeline.prototype._createTimeline = async function(userDiscussionsTimeline) {
+    const currentTime = new Date().getTime()
 
-    return new Promise(function(resolve, reject) {
-      that.createdAt = new Date().getTime()
-      that.updatedAt = new Date().getTime()
+    this.validate()
 
-      that.validate()
-        .then(function(timeline) {
-          let payload = {
-            'name':      that.name,
-            'userId':    that.userId,
-            'createdAt': that.createdAt.toString(),
-            'updatedAt': that.updatedAt.toString()
-          }
-          if (userDiscussionsTimeline){
-            return dbAdapter.createUserDiscussionsTimeline(that.userId, payload)
-          }
+    const payload = {
+      'name':      this.name,
+      'userId':    this.userId,
+      'createdAt': currentTime.toString(),
+      'updatedAt': currentTime.toString()
+    }
 
-          return dbAdapter.createTimeline(payload)
-        })
-        .then(function(timelineId) { that.id = timelineId })
-        .then(function(res) { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+    if (userDiscussionsTimeline){
+      this.id = await dbAdapter.createUserDiscussionsTimeline(this.userId, payload)
+    } else {
+      this.id = await dbAdapter.createTimeline(payload)
+    }
+
+    this.createdAt = currentTime
+    this.updatedAt = currentTime
+
+    return this
   }
 
   Timeline.prototype.getPostIds = async function(offset, limit) {
@@ -148,16 +142,9 @@ export function addModel(dbAdapter) {
     return this.postIds
   }
 
-  Timeline.prototype.getPostIdsByScore = function(min, max) {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      dbAdapter.getTimelinePostsInTimeInterval(that.id, min, max)
-        .then(function(postIds) {
-          that.postIds = postIds
-          resolve(that.postIds)
-        })
-    })
+  Timeline.prototype.getPostIdsByScore = async function(min, max) {
+    this.postIds = await dbAdapter.getTimelinePostsInTimeInterval(this.id, min, max)
+    return this.postIds
   }
 
   Timeline.prototype.getPosts = async function(offset, limit) {

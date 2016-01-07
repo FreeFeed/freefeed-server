@@ -163,11 +163,9 @@ exports.addModel = function(dbAdapter) {
     return this.resetPasswordToken
   }
 
-  User.prototype.generateResetPasswordToken = function() {
-    return Promise.resolve(
-      crypto.randomBytesAsync(48)
-        .then(function(buf) { return buf.toString('hex') })
-    )
+  User.prototype.generateResetPasswordToken = async function() {
+    let buf = await crypto.randomBytesAsync(48)
+    return buf.toString('hex')
   }
 
   User.prototype.validPassword = function(clearPassword) {
@@ -646,18 +644,11 @@ exports.addModel = function(dbAdapter) {
     return timelineIds || {}
   }
 
-  User.prototype.getTimelines = function(params) {
-    return new Promise(function(resolve, reject) {
-      this.getTimelineIds()
-        .then(function(timelineIds) {
-          return Promise.map(Object.keys(timelineIds), function(timelineId) {
-            return Timeline.findById(timelineIds[timelineId], params)
-          })
-        })
-        .then(function(timelines) {
-          resolve(timelines)
-        })
-    }.bind(this))
+  User.prototype.getTimelines = async function(params) {
+    const timelineIds = await this.getTimelineIds()
+    const timelines = await Timeline.findByIds(_.values(timelineIds), params)
+
+    return timelines
   }
 
   User.prototype.getPublicTimelineIds = function(params) {
@@ -697,8 +688,7 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getSubscriberIds = async function() {
     var timeline = await this.getPostsTimeline()
-    var subscriberIds = await timeline.getSubscriberIds()
-    this.subscriberIds = subscriberIds
+    this.subscriberIds = await timeline.getSubscriberIds()
 
     return this.subscriberIds
   }
@@ -710,22 +700,15 @@ exports.addModel = function(dbAdapter) {
     return this.subscribers
   }
 
-  User.prototype.getBanIds = async function() {
+  User.prototype.getBanIds = function() {
     return dbAdapter.getUserBansIds(this.id)
   }
 
-  User.prototype.getBans = function() {
-    var that = this
+  User.prototype.getBans = async function() {
+    const userIds = await this.getBanIds()
+    const users = await User.findByIds(userIds)
 
-    return new Promise(function(resolve, reject) {
-      that.getBanIds()
-        .then(function(userIds) {
-          return Promise.map(userIds, function(userId) {
-            return User.findById(userId)
-          })
-        })
-        .then(function(users) { resolve(users) })
-    })
+    return users
   }
 
   User.prototype.ban = async function(username) {
@@ -921,38 +904,25 @@ exports.addModel = function(dbAdapter) {
   /**
    * Checks if the specified user can post to the timeline of this user.
    */
-  User.prototype.validateCanPost = function(postingUser) {
-    var that = this
-      , subscriptionIds
-      , timelineIdA
-      , timelineIdB
-
+  User.prototype.validateCanPost = async function(postingUser) {
     // NOTE: when user is subscribed to another user she in fact is
     // subscribed to her posts timeline
-    return new Promise(function(resolve, reject) {
-      postingUser.getPostsTimelineId()
-        .then(function(_timelineId) {
-          timelineIdA = _timelineId
-          return that.getPostsTimelineId()
-        })
-        .then(function(_timelineId) {
-          timelineIdB = _timelineId
-          return postingUser.getSubscriptionIds()
-        })
-        .then(function(_subscriptionIds) {
-          subscriptionIds = _subscriptionIds
-          return that.getSubscriptionIds()
-        })
-        .then(function(subscriberIds) {
-          if ((subscriberIds.indexOf(timelineIdA) == -1
-              || subscriptionIds.indexOf(timelineIdB) == -1)
-              && postingUser.username != that.username) {
-            return reject(new ForbiddenException("You can't send private messages to friends that are not mutual"))
-          }
+    const [
+      timelineIdA, timelineIdB,
+      subscriptionIds, subscriberIds
+    ] =
+      await Promise.all([
+        postingUser.getPostsTimelineId(), this.getPostsTimelineId(),
+        postingUser.getSubscriptionIds(), this.getSubscriptionIds()
+      ])
 
-          return resolve(that)
-        })
-    })
+    if ((subscriberIds.indexOf(timelineIdA) == -1 || subscriptionIds.indexOf(timelineIdB) == -1)
+        && postingUser.username != this.username
+    ) {
+      throw new ForbiddenException("You can't send private messages to friends that are not mutual")
+    }
+
+    return this
   }
 
   User.prototype.validateCanSubscribe = async function(timelineId) {
@@ -977,18 +947,12 @@ exports.addModel = function(dbAdapter) {
     return timelineId
   }
 
-  User.prototype.validateCanUnsubscribe = function(timelineId) {
-    var that = this
+  User.prototype.validateCanUnsubscribe = async function(timelineId) {
+    const timelineIds = await this.getSubscriptionIds()
 
-    return new Promise(function(resolve, reject) {
-      that.getSubscriptionIds()
-        .then(function(timelineIds) {
-          if (!_.includes(timelineIds, timelineId)) {
-            return reject(new ForbiddenException("You are not subscribed to that user"))
-          }
-          return resolve(timelineId)
-        })
-    })
+    if (!_.includes(timelineIds, timelineId)) {
+      throw new ForbiddenException("You are not subscribed to that user")
+    }
   }
 
   /* checks if user can like some post */
@@ -1000,24 +964,18 @@ exports.addModel = function(dbAdapter) {
     return this.validateCanLikeOrUnlikePost('unlike', post)
   }
 
-  User.prototype.validateCanComment = function(postId) {
-    var that = this
+  User.prototype.validateCanComment = async function(postId) {
+    const post = await Post.findById(postId)
 
-    return new Promise(function(resolve, reject) {
-      Post.findById(postId)
-        .then(function(post) {
-          if (post)
-            return post.validateCanShow(that.id)
-          else
-            reject(new Error("Not found"))
-        })
-        .then(function(valid) {
-          if (valid)
-            resolve(that)
-          else
-            reject(new Error("Not found"))
-        })
-    })
+    if (!post)
+      throw new Error("Not found")
+
+    const valid = await post.validateCanShow(this.id)
+
+    if (!valid)
+      throw new Error("Not found")
+
+    return true
   }
 
   User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {

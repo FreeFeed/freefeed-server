@@ -138,76 +138,40 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Post.prototype.destroy = function() {
-    var that = this
+  Post.prototype.destroy = async function() {
+    // remove all comments
+    const comments = await this.getComments()
+    await Promise.all(comments.map(comment => comment.destroy()))
 
-    return new Promise(function(resolve, reject) {
-      // remove all comments
-      that.getComments()
-        .then(function(comments) {
-          return Promise.map(comments, function(comment) {
-            return comment.destroy()
-          })
-        })
-        // decrement likes counter for users who liked this post
-        .then(function() {
-          return that.getLikeIds()
-        })
-        .then(function(userIds) {
-          return Promise.map(userIds, function(userId) {
-            return Stats.findById(userId).then(function(stats) {
-              return stats.removeLike()
-            })
-          })
-        })
-        .then(function() {
-          return pubSub.destroyPost(that.id)
-        })
-        .then(function() {
-          Promise.all([
-            // remove post from all timelines
-            that.getTimelineIds()
-              .then(function(timelineIds) {
-                Promise.map(timelineIds, function(timelineId) {
-                  return Promise.all([
-                    dbAdapter.deletePostUsageInTimeline(that.id, timelineId),
-                    dbAdapter.removePostFromTimeline(timelineId, that.id)
-                  ])
-                    .then(function() {
-                      dbAdapter.getTimelinePostsCount(timelineId)
-                        .then(function(res) {
-                          // that timeline is empty
-                          if (res === 0)
-                            dbAdapter.deletePostUsagesInTimelineIndex(that.id)
-                        })
-                    })
-                })
-              }),
-            // delete posted to key
-            dbAdapter.deletePostPostedTo(that.id),
-            // delete likes
-            dbAdapter.deletePostLikes(that.id),
-            // delete post
-            dbAdapter.deletePost(that.id)
-          ])
-        })
-        // delete orphaned keys
-        .then(function() {
-          dbAdapter.getPostUsagesInTimelinesCount(that.id)
-            .then(function(res) {
-              // post does not belong to any timelines
-              if (res === 0)
-                dbAdapter.deletePostUsagesInTimelineIndex(that.id)
-            })
-        })
-        .then(function() { return dbAdapter.deletePostComments(that.id) })
-        .then(function() { return Stats.findById(that.userId) })
-        .then(function(stats) { return stats.removePost() })
-        .then(function(res) {
-          monitor.increment('posts.destroys')
-          resolve(res)
-        })
-    })
+    // decrement likes counter for users who liked this post
+    const userIds = await this.getLikeIds()
+    const likesStatObjects = await Stats.findByIds(userIds)
+    await Promise.all(likesStatObjects.map(stat => stat.removeLike()))
+
+    const timelineIds = await this.getTimelineIds()
+    const deleteFromTimelinesPromise = Promise.all(timelineIds.map(async (timelineId) => {
+      await Promise.all([
+        dbAdapter.deletePostUsageInTimeline(this.id, timelineId),
+        dbAdapter.removePostFromTimeline(timelineId, this.id)
+      ])
+    }))
+
+    await Promise.all([
+      deleteFromTimelinesPromise,
+      dbAdapter.deletePostPostedTo(this.id),  // delete posted to key
+      dbAdapter.deletePostLikes(this.id),
+      dbAdapter.deletePostComments(this.id)
+    ])
+
+    await dbAdapter.deletePost(this.id)
+    await dbAdapter.deletePostUsagesInTimelineIndex(this.id)  // index of post's timelines
+
+    await pubSub.destroyPost(this.id, timelineIds)
+
+    const authorStats = await Stats.findById(this.userId)
+    await authorStats.removePost()
+
+    monitor.increment('posts.destroys')
   }
 
   Post.prototype.getCreatedBy = function() {
@@ -322,48 +286,28 @@ export function addModel(dbAdapter) {
     return this.getGenericFriendOfFriendTimelines(user, 'Comments')
   }
 
-  Post.prototype.hide = function(userId) {
-    var that = this
+  Post.prototype.hide = async function(userId) {
+    const theUser = await User.findById(userId)
+    const hidesTimelineId = await theUser.getHidesTimelineId()
 
-    return new Promise(function(resolve, reject) {
-      let theUser
+    await Promise.all([
+      dbAdapter.addPostToTimeline(hidesTimelineId, this.updatedAt, this.id),
+      dbAdapter.createPostUsageInTimeline(this.id, hidesTimelineId)
+    ])
 
-      User.findById(userId)
-        .then(function(user) {
-          theUser = user
-          return pubSub.hidePost(user.id, that.id)
-        })
-        .then(function() { return theUser.getHidesTimelineId() })
-        .then(function(timelineId) {
-          return Promise.all([
-            dbAdapter.addPostToTimeline(timelineId, that.updatedAt, that.id),
-            dbAdapter.createPostUsageInTimeline(that.id, timelineId)
-          ])
-        })
-        .then(function(res) { resolve(res) })
-    })
+    await pubSub.hidePost(theUser.id, this.id)
   }
 
-  Post.prototype.unhide = function(userId) {
-    var that = this
+  Post.prototype.unhide = async function(userId) {
+    const theUser = await User.findById(userId)
+    const hidesTimelineId = await theUser.getHidesTimelineId()
 
-    return new Promise(function(resolve, reject) {
-      let theUser
+    await Promise.all([
+      dbAdapter.removePostFromTimeline(hidesTimelineId, this.id),
+      dbAdapter.deletePostUsageInTimeline(this.id, hidesTimelineId)
+    ])
 
-      User.findById(userId)
-        .then(function(user) {
-          theUser = user
-          return pubSub.unhidePost(user.id, that.id)
-        })
-        .then(function() { return theUser.getHidesTimelineId() })
-        .then(function(timelineId) {
-          return Promise.all([
-            dbAdapter.removePostFromTimeline(timelineId, that.id),
-            dbAdapter.deletePostUsageInTimeline(that.id, timelineId)
-          ])
-        })
-        .then(function(res) { resolve(res) })
-    })
+    await pubSub.unhidePost(theUser.id, this.id)
   }
 
   Post.prototype.addComment = async function(comment) {
@@ -396,20 +340,15 @@ export function addModel(dbAdapter) {
     return timelines
   }
 
-  Post.prototype.getOmittedComments = function() {
-    var that = this
+  Post.prototype.getOmittedComments = async function() {
+    const length = await dbAdapter.getPostCommentsCount(this.id)
 
-    return new Promise(function(resolve, reject) {
-      dbAdapter.getPostCommentsCount(that.id)
-        .then(function(length) {
-          if (length > that.maxComments && length > 3 && that.maxComments != 'all') {
-            that.omittedComments = length - that.maxComments
-            return resolve(that.omittedComments)
-          }
+    if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
+      this.omittedComments = length - this.maxComments
+      return this.omittedComments
+    }
 
-          return resolve(0)
-        })
-    })
+    return 0
   }
 
   Post.prototype.getCommentIds = async function() {
@@ -450,85 +389,58 @@ export function addModel(dbAdapter) {
     return this.comments
   }
 
-  Post.prototype.linkAttachments = function(attachmentList) {
-    var that = this
-    var attachments = attachmentList || that.attachments || []
+  Post.prototype.linkAttachments = async function(attachmentList) {
+    const attachmentIds = attachmentList || this.attachments || []
+    const attachments = await Attachment.findByIds(attachmentIds)
 
-    var attachmentPromises = attachments.map(function(attachmentId, index) {
-      return new Promise(function(resolve, reject) {
-        Attachment.findById(attachmentId)
-          .then(function(attachment) {
-            // Replace attachment ids with attachment objects (on create-post)
-            if (that.attachments) {
-              let pos = that.attachments.indexOf(attachmentId)
-              if (pos < 0) {
-                that.attachments.push(attachment)
-              } else {
-                that.attachments[pos] = attachment
-              }
-            }
+    const attachmentPromises = attachments.map((attachment) => {
+      if (this.attachments) {
+        const pos = this.attachments.indexOf(attachment.id)
 
-            // Update connections in DB
-            return Promise.all([
-              dbAdapter.addAttachmentToPost(that.id, attachmentId),
-              dbAdapter.setAttachmentPostId(attachmentId, that.id)
-            ])
-          })
-          .then(function(res) { resolve(res) })
-      })
+        if (pos < 0) {
+          this.attachments.push(attachment)
+        } else {
+          this.attachments[pos] = attachment
+        }
+      }
+
+      // Update connections in DB
+      return Promise.all([
+        dbAdapter.addAttachmentToPost(this.id, attachment.id),
+        dbAdapter.setAttachmentPostId(attachment.id, this.id)
+      ])
     })
 
-    return Promise.settle(attachmentPromises)
+    await Promise.all(attachmentPromises)
   }
 
-  Post.prototype.unlinkAttachments = function(attachmentList) {
-    var that = this
-    var attachments = attachmentList || []
+  Post.prototype.unlinkAttachments = async function(attachmentList) {
+    const attachmentIds = attachmentList || []
+    const attachments = await Attachment.findByIds(attachmentIds)
 
-    var attachmentPromises = attachments.map(function(attachmentId, index) {
-      return new Promise(function(resolve, reject) {
-        Attachment.findById(attachmentId)
-          .then(function(attachment) {
-            // Update connections in DB
-            return Promise.all([
-              dbAdapter.removeAttachmentsFromPost(that.id, attachmentId),
-              dbAdapter.setAttachmentPostId(attachmentId, '')
-            ])
-          })
-          .then(function(res) { resolve(res) })
-      })
+    const attachmentPromises = attachments.map(function(attachment) {
+      // should we modify `this.attachments` here?
+
+      // Update connections in DB
+      return Promise.all([
+        dbAdapter.removeAttachmentsFromPost(this.id, attachment.id),
+        dbAdapter.setAttachmentPostId(attachment.id, '')
+      ])
     })
 
-    return Promise.settle(attachmentPromises)
+    await Promise.all(attachmentPromises)
   }
 
-  Post.prototype.getAttachmentIds = function() {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      dbAdapter.getPostAttachments(that.id)
-        .then(function(attachmentIds) {
-          that.attachmentIds = attachmentIds
-          resolve(attachmentIds)
-        })
-    })
+  Post.prototype.getAttachmentIds = async function() {
+    this.attachmentIds = await dbAdapter.getPostAttachments(this.id)
+    return this.attachmentIds
   }
 
-  Post.prototype.getAttachments = function() {
-    var that = this
+  Post.prototype.getAttachments = async function() {
+    const attachmentIds = await this.getAttachmentIds()
+    this.attachments = await Attachment.findByIds(attachmentIds)
 
-    return new Promise(function(resolve, reject) {
-      that.getAttachmentIds()
-        .then(function(attachmentIds) {
-          return Promise.map(attachmentIds, function(attachmentId) {
-            return Attachment.findById(attachmentId)
-          })
-        })
-        .then(function(attachments) {
-          that.attachments = attachments
-          resolve(that.attachments)
-        })
-    })
+    return this.attachments
   }
 
   Post.prototype.getLikeIds = async function() {
@@ -685,15 +597,12 @@ export function addModel(dbAdapter) {
     return FeedFactory.findById(this.userId)
   }
 
-  Post.prototype.isBannedFor = function(userId) {
-    var that = this
+  Post.prototype.isBannedFor = async function(userId) {
+    const user = await User.findById(userId)
+    const banIds = await user.getBanIds()
 
-    return new Promise(function(resolve, reject) {
-      User.findById(userId)
-        .then(function(user) { return user.getBanIds() })
-        .then(function(banIds) { return banIds.indexOf(that.userId) })
-        .then(function(index) { resolve(index >= 0) })
-    })
+    const index = banIds.indexOf(this.userId)
+    return index >= 0
   }
 
   Post.prototype.isHiddenIn = async function(timeline) {

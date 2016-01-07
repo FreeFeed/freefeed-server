@@ -22,10 +22,7 @@ export default class pubSub {
     await Promise.all(promises)
   }
 
-  async destroyPost(postId) {
-    var post = await Post.findById(postId)
-    var timelineIds = await post.getTimelineIds()
-
+  async destroyPost(postId, timelineIds) {
     var promises = timelineIds.map(async (timelineId) => {
       let jsonedPost = JSON.stringify({ postId, timelineId })
       await this.publisher.postDestroyed(jsonedPost)

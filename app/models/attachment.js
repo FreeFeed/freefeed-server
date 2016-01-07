@@ -49,6 +49,7 @@ export function addModel(dbAdapter) {
   Attachment.namespace = 'attachment'
   Attachment.initObject = Attachment.super_.initObject
   Attachment.findById = Attachment.super_.findById
+  Attachment.findByIds = Attachment.super_.findByIds
 
   Attachment.prototype.validate = async function() {
     var valid = this.file
@@ -64,70 +65,58 @@ export function addModel(dbAdapter) {
     return true
   }
 
-  Attachment.prototype.create = function() {
-    var that = this
+  Attachment.prototype.create = async function() {
+    this.createdAt = new Date().getTime()
+    this.updatedAt = new Date().getTime()
+    this.postId = this.postId || ''
 
-    return new Promise(function(resolve, reject) {
-      that.createdAt = new Date().getTime()
-      that.updatedAt = new Date().getTime()
-      that.postId = that.postId || ''
+    await this.validate()
 
-      that.validate()
-        .then(function () {
-          return dbAdapter.createAttachment({
-            postId:    that.postId,
-            createdAt: that.createdAt.toString(),
-            updatedAt: that.updatedAt.toString()
-          })
-        })
-        .then(function (attachmentId) {
-          that.id = attachmentId
-          return that
-        })
-        // Save file to FS or S3
-        .then(function(attachment) {
-          attachment.fileName = attachment.file.name
-          attachment.fileSize = attachment.file.size
-          attachment.mimeType = attachment.file.type
-
-          // Determine initial file extension
-          // (it might be overridden later when we know MIME type from its contents)
-          // TODO: extract to config
-          var supportedExtensions = /\.(jpe?g|png|gif|mp3|m4a|ogg|wav|txt|pdf|docx?|pptx?|xlsx?)$/i
-
-          if (attachment.fileName && attachment.fileName.match(supportedExtensions) !== null) {
-            attachment.fileExtension = attachment.fileName.match(supportedExtensions)[1].toLowerCase()
-          } else {
-            attachment.fileExtension = ''
-          }
-
-          return that.handleMedia(attachment)
-        })
-        // Save record to DB
-        .then(function(attachment) {
-          var params = {
-            fileName: attachment.fileName,
-            fileSize: attachment.fileSize,
-            mimeType: attachment.mimeType,
-            mediaType: attachment.mediaType,
-            fileExtension: attachment.fileExtension,
-            noThumbnail: attachment.noThumbnail,
-            userId: attachment.userId,
-            postId: attachment.postId,
-            createdAt: attachment.createdAt.toString(),
-            updatedAt: attachment.updatedAt.toString()
-          }
-
-          if (attachment.mediaType === 'audio') {
-            params.artist = attachment.artist
-            params.title = attachment.title
-          }
-
-          return dbAdapter.updateAttachment(attachment.id, params)
-        })
-        .then(function(res) { resolve(that) })
-        .catch(function(e) { reject(e) })
+    this.id = await dbAdapter.createAttachment({
+      postId:    this.postId,
+      createdAt: this.createdAt.toString(),
+      updatedAt: this.updatedAt.toString()
     })
+
+    this.fileName = this.file.name
+    this.fileSize = this.file.size
+    this.mimeType = this.file.type
+
+    // Determine initial file extension
+    // (it might be overridden later when we know MIME type from its contents)
+    // TODO: extract to config
+    const supportedExtensions = /\.(jpe?g|png|gif|mp3|m4a|ogg|wav|txt|pdf|docx?|pptx?|xlsx?)$/i
+
+    if (this.fileName && this.fileName.match(supportedExtensions) !== null) {
+      this.fileExtension = this.fileName.match(supportedExtensions)[1].toLowerCase()
+    } else {
+      this.fileExtension = ''
+    }
+
+    await this.handleMedia()
+
+    // Save record to DB
+    const params = {
+      fileName: this.fileName,
+      fileSize: this.fileSize,
+      mimeType: this.mimeType,
+      mediaType: this.mediaType,
+      fileExtension: this.fileExtension,
+      noThumbnail: this.noThumbnail,
+      userId: this.userId,
+      postId: this.postId,
+      createdAt: this.createdAt.toString(),
+      updatedAt: this.updatedAt.toString()
+    }
+
+    if (this.mediaType === 'audio') {
+      params.artist = this.artist
+      params.title = this.title
+    }
+
+    await dbAdapter.updateAttachment(this.id, params)
+
+    return this
   }
 
   // Get user who created the attachment (via Promise, for serializer)
@@ -136,23 +125,17 @@ export function addModel(dbAdapter) {
   }
 
   // Get public URL of attachment (via Promise, for serializer)
-  Attachment.prototype.getUrl = function() {
-    var that = this
-    return new Promise(function(resolve, reject) {
-      resolve(config.attachments.url + config.attachments.path + that.getFilename())
-    })
+  Attachment.prototype.getUrl = async function() {
+    return config.attachments.url + config.attachments.path + this.getFilename()
   }
 
   // Get public URL of attachment's thumbnail (via Promise, for serializer)
-  Attachment.prototype.getThumbnailUrl = function() {
-    var that = this
-    return new Promise(function(resolve, reject) {
-      if (that.noThumbnail === '1') {
-        resolve(that.getUrl())
-      } else {
-        resolve(config.thumbnails.url + config.thumbnails.path + that.getFilename())
-      }
-    })
+  Attachment.prototype.getThumbnailUrl = async function() {
+    if (this.noThumbnail === '1') {
+      return this.getUrl()
+    } else {
+      return config.thumbnails.url + config.thumbnails.path + this.getFilename()
+    }
   }
 
   // Get local filesystem path for original file
@@ -174,7 +157,7 @@ export function addModel(dbAdapter) {
   }
 
   // Store the file and process its thumbnail, if necessary
-  Attachment.prototype.handleMedia = async function(attachment) {
+  Attachment.prototype.handleMedia = async function() {
     var tmpAttachmentFile = this.file.path
     var tmpThumbnailFile = tmpAttachmentFile + '.thumbnail'
 
@@ -269,8 +252,6 @@ export function addModel(dbAdapter) {
     } else {
       await fs.renameAsync(tmpAttachmentFile, this.getPath())
     }
-
-    return attachment
   }
 
   // Upload original attachment or its thumbnail to the S3 bucket
