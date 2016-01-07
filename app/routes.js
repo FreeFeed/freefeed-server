@@ -19,29 +19,28 @@ import PasswordsRoute from './routes/api/v1/PasswordsRoute'
 const config = configLoader()
 promisifyAll(jwt)
 
-var findUser = async (req, res, next) => {
-  var authToken = req.headers['x-authentication-token']
-    || req.body.authToken
-    || req.query.authToken
+export default function(app) {
+  const findUser = async (req, res, next) => {
+    var authToken = req.headers['x-authentication-token']
+      || req.body.authToken
+      || req.query.authToken
 
-  if (authToken) {
-    try {
-      let decoded = await jwt.verifyAsync(authToken, config.secret)
-      let user = await User.findById(decoded.userId)
+    if (authToken) {
+      try {
+        let decoded = await jwt.verifyAsync(authToken, config.secret)
+        let user = await User.findById(decoded.userId)
 
-      if (user) {
-        req.user = user
+        if (user) {
+          req.user = user
+        }
+      } catch(e) {
+        app.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`)
       }
-    } catch(e) {
-      // invalid token. the user will be treated as anonymous
-      console.info(e)
     }
+
+    next()
   }
 
-  next()
-}
-
-export default function(app) {
   app.use(express.static(__dirname + '/../public'))
 
   // unauthenticated routes

@@ -36,13 +36,13 @@ export default class PostsController {
           !feed.isUser()
         ) {
           return feed.getPostsTimelineId()
-        } else {
-          // private post goes to sendee and sender
-          return await Promise.all([
-            feed.getDirectsTimelineId(),
-            req.user.getDirectsTimelineId()
-          ])
         }
+
+        // private post goes to sendee and sender
+        return await Promise.all([
+          feed.getDirectsTimelineId(),
+          req.user.getDirectsTimelineId()
+        ])
       })
       let timelineIds = _.flatten(await Promise.all(promises))
 

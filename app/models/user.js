@@ -12,7 +12,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
 import { BadRequestException, ForbiddenException } from '../support/exceptions'
-import { AbstractModel, Attachment, Comment, FeedFactory, Post, Stats, Timeline, User } from '../models'
+import { AbstractModel, Attachment, Comment, FeedFactory, Post, Stats, Timeline } from '../models'
 
 
 let bcrypt = promisifyAll(_bcrypt)
@@ -241,9 +241,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.validateUsernameUniqueness = async function() {
     let res = await dbAdapter.existsUsername(this.username)
 
-    if (res === 0)
-      return true
-    else
+    if (res !== 0)
       throw new Error("Already exists")
   }
 

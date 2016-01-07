@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
-import { FeedFactory, GroupSerializer, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
+import { FeedFactory, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
 import exceptions from '../../../support/exceptions'
 import { load as configLoader } from "../../../../config/config"
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -153,7 +153,8 @@ export default class UsersController {
     try {
       user = await User.findByUsername(username)
     } catch (e) {
-      return res.status(404).send({})
+      res.status(404).send({})
+      return
     }
 
     if (false === await user.validateCanBeAccessedByUser(req.user)) {
@@ -188,7 +189,8 @@ export default class UsersController {
     try {
       user = await User.findByUsername(username)
     } catch (e) {
-      return res.status(404).send({})
+      res.status(404).send({})
+      return
     }
 
     if (false === await user.validateCanBeAccessedByUser(req.user)) {

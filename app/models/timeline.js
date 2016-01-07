@@ -342,11 +342,11 @@ export function addModel(dbAdapter) {
 
     // does not update lastActivity on like
     if (action === 'like') {
-      return null
+      return
     }
 
-    var feed = await this.getUser()
-    return feed.updateLastActivityAt()
+    const feed = await this.getUser()
+    await feed.updateLastActivityAt()
   }
 
   Timeline.prototype.turnIntoPrivate = function() {

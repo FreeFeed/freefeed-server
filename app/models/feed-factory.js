@@ -16,8 +16,8 @@ export function addModel(dbAdapter) {
   FeedFactory.stopList = function(default_stop_list) {
     if (default_stop_list)
       return config.application.DEFAULT_STOP_LIST
-    else
-      return config.application.USERNAME_STOP_LIST
+
+    return config.application.USERNAME_STOP_LIST
   }
 
   FeedFactory.findById = async function(identifier) {
@@ -25,9 +25,9 @@ export function addModel(dbAdapter) {
 
     if (attrs.type === 'group') {
       return Group.initObject(attrs, identifier)
-    } else {
-      return User.initObject(attrs, identifier)
     }
+
+    return User.initObject(attrs, identifier)
   }
 
   FeedFactory.findByIds = async function(identifiers) {
@@ -35,9 +35,9 @@ export function addModel(dbAdapter) {
     let objects = responses.map((attrs, i) => {
       if (attrs.type === 'group') {
         return Group.initObject(attrs, identifiers[i])
-      } else {
-        return User.initObject(attrs, identifiers[i])
       }
+
+      return User.initObject(attrs, identifiers[i])
     })
 
     return objects

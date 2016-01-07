@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "start": "babel-node --stage 1 --ignore node_modules index",
-    "test": "jake test"
+    "test": "eslint app && jake test"
   },
   "repository": {
     "type": "git",
@@ -52,7 +52,9 @@
     "winston": "1.1.2"
   },
   "devDependencies": {
+    "babel-eslint": "^4.1.6",
     "chai": "3.4.1",
+    "eslint": "^1.10.3",
     "jake": "^8.0.12",
     "mkdirp": "0.5.1",
     "mocha": "2.3.4",

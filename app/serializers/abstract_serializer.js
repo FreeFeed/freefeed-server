@@ -32,13 +32,13 @@ AbstractSerializer.prototype = {
   decideNode: function(field) {
     if (!this.strategy[field]) {
       return this.END_POINT
-    } else {
-      if (this.strategy[field].through) {
-        return this.THROUGH_POINT
-      } else {
-        return this.NESTED_STRATEGY
-      }
     }
+
+    if (this.strategy[field].through) {
+      return this.THROUGH_POINT
+    }
+
+    return this.NESTED_STRATEGY
   },
 
   prepareNestedField: function(name) {
@@ -129,8 +129,8 @@ AbstractSerializer.prototype = {
   processThroughPoint: function(field, f, root, level) {
     var serializer = this
 
-    var processWithRoot = function(objects, one) {
-      var objects = _.filter(objects, function(object) { return _.has(object, 'id') })
+    var processWithRoot = function(_objects, one) {
+      var objects = _.filter(_objects, function(object) { return _.has(object, 'id') })
       var objectIds = objects.map(function(e) { return e.id })
       var strategy = serializer.strategy[field]
 
