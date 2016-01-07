@@ -13,12 +13,12 @@ export default class PasswordsController {
     }
 
     try {
-      let user = await User.findByEmail(email)
-      let token = await user.updateResetPasswordToken()
+      const user = await User.findByEmail(email)
+      const token = await user.updateResetPasswordToken()
 
-      UserMailer.resetPassword(user, { user })
+      await UserMailer.resetPassword(user, { user })
 
-      res.jsonp({ message: 'We will send a password reset link to ' + user.email + ' in a moment' })
+      res.jsonp({ message: `We will send a password reset link to ${user.email} in a moment` })
     } catch (e) {
       exceptions.reportError(res)(e)
     }
