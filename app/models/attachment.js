@@ -133,9 +133,9 @@ export function addModel(dbAdapter) {
   Attachment.prototype.getThumbnailUrl = async function() {
     if (this.noThumbnail === '1') {
       return this.getUrl()
-    } else {
-      return config.thumbnails.url + config.thumbnails.path + this.getFilename()
     }
+
+    return config.thumbnails.url + config.thumbnails.path + this.getFilename()
   }
 
   // Get local filesystem path for original file
@@ -153,6 +153,7 @@ export function addModel(dbAdapter) {
     if (this.fileExtension) {
       return this.id + '.' + this.fileExtension
     }
+
     return this.id
   }
 

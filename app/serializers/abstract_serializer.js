@@ -32,13 +32,13 @@ AbstractSerializer.prototype = {
   decideNode: function(field) {
     if (!this.strategy[field]) {
       return this.END_POINT
-    } else {
-      if (this.strategy[field].through) {
-        return this.THROUGH_POINT
-      } else {
-        return this.NESTED_STRATEGY
-      }
     }
+
+    if (this.strategy[field].through) {
+      return this.THROUGH_POINT
+    }
+
+    return this.NESTED_STRATEGY
   },
 
   prepareNestedField: function(name) {

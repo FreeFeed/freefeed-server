@@ -13,6 +13,9 @@
     "modules": true
   },
   "rules": {
-    "strict": 0
+    "consistent-return": 2,
+    "no-else-return": 2,
+    "no-native-reassign": 2,
+    "strict": [2, "never"]
   }
 }

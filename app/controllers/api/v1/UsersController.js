@@ -153,7 +153,8 @@ export default class UsersController {
     try {
       user = await User.findByUsername(username)
     } catch (e) {
-      return res.status(404).send({})
+      res.status(404).send({})
+      return
     }
 
     if (false === await user.validateCanBeAccessedByUser(req.user)) {
@@ -188,7 +189,8 @@ export default class UsersController {
     try {
       user = await User.findByUsername(username)
     } catch (e) {
-      return res.status(404).send({})
+      res.status(404).send({})
+      return
     }
 
     if (false === await user.validateCanBeAccessedByUser(req.user)) {

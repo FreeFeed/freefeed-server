@@ -1,5 +1,3 @@
-"use strict";
-
 import {default as uuid} from 'uuid'
 import {mkKey} from '../support/models'
 

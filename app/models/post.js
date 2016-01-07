@@ -363,7 +363,7 @@ export function addModel(dbAdapter) {
       this.commentIds = commentIds.concat(moreCommentIds)
 
       return this.commentIds
-    } else {
+    } else {  // eslint-disable-line no-else-return
       // get ALL comment ids
       this.commentIds = await dbAdapter.getPostCommentsRange(this.id, 0, -1)
       return this.commentIds
@@ -464,7 +464,7 @@ export function addModel(dbAdapter) {
       }
 
       return this.likeIds.slice(0, this.maxLikes)
-    } else {
+    } else {  // eslint-disable-line no-else-return
       let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, -1)
 
       let to = 0

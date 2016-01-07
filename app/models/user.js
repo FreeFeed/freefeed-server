@@ -241,9 +241,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.validateUsernameUniqueness = async function() {
     let res = await dbAdapter.existsUsername(this.username)
 
-    if (res === 0)
-      return true
-    else
+    if (res !== 0)
       throw new Error("Already exists")
   }
 
