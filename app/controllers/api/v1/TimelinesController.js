@@ -26,12 +26,17 @@ export default class TimelineController {
   }
 
   static async directs(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found', status: 'fail' })
+      return
+    }
+
     try {
       const user = req.user
       const timeline = await user.getDirectsTimeline({
         offset: req.query.offset,
         limit: req.query.limit,
-        currentUser: user ? user.id : null
+        currentUser: user.id
       })
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
