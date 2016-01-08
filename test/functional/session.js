@@ -1,13 +1,20 @@
+/*eslint-env node, mocha */
+/*global $database */
 import request from 'superagent'
 import fetch from 'node-fetch'
 
-import app from '../../index'
+import { getSingleton } from '../../app/app'
 import { User } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
 describe("SessionController", () => {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe("#create()", () => {
     var user, userData;

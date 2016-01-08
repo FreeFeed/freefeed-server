@@ -1,9 +1,11 @@
+/*eslint-env node, mocha */
+/*global $database */
 import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
 import request from 'superagent'
 
-import app from '../../index'
+import { getSingleton } from '../../app/app'
 import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 
@@ -11,7 +13,12 @@ import * as funcTestHelper from './functional_test_helper'
 const config = configLoader()
 
 describe("UsersController", function() {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe("#create()", function() {
     it('should create a valid user', function(done) {

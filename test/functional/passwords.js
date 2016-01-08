@@ -1,10 +1,18 @@
+/*eslint-env node, mocha */
+/*global $database */
 import request from 'superagent'
 
+import { getSingleton } from '../../app/app'
 import * as funcTestHelper from './functional_test_helper'
 
 
 describe("PasswordsController", function() {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe("#create()", function() {
     var context = {}

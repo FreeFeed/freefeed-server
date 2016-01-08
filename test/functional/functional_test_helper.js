@@ -1,16 +1,18 @@
+/*global $database */
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _  from 'lodash'
 
-import app  from '../../index'
+import { getSingleton as initApp } from '../../app/app'
 
 
-let apiUrl = relativeUrl => `${app.config.host}${relativeUrl}`
+const apiUrl = async (relativeUrl) => {
+  const app = await initApp()
+  return `${app.config.host}${relativeUrl}`
+}
 
 export function flushDb() {
-  return () => {
-    $database.flushdbAsync()
-  }
+  return () => $database.flushdbAsync()
 }
 
 export function createUser(username, password, attributes, callback) {
@@ -30,17 +32,19 @@ export function createUser(username, password, attributes, callback) {
     if (attributes.email)
       user.email = attributes.email
 
-    request
-      .post(app.config.host + '/v1/users')
-      .send(user)
-      .end(function(err, res) {
-        if (callback) {
-          var luna = res.body.users
-          luna.password = user.password
-          callback(res.body.authToken, luna)
-        }
-        done()
-      })
+    apiUrl('/v1/users').then(url => {
+      request
+        .post(url)
+        .send(user)
+        .end(function(err, res) {
+          if (callback) {
+            var luna = res.body.users
+            luna.password = user.password
+            callback(res.body.authToken, luna)
+          }
+          done()
+        })
+    })
   }
 }
 
@@ -56,147 +60,170 @@ export function createUserCtx(context, username, password, attrs) {
 
 export function subscribeToCtx(context, username) {
   return function(done) {
-    request
-      .post(apiUrl(`/v1/users/${username}/subscribe`))
-      .send({ authToken: context.authToken })
-      .end(function(err, res) {
-        done(err, res)
-      })
+    apiUrl(`/v1/users/${username}/subscribe`).then(url => {
+      request
+        .post(url)
+        .send({ authToken: context.authToken })
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }
 }
 
 export function updateUserCtx(context, attrs) {
   return function(done) {
-    request
-      .post(app.config.host + '/v1/users/' + context.user.id)
-      .send({ authToken: context.authToken,
-              user: { email: attrs.email },
-              '_method': 'put' })
-      .end(function(err, res) {
-        done(err, res)
-      })
+    apiUrl(`/v1/users/${context.user.id}`).then(url => {
+      request
+        .post(url)
+        .send({ authToken: context.authToken,
+          user: { email: attrs.email },
+          '_method': 'put' })
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }
 }
 
 export function resetPassword(token) {
   return function(done) {
-    request
-      .post(app.config.host + '/v1/passwords/token')
-      .send({ '_method': 'put' })
-      .end(function(err, res) {
-        done(err, res)
-      })
+    apiUrl(`/v1/passwords/${token}`).then(url => {
+      request
+        .post(url)
+        .send({ '_method': 'put' })
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }
 }
 
 export function createPost(context, body, callback) {
   return function(done) {
-    request
-      .post(app.config.host + '/v1/posts')
-      .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
-      .end(function(err, res) {
-        context.post = res.body.posts
-        if (typeof callback !== 'undefined')
-          callback(context.post)
+    apiUrl('/v1/posts').then(url => {
+      request
+        .post(url)
+        .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
+        .end(function(err, res) {
+          context.post = res.body.posts
+          if (typeof callback !== 'undefined')
+            callback(context.post)
 
-        done(err, res)
-      })
+          done(err, res)
+        })
+    })
   }
 }
 
 export function createPostForTest(context, body, callback) {
-  request
-    .post(app.config.host + '/v1/posts')
-    .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
-    .end(function(err, res) {
-      context.post = res.body.posts
-      callback(err, res)
-    })
+  apiUrl('/v1/posts').then(url => {
+    request
+      .post(url)
+      .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
+      .end(function(err, res) {
+        context.post = res.body.posts
+        callback(err, res)
+      })
+  })
 }
 
 export function createComment(body, postId, authToken, callback) {
   return function(done) {
-    var comment = {
-      body: body,
-      postId: postId
-    }
+    apiUrl('/v1/comments').then(url => {
+      var comment = {
+        body: body,
+        postId: postId
+      }
 
-    request
-      .post(app.config.host + '/v1/comments')
-      .send({ comment: comment, authToken: authToken })
-      .end(function(err, res) {
-        done(err, res)
-      })
+      request
+        .post(url)
+        .send({ comment: comment, authToken: authToken })
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }(callback)
 }
 
 export function createCommentCtx(context, body) {
   return function(done) {
-    var comment = {
-      body: body,
-      postId: context.post.id
-    }
+    apiUrl('/v1/comments').then(url => {
+      var comment = {
+        body: body,
+        postId: context.post.id
+      }
 
-    request
-      .post(app.config.host + '/v1/comments')
-      .send({ comment: comment, authToken: context.authToken })
-      .end(function(err, res) {
-        context.comment = res.body.comments
-        done(err, res)
-      })
+      request
+        .post(url)
+        .send({comment: comment, authToken: context.authToken})
+        .end(function (err, res) {
+          context.comment = res.body.comments
+          done(err, res)
+        })
+    })
   }
 }
 
 export function removeComment(commentId, authToken, callback) {
   return function(done) {
-
-    request
-      .post(app.config.host + '/v1/comments/' + commentId)
-      .send({
-        authToken: authToken,
-        '_method': 'delete'
-      })
-      .end(function(err, res) {
-        done(err, res)
-      })
+    apiUrl(`/v1/comments/${commentId}`).then(url => {
+      request
+        .post(url)
+        .send({
+          authToken: authToken,
+          '_method': 'delete'
+        })
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }(callback)
 }
 
 export function getTimeline(timelinePath, authToken, callback) {
   return function(done) {
-    var sendParams = {};
-    if (authToken) {
-      sendParams.authToken = authToken
-    }
-    request
-      .get(app.config.host + timelinePath)
-      .query(sendParams)
-      .end(function(err, res) {
-        done(err, res)
-      })
+    apiUrl(timelinePath).then(url => {
+      var sendParams = {};
 
+      if (authToken) {
+        sendParams.authToken = authToken
+      }
+
+      request
+        .get(url)
+        .query(sendParams)
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }(callback)
 }
 
 export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
   return function(done) {
-    var sendParams = {};
-    if (!_.isUndefined(authToken)) {
-      sendParams.authToken = authToken
-    }
-    if (!_.isUndefined(offset)) {
-      sendParams.offset = offset
-    }
-    if (!_.isUndefined(limit)) {
-      sendParams.limit = limit
-    }
-    request
-      .get(app.config.host + timelinePath)
-      .query(sendParams)
-      .end(function(err, res) {
-        done(err, res)
-      })
+    apiUrl(timelinePath).then(url => {
+      var sendParams = {};
 
+      if (!_.isUndefined(authToken)) {
+        sendParams.authToken = authToken
+      }
+
+      if (!_.isUndefined(offset)) {
+        sendParams.offset = offset
+      }
+
+      if (!_.isUndefined(limit)) {
+        sendParams.limit = limit
+      }
+
+      request
+        .get(url)
+        .query(sendParams)
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }(callback)
 }
 
@@ -207,15 +234,14 @@ export function getSubscribers(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    let url = apiUrl(`/v1/users/${username}/subscribers`)
-
-    request
-      .get(url)
-      .query(sendParams)
-      .end(function(err, res) {
-        done(err, res)
-      })
-
+    apiUrl(`/v1/users/${username}/subscribers`).then(url => {
+      request
+        .get(url)
+        .query(sendParams)
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }(callback)
 }
 
@@ -226,21 +252,20 @@ export function getSubscriptions(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    let url = apiUrl(`/v1/users/${username}/subscriptions`)
-
-    request
-      .get(url)
-      .query(sendParams)
-      .end(function(err, res) {
-        done(err, res)
-      })
-
+    apiUrl(`/v1/users/${username}/subscriptions`).then(url => {
+      request
+        .get(url)
+        .query(sendParams)
+        .end(function(err, res) {
+          done(err, res)
+        })
+    })
   }(callback)
 }
 
-function postJson(relativeUrl, data) {
+async function postJson(relativeUrl, data) {
   return fetch(
-    apiUrl(relativeUrl),
+    await apiUrl(relativeUrl),
     {
       method: 'POST',
       headers: {
@@ -343,7 +368,7 @@ export function createCommentAsync (userContext, postId, body) {
 }
 
 const getTimelineAsync = async (relativeUrl, userContext) => {
-  let url = apiUrl(relativeUrl)
+  let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
     let encodedToken = encodeURIComponent(userContext.authToken)
@@ -368,9 +393,9 @@ export function sendResetPassword(email) {
   return postJson('/v1/passwords', { email })
 }
 
-export function readPostAsync(postId, userContext) {
+export async function readPostAsync(postId, userContext) {
   let relativeUrl = `/v1/posts/${postId}?maxComments=all`
-  let url = apiUrl(relativeUrl)
+  let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
     let encodedToken = encodeURIComponent(userContext.authToken)

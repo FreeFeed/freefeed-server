@@ -1,11 +1,18 @@
+/*eslint-env node, mocha */
+/*global $database */
 import request from 'superagent'
 
-import app from '../../index'
+import { getSingleton } from '../../app/app'
 import * as funcTestHelper from './functional_test_helper'
 
 
 describe("CommentsController", function() {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe('#create()', function() {
     var post
