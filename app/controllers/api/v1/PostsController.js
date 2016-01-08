@@ -93,7 +93,7 @@ export default class PostsController {
         currentUser: userId
       })
 
-      var valid = await post.validateCanShow(userId)
+      var valid = await post.canShow(userId)
 
       // this is a private post
       if (!valid)

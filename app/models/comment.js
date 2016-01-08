@@ -40,17 +40,16 @@ export function addModel(dbAdapter) {
   })
 
   Comment.prototype.validate = async function() {
-    var valid
-
-    valid = this.body && this.body.length > 0
-      && this.userId && this.userId.length > 0
-      && this.postId && this.postId.length > 0
+    const valid = this.body
+               && this.body.length > 0
+               && this.userId
+               && this.userId.length > 0
+               && this.postId
+               && this.postId.length > 0
 
     if (!valid) {
       throw new Error("Invalid")
     }
-
-    return this
   }
 
   Comment.prototype.create = async function() {

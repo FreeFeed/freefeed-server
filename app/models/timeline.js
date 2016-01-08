@@ -74,7 +74,7 @@ export function addModel(dbAdapter) {
     await pubSub.newPost(post.id)
   }
 
-  Timeline.prototype.validate = function() {
+  Timeline.prototype.validate = async function() {
     const valid = this.name
       && this.name.length > 0
       && this.userId
@@ -82,8 +82,6 @@ export function addModel(dbAdapter) {
 
     if (!valid)
       throw new Error('Invalid')
-
-    return true
   }
 
   Timeline.prototype.create = async function() {
@@ -97,7 +95,7 @@ export function addModel(dbAdapter) {
   Timeline.prototype._createTimeline = async function(userDiscussionsTimeline) {
     const currentTime = new Date().getTime()
 
-    this.validate()
+    await this.validate()
 
     const payload = {
       'name':      this.name,
@@ -132,7 +130,7 @@ export function addModel(dbAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let valid = await this.validateCanShow(this.currentUser)
+    let valid = await this.canShow(this.currentUser)
 
     if (!valid)
       return []
@@ -218,7 +216,7 @@ export function addModel(dbAdapter) {
             return false
           }
 
-          return timeline.validateCanShow(this.currentUser)
+          return timeline.canShow(this.currentUser)
         })
 
         let wasPostedToReadableFeed = _.any(await Promise.all(promises))
@@ -357,7 +355,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Timeline.prototype.validateCanShow = async function(userId) {
+  Timeline.prototype.canShow = async function(userId) {
     // owner can read her posts
     if (this.userId === userId)
       return true

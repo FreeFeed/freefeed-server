@@ -154,7 +154,7 @@ describe("PostsController", function() {
             var body = 'comment'
             funcTestHelper.createComment(body, post.id, authTokenC, function(err, res) {
               err.should.not.be.empty
-              err.status.should.eql(422)
+              err.status.should.eql(404)
               var error = JSON.parse(err.response.error.text)
               error.err.should.eql('Not found')
 

@@ -115,7 +115,7 @@ export default class PubsubListener {
       let socket = sockets.connected[clientId]
       let user = socket.user
 
-      let valid = await post.validateCanShow(user.id)
+      let valid = await post.canShow(user.id)
 
       if (valid)
         socket.emit(type, json)

@@ -95,7 +95,7 @@ describe("CommentsController", function() {
       context.post.id = 'id'
       funcTestHelper.createCommentCtx(context, body)(function(err, res) {
         err.should.not.be.empty
-        err.status.should.eql(422)
+        err.status.should.eql(404)
 
         done()
       })

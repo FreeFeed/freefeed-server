@@ -11,7 +11,7 @@ import validator from 'validator'
 import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
-import { BadRequestException, ForbiddenException } from '../support/exceptions'
+import { BadRequestException, ForbiddenException, NotFoundException } from '../support/exceptions'
 import { AbstractModel, Attachment, Comment, FeedFactory, Post, Stats, Timeline } from '../models'
 
 
@@ -252,8 +252,6 @@ exports.addModel = function(dbAdapter) {
     ];
 
     await Promise.all(promises)
-
-    return this
   }
 
   //
@@ -276,20 +274,20 @@ exports.addModel = function(dbAdapter) {
     this.updatedAt = new Date().getTime()
     this.screenName = this.screenName || this.username
 
-    var user = await this.validateOnCreate(skip_stoplist)
+    await this.validateOnCreate(skip_stoplist)
 
     var timer = monitor.timer('users.create-time')
-    await user.initPassword()
+    await this.initPassword()
 
     let payload = {
-      'username':       user.username,
-      'screenName':     user.screenName,
-      'email':          user.email,
-      'type':           user.type,
+      'username':       this.username,
+      'screenName':     this.screenName,
+      'email':          this.email,
+      'type':           this.type,
       'isPrivate':      '0',
-      'createdAt':      user.createdAt.toString(),
-      'updatedAt':      user.updatedAt.toString(),
-      'hashedPassword': user.hashedPassword
+      'createdAt':      this.createdAt.toString(),
+      'updatedAt':      this.updatedAt.toString(),
+      'hashedPassword': this.hashedPassword
     }
     this.id = await dbAdapter.createUser(payload)
 
@@ -919,30 +917,28 @@ exports.addModel = function(dbAdapter) {
     ) {
       throw new ForbiddenException("You can't send private messages to friends that are not mutual")
     }
-
-    return this
   }
 
   User.prototype.validateCanSubscribe = async function(timelineId) {
-    var timelineIds = await this.getSubscriptionIds()
+    const timelineIds = await this.getSubscriptionIds()
     if (_.includes(timelineIds, timelineId)) {
       throw new ForbiddenException("You are already subscribed to that user")
     }
-    var timeline = await Timeline.findById(timelineId)
-    var banIds = await this.getBanIds()
+
+    const timeline = await Timeline.findById(timelineId)
+    const banIds = await this.getBanIds()
     if (banIds.indexOf(timeline.userId) >= 0) {
       throw new ForbiddenException("You cannot subscribe to a banned user")
     }
-    var user = await User.findById(timeline.userId)
-    var theirBanIds = await user.getBanIds()
+
+    const user = await User.findById(timeline.userId)
+    const theirBanIds = await user.getBanIds()
     if (theirBanIds.indexOf(this.id) >= 0) {
       throw new ForbiddenException("This user prevented your from subscribing to them")
     }
 
     if (user.isPrivate === '1')
       throw new ForbiddenException("You cannot subscribe to private feed")
-
-    return timelineId
   }
 
   User.prototype.validateCanUnsubscribe = async function(timelineId) {
@@ -966,18 +962,16 @@ exports.addModel = function(dbAdapter) {
     const post = await Post.findById(postId)
 
     if (!post)
-      throw new Error("Not found")
+      throw new NotFoundException("Not found")
 
-    const valid = await post.validateCanShow(this.id)
+    const valid = await post.canShow(this.id)
 
     if (!valid)
-      throw new Error("Not found")
-
-    return true
+      throw new NotFoundException("Not found")
   }
 
   User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {
-    let userLikedPost = await dbAdapter.hasUserLikedPost(this.id, post.id)
+    const userLikedPost = await dbAdapter.hasUserLikedPost(this.id, post.id)
 
     if (userLikedPost && action == 'like')
       throw new ForbiddenException("You can't like post that you have already liked")
@@ -985,12 +979,10 @@ exports.addModel = function(dbAdapter) {
     if (!userLikedPost && action == 'unlike')
       throw new ForbiddenException("You can't un-like post that you haven't yet liked")
 
-    let valid = await post.validateCanShow(this.id)
+    const valid = await post.canShow(this.id)
 
     if (!valid)
       throw new Error("Not found")
-
-    return this
   }
 
   User.prototype.updateLastActivityAt = async function() {
@@ -1057,29 +1049,28 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
-    var exists = await dbAdapter.isSubscriptionRequestPresent(this.id, userId)
+    var hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, userId)
     var user = await User.findById(userId)
     var banIds = await user.getBanIds()
 
     // user can send subscription request if and only if subscription
     // is a private and this is first time user is subscribing to it
-    if (!exists && user.isPrivate === '1' &&
-       banIds.indexOf(this.id) === -1)
-      return true
+    const valid = !hasRequest
+               && user.isPrivate === '1'
+               && banIds.indexOf(this.id) === -1
 
-    throw new Error("Invalid")
+    if (!valid)
+      throw new Error("Invalid")
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
-    var exists = await dbAdapter.isSubscriptionRequestPresent(userId, this.id)
+    var hasRequest = await dbAdapter.isSubscriptionRequestPresent(userId, this.id)
 
-    if (!exists)
+    if (!hasRequest)
       throw new Error("Invalid")
-
-    return true
   }
 
-  User.prototype.validateCanBeAccessedByUser = async function(otherUser) {
+  User.prototype.canBeAccessedByUser = async function(otherUser) {
     if (this.isPrivate !== '1') {
       return true
     }
@@ -1089,7 +1080,7 @@ exports.addModel = function(dbAdapter) {
       return false
     }
 
-    let subscriberIds = await this.getSubscriberIds()
+    const subscriberIds = await this.getSubscriberIds()
 
     if (otherUser.id !== this.id && subscriberIds.indexOf(otherUser.id) == -1) {
       // not an owner and not a subscriber

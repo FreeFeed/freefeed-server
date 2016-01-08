@@ -52,17 +52,15 @@ export function addModel(dbAdapter) {
   Attachment.findByIds = Attachment.super_.findByIds
 
   Attachment.prototype.validate = async function() {
-    var valid = this.file
-        && Object.keys(this.file).length > 0
-        && this.file.path
-        && this.file.path.length > 0
-        && this.userId
-        && this.userId.length > 0
+    const valid = this.file
+               && Object.keys(this.file).length > 0
+               && this.file.path
+               && this.file.path.length > 0
+               && this.userId
+               && this.userId.length > 0
 
     if (!valid)
       throw new Error('Invalid')
-
-    return true
   }
 
   Attachment.prototype.create = async function() {

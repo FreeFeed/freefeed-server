@@ -52,22 +52,20 @@ export function addModel(dbAdapter) {
   })
 
   Post.prototype.validate = async function() {
-    var valid
-
-    valid = this.body && this.body.length > 0
-      && this.userId && this.userId.length > 0
+    const valid = this.body
+               && this.body.length > 0
+               && this.userId
+               && this.userId.length > 0
 
     if (!valid) {
       throw new Error("Invalid")
     }
 
-    var len = GraphemeBreaker.countBreaks(this.body)
+    const len = GraphemeBreaker.countBreaks(this.body)
 
     if (len > 1500) {
       throw new Error("Maximum post-length is 1500 graphemes")
     }
-
-    return this
   }
 
   Post.prototype.create = async function() {
@@ -111,7 +109,7 @@ export function addModel(dbAdapter) {
     // Reflect post changes and validate
     this.updatedAt = new Date().getTime()
     this.body = params.body
-    this.validate()
+    await this.validate()
 
     // Calculate changes in attachments
     let oldAttachments = await this.getAttachmentIds() || []
@@ -614,7 +612,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.isPostPresentInTimeline(hidesTimelineId, this.id)
   }
 
-  Post.prototype.validateCanShow = async function(userId) {
+  Post.prototype.canShow = async function(userId) {
     var timelines = await this.getPostedTo()
 
     var arr = await Promise.all(timelines.map(async function(timeline) {

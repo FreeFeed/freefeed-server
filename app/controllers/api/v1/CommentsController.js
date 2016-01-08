@@ -12,11 +12,7 @@ export default class CommentsController {
     var timer = monitor.timer('comments.create-time')
 
     try {
-      var valid = await req.user.validateCanComment(req.body.comment.postId)
-
-      // this is a private post
-      if (!valid)
-        throw new ForbiddenException("Not found")
+      await req.user.validateCanComment(req.body.comment.postId)
 
       var newComment = req.user.newComment({
         body: req.body.comment.body,

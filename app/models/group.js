@@ -74,15 +74,15 @@ export function addModel(dbAdapter) {
       this.updatedAt = new Date().getTime()
       this.screenName = this.screenName || this.username
 
-      var group = await this.validateOnCreate(skip_stoplist)
+      await this.validateOnCreate(skip_stoplist)
 
       let payload = {
-        'username':   group.username,
-        'screenName': group.screenName,
-        'type':       group.type,
-        'createdAt':  group.createdAt.toString(),
-        'updatedAt':  group.updatedAt.toString(),
-        'isPrivate':  group.isPrivate
+        'username':   this.username,
+        'screenName': this.screenName,
+        'type':       this.type,
+        'createdAt':  this.createdAt.toString(),
+        'updatedAt':  this.updatedAt.toString(),
+        'isPrivate':  this.isPrivate
       }
       this.id = await dbAdapter.createUser(payload)
 
@@ -170,14 +170,12 @@ export function addModel(dbAdapter) {
    * Checks if the specified user can post to the timeline of this group.
    */
   Group.prototype.validateCanPost = async function(postingUser) {
-    let timeline = await this.getPostsTimeline()
-    let ids = await timeline.getSubscriberIds()
+    const timeline = await this.getPostsTimeline()
+    const ids = await timeline.getSubscriberIds()
 
     if (!_.includes(ids, postingUser.id)) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
-
-    return this
   }
 
   /**
@@ -189,13 +187,11 @@ export function addModel(dbAdapter) {
       throw new ForbiddenException("You need to log in before you can manage groups")
     }
 
-    let adminIds = await this.getAdministratorIds()
+    const adminIds = await this.getAdministratorIds()
 
     if (!_.includes(adminIds, updatingUser.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
-
-    return this
   }
 
   return Group

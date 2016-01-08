@@ -25,7 +25,7 @@ export function addModel(dbAdapter) {
 
   Stats.prototype.validateOnCreate = async function() {
     const valid = this.id
-       && this.id.length > 0
+               && this.id.length > 0
 
     if (!valid)
       throw new Error("Invalid")
