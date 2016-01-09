@@ -146,6 +146,22 @@ export function addModel(dbAdapter) {
     return this
   }
 
+  Post.prototype.setCommentsDisabled = async function(newValue) {
+    // Reflect post changes
+    this.commentsDisabled = newValue
+
+    // Update post body in DB
+    let payload = {
+      'commentsDisabled': this.commentsDisabled
+    }
+    await dbAdapter.updatePost(this.id, payload)
+
+    // Finally, publish changes
+    await pubSub.updatePost(this.id)
+
+    return this
+  }
+
   Post.prototype.destroy = async function() {
     // remove all comments
     const comments = await this.getComments()
