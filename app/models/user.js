@@ -1,9 +1,9 @@
 import { inherits } from "util"
-import _crypto from 'crypto'
+import crypto from 'crypto'
 
-import _bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt'
 import { promisifyAll } from 'bluebird'
-import _gm from 'gm'
+import gm from 'gm'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
@@ -15,11 +15,11 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '../s
 import { AbstractModel, Attachment, Comment, FeedFactory, Post, Stats, Timeline } from '../models'
 
 
-let bcrypt = promisifyAll(_bcrypt)
-let gm = promisifyAll(_gm)
+promisifyAll(bcrypt)
+promisifyAll(crypto)
+promisifyAll(gm)
 
 let config = configLoader()
-let crypto = promisifyAll(_crypto)
 
 exports.addModel = function(dbAdapter) {
   /**
@@ -257,12 +257,11 @@ exports.addModel = function(dbAdapter) {
   //
   // Create database index from email to uid
   //
-  User.prototype.createEmailIndex = function() {
+  User.prototype.createEmailIndex = async function() {
     // email is optional, so no need to index an empty key
     if (this.email && this.email.length > 0) {
-      return dbAdapter.createUserEmailIndex(this.id, this.email)
+      await dbAdapter.createUserEmailIndex(this.id, this.email)
     }
-    return new Promise.resolve(true)
   }
 
   User.prototype.dropIndexForEmail = function(email) {
@@ -508,17 +507,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    var commentsId
-      , likesId
-
-    await Promise.join(
-      this.getCommentsTimelineId(),
-      this.getLikesTimelineId(),
-      (cId, lId) => {
-        commentsId = cId
-        likesId = lId
-      }
-    )
+    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineId(), this.getLikesTimelineId()])
 
     let myDiscussionsTimelineId = dbAdapter.getUserDiscussionsTimelineId(this.id)
     let timelineExists = await dbAdapter.existsTimeline(myDiscussionsTimelineId)
@@ -825,7 +814,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.updateProfilePicture = async function(file) {
-    let image = Promise.promisifyAll(gm(file.path))
+    let image = promisifyAll(gm(file.path))
 
     let originalSize
 
@@ -857,7 +846,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.saveProfilePictureWithSize = function(path, uuid, originalSize, size) {
-    var image = Promise.promisifyAll(gm(path))
+    var image = promisifyAll(gm(path))
     var origWidth = originalSize.width
     var origHeight = originalSize.height
     if (origWidth > origHeight) {
@@ -881,20 +870,26 @@ exports.addModel = function(dbAdapter) {
     return uuid + "_" + size + ".jpg"
   }
 
-  User.prototype.getProfilePictureLargeUrl = function() {
+  // used by serializer
+  User.prototype.getProfilePictureLargeUrl = async function() {
     if (_.isEmpty(this.profilePictureUuid)) {
-      return Promise.resolve('')
+      return ''
     }
-    return Promise.resolve(config.profilePictures.url + config.profilePictures.path + this.getProfilePictureFilename(
-        this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE))
+
+    return config.profilePictures.url
+         + config.profilePictures.path
+         + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE)
   }
 
-  User.prototype.getProfilePictureMediumUrl = function() {
+  // used by serializer
+  User.prototype.getProfilePictureMediumUrl = async function() {
     if (_.isEmpty(this.profilePictureUuid)) {
-      return Promise.resolve('')
+      return ''
     }
-    return Promise.resolve(config.profilePictures.url + config.profilePictures.path + this.getProfilePictureFilename(
-      this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM))
+
+    return config.profilePictures.url
+         + config.profilePictures.path
+         + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
   }
 
   /**
