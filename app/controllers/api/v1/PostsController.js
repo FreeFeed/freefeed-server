@@ -11,9 +11,9 @@ export default class PostsController {
       return
     }
 
-    var feeds = []
     req.body.meta = req.body.meta || {}
 
+    let feeds = []
     if (_.isArray(req.body.meta.feeds)) {
       feeds = req.body.meta.feeds
     } else if (req.body.meta.feeds) {
@@ -22,6 +22,8 @@ export default class PostsController {
       res.status(401).jsonp({ err: 'Cannot publish post to /dev/null' })
       return
     }
+
+    const commentsDisabled = (req.body.meta.commentsDisabled ? '1' : '0')
 
     try {
       let promises = feeds.map(async (username) => {
@@ -49,7 +51,8 @@ export default class PostsController {
       let newPost = await req.user.newPost({
         body: req.body.post.body,
         attachments: req.body.post.attachments,
-        timelineIds: timelineIds
+        timelineIds: timelineIds,
+        commentsDisabled: commentsDisabled
       })
 
       await newPost.create()
