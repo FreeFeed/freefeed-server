@@ -5,6 +5,7 @@ import url from 'url'
 
 import { promisifyAll } from 'bluebird'
 import fetch from 'node-fetch'
+import { wait as waitForStream } from 'promise-streams'
 
 import { PostSerializer } from '../../../models'
 import exceptions from '../../../support/exceptions'
@@ -31,8 +32,9 @@ const getAttachments = async function(author, imageUrl) {
   const response = await fetch(imageUrl)
 
   const fileType = response.headers.get('content-type')
-  await fs.writeFileAsync(filePath, response.body)
+  const stream = fs.createWriteStream(filePath, {flags: 'w'})
 
+  await waitForStream(response.body.pipe(stream))
   const stats = await fs.statAsync(filePath)
 
   const file = {
