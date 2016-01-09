@@ -4,6 +4,7 @@ import { promisifyAll } from 'bluebird'
 import express from 'express'
 
 import routesInit from './routes'
+import PubsubListener from './pubsub-listener'
 
 
 let app = null
@@ -21,6 +22,8 @@ export async function getSingleton() {
 
   await environment.init(_app)
   routesInit(_app)
+
+  _app.pubsub = new PubsubListener(server, _app)
 
   const port = (process.env.PEPYATKA_SERVER_PORT || _app.get('port'))
   await server.listenAsync(port)
