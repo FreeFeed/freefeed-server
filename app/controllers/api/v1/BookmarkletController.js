@@ -4,13 +4,12 @@ import path from 'path'
 import url from 'url'
 
 import { promisifyAll } from 'bluebird'
-import request from 'request'
+import fetch from 'node-fetch'
 
 import { PostSerializer } from '../../../models'
 import exceptions from '../../../support/exceptions'
 
 
-promisifyAll(request)
 promisifyAll(fs)
 
 const getAttachments = async function(author, imageUrl) {
@@ -29,10 +28,10 @@ const getAttachments = async function(author, imageUrl) {
   const fileName = `pepyatka${bytes}tmp.${ext}`
   const filePath = `/tmp/${fileName}`
 
-  let [response, body] = await request.getAsync({ url: imageUrl, encoding: null })
+  const response = await fetch(imageUrl)
 
-  const fileType = response.headers['content-type']
-  await fs.writeFileAsync(filePath, body)
+  const fileType = response.headers.get('content-type')
+  await fs.writeFileAsync(filePath, response.body)
 
   const stats = await fs.statAsync(filePath)
 
