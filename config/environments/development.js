@@ -1,9 +1,6 @@
-"use strict";
-
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
 process.env.MONITOR_PREFIX = 'development'
 
-var nodemailer = require('nodemailer')
 var transport = function() {
   return {
     name: 'minimal',
@@ -18,7 +15,7 @@ var transport = function() {
   }
 }
 
-exports.getConfig = function() {
+export function getConfig() {
   var config = {
     port: 3000,
     database: 2,

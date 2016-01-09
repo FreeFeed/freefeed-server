@@ -1,12 +1,22 @@
-var request = require('superagent')
-  , app = require('../../index')
-  , models = require('../../app/models')
-  , funcTestHelper = require('./functional_test_helper')
-  , mkdirp = require('mkdirp')
-  , config = require('../../config/config').load()
+/*eslint-env node, mocha */
+/*global $database */
+import request from 'superagent'
+import mkdirp from 'mkdirp'
+
+import { getSingleton } from '../../app/app'
+import { load as configLoader } from '../../config/config'
+import * as funcTestHelper from './functional_test_helper'
+
+
+const config = configLoader()
 
 describe("GroupsController", function() {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe("#create()", function() {
     var context = {}

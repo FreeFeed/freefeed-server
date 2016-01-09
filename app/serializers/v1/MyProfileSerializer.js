@@ -1,11 +1,7 @@
-var Serializer = require("../../models").Serializer
-  , models = require("../../models")
-  , SubscriptionSerializer = models.SubscriptionSerializer
-  , SubscriptionRequestSerializer = models.SubscriptionRequestSerializer
-  , SubscriberSerializer = models.SubscriberSerializer
-  , AdminSerializer = models.AdminSerializer
+import { Serializer, AdminSerializer, SubscriptionSerializer, SubscriptionRequestSerializer, SubscriberSerializer } from '../../models'
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer('users', {
     select: ['id', 'username', 'type', 'screenName', 'email', 'statistics',
              'subscriptions', 'profilePictureLargeUrl', 'profilePictureMediumUrl',

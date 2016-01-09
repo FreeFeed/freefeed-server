@@ -1,7 +1,12 @@
-var models = require('../../app/models')
-  , config = require('../../config/config').load()
-  , fs = require('fs')
-  , mkdirp = require('mkdirp')
+import fs from 'fs'
+
+import mkdirp from 'mkdirp'
+
+import { User, Attachment } from '../../app/models'
+import { load as configLoader } from '../../config/config'
+
+
+const config = configLoader()
 
 describe('Attachment', function() {
   beforeEach(function(done) {
@@ -16,7 +21,7 @@ describe('Attachment', function() {
       , fileContents
 
     beforeEach(function(done) {
-      user = new models.User({
+      user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -53,7 +58,7 @@ describe('Attachment', function() {
     })
 
     it('should create an attachment', function(done) {
-      var attachment = new models.Attachment({
+      var attachment = new Attachment({
         file: file,
         postId: post.id,
         userId: user.id
@@ -61,12 +66,12 @@ describe('Attachment', function() {
 
       attachment.create()
         .then(function(newAttachment) {
-          newAttachment.should.be.an.instanceOf(models.Attachment)
+          newAttachment.should.be.an.instanceOf(Attachment)
           newAttachment.should.not.be.empty
           newAttachment.should.have.property('id')
-          return models.Attachment.findById(attachment.id)
+          return Attachment.findById(attachment.id)
         }).then(function(newAttachment) {
-          newAttachment.should.be.an.instanceOf(models.Attachment)
+          newAttachment.should.be.an.instanceOf(Attachment)
           newAttachment.should.not.be.empty
           newAttachment.should.have.property('id')
           newAttachment.id.should.eql(attachment.id)

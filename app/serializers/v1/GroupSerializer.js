@@ -1,9 +1,7 @@
-var models = require("../../models")
-  , Serializer = models.Serializer
-  , AdminSerializer = models.AdminSerializer
-  , SubscriptionSerializer = models.SubscriptionSerializer
+import { Serializer, AdminSerializer, SubscriptionSerializer } from '../../models'
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer('groups', {
     select: ['id', 'username', 'type', 'screenName',
              'profilePictureLargeUrl', 'profilePictureMediumUrl',

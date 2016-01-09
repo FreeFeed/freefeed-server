@@ -1,11 +1,7 @@
-var models = require("../../models")
-  , Serializer = models.Serializer
-  , UserSerializer = models.UserSerializer
-  , AttachmentSerializer = models.AttachmentSerializer
-  , CommentSerializer = models.CommentSerializer
-  , SubscriptionSerializer = models.SubscriptionSerializer
+import { Serializer, AttachmentSerializer, CommentSerializer, SubscriptionSerializer, UserSerializer} from '../../models'
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer("posts", {
     select: ['id', 'body', 'attachments', 'createdBy', 'comments', 'createdAt', 'updatedAt', 'updatedAt', 'likes', 'isHidden', 'omittedComments', 'omittedLikes', 'postedTo'],
     attachments: { through: AttachmentSerializer, embed: true },

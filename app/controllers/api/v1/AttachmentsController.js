@@ -1,44 +1,41 @@
-"use strict";
-
 import formidable from 'formidable'
 
 import { AttachmentSerializer } from '../../../models'
 import exceptions from '../../../support/exceptions'
 
-exports.addController = function(app) {
-  var AttachmentsController = function() {
+
+export default class AttachmentsController {
+  app = null
+
+  constructor(app) {
+    this.app = app
   }
 
-  AttachmentsController.create = function(req, res) {
+  create(req, res) {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
     var form = new formidable.IncomingForm()
 
-    form.on('file', function(inputName, file) {
-      req.user.newAttachment({ file: file })
-        .then(function(newAttachment) {
-          return newAttachment.create()
-        })
-        .then(function(newAttachment) {
-          new AttachmentSerializer(newAttachment).toJSON(function(err, json) {
-            res.jsonp(json)
-          })
-        })
-        .catch(function(e) {
-          if (e.message && e.message.indexOf('Corrupt image') > -1) {
-            console.log(e)
+    form.on('file', async (inputName, file) => {
+      try {
+        const newAttachment = await req.user.newAttachment({ file: file })
+        await newAttachment.create()
 
-            let errorDetails = { message: 'Corrupt image' }
-            exceptions.reportError(res)(errorDetails)
-          } else {
-            exceptions.reportError(res)(e)
-          }
-        })
+        let json = await new AttachmentSerializer(newAttachment).promiseToJSON()
+        res.jsonp(json)
+      } catch (e) {
+        if (e.message && e.message.indexOf('Corrupt image') > -1) {
+          this.app.logger.warning(e.message)
+
+          let errorDetails = { message: 'Corrupt image' }
+          exceptions.reportError(res)(errorDetails)
+        } else {
+          exceptions.reportError(res)(e)
+        }
+      }
     })
 
     form.parse(req)
   }
-
-  return AttachmentsController
 }

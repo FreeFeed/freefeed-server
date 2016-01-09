@@ -1,42 +1,64 @@
-"use strict";
+import { connect as redisConnection } from '../config/database'
+import { DbAdapter } from './support/DbAdapter'
+import { PubSubAdapter } from './support/PubSubAdapter'
+import pubSub from './pubsub'
 
-import {DbAdapter} from './support/DbAdapter'
-import {PubSubAdapter} from './support/PubSubAdapter'
+import { addModel as abstractModel } from './models/abstract_model'
+import { addModel as attachmentModel } from './models/attachment'
+import { addModel as commentModel } from './models/comment'
+import { addModel as feedFactoryModel } from './models/feed-factory'
+import { addModel as groupModel } from './models/group'
+import { addModel as postModel } from './models/post'
+import { addModel as statsModel } from './models/stats'
+import { addModel as timelineModel } from './models/timeline'
+import { addModel as userModel } from './models/user'
 
-var redis = require('../config/database')
-  , database = redis.connect()
+import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer'
+import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer'
+import { addSerializer as commentSerializer } from './serializers/v1/CommentSerializer'
+import { addSerializer as groupSerializer } from './serializers/v1/GroupSerializer'
+import { addSerializer as likeSerializer } from './serializers/v1/LikeSerializer'
+import { addSerializer as myProfileSerializer } from './serializers/v1/MyProfileSerializer'
+import { addSerializer as postSerializer } from './serializers/v1/PostSerializer'
+import { addSerializer as pubsubCommentSerializer } from './serializers/v1/PubsubCommentSerializer'
+import { addSerializer as subscriberSerializer } from './serializers/v1/SubscriberSerializer'
+import { addSerializer as subscriptionSerializer } from './serializers/v1/SubscriptionSerializer'
+import { addSerializer as subscriptionRequestSerializer } from './serializers/v1/SubscriptionRequestSerializer'
+import { addSerializer as timelineSerializer } from './serializers/v1/TimelineSerializer'
+import { addSerializer as userSerializer } from './serializers/v1/UserSerializer'
 
-exports.database = database
 
-exports.AbstractSerializer = require('./serializers/abstract_serializer').addSerializer()
-exports.Serializer         = require("./serializers/serializer").addSerializer()
+// Be careful: order of exports is important.
+export const database = redisConnection()
 
-var PubSub = require('./pubsub')
-let dbAdapter = new DbAdapter(database)
-let pubsubAdapter = new PubSubAdapter(database)
+const dbAdapter = new DbAdapter(database)
 
-exports.PubSub = new PubSub(pubsubAdapter)
+export { AbstractSerializer } from './serializers/abstract_serializer'
+export { Serializer }         from "./serializers/serializer"
 
-exports.AbstractModel = require('./models/abstract_model').addModel(dbAdapter)
-exports.User          = require('./models/user').addModel(dbAdapter)
-exports.Group         = require('./models/group').addModel(dbAdapter)
-exports.FeedFactory   = require('./models/feed-factory').addModel(dbAdapter)
-exports.Post          = require('./models/post').addModel(dbAdapter)
-exports.Timeline      = require('./models/timeline').addModel(dbAdapter)
-exports.Attachment    = require('./models/attachment').addModel(dbAdapter)
-exports.Comment       = require('./models/comment').addModel(dbAdapter)
-exports.Stats         = require('./models/stats').addModel(dbAdapter)
+const pubsubAdapter = new PubSubAdapter(database)
+export const PubSub = new pubSub(pubsubAdapter)
 
-exports.AdminSerializer         = require('./serializers/v1/AdminSerializer').addSerializer()
-exports.UserSerializer         = require('./serializers/v1/UserSerializer').addSerializer()
-exports.SubscriberSerializer   = require('./serializers/v1/SubscriberSerializer').addSerializer()
-exports.SubscriptionSerializer = require('./serializers/v1/SubscriptionSerializer').addSerializer()
-exports.SubscriptionRequestSerializer = require('./serializers/v1/SubscriptionRequestSerializer').addSerializer()
-exports.MyProfileSerializer    = require('./serializers/v1/MyProfileSerializer').addSerializer()
-exports.LikeSerializer         = require('./serializers/v1/LikeSerializer').addSerializer()
-exports.GroupSerializer        = require('./serializers/v1/GroupSerializer').addSerializer()
-exports.AttachmentSerializer   = require('./serializers/v1/AttachmentSerializer').addSerializer()
-exports.CommentSerializer      = require('./serializers/v1/CommentSerializer').addSerializer()
-exports.PubsubCommentSerializer = require('./serializers/v1/PubsubCommentSerializer').addSerializer()
-exports.PostSerializer         = require('./serializers/v1/PostSerializer').addSerializer()
-exports.TimelineSerializer     = require('./serializers/v1/TimelineSerializer').addSerializer()
+export const AbstractModel = abstractModel(dbAdapter)
+export const User          = userModel(dbAdapter)
+export const Group         = groupModel(dbAdapter)
+export const FeedFactory   = feedFactoryModel(dbAdapter)
+export const Post          = postModel(dbAdapter)
+export const Timeline      = timelineModel(dbAdapter)
+export const Attachment    = attachmentModel(dbAdapter)
+export const Comment       = commentModel(dbAdapter)
+export const Stats         = statsModel(dbAdapter)
+
+export const AdminSerializer               = adminSerializer()
+export const UserSerializer                = userSerializer()
+export const SubscriberSerializer          = subscriberSerializer()
+export const SubscriptionSerializer        = subscriptionSerializer()
+export const SubscriptionRequestSerializer = subscriptionRequestSerializer()
+export const MyProfileSerializer           = myProfileSerializer()
+export const LikeSerializer                = likeSerializer()
+export const GroupSerializer               = groupSerializer()
+export const AttachmentSerializer          = attachmentSerializer()
+export const CommentSerializer             = commentSerializer()
+export const PubsubCommentSerializer       = pubsubCommentSerializer()
+export const PostSerializer                = postSerializer()
+export const TimelineSerializer            = timelineSerializer()

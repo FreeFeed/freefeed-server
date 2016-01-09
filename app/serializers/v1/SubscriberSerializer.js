@@ -1,6 +1,7 @@
-import {Serializer} from '../../models'
+import { Serializer } from '../../models'
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer("subscribers", {
     select: ['id', 'username', 'screenName', 'type', 'updatedAt', 'createdAt',
              'isPrivate', 'profilePictureLargeUrl', 'profilePictureMediumUrl']

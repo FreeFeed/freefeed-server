@@ -1,24 +1,25 @@
-import Promise from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
 import _ from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
-import models from './models'
-import config_loader from '../config/config'
+import { Comment, LikeSerializer, Post, PostSerializer, PubsubCommentSerializer, User } from './models'
+import { load as configLoader } from '../config/config'
+
 
 export default class PubsubListener {
   constructor(server, app) {
     this.app = app
 
-    var config = config_loader.load()
+    const config = configLoader()
 
     var redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
       , redisSub = createRedisClient(config.redis.port, config.redis.host, _.extend(config.redis.options, { detect_buffers: true }))
 
-    redisPub.on('error', function(err) { console.log(err) })
-    redisSub.on('error', function(err) { console.log(err) })
+    redisPub.on('error', function(err) { app.logger.error('redisPub error', err) })
+    redisSub.on('error', function(err) { app.logger.error('redisSub error', err) })
 
     this.io = IoServer(server)
     this.io.adapter(redis_adapter({
@@ -26,11 +27,11 @@ export default class PubsubListener {
       subClient: redisSub
     }))
 
-    this.io.sockets.on('error', function(err) { console.log(err) })
+    this.io.sockets.on('error', function(err) { app.logger.error('socket.io error', err) })
     this.io.sockets.on('connection', this.onConnect.bind(this))
 
     var redisClient = createRedisClient(config.redis.port, config.redis.host, {})
-    redisClient.on('error', function(err) { console.log(err) })
+    redisClient.on('error', function(err) { app.logger.error('redis error', err) })
     redisClient.subscribe('post:new', 'post:destroy', 'post:update',
       'comment:new', 'comment:destroy', 'comment:update',
       'like:new', 'like:remove', 'post:hide', 'post:unhide')
@@ -40,14 +41,14 @@ export default class PubsubListener {
 
   async onConnect(socket) {
     let authToken = socket.handshake.query.token
-    let config = config_loader.load()
+    const config = configLoader()
     let secret = config.secret
     let logger = this.app.logger
 
-    let jwtAsync = Promise.promisifyAll(jwt)
+    let jwtAsync = promisifyAll(jwt)
     try {
       let decoded = await jwtAsync.verifyAsync(authToken, secret)
-      socket.user = await models.User.findById(decoded.userId)
+      socket.user = await User.findById(decoded.userId)
     } catch(e) {
       socket.user = { id: null }
     }
@@ -100,7 +101,7 @@ export default class PubsubListener {
     messageRoutes[channel](
       this.io.sockets,
       JSON.parse(msg)
-    ).catch(e => {console.log(e)})
+    ).catch(e => { this.app.logger.error('onRedisMessage error', e )})
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
@@ -114,7 +115,7 @@ export default class PubsubListener {
       let socket = sockets.connected[clientId]
       let user = socket.user
 
-      let valid = await post.validateCanShow(user.id)
+      let valid = await post.canShow(user.id)
 
       if (valid)
         socket.emit(type, json)
@@ -123,7 +124,7 @@ export default class PubsubListener {
 
   // Message-handlers follow
   async onPostDestroy(sockets, data) {
-    let post = await models.Post.findById(data.postId)
+    let post = await Post.findById(data.postId)
     let json = { meta: { postId: data.postId } }
 
     sockets.in('timeline:' + data.timelineId).emit('post:destroy', json)
@@ -138,8 +139,8 @@ export default class PubsubListener {
   }
 
   async onPostNew(sockets, data) {
-    let post = await models.Post.findById(data.postId)
-    let json = await new models.PostSerializer(post).promiseToJSON()
+    let post = await Post.findById(data.postId)
+    let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:new'
     let room = `timeline:${data.timelineId}`
@@ -148,8 +149,8 @@ export default class PubsubListener {
   }
 
   async onPostUpdate(sockets, data) {
-    let post = await models.Post.findById(data.postId)
-    let json = await new models.PostSerializer(post).promiseToJSON()
+    let post = await Post.findById(data.postId)
+    let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:update'
     let room
@@ -163,9 +164,15 @@ export default class PubsubListener {
   }
 
   async onCommentNew(sockets, data) {
-    let comment = await models.Comment.findById(data.commentId)
-    let post = await models.Post.findById(comment.postId)
-    let json = await new models.PubsubCommentSerializer(comment).promiseToJSON()
+    let comment = await Comment.findById(data.commentId)
+
+    if (!comment) {
+      // might be outdated event
+      return
+    }
+
+    let post = await Post.findById(comment.postId)
+    let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     let type = 'comment:new'
     let room
@@ -180,9 +187,9 @@ export default class PubsubListener {
   }
 
   async onCommentUpdate(sockets, data) {
-    let comment = await models.Comment.findById(data.commentId)
-    let post = await models.Post.findById(comment.postId)
-    let json = await new models.PubsubCommentSerializer(comment).promiseToJSON()
+    let comment = await Comment.findById(data.commentId)
+    let post = await Post.findById(comment.postId)
+    let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     let type = 'comment:update'
     let room
@@ -198,7 +205,7 @@ export default class PubsubListener {
 
   async onCommentDestroy(sockets, data) {
     let json = { postId: data.postId, commentId: data.commentId }
-    let post = await models.Post.findById(data.postId)
+    let post = await Post.findById(data.postId)
     
     let type = 'comment:destroy'
     let room
@@ -211,9 +218,9 @@ export default class PubsubListener {
   }
 
   async onLikeNew(sockets, data) {
-    let user = await models.User.findById(data.userId)
-    let json = await new models.LikeSerializer(user).promiseToJSON()
-    let post = await models.Post.findById(data.postId)
+    let user = await User.findById(data.userId)
+    let json = await new LikeSerializer(user).promiseToJSON()
+    let post = await Post.findById(data.postId)
     json.meta = { postId: data.postId }
 
     let type = 'like:new'
@@ -229,7 +236,7 @@ export default class PubsubListener {
 
   async onLikeRemove(sockets, data) {
     let json = { meta: { userId: data.userId, postId: data.postId } }
-    let post = await models.Post.findById(data.postId)
+    let post = await Post.findById(data.postId)
 
     let type = 'like:remove'
     let room

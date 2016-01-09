@@ -1,8 +1,8 @@
-import Promise from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import jwt from 'jsonwebtoken'
 import express from 'express'
 
-import config_loader from '../config/config'
+import { load as configLoader } from '../config/config'
 import {User} from './models'
 
 import SessionRoute from './routes/api/v1/SessionRoute'
@@ -16,49 +16,47 @@ import GroupsRoute from './routes/api/v1/GroupsRoute'
 import PasswordsRoute from './routes/api/v1/PasswordsRoute'
 
 
-let config = config_loader.load()
-Promise.promisifyAll(jwt)
-
-
-var findUser = async (req, res, next) => {
-  var authToken = req.headers['x-authentication-token']
-    || req.body.authToken
-    || req.query.authToken
-
-  if (authToken) {
-    try {
-      let decoded = await jwt.verifyAsync(authToken, config.secret)
-      let user = await User.findById(decoded.userId)
-
-      if (user) {
-        req.user = user
-      }
-    } catch(e) {
-      // invalid token. the user will be treated as anonymous
-      console.info(e)
-    }
-  }
-
-  next()
-}
+const config = configLoader()
+promisifyAll(jwt)
 
 export default function(app) {
+  const findUser = async (req, res, next) => {
+    var authToken = req.headers['x-authentication-token']
+      || req.body.authToken
+      || req.query.authToken
+
+    if (authToken) {
+      try {
+        let decoded = await jwt.verifyAsync(authToken, config.secret)
+        let user = await User.findById(decoded.userId)
+
+        if (user) {
+          req.user = user
+        }
+      } catch(e) {
+        app.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`)
+      }
+    }
+
+    next()
+  }
+
   app.use(express.static(__dirname + '/../public'))
 
   // unauthenticated routes
   app.options('/*', (req, res) => {
     res.status(200).send({})
   })
-  SessionRoute.addRoutes(app)
-  PasswordsRoute.addRoutes(app)
+  SessionRoute(app)
+  PasswordsRoute(app)
 
   // [at least optionally] authenticated routes
   app.all('/*', findUser)
-  BookmarkletRoute.addRoutes(app)
-  UsersRoute.addRoutes(app)
-  GroupsRoute.addRoutes(app)
-  TimelinesRoute.addRoutes(app)
-  PostsRoute.addRoutes(app)
-  AttachmentsRoute.addRoutes(app)
-  CommentsRoute.addRoutes(app)
+  BookmarkletRoute(app)
+  UsersRoute(app)
+  GroupsRoute(app)
+  TimelinesRoute(app)
+  PostsRoute(app)
+  AttachmentsRoute(app)
+  CommentsRoute(app)
 }

@@ -1,10 +1,18 @@
-var request = require('superagent')
-  , app = require('../../index')
-  , models = require('../../app/models')
-  , funcTestHelper = require('./functional_test_helper')
+/*eslint-env node, mocha */
+/*global $database */
+import request from 'superagent'
+
+import { getSingleton } from '../../app/app'
+import * as funcTestHelper from './functional_test_helper'
+
 
 describe("CommentsController", function() {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe('#create()', function() {
     var post
@@ -87,7 +95,7 @@ describe("CommentsController", function() {
       context.post.id = 'id'
       funcTestHelper.createCommentCtx(context, body)(function(err, res) {
         err.should.not.be.empty
-        err.status.should.eql(422)
+        err.status.should.eql(404)
 
         done()
       })

@@ -1,10 +1,12 @@
-"use strict";
+const env = process.env.NODE_ENV || 'development'
+const configName = `./environments/${env}`
 
-var env = process.env.NODE_ENV || 'development'
-  , configName = "./environments/" + env
-  , config
+let config
 
-exports.load = function() {
-  if (!config) config = require(configName).getConfig()
+export function load() {
+  // FIXME: should be replaced with promise-based System.import() eventually
+  if (!config)
+    config = require(configName).getConfig()
+
   return config
 }

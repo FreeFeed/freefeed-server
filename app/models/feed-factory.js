@@ -1,6 +1,3 @@
-"use strict";
-
-import Promise from "bluebird"
 import { inherits } from "util"
 
 import { AbstractModel, User, Group } from "../../app/models"
@@ -10,7 +7,7 @@ import { NotFoundException } from "../support/exceptions"
 let config = configLoader()
 
 
-exports.addModel = function(dbAdapter) {
+export function addModel(dbAdapter) {
   var FeedFactory = function() {
   }
 
@@ -19,8 +16,8 @@ exports.addModel = function(dbAdapter) {
   FeedFactory.stopList = function(default_stop_list) {
     if (default_stop_list)
       return config.application.DEFAULT_STOP_LIST
-    else
-      return config.application.USERNAME_STOP_LIST
+
+    return config.application.USERNAME_STOP_LIST
   }
 
   FeedFactory.findById = async function(identifier) {
@@ -28,9 +25,9 @@ exports.addModel = function(dbAdapter) {
 
     if (attrs.type === 'group') {
       return Group.initObject(attrs, identifier)
-    } else {
-      return User.initObject(attrs, identifier)
     }
+
+    return User.initObject(attrs, identifier)
   }
 
   FeedFactory.findByIds = async function(identifiers) {
@@ -38,9 +35,9 @@ exports.addModel = function(dbAdapter) {
     let objects = responses.map((attrs, i) => {
       if (attrs.type === 'group') {
         return Group.initObject(attrs, identifiers[i])
-      } else {
-        return User.initObject(attrs, identifiers[i])
       }
+
+      return User.initObject(attrs, identifiers[i])
     })
 
     return objects

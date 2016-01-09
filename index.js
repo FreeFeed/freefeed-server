@@ -1,32 +1,21 @@
-"use strict";
+import bluebird from 'bluebird'
+import consoleStamp from 'console-stamp'
 
-global.Promise = require('bluebird')
+import { getSingleton as initApp } from './app/app'
+
+
+global.Promise = bluebird
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
-require("babel/register")({
-  stage: 1
-})
+consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
 
-require("console-stamp")(console, 'yyyy/mm/dd HH:MM:ss.l')
-
-var express = require('express')
-  , app = express()
-  , environment = require('./config/environment')
-  , http = require('http')
-  , server = http.createServer(app)
-
-module.exports = app
-
-environment.init(app)
-  .then(function(app) {
-    var PubsubListener = require('./app/pubsub-listener')
-      , pubsub = new PubsubListener(server, app)
-    var routes = require('./app/routes')(app)
-
-    var port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'))
-
-    server.listen(port, function() {
-      app.logger.info("Express server is listening on port " + port);
-      app.logger.info("Server is running in " + (process.env.NODE_ENV || "development") + " mode")
-    })
+initApp()
+  .then((app) => {
+    app.logger.info(`Server initialization is complete`)
+  })
+  .catch((e) => {
+    process.stderr.write(`FATAL ERROR\n`)
+    process.stderr.write(`${e.message}\n`)
+    process.stderr.write(`${e.stack}\n`)
+    process.exit(1)
   })

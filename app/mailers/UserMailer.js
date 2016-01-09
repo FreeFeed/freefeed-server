@@ -1,17 +1,13 @@
-"use strict";
+import Mailer from '../../lib/mailer'
+import { load as configLoader } from '../../config/config'
 
-var mailer = require('../../lib/mailer').init()
-var config = require('../../config/config').load()
 
-exports.addMailer = function(app) {
-  var UserMailer = function() {
-  }
+let config = configLoader()
 
-  UserMailer.resetPassword = function(user, locals) {
+export default class UserMailer{
+  static async resetPassword(user, locals) {
     var subject = config.mailer.resetPasswordMailSubject
 
-    mailer.sendMail(user, subject, locals, config.appRoot + '/app/scripts/views/mailer/resetPassword.ejs')
+    await Mailer.sendMail(user, subject, locals, `${config.appRoot}/app/scripts/views/mailer/resetPassword.ejs`)
   }
-
-  return UserMailer
 }

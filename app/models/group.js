@@ -1,15 +1,12 @@
-"use strict";
+import { inherits } from "util"
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , exceptions = require('../support/exceptions')
-  , ForbiddenException = exceptions.ForbiddenException
-  , AbstractModel = models.AbstractModel
-  , User = models.User
-  , _ = require('lodash')
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { FeedFactory, Stats, User } from '../models'
+import { ForbiddenException } from '../support/exceptions'
+
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    * @extends User
@@ -57,7 +54,7 @@ exports.addModel = function(dbAdapter) {
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
-        && models.FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
+        && FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return valid
   }
@@ -77,19 +74,19 @@ exports.addModel = function(dbAdapter) {
       this.updatedAt = new Date().getTime()
       this.screenName = this.screenName || this.username
 
-      var group = await this.validateOnCreate(skip_stoplist)
+      await this.validateOnCreate(skip_stoplist)
 
       let payload = {
-        'username':   group.username,
-        'screenName': group.screenName,
-        'type':       group.type,
-        'createdAt':  group.createdAt.toString(),
-        'updatedAt':  group.updatedAt.toString(),
-        'isPrivate':  group.isPrivate
+        'username':   this.username,
+        'screenName': this.screenName,
+        'type':       this.type,
+        'createdAt':  this.createdAt.toString(),
+        'updatedAt':  this.updatedAt.toString(),
+        'isPrivate':  this.isPrivate
       }
       this.id = await dbAdapter.createUser(payload)
 
-      var stats = new models.Stats({
+      var stats = new Stats({
         id: this.id
       })
 
@@ -140,34 +137,21 @@ exports.addModel = function(dbAdapter) {
   }
 
   Group.prototype.addAdministrator = function(feedId) {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      dbAdapter.addAdministratorToGroup(that.id, feedId)
-        .then(function(res) { resolve(res) })
-        .catch(function(e) { reject(e) })
-    })
+    return dbAdapter.addAdministratorToGroup(this.id, feedId)
   }
 
-  Group.prototype.removeAdministrator = function(feedId) {
-    var that = this
+  Group.prototype.removeAdministrator = async function(feedId) {
+    let adminIds = await this.getAdministratorIds()
 
-    return new Promise(function(resolve, reject) {
-      that.getAdministratorIds()
-          .then(function(adminIds) {
-            if (adminIds.indexOf(feedId) == -1) {
-              reject(new Error("Not an administrator"))
-            }
-            else if (adminIds.length == 1) {
-              reject(new Error("Cannot remove last administrator"))
-            }
-            else {
-              dbAdapter.removeAdministratorFromGroup(that.id, feedId)
-                  .then(function(res) { resolve(res) })
-                  .catch(function(e) { reject(e) })
-            }
-          })
-    })
+    if (adminIds.indexOf(feedId) == -1) {
+      throw new Error("Not an administrator")
+    }
+
+    if (adminIds.length == 1) {
+      throw new Error("Cannot remove last administrator")
+    }
+
+    return dbAdapter.removeAdministratorFromGroup(this.id, feedId)
   }
 
   Group.prototype.getAdministratorIds = async function() {
@@ -177,7 +161,7 @@ exports.addModel = function(dbAdapter) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await models.User.findByIds(adminIds)
+    this.administrators = await User.findByIds(adminIds)
 
     return this.administrators
   }
@@ -185,41 +169,29 @@ exports.addModel = function(dbAdapter) {
   /**
    * Checks if the specified user can post to the timeline of this group.
    */
-  Group.prototype.validateCanPost = function(postingUser) {
-    var that = this
+  Group.prototype.validateCanPost = async function(postingUser) {
+    const timeline = await this.getPostsTimeline()
+    const ids = await timeline.getSubscriberIds()
 
-    return this.getPostsTimeline()
-        .then(function(timeline) {
-          return timeline.getSubscriberIds()
-        })
-        .then(function(ids) {
-          if (_.includes(ids, postingUser.id)) {
-            return Promise.resolve(that)
-          }
-          return Promise.reject(new ForbiddenException(
-              "You can't post to a group to which you aren't subscribed"))
-        })
+    if (!_.includes(ids, postingUser.id)) {
+      throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
+    }
   }
 
   /**
    * Checks if the specified user can update the settings of this group
    * (i.e. is an admin in the group).
    */
-  Group.prototype.validateCanUpdate = function(updatingUser) {
-    var that = this
-
+  Group.prototype.validateCanUpdate = async function(updatingUser) {
     if (!updatingUser) {
-      return Promise.reject(new ForbiddenException(
-        "You need to log in before you can manage groups"))
+      throw new ForbiddenException("You need to log in before you can manage groups")
     }
 
-    return this.getAdministratorIds().then(function(adminIds) {
-      if (_.includes(adminIds, updatingUser.id)) {
-        return Promise.resolve(that)
-      }
-      return Promise.reject(new ForbiddenException(
-        "You aren't an administrator of this group"))
-    })
+    const adminIds = await this.getAdministratorIds()
+
+    if (!_.includes(adminIds, updatingUser.id)) {
+      throw new ForbiddenException("You aren't an administrator of this group")
+    }
   }
 
   return Group

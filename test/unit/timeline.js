@@ -1,7 +1,7 @@
-var models = require("../../app/models")
-  , uuid = require('uuid')
-  , Timeline = models.Timeline
-  , User = models.User
+import uuid from 'uuid'
+
+import { Timeline, User } from '../../app/models'
+
 
 describe('Timeline', function() {
   beforeEach(function(done) {

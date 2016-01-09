@@ -1,15 +1,20 @@
+/*eslint-env node, mocha */
+/*global $database */
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
-import Promise from 'bluebird'
 
-import app from '../../index'
-import models from '../../app/models'
-import funcTestHelper from './functional_test_helper'
+import { getSingleton } from '../../app/app'
+import * as funcTestHelper from './functional_test_helper'
 
 
 describe("PostsController", function() {
-  beforeEach(funcTestHelper.flushDb())
+  let app
+
+  beforeEach(async () => {
+    app = await getSingleton()
+    await $database.flushdbAsync()
+  })
 
   describe('#create()', function() {
     var ctx = {}
@@ -149,7 +154,7 @@ describe("PostsController", function() {
             var body = 'comment'
             funcTestHelper.createComment(body, post.id, authTokenC, function(err, res) {
               err.should.not.be.empty
-              err.status.should.eql(422)
+              err.status.should.eql(404)
               var error = JSON.parse(err.response.error.text)
               error.err.should.eql('Not found')
 

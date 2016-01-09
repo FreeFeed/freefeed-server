@@ -1,10 +1,7 @@
-var models = require("../../models")
-  , Serializer = models.Serializer
-  , SubscriberSerializer = models.SubscriberSerializer
-  , PostSerializer = models.PostSerializer
-  , UserSerializer = models.UserSerializer
+import { Serializer, SubscriberSerializer, PostSerializer, UserSerializer } from "../../models"
 
-exports.addSerializer = function() {
+
+export function addSerializer() {
   return new Serializer("timelines", {
     select: ['name', 'id', 'posts', 'user', 'subscribers'],
     posts: { through: PostSerializer, embed: true },

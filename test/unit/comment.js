@@ -1,4 +1,5 @@
 import { isNull } from 'lodash'
+
 import { Comment, Post, User } from '../../app/models'
 
 

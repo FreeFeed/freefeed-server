@@ -1,15 +1,11 @@
-"use strict";
+import { inherits } from "util"
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
-  , FeedFactory = models.FeedFactory
-  , Post = models.Post
-  , pubSub = models.PubSub
-  , _ = require('lodash')
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { AbstractModel, FeedFactory, Post, PubSub as pubSub, User } from '../models'
+
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */
@@ -49,48 +45,43 @@ exports.addModel = function(dbAdapter) {
    * timeline of the posting user and the River of News timelines of all
    * subscribers of the feeds to which it is posted).
    */
-  Timeline.publishPost = function(post) {
-    var that = this
-    var currentTime = new Date().getTime()
+  Timeline.publishPost = async function(post) {
+    const currentTime = new Date().getTime()
 
     // We can use post.timelineIds here instead of post.getPostedToIds
     // because we are about to create that post and have just received
     // a request from user, so postedToIds == timelineIds here
-    return Promise.map(post.timelineIds, function(timelineId) {
-      return Timeline.findById(timelineId)
+    const timelines = await Timeline.findByIds(post.timelineIds)
+
+    let promises = timelines.map(async (timeline) => {
+      const feed = await timeline.getUser()
+      await feed.updateLastActivityAt()
+
+      const ids = await timeline.getSubscribedTimelineIds()
+      return ids
     })
-      .then(function(timelines) {
-        return Promise.map(timelines, function(timeline) {
-          return timeline.getUser()
-            .then(function(feed) { return feed.updateLastActivityAt() })
-            .then(function() { return timeline.getSubscribedTimelineIds() })
-        })
-      })
-      .then(function(allSubscribedTimelineIds) {
-        var allTimelines = _.uniq(
-          _.union(post.timelineIds, _.flatten(allSubscribedTimelineIds)))
-        return Promise.map(allTimelines, function(timelineId) {
-          return Promise.all([
-            dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
-            dbAdapter.setPostUpdatedAt(post.id, currentTime),
-            dbAdapter.createPostUsageInTimeline(post.id, timelineId)
-          ])
-        })
-      })
-      .then(function() { return pubSub.newPost(post.id) })
+
+    const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
+    const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
+
+    promises = allTimelines.map(timelineId => [
+      dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
+      dbAdapter.setPostUpdatedAt(post.id, currentTime),
+      dbAdapter.createPostUsageInTimeline(post.id, timelineId)
+    ])
+
+    await Promise.all(_.flatten(promises))
+    await pubSub.newPost(post.id)
   }
 
-  Timeline.prototype.validate = function() {
-    return new Promise(function(resolve, reject) {
-      var valid
+  Timeline.prototype.validate = async function() {
+    const valid = this.name
+      && this.name.length > 0
+      && this.userId
+      && this.userId.length > 0
 
-      valid = this.name
-        && this.name.length > 0
-        && this.userId
-        && this.userId.length > 0
-
-      valid ? resolve(valid) : reject(new Error("Invalid"))
-    }.bind(this))
+    if (!valid)
+      throw new Error('Invalid')
   }
 
   Timeline.prototype.create = async function() {
@@ -101,31 +92,28 @@ exports.addModel = function(dbAdapter) {
     return this._createTimeline(true)
   }
 
-  Timeline.prototype._createTimeline = function (userDiscussionsTimeline) {
-    var that = this
+  Timeline.prototype._createTimeline = async function(userDiscussionsTimeline) {
+    const currentTime = new Date().getTime()
 
-    return new Promise(function(resolve, reject) {
-      that.createdAt = new Date().getTime()
-      that.updatedAt = new Date().getTime()
+    await this.validate()
 
-      that.validate()
-        .then(function(timeline) {
-          let payload = {
-            'name':      that.name,
-            'userId':    that.userId,
-            'createdAt': that.createdAt.toString(),
-            'updatedAt': that.updatedAt.toString()
-          }
-          if (userDiscussionsTimeline){
-            return dbAdapter.createUserDiscussionsTimeline(that.userId, payload)
-          }
+    const payload = {
+      'name':      this.name,
+      'userId':    this.userId,
+      'createdAt': currentTime.toString(),
+      'updatedAt': currentTime.toString()
+    }
 
-          return dbAdapter.createTimeline(payload)
-        })
-        .then(function(timelineId) { that.id = timelineId })
-        .then(function(res) { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+    if (userDiscussionsTimeline){
+      this.id = await dbAdapter.createUserDiscussionsTimeline(this.userId, payload)
+    } else {
+      this.id = await dbAdapter.createTimeline(payload)
+    }
+
+    this.createdAt = currentTime
+    this.updatedAt = currentTime
+
+    return this
   }
 
   Timeline.prototype.getPostIds = async function(offset, limit) {
@@ -142,7 +130,7 @@ exports.addModel = function(dbAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let valid = await this.validateCanShow(this.currentUser)
+    let valid = await this.canShow(this.currentUser)
 
     if (!valid)
       return []
@@ -152,16 +140,9 @@ exports.addModel = function(dbAdapter) {
     return this.postIds
   }
 
-  Timeline.prototype.getPostIdsByScore = function(min, max) {
-    var that = this
-
-    return new Promise(function(resolve, reject) {
-      dbAdapter.getTimelinePostsInTimeInterval(that.id, min, max)
-        .then(function(postIds) {
-          that.postIds = postIds
-          resolve(that.postIds)
-        })
-    })
+  Timeline.prototype.getPostIdsByScore = async function(min, max) {
+    this.postIds = await dbAdapter.getTimelinePostsInTimeInterval(this.id, min, max)
+    return this.postIds
   }
 
   Timeline.prototype.getPosts = async function(offset, limit) {
@@ -175,14 +156,14 @@ exports.addModel = function(dbAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let reader = this.currentUser ? (await models.User.findById(this.currentUser)) : null
+    let reader = this.currentUser ? (await User.findById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
     let posts = (await Post.findByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
 
     let uids = _.uniq(posts.map(post => post.userId))
-    let users = (await models.User.findByIds(uids)).filter(Boolean)
+    let users = (await User.findByIds(uids)).filter(Boolean)
     let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
 
     let usersCache = {}
@@ -194,7 +175,7 @@ exports.addModel = function(dbAdapter) {
 
     async function userById(id) {
       if (!(id in usersCache)) {
-        let user = await models.User.findById(id)
+        let user = await User.findById(id)
 
         if (!user) {
           throw new Error(`no user for id=${id}`)
@@ -235,7 +216,7 @@ exports.addModel = function(dbAdapter) {
             return false
           }
 
-          return timeline.validateCanShow(this.currentUser)
+          return timeline.canShow(this.currentUser)
         })
 
         let wasPostedToReadableFeed = _.any(await Promise.all(promises))
@@ -280,7 +261,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   Timeline.prototype.getUser = function() {
-    return models.FeedFactory.findById(this.userId)
+    return FeedFactory.findById(this.userId)
   }
 
   /**
@@ -301,7 +282,7 @@ exports.addModel = function(dbAdapter) {
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
     var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await models.User.findByIds(userIds)
+    this.subscribers = await User.findByIds(userIds)
 
     return this.subscribers
   }
@@ -359,11 +340,11 @@ exports.addModel = function(dbAdapter) {
 
     // does not update lastActivity on like
     if (action === 'like') {
-      return null
+      return
     }
 
-    var feed = await this.getUser()
-    return feed.updateLastActivityAt()
+    const feed = await this.getUser()
+    await feed.updateLastActivityAt()
   }
 
   Timeline.prototype.turnIntoPrivate = function() {
@@ -374,7 +355,7 @@ exports.addModel = function(dbAdapter) {
     return this
   }
 
-  Timeline.prototype.validateCanShow = async function(userId) {
+  Timeline.prototype.canShow = async function(userId) {
     // owner can read her posts
     if (this.userId === userId)
       return true

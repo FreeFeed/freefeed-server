@@ -1,7 +1,8 @@
-"use strict";
+import { AttachmentsController } from '../../../controllers'
 
-var AttachmentsController = require('../../../controllers').AttachmentsController
 
-exports.addRoutes = function(app) {
-  app.post('/v1/attachments', AttachmentsController.create)
+export default function addRoutes(app) {
+  const controller = new AttachmentsController(app)
+
+  app.post('/v1/attachments', controller.create)
 }

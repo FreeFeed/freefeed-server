@@ -1,5 +1,5 @@
-import Promise from 'bluebird'
 import { Comment, Post, User } from "../../app/models"
+
 
 describe('Post', function() {
   beforeEach(function(done) {

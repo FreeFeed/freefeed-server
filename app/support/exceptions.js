@@ -1,5 +1,3 @@
-"use strict";
-
 exports.reportError = function(res) {
   return function(err) {
     var status = err.status || 422

@@ -1,15 +1,11 @@
-"use strict";
+import { inherits } from 'util'
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
-  , Post = models.Post
-  , User = models.User
-  , pubSub = models.PubSub
-  , _ = require('lodash')
+import _ from 'lodash'
 
-exports.addModel = function(dbAdapter) {
+import { AbstractModel, FeedFactory, Post, PubSub as pubSub, Stats, User } from '../models'
+
+
+export function addModel(dbAdapter) {
   /**
    * @constructor
    * @extends AbstractModel
@@ -44,17 +40,16 @@ exports.addModel = function(dbAdapter) {
   })
 
   Comment.prototype.validate = async function() {
-    var valid
-
-    valid = this.body && this.body.length > 0
-      && this.userId && this.userId.length > 0
-      && this.postId && this.postId.length > 0
+    const valid = this.body
+               && this.body.length > 0
+               && this.userId
+               && this.userId.length > 0
+               && this.postId
+               && this.postId.length > 0
 
     if (!valid) {
       throw new Error("Invalid")
     }
-
-    return this
   }
 
   Comment.prototype.create = async function() {
@@ -76,35 +71,31 @@ exports.addModel = function(dbAdapter) {
     let post = await Post.findById(this.postId)
     let timelines = await post.addComment(this)
 
-    let stats = await models.Stats.findById(this.userId)
+    let stats = await Stats.findById(this.userId)
     await stats.addComment()
 
     return timelines
   }
 
-  Comment.prototype.update = function(params) {
-    var that = this
+  Comment.prototype.update = async function(params) {
+    this.updatedAt = new Date().getTime()
+    this.body = params.body
 
-    return new Promise(function(resolve, reject) {
-      that.updatedAt = new Date().getTime()
-      that.body = params.body
+    await this.validate()
 
-      that.validate()
-        .then(function(comment) {
-          let payload = {
-            'body':      that.body,
-            'updatedAt': that.updatedAt.toString()
-          }
-          return dbAdapter.updateComment(that.id, payload)
-        })
-        .then(function() { return pubSub.updateComment(that.id) })
-        .then(function() { resolve(that) })
-        .catch(function(e) { reject(e) })
-    })
+    let payload = {
+      'body':      this.body,
+      'updatedAt': this.updatedAt.toString()
+    }
+    await dbAdapter.updateComment(this.id, payload)
+
+    await pubSub.updateComment(this.id)
+
+    return this
   }
 
   Comment.prototype.getPost = function() {
-    return models.Post.findById(this.postId)
+    return Post.findById(this.postId)
   }
 
   Comment.prototype.destroy = async function() {
@@ -129,13 +120,13 @@ exports.addModel = function(dbAdapter) {
       dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
     ])
 
-    let stats = await models.Stats.findById(this.userId)
+    let stats = await Stats.findById(this.userId)
     let res = await stats.removeComment()
     return res
   }
 
   Comment.prototype.getCreatedBy = function() {
-    return models.FeedFactory.findById(this.userId)
+    return FeedFactory.findById(this.userId)
   }
 
   return Comment

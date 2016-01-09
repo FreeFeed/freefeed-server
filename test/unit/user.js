@@ -1,9 +1,8 @@
-var models = require("../../app/models")
-  , User = models.User
-  , Post = models.Post
-  , Timeline = models.Timeline
-  , async = require('async')
-  , expect = require('chai').expect
+import async from 'async'
+import { expect } from 'chai'
+
+import { Post, Timeline, User } from "../../app/models"
+
 
 describe('User', function() {
   beforeEach(function(done) {

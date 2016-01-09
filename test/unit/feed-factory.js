@@ -1,7 +1,5 @@
-var models = require("../../app/models")
-  , FeedFactory = models.FeedFactory
-  , User = models.User
-  , Group = models.Group
+import { Group, FeedFactory, User } from '../../app/models'
+
 
 describe('FeedFactory', function() {
   beforeEach(function(done) {

@@ -1,8 +1,7 @@
-"use strict";
+import { GroupsController } from '../../../controllers'
 
-var GroupsController = require('../../../controllers').GroupsController
 
-exports.addRoutes = function(app) {
+export default function addRoutes(app) {
   app.post('/v1/groups', GroupsController.create)
   app.post('/v1/groups/sudo', GroupsController.sudoCreate)
   app.post('/v1/groups/:groupName/updateProfilePicture', GroupsController.updateProfilePicture)

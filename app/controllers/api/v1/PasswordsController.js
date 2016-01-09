@@ -1,14 +1,10 @@
-"use strict";
+import { User } from '../../../models'
+import { UserMailer } from '../../../mailers'
+import exceptions from '../../../support/exceptions'
 
-var models = require('../../../models')
-  , UserMailer = require('../../../mailers').UserMailer
-  , exceptions = require('../../../support/exceptions')
 
-exports.addController = function(app) {
-  var PasswordsController = function() {
-  }
-
-  PasswordsController.create = async function(req, res) {
+export default class PasswordsController {
+  static async create(req, res) {
     var email = req.body.email
 
     if (email == null || email.length == 0) {
@@ -17,19 +13,18 @@ exports.addController = function(app) {
     }
 
     try {
-      let user = await models.User.findByEmail(email)
-      let token = await user.updateResetPasswordToken()
+      const user = await User.findByEmail(email)
+      await user.updateResetPasswordToken()
 
-      UserMailer.resetPassword(user, { user })
+      await UserMailer.resetPassword(user, { user })
 
-      res.jsonp({ message: 'We will send a password reset link to ' + user.email + ' in a moment' })
+      res.jsonp({ message: `We will send a password reset link to ${user.email} in a moment` })
     } catch (e) {
-      console.log(e)
       exceptions.reportError(res)(e)
     }
   }
 
-  PasswordsController.update = async function(req, res) {
+  static async update(req, res) {
     var token = req.params.resetPasswordToken
 
     if (token == null || token.length == 0) {
@@ -38,7 +33,7 @@ exports.addController = function(app) {
     }
 
     try {
-      let user = await models.User.findByResetToken(token)
+      let user = await User.findByResetToken(token)
       await user.updatePassword(req.body.newPassword, req.body.passwordConfirmation)
       await user.updateResetPasswordToken()
 
@@ -47,7 +42,4 @@ exports.addController = function(app) {
       exceptions.reportError(res)(e)
     }
   }
-
-  return PasswordsController
 }
-

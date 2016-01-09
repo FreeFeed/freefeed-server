@@ -1,13 +1,14 @@
-"use strict";
+import { promisifyAll } from 'bluebird'
+import _redis from 'redis'
 
-var Promise = require('bluebird')
-  , redis = require('redis')
-  , config = require('./config').load()
+import { load as configLoader } from "./config"
 
-Promise.promisifyAll(redis.RedisClient.prototype)
-Promise.promisifyAll(redis.Multi.prototype)
 
-var database = redis.createClient(config.redis.port, config.redis.host, config.redis.options)
+promisifyAll(_redis.RedisClient.prototype)
+promisifyAll(_redis.Multi.prototype)
+
+const config = configLoader()
+let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options)
 
 // TODO: move to app.logger
 database.on('connect'     , log('connect'))
@@ -29,19 +30,19 @@ function logAndQuit(type) {
   }
 }
 
-exports.selectDatabase = async function() {
+export async function selectDatabase() {
   return database.selectAsync(config.database)
 }
 
-exports.connect = function() {
+export function connect() {
   return database
 }
 
-exports.redis = function() {
+export function redis() {
   return redis
 }
 
-exports.disconnect = function() {
-  redis.end()
+export function disconnect() {
+  _redis.end()
   database = null
 }

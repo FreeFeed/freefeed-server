@@ -1,11 +1,9 @@
-"use strict";
+import { inherits } from "util"
 
-var Promise = require('bluebird')
-  , inherits = require("util").inherits
-  , models = require('../models')
-  , AbstractModel = models.AbstractModel
+import { AbstractModel } from '../models'
 
-exports.addModel = function(dbAdapter) {
+
+export function addModel(dbAdapter) {
   var Stats = function(params) {
     Stats.super_.call(this)
 
@@ -23,51 +21,45 @@ exports.addModel = function(dbAdapter) {
   Stats.namespace = "stats"
   Stats.initObject = Stats.super_.initObject
   Stats.findById = Stats.super_.findById
+  Stats.findByIds = Stats.super_.findByIds
 
-  Stats.prototype.validateOnCreate = function() {
-    return new Promise(function(resolve, reject) {
-      var valid = this.id
-          && this.id.length > 0
+  Stats.prototype.validateOnCreate = async function() {
+    const valid = this.id
+               && this.id.length > 0
 
-      dbAdapter.existsUser(this.id)
-        .then(function(status) {
-          valid && status == 1 ? resolve(true) : reject(new Error("Invalid"))
-        })
-    }.bind(this))
+    if (!valid)
+      throw new Error("Invalid")
+
+    const userExists = (1 == await dbAdapter.existsUser(this.id))
+
+    if (!userExists)
+      throw new Error("No user = No stats")
   }
 
-  Stats.prototype.create = function() {
-    var that = this
+  Stats.prototype.create = async function() {
+    await this.validateOnCreate()
 
-    return new Promise(function(resolve, reject) {
-      that.validateOnCreate()
-        .then(function() {
-          let payload = {
-            'posts':         that.posts.toString(),
-            'likes':         that.likes.toString(),
-            'comments':      that.comments.toString(),
-            'subscribers':   that.subscribers.toString(),
-            'subscriptions': that.subscriptions.toString()
-          }
-          return Promise.all([
-            dbAdapter.createUserStats(that.id, payload),
-            dbAdapter.addUserLikesStats(that.id, that.likes),
-            dbAdapter.addUserPostsStats(that.id, that.posts),
-            dbAdapter.addUserCommentsStats(that.id, that.comments),
-            dbAdapter.addUserSubscribersStats(that.id, that.subscribers),
-            dbAdapter.addUserSubscriptionsStats(that.id, that.subscriptions)
-          ])
-        })
-        .then(function(res) { resolve(res) })
-    })
+    const payload = {
+      'posts':         this.posts.toString(),
+      'likes':         this.likes.toString(),
+      'comments':      this.comments.toString(),
+      'subscribers':   this.subscribers.toString(),
+      'subscriptions': this.subscriptions.toString()
+    }
+
+    return Promise.all([
+      dbAdapter.createUserStats(this.id, payload),
+      dbAdapter.addUserLikesStats(this.id, this.likes),
+      dbAdapter.addUserPostsStats(this.id, this.posts),
+      dbAdapter.addUserCommentsStats(this.id, this.comments),
+      dbAdapter.addUserSubscribersStats(this.id, this.subscribers),
+      dbAdapter.addUserSubscriptionsStats(this.id, this.subscriptions)
+    ])
   }
 
-  Stats.prototype.changeProperty = function(property, value) {
-    var that = this
-    return new Promise(function(resolve, reject) {
-      dbAdapter.changeUserStatsValue(that.id, property, value)
-        .then(function() { resolve(dbAdapter.changeUserStats(that.id, property, value)) })
-    })
+  Stats.prototype.changeProperty = async function(property, value) {
+    await dbAdapter.changeUserStatsValue(this.id, property, value)
+    return dbAdapter.changeUserStats(this.id, property, value)
   }
 
   Stats.prototype.incrementProperty = function(property) {
