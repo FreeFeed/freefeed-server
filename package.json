@@ -7,7 +7,8 @@
   "private": true,
   "scripts": {
     "start": "babel-node --stage 1 --ignore node_modules index",
-    "test": "eslint app && jake test"
+    "test": "eslint app && jake test",
+    "console": "babel-node --stage 1 --ignore node_modules bin/console"
   },
   "repository": {
     "type": "git",

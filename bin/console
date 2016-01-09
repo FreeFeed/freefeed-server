@@ -1,41 +1,27 @@
-#!/usr/bin/env node
+#!/usr/bin/env babel-node --stage 1
+
+import bluebird from 'bluebird'
+import repl from "repl"
+
+import { getSingleton as initApp } from '../app/app'
+import * as models from '../app/models'
+
 
 process.env.NODE_ENV = "console"
+global.Promise = bluebird
 
-require("babel/register")({
-  stage: 1
-})
-
-var express = require('express')
-  , app = express()
-  , environment = require('../config/environment')
-  , http = require('http')
-  , server = http.createServer(app)
-
-module.exports = {}
-
-environment.init(app)
-  .then(function(app) {
-    var PubsubListener = require('../app/pubsub-listener')
-      , pubsub = new PubsubListener(server, app)
-    var routes = require('../app/routes')(app)
-
-    var port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'))
-
-    server.listen(port, function() {
-      var repl = require("repl")
-
-      var replServer = repl.start({
-        prompt: "Pepyatka > "
-      })
-
-      replServer.on('exit', function () {
-        console.log('See ya!')
-        process.exit()
-      })
-
-      replServer.context.app = app
-      replServer.context.models = require('../app/models')
-      replServer.context.database = require('../app/models').database
+initApp()
+  .then((app) => {
+    const replServer = repl.start({
+      prompt: "FreeFeed > "
     })
+
+    replServer.on('exit', function () {
+      process.stdout.write(`See ya!\n`)
+      process.exit(0)
+    })
+
+    replServer.context.app = app
+    replServer.context.models = models
+    replServer.context.database = models.database
   })
