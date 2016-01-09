@@ -15,6 +15,26 @@ import { AbstractModel, FeedFactory } from '../models'
 let config = configLoader()
 promisifyAll(fs)
 
+const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
+const detectMime = promisify(mimeMagic.detectFile, {context: mimeMagic})
+
+const magic = new mmm.Magic()
+const detectFile = promisify(magic.detectFile, {context: magic})
+
+async function detectMimetype(filename) {
+  const mimeType = await detectMime(filename)
+
+  if (mimeType === 'application/octet-stream') {
+    const fileType = await detectFile(filename)
+
+    if (fileType.startsWith('Audio file with ID3')) {
+      return 'audio/mpeg'
+    }
+  }
+
+  return mimeType
+}
+
 export function addModel(dbAdapter) {
   /**
    * @constructor
@@ -176,9 +196,7 @@ export function addModel(dbAdapter) {
 
     // Check a mime type
     try {
-      let magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
-      let detectFile = promisify(magic.detectFile, {context: magic})
-      this.mimeType = await detectFile(tmpAttachmentFile)
+      this.mimeType = await detectMimetype(tmpAttachmentFile)
     } catch(e) {
       if (_.isEmpty(this.mimeType)) {
         throw e
