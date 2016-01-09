@@ -2,7 +2,7 @@ import _fs from 'fs'
 import { inherits } from 'util'
 
 import aws from 'aws-sdk'
-import { promisifyAll } from 'bluebird'
+import { promisify, promisifyAll } from 'bluebird'
 import gm from 'gm'
 import meta from 'musicmetadata'
 import mmm from 'mmmagic'
@@ -177,7 +177,7 @@ export function addModel(dbAdapter) {
     // Check a mime type
     try {
       let magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
-      let detectFile = Promise.promisify(magic.detectFile, magic)
+      let detectFile = promisify(magic.detectFile, {context: magic})
       this.mimeType = await detectFile(tmpAttachmentFile)
     } catch(e) {
       if (_.isEmpty(this.mimeType)) {
@@ -196,7 +196,7 @@ export function addModel(dbAdapter) {
         this.noThumbnail = '1'
       } else {
         // Store a thumbnail for a compatible image
-        let img = Promise.promisifyAll(gm(tmpAttachmentFile))
+        let img = promisifyAll(gm(tmpAttachmentFile))
         let size = await img.sizeAsync()
 
         if (size.width > 525 || size.height > 175) {
@@ -228,7 +228,7 @@ export function addModel(dbAdapter) {
 
       // Analyze metadata to get Artist & Title
       let readStream = fs.createReadStream(tmpAttachmentFile)
-      let asyncMeta = Promise.promisify(meta)
+      let asyncMeta = promisify(meta)
       let metadata = await asyncMeta(readStream)
 
       this.title = metadata.title
@@ -259,7 +259,7 @@ export function addModel(dbAdapter) {
       'accessKeyId': subConfig.storage.accessKeyId || null,
       'secretAccessKey': subConfig.storage.secretAccessKey || null
     })
-    let putObject = Promise.promisify(s3.putObject, s3)
+    let putObject = promisify(s3.putObject, {context: s3})
     await putObject({
       ACL: 'public-read',
       Bucket: subConfig.storage.bucket,
