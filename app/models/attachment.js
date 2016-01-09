@@ -1,4 +1,4 @@
-import _fs from 'fs'
+import fs from 'fs'
 import { inherits } from 'util'
 
 import aws from 'aws-sdk'
@@ -13,7 +13,7 @@ import { AbstractModel, FeedFactory } from '../models'
 
 
 let config = configLoader()
-let fs = promisifyAll(_fs)
+promisifyAll(fs)
 
 export function addModel(dbAdapter) {
   /**

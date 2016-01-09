@@ -9,6 +9,8 @@ import { Comment, LikeSerializer, Post, PostSerializer, PubsubCommentSerializer,
 import { load as configLoader } from '../config/config'
 
 
+promisifyAll(jwt)
+
 export default class PubsubListener {
   constructor(server, app) {
     this.app = app
@@ -45,9 +47,8 @@ export default class PubsubListener {
     let secret = config.secret
     let logger = this.app.logger
 
-    let jwtAsync = promisifyAll(jwt)
     try {
-      let decoded = await jwtAsync.verifyAsync(authToken, secret)
+      let decoded = await jwt.verifyAsync(authToken, secret)
       socket.user = await User.findById(decoded.userId)
     } catch(e) {
       socket.user = { id: null }
