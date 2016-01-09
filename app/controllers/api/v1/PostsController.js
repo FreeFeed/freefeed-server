@@ -204,4 +204,42 @@ export default class PostsController {
       exceptions.reportError(res)(e)
     }
   }
+
+  static async disableComments(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized' })
+
+    try {
+      const post = await Post.findById(req.params.postId)
+
+      if (post.userId != req.user.id) {
+        throw new ForbiddenException("You can't disable comments for another user's post")
+      }
+
+      await post.setCommentsDisabled('1')
+
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async enableComments(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized' })
+
+    try {
+      const post = await Post.findById(req.params.postId)
+
+      if (post.userId != req.user.id) {
+        throw new ForbiddenException("You can't enable comments for another user's post")
+      }
+
+      await post.setCommentsDisabled('0')
+
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
+  }
 }
