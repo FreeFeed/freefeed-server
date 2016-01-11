@@ -69,7 +69,8 @@ describe('Post', function() {
       var post = new Post({
         body: 'Post body',
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
@@ -77,6 +78,8 @@ describe('Post', function() {
           post.should.be.an.instanceOf(Post)
           post.should.not.be.empty
           post.should.have.property('id')
+          post.should.have.property('body')
+          post.should.have.property('commentsDisabled')
 
           return post
         })
@@ -86,6 +89,10 @@ describe('Post', function() {
           newPost.should.not.be.empty
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
+          newPost.should.have.property('body')
+          newPost.body.should.eql('Post body')
+          newPost.should.have.property('commentsDisabled')
+          newPost.commentsDisabled.should.eql('0')
         })
         .then(function() { done() })
     })
@@ -95,7 +102,8 @@ describe('Post', function() {
       var post = new Post({
         body: body,
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
@@ -114,7 +122,8 @@ describe('Post', function() {
       var post = new Post({
         body: 'Post',
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
@@ -139,7 +148,8 @@ describe('Post', function() {
       var post = new Post({
         body: 'Post',
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
@@ -161,7 +171,8 @@ describe('Post', function() {
       var post = new Post({
         body: '',
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
@@ -175,13 +186,47 @@ describe('Post', function() {
       var post = new Post({
         body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est. Vivamus fermentum semper porta. Nunc diam velit, adipiscing ut tristique vitae, sagittis vel odio. Maecenas convallis ullamcorper ultricies. Curabitur ornare, ligula semper consectetur sagittis, nisi diam iaculis velit, id fringilla sem nunc vel mi. Nam dictum, odio nec pretium volutpat, arcu ante placerat erat, non tristique elit urna et turpis. Quisque mi metus, ornare sit amet fermentum et, tincidunt et orci. Fusce eget orci a orci congue vestibulum. Ut dolor diam, elementum et vestibulum eu, porttitor vel elit. Curabitur venenatis pulvinar tellus gravida ornare.',
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
         .then(function() { done(new Error("FAIL")) })
         .catch(function(e) {
           e.message.should.eql("Maximum post-length is 1500 graphemes")
+          done()
+        })
+    })
+
+    it("should create with commentsDisabled='1'", function(done) {
+      var post = new Post({
+        body: 'Post body',
+        userId: user.id,
+        timelineIds: [timelineId],
+        commentsDisabled: '1'
+      })
+
+      post.create()
+        .then(function(post) {
+          post.should.be.an.instanceOf(Post)
+          post.should.not.be.empty
+          post.should.have.property('id')
+          post.should.have.property('commentsDisabled')
+          post.commentsDisabled.should.eql('1')
+          return post
+        })
+        .then(function(post) {
+          return Post.findById(post.id)
+        })
+        .then(function(newPost) {
+          newPost.should.be.an.instanceOf(Post)
+          newPost.should.not.be.empty
+          newPost.should.have.property('id')
+          newPost.id.should.eql(post.id)
+          newPost.should.have.property('commentsDisabled')
+          newPost.commentsDisabled.should.eql('1')
+        })
+        .then(function() {
           done()
         })
     })
@@ -211,7 +256,8 @@ describe('Post', function() {
       var post = new Post({
         body: 'Post body',
         userId: user.id,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
@@ -593,7 +639,8 @@ describe('Post', function() {
       var post = new Post({
         body: 'Post body',
         userId: user.id ,
-        timelineIds: [timelineId]
+        timelineIds: [timelineId],
+        commentsDisabled: '0'
       })
 
       post.create()
