@@ -324,6 +324,24 @@ describe('Post', function() {
     })
   })
 
+  describe('#setCommentsDisabled()', function() {
+    var user
+      , post
+
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' })
+      await user.create()
+      post = await user.newPost({ body: 'Post body', commentsDisabled: '0' })
+      await post.create()
+    })
+
+    it('should set commentsDisabled', async () => {
+      post.commentsDisabled.should.eql('0')
+      await post.setCommentsDisabled('1')
+      post.commentsDisabled.should.eql('1')
+    })
+  })
+
   describe('#addLike()', function() {
     var userA
       , userB
