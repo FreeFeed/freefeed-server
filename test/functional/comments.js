@@ -100,6 +100,30 @@ describe("CommentsController", function() {
         done()
       })
     })
+
+    it('should create a comment to own post even when comments disabled', async () => {
+      let postResponse = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      let data = await postResponse.json()
+      let post = data.posts
+
+      let response = await funcTestHelper.createCommentAsync(context, post.id, 'Comment')
+      response.status.should.eql(200)
+    })
+
+    it("should not create a comment to another user's post when comments disabled", async () => {
+      let postResponse = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      let postData = await postResponse.json()
+      let post = postData.posts
+
+      let marsContext = await funcTestHelper.createUserAsync('mars', 'password2')
+
+      let response = await funcTestHelper.createCommentAsync(marsContext, post.id, 'Comment')
+      response.status.should.eql(403)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql('Comments disabled')
+    })
   })
 
   describe('#update()', function() {
