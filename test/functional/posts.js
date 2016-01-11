@@ -29,6 +29,7 @@ describe("PostsController", function() {
         res.body.should.have.property('posts')
         res.body.posts.should.have.property('body')
         res.body.posts.body.should.eql(body)
+        res.body.posts.commentsDisabled.should.eql('0')
 
         done()
       })
@@ -44,6 +45,36 @@ describe("PostsController", function() {
 
         done()
       })
+    })
+
+    it('should create a post with comments disabled', async () => {
+      let body = 'Post body'
+      let commentsDisabled = true
+
+      let response = await funcTestHelper.createPostWithCommentsDisabled(ctx, body, commentsDisabled)
+      response.status.should.eql(200)
+
+      let data = await response.json()
+      data.should.not.be.empty
+      data.should.have.property('posts')
+      data.posts.should.have.property('body')
+      data.posts.body.should.eql(body)
+      data.posts.commentsDisabled.should.eql('1')
+    })
+
+    it('should create a post with comments enabled', async () => {
+      let body = 'Post body'
+      let commentsDisabled = false
+
+      let response = await funcTestHelper.createPostWithCommentsDisabled(ctx, body, commentsDisabled)
+      response.status.should.eql(200)
+
+      let data = await response.json()
+      data.should.not.be.empty
+      data.should.have.property('posts')
+      data.posts.should.have.property('body')
+      data.posts.body.should.eql(body)
+      data.posts.commentsDisabled.should.eql('0')
     })
 
     describe('private messages', function() {
@@ -677,6 +708,104 @@ describe("PostsController", function() {
           err.status.should.eql(404)
           done()
         })
+    })
+  })
+
+  describe('#disableComments()', function() {
+    var context = {}
+    var otherUserAuthToken
+
+    beforeEach(funcTestHelper.createUserCtx(context, 'luna', 'password'))
+    beforeEach(async () => {
+      let response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', false)
+      let data = await response.json()
+      context.post = data.posts
+    })
+    beforeEach(funcTestHelper.createUser('mars', 'password2', function(token) {
+      otherUserAuthToken = token
+    }))
+
+    it("should disable comments for own post", async () => {
+      {
+        let response = await funcTestHelper.disableComments(context.post.id, context.authToken)
+        response.status.should.eql(200)
+      }
+
+      {
+        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        response.status.should.eql(200)
+
+        let data = await response.json()
+        data.posts.commentsDisabled.should.eql('1')
+      }
+    })
+
+    it("should not disable comments for another user's post", async () => {
+      {
+        let response = await funcTestHelper.disableComments(context.post.id, otherUserAuthToken)
+        response.status.should.eql(403)
+
+        let data = await response.json()
+        data.should.have.property('err')
+        data.err.should.eql("You can't disable comments for another user's post")
+      }
+
+      {
+        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        response.status.should.eql(200)
+
+        let data = await response.json()
+        data.posts.commentsDisabled.should.eql('0')
+      }
+    })
+  })
+
+  describe('#enableComments()', function() {
+    var context = {}
+    var otherUserAuthToken
+
+    beforeEach(funcTestHelper.createUserCtx(context, 'luna', 'password'))
+    beforeEach(async () => {
+      let response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      let data = await response.json()
+      context.post = data.posts
+    })
+    beforeEach(funcTestHelper.createUser('mars', 'password2', function(token) {
+      otherUserAuthToken = token
+    }))
+
+    it("should enable comments for own post", async () => {
+      {
+        let response = await funcTestHelper.enableComments(context.post.id, context.authToken)
+        response.status.should.eql(200)
+      }
+
+      {
+        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        response.status.should.eql(200)
+
+        let data = await response.json()
+        data.posts.commentsDisabled.should.eql('0')
+      }
+    })
+
+    it("should not enable comments for another user's post", async () => {
+      {
+        let response = await funcTestHelper.enableComments(context.post.id, otherUserAuthToken)
+        response.status.should.eql(403)
+
+        let data = await response.json()
+        data.should.have.property('err')
+        data.err.should.eql("You can't enable comments for another user's post")
+      }
+
+      {
+        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        response.status.should.eql(200)
+
+        let data = await response.json()
+        data.posts.commentsDisabled.should.eql('1')
+      }
     })
   })
 
