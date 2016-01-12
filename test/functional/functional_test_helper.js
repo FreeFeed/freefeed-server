@@ -420,3 +420,20 @@ export function disableComments(postId, authToken) {
 export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
+
+export async function createPostViaBookmarklet(userContext, title, comment, attachments) {
+  let parameters = {
+    authToken: userContext.authToken,
+    title
+  }
+
+  if (comment) {
+    parameters.comment = comment
+  }
+
+  if (attachments) {
+    throw new Error('Attachments support is not implemented in test-helper for Bookmarklet-requests')
+  }
+
+  return postJson(`/v1/bookmarklet`, parameters)
+}
