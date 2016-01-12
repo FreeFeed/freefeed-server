@@ -116,6 +116,14 @@ export function createPost(context, body, callback) {
   }
 }
 
+export function createPostWithCommentsDisabled(context, body, commentsDisabled) {
+  return postJson('/v1/posts', {
+    post: { body: body },
+    meta: { feeds: context.username, commentsDisabled: commentsDisabled },
+    authToken: context.authToken
+  })
+}
+
 export function createPostForTest(context, body, callback) {
   apiUrl('/v1/posts').then(url => {
     request
@@ -403,4 +411,12 @@ export async function readPostAsync(postId, userContext) {
   }
 
   return fetch(url)
+}
+
+export function disableComments(postId, authToken) {
+  return postJson(`/v1/posts/${postId}/disableComments`, { authToken })
+}
+
+export function enableComments(postId, authToken) {
+  return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }

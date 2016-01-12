@@ -21,18 +21,27 @@ export function addModel(dbAdapter) {
     this.userId = params.userId
     this.timelineIds = params.timelineIds
     this.currentUser = params.currentUser
-    if (parseInt(params.createdAt, 10))
+    this.commentsDisabled = params.commentsDisabled
+
+    if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
-    if (parseInt(params.updatedAt, 10))
+    }
+
+    if (parseInt(params.updatedAt, 10)) {
       this.updatedAt = params.updatedAt
-    if (params.maxComments != 'all')
+    }
+
+    if (params.maxComments != 'all') {
       this.maxComments = parseInt(params.maxComments, 10) || 2
-    else
+    } else {
       this.maxComments = params.maxComments
-    if (params.maxLikes != 'all')
+    }
+
+    if (params.maxLikes != 'all') {
       this.maxLikes = parseInt(params.maxLikes, 10) || 4
-    else
+    } else {
       this.maxLikes = params.maxLikes
+    }
   }
 
   inherits(Post, AbstractModel)
@@ -77,10 +86,11 @@ export function addModel(dbAdapter) {
     var timer = monitor.timer('posts.create-time')
 
     let payload = {
-      'body':      this.body,
-      'userId':    this.userId,
+      'body': this.body,
+      'userId': this.userId,
       'createdAt': this.createdAt.toString(),
-      'updatedAt': this.updatedAt.toString()
+      'updatedAt': this.updatedAt.toString(),
+      'commentsDisabled': this.commentsDisabled
     }
     // save post to the database
     this.id = await dbAdapter.createPost(payload)
@@ -129,6 +139,22 @@ export function addModel(dbAdapter) {
       this.linkAttachments(addedAttachments),
       this.unlinkAttachments(removedAttachments)
     ])
+
+    // Finally, publish changes
+    await pubSub.updatePost(this.id)
+
+    return this
+  }
+
+  Post.prototype.setCommentsDisabled = async function(newValue) {
+    // Reflect post changes
+    this.commentsDisabled = newValue
+
+    // Update post body in DB
+    let payload = {
+      'commentsDisabled': this.commentsDisabled
+    }
+    await dbAdapter.updatePost(this.id, payload)
 
     // Finally, publish changes
     await pubSub.updatePost(this.id)

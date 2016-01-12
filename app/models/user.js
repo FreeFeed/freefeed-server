@@ -963,6 +963,9 @@ exports.addModel = function(dbAdapter) {
 
     if (!valid)
       throw new NotFoundException("Not found")
+
+    if (post.commentsDisabled === '1' && post.userId !== this.id)
+      throw new ForbiddenException("Comments disabled")
   }
 
   User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {

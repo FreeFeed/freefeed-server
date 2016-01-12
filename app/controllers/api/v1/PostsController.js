@@ -11,9 +11,9 @@ export default class PostsController {
       return
     }
 
-    var feeds = []
     req.body.meta = req.body.meta || {}
 
+    let feeds = []
     if (_.isArray(req.body.meta.feeds)) {
       feeds = req.body.meta.feeds
     } else if (req.body.meta.feeds) {
@@ -22,6 +22,8 @@ export default class PostsController {
       res.status(401).jsonp({ err: 'Cannot publish post to /dev/null' })
       return
     }
+
+    const commentsDisabled = (req.body.meta.commentsDisabled ? '1' : '0')
 
     try {
       let promises = feeds.map(async (username) => {
@@ -49,7 +51,8 @@ export default class PostsController {
       let newPost = await req.user.newPost({
         body: req.body.post.body,
         attachments: req.body.post.attachments,
-        timelineIds: timelineIds
+        timelineIds: timelineIds,
+        commentsDisabled: commentsDisabled
       })
 
       await newPost.create()
@@ -196,6 +199,44 @@ export default class PostsController {
     try {
       const post = await Post.getById(req.params.postId)
       await post.unhide(req.user.id)
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async disableComments(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized' })
+
+    try {
+      const post = await Post.findById(req.params.postId)
+
+      if (post.userId != req.user.id) {
+        throw new ForbiddenException("You can't disable comments for another user's post")
+      }
+
+      await post.setCommentsDisabled('1')
+
+      res.jsonp({})
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async enableComments(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized' })
+
+    try {
+      const post = await Post.findById(req.params.postId)
+
+      if (post.userId != req.user.id) {
+        throw new ForbiddenException("You can't enable comments for another user's post")
+      }
+
+      await post.setCommentsDisabled('0')
+
       res.jsonp({})
     } catch (e) {
       exceptions.reportError(res)(e)

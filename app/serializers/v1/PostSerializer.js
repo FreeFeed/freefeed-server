@@ -3,7 +3,7 @@ import { Serializer, AttachmentSerializer, CommentSerializer, SubscriptionSerial
 
 export function addSerializer() {
   return new Serializer("posts", {
-    select: ['id', 'body', 'attachments', 'createdBy', 'comments', 'createdAt', 'updatedAt', 'updatedAt', 'likes', 'isHidden', 'omittedComments', 'omittedLikes', 'postedTo'],
+    select: ['id', 'body', 'attachments', 'createdBy', 'comments', 'createdAt', 'updatedAt', 'updatedAt', 'likes', 'isHidden', 'omittedComments', 'omittedLikes', 'postedTo', 'commentsDisabled'],
     attachments: { through: AttachmentSerializer, embed: true },
     createdBy: { through: UserSerializer, embed: true },
     comments: { through: CommentSerializer, embed: true },
