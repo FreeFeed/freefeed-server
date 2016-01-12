@@ -14,7 +14,7 @@ import exceptions from '../../../support/exceptions'
 promisifyAll(fs)
 
 const getAttachments = async function(author, imageUrl) {
-  if (!url) {
+  if (!imageUrl) {
     return []
   }
 
