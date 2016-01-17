@@ -440,7 +440,7 @@ export function addModel(dbAdapter) {
     const attachmentIds = attachmentList || []
     const attachments = await Attachment.findByIds(attachmentIds)
 
-    const attachmentPromises = attachments.map(function(attachment) {
+    const attachmentPromises = attachments.map((attachment) => {
       // should we modify `this.attachments` here?
 
       // Update connections in DB
