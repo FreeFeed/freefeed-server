@@ -868,31 +868,52 @@ describe("PostsController", function() {
           })
     })
 
-    it("should update post with adding attachments", async () => {
+    it("should update post with adding/removing attachments", async () => {
       const newPost = {
         body: 'New body',
         attachments: []
       }
 
+      // Create attachments
+      {
+        const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
+        newPost.attachments.push(attachmentResponse.id)
+      }
       {
         const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
         newPost.attachments.push(attachmentResponse.id)
       }
 
+      // Add attachments to the post
       {
-        const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
-        newPost.attachments.push(attachmentResponse.id)
+        const response = await funcTestHelper.updatePostAsync(context, newPost)
+        response.status.should.eql(200)
+
+        const data = await response.json()
+        data.should.not.be.empty
+        data.should.have.property('posts')
+        data.posts.body.should.eql(newPost.body)
+        data.should.have.property('attachments')
+        data.posts.attachments.should.eql(newPost.attachments)
       }
 
-      const response = await funcTestHelper.updatePostAsync(context, newPost)
-      response.status.should.eql(200)
+      // Remove attachments from the post
+      {
+        const anotherPost = {
+          body: 'Another body',
+          attachments: [ newPost.attachments[0] ] // leave the first attachment only
+        }
 
-      const data = await response.json()
-      data.should.not.be.empty
-      data.should.have.property('posts')
-      data.posts.body.should.eql(newPost.body)
-      data.should.have.property('attachments')
-      data.posts.attachments.should.eql(newPost.attachments)
+        const response = await funcTestHelper.updatePostAsync(context, anotherPost)
+        response.status.should.eql(200)
+
+        const data = await response.json()
+        data.should.not.be.empty
+        data.should.have.property('posts')
+        data.posts.body.should.eql(anotherPost.body)
+        data.should.have.property('attachments')
+        data.posts.attachments.should.eql(anotherPost.attachments)
+      }
    })
   })
 
