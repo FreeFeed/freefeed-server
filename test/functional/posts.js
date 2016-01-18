@@ -867,6 +867,33 @@ describe("PostsController", function() {
             done()
           })
     })
+
+    it("should update post with adding attachments", async () => {
+      const newPost = {
+        body: 'New body',
+        attachments: []
+      }
+
+      {
+        const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
+        newPost.attachments.push(attachmentResponse.id)
+      }
+
+      {
+        const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
+        newPost.attachments.push(attachmentResponse.id)
+      }
+
+      const response = await funcTestHelper.updatePostAsync(context, newPost)
+      response.status.should.eql(200)
+
+      const data = await response.json()
+      data.should.not.be.empty
+      data.should.have.property('posts')
+      data.posts.body.should.eql(newPost.body)
+      data.should.have.property('attachments')
+      data.posts.attachments.should.eql(newPost.attachments)
+   })
   })
 
   describe('#show()', function() {
