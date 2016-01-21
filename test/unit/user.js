@@ -90,6 +90,69 @@ describe('User', function() {
     })
   })
 
+  describe('#isValidDescription()', function() {
+    var valid = [
+      '',
+      "Earth's only natural satellite",
+      "window.alert('Ha-ha-ha!')",
+      ' natural', 'satellite ', // automatically trims
+      '!'.repeat(1500) // 1500 characters is OK
+    ]
+
+    var i = 1
+    valid.forEach(function(description) {
+      it(`should allow description ${i++}`, async () => {
+
+        var user = new User({
+          username: `username${i}`,
+          screenName: 'test',
+          password: 'password',
+          email: `user+${i++}@example.com`
+        })
+
+        await user.create()
+
+        const updatedUser = await user.update({
+          description: description
+        })
+
+        updatedUser.should.be.an.instanceOf(User)
+        updatedUser.should.not.be.empty
+        updatedUser.should.have.property('id')
+        updatedUser.description.should.eql(description.trim())
+      })
+    })
+
+    var invalid = [
+      '!'.repeat(1501) // 1501 characters is NOT OK
+    ]
+
+    invalid.forEach(function(description) {
+      it('should not allow too long description', async () => {
+
+        var user = new User({
+          username: `username`,
+          screenName: 'test',
+          password: 'password',
+          email: 'user@example.com'
+        })
+
+        await user.create()
+
+        try {
+          await user.update({
+            description: description
+          })
+        } catch (e) {
+          e.message.should.eql('Description is too long')
+          return
+        }
+
+        throw new Error('FAIL')
+      })
+    })
+  })
+
   describe('#validEmail()', function() {
     // @todo Provide fixtures to validate various email formats
     it('should validate syntactically correct email', function(done) {
