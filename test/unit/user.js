@@ -155,6 +155,8 @@ describe('User', function() {
   describe('#update()', function() {
     it('should update without error', function(done) {
       var screenName = 'Mars'
+      var description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
+
       var user = new User({
         username: 'Luna',
         password: 'password'
@@ -163,7 +165,8 @@ describe('User', function() {
       user.create()
         .then(function(user) {
           return user.update({
-            screenName: screenName
+            screenName: screenName,
+            description: description
           })
         })
         .then(function(newUser) {
@@ -171,6 +174,7 @@ describe('User', function() {
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.screenName.should.eql(screenName)
+          newUser.description.should.eql(description)
         })
         .then(function() { done() })
     })
