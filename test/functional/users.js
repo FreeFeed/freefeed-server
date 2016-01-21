@@ -580,11 +580,12 @@ describe("UsersController", function() {
 
       it('should update current user', function(done) {
         var screenName = 'Mars'
+        var description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
 
         request
           .post(app.config.host + '/v1/users/' + user.id)
           .send({ authToken: authToken,
-            user: { screenName: screenName },
+            user: { screenName: screenName, description: description },
             '_method': 'put' })
           .end(function(err, res) {
             res.should.not.be.empty
@@ -593,6 +594,8 @@ describe("UsersController", function() {
             res.body.users.should.have.property('id')
             res.body.users.should.have.property('screenName')
             res.body.users.screenName.should.eql(screenName)
+            res.body.users.should.have.property('description')
+            res.body.users.description.should.eql(description)
             done()
           })
       })
