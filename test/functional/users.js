@@ -600,6 +600,54 @@ describe("UsersController", function() {
           })
       })
 
+      it("should not reset description if it's not provided", async () => {
+        var oldScreenName = user.screenName
+        var newScreenName = 'Ceres'
+        var newDescription = 'The largest object in the asteroid belt that lies between the orbits of Mars and Jupiter.'
+
+        // First, check screenName and description (should be the old ones)
+        {
+          const response = await funcTestHelper.getUserAsync({}, user.username)
+          response.status.should.equal(200)
+
+          const data = await response.json()
+          data.should.have.property('users')
+          data.users.should.have.property('screenName')
+          data.users.screenName.should.eql(oldScreenName) // old screenName
+          data.users.should.not.have.property('description') // no description property (since it's empty)
+        }
+
+        // Second, only update description (screenName shouldn't change)
+        {
+          await funcTestHelper.updateUserAsync({ user, authToken }, { description: newDescription })
+
+          const response = await funcTestHelper.getUserAsync({}, user.username)
+          response.status.should.equal(200)
+
+          const data = await response.json()
+          data.should.have.property('users')
+          data.users.should.have.property('screenName')
+          data.users.screenName.should.eql(oldScreenName) // old screenName
+          data.users.should.have.property('description')
+          data.users.description.should.eql(newDescription) // new description
+        }
+
+        // Third, only update screenName (description shouldn't change)
+        {
+          await funcTestHelper.updateUserAsync({ user, authToken }, { screenName: newScreenName })
+
+          const response = await funcTestHelper.getUserAsync({}, user.username)
+          response.status.should.equal(200)
+
+          const data = await response.json()
+          data.should.have.property('users')
+          data.users.should.have.property('screenName')
+          data.users.screenName.should.eql(newScreenName) // new screenName
+          data.users.should.have.property('description')
+          data.users.description.should.eql(newDescription) // new description
+        }
+      })
+
       it('should update privacy settings', function(done) {
         var screenName = 'Mars'
 

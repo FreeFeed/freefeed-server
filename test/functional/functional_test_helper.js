@@ -328,6 +328,16 @@ export function updateUserAsync(userContext, user) {
   )
 }
 
+export function getUserAsync(context, username) {
+  return postJson(
+    `/v1/users/${username}`,
+    {
+      authToken: context.authToken,
+      '_method': 'get'
+    }
+  )
+}
+
 export function goPrivate(userContext) {
   return updateUserAsync(userContext, { isPrivate: "1" });
 }
