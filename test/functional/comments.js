@@ -185,58 +185,80 @@ describe("CommentsController", function() {
   })
 
   describe('#destroy()', function() {
-    var lunaContext = {}
-      , yoleContext = {}
+    let lunaContext = {},
+        marsContext = {},
+        ceresContext = {},
+        lunaPostLunaComment,
+        lunaPostMarsComment,
+        marsPostMarsComment,
+        marsPostLunaComment,
+        marsPostCeresComment
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(yoleContext, 'yole', 'pw'))
+    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'password'))
+    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
+    beforeEach(funcTestHelper.createUserCtx(ceresContext, 'ceres', 'password3'))
 
-    beforeEach(function(done) { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
-    beforeEach(function(done) { funcTestHelper.createCommentCtx(lunaContext, 'Comment')(done) })
+    beforeEach(function(done) { funcTestHelper.createPost(lunaContext, 'Post body 1')(done) })
+    beforeEach(function(done) { funcTestHelper.createPost(marsContext, 'Post body 2')(done) })
 
-    it('should destroy valid comment', function(done) {
-      funcTestHelper.removeComment(lunaContext.comment.id, lunaContext.authToken, function(err, res) {
-        res.body.should.be.empty
-        res.status.should.eql(200)
+    beforeEach(async () => {
+      let response = await funcTestHelper.createCommentAsync(lunaContext, lunaContext.post.id, 'Comment 1-1')
+      let data = await response.json()
+      lunaPostLunaComment = data.comments.id
 
-        request
-          .get(app.config.host + '/v1/posts/' + lunaContext.post.id)
-          .query({ authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            res.should.not.be.empty
-            res.body.should.not.be.empty
-            res.body.should.have.property('posts')
-            res.body.posts.should.not.have.property('comments')
-            done()
-          })
-      })
+      response = await funcTestHelper.createCommentAsync(marsContext, lunaContext.post.id, 'Comment 1-2')
+      data = await response.json()
+      lunaPostMarsComment = data.comments.id
+
+      response = await funcTestHelper.createCommentAsync(marsContext, marsContext.post.id, 'Comment 2-1')
+      data = await response.json()
+      marsPostMarsComment = data.comments.id
+
+      response = await funcTestHelper.createCommentAsync(lunaContext, marsContext.post.id, 'Comment 2-2')
+      data = await response.json()
+      marsPostLunaComment = data.comments.id
+
+      response = await funcTestHelper.createCommentAsync(ceresContext, marsContext.post.id, 'Comment 2-3')
+      data = await response.json()
+      marsPostCeresComment = data.comments.id
     })
 
-    it('should not destroy valid comment without user', function(done) {
-      request
-        .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
-        .send({
-          '_method': 'delete'
-        })
-        .end(function(err, res) {
-          err.should.not.be.empty
-          err.status.should.eql(401)
-          done()
-        })
+    it("should remove comment (your own comment in your own post)", async () => {
+      let response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostLunaComment)
+      response.status.should.eql(200)
     })
 
-    it("should not destroy another user's comment", function(done) {
-      request
-        .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
-        .query({ authToken: yoleContext.authToken })
-        .send({
-          '_method': 'delete'
-        })
-        .end(function(err, res) {
-          err.should.not.be.empty
-          err.status.should.eql(403)
-          done()
-        })
+    it("should remove comment (other's comment in your own post)", async () => {
+      let response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostMarsComment)
+      response.status.should.eql(200)
+    })
+
+    it("should remove comment (your own comment in other's post)", async () => {
+      let response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostLunaComment)
+      response.status.should.eql(200)
+    })
+
+    it("should not remove comment (other's comment in other's post)", async () => {
+      let response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostMarsComment)
+      response.status.should.eql(403)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql("You don't have permission to delete this comment")
+    })
+
+    it("should not remove comment (other's comment in other's post, again)", async () => {
+      let response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostCeresComment)
+      response.status.should.eql(403)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql("You don't have permission to delete this comment")
+    })
+
+    it('should not remove comment if anonymous', async () => {
+      let response = await funcTestHelper.removeCommentAsync({}, lunaPostLunaComment)
+      response.status.should.eql(401)
     })
   })
 })
