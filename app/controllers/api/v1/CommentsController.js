@@ -1,6 +1,6 @@
 import monitor from 'monitor-dog'
 
-import { Comment, CommentSerializer, PubSub } from '../../../models'
+import { Comment, Post, CommentSerializer, PubSub } from '../../../models'
 import exceptions, { ForbiddenException } from '../../../support/exceptions'
 
 
@@ -72,10 +72,14 @@ export default class CommentsController {
     try {
       var comment = await Comment.getById(req.params.commentId);
 
-      if (comment.userId != req.user.id) {
-        throw new ForbiddenException(
-          "You can't delete another user's comment"
-        )
+      if (comment.userId !== req.user.id) {
+        var post = await Post.getById(comment.postId);
+
+        if (post.userId !== req.user.id) {
+          throw new ForbiddenException(
+            "You don't have permission to delete this comment"
+          )
+        }
       }
 
       await comment.destroy()
