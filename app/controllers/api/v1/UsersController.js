@@ -303,7 +303,7 @@ export default class UsersController {
     if (!req.user || req.user.id != req.params.userId)
       return res.status(401).jsonp({ err: 'Not found' })
 
-    var attrs = _.reduce(['screenName', 'email', 'isPrivate', 'description'], function(acc, key) {
+    var attrs = _.reduce(["screenName", "email", "isPrivate"], function(acc, key) {
       if (key in req.body.user)
         acc[key] = req.body.user[key]
       return acc

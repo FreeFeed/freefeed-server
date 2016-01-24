@@ -1,9 +1,7 @@
 /*global $database */
 import fetch from 'node-fetch'
 import request  from 'superagent'
-import _ from 'lodash'
-import uuid from 'uuid'
-import { mkKey } from '../../app/support/models'
+import _  from 'lodash'
 
 import { getSingleton as initApp } from '../../app/app'
 
@@ -330,16 +328,6 @@ export function updateUserAsync(userContext, user) {
   )
 }
 
-export function getUserAsync(context, username) {
-  return postJson(
-    `/v1/users/${username}`,
-    {
-      authToken: context.authToken,
-      '_method': 'get'
-    }
-  )
-}
-
 export function goPrivate(userContext) {
   return updateUserAsync(userContext, { isPrivate: "1" });
 }
@@ -446,33 +434,4 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
   }
 
   return postJson(`/v1/bookmarklet`, parameters)
-}
-
-export async function createMockAttachmentAsync(context) {
-  const attachmentId  = uuid.v4()
-  const params = {
-    fileName: 'lion.jpg',
-    userId: context.user.id,
-    postId: '',
-    createdAt: (new Date()).toString(),
-    updatedAt: (new Date()).toString()
-  }
-
-  await $database.hmsetAsync(mkKey(['attachment', attachmentId]), params)
-
-  return {
-    id: attachmentId,
-    ...params
-  }
-}
-
-export function updatePostAsync(context, post) {
-  return postJson(
-    `/v1/posts/${context.post.id}`,
-    {
-      authToken: context.authToken,
-      post,
-      '_method': 'put'
-    }
-  )
 }
