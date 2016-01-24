@@ -115,6 +115,16 @@ export default class PubsubListener {
     await Promise.all(clientIds.map(async (clientId) => {
       let socket = sockets.connected[clientId]
       let user = socket.user
+      let logger = this.app.logger
+
+      if (!post) {
+        logger.error('post is null in validateAndEmitMessage')
+        return
+      }
+      if (!user) {
+        logger.error('user is null in validateAndEmitMessage')
+        return
+      }
 
       let valid = await post.canShow(user.id)
 
