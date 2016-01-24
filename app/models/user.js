@@ -34,6 +34,7 @@ exports.addModel = function(dbAdapter) {
     this.username = params.username
     this.screenName = params.screenName
     this.email = params.email
+    this.description = params.description || ''
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
@@ -107,6 +108,14 @@ exports.addModel = function(dbAdapter) {
     get: function() { return this.isPrivate_ },
     set: function(newValue) {
       this.isPrivate_ = newValue || '0'
+    }
+  })
+
+  Object.defineProperty(User.prototype, 'description', {
+    get: function() { return this.description_ },
+    set: function(newValue) {
+      if (_.isString(newValue))
+        this.description_ = newValue.trim()
     }
   })
 
@@ -224,6 +233,15 @@ exports.addModel = function(dbAdapter) {
     return true
   }
 
+  User.prototype.isValidDescription = function() {
+    return User.descriptionIsValid(this.description)
+  }
+
+  User.descriptionIsValid = function(description) {
+    var len = GraphemeBreaker.countBreaks(description)
+    return (len <= 1500)
+  }
+
   User.prototype.validate = async function(skip_stoplist) {
     if (!this.isValidUsername(skip_stoplist)) {
       throw new Error('Invalid username')
@@ -235,6 +253,10 @@ exports.addModel = function(dbAdapter) {
 
     if (!await this.isValidEmail()) {
       throw new Error('Invalid email')
+    }
+
+    if (!this.isValidDescription()) {
+      throw new Error('Description is too long')
     }
   }
 
@@ -284,6 +306,7 @@ exports.addModel = function(dbAdapter) {
       'email':          this.email,
       'type':           this.type,
       'isPrivate':      '0',
+      'description':    '',
       'createdAt':      this.createdAt.toString(),
       'updatedAt':      this.updatedAt.toString(),
       'hashedPassword': this.hashedPassword
@@ -342,14 +365,24 @@ exports.addModel = function(dbAdapter) {
       hasChanges = true
     }
 
+    if (params.hasOwnProperty('description') && params.description != this.description) {
+      if (!User.descriptionIsValid(params.description)) {
+        throw new Error("Description is too long")
+      }
+
+      this.description = params.description
+      hasChanges = true
+    }
+
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
       var payload = {
         'screenName': this.screenName,
-        'email':      this.email,
-        'isPrivate':  this.isPrivate,
-        'updatedAt':  this.updatedAt.toString()
+        'email': this.email,
+        'isPrivate': this.isPrivate,
+        'description': this.description,
+        'updatedAt': this.updatedAt.toString()
       }
 
       var promises = [
