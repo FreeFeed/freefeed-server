@@ -191,6 +191,16 @@ export function removeComment(commentId, authToken, callback) {
   }(callback)
 }
 
+export function removeCommentAsync(context, commentId) {
+  return postJson(
+    `/v1/comments/${commentId}`,
+    {
+      authToken: context.authToken,
+      '_method': 'delete'
+    }
+  )
+}
+
 export function getTimeline(timelinePath, authToken, callback) {
   return function(done) {
     apiUrl(timelinePath).then(url => {
