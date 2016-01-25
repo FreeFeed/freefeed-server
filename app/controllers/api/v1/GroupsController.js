@@ -73,7 +73,7 @@ export default class GroupsController {
   static async update(req, res) {
     var attrs = {
       screenName: req.body.user.screenName,
-      isPrivate: req.body.user.isPrivate
+      description: req.body.user.description
     }
 
     try {
