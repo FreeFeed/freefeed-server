@@ -241,6 +241,66 @@ describe("GroupsController", function() {
           done()
         })
     })
+
+    it("should not reset description if it's not provided", async () => {
+      var oldScreenName = group.screenName
+      var newScreenName = 'vanilla-dev'
+      var newDescription = 'Vanilla Developer(s)'
+
+      // First, check screenName and description (should be the old ones)
+      {
+        const response = await funcTestHelper.getUserAsync({}, group.username)
+        response.status.should.equal(200)
+
+        const data = await response.json()
+        data.should.have.property('users')
+        data.users.should.have.property('screenName')
+        data.users.screenName.should.eql(oldScreenName) // old screenName
+        data.users.should.not.have.property('description') // no description property (since it's empty)
+      }
+
+      // Second, only update description (screenName shouldn't change)
+      {
+        const userContext = {
+          user: group,
+          authToken: context.authToken
+        }
+        await funcTestHelper.updateUserAsync(userContext, {
+          description: newDescription
+        })
+
+        const response = await funcTestHelper.getUserAsync({}, group.username)
+        response.status.should.equal(200)
+
+        const data = await response.json()
+        data.should.have.property('users')
+        data.users.should.have.property('screenName')
+        data.users.screenName.should.eql(oldScreenName) // old screenName
+        data.users.should.have.property('description')
+        data.users.description.should.eql(newDescription) // new description
+      }
+
+      // Third, only update screenName (description shouldn't change)
+      {
+        const userContext = {
+          user: group,
+          authToken: context.authToken
+        }
+        await funcTestHelper.updateUserAsync(userContext, {
+          screenName: newScreenName
+        })
+
+        const response = await funcTestHelper.getUserAsync({}, group.username)
+        response.status.should.equal(200)
+
+        const data = await response.json()
+        data.should.have.property('users')
+        data.users.should.have.property('screenName')
+        data.users.screenName.should.eql(newScreenName) // new screenName
+        data.users.should.have.property('description')
+        data.users.description.should.eql(newDescription) // new description
+      }
+    })
   })
 
   describe('#unadmin', function() {
