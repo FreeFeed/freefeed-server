@@ -222,11 +222,12 @@ describe("GroupsController", function() {
 
     it('should update group settings', function(done) {
       var screenName = 'mokum-dev'
+      var description = 'Mokum Developers'
 
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: context.authToken,
-                user: { screenName: screenName },
+                user: { screenName: screenName, description: description },
                 '_method': 'put' })
         .end(function(err, res) {
           res.should.not.be.empty
@@ -235,6 +236,8 @@ describe("GroupsController", function() {
           res.body.groups.should.have.property('id')
           res.body.groups.should.have.property('screenName')
           res.body.groups.screenName.should.eql(screenName)
+          res.body.groups.should.have.property('description')
+          res.body.groups.description.should.eql(description)
           done()
         })
     })
