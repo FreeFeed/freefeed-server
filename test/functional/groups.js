@@ -222,11 +222,12 @@ describe("GroupsController", function() {
 
     it('should update group settings', function(done) {
       var screenName = 'mokum-dev'
+      var description = 'Mokum Developers'
 
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: context.authToken,
-                user: { screenName: screenName },
+                user: { screenName: screenName, description: description },
                 '_method': 'put' })
         .end(function(err, res) {
           res.should.not.be.empty
@@ -235,8 +236,70 @@ describe("GroupsController", function() {
           res.body.groups.should.have.property('id')
           res.body.groups.should.have.property('screenName')
           res.body.groups.screenName.should.eql(screenName)
+          res.body.groups.should.have.property('description')
+          res.body.groups.description.should.eql(description)
           done()
         })
+    })
+
+    it("should not reset description if it's not provided", async () => {
+      var oldScreenName = group.screenName
+      var newScreenName = 'vanilla-dev'
+      var newDescription = 'Vanilla Developer(s)'
+
+      // First, check screenName and description (should be the old ones)
+      {
+        const response = await funcTestHelper.getUserAsync({}, group.username)
+        response.status.should.equal(200)
+
+        const data = await response.json()
+        data.should.have.property('users')
+        data.users.should.have.property('screenName')
+        data.users.screenName.should.eql(oldScreenName) // old screenName
+        data.users.should.not.have.property('description') // no description property (since it's empty)
+      }
+
+      // Second, only update description (screenName shouldn't change)
+      {
+        const userContext = {
+          user: group,
+          authToken: context.authToken
+        }
+        await funcTestHelper.updateUserAsync(userContext, {
+          description: newDescription
+        })
+
+        const response = await funcTestHelper.getUserAsync({}, group.username)
+        response.status.should.equal(200)
+
+        const data = await response.json()
+        data.should.have.property('users')
+        data.users.should.have.property('screenName')
+        data.users.screenName.should.eql(oldScreenName) // old screenName
+        data.users.should.have.property('description')
+        data.users.description.should.eql(newDescription) // new description
+      }
+
+      // Third, only update screenName (description shouldn't change)
+      {
+        const userContext = {
+          user: group,
+          authToken: context.authToken
+        }
+        await funcTestHelper.updateUserAsync(userContext, {
+          screenName: newScreenName
+        })
+
+        const response = await funcTestHelper.getUserAsync({}, group.username)
+        response.status.should.equal(200)
+
+        const data = await response.json()
+        data.should.have.property('users')
+        data.users.should.have.property('screenName')
+        data.users.screenName.should.eql(newScreenName) // new screenName
+        data.users.should.have.property('description')
+        data.users.description.should.eql(newDescription) // new description
+      }
     })
   })
 

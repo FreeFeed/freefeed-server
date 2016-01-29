@@ -71,10 +71,11 @@ export default class GroupsController {
   }
 
   static async update(req, res) {
-    var attrs = {
-      screenName: req.body.user.screenName,
-      isPrivate: req.body.user.isPrivate
-    }
+    var attrs = _.reduce(['screenName', 'description'], function(acc, key) {
+      if (key in req.body.user)
+        acc[key] = req.body.user[key]
+      return acc
+    }, {})
 
     try {
       var group = await Group.getById(req.params.userId)

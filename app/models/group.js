@@ -15,6 +15,7 @@ export function addModel(dbAdapter) {
     this.id = params.id
     this.username = params.username
     this.screenName = params.screenName
+    this.description = params.description || ''
     this.createdAt = params.createdAt
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
@@ -49,6 +50,14 @@ export function addModel(dbAdapter) {
     }
   })
 
+  Object.defineProperty(Group.prototype, 'description', {
+    get: function() { return this.description_ },
+    set: function(newValue) {
+      if (_.isString(newValue))
+        this.description_ = newValue.trim()
+    }
+  })
+
   Group.prototype.isValidUsername = function(skip_stoplist) {
     var valid = this.username
         && this.username.length >= 3   // per spec
@@ -67,6 +76,10 @@ export function addModel(dbAdapter) {
     if (!this.isValidScreenName()) {
       throw new Error('Invalid screenname')
     }
+
+    if (!this.isValidDescription()) {
+      throw new Error('Description is too long')
+    }
   }
 
   Group.prototype.create = async function(ownerId, skip_stoplist) {
@@ -77,12 +90,13 @@ export function addModel(dbAdapter) {
       await this.validateOnCreate(skip_stoplist)
 
       let payload = {
-        'username':   this.username,
+        'username': this.username,
         'screenName': this.screenName,
-        'type':       this.type,
-        'createdAt':  this.createdAt.toString(),
-        'updatedAt':  this.updatedAt.toString(),
-        'isPrivate':  this.isPrivate
+        'description': this.description,
+        'type': this.type,
+        'createdAt': this.createdAt.toString(),
+        'updatedAt': this.updatedAt.toString(),
+        'isPrivate': this.isPrivate
       }
       this.id = await dbAdapter.createUser(payload)
 
@@ -103,18 +117,33 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.update = async function(params) {
+    var hasChanges = false
+
     if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
         throw new Error("Invalid screenname")
       }
 
       this.screenName = params.screenName
+      hasChanges = true
+    }
+
+    if (params.hasOwnProperty('description') && params.description != this.description) {
+      if (!User.descriptionIsValid(params.description)) {
+        throw new Error("Description is too long")
+      }
+
+      this.description = params.description
+      hasChanges = true
+    }
+
+    if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
       var payload = {
         'screenName': this.screenName,
-        'isPrivate':  this.isPrivate,
-        'updatedAt':  this.updatedAt.toString()
+        'description': this.description,
+        'updatedAt': this.updatedAt.toString()
       }
 
       await dbAdapter.updateUser(this.id, payload)
