@@ -36,8 +36,8 @@ export function getConfig() {
 
   var defaultStopList = [
     '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter',
-    'friends', 'groups', 'iphone', 'list', 'logout', 'profilepics', 'public',
-    'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
+    'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
+    'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
   ]
 
   config.application = {
