@@ -5,7 +5,6 @@ import pubSub from './pubsub'
 
 import { addModel as attachmentModel } from './models/attachment'
 import { addModel as commentModel } from './models/comment'
-import { FeedFactory as feedFactoryModel } from './models/feed-factory'
 import { addModel as groupModel } from './models/group'
 import { addModel as postModel } from './models/post'
 import { addModel as statsModel } from './models/stats'
@@ -39,7 +38,6 @@ export const PubSub = new pubSub(pubsubAdapter)
 
 export const User          = userModel(dbAdapter)
 export const Group         = groupModel(dbAdapter)
-export const FeedFactory   = feedFactoryModel
 export const Post          = postModel(dbAdapter)
 export const Timeline      = timelineModel(dbAdapter)
 export const Attachment    = attachmentModel(dbAdapter)

@@ -2,7 +2,7 @@ import { inherits } from "util"
 
 import _ from 'lodash'
 
-import { FeedFactory, Stats, User } from '../models'
+import { Stats, User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
@@ -57,7 +57,7 @@ export function addModel(dbAdapter) {
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
-        && FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
+        && User.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return valid
   }

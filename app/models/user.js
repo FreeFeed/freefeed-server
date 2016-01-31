@@ -11,7 +11,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
 import { BadRequestException, ForbiddenException, NotFoundException } from '../support/exceptions'
-import { Attachment, Comment, FeedFactory, Post, Stats, Timeline } from '../models'
+import { Attachment, Comment, Post, Stats, Timeline } from '../models'
 
 
 promisifyAll(bcrypt)
@@ -109,6 +109,13 @@ exports.addModel = function(dbAdapter) {
     }
   })
 
+  User.stopList = (default_stop_list) => {
+    if (default_stop_list)
+      return config.application.DEFAULT_STOP_LIST
+
+    return config.application.USERNAME_STOP_LIST
+  }
+
   User.prototype.isUser = function() {
     return this.type === "user"
   }
@@ -188,7 +195,7 @@ exports.addModel = function(dbAdapter) {
         && this.username.length >= 3   // per the spec
         && this.username.length <= 25  // per the spec
         && this.username.match(/^[A-Za-z0-9]+$/)
-        && FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
+        && User.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return valid
   }
