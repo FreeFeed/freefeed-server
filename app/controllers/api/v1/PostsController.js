@@ -111,21 +111,17 @@ export default class PostsController {
       if (!valid)
         throw new ForbiddenException("Not found")
 
-      if (post.currentUser) {
+      if (req.user) {
         let author = await dbAdapter.getUserById(post.userId)
         let banIds = await author.getBanIds()
 
-        if (banIds.indexOf(post.currentUser) >= 0)
+        if (banIds.indexOf(req.user.id) >= 0)
           throw new ForbiddenException("This user has prevented you from seeing their posts")
 
-        let you = await dbAdapter.getUserById(post.currentUser)
+        const yourBanIds = await req.user.getBanIds()
 
-        if (you) {
-          let yourBanIds = await you.getBanIds()
-
-          if (yourBanIds.indexOf(author.id) >= 0)
-            throw new ForbiddenException("You have blocked this user and do not want to see their posts")
-        }
+        if (yourBanIds.indexOf(author.id) >= 0)
+          throw new ForbiddenException("You have blocked this user and do not want to see their posts")
       }
 
       var json = new PostSerializer(post).promiseToJSON()
