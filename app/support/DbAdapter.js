@@ -1,9 +1,20 @@
 import { default as uuid } from 'uuid'
-import { each } from 'lodash'
+import { each, isString } from 'lodash'
 
 import { Attachment, Comment, Group, Post, Stats, Timeline, User } from '../models'
-import { mkKey } from '../support/models'
 
+
+export const mkKey = (keys) => {
+  const sep = ':'
+
+  for (let key of keys) {
+    if (!isString(key)) {
+      throw new Error('keys should be strings')
+    }
+  }
+
+  return keys.join(sep)
+}
 
 export class DbAdapter {
   constructor(database) {
