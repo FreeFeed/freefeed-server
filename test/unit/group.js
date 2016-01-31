@@ -1,4 +1,4 @@
-import { Group } from '../../app/models'
+import { dbAdapter, Group } from '../../app/models'
 
 
 describe('Group', function() {
@@ -22,7 +22,7 @@ describe('Group', function() {
 
           return group
         })
-        .then((group) => { return Group.findById(group.id) })
+        .then((group) => { return dbAdapter.getGroupById(group.id) })
         .then(function(newGroup) {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty
@@ -31,7 +31,7 @@ describe('Group', function() {
           newGroup.should.have.property('type')
           newGroup.type.should.eql('group')
 
-          return Group.findByUsername(group.username)
+          return dbAdapter.getGroupByUsername(group.username)
         })
         .then(function(groupByName) {
           groupByName.id.should.eql(group.id)

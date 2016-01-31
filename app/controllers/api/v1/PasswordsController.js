@@ -1,6 +1,6 @@
-import { User } from '../../../models'
+import { dbAdapter } from '../../../models'
 import { UserMailer } from '../../../mailers'
-import exceptions from '../../../support/exceptions'
+import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 
 export default class PasswordsController {
@@ -13,7 +13,12 @@ export default class PasswordsController {
     }
 
     try {
-      const user = await User.findByEmail(email)
+      const user = await dbAdapter.getUserByEmail(email)
+
+      if (null === user) {
+        throw new NotFoundException(`User is not found`)
+      }
+
       await user.updateResetPasswordToken()
 
       await UserMailer.resetPassword(user, { user })
@@ -33,7 +38,12 @@ export default class PasswordsController {
     }
 
     try {
-      let user = await User.findByResetToken(token)
+      const user = await dbAdapter.getUserByResetToken(token)
+
+      if (null === user) {
+        throw new NotFoundException(`Record not found`)
+      }
+
       await user.updatePassword(req.body.newPassword, req.body.passwordConfirmation)
       await user.updateResetPasswordToken()
 

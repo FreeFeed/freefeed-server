@@ -1,7 +1,7 @@
 import monitor from 'monitor-dog'
 
-import { Comment, Post, CommentSerializer, PubSub } from '../../../models'
-import exceptions, { ForbiddenException } from '../../../support/exceptions'
+import { dbAdapter, CommentSerializer, PubSub } from '../../../models'
+import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class CommentsController {
@@ -40,7 +40,11 @@ export default class CommentsController {
     var timer = monitor.timer('comments.update-time')
 
     try {
-      var comment = await Comment.getById(req.params.commentId)
+      const comment = await dbAdapter.getCommentById(req.params.commentId)
+
+      if (null === comment) {
+        throw new NotFoundException("Can't find comment")
+      }
 
       if (comment.userId != req.user.id) {
         throw new ForbiddenException(
@@ -70,10 +74,18 @@ export default class CommentsController {
     var timer = monitor.timer('comments.destroy-time')
 
     try {
-      var comment = await Comment.getById(req.params.commentId);
+      const comment = await dbAdapter.getCommentById(req.params.commentId)
+
+      if (null === comment) {
+        throw new NotFoundException("Can't find comment")
+      }
 
       if (comment.userId !== req.user.id) {
-        var post = await Post.getById(comment.postId);
+        const post = await dbAdapter.getPostById(comment.postId);
+
+        if (null === post) {
+          throw new NotFoundException("Can't find post")
+        }
 
         if (post.userId !== req.user.id) {
           throw new ForbiddenException(

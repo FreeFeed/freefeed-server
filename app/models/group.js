@@ -27,12 +27,6 @@ export function addModel(dbAdapter) {
 
   Group.className = Group
   Group.namespace = "user"
-  Group.initObject = Group.super_.initObject
-  Group.findById = Group.super_.findById
-  Group.findByIds = Group.super_.findByIds
-  Group.getById = Group.super_.getById
-  Group.findByAttribute = Group.super_.findByAttribute
-  Group.findByUsername = Group.super_.findByUsername
 
   Object.defineProperty(Group.prototype, 'username', {
     get: function() { return this.username_ },
@@ -153,7 +147,7 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.subscribeOwner = async function(ownerId) {
-    let owner = await User.findById(ownerId)
+    let owner = await dbAdapter.getUserById(ownerId)
 
     if (!owner) {
       return null
@@ -190,7 +184,7 @@ export function addModel(dbAdapter) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await User.findByIds(adminIds)
+    this.administrators = await dbAdapter.getUsersByIds(adminIds)
 
     return this.administrators
   }

@@ -1,12 +1,17 @@
-import { FeedFactory } from '../../../models'
+import { dbAdapter } from '../../../models'
 import { UsersController, GroupsController } from '../../../controllers'
-import exceptions from '../../../support/exceptions'
+import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 
 export default class FeedFactoriesController {
   static async update(req, res) {
     try {
-      var feed = await FeedFactory.findById(req.params.userId)
+      const feed = await dbAdapter.getFeedOwnerById(req.params.userId)
+
+      if (!feed) {
+        throw new NotFoundException(`Feed ${req.params.userId} is not found`)
+      }
+
       var controller = feed.isUser() ? UsersController : GroupsController
       controller.update(req, res)
     } catch (e) {

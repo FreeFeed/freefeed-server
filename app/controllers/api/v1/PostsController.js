@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
-import { FeedFactory, Post, PostSerializer, PubSub as pubSub, Stats, User } from '../../../models'
-import exceptions, { ForbiddenException } from '../../../support/exceptions'
+import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
+import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class PostsController {
@@ -27,7 +27,12 @@ export default class PostsController {
 
     try {
       let promises = feeds.map(async (username) => {
-        let feed = await FeedFactory.findByUsername(username)
+        let feed = await dbAdapter.getFeedOwnerByUsername(username)
+
+        if (null === feed) {
+          throw new NotFoundException(`Feed "${username}" is not found`)
+        }
+
         await feed.validateCanPost(req.user)
 
         // we are going to publish this message to posts feed if
@@ -69,7 +74,7 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      const post = await Post.findById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (post.userId != req.user.id) {
         throw new ForbiddenException("You can't update another user's post")
@@ -90,11 +95,15 @@ export default class PostsController {
   static async show(req, res) {
     try {
       var userId = req.user ? req.user.id : null
-      var post = await Post.getById(req.params.postId, {
+      const post = await dbAdapter.getPostById(req.params.postId, {
         maxComments: req.query.maxComments,
         maxLikes: req.query.maxLikes,
         currentUser: userId
       })
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
 
       var valid = await post.canShow(userId)
 
@@ -103,13 +112,13 @@ export default class PostsController {
         throw new ForbiddenException("Not found")
 
       if (post.currentUser) {
-        let author = await User.findById(post.userId)
+        let author = await dbAdapter.getUserById(post.userId)
         let banIds = await author.getBanIds()
 
         if (banIds.indexOf(post.currentUser) >= 0)
           throw new ForbiddenException("This user has prevented you from seeing their posts")
 
-        let you = await User.findById(post.currentUser)
+        let you = await dbAdapter.getUserById(post.currentUser)
 
         if (you) {
           let yourBanIds = await you.getBanIds()
@@ -134,10 +143,15 @@ export default class PostsController {
     }
 
     try {
-      let post = await Post.getById(req.params.postId)
+      let post = await dbAdapter.getPostById(req.params.postId)
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
+
       let affectedTimelines = await post.addLike(req.user)
 
-      let stats = await Stats.findById(req.user.id)
+      let stats = await dbAdapter.getStatsById(req.user.id)
       await stats.addLike()
 
       res.status(200).send({})
@@ -153,7 +167,11 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      let post = await Post.getById(req.params.postId)
+      let post = await dbAdapter.getPostById(req.params.postId)
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
+
       await post.removeLike(req.user.id)
       res.status(200).send({})
     } catch(e) {
@@ -166,7 +184,11 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      const post = await Post.getById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
 
       if (post.userId != req.user.id) {
         throw new ForbiddenException("You can't delete another user's post")
@@ -184,7 +206,12 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      const post = await Post.getById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
+
       await post.hide(req.user.id)
       res.jsonp({})
     } catch (e) {
@@ -197,7 +224,12 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      const post = await Post.getById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
+
       await post.unhide(req.user.id)
       res.jsonp({})
     } catch (e) {
@@ -210,7 +242,11 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Unauthorized' })
 
     try {
-      const post = await Post.findById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
 
       if (post.userId != req.user.id) {
         throw new ForbiddenException("You can't disable comments for another user's post")
@@ -229,7 +265,11 @@ export default class PostsController {
       return res.status(401).jsonp({ err: 'Unauthorized' })
 
     try {
-      const post = await Post.findById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
+
+      if (null === post) {
+        throw new NotFoundException("Can't find post");
+      }
 
       if (post.userId != req.user.id) {
         throw new ForbiddenException("You can't enable comments for another user's post")

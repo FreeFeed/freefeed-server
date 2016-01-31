@@ -1,5 +1,4 @@
 import fs from 'fs'
-import { inherits } from 'util'
 
 import aws from 'aws-sdk'
 import { promisify, promisifyAll } from 'bluebird'
@@ -9,7 +8,6 @@ import mmm from 'mmmagic'
 import _ from 'lodash'
 
 import { load as configLoader } from "../../config/config"
-import { AbstractModel, FeedFactory } from '../models'
 
 
 let config = configLoader()
@@ -40,8 +38,6 @@ export function addModel(dbAdapter) {
    * @constructor
    */
   var Attachment = function(params) {
-    Attachment.super_.call(this)
-
     this.id = params.id
     this.file = params.file // FormData File object
     this.fileName = params.fileName // original file name, e.g. 'cute-little-kitten.jpg'
@@ -63,13 +59,8 @@ export function addModel(dbAdapter) {
       this.updatedAt = params.updatedAt
   }
 
-  inherits(Attachment, AbstractModel)
-
   Attachment.className = Attachment
   Attachment.namespace = 'attachment'
-  Attachment.initObject = Attachment.super_.initObject
-  Attachment.findById = Attachment.super_.findById
-  Attachment.findByIds = Attachment.super_.findByIds
 
   Attachment.prototype.validate = async function() {
     const valid = this.file
@@ -139,7 +130,7 @@ export function addModel(dbAdapter) {
 
   // Get user who created the attachment (via Promise, for serializer)
   Attachment.prototype.getCreatedBy = function() {
-    return FeedFactory.findById(this.userId)
+    return dbAdapter.getUserById(this.userId)
   }
 
   // Get public URL of attachment (via Promise, for serializer)

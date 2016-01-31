@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
-import { FeedFactory, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
-import exceptions from '../../../support/exceptions'
+import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
+import exceptions, { NotFoundException } from '../../../support/exceptions'
 import { load as configLoader } from "../../../../config/config"
 import recaptchaVerify from '../../../../lib/recaptcha'
 
@@ -33,7 +33,12 @@ export default class UsersController {
       await user.create(false)
 
       try {
-        await FeedFactory.findByUsername(config.onboardingUsername)
+        const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+
+        if (null === onboardingUser) {
+          throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
+        }
+
         await user.subscribeToUsername(config.onboardingUsername)
       } catch (e /*if e instanceof NotFoundException*/) {
         // if onboarding username is not found, just pass
@@ -65,7 +70,12 @@ export default class UsersController {
       await user.create(true)
 
       try {
-        await FeedFactory.findByUsername(config.onboardingUsername)
+        const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+
+        if (null === onboardingUser) {
+          throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
+        }
+
         await user.subscribeToUsername(config.onboardingUsername)
       } catch (e /*if e instanceof NotFoundException*/) {
         // if onboarding username is not found, just pass
@@ -86,7 +96,12 @@ export default class UsersController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      var user = await User.findByUsername(req.params.username)
+      const user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
+
+      if (null === user) {
+        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
+      }
+
       await req.user.sendSubscriptionRequest(user.id)
 
       res.jsonp({})
@@ -100,7 +115,12 @@ export default class UsersController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      var user = await User.findByUsername(req.params.username)
+      const user = await dbAdapter.getUserByUsername(req.params.username)
+
+      if (null === user) {
+        throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
+
       await req.user.acceptSubscriptionRequest(user.id)
 
       res.jsonp({})
@@ -114,7 +134,12 @@ export default class UsersController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      var user = await User.findByUsername(req.params.username)
+      const user = await dbAdapter.getUserByUsername(req.params.username)
+
+      if (null === user) {
+        throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
+
       await req.user.rejectSubscriptionRequest(user.id)
 
       res.jsonp({})
@@ -134,7 +159,11 @@ export default class UsersController {
 
   static async show(req, res) {
     try {
-      var feed = await FeedFactory.findByUsername(req.params.username)
+      var feed = await dbAdapter.getFeedOwnerByUsername(req.params.username)
+
+      if (null === feed) {
+        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
+      }
 
       // HACK: feed.isUser() ? UserSerializer : GroupSerializer
       var serializer = UserSerializer
@@ -151,7 +180,11 @@ export default class UsersController {
       , user
 
     try {
-      user = await User.findByUsername(username)
+      user = await dbAdapter.getFeedOwnerByUsername(username)
+
+      if (null === user) {
+        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
+      }
     } catch (e) {
       res.status(404).send({})
       return
@@ -187,7 +220,11 @@ export default class UsersController {
       , user
 
     try {
-      user = await User.findByUsername(username)
+      user = await dbAdapter.getUserByUsername(username)
+
+      if (null === user) {
+        throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
     } catch (e) {
       res.status(404).send({})
       return
@@ -266,7 +303,12 @@ export default class UsersController {
       return res.status(401).jsonp({ err: 'Not found' })
 
     try {
-      var user = await User.findByUsername(req.params.username)
+      var user = await dbAdapter.getUserByUsername(req.params.username)
+
+      if (null === user) {
+        throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
+
       var timelineId = await req.user.getPostsTimelineId()
       await user.validateCanUnsubscribe(timelineId)
       await user.unsubscribeFrom(timelineId)
@@ -285,7 +327,12 @@ export default class UsersController {
     var timer = monitor.timer('users.unsubscribe-time')
 
     try {
-      var user = await User.findByUsername(req.params.username)
+      var user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
+
+      if (null === user) {
+        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
+      }
+
       var timelineId = await user.getPostsTimelineId()
       await req.user.validateCanUnsubscribe(timelineId)
       await req.user.unsubscribeFrom(timelineId)
