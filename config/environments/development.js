@@ -34,10 +34,11 @@ export function getConfig() {
 
   config.host = 'http://localhost:' + config.port
 
-  var defaultStopList = ['anonymous', 'public', 'about', 'signin', 'logout',
-                         'signup', 'filter', 'settings', 'account', 'groups',
-                         'friends', 'list', 'search', 'summary', 'share','404',
-                         'iphone', 'attachments', 'files', 'profilepics', 'requests']
+  var defaultStopList = [
+    '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter',
+    'friends', 'groups', 'iphone', 'list', 'logout', 'profilepics', 'public',
+    'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
+  ]
 
   config.application = {
     DEFAULT_STOP_LIST: defaultStopList,
