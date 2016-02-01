@@ -8,13 +8,16 @@ import exceptions  from '../../../support/exceptions'
 export default class GroupsController {
   static async create(req, res) {
     if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found', status: 'fail'})
+      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
 
-    var params = {
-      username: req.body.group.username,
-      screenName: req.body.group.screenName,
-      isPrivate: req.body.group.isPrivate
-    }
+    if (!req.body.group)
+      return res.status(400).jsonp({ err: 'Malformed request', status: 'fail'})
+
+    var params = _.reduce(['username', 'screenName', 'description'], function(acc, key) {
+      if (key in req.body.group)
+        acc[key] = req.body.group[key]
+      return acc
+    }, {})
 
     try {
       var group = new Group(params)
