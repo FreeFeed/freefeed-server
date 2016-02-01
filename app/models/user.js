@@ -354,10 +354,12 @@ exports.addModel = function(dbAdapter) {
         throw new Error("bad input")
       }
 
-      if (params.isPrivate === '1' && this.isPrivate === '0')
+      if (params.isPrivate === '1' && this.isPrivate === '0') {
         await this.unsubscribeNonFriends()
-      else if (params.isPrivate === '0' && this.isPrivate === '1')
+      }
+      else if (params.isPrivate === '0' && this.isPrivate === '1') {
         await this.subscribeNonFriends()
+      }
 
       this.isPrivate = params.isPrivate
       hasChanges = true
