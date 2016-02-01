@@ -26,7 +26,7 @@ export default class AttachmentsController {
         res.jsonp(json)
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
-          this.app.logger.warning(e.message)
+          this.app.logger.warn(e.message)
 
           let errorDetails = { message: 'Corrupt image' }
           exceptions.reportError(res)(errorDetails)
