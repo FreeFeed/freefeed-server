@@ -11,7 +11,7 @@ export default class AttachmentsController {
     this.app = app
   }
 
-  create(req, res) {
+  create = (req, res) => {
     if (!req.user)
       return res.status(401).jsonp({ err: 'Not found' })
 
