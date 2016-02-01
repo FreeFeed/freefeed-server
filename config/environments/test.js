@@ -18,7 +18,8 @@ export function getConfig() {
     onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false
-    }
+    },
+    frontendPrefsLimit: 65536
   }
 
   config.host = 'http://localhost:' + config.port
