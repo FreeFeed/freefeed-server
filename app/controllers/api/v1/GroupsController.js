@@ -13,11 +13,7 @@ export default class GroupsController {
     if (!req.body.group)
       return res.status(400).jsonp({ err: 'Malformed request', status: 'fail'})
 
-    var params = _.reduce(['username', 'screenName', 'description'], function(acc, key) {
-      if (key in req.body.group)
-        acc[key] = req.body.group[key]
-      return acc
-    }, {})
+    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description'])
 
     try {
       var group = new Group(params)
@@ -31,11 +27,7 @@ export default class GroupsController {
   }
 
   static async sudoCreate(req, res) {
-    var params = {
-      username: req.body.group.username,
-      screenName: req.body.group.screenName,
-      isPrivate: req.body.group.isPrivate
-    };
+    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate'])
 
     try {
       if (!_.isArray(req.body.admins)) {
@@ -71,11 +63,7 @@ export default class GroupsController {
   }
 
   static async update(req, res) {
-    var attrs = _.reduce(['screenName', 'description'], function(acc, key) {
-      if (key in req.body.user)
-        acc[key] = req.body.user[key]
-      return acc
-    }, {})
+    let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description'])
 
     try {
       const group = await dbAdapter.getGroupById(req.params.userId)
@@ -154,5 +142,9 @@ export default class GroupsController {
     } catch (e) {
       exceptions.reportError(res)(e)
     }
+  }
+
+  static _filteredParams(modelDescr, allowedParams){
+    return _.pick(modelDescr, allowedParams)
   }
 }
