@@ -164,6 +164,50 @@ export default class GroupsController {
     }
   }
 
+  static async acceptRequest(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+
+    const groupName = req.params.groupName
+    try {
+      let group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+      await group.validateCanUpdate(req.user)
+
+      const user = await dbAdapter.getUserByUsername(req.params.userName)
+      await group.acceptSubscriptionRequest(user.id)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async rejectRequest(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+
+    const groupName = req.params.groupName
+    try {
+      let group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+      await group.validateCanUpdate(req.user)
+
+      const user = await dbAdapter.getUserByUsername(req.params.userName)
+      await group.rejectSubscriptionRequest(user.id)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
   static _filteredParams(modelDescr, allowedParams){
     return _.pick(modelDescr, allowedParams)
   }
