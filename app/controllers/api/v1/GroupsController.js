@@ -144,6 +144,26 @@ export default class GroupsController {
     }
   }
 
+  static async sendRequest(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+
+    const groupName = req.params.groupName
+    try {
+      const group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+
+      await req.user.sendPrivateGroupSubscriptionRequest(group.id)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
   static _filteredParams(modelDescr, allowedParams){
     return _.pick(modelDescr, allowedParams)
   }

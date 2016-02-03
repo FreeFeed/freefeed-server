@@ -1037,6 +1037,16 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
+  User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
+    await this.validateCanSendPrivateGroupSubscriptionRequest(groupId)
+
+    const currentTime = new Date().getTime()
+    return await Promise.all([
+      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, groupId),
+      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, groupId)
+    ])
+  }
+
   User.prototype.acceptSubscriptionRequest = async function(userId) {
     await this.validateCanManageSubscriptionRequests(userId)
 
@@ -1092,6 +1102,20 @@ exports.addModel = function(dbAdapter) {
 
     if (!valid)
       throw new Error("Invalid")
+  }
+
+  User.prototype.validateCanSendPrivateGroupSubscriptionRequest = async function(groupId) {
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
+    const group = await dbAdapter.getGroupById(groupId)
+
+    const valid = !hasRequest
+      && group.isPrivate === '1'
+
+    if (!valid){
+      if (hasRequest)
+        throw new Error("Subscription request already sent")
+      throw new Error("Group is public")
+    }
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
