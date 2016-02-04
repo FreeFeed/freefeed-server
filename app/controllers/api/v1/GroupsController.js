@@ -169,6 +169,7 @@ export default class GroupsController {
       return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
 
     const groupName = req.params.groupName
+    const userName = req.params.userName
     try {
       let group = await dbAdapter.getGroupByUsername(groupName)
 
@@ -177,7 +178,10 @@ export default class GroupsController {
       }
       await group.validateCanUpdate(req.user)
 
-      const user = await dbAdapter.getUserByUsername(req.params.userName)
+      const user = await dbAdapter.getUserByUsername(userName)
+      if (null === user) {
+        throw new NotFoundException(`User "${userName}" is not found`)
+      }
       await group.acceptSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
@@ -191,6 +195,7 @@ export default class GroupsController {
       return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
 
     const groupName = req.params.groupName
+    const userName = req.params.userName
     try {
       let group = await dbAdapter.getGroupByUsername(groupName)
 
@@ -199,7 +204,10 @@ export default class GroupsController {
       }
       await group.validateCanUpdate(req.user)
 
-      const user = await dbAdapter.getUserByUsername(req.params.userName)
+      const user = await dbAdapter.getUserByUsername(userName)
+      if (null === user) {
+        throw new NotFoundException(`User "${userName}" is not found`)
+      }
       await group.rejectSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
@@ -213,6 +221,7 @@ export default class GroupsController {
       return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
 
     const groupName = req.params.groupName
+    const userName = req.params.userName
     try {
       let group = await dbAdapter.getGroupByUsername(groupName)
 
@@ -221,8 +230,10 @@ export default class GroupsController {
       }
       await group.validateCanUpdate(req.user)
 
-      let user = await dbAdapter.getUserByUsername(req.params.userName)
-
+      let user = await dbAdapter.getUserByUsername(userName)
+      if (null === user) {
+        throw new NotFoundException(`User "${userName}" is not found`)
+      }
       let timelineId = await group.getPostsTimelineId()
       await user.validateCanUnsubscribe(timelineId)
       await user.unsubscribeFrom(timelineId)
