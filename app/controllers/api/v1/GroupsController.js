@@ -208,6 +208,31 @@ export default class GroupsController {
     }
   }
 
+  static async unsubscribeFromGroup(req, res) {
+    if (!req.user)
+      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+
+    const groupName = req.params.groupName
+    try {
+      let group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+      await group.validateCanUpdate(req.user)
+
+      let user = await dbAdapter.getUserByUsername(req.params.userName)
+
+      let timelineId = await group.getPostsTimelineId()
+      await user.validateCanUnsubscribe(timelineId)
+      await user.unsubscribeFrom(timelineId)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
   static _filteredParams(modelDescr, allowedParams){
     return _.pick(modelDescr, allowedParams)
   }
