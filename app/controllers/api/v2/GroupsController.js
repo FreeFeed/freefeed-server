@@ -1,3 +1,6 @@
+import _ from 'lodash'
+
+import { dbAdapter } from '../../../models'
 import exceptions, { NotFoundException }  from '../../../support/exceptions'
 
 
@@ -7,7 +10,23 @@ export default class GroupsController {
       return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
 
     try {
-      res.jsonp({ err: null, status: 'success' })
+      let managedGroups = await req.user.getManagedGroups()
+
+      let groupsJson = []
+
+      if (_.isArray(managedGroups) && managedGroups.length > 0){
+        let promises = managedGroups.map(async (group)=>{
+          let groupDescr = _.pick(group, ['id', 'username', 'screenName', 'isPrivate'])
+
+          let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
+          let unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
+          groupDescr.requests = _.map(unconfirmedFollowers, (user)=>{ return _.pick(user, ['id', 'username', 'screenName']) })
+          groupsJson.push(groupDescr)
+        })
+        await Promise.all(promises)
+      }
+
+      res.jsonp(groupsJson)
     } catch(e) {
       exceptions.reportError(res)(e)
     }
