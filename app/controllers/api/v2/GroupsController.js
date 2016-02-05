@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 import { dbAdapter } from '../../../models'
-import exceptions, { NotFoundException }  from '../../../support/exceptions'
+import exceptions from '../../../support/exceptions'
 
 
 export default class GroupsController {
