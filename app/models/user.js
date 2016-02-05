@@ -1145,5 +1145,43 @@ exports.addModel = function(dbAdapter) {
     return true
   }
 
+  User.prototype.getFollowedGroups = async function () {
+    const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
+    if (!(_.isArray(timelinesIds) && timelinesIds.length > 0))
+      return null
+
+    const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
+    if (!(_.isArray(timelines) && timelines.length > 0))
+      return null
+
+    const timelineOwnerIds = _(timelines).map('userId').uniq().value()
+    if (!(_.isArray(timelineOwnerIds) && timelineOwnerIds.length > 0))
+      return null
+
+    const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
+    if (!(_.isArray(timelineOwners) && timelineOwners.length > 0))
+      return null
+
+    let followedGroups = timelineOwners.filter((owner) => {
+      return 'group' === owner.type
+    })
+
+    return followedGroups
+  }
+
+  User.prototype.getManagedGroups = async function () {
+    const followedGroups = await this.getFollowedGroups()
+    const currentUserId  = this.id
+    if (!(_.isArray(followedGroups) && followedGroups.length > 0))
+      return null
+
+    let managedGroups = followedGroups.filter( async (group)=>{
+      const adminIds = await group.getAdministratorIds()
+      return _.isArray(adminIds) && adminIds.indexOf(currentUserId) !== -1
+    })
+
+    return managedGroups
+  }
+
   return User
 }
