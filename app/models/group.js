@@ -19,6 +19,7 @@ export function addModel(dbAdapter) {
     this.createdAt = params.createdAt
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
+    this.isRestricted = params.isRestricted
     this.type = "group"
     this.profilePictureUuid = params.profilePictureUuid || ''
   }
@@ -49,6 +50,13 @@ export function addModel(dbAdapter) {
     set: function(newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
+    }
+  })
+
+  Object.defineProperty(Group.prototype, 'isRestricted', {
+    get: function() { return this.isRestricted_ },
+    set: function(newValue) {
+      this.isRestricted_ = newValue || '0'
     }
   })
 
@@ -90,7 +98,8 @@ export function addModel(dbAdapter) {
         'type': this.type,
         'createdAt': this.createdAt.toString(),
         'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate
+        'isPrivate': this.isPrivate,
+        'isRestricted': this.isRestricted
       }
       this.id = await dbAdapter.createUser(payload)
 
@@ -136,6 +145,11 @@ export function addModel(dbAdapter) {
       hasChanges = true
     }
 
+    if (params.hasOwnProperty('isRestricted') && params.isRestricted != this.isRestricted) {
+      this.isRestricted = params.isRestricted
+      hasChanges = true
+    }
+
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
@@ -143,7 +157,8 @@ export function addModel(dbAdapter) {
         'screenName': this.screenName,
         'description': this.description,
         'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate
+        'isPrivate': this.isPrivate,
+        'isRestricted': this.isRestricted
       }
 
       await dbAdapter.updateUser(this.id, payload)
