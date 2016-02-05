@@ -153,7 +153,7 @@ export function addModel(dbAdapter) {
     let postIds = await this.getPostIds(offset, limit)
     postIds = postIds.filter(id => {
       if (!_.isString(id)) {
-        console.warn(`got weird id in timeline ${this.id}: ${id}`)
+        console.warn(`got weird id in timeline ${this.id}: ${id}`)  // eslint-disable-line no-console
         return false
       }
       return true
