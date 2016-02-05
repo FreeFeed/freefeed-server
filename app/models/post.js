@@ -344,7 +344,6 @@ export function addModel(dbAdapter) {
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
     promises.push(dbAdapter.addCommentToPost(this.id, comment.id))
-    promises.push(pubSub.newComment(comment, timelines))
 
     await Promise.all(promises)
 
