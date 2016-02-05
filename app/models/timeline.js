@@ -153,12 +153,20 @@ export function addModel(dbAdapter) {
     let postIds = await this.getPostIds(offset, limit)
     postIds = postIds.filter(id => {
       if (!_.isString(id)) {
-        console.warn(`got weird id in timeline ${this.id}: ${id}`)
+        console.warn(`got weird id in timeline ${this.id}: ${id}`)  // eslint-disable-line no-console
         return false
       }
       return true
     })
+
     let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
+    posts = posts.filter(post => {
+      if (!_.isString(post.userId)) {
+        console.warn(`got weird uid (author of post ${post.id}): ${post.userId}`)  // eslint-disable-line no-console
+        return false
+      }
+      return true
+    })
 
     let uids = _.uniq(posts.map(post => post.userId))
     let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
