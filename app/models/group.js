@@ -220,6 +220,13 @@ export function addModel(dbAdapter) {
     if (!_.includes(ids, postingUser.id)) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
+
+    if (this.isRestricted){
+      let adminIds = await this.getAdministratorIds()
+      if (!_.includes(adminIds, postingUser.id)) {
+        throw new ForbiddenException("You can't post to a restricted group")
+      }
+    }
   }
 
   /**
