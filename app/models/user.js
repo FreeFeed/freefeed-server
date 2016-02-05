@@ -1186,5 +1186,24 @@ exports.addModel = function(dbAdapter) {
     return managedGroups
   }
 
+  User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
+    const managedGroups = await this.getManagedGroups()
+    if (!(_.isArray(managedGroups) && managedGroups.length > 0))
+      return false
+
+    let hasPendingRequests = false
+    let promises = managedGroups.map(async (group)=>{
+      let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
+      if(_.isArray(unconfirmedFollowerIds) && unconfirmedFollowerIds.length > 0)
+        hasPendingRequests = true
+    })
+    await Promise.all(promises)
+    return hasPendingRequests
+  }
+
+  User.prototype.getPendingGroupRequests = function () {
+    return this.pendingPrivateGroupSubscriptionRequests()
+  }
+
   return User
 }
