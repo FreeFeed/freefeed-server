@@ -214,6 +214,7 @@ export function addModel(dbAdapter) {
 
           img = img
             .resize(525, 175)
+            .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
             .autoOrient()
             .quality(95)
 
