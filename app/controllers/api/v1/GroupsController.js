@@ -13,7 +13,7 @@ export default class GroupsController {
     if (!req.body.group)
       return res.status(400).jsonp({ err: 'Malformed request', status: 'fail'})
 
-    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description'])
+    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate'])
 
     try {
       var group = new Group(params)
@@ -63,7 +63,7 @@ export default class GroupsController {
   }
 
   static async update(req, res) {
-    let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description'])
+    let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate'])
 
     try {
       const group = await dbAdapter.getGroupById(req.params.userId)
