@@ -1,12 +1,5 @@
-import { inherits } from "util"
-
-import { AbstractModel } from '../models'
-
-
 export function addModel(dbAdapter) {
   var Stats = function(params) {
-    Stats.super_.call(this)
-
     this.id = params.id
     this.posts = params.posts || 0
     this.likes = params.likes || 0
@@ -15,13 +8,8 @@ export function addModel(dbAdapter) {
     this.subscriptions = params.subscriptions || 0
   }
 
-  inherits(Stats, AbstractModel)
-
   Stats.className = Stats
   Stats.namespace = "stats"
-  Stats.initObject = Stats.super_.initObject
-  Stats.findById = Stats.super_.findById
-  Stats.findByIds = Stats.super_.findByIds
 
   Stats.prototype.validateOnCreate = async function() {
     const valid = this.id

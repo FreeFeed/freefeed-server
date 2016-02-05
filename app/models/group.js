@@ -2,7 +2,7 @@ import { inherits } from "util"
 
 import _ from 'lodash'
 
-import { FeedFactory, Stats, User } from '../models'
+import { Stats, User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
@@ -27,12 +27,6 @@ export function addModel(dbAdapter) {
 
   Group.className = Group
   Group.namespace = "user"
-  Group.initObject = Group.super_.initObject
-  Group.findById = Group.super_.findById
-  Group.findByIds = Group.super_.findByIds
-  Group.getById = Group.super_.getById
-  Group.findByAttribute = Group.super_.findByAttribute
-  Group.findByUsername = Group.super_.findByUsername
 
   Object.defineProperty(Group.prototype, 'username', {
     get: function() { return this.username_ },
@@ -63,7 +57,7 @@ export function addModel(dbAdapter) {
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
-        && FeedFactory.stopList(skip_stoplist).indexOf(this.username) == -1
+        && User.stopList(skip_stoplist).indexOf(this.username) == -1
 
     return valid
   }
@@ -153,7 +147,7 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.subscribeOwner = async function(ownerId) {
-    let owner = await User.findById(ownerId)
+    let owner = await dbAdapter.getUserById(ownerId)
 
     if (!owner) {
       return null
@@ -190,7 +184,7 @@ export function addModel(dbAdapter) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await User.findByIds(adminIds)
+    this.administrators = await dbAdapter.getUsersByIds(adminIds)
 
     return this.administrators
   }

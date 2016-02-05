@@ -1,18 +1,13 @@
-import { inherits } from 'util'
-
 import _ from 'lodash'
 
-import { AbstractModel, FeedFactory, Post, PubSub as pubSub, Stats, User } from '../models'
+import { PubSub as pubSub } from '../models'
 
 
 export function addModel(dbAdapter) {
   /**
    * @constructor
-   * @extends AbstractModel
    */
   var Comment = function(params) {
-    Comment.super_.call(this)
-
     this.id = params.id
     this.body = params.body
     this.userId = params.userId
@@ -23,14 +18,8 @@ export function addModel(dbAdapter) {
       this.updatedAt = params.updatedAt
   }
 
-  inherits(Comment, AbstractModel)
-
   Comment.className = Comment
   Comment.namespace = "comment"
-  Comment.initObject = Comment.super_.initObject
-  Comment.findById = Comment.super_.findById
-  Comment.findByIds = Comment.super_.findByIds
-  Comment.getById = Comment.super_.getById
 
   Object.defineProperty(Comment.prototype, 'body', {
     get: function() { return this.body_ },
@@ -68,10 +57,10 @@ export function addModel(dbAdapter) {
 
     this.id = await dbAdapter.createComment(payload)
 
-    let post = await Post.findById(this.postId)
+    let post = await dbAdapter.getPostById(this.postId)
     let timelines = await post.addComment(this)
 
-    let stats = await Stats.findById(this.userId)
+    let stats = await dbAdapter.getStatsById(this.userId)
     await stats.addComment()
 
     return timelines
@@ -95,7 +84,7 @@ export function addModel(dbAdapter) {
   }
 
   Comment.prototype.getPost = function() {
-    return Post.findById(this.postId)
+    return dbAdapter.getPostById(this.postId)
   }
 
   Comment.prototype.destroy = async function() {
@@ -105,14 +94,14 @@ export function addModel(dbAdapter) {
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
-    let post = await Post.findById(this.postId)
+    let post = await dbAdapter.getPostById(this.postId)
     let comments = await post.getComments()
 
     if (_.any(comments, 'userId', this.userId)) {
       return true
     }
 
-    let user = await User.findById(this.userId)
+    let user = await dbAdapter.getUserById(this.userId)
     let timelineId = await user.getCommentsTimelineId()
 
     await Promise.all([
@@ -120,13 +109,13 @@ export function addModel(dbAdapter) {
       dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
     ])
 
-    let stats = await Stats.findById(this.userId)
+    let stats = await dbAdapter.getStatsById(this.userId)
     let res = await stats.removeComment()
     return res
   }
 
   Comment.prototype.getCreatedBy = function() {
-    return FeedFactory.findById(this.userId)
+    return dbAdapter.getUserById(this.userId)
   }
 
   return Comment

@@ -1,10 +1,30 @@
-import {default as uuid} from 'uuid'
-import {mkKey} from '../support/models'
+import { default as uuid } from 'uuid'
+import { each, isString } from 'lodash'
+
+import { Attachment, Comment, Group, Post, Stats, Timeline, User } from '../models'
+
+
+export const mkKey = (keys) => {
+  const sep = ':'
+
+  for (let key of keys) {
+    if (!isString(key)) {
+      throw new Error('keys should be strings')
+    }
+  }
+
+  return keys.join(sep)
+}
 
 export class DbAdapter {
   constructor(database) {
     this.database = database
   }
+
+  static initObject(classDef, attrs, id, params) {
+    return new classDef({...attrs, ...{id}, ...params})
+  }
+
 
   ///////////////////////////////////////////////////
   // User
@@ -49,21 +69,153 @@ export class DbAdapter {
     return this._existsRecord(mkKey(['user', userId]))
   }
 
-  getUserById(userId) {
-    return this._getRecord(mkKey(['user', userId]))
+  async getFeedOwnerById(id) {
+    const attrs = await this._getRecord(mkKey(['user', id]))
+
+    if (!attrs) {
+      return null
+    }
+
+    if (attrs.type === 'group') {
+      return DbAdapter.initObject(Group, attrs, id)
+    }
+
+    return DbAdapter.initObject(User, attrs, id)
   }
 
-  getUsersByIds(userIds) {
-    let keys     = userIds.map(id => mkKey(['user', id]))
-    let requests = keys.map(key => ['hgetall', key])
+  async getUserById(id) {
+    const user = await this.getFeedOwnerById(id)
 
-    return this.database.batch(requests).execAsync()
+    if (!user) {
+      return null
+    }
+
+    if (!(user instanceof User)) {
+      throw new Error(`Expected User, got ${user.constructor.name}`)
+    }
+
+    return user
   }
 
+  async getGroupById(id) {
+    const user = await this.getFeedOwnerById(id)
+
+    if (!user) {
+      return null
+    }
+
+    if (!(user instanceof Group)) {
+      throw new Error(`Expected Group, got ${user.constructor.name}`)
+    }
+
+    return user
+  }
+
+  async getUsersByIds(userIds) {
+    const users = await this.getFeedOwnersByIds(userIds)
+
+    each(users, user => {
+      if (!(user instanceof User)) {
+        throw new Error(`Expected User, got ${user.constructor.name}`)
+      }
+    })
+
+    return users
+  }
+
+
+  async getFeedOwnersByIds(ids) {
+    const responses = await this.findRecordsByIds('user', ids)
+
+    const objects = responses.map((attrs, i) => {
+      if (attrs.type === 'group') {
+        return DbAdapter.initObject(Group, attrs, ids[i])
+      }
+
+      return DbAdapter.initObject(User, attrs, ids[i])
+    })
+
+    return objects
+  }
+
+  async getFeedOwnerByUsername(username) {
+    const identifier = await this.getUserIdByUsername(username.toLowerCase())
+
+    if (null === identifier) {
+      return null
+    }
+
+    return this.getFeedOwnerById(identifier)
+  }
+
+  async getUserByUsername(username) {
+    const feed = await this.getFeedOwnerByUsername(username)
+
+    if (null === feed) {
+      return null
+    }
+
+    if (!(feed instanceof User)) {
+      throw new Error(`Expected User, got ${feed.constructor.name}`)
+    }
+
+    return feed
+  }
+
+  async getGroupByUsername(username) {
+    const feed = await this.getFeedOwnerByUsername(username)
+
+    if (null === feed) {
+      return null
+    }
+
+    if (!(feed instanceof Group)) {
+      throw new Error(`Expected Group, got ${feed.constructor.name}`)
+    }
+
+    return feed
+  }
+
+  async getUserByResetToken(token) {
+    const uid = await this.findUserByAttributeIndex('reset', token)
+
+    if (null === uid) {
+      return null
+    }
+
+    return this.getUserById(uid)
+  }
+
+  async getUserByEmail(email) {
+    const uid = await this.findUserByAttributeIndex('email', email.toLowerCase())
+
+    if (null === uid) {
+      return null
+    }
+
+    return this.getUserById(uid)
+  }
   ///////////
 
   getUserTimelinesIds(userId) {
     return this._getRecord(mkKey(['user', userId, 'timelines']))
+  }
+
+  async getTimelineById(id, params) {
+    const attrs = await this.findRecordById('timeline', id)
+
+    if (!attrs) {
+      return null
+    }
+
+    return DbAdapter.initObject(Timeline, attrs, id, params)
+  }
+
+  async getTimelinesByIds(ids, params) {
+    const responses = await this.findRecordsByIds('timeline', ids)
+    const objects = responses.map((attrs, i) => DbAdapter.initObject(Timeline, attrs, ids[i], params))
+
+    return objects
   }
 
   getUserDiscussionsTimelineId(userId) {
@@ -96,6 +248,23 @@ export class DbAdapter {
 
   updatePost(postId, payload) {
     return this._updateRecord(mkKey(['post', postId]), payload)
+  }
+
+  async getPostById(id, params) {
+    const attrs = await this.findRecordById('post', id)
+
+    if (!attrs) {
+      return null
+    }
+
+    return DbAdapter.initObject(Post, attrs, id, params)
+  }
+
+  async getPostsByIds(ids, params) {
+    const responses = await this.findRecordsByIds('post', ids)
+    const objects = responses.map((attrs, i) => DbAdapter.initObject(Post, attrs, ids[i], params))
+
+    return objects
   }
 
   setPostUpdatedAt(postId, time) {
@@ -460,6 +629,23 @@ export class DbAdapter {
     return this._updateRecord(mkKey(['stats', userId]), payload)
   }
 
+  async getStatsById(id, params) {
+    const attrs = await this.findRecordById('stats', id)
+
+    if (!attrs) {
+      return null
+    }
+
+    return DbAdapter.initObject(Stats, attrs, id, params)
+  }
+
+  async getStatsByIds(ids, params) {
+    const responses = await this.findRecordsByIds('stats', ids)
+    const objects = responses.map((attrs, i) => DbAdapter.initObject(Stats, attrs, ids[i], params))
+
+    return objects
+  }
+
   changeUserStatsValue(userId, property, value) {
     return this.database.hincrbyAsync(mkKey(['stats', userId]), property, value)
   }
@@ -506,6 +692,23 @@ export class DbAdapter {
     return commentId
   }
 
+  async getCommentById(id, params) {
+    const attrs = await this.findRecordById('comment', id)
+
+    if (!attrs) {
+      return null
+    }
+
+    return DbAdapter.initObject(Comment, attrs, id, params)
+  }
+
+  async getCommentsByIds(ids, params) {
+    const responses = await this.findRecordsByIds('comment', ids)
+    const objects = responses.map((attrs, i) => DbAdapter.initObject(Comment, attrs, ids[i], params))
+
+    return objects
+  }
+
   updateComment(commentId, payload) {
     return this._updateRecord(mkKey(['comment', commentId]), payload)
   }
@@ -529,6 +732,23 @@ export class DbAdapter {
 
     await this._createRecord(attachmentKey, payload)
     return attachmentId
+  }
+
+  async getAttachmentById(id, params) {
+    const attrs = await this.findRecordById('attachment', id)
+
+    if (!attrs) {
+      return null
+    }
+
+    return DbAdapter.initObject(Attachment, attrs, id, params)
+  }
+
+  async getAttachmentsByIds(ids, params) {
+    const responses = await this.findRecordsByIds('attachment', ids)
+    const objects = responses.map((attrs, i) => DbAdapter.initObject(Attachment, attrs, ids[i], params))
+
+    return objects
   }
 
   updateAttachment(attachmentId, payload) {

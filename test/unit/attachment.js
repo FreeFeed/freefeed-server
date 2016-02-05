@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import mkdirp from 'mkdirp'
 
-import { User, Attachment } from '../../app/models'
+import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
 
@@ -69,7 +69,7 @@ describe('Attachment', function() {
           newAttachment.should.be.an.instanceOf(Attachment)
           newAttachment.should.not.be.empty
           newAttachment.should.have.property('id')
-          return Attachment.findById(attachment.id)
+          return dbAdapter.getAttachmentById(attachment.id)
         }).then(function(newAttachment) {
           newAttachment.should.be.an.instanceOf(Attachment)
           newAttachment.should.not.be.empty

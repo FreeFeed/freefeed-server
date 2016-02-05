@@ -1,8 +1,8 @@
 import formidable from 'formidable'
 import _ from 'lodash'
 
-import { Group, GroupSerializer, User } from '../../../models'
-import exceptions  from '../../../support/exceptions'
+import { dbAdapter, Group, GroupSerializer } from '../../../models'
+import exceptions, { NotFoundException }  from '../../../support/exceptions'
 
 
 export default class GroupsController {
@@ -43,11 +43,8 @@ export default class GroupsController {
       }
 
       let adminPromises = req.body.admins.map(async (username) => {
-        try {
-          return await User.findByUsername(username)
-        } catch (e) {
-          return false
-        }
+        const admin = await dbAdapter.getUserByUsername(username)
+        return (null === admin) ? false : admin;
       })
       let admins = await Promise.all(adminPromises)
       admins = admins.filter(Boolean)
@@ -81,9 +78,13 @@ export default class GroupsController {
     }, {})
 
     try {
-      var group = await Group.getById(req.params.userId)
+      const group = await dbAdapter.getGroupById(req.params.userId)
+      if (null === group) {
+        throw new NotFoundException("Can't find group")
+      }
+
       await group.validateCanUpdate(req.user)
-      group = await group.update(attrs)
+      await group.update(attrs)
 
       var json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
@@ -94,10 +95,19 @@ export default class GroupsController {
 
   static async changeAdminStatus(req, res, newStatus) {
     try {
-      var group = await Group.findByUsername(req.params.groupName)
+      const group = await dbAdapter.getGroupByUsername(req.params.groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${req.params.groupName}" is not found`)
+      }
+
       await group.validateCanUpdate(req.user)
 
-      var newAdmin = await User.findByUsername(req.params.adminName)
+      const newAdmin = await dbAdapter.getUserByUsername(req.params.adminName)
+
+      if (null === newAdmin) {
+        throw new NotFoundException(`User "${req.params.adminName}" is not found`)
+      }
 
       if (newStatus) {
         await group.addAdministrator(newAdmin.id)
@@ -121,7 +131,12 @@ export default class GroupsController {
 
   static async updateProfilePicture(req, res) {
     try {
-      let group = await Group.findByUsername(req.params.groupName)
+      const group = await dbAdapter.getGroupByUsername(req.params.groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`User "${req.params.groupName}" is not found`)
+      }
+
       await group.validateCanUpdate(req.user)
 
       var form = new formidable.IncomingForm()

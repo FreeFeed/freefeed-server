@@ -1,4 +1,4 @@
-import { Comment, Post, User } from './models'
+import { dbAdapter } from './models'
 
 
 export default class pubSub {
@@ -7,7 +7,7 @@ export default class pubSub {
   }
 
   async newPost(postId) {
-    var post = await Post.findById(postId)
+    var post = await dbAdapter.getPostById(postId)
     var timelines = await post.getTimelines()
 
     var promises = timelines.map(async (timeline) => {
@@ -32,7 +32,7 @@ export default class pubSub {
   }
 
   async updatePost(postId) {
-    var post = await Post.findById(postId)
+    var post = await dbAdapter.getPostById(postId)
     var timelineIds = await post.getTimelineIds()
 
     var promises = timelineIds.map(async (timelineId) => {
@@ -63,7 +63,7 @@ export default class pubSub {
   }
 
   async destroyComment(commentId, postId) {
-    var post = await Post.findById(postId)
+    var post = await dbAdapter.getPostById(postId)
     let payload = JSON.stringify({ postId, commentId })
     await this.publisher.commentDestroyed(payload)
 
@@ -77,7 +77,7 @@ export default class pubSub {
   }
 
   async updateComment(commentId) {
-    var comment = await Comment.findById(commentId)
+    var comment = await dbAdapter.getCommentById(commentId)
     var post = await comment.getPost()
 
     let payload = JSON.stringify({ postId: post.id, commentId })
@@ -109,7 +109,7 @@ export default class pubSub {
   }
 
   async removeLike(postId, userId) {
-    var post = await Post.findById(postId)
+    var post = await dbAdapter.getPostById(postId)
     var timelineIds = await post.getTimelineIds()
 
     var promises = timelineIds.map(async (timelineId) => {
@@ -124,7 +124,7 @@ export default class pubSub {
   }
 
   async hidePost(userId, postId) {
-    var user = await User.findById(userId)
+    var user = await dbAdapter.getUserById(userId)
     var timelineId = await user.getRiverOfNewsTimelineId()
 
     var payload = JSON.stringify({ timelineId, postId })
@@ -132,7 +132,7 @@ export default class pubSub {
   }
 
   async unhidePost(userId, postId) {
-    var user = await User.findById(userId)
+    var user = await dbAdapter.getUserById(userId)
     var timelineId = await user.getRiverOfNewsTimelineId()
 
     var payload = JSON.stringify({ timelineId, postId })

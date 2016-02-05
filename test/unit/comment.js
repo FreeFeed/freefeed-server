@@ -1,6 +1,6 @@
 import { isNull } from 'lodash'
 
-import { Comment, Post, User } from '../../app/models'
+import { dbAdapter, Comment, Post, User } from '../../app/models'
 
 
 describe('Comment', function() {
@@ -101,7 +101,7 @@ describe('Comment', function() {
 
           return comment
         })
-        .then(function(comment) { return Comment.findById(comment.id) })
+        .then(function(comment) { return dbAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -121,7 +121,7 @@ describe('Comment', function() {
         })
 
       comment.create()
-        .then(function(timelines) { return Comment.findById(comment.id) })
+        .then(function(timelines) { return dbAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -181,7 +181,7 @@ describe('Comment', function() {
       })
 
       comment.create()
-        .then(function(timelines) { return Comment.findById(comment.id) })
+        .then(function(timelines) { return dbAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -191,10 +191,10 @@ describe('Comment', function() {
         .then(function() { done() })
     })
 
-    it('should not find comment with a valid id', function(done) {
+    it('should not find comment with invalid id', function(done) {
       var identifier = "comment:identifier"
 
-      Comment.findById(identifier)
+      dbAdapter.getCommentById(identifier)
         .then(function(comment) {
           $should.not.exist(comment)
         })
@@ -239,7 +239,7 @@ describe('Comment', function() {
       let comment = comments[0]
       await comment.destroy()
 
-      let oldComment = await Comment.findById(comment.id)
+      let oldComment = await dbAdapter.getCommentById(comment.id)
       isNull(oldComment).should.be.true
 
       comments = await post.getComments()

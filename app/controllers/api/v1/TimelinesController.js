@@ -1,5 +1,5 @@
-import { TimelineSerializer, User } from '../../../models'
-import exceptions from '../../../support/exceptions'
+import { dbAdapter, TimelineSerializer } from '../../../models'
+import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 
 export default class TimelineController {
@@ -50,7 +50,12 @@ export default class TimelineController {
     try {
       var username = req.params.username
 
-      var user = await User.findByUsername(username)
+      const user = await dbAdapter.getFeedOwnerByUsername(username)
+
+      if (null === user) {
+        throw new NotFoundException(`Feed "${username}" is not found`)
+      }
+
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getPostsTimeline({
         offset: req.query.offset,
@@ -69,7 +74,12 @@ export default class TimelineController {
     try {
       var username = req.params.username
 
-      var user = await User.findByUsername(username)
+      const user = await dbAdapter.getUserByUsername(username)
+
+      if (null === user) {
+        throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
+
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getLikesTimeline({
         offset: req.query.offset,
@@ -88,7 +98,12 @@ export default class TimelineController {
     try {
       var username = req.params.username
 
-      var user = await User.findByUsername(username)
+      const user = await dbAdapter.getUserByUsername(username)
+
+      if (null === user) {
+        throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
+
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getCommentsTimeline({
         offset: req.query.offset,

@@ -1,7 +1,7 @@
 import async from 'async'
 import { expect } from 'chai'
 
-import { Post, Timeline, User } from "../../app/models"
+import { dbAdapter, Post, Timeline, User } from "../../app/models"
 
 
 describe('User', function() {
@@ -320,7 +320,7 @@ describe('User', function() {
 
           return user
         })
-        .then((user) => User.findById(user.id))
+        .then((user) => dbAdapter.getUserById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -347,7 +347,7 @@ describe('User', function() {
 
           return user
         })
-        .then((user) => User.findById(user.id))
+        .then((user) => dbAdapter.getUserById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -376,7 +376,7 @@ describe('User', function() {
 
           return user
         })
-        .then(() => User.findById(user.id))
+        .then(() => dbAdapter.getUserById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -451,7 +451,7 @@ describe('User', function() {
         await user.create()
         await user.update({ email: user.email })
 
-        var newUser = await User.findByEmail(user.email)
+        var newUser = await dbAdapter.getUserByEmail(user.email)
 
         newUser.should.be.an.instanceOf(User)
         newUser.should.not.be.empty
@@ -471,9 +471,9 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.update({ email: user.email }) })
-        .then(function(user) { return User.findByEmail('noreply@example.com') })
-        .catch(function(e) {
-          expect(e.message).to.equal('Record not found')
+        .then(function(user) { return dbAdapter.getUserByEmail('noreply@example.com') })
+        .then(function(e) {
+          expect(e).to.be.a('null')
           done()
         })
     })
@@ -488,7 +488,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return User.findByResetToken(token) })
+        .then(function(token) { return dbAdapter.getUserByResetToken(token) })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -506,9 +506,9 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return User.findByResetToken('token') })
-        .catch(function(e) {
-          expect(e.message).to.equal('Record not found')
+        .then(function(token) { return dbAdapter.getUserByResetToken('token') })
+        .then(function(e) {
+          expect(e).to.be.a('null')
           done()
         })
     })
@@ -518,7 +518,7 @@ describe('User', function() {
     it('should not find user with an invalid id', function(done) {
       var identifier = "user:identifier"
 
-      User.findById(identifier)
+      dbAdapter.getUserById(identifier)
         .then(function(user) {
           $should.not.exist(user)
           done()
@@ -533,7 +533,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user })
-        .then(function(user) { return User.findById(user.id) })
+        .then(function(user) { return dbAdapter.getUserById(user.id) })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -552,7 +552,7 @@ describe('User', function() {
       })
 
       user.create()
-        .then(function(user) { return User.findByUsername(user.username) })
+        .then(function(user) { return dbAdapter.getUserByUsername(user.username) })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -771,7 +771,7 @@ describe('User', function() {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return Post.findById(newPost.id) })
+        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -796,7 +796,7 @@ describe('User', function() {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return Post.findById(newPost.id) })
+        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty

@@ -1,6 +1,6 @@
 import uuid from 'uuid'
 
-import { Timeline, User } from '../../app/models'
+import { dbAdapter, Timeline, User } from '../../app/models'
 
 
 describe('Timeline', function() {
@@ -25,7 +25,7 @@ describe('Timeline', function() {
 
           return timeline
         })
-        .then(function(timeline) { return Timeline.findById(timeline.id) })
+        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
         .then(function(newTimeline) {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -45,7 +45,7 @@ describe('Timeline', function() {
 
       timeline.create()
         .then(function(timeline) { return timeline })
-        .then(function(timeline) { return Timeline.findById(timeline.id) })
+        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
         .then(function(newTimeline) {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -81,7 +81,7 @@ describe('Timeline', function() {
 
       timeline.create()
         .then(function(timeline) { return timeline })
-        .then(function(timeline) { return Timeline.findById(timeline.id) })
+        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
         .then(function(newTimeline) {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -91,10 +91,10 @@ describe('Timeline', function() {
         .then(function() { done() })
     })
 
-    it('should not find timeline with a valid id', function(done) {
+    it('should not find timeline with an invalid id', function(done) {
       var identifier = "timeline:identifier"
 
-      Timeline.findById(identifier)
+      dbAdapter.getTimelineById(identifier)
         .then(function(timeline) {
           $should.not.exist(timeline)
         })

@@ -3,10 +3,8 @@ import { DbAdapter } from './support/DbAdapter'
 import { PubSubAdapter } from './support/PubSubAdapter'
 import pubSub from './pubsub'
 
-import { addModel as abstractModel } from './models/abstract_model'
 import { addModel as attachmentModel } from './models/attachment'
 import { addModel as commentModel } from './models/comment'
-import { addModel as feedFactoryModel } from './models/feed-factory'
 import { addModel as groupModel } from './models/group'
 import { addModel as postModel } from './models/post'
 import { addModel as statsModel } from './models/stats'
@@ -30,8 +28,7 @@ import { addSerializer as userSerializer } from './serializers/v1/UserSerializer
 
 // Be careful: order of exports is important.
 export const database = redisConnection()
-
-const dbAdapter = new DbAdapter(database)
+export const dbAdapter = new DbAdapter(database)
 
 export { AbstractSerializer } from './serializers/abstract_serializer'
 export { Serializer }         from "./serializers/serializer"
@@ -39,10 +36,8 @@ export { Serializer }         from "./serializers/serializer"
 const pubsubAdapter = new PubSubAdapter(database)
 export const PubSub = new pubSub(pubsubAdapter)
 
-export const AbstractModel = abstractModel(dbAdapter)
 export const User          = userModel(dbAdapter)
 export const Group         = groupModel(dbAdapter)
-export const FeedFactory   = feedFactoryModel(dbAdapter)
 export const Post          = postModel(dbAdapter)
 export const Timeline      = timelineModel(dbAdapter)
 export const Attachment    = attachmentModel(dbAdapter)

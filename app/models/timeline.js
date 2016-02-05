@@ -1,8 +1,6 @@
-import { inherits } from "util"
-
 import _ from 'lodash'
 
-import { AbstractModel, FeedFactory, Post, PubSub as pubSub, User } from '../models'
+import { PubSub as pubSub } from '../models'
 
 
 export function addModel(dbAdapter) {
@@ -10,8 +8,6 @@ export function addModel(dbAdapter) {
    * @constructor
    */
   var Timeline = function(params) {
-    Timeline.super_.call(this)
-
     this.id = params.id
     this.name = params.name
     this.userId = params.userId
@@ -24,13 +20,8 @@ export function addModel(dbAdapter) {
     this.currentUser = params.currentUser
   }
 
-  inherits(Timeline, AbstractModel)
-
   Timeline.className = Timeline
   Timeline.namespace = "timeline"
-  Timeline.initObject = Timeline.super_.initObject
-  Timeline.findById = Timeline.super_.findById
-  Timeline.findByIds = Timeline.super_.findByIds
 
   Object.defineProperty(Timeline.prototype, 'name', {
     get: function() { return this.name_ },
@@ -51,7 +42,7 @@ export function addModel(dbAdapter) {
     // We can use post.timelineIds here instead of post.getPostedToIds
     // because we are about to create that post and have just received
     // a request from user, so postedToIds == timelineIds here
-    const timelines = await Timeline.findByIds(post.timelineIds)
+    const timelines = await dbAdapter.getTimelinesByIds(post.timelineIds)
 
     let promises = timelines.map(async (timeline) => {
       const feed = await timeline.getUser()
@@ -156,14 +147,21 @@ export function addModel(dbAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let reader = this.currentUser ? (await User.findById(this.currentUser)) : null
+    let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
-    let posts = (await Post.findByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
+    postIds = postIds.filter(id => {
+      if (!_.isString(id)) {
+        console.warn(`got weird id in timeline ${this.id}: ${id}`)
+        return false
+      }
+      return true
+    })
+    let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
 
     let uids = _.uniq(posts.map(post => post.userId))
-    let users = (await User.findByIds(uids)).filter(Boolean)
+    let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
     let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
 
     let usersCache = {}
@@ -175,7 +173,7 @@ export function addModel(dbAdapter) {
 
     async function userById(id) {
       if (!(id in usersCache)) {
-        let user = await User.findById(id)
+        let user = await dbAdapter.getUserById(id)
 
         if (!user) {
           throw new Error(`no user for id=${id}`)
@@ -241,7 +239,7 @@ export function addModel(dbAdapter) {
   Timeline.prototype.mergeTo = async function(timelineId) {
     await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
 
-    let timeline = await Timeline.findById(timelineId)
+    let timeline = await dbAdapter.getTimelineById(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
     let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(postId, timelineId))
@@ -261,7 +259,7 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getUser = function() {
-    return FeedFactory.findById(this.userId)
+    return dbAdapter.getFeedOwnerById(this.userId)
   }
 
   /**
@@ -282,7 +280,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
     var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await User.findByIds(userIds)
+    this.subscribers = await dbAdapter.getUsersByIds(userIds)
 
     return this.subscribers
   }

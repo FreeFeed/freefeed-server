@@ -5,7 +5,7 @@ import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
-import { Comment, LikeSerializer, Post, PostSerializer, PubsubCommentSerializer, User } from './models'
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
 import { load as configLoader } from '../config/config'
 
 
@@ -49,7 +49,7 @@ export default class PubsubListener {
 
     try {
       let decoded = await jwt.verifyAsync(authToken, secret)
-      socket.user = await User.findById(decoded.userId)
+      socket.user = await dbAdapter.getUserById(decoded.userId)
     } catch(e) {
       socket.user = { id: null }
     }
@@ -135,7 +135,7 @@ export default class PubsubListener {
 
   // Message-handlers follow
   async onPostDestroy(sockets, data) {
-    let post = await Post.findById(data.postId)
+    let post = await dbAdapter.getPostById(data.postId)
     let json = { meta: { postId: data.postId } }
 
     sockets.in('timeline:' + data.timelineId).emit('post:destroy', json)
@@ -150,7 +150,7 @@ export default class PubsubListener {
   }
 
   async onPostNew(sockets, data) {
-    let post = await Post.findById(data.postId)
+    let post = await dbAdapter.getPostById(data.postId)
     let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:new'
@@ -160,7 +160,7 @@ export default class PubsubListener {
   }
 
   async onPostUpdate(sockets, data) {
-    let post = await Post.findById(data.postId)
+    let post = await dbAdapter.getPostById(data.postId)
     let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:update'
@@ -175,14 +175,14 @@ export default class PubsubListener {
   }
 
   async onCommentNew(sockets, data) {
-    let comment = await Comment.findById(data.commentId)
+    let comment = await dbAdapter.getCommentById(data.commentId)
 
     if (!comment) {
       // might be outdated event
       return
     }
 
-    let post = await Post.findById(comment.postId)
+    let post = await dbAdapter.getPostById(comment.postId)
     let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     let type = 'comment:new'
@@ -198,8 +198,8 @@ export default class PubsubListener {
   }
 
   async onCommentUpdate(sockets, data) {
-    let comment = await Comment.findById(data.commentId)
-    let post = await Post.findById(comment.postId)
+    let comment = await dbAdapter.getCommentById(data.commentId)
+    let post = await dbAdapter.getPostById(comment.postId)
     let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     let type = 'comment:update'
@@ -216,7 +216,7 @@ export default class PubsubListener {
 
   async onCommentDestroy(sockets, data) {
     let json = { postId: data.postId, commentId: data.commentId }
-    let post = await Post.findById(data.postId)
+    let post = await dbAdapter.getPostById(data.postId)
     
     let type = 'comment:destroy'
     let room
@@ -229,9 +229,9 @@ export default class PubsubListener {
   }
 
   async onLikeNew(sockets, data) {
-    let user = await User.findById(data.userId)
+    let user = await dbAdapter.getUserById(data.userId)
     let json = await new LikeSerializer(user).promiseToJSON()
-    let post = await Post.findById(data.postId)
+    let post = await dbAdapter.getPostById(data.postId)
     json.meta = { postId: data.postId }
 
     let type = 'like:new'
@@ -247,7 +247,7 @@ export default class PubsubListener {
 
   async onLikeRemove(sockets, data) {
     let json = { meta: { userId: data.userId, postId: data.postId } }
-    let post = await Post.findById(data.postId)
+    let post = await dbAdapter.getPostById(data.postId)
 
     let type = 'like:remove'
     let room
