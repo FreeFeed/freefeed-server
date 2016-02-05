@@ -889,8 +889,11 @@ exports.addModel = function(dbAdapter) {
       var dy = origHeight - origWidth
       image = image.crop(origWidth, origWidth, 0, dy / 2)
     }
-    image = image.resize(size, size)
-    image = image.quality(95)
+    image = image
+      .resize(size, size)
+      .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+      .autoOrient()
+      .quality(95)
     var destPath = this.getProfilePicturePath(uuid, size)
     return image.writeAsync(destPath)
   }
