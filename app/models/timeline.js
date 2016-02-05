@@ -151,6 +151,13 @@ export function addModel(dbAdapter) {
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
+    postIds = postIds.filter(id => {
+      if (!_.isString(id)) {
+        console.warn(`got weird id in timeline ${this.id}: ${id}`)
+        return false
+      }
+      return true
+    })
     let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
 
     let uids = _.uniq(posts.map(post => post.userId))
