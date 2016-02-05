@@ -131,13 +131,19 @@ export function addModel(dbAdapter) {
       hasChanges = true
     }
 
+    if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
+      this.isPrivate = params.isPrivate
+      hasChanges = true
+    }
+
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
       var payload = {
         'screenName': this.screenName,
         'description': this.description,
-        'updatedAt': this.updatedAt.toString()
+        'updatedAt': this.updatedAt.toString(),
+        'isPrivate': this.isPrivate
       }
 
       await dbAdapter.updateUser(this.id, payload)
