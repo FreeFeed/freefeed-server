@@ -1120,14 +1120,20 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.validateCanSendPrivateGroupSubscriptionRequest = async function(groupId) {
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
+    const followedGroups = await this.getFollowedGroups()
+    const followedGroupIds = followedGroups.map( (group) =>{ return group.id } )
+    const hasSubscription = _.includes(followedGroupIds, groupId)
     const group = await dbAdapter.getGroupById(groupId)
 
     const valid = !hasRequest
+      && !hasSubscription
       && group.isPrivate === '1'
 
     if (!valid){
       if (hasRequest)
-        throw new Error("Subscription request already sent")
+        throw new ForbiddenException("Subscription request already sent")
+      if (hasSubscription)
+        throw new ForbiddenException("You are already subscribed to that group")
       throw new Error("Group is public")
     }
   }
