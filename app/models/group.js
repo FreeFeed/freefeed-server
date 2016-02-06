@@ -245,5 +245,13 @@ export function addModel(dbAdapter) {
     }
   }
 
+  Group.prototype.validateUserCanBeUnsubscribed = async function(unsubscribingUser) {
+    const adminIds = await this.getAdministratorIds()
+
+    if (this.isPrivate && _.includes(adminIds, unsubscribingUser.id)) {
+      throw new ForbiddenException("Administrators of private groups cannot be unsubscribed from own groups")
+    }
+  }
+
   return Group
 }

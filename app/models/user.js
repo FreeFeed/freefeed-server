@@ -975,6 +975,17 @@ exports.addModel = function(dbAdapter) {
     if (!_.includes(timelineIds, timelineId)) {
       throw new ForbiddenException("You are not subscribed to that user")
     }
+
+    const timeline = await dbAdapter.getTimelineById(timelineId)
+    const feedOwner = await dbAdapter.getFeedOwnerById(timeline.userId)
+    if (!('group' === feedOwner.type && feedOwner.isPrivate))
+      return true
+
+    const adminIds = await feedOwner.getAdministratorIds()
+
+    if (_.includes(adminIds, this.id)) {
+      throw new ForbiddenException("Administrators of private groups cannot unsubscribe from own groups")
+    }
   }
 
   /* checks if user can like some post */
