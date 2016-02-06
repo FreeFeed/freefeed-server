@@ -235,6 +235,7 @@ export default class GroupsController {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
       let timelineId = await group.getPostsTimelineId()
+      await group.validateUserCanBeUnsubscribed(user)
       await user.validateCanUnsubscribe(timelineId)
       await user.unsubscribeFrom(timelineId)
 
