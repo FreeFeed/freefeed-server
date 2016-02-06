@@ -1120,9 +1120,14 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.validateCanSendPrivateGroupSubscriptionRequest = async function(groupId) {
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
+    let hasSubscription = false
     const followedGroups = await this.getFollowedGroups()
-    const followedGroupIds = followedGroups.map( (group) =>{ return group.id } )
-    const hasSubscription = _.includes(followedGroupIds, groupId)
+    if (_.isArray(followedGroups) && followedGroups.length > 0) {
+      const followedGroupIds = followedGroups.map((group) => {
+        return group.id
+      })
+      hasSubscription  = _.includes(followedGroupIds, groupId)
+    }
     const group = await dbAdapter.getGroupById(groupId)
 
     const valid = !hasRequest
