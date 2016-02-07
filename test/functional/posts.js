@@ -984,8 +984,8 @@ describe("PostsController", function() {
         response.status.should.eql(200, `user couldn't read post`)
 
         let data = await response.json()
-        data.posts.likes.length.should.eql(4)
-        data.posts.omittedLikes.should.eql(6)
+        data.posts.likes.length.should.eql(3)
+        data.posts.omittedLikes.should.eql(7)
       })
     })
   })
