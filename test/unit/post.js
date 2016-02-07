@@ -437,6 +437,70 @@ describe('Post', function() {
         likes[2].id.should.eql(users[8].id)
       }
     })
+
+    it('should be possible to get some likes (properly omitted on the threshold)', async () => {
+      let i
+
+      post.maxLikes = 3
+      post.currentUser = users[0].id
+
+      // 2 likes -> 2 open
+      for (i=0; i<2; i++) {
+        await post.addLike(users[i])
+      }
+
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(2)
+        likes[0].id.should.eql(users[0].id)
+        likes[1].id.should.eql(users[1].id)
+      }
+
+      // 3 likes -> 3 open
+      await post.addLike(users[i++])
+
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(3)
+        likes[0].id.should.eql(users[0].id)
+        likes[1].id.should.eql(users[2].id)
+        likes[2].id.should.eql(users[1].id)
+      }
+
+      // 4 likes -> 4 open
+      await post.addLike(users[i++])
+
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(4)
+        likes[0].id.should.eql(users[0].id)
+        likes[1].id.should.eql(users[3].id)
+        likes[2].id.should.eql(users[2].id)
+        likes[3].id.should.eql(users[1].id)
+      }
+
+      // 5 likes -> 3 open + 2 omitted
+      await post.addLike(users[i++])
+
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(3)
+        likes[0].id.should.eql(users[0].id)
+        likes[1].id.should.eql(users[4].id)
+        likes[2].id.should.eql(users[3].id)
+      }
+
+      // 6 likes -> 3 open + 3 omitted
+      await post.addLike(users[i++])
+
+      {
+        let likes = await post.getLikes()
+        likes.length.should.eql(3)
+        likes[0].id.should.eql(users[0].id)
+        likes[1].id.should.eql(users[5].id)
+        likes[2].id.should.eql(users[4].id)
+      }
+    })
   })
 
   describe('#removeLike()', function() {
