@@ -902,6 +902,98 @@ describe("UsersController", function() {
     })
   })
 
+  describe('#updateProfileFrontendPreferences', function() {
+    var authToken
+      , user
+
+    beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
+      authToken = token
+      user = luna
+    }))
+
+    it('should store user preferences in db', async () => {
+      let prefs = {
+        'net.freefeed': {
+          'userProperty': 'value'
+        },
+        'custom.domain': {
+          'customProperty': 'value2'
+        }
+      }
+      {
+        let response = await funcTestHelper.updateUserAsync({ user, authToken },
+          { frontendPreferences: prefs }
+        )
+        response.status.should.eql(200)
+
+        let responseData = await response.json()
+        responseData.should.have.deep.property('users.frontendPreferences.net\\.freefeed.userProperty')
+        responseData.users.frontendPreferences['net.freefeed'].userProperty.should.equal('value')
+        responseData.users.frontendPreferences.should.have.property('custom.domain')
+        responseData.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+        responseData.users.frontendPreferences['custom.domain'].customProperty.should.equal('value2')
+      }
+      // Retrieve back options and verify data matches
+      {
+        let response = await funcTestHelper.whoami(authToken)
+        response.status.should.eql(200)
+
+        let responseData = await response.json()
+        responseData.should.have.deep.property('users.frontendPreferences.net\\.freefeed.userProperty')
+        responseData.users.frontendPreferences['net.freefeed'].userProperty.should.equal('value')
+        responseData.users.frontendPreferences.should.have.property('custom.domain')
+        responseData.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+        responseData.users.frontendPreferences['custom.domain'].customProperty.should.equal('value2')
+      }
+    })
+
+    it('should validate user preferences structure', async () => {
+      let validPrefs = {
+        'net.freefeed': {
+          'userProperty': 'value'
+        }
+      }
+      let invalidPrefs = {
+        'userProperty': 'value'
+      }
+      {
+        let response = await funcTestHelper.updateUserAsync({ user, authToken },
+          { frontendPreferences: validPrefs }
+        )
+        response.status.should.eql(200)
+      }
+      {
+        let response = await funcTestHelper.updateUserAsync({ user, authToken },
+          { frontendPreferences: invalidPrefs }
+        )
+        response.status.should.eql(422)
+      }
+    })
+
+    it('should validate preferences store size', async () => {
+      let goodPrefs = {
+        'net.freefeed': {
+          'userProperty': '!'.repeat(config.frontendPrefsLimit-100)
+        }
+      }
+      let tooLongPrefs = {
+        'userProperty': '!'.repeat(config.frontendPrefsLimit)
+      }
+      {
+        let response = await funcTestHelper.updateUserAsync({ user, authToken },
+          { frontendPreferences: goodPrefs }
+        )
+        response.status.should.eql(200)
+      }
+      {
+        let response = await funcTestHelper.updateUserAsync({ user, authToken },
+          { frontendPreferences: tooLongPrefs }
+        )
+        response.status.should.eql(422)
+      }
+    })
+  })
+
   describe('#updateProfilePicture', function() {
     var authToken
       , user

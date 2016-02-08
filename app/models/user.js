@@ -10,7 +10,7 @@ import validator from 'validator'
 import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
-import { BadRequestException, ForbiddenException, NotFoundException } from '../support/exceptions'
+import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post, Stats, Timeline } from '../models'
 
 
@@ -32,6 +32,7 @@ exports.addModel = function(dbAdapter) {
     this.screenName = params.screenName
     this.email = params.email
     this.description = params.description || ''
+    this.frontendPreferences = params.frontendPreferences || {}
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
@@ -106,6 +107,17 @@ exports.addModel = function(dbAdapter) {
     set: function(newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
+    }
+  })
+
+  Object.defineProperty(User.prototype, 'frontendPreferences', {
+    get: function() { return this.frontendPreferences_ },
+    set: function(newValue) {
+      if (_.isString(newValue)) {
+        newValue = JSON.parse(newValue)
+      }
+
+      this.frontendPreferences_ = newValue
     }
   })
 
@@ -294,7 +306,8 @@ exports.addModel = function(dbAdapter) {
       'description':    '',
       'createdAt':      this.createdAt.toString(),
       'updatedAt':      this.updatedAt.toString(),
-      'hashedPassword': this.hashedPassword
+      'hashedPassword': this.hashedPassword,
+      'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
 
@@ -341,10 +354,12 @@ exports.addModel = function(dbAdapter) {
         throw new Error("bad input")
       }
 
-      if (params.isPrivate === '1' && this.isPrivate === '0')
+      if (params.isPrivate === '1' && this.isPrivate === '0') {
         await this.unsubscribeNonFriends()
-      else if (params.isPrivate === '0' && this.isPrivate === '1')
+      }
+      else if (params.isPrivate === '0' && this.isPrivate === '1') {
         await this.subscribeNonFriends()
+      }
 
       this.isPrivate = params.isPrivate
       hasChanges = true
@@ -359,14 +374,29 @@ exports.addModel = function(dbAdapter) {
       hasChanges = true
     }
 
+    if (params.hasOwnProperty('frontendPreferences')) {
+      this.frontendPreferences = params.frontendPreferences
+      hasChanges = true
+    }
+
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
+
+      // Validate maximum preferences store size
+      var prefsString = JSON.stringify(this.frontendPreferences)
+      var prefsLen = GraphemeBreaker.countBreaks(prefsString)
+      if (prefsLen > config.frontendPrefsLimit) {
+        throw new ValidationException('Preferences too large')
+      }
+
+      this.validateFrontendPreferencesStructure()
 
       var payload = {
         'screenName': this.screenName,
         'email': this.email,
         'isPrivate': this.isPrivate,
         'description': this.description,
+        'frontendPreferences': prefsString,
         'updatedAt': this.updatedAt.toString()
       }
 
@@ -387,6 +417,18 @@ exports.addModel = function(dbAdapter) {
     }
 
     return this
+  }
+
+  User.prototype.validateFrontendPreferencesStructure = function() {
+    // for each key in prefs there must be an object value
+    if (!_.isPlainObject(this.frontendPreferences)) {
+      throw ValidationException('invalid prefs structure')
+    }
+    for (let prop in this.frontendPreferences) {
+      if (!_.isObjectLike(this.frontendPreferences[prop])) {
+        throw ValidationException('invalid prefs structure')
+      }
+    }
   }
 
   User.prototype.subscribeNonFriends = async function() {

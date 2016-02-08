@@ -283,6 +283,18 @@ export function getSubscriptions(username, authToken, callback) {
   }(callback)
 }
 
+async function getUri(relativeUrl, data) {
+  return fetch(
+    await apiUrl(relativeUrl),
+    {
+      method: 'GET',
+      headers: {
+        'X-Authentication-Token': data.authToken
+      }
+    }
+  )
+}
+
 async function postJson(relativeUrl, data) {
   return fetch(
     await apiUrl(relativeUrl),
@@ -323,6 +335,10 @@ export async function createUserAsync(username, password, attributes) {
     password,
     attributes
   }
+}
+
+export function whoami(authToken) {
+  return getUri(`/v1/users/whoami`, { authToken })
 }
 
 export function like(postId, authToken) {
