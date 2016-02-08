@@ -1197,12 +1197,16 @@ exports.addModel = function(dbAdapter) {
     if (!(_.isArray(followedGroups) && followedGroups.length > 0))
       return null
 
-    let managedGroups = followedGroups.filter( async (group)=>{
+    let promises = followedGroups.map( async (group)=>{
       const adminIds = await group.getAdministratorIds()
-      return _.isArray(adminIds) && adminIds.indexOf(currentUserId) !== -1
+      if (_.isArray(adminIds) && adminIds.indexOf(currentUserId) !== -1) {
+        return group
+      }
+      return null
     })
 
-    return managedGroups
+    let managedGroups = await Promise.all(promises)
+    return _.compact(managedGroups)
   }
 
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
