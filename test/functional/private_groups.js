@@ -968,4 +968,162 @@ describe("PrivateGroups", function() {
       })
     })
   })
+
+  describe('Posting to restricted group', function(){
+    var adminContext = {}
+      , nonAdminContext = {}
+      , nonMemberContext = {}
+      , group
+      , group2
+      , group3
+
+    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
+    beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
+    beforeEach(funcTestHelper.createUserCtx(nonMemberContext, 'Pluto', 'wordpass'))
+
+    beforeEach(function(done) {
+      request
+        .post(app.config.host + '/v1/groups')
+        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1', isRestricted: '1'},
+          authToken: adminContext.authToken })
+        .end(function(err, res) {
+          group = res.body.groups
+
+          request
+            .post(app.config.host + '/v1/groups')
+            .send({ group: {username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1', isRestricted: '0'},
+              authToken: adminContext.authToken })
+            .end(function(err, res) {
+              group2 = res.body.groups
+
+              request
+                .post(app.config.host + '/v1/groups')
+                .send({ group: {username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '0', isRestricted: '1'},
+                  authToken: adminContext.authToken })
+                .end(function(err, res) {
+                  group3 = res.body.groups
+
+                  request
+                    .post(app.config.host + '/v1/groups/pepyatka-dev/sendRequest')
+                    .send({ authToken: nonAdminContext.authToken,
+                      '_method': 'post' })
+                    .end(function(err, res) {
+                      res.status.should.eql(200)
+
+                      request
+                        .post(app.config.host + '/v1/groups/pepyatka-dev-2/sendRequest')
+                        .send({ authToken: nonAdminContext.authToken,
+                          '_method': 'post' })
+                        .end(function(err, res) {
+                          res.status.should.eql(200)
+
+                          request
+                            .post(app.config.host + '/v1/users/pepyatka-dev-3/subscribe')
+                            .send({ authToken: nonAdminContext.authToken,
+                              '_method': 'post' })
+                            .end(function(err, res) {
+                              res.status.should.eql(200)
+
+                              request
+                                .post(app.config.host + '/v1/groups/pepyatka-dev/acceptRequest/' + nonAdminContext.user.username)
+                                .send({ authToken: adminContext.authToken,
+                                  '_method': 'post' })
+                                .end(function (err, res) {
+                                  res.status.should.eql(200)
+
+                                  request
+                                    .post(app.config.host + '/v1/groups/pepyatka-dev-2/acceptRequest/' + nonAdminContext.user.username)
+                                    .send({ authToken: adminContext.authToken,
+                                      '_method': 'post' })
+                                    .end(function (err, res) {
+                                      res.status.should.eql(200)
+                                      done()
+                                    })
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+        })
+    })
+
+    it('should allow only admins to post to private restricted group', function(done) {
+      request
+        .post(app.config.host + '/v1/posts')
+        .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: adminContext.authToken })
+        .end(function(err, res) {
+          res.status.should.eql(200)
+
+          request
+            .post(app.config.host + '/v1/posts')
+            .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: nonAdminContext.authToken })
+            .end(function(err, res) {
+              err.should.not.be.empty
+              err.status.should.eql(403)
+
+              request
+                .post(app.config.host + '/v1/posts')
+                .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: nonMemberContext.authToken })
+                .end(function(err, res) {
+                  err.should.not.be.empty
+                  err.status.should.eql(403)
+                  done()
+                })
+            })
+        })
+    })
+
+    it('should allow all members to post to private non-restricted group', function(done) {
+      request
+        .post(app.config.host + '/v1/posts')
+        .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-2' }, authToken: adminContext.authToken })
+        .end(function(err, res) {
+          res.status.should.eql(200)
+
+          request
+            .post(app.config.host + '/v1/posts')
+            .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-2' }, authToken: nonAdminContext.authToken })
+            .end(function(err, res) {
+              res.should.not.be.empty
+              res.status.should.eql(200)
+
+              request
+                .post(app.config.host + '/v1/posts')
+                .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-2' }, authToken: nonMemberContext.authToken })
+                .end(function(err, res) {
+                  err.should.not.be.empty
+                  err.status.should.eql(403)
+                  done()
+                })
+            })
+        })
+    })
+
+    it('should allow only admins to post to public restricted group', function(done) {
+      request
+        .post(app.config.host + '/v1/posts')
+        .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-3' }, authToken: adminContext.authToken })
+        .end(function(err, res) {
+          res.status.should.eql(200)
+
+          request
+            .post(app.config.host + '/v1/posts')
+            .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-3' }, authToken: nonAdminContext.authToken })
+            .end(function(err, res) {
+              err.should.not.be.empty
+              err.status.should.eql(403)
+
+              request
+                .post(app.config.host + '/v1/posts')
+                .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-3' }, authToken: nonMemberContext.authToken })
+                .end(function(err, res) {
+                  err.should.not.be.empty
+                  err.status.should.eql(403)
+                  done()
+                })
+            })
+        })
+    })
+  })
 })
