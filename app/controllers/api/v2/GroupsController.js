@@ -11,20 +11,17 @@ export default class GroupsController {
 
     try {
       let managedGroups = await req.user.getManagedGroups()
-
       let groupsJson = []
 
-      if (_.isArray(managedGroups) && managedGroups.length > 0){
-        let promises = managedGroups.map(async (group)=>{
-          let groupDescr = _.pick(group, ['id', 'username', 'screenName', 'isPrivate', 'isRestricted'])
+      let promises = managedGroups.map(async (group)=>{
+        let groupDescr = _.pick(group, ['id', 'username', 'screenName', 'isPrivate', 'isRestricted'])
 
-          let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
-          let unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
-          groupDescr.requests = _.map(unconfirmedFollowers, (user)=>{ return _.pick(user, ['id', 'username', 'screenName']) })
-          groupsJson.push(groupDescr)
-        })
-        await Promise.all(promises)
-      }
+        let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
+        let unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
+        groupDescr.requests = _.map(unconfirmedFollowers, (user)=>{ return _.pick(user, ['id', 'username', 'screenName']) })
+        return groupDescr
+      })
+      groupsJson = await Promise.all(promises)
 
       res.jsonp(groupsJson)
     } catch(e) {
