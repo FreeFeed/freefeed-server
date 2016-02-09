@@ -914,5 +914,58 @@ describe("PrivateGroups", function() {
           })
       })
     })
+
+    describe('#whoami:pendingGroupRequests', function() {
+      it('pendingGroupRequests should match managed groups', function(done) {
+        request
+          .get(app.config.host + '/v1/users/whoami')
+          .query({ authToken: adminContext.authToken })
+          .end(function(err, res) {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('pendingGroupRequests')
+            res.body.users.pendingGroupRequests.should.be.true
+
+
+            request
+              .get(app.config.host + '/v1/users/whoami')
+              .query({ authToken: secondAdminContext.authToken })
+              .end(function(err, res) {
+                res.should.not.be.empty
+                res.body.should.not.be.empty
+                res.body.should.have.property('users')
+                res.body.users.should.have.property('pendingGroupRequests')
+                res.body.users.pendingGroupRequests.should.be.true
+
+
+                request
+                  .get(app.config.host + '/v1/users/whoami')
+                  .query({ authToken: groupMemberContext.authToken })
+                  .end(function(err, res) {
+                    res.should.not.be.empty
+                    res.body.should.not.be.empty
+                    res.body.should.have.property('users')
+                    res.body.users.should.have.property('pendingGroupRequests')
+                    res.body.users.pendingGroupRequests.should.be.false
+
+
+                    request
+                      .get(app.config.host + '/v1/users/whoami')
+                      .query({ authToken: nonAdminContext.authToken })
+                      .end(function(err, res) {
+                        res.should.not.be.empty
+                        res.body.should.not.be.empty
+                        res.body.should.have.property('users')
+                        res.body.users.should.have.property('pendingGroupRequests')
+                        res.body.users.pendingGroupRequests.should.be.false
+
+                        done()
+                      })
+                  })
+              })
+          })
+      })
+    })
   })
 })
