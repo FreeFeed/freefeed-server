@@ -744,5 +744,175 @@ describe("PrivateGroups", function() {
           })
       })
     })
+
+
+    describe('#unsubscribe', function() {
+      it('should not allow admins to unsubscribe from group', function(done) {
+        request
+          .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
+          .send({ authToken: adminContext.authToken })
+          .end(function(err, res) {
+            err.should.not.be.empty
+            err.status.should.eql(403)
+
+            request
+              .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
+              .send({ authToken: secondAdminContext.authToken })
+              .end(function(err, res) {
+                err.should.not.be.empty
+                err.status.should.eql(403)
+                done()
+              })
+          })
+      })
+
+      it('should allow group members to unsubscribe from group', function(done) {
+        request
+          .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
+          .send({authToken: groupMemberContext.authToken})
+          .end(function (err, res) {
+            res.should.not.be.empty
+            res.status.should.eql(200)
+            done()
+          })
+      })
+    })
+
+    describe('v2/groupRequests', function() {
+      it('should reject unauthenticated users', function(done) {
+        request
+          .get(app.config.host + '/v2/groupRequests')
+          .end(function(err, res) {
+            err.should.not.be.empty
+            err.status.should.eql(401)
+            done()
+          })
+      })
+
+      it('should return empty array for non-members', function(done) {
+        request
+          .get(app.config.host + '/v2/groupRequests')
+          .send({ authToken: nonAdminContext.authToken })
+          .end(function(err, res) {
+            res.status.should.eql(200)
+            res.body.length.should.eql(0)
+            done()
+          })
+      })
+
+      it('should return empty array for non-admins', function(done) {
+        request
+          .get(app.config.host + '/v2/groupRequests')
+          .send({ authToken: groupMemberContext.authToken })
+          .end(function(err, res) {
+            res.status.should.eql(200)
+            res.body.length.should.eql(0)
+            done()
+          })
+      })
+
+      it('should return requests array for admins', function(done) {
+        request
+          .get(app.config.host + '/v2/groupRequests')
+          .query({ authToken: adminContext.authToken })
+          .end(function(err, res) {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.length.should.eql(1)
+            res.body[0].should.have.property('id')
+            res.body[0].id.should.eql(group.id)
+            res.body[0].should.have.property('requests')
+            res.body[0].requests.length.should.eql(1)
+            res.body[0].requests[0].should.have.property('id')
+            res.body[0].requests[0].id.should.eql(nonAdminContext.user.id)
+            res.body[0].requests[0].should.have.property('username')
+            res.body[0].requests[0].username.should.eql(nonAdminContext.user.username)
+            done()
+          })
+
+      })
+
+      it('requests array should match managed groups', function(done) {
+        let group2
+          , group3
+
+        request
+          .post(app.config.host + '/v1/groups')
+          .send({ group: {username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1'},
+            authToken: adminContext.authToken })
+          .end(function(err, res) {
+            group2 = res.body.groups
+            res.status.should.eql(200)
+
+
+            request
+              .post(app.config.host + '/v1/groups/pepyatka-dev-2/sendRequest')
+              .send({ authToken: groupMemberContext.authToken,
+                '_method': 'post' })
+              .end(function(err, res) {
+                res.status.should.eql(200)
+
+
+                request
+                  .post(app.config.host + '/v1/groups')
+                  .send({ group: {username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '1'},
+                    authToken: nonAdminContext.authToken })
+                  .end(function(err, res) {
+                    group3 = res.body.groups
+                    res.status.should.eql(200)
+
+
+                    request
+                      .get(app.config.host + '/v2/groupRequests')
+                      .query({ authToken: adminContext.authToken })
+                      .end(function(err, res) {
+                        res.should.not.be.empty
+                        res.body.should.not.be.empty
+                        res.body.length.should.eql(2)
+                        res.body[0].requests.length.should.eql(1)
+                        res.body[1].requests.length.should.eql(1)
+
+
+                        request
+                          .get(app.config.host + '/v2/groupRequests')
+                          .query({ authToken: secondAdminContext.authToken })
+                          .end(function(err, res) {
+                            res.should.not.be.empty
+                            res.body.should.not.be.empty
+                            res.body.length.should.eql(1)
+                            res.body[0].id.should.eql(group.id)
+                            res.body[0].requests.length.should.eql(1)
+
+
+                            request
+                              .get(app.config.host + '/v2/groupRequests')
+                              .query({ authToken: nonAdminContext.authToken })
+                              .end(function(err, res) {
+                                res.should.not.be.empty
+                                res.body.should.not.be.empty
+                                res.body.length.should.eql(1)
+                                res.body[0].should.have.property('id')
+                                res.body[0].id.should.eql(group3.id)
+                                res.body[0].should.have.property('requests')
+                                res.body[0].requests.length.should.eql(0)
+
+
+                                request
+                                  .get(app.config.host + '/v2/groupRequests')
+                                  .query({ authToken: groupMemberContext.authToken })
+                                  .end(function(err, res) {
+                                    res.should.not.be.empty
+                                    res.body.should.be.empty
+                                    res.body.length.should.eql(0)
+                                    done()
+                                  })
+                              })
+                          })
+                      })
+                  })
+              })
+          })
+      })
+    })
   })
 })
