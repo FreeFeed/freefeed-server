@@ -1119,25 +1119,18 @@ exports.addModel = function(dbAdapter) {
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
     let hasSubscription = false
     const followedGroups = await this.getFollowedGroups()
-    if (_.isArray(followedGroups) && followedGroups.length > 0) {
-      const followedGroupIds = followedGroups.map((group) => {
-        return group.id
-      })
-      hasSubscription  = _.includes(followedGroupIds, groupId)
-    }
+    const followedGroupIds = followedGroups.map((group) => {
+      return group.id
+    })
+    hasSubscription  = _.includes(followedGroupIds, groupId)
     const group = await dbAdapter.getGroupById(groupId)
 
-    const valid = !hasRequest
-      && !hasSubscription
-      && group.isPrivate === '1'
-
-    if (!valid){
-      if (hasRequest)
-        throw new ForbiddenException("Subscription request already sent")
-      if (hasSubscription)
-        throw new ForbiddenException("You are already subscribed to that group")
+    if (hasRequest)
+      throw new ForbiddenException("Subscription request already sent")
+    if (hasSubscription)
+      throw new ForbiddenException("You are already subscribed to that group")
+    if (!!group && group.isPrivate !== '1')
       throw new Error("Group is public")
-    }
   }
 
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
@@ -1169,20 +1162,20 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getFollowedGroups = async function () {
     const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
-    if (!(_.isArray(timelinesIds) && timelinesIds.length > 0))
-      return null
+    if (timelinesIds.length === 0)
+      return []
 
     const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
-    if (!(_.isArray(timelines) && timelines.length > 0))
-      return null
+    if (timelines.length === 0)
+      return []
 
     const timelineOwnerIds = _(timelines).map('userId').uniq().value()
-    if (!(_.isArray(timelineOwnerIds) && timelineOwnerIds.length > 0))
-      return null
+    if (timelineOwnerIds.length === 0)
+      return []
 
     const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
-    if (!(_.isArray(timelineOwners) && timelineOwners.length > 0))
-      return null
+    if (timelineOwners.length === 0)
+      return []
 
     let followedGroups = timelineOwners.filter((owner) => {
       return 'group' === owner.type
@@ -1194,12 +1187,10 @@ exports.addModel = function(dbAdapter) {
   User.prototype.getManagedGroups = async function () {
     const followedGroups = await this.getFollowedGroups()
     const currentUserId  = this.id
-    if (!(_.isArray(followedGroups) && followedGroups.length > 0))
-      return null
 
     let promises = followedGroups.map( async (group)=>{
       const adminIds = await group.getAdministratorIds()
-      if (_.isArray(adminIds) && adminIds.indexOf(currentUserId) !== -1) {
+      if (adminIds.indexOf(currentUserId) !== -1) {
         return group
       }
       return null
@@ -1211,17 +1202,13 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
     const managedGroups = await this.getManagedGroups()
-    if (!(_.isArray(managedGroups) && managedGroups.length > 0))
-      return false
 
-    let hasPendingRequests = false
     let promises = managedGroups.map(async (group)=>{
       let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
-      if(_.isArray(unconfirmedFollowerIds) && unconfirmedFollowerIds.length > 0)
-        hasPendingRequests = true
+      return unconfirmedFollowerIds.length > 0
     })
-    await Promise.all(promises)
-    return hasPendingRequests
+
+    return _.some((await Promise.all(promises)), Boolean)
   }
 
   User.prototype.getPendingGroupRequests = function () {
