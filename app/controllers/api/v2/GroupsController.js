@@ -18,7 +18,14 @@ export default class GroupsController {
 
         let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
         let unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
-        groupDescr.requests = _.map(unconfirmedFollowers, (user)=>{ return _.pick(user, ['id', 'username', 'screenName']) })
+        let requests = unconfirmedFollowers.map( async (user)=>{
+          let request = _.pick(user, ['id', 'username', 'screenName'])
+          request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()
+          request.profilePictureMediumUrl = await user.getProfilePictureMediumUrl()
+          return request
+        })
+
+        groupDescr.requests = await Promise.all(requests)
         return groupDescr
       })
       groupsJson = await Promise.all(promises)
