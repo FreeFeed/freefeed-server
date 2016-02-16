@@ -23,7 +23,7 @@ export function getConfig() {
 
   config.host = 'http://localhost:' + config.port
 
-  var defaultStopList = ['anonymous', 'public', 'about', 'signin', 'logout',
+  var defaultStopList = ['anonymous', 'public', 'about', 'signin', 'logout', 'dev',
                          'signup', 'filter', 'settings', 'account', 'groups',
                          'friends', 'list', 'search', 'summary', 'share','404',
                          'iphone', 'attachments', 'files', 'profilepics', 'requests']

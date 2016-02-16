@@ -46,7 +46,7 @@ export function getConfig() {
     // config.application {
     //   USERNAME_STOP_LIST = array
     // }
-    USERNAME_STOP_LIST: ['anonymous', 'public', 'about', 'signin', 'logout',
+    USERNAME_STOP_LIST: ['anonymous', 'public', 'about', 'signin', 'logout', 'dev',
                          'signup', 'filter', 'settings', 'account', 'groups',
                          'friends', 'list', 'search', 'summary', 'share','404',
                          'iphone', 'attachments', 'files', 'profilepics', 'requests']

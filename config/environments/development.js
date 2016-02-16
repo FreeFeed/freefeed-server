@@ -35,7 +35,7 @@ export function getConfig() {
   config.host = 'http://localhost:' + config.port
 
   var defaultStopList = [
-    '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter',
+    '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter', 'dev',
     'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
     'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
   ]
