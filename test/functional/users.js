@@ -784,6 +784,7 @@ describe("UsersController", function() {
             'customProperty': 'someWeirdValue'
           }
         }
+        let newDescription = 'The Moon is made of cheese.';
 
         // First, check the response on update
         {
@@ -806,6 +807,25 @@ describe("UsersController", function() {
           response.status.should.eql(200)
 
           let data = await response.json()
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+
+        // Third, only update description (frontendPreferences shouldn't change)
+        {
+          await funcTestHelper.updateUserAsync({ user, authToken }, { description: newDescription })
+
+          let response = await funcTestHelper.whoami(authToken)
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          data.should.have.deep.property('users.description')
+          data.users.description.should.equal(newDescription)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
