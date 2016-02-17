@@ -784,6 +784,17 @@ describe("UsersController", function() {
             'customProperty': 'someWeirdValue'
           }
         }
+        let newPrefs = {
+          'another.client': {
+            'funnyProperty': 'withFunnyValue'
+          },
+          'net.freefeed': {
+            'screenName': {
+              'displayOption': 2,
+              'useYou': false
+            }
+          }
+        }
         let newDescription = 'The Moon is made of cheese.';
 
         // First, check the response on update
@@ -830,6 +841,30 @@ describe("UsersController", function() {
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
           data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+
+        // Fourth, only update some sub-objects (frontendPreferences should get deep-merged)
+        {
+          await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: newPrefs })
+
+          let response = await funcTestHelper.whoami(authToken)
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          // another.client
+          data.should.have.deep.property('users.frontendPreferences.another\\.client')
+          data.users.frontendPreferences['another.client'].should.have.property('funnyProperty')
+          data.users.frontendPreferences['another.client'].funnyProperty.should.equal('withFunnyValue')
+          // net.freefeed
+          data.users.frontendPreferences.should.have.property('net.freefeed')
+          data.users.frontendPreferences['net.freefeed'].should.have.deep.property('screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(2)
+          data.users.frontendPreferences['net.freefeed'].should.have.deep.property('screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(false)
+          // custom domain
           data.users.frontendPreferences.should.have.property('custom.domain')
           data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
           data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
