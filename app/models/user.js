@@ -10,7 +10,7 @@ import validator from 'validator'
 import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
-import { BadRequestException, ForbiddenException, NotFoundException } from '../support/exceptions'
+import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post, Stats, Timeline } from '../models'
 
 
@@ -32,6 +32,7 @@ exports.addModel = function(dbAdapter) {
     this.screenName = params.screenName
     this.email = params.email
     this.description = params.description || ''
+    this.frontendPreferences = params.frontendPreferences || {}
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
@@ -106,6 +107,17 @@ exports.addModel = function(dbAdapter) {
     set: function(newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
+    }
+  })
+
+  Object.defineProperty(User.prototype, 'frontendPreferences', {
+    get: function() { return this.frontendPreferences_ },
+    set: function(newValue) {
+      if (_.isString(newValue)) {
+        newValue = JSON.parse(newValue)
+      }
+
+      this.frontendPreferences_ = newValue
     }
   })
 
@@ -227,6 +239,28 @@ exports.addModel = function(dbAdapter) {
     return (len <= 1500)
   }
 
+  User.frontendPreferencesIsValid = function(frontendPreferences) {
+    // Check size
+    const prefString = JSON.stringify(frontendPreferences)
+    const len = GraphemeBreaker.countBreaks(prefString)
+    if (len > config.frontendPreferencesLimit) {
+      return false
+    }
+
+    // Check structure
+    // (for each key in preferences there must be an object value)
+    if (!_.isPlainObject(frontendPreferences)) {
+      return false
+    }
+    for (let prop in frontendPreferences) {
+      if (!frontendPreferences[prop] || typeof frontendPreferences[prop] !== 'object') {
+        return false
+      }
+    }
+
+    return true
+  }
+
   User.prototype.validate = async function(skip_stoplist) {
     if (!this.isValidUsername(skip_stoplist)) {
       throw new Error('Invalid username')
@@ -294,7 +328,8 @@ exports.addModel = function(dbAdapter) {
       'description':    '',
       'createdAt':      this.createdAt.toString(),
       'updatedAt':      this.updatedAt.toString(),
-      'hashedPassword': this.hashedPassword
+      'hashedPassword': this.hashedPassword,
+      'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
 
@@ -359,6 +394,23 @@ exports.addModel = function(dbAdapter) {
       hasChanges = true
     }
 
+    if (params.hasOwnProperty('frontendPreferences')) {
+      // Validate the input object
+      if (!User.frontendPreferencesIsValid(params.frontendPreferences)) {
+        throw new ValidationException('Invalid frontendPreferences')
+      }
+
+      // Deep-merge objects
+      _.merge(this.frontendPreferences, params.frontendPreferences)
+
+      // Validate the merged object
+      if (!User.frontendPreferencesIsValid(this.frontendPreferences)) {
+        throw new ValidationException('Invalid frontendPreferences')
+      }
+
+      hasChanges = true
+    }
+
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
@@ -367,6 +419,7 @@ exports.addModel = function(dbAdapter) {
         'email': this.email,
         'isPrivate': this.isPrivate,
         'description': this.description,
+        'frontendPreferences': JSON.stringify(this.frontendPreferences),
         'updatedAt': this.updatedAt.toString()
       }
 
