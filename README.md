@@ -41,3 +41,4 @@ Copyright and license
 Pepyatka itself is licensed under the MIT License.
 
 https://github.com/epicmonkey/pepyatka/blob/master/LICENSE
+
