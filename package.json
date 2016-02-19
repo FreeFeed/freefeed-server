@@ -53,13 +53,9 @@
     "validator": "3.40.1",
     "winston": "1.1.2"
   },
-  "//": [
-    "'escope' dependency is added to pin old version. 3.4.0 is incompatible with babel-eslint 4.1.6"
-  ],
   "devDependencies": {
-    "babel-eslint": "^4.1.6",
+    "babel-eslint": "^4.1.8",
     "chai": "3.4.1",
-    "escope": "3.3.0",
     "eslint": "^1.10.3",
     "istanbul": "0.3.17",
     "mkdirp": "0.5.1",
