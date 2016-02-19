@@ -762,6 +762,111 @@ describe("UsersController", function() {
         })
       })
     })
+
+    describe('frontendPreferences tests', function() {
+      var authToken
+        , user
+
+      beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
+        authToken = token
+        user = luna
+      }))
+
+      it('should store frontendPreferences in DB and return it in whoami', async () => {
+        let prefs = {
+          'net.freefeed': {
+            'screenName': {
+              'displayOption': 1,
+              'useYou': true
+            }
+          },
+          'custom.domain': {
+            'customProperty': 'someWeirdValue'
+          }
+        }
+
+        // First, check the response on update
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: prefs })
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+
+        // Second, check whoami response
+        {
+          let response = await funcTestHelper.whoami(authToken)
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+      })
+
+      it('should validate frontendPreferences structure', async () => {
+        let validPrefs = {
+          'net.freefeed': {
+            'userProperty': 'value'
+          }
+        }
+        let invalidPrefs = {
+          'userProperty': 'value'
+        }
+
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          response.status.should.eql(200)
+        }
+
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          response.status.should.eql(422)
+
+          let data = await response.json()
+          data.should.have.property('err')
+          data.err.should.eql('Invalid frontendPreferences')
+        }
+      })
+
+      it('should validate frontendPreferences size', async () => {
+        let validPrefs = {
+          'net.freefeed': {
+            'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100)
+          }
+        }
+        let invalidPrefs = {
+          'net.freefeed': {
+            'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1)
+          }
+        }
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          response.status.should.eql(200)
+        }
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          response.status.should.eql(422)
+
+          let data = await response.json()
+          data.should.have.property('err')
+          data.err.should.eql('Invalid frontendPreferences')
+        }
+      })
+    })
+
   })
 
   describe("#updatePassword()", function() {

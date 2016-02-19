@@ -325,6 +325,16 @@ export async function createUserAsync(username, password, attributes) {
   }
 }
 
+export function whoami(authToken) {
+  return postJson(
+    '/v1/users/whoami',
+    {
+      authToken: authToken,
+      '_method': 'get'
+    }
+  )
+}
+
 export function like(postId, authToken) {
   return postJson(`/v1/posts/${postId}/like`, { authToken })
 }
