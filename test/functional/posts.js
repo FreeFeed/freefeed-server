@@ -565,9 +565,14 @@ describe("PostsController", function() {
 
   describe('#like()', function() {
     var context = {}
+    var otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function(done) { funcTestHelper.createPost(context, 'Post body')(done) })
+
+    beforeEach(funcTestHelper.createUser('mars', 'password2', function(token) {
+      otherUserAuthToken = token
+    }))
 
     describe('in a group', function() {
       var groupName = 'pepyatka-dev'
@@ -597,7 +602,7 @@ describe("PostsController", function() {
 
               request
                 .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
-                .send({ authToken: context.authToken })
+                .send({ authToken: otherUserAuthToken })
                 .end(function(err, res) {
                   res.status.should.eql(200)
                   funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function(err, res) {
@@ -616,12 +621,12 @@ describe("PostsController", function() {
 
     it('should like post with a valid user not more than 1 time', async () => {
       {
-        let response = await funcTestHelper.like(context.post.id, context.authToken)
+        let response = await funcTestHelper.like(context.post.id, otherUserAuthToken)
         response.status.should.eql(200)
       }
 
       {
-        let response = await funcTestHelper.like(context.post.id, context.authToken)
+        let response = await funcTestHelper.like(context.post.id, otherUserAuthToken)
         response.status.should.eql(403)
 
         let data = await response.json()
@@ -649,6 +654,15 @@ describe("PostsController", function() {
           err.status.should.eql(404)
           done()
         })
+    })
+
+    it("should not like user's own post", async () => {
+      let response = await funcTestHelper.like(context.post.id, context.authToken)
+      response.status.should.eql(403)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql("You can't like your own post")
     })
   })
 
