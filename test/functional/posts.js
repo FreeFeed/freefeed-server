@@ -668,14 +668,19 @@ describe("PostsController", function() {
 
   describe('#unlike()', function() {
     var context = {}
+    var otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function(done) { funcTestHelper.createPost(context, 'Post body')(done) })
 
+    beforeEach(funcTestHelper.createUser('mars', 'password2', function(token) {
+      otherUserAuthToken = token
+    }))
+
     it('unlike should fail if post was not yet liked and succeed after it was liked with a valid user', function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
-        .send({ authToken: context.authToken })
+        .send({ authToken: otherUserAuthToken })
         .end(function(err, res) {
 
           err.should.not.be.empty
@@ -685,14 +690,14 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
-            .send({ authToken: context.authToken })
+            .send({ authToken: otherUserAuthToken })
             .end(function(err, res) {
               res.body.should.be.empty
               $should.not.exist(err)
 
               request
                 .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
-                .send({ authToken: context.authToken })
+                .send({ authToken: otherUserAuthToken })
                 .end(function(err, res) {
                   res.body.should.be.empty
                   $should.not.exist(err)
@@ -722,6 +727,15 @@ describe("PostsController", function() {
           err.status.should.eql(404)
           done()
         })
+    })
+
+    it("should not un-like user's own post", async () => {
+      let response = await funcTestHelper.unlike(context.post.id, context.authToken)
+      response.status.should.eql(403)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql("You can't un-like your own post")
     })
   })
 

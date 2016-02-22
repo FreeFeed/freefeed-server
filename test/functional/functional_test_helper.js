@@ -339,6 +339,10 @@ export function like(postId, authToken) {
   return postJson(`/v1/posts/${postId}/like`, { authToken })
 }
 
+export function unlike(postId, authToken) {
+  return postJson(`/v1/posts/${postId}/unlike`, { authToken })
+}
+
 export function updateUserAsync(userContext, user) {
   return postJson(
     `/v1/users/${userContext.user.id}`,
