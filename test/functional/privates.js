@@ -404,9 +404,9 @@ describe("Privates", function() {
       it('should be visible for auth users in likes timeline', function(done) {
         request
           .post(app.config.host + '/v1/posts/' + lunaContext.post.id + '/like')
-          .send({ authToken: lunaContext.authToken })
+          .send({ authToken: marsContext.authToken })
           .end(function(err, res) {
-            funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.user.username + '/likes', lunaContext.authToken, function(err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/' + marsContext.user.username + '/likes', lunaContext.authToken, function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')

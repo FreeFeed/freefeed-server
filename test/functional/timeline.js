@@ -133,20 +133,22 @@ describe("TimelinesController", function() {
 
   describe('#likes()', function() {
     var context = {}
+    var marsContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function(done) { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
-        .send({ authToken: context.authToken })
+        .send({ authToken: marsContext.authToken })
         .end(function(req, res) {
           done()
         })
     })
 
     it('should return likes timeline', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/likes', context.authToken, function(err, res) {
+      funcTestHelper.getTimeline('/v1/timelines/' + marsContext.username + '/likes', context.authToken, function(err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
