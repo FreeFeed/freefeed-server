@@ -32,8 +32,8 @@ export function addModel(dbAdapter) {
       this.maxComments = params.maxComments
     }
 
-    if (params.maxLikes != 'all') {
-      this.maxLikes = parseInt(params.maxLikes, 10) || 4
+    if (params.maxLikes !== 'all') {
+      this.maxLikes = parseInt(params.maxLikes, 10) || 3
     } else {
       this.maxLikes = params.maxLikes
     }
@@ -344,7 +344,6 @@ export function addModel(dbAdapter) {
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
     promises.push(dbAdapter.addCommentToPost(this.id, comment.id))
-    promises.push(pubSub.newComment(comment, timelines))
 
     await Promise.all(promises)
 
@@ -455,53 +454,47 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getLikeIds = async function() {
-    let length = await dbAdapter.getPostLikesCount(this.id)
+    const omittedLikes = await this.getOmittedLikes()
 
-    if (length > this.maxLikes && this.maxLikes != 'all') {
-      let includesUser = await dbAdapter.hasUserLikedPost(this.currentUser, this.id)
+    let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, -omittedLikes - 1)
 
-      let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, this.maxLikes - 1)
+    if (omittedLikes > 0) {
+      const hasUserLikedPost = await dbAdapter.hasUserLikedPost(this.currentUser, this.id)
 
-      this.likeIds = likeIds
-      this.omittedLikes = length - this.maxLikes
-
-      if (includesUser) {
-        if (likeIds.indexOf(this.currentUser) == -1) {
-          this.likeIds = [this.currentUser].concat(this.likeIds.slice(0, -1))
+      if (hasUserLikedPost) {
+        if (likeIds.indexOf(this.currentUser) === -1) {
+          likeIds = [this.currentUser].concat(likeIds.slice(0, -1))
         } else {
-          this.likeIds = this.likeIds.sort((a, b) => {
+          likeIds = likeIds.sort((a, b) => {
             if (a == this.currentUser) return -1
             if (b == this.currentUser) return 1
           })
         }
       }
-
-      return this.likeIds.slice(0, this.maxLikes)
-    } else {  // eslint-disable-line no-else-return
-      let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, -1)
-
+    } else {
       let to = 0
       let from = _.findIndex(likeIds, user => (user == this.currentUser))
 
       if (from > 0) {
         likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
       }
-
-      this.likeIds = likeIds
-
-      return this.likeIds
     }
+
+    return likeIds
   }
 
   Post.prototype.getOmittedLikes = async function() {
-    let length = await dbAdapter.getPostLikesCount(this.id)
-    if (length > this.maxLikes && this.maxLikes != 'all') {
-      this.omittedLikes = length - this.maxLikes
-    } else {
-      this.omittedLikes = 0
+    const length = await dbAdapter.getPostLikesCount(this.id)
+
+    if (this.maxLikes !== 'all') {
+      const threshold = this.maxLikes + 1
+
+      if (length > threshold) {
+        return length - this.maxLikes
+      }
     }
 
-    return this.omittedLikes
+    return 0
   }
 
   Post.prototype.getLikes = async function() {

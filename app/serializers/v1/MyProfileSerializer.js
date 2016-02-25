@@ -6,7 +6,7 @@ export function addSerializer() {
     select: ['id', 'username', 'type', 'screenName', 'email', 'statistics',
              'subscriptions', 'profilePictureLargeUrl', 'profilePictureMediumUrl',
              'banIds', 'subscribers', 'isPrivate', 'pendingSubscriptionRequests',
-             'subscriptionRequests', 'description',
+             'subscriptionRequests', 'description', 'frontendPreferences',
              'administrators'],
     subscriptions: { through: SubscriptionSerializer, embed: true },
     subscribers: { through: SubscriberSerializer },
