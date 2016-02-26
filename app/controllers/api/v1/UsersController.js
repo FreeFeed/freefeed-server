@@ -191,7 +191,7 @@ export default class UsersController {
     }
 
     if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(401).jsonp({ err: 'User is private' })
+      res.status(403).jsonp({ err: 'User is private' })
       return
     }
 
@@ -231,7 +231,7 @@ export default class UsersController {
     }
 
     if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(401).jsonp({ err: 'User is private' })
+      res.status(403).jsonp({ err: 'User is private' })
       return
     }
 
