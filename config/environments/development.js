@@ -36,27 +36,26 @@ export function getConfig() {
 
   config.host = 'http://localhost:' + config.port
 
-  var defaultStopList = [
-    '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter',
-    'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
-    'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
-  ]
-
   config.application = {
-    DEFAULT_STOP_LIST: defaultStopList,
-    // Pepyatka won't allow users to use the following usernames, they
-    // are reserved for internal pages.
-    //
-    // To load this list from <PEPYATKA_HOME>/banlist.txt (one
-    // username per line) file use the following snippet:
+    // Unavailable for registration (reserved for internal use)
+    USERNAME_STOP_LIST: [
+      '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter',
+      'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
+      'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
+    ],
+
+    // Unavailable for public registration (legacy reasons)
+    EXTRA_STOP_LIST: []
+
+    // To load the list from <FREEFEED_HOME>/banlist.txt (one username per line)
+    // use the following snippet:
     //
     // var fs = require('fs')
     // var array = fs.readFileSync('banlist.txt').toString()
-    //               .split("\n").filter(function(n) { return n != '' })
+    //               .split('\n').filter(function(n) { return n != '' })
     // config.application {
-    //   USERNAME_STOP_LIST = array
+    //   EXTRA_STOP_LIST = array
     // }
-    USERNAME_STOP_LIST: defaultStopList
   }
 
   config.media = {
