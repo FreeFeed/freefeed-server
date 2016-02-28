@@ -39,7 +39,7 @@ export function getConfig() {
   config.application = {
     // Unavailable for registration (reserved for internal use)
     USERNAME_STOP_LIST: [
-      '404', 'about', 'account', 'anonymous', 'attachments', 'files', 'filter',
+      '404', 'about', 'account', 'anonymous', 'attachments', 'dev', 'files', 'filter',
       'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
       'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
     ],
