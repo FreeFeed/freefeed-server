@@ -31,7 +31,9 @@ export function getConfig() {
       'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
       'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
     ],
-    EXTRA_STOP_LIST: []
+    EXTRA_STOP_LIST: [
+      'thatcreepyguy', 'nicegirlnextdoor', 'perfectstranger'
+    ]
   }
 
   config.media = {

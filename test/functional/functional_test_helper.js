@@ -296,8 +296,12 @@ async function postJson(relativeUrl, data) {
   )
 }
 
+export async function createUserAsyncPost(user) {
+  return postJson(`/v1/users`, user)
+}
+
 export async function createUserAsync(username, password, attributes) {
-  if (typeof attributes === 'undefined'){
+  if (typeof attributes === 'undefined') {
     attributes = {}
   }
 
@@ -310,7 +314,7 @@ export async function createUserAsync(username, password, attributes) {
     user.email = attributes.email
   }
 
-  let response = await postJson(`/v1/users`, user)
+  let response = await createUserAsyncPost(user)
   let data = await response.json()
 
   let userData = data.users
