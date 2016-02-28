@@ -461,12 +461,13 @@ export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
 
-export async function createPostViaBookmarklet(userContext, title, comment, image) {
+export async function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
   let parameters = {
     authToken: userContext.authToken,
     title,
     comment: comment ? comment : '',
-    image: ''
+    image: '',
+    meta: { feeds }
   }
 
   if (image) {
@@ -503,4 +504,25 @@ export function updatePostAsync(context, post) {
       '_method': 'put'
     }
   )
+}
+
+export async function createGroupAsync(context, username, screenName) {
+  let params = {
+    group: {
+      username: username,
+      screenName: screenName || username
+    },
+    authToken: context.authToken
+  }
+
+  let response = await postJson(`/v1/groups`, params)
+  let data = await response.json()
+
+  let groupData = data.group
+
+  return {
+    authToken: data.authToken,
+    group: groupData,
+    username: username
+  }
 }
