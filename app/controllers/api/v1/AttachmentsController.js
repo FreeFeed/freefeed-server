@@ -12,8 +12,10 @@ export default class AttachmentsController {
   }
 
   create = (req, res) => {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var form = new formidable.IncomingForm()
 

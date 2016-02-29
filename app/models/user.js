@@ -1091,7 +1091,7 @@ exports.addModel = function(dbAdapter) {
       let payload = {
         'updatedAt': updatedAt.toString()
       }
-      return dbAdapter.updateUser(this.id, payload)
+      await dbAdapter.updateUser(this.id, payload)
     }
   }
 

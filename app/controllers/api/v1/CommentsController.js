@@ -6,8 +6,10 @@ import exceptions, { ForbiddenException, NotFoundException } from '../../../supp
 
 export default class CommentsController {
   static async create(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var timer = monitor.timer('comments.create-time')
 
@@ -34,8 +36,10 @@ export default class CommentsController {
   }
 
   static async update(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var timer = monitor.timer('comments.update-time')
 
@@ -68,8 +72,10 @@ export default class CommentsController {
   }
 
   static async destroy(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var timer = monitor.timer('comments.destroy-time')
 

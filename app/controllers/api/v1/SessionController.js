@@ -12,7 +12,8 @@ export default class SessionController {
   static create(req, res) {
     passport.authenticate('local', function(err, user, msg) {
       if (err) {
-        return res.status(401).jsonp({ err: err.message })
+        res.status(401).jsonp({ err: err.message })
+        return
       }
 
       if (user === false) {
@@ -20,7 +21,8 @@ export default class SessionController {
           msg = 'Internal server error'
         }
 
-        return res.status(401).jsonp({ err: msg })
+        res.status(401).jsonp({ err: msg })
+        return
       }
 
       var secret = config.secret

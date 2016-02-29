@@ -55,7 +55,8 @@ export default class BookmarkletController {
   static async create(req, res) {
     try {
       if (!req.user) {
-        return res.status(401).jsonp({err: 'Not found'})
+        res.status(401).jsonp({err: 'Not found'})
+        return
       }
 
       // TODO: code copypasted (with small change about how to deal with empty feeds) from PostsController#create
