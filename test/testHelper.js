@@ -1,5 +1,4 @@
-require("babel/register")({
-  stage: 1,
+require("babel-register")({
   ignore: /node_modules/
 });
 
