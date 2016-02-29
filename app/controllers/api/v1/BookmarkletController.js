@@ -9,7 +9,7 @@ import fetch from 'node-fetch'
 import { wait as waitForStream } from 'promise-streams'
 
 import { dbAdapter, PostSerializer } from '../../../models'
-import exceptions from '../../../support/exceptions'
+import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 
 promisifyAll(fs)
@@ -72,9 +72,8 @@ export default class BookmarkletController {
       let promises = feeds.map(async (username) => {
         let feed = await dbAdapter.getFeedOwnerByUsername(username)
 
-        // ignore feed if not exists
         if (null === feed) {
-          return null
+          throw new NotFoundException(`Feed "${username}" is not found`)
         }
 
         await feed.validateCanPost(req.user)
@@ -95,7 +94,7 @@ export default class BookmarkletController {
           req.user.getDirectsTimelineId()
         ])
       })
-      let timelineIds = _.chain(await Promise.all(promises)).flatten().compact().value()
+      let timelineIds = _.flatten(await Promise.all(promises))
 
       // Download image and create attachment
       let attachments = await getAttachments(req.user, req.body.image)

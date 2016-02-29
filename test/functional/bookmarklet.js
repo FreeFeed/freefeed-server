@@ -42,15 +42,13 @@ describe('BookmarkletController', () => {
       responseData.subscriptions.should.have.length(2)
     })
 
-    it('should ignore nonexistent groups', async () => {
+    it('should force an error when trying to post into nonexistent groups', async () => {
       let response = await createPostViaBookmarklet(luna, 'Hello, world!', null, null, [luna.username, 'non-existent-group'])
-      response.status.should.eql(200)
+      response.status.should.eql(404)
 
       let responseData = await response.json()
 
-      responseData.should.have.property('posts')
-      responseData.should.have.property('subscriptions')
-      responseData.subscriptions.should.have.length(1)
+      responseData.should.have.property('err')
     })
   })
 })
