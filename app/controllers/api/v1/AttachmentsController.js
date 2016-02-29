@@ -5,7 +5,7 @@ import exceptions from '../../../support/exceptions'
 
 
 export default class AttachmentsController {
-  app = null
+  app = null;
 
   constructor(app) {
     this.app = app
@@ -39,5 +39,5 @@ export default class AttachmentsController {
     })
 
     form.parse(req)
-  }
+  };
 }

@@ -2,6 +2,8 @@ import { dbAdapter } from './models'
 
 
 export default class pubSub {
+  publisher;
+
   constructor(publisher) {
     this.publisher = publisher
   }
