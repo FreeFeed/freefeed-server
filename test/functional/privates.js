@@ -340,11 +340,11 @@ describe("Privates", function() {
       it('should protect subscribers of private user', function(done) {
         funcTestHelper.getSubscribers(lunaContext.username, null, function(err, res) {
           _.isObject(err).should.be.true  // anonymous doesn't have access
-          err.status.should.equal(401)
+          err.status.should.equal(403)
 
           funcTestHelper.getSubscribers(lunaContext.username, herculesContext.authToken, function(err, res) {
             _.isObject(err).should.be.true  // hercules doesn't have access
-            err.status.should.equal(401)
+            err.status.should.equal(403)
 
             funcTestHelper.getSubscribers(lunaContext.username, marsContext.authToken, function(err, res) {
               _.isObject(err).should.be.false  // mars has access
@@ -361,11 +361,11 @@ describe("Privates", function() {
       it('should protect subscriptions of private user', function(done) {
         funcTestHelper.getSubscriptions(lunaContext.username, null, function(err, res) {
           _.isObject(err).should.be.true  // anonymous doesn't have access
-          err.status.should.equal(401)
+          err.status.should.equal(403)
 
           funcTestHelper.getSubscriptions(lunaContext.username, herculesContext.authToken, function(err, res) {
             _.isObject(err).should.be.true  // hercules doesn't have access
-            err.status.should.equal(401)
+            err.status.should.equal(403)
 
             funcTestHelper.getSubscriptions(lunaContext.username, marsContext.authToken, function(err, res) {
               _.isObject(err).should.be.false  // mars has access
@@ -404,9 +404,9 @@ describe("Privates", function() {
       it('should be visible for auth users in likes timeline', function(done) {
         request
           .post(app.config.host + '/v1/posts/' + lunaContext.post.id + '/like')
-          .send({ authToken: lunaContext.authToken })
+          .send({ authToken: marsContext.authToken })
           .end(function(err, res) {
-            funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.user.username + '/likes', lunaContext.authToken, function(err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/' + marsContext.user.username + '/likes', lunaContext.authToken, function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')

@@ -18,19 +18,22 @@ export function getConfig() {
     onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false
-    }
+    },
+
+    frontendPreferencesLimit: 65536
   }
 
   config.host = 'http://localhost:' + config.port
 
-  var defaultStopList = ['anonymous', 'public', 'about', 'signin', 'logout',
-                         'signup', 'filter', 'settings', 'account', 'groups',
-                         'friends', 'list', 'search', 'summary', 'share','404',
-                         'iphone', 'attachments', 'files', 'profilepics', 'requests']
-
   config.application = {
-    DEFAULT_STOP_LIST: defaultStopList,
-    USERNAME_STOP_LIST: defaultStopList
+    USERNAME_STOP_LIST: [
+      '404', 'about', 'account', 'anonymous', 'attachments', 'dev', 'files', 'filter',
+      'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
+      'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
+    ],
+    EXTRA_STOP_LIST: [
+      'thatcreepyguy', 'nicegirlnextdoor', 'perfectstranger'
+    ]
   }
 
   config.media = {

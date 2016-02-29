@@ -32,3 +32,11 @@ exports.NotFoundException = function(message) {
   this.message = message || "Not found"
   this.status = 404
 }
+
+/**
+ * @constructor
+ */
+exports.ValidationException = function(message) {
+  this.message = message || "Invalid"
+  this.status = 422
+}

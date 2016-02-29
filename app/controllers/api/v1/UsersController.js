@@ -92,8 +92,10 @@ export default class UsersController {
   }
 
   static async sendRequest(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
@@ -111,8 +113,10 @@ export default class UsersController {
   }
 
   static async acceptRequest(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const user = await dbAdapter.getUserByUsername(req.params.username)
@@ -130,8 +134,10 @@ export default class UsersController {
   }
 
   static async rejectRequest(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const user = await dbAdapter.getUserByUsername(req.params.username)
@@ -149,8 +155,11 @@ export default class UsersController {
   }
 
   static async whoami(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
+
     var timer = monitor.timer('users.whoami-time')
     var json = await new MyProfileSerializer(req.user).promiseToJSON()
     res.jsonp(json)
@@ -191,7 +200,7 @@ export default class UsersController {
     }
 
     if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(401).jsonp({ err: 'User is private' })
+      res.status(403).jsonp({ err: 'User is private' })
       return
     }
 
@@ -231,7 +240,7 @@ export default class UsersController {
     }
 
     if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(401).jsonp({ err: 'User is private' })
+      res.status(403).jsonp({ err: 'User is private' })
       return
     }
 
@@ -261,32 +270,38 @@ export default class UsersController {
   }
 
   static async ban(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       var status = await req.user.ban(req.params.username)
-      return res.jsonp({ status: status })
+      res.jsonp({ status: status })
     } catch(e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async unban(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       var status = await req.user.unban(req.params.username)
-      return res.jsonp({ status: status })
+      res.jsonp({ status: status })
     } catch(e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async subscribe(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       await req.user.subscribeToUsername(req.params.username)
@@ -299,8 +314,10 @@ export default class UsersController {
   }
 
   static async unsubscribeUser(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       var user = await dbAdapter.getUserByUsername(req.params.username)
@@ -321,8 +338,10 @@ export default class UsersController {
   }
 
   static async unsubscribe(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var timer = monitor.timer('users.unsubscribe-time')
 
@@ -347,10 +366,12 @@ export default class UsersController {
  }
 
   static async update(req, res) {
-    if (!req.user || req.user.id != req.params.userId)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user || req.user.id != req.params.userId) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
-    var attrs = _.reduce(['screenName', 'email', 'isPrivate', 'description'], function(acc, key) {
+    var attrs = _.reduce(['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences'], function(acc, key) {
       if (key in req.body.user)
         acc[key] = req.body.user[key]
       return acc
@@ -366,8 +387,10 @@ export default class UsersController {
   }
 
   static async updatePassword(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var currentPassword = req.body.currentPassword || ''
     try {
@@ -375,15 +398,18 @@ export default class UsersController {
       if (!valid)
         throw new Error('Your old password is not valid')
       await req.user.updatePassword(req.body.password, req.body.passwordConfirmation)
-      return res.jsonp({ message: 'Your password has been changed' })
+
+      res.jsonp({ message: 'Your password has been changed' })
     } catch(e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async updateProfilePicture(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     var form = new formidable.IncomingForm()
 

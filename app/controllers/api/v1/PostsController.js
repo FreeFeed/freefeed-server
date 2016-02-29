@@ -70,8 +70,10 @@ export default class PostsController {
   }
 
   static async update(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -145,6 +147,10 @@ export default class PostsController {
         throw new NotFoundException("Can't find post");
       }
 
+      if (post.userId === req.user.id) {
+        throw new ForbiddenException("You can't like your own post")
+      }
+
       let affectedTimelines = await post.addLike(req.user)
 
       let stats = await dbAdapter.getStatsById(req.user.id)
@@ -159,16 +165,24 @@ export default class PostsController {
   }
 
   static async unlike(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       let post = await dbAdapter.getPostById(req.params.postId)
+
       if (null === post) {
         throw new NotFoundException("Can't find post");
       }
 
+      if (post.userId === req.user.id) {
+        throw new ForbiddenException("You can't un-like your own post")
+      }
+
       await post.removeLike(req.user.id)
+
       res.status(200).send({})
     } catch(e) {
       exceptions.reportError(res)(e)
@@ -176,8 +190,10 @@ export default class PostsController {
   }
 
   static async destroy(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -198,8 +214,10 @@ export default class PostsController {
   }
 
   static async hide(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -216,8 +234,10 @@ export default class PostsController {
   }
 
   static async unhide(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -234,8 +254,10 @@ export default class PostsController {
   }
 
   static async disableComments(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -257,8 +279,10 @@ export default class PostsController {
   }
 
   static async enableComments(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)

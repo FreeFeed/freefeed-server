@@ -207,6 +207,36 @@ describe("UsersController", function() {
                 })
           })
     })
+
+    it('should not create user if username is in stop list', async function() {
+      const user = {
+        username: 'dev',
+        password: 'password123',
+        email: 'dev@dev.com'
+      }
+
+      const response = await funcTestHelper.createUserAsyncPost(user)
+      response.status.should.equal(422)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql('Invalid username')
+    })
+
+    it('should not create user if username is in extra stop list', async function() {
+      const user = {
+        username: 'nicegirlnextdoor',
+        password: 'password123',
+        email: 'nicegirlnextdoor@gmail.com'
+      }
+
+      const response = await funcTestHelper.createUserAsyncPost(user)
+      response.status.should.equal(422)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql('Invalid username')
+    })
   })
 
   describe("#whoami()", function() {
@@ -762,6 +792,166 @@ describe("UsersController", function() {
         })
       })
     })
+
+    describe('frontendPreferences tests', function() {
+      var authToken
+        , user
+
+      beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
+        authToken = token
+        user = luna
+      }))
+
+      it('should store frontendPreferences in DB and return it in whoami', async () => {
+        let prefs = {
+          'net.freefeed': {
+            'screenName': {
+              'displayOption': 1,
+              'useYou': true
+            }
+          },
+          'custom.domain': {
+            'customProperty': 'someWeirdValue'
+          }
+        }
+        let newPrefs = {
+          'another.client': {
+            'funnyProperty': 'withFunnyValue'
+          },
+          'net.freefeed': {
+            'screenName': {
+              'displayOption': 2,
+              'useYou': false
+            }
+          }
+        }
+        let newDescription = 'The Moon is made of cheese.';
+
+        // First, check the response on update
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: prefs })
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+
+        // Second, check whoami response
+        {
+          let response = await funcTestHelper.whoami(authToken)
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+
+        // Third, only update description (frontendPreferences shouldn't change)
+        {
+          await funcTestHelper.updateUserAsync({ user, authToken }, { description: newDescription })
+
+          let response = await funcTestHelper.whoami(authToken)
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          data.should.have.deep.property('users.description')
+          data.users.description.should.equal(newDescription)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
+          data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true)
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+
+        // Fourth, only update some sub-objects (frontendPreferences should get deep-merged)
+        {
+          await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: newPrefs })
+
+          let response = await funcTestHelper.whoami(authToken)
+          response.status.should.eql(200)
+
+          let data = await response.json()
+          // another.client
+          data.should.have.deep.property('users.frontendPreferences.another\\.client')
+          data.users.frontendPreferences['another.client'].should.have.property('funnyProperty')
+          data.users.frontendPreferences['another.client'].funnyProperty.should.equal('withFunnyValue')
+          // net.freefeed
+          data.users.frontendPreferences.should.have.property('net.freefeed')
+          data.users.frontendPreferences['net.freefeed'].should.have.deep.property('screenName.displayOption')
+          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(2)
+          data.users.frontendPreferences['net.freefeed'].should.have.deep.property('screenName.useYou')
+          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(false)
+          // custom domain
+          data.users.frontendPreferences.should.have.property('custom.domain')
+          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
+          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+        }
+      })
+
+      it('should validate frontendPreferences structure', async () => {
+        let validPrefs = {
+          'net.freefeed': {
+            'userProperty': 'value'
+          }
+        }
+        let invalidPrefs = {
+          'userProperty': 'value'
+        }
+
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          response.status.should.eql(200)
+        }
+
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          response.status.should.eql(422)
+
+          let data = await response.json()
+          data.should.have.property('err')
+          data.err.should.eql('Invalid frontendPreferences')
+        }
+      })
+
+      it('should validate frontendPreferences size', async () => {
+        let validPrefs = {
+          'net.freefeed': {
+            'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100)
+          }
+        }
+        let invalidPrefs = {
+          'net.freefeed': {
+            'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1)
+          }
+        }
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          response.status.should.eql(200)
+        }
+        {
+          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          response.status.should.eql(422)
+
+          let data = await response.json()
+          data.should.have.property('err')
+          data.err.should.eql('Invalid frontendPreferences')
+        }
+      })
+    })
+
   })
 
   describe("#updatePassword()", function() {
