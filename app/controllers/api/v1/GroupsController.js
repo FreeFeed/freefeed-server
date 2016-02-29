@@ -149,8 +149,10 @@ export default class GroupsController {
   }
 
   static async sendRequest(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
 
     const groupName = req.params.groupName
     try {
@@ -169,8 +171,10 @@ export default class GroupsController {
   }
 
   static async acceptRequest(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
 
     const groupName = req.params.groupName
     const userName = req.params.userName
@@ -195,8 +199,10 @@ export default class GroupsController {
   }
 
   static async rejectRequest(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
 
     const groupName = req.params.groupName
     const userName = req.params.userName
@@ -221,8 +227,10 @@ export default class GroupsController {
   }
 
   static async unsubscribeFromGroup(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
 
     const groupName = req.params.groupName
     const userName = req.params.userName

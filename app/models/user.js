@@ -1035,8 +1035,9 @@ exports.addModel = function(dbAdapter) {
 
     const timeline = await dbAdapter.getTimelineById(timelineId)
     const feedOwner = await dbAdapter.getFeedOwnerById(timeline.userId)
+
     if (!('group' === feedOwner.type && feedOwner.isPrivate === '1'))
-      return true
+      return
 
     const adminIds = await feedOwner.getAdministratorIds()
 
