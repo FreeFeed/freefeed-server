@@ -778,10 +778,10 @@ describe("PrivateGroups", function() {
       })
     })
 
-    describe('v2/groupRequests', function() {
+    describe('v2/managedGroups', function() {
       it('should reject unauthenticated users', function(done) {
         request
-          .get(app.config.host + '/v2/groupRequests')
+          .get(app.config.host + '/v2/managedGroups')
           .end(function(err, res) {
             err.should.not.be.empty
             err.status.should.eql(401)
@@ -791,7 +791,7 @@ describe("PrivateGroups", function() {
 
       it('should return empty array for non-members', function(done) {
         request
-          .get(app.config.host + '/v2/groupRequests')
+          .get(app.config.host + '/v2/managedGroups')
           .send({ authToken: nonAdminContext.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
@@ -802,7 +802,7 @@ describe("PrivateGroups", function() {
 
       it('should return empty array for non-admins', function(done) {
         request
-          .get(app.config.host + '/v2/groupRequests')
+          .get(app.config.host + '/v2/managedGroups')
           .send({ authToken: groupMemberContext.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
@@ -813,7 +813,7 @@ describe("PrivateGroups", function() {
 
       it('should return requests array for admins', function(done) {
         request
-          .get(app.config.host + '/v2/groupRequests')
+          .get(app.config.host + '/v2/managedGroups')
           .query({ authToken: adminContext.authToken })
           .end(function(err, res) {
             res.should.not.be.empty
@@ -863,7 +863,7 @@ describe("PrivateGroups", function() {
 
 
                     request
-                      .get(app.config.host + '/v2/groupRequests')
+                      .get(app.config.host + '/v2/managedGroups')
                       .query({ authToken: adminContext.authToken })
                       .end(function(err, res) {
                         res.should.not.be.empty
@@ -874,7 +874,7 @@ describe("PrivateGroups", function() {
 
 
                         request
-                          .get(app.config.host + '/v2/groupRequests')
+                          .get(app.config.host + '/v2/managedGroups')
                           .query({ authToken: secondAdminContext.authToken })
                           .end(function(err, res) {
                             res.should.not.be.empty
@@ -885,7 +885,7 @@ describe("PrivateGroups", function() {
 
 
                             request
-                              .get(app.config.host + '/v2/groupRequests')
+                              .get(app.config.host + '/v2/managedGroups')
                               .query({ authToken: nonAdminContext.authToken })
                               .end(function(err, res) {
                                 res.should.not.be.empty
@@ -898,7 +898,7 @@ describe("PrivateGroups", function() {
 
 
                                 request
-                                  .get(app.config.host + '/v2/groupRequests')
+                                  .get(app.config.host + '/v2/managedGroups')
                                   .query({ authToken: groupMemberContext.authToken })
                                   .end(function(err, res) {
                                     res.should.not.be.empty
