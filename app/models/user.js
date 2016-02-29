@@ -121,11 +121,12 @@ exports.addModel = function(dbAdapter) {
     }
   })
 
-  User.stopList = (default_stop_list) => {
-    if (default_stop_list)
-      return config.application.DEFAULT_STOP_LIST
+  User.stopList = (skipExtraList) => {
+    if (skipExtraList) {
+      return config.application.USERNAME_STOP_LIST
+    }
 
-    return config.application.USERNAME_STOP_LIST
+    return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST)
   }
 
   User.prototype.isUser = function() {

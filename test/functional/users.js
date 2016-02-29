@@ -207,6 +207,36 @@ describe("UsersController", function() {
                 })
           })
     })
+
+    it('should not create user if username is in stop list', async function() {
+      const user = {
+        username: 'dev',
+        password: 'password123',
+        email: 'dev@dev.com'
+      }
+
+      const response = await funcTestHelper.createUserAsyncPost(user)
+      response.status.should.equal(422)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql('Invalid username')
+    })
+
+    it('should not create user if username is in extra stop list', async function() {
+      const user = {
+        username: 'nicegirlnextdoor',
+        password: 'password123',
+        email: 'nicegirlnextdoor@gmail.com'
+      }
+
+      const response = await funcTestHelper.createUserAsyncPost(user)
+      response.status.should.equal(422)
+
+      let data = await response.json()
+      data.should.have.property('err')
+      data.err.should.eql('Invalid username')
+    })
   })
 
   describe("#whoami()", function() {
