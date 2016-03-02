@@ -121,12 +121,11 @@ exports.addModel = function(dbAdapter) {
     }
   })
 
-  User.stopList = (skipExtraList) => {
-    if (skipExtraList) {
-      return config.application.USERNAME_STOP_LIST
-    }
+  User.stopList = (default_stop_list) => {
+    if (default_stop_list)
+      return config.application.DEFAULT_STOP_LIST
 
-    return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST)
+    return config.application.USERNAME_STOP_LIST
   }
 
   User.prototype.isUser = function() {
@@ -1080,7 +1079,7 @@ exports.addModel = function(dbAdapter) {
       let payload = {
         'updatedAt': updatedAt.toString()
       }
-      await dbAdapter.updateUser(this.id, payload)
+      return dbAdapter.updateUser(this.id, payload)
     }
   }
 

@@ -110,7 +110,7 @@ export default class PubsubListener {
       return
     }
 
-    let clientIds = Object.keys(sockets.adapter.rooms[room].sockets)
+    let clientIds = Object.keys(sockets.adapter.rooms[room])
 
     await Promise.all(clientIds.map(async (clientId) => {
       let socket = sockets.connected[clientId]

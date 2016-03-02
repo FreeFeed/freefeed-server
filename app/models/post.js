@@ -466,13 +466,8 @@ export function addModel(dbAdapter) {
           likeIds = [this.currentUser].concat(likeIds.slice(0, -1))
         } else {
           likeIds = likeIds.sort((a, b) => {
-            if (a == this.currentUser)
-              return -1
-
-            if (b == this.currentUser)
-              return 1
-
-            return 0
+            if (a == this.currentUser) return -1
+            if (b == this.currentUser) return 1
           })
         }
       }

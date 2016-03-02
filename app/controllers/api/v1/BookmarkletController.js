@@ -3,13 +3,12 @@ import fs from 'fs'
 import path from 'path'
 import url from 'url'
 
-import _ from 'lodash'
 import { promisifyAll } from 'bluebird'
 import fetch from 'node-fetch'
 import { wait as waitForStream } from 'promise-streams'
 
-import { dbAdapter, PostSerializer } from '../../../models'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import { PostSerializer } from '../../../models'
+import exceptions from '../../../support/exceptions'
 
 
 promisifyAll(fs)
@@ -55,47 +54,8 @@ export default class BookmarkletController {
   static async create(req, res) {
     try {
       if (!req.user) {
-        res.status(401).jsonp({err: 'Not found'})
-        return
+        return res.status(401).jsonp({err: 'Not found'})
       }
-
-      // TODO: code copypasted (with small change about how to deal with empty feeds) from PostsController#create
-      // need to refactor this part or merge this two controllers
-      let feeds = []
-      if (_.isArray(req.body.meta.feeds)) {
-        feeds = req.body.meta.feeds
-      } else if (req.body.meta.feeds) {
-        feeds = [req.body.meta.feeds]
-      } else { // if no feeds specified post into personal one
-        feeds = [req.user.username]
-      }
-
-      let promises = feeds.map(async (username) => {
-        let feed = await dbAdapter.getFeedOwnerByUsername(username)
-
-        if (null === feed) {
-          throw new NotFoundException(`Feed "${username}" is not found`)
-        }
-
-        await feed.validateCanPost(req.user)
-
-        // we are going to publish this message to posts feed if
-        // it's my home feed or group's feed, otherwise this is a
-        // private message that goes to its own feed(s)
-        if (
-          (feed.isUser() && feed.id == req.user.id) ||
-          !feed.isUser()
-        ) {
-          return feed.getPostsTimelineId()
-        }
-
-        // private post goes to sendee and sender
-        return await Promise.all([
-          feed.getDirectsTimelineId(),
-          req.user.getDirectsTimelineId()
-        ])
-      })
-      let timelineIds = _.flatten(await Promise.all(promises))
 
       // Download image and create attachment
       let attachments = await getAttachments(req.user, req.body.image)
@@ -103,8 +63,7 @@ export default class BookmarkletController {
       // Create post
       let newPost = await req.user.newPost({
         body: req.body.title,
-        attachments: attachments,
-        timelineIds: timelineIds
+        attachments: attachments
       })
       await newPost.create()
 

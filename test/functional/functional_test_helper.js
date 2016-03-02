@@ -296,12 +296,8 @@ async function postJson(relativeUrl, data) {
   )
 }
 
-export async function createUserAsyncPost(user) {
-  return postJson(`/v1/users`, user)
-}
-
 export async function createUserAsync(username, password, attributes) {
-  if (typeof attributes === 'undefined') {
+  if (typeof attributes === 'undefined'){
     attributes = {}
   }
 
@@ -314,7 +310,7 @@ export async function createUserAsync(username, password, attributes) {
     user.email = attributes.email
   }
 
-  let response = await createUserAsyncPost(user)
+  let response = await postJson(`/v1/users`, user)
   let data = await response.json()
 
   let userData = data.users
@@ -461,13 +457,12 @@ export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
 
-export async function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
+export async function createPostViaBookmarklet(userContext, title, comment, image) {
   let parameters = {
     authToken: userContext.authToken,
     title,
     comment: comment ? comment : '',
-    image: '',
-    meta: { feeds }
+    image: ''
   }
 
   if (image) {
@@ -504,25 +499,4 @@ export function updatePostAsync(context, post) {
       '_method': 'put'
     }
   )
-}
-
-export async function createGroupAsync(context, username, screenName) {
-  let params = {
-    group: {
-      username: username,
-      screenName: screenName || username
-    },
-    authToken: context.authToken
-  }
-
-  let response = await postJson(`/v1/groups`, params)
-  let data = await response.json()
-
-  let groupData = data.group
-
-  return {
-    authToken: data.authToken,
-    group: groupData,
-    username: username
-  }
 }

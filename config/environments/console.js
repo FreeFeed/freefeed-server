@@ -26,36 +26,30 @@ export function getConfig() {
     acceptHashedPasswordsOnly: false,
 
     logLevel: 'warn',
-    onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false
-    },
-
-    frontendPreferencesLimit: 65536
+    }
   }
 
   config.host = 'http://localhost:' + config.port
 
   config.application = {
-    // Unavailable for registration (reserved for internal use)
-    USERNAME_STOP_LIST: [
-      '404', 'about', 'account', 'anonymous', 'attachments', 'dev', 'files', 'filter',
-      'friends', 'groups', 'help', 'home', 'iphone', 'list', 'logout', 'profilepics',
-      'public', 'requests', 'search', 'settings', 'share', 'signin', 'signup', 'summary'
-    ],
-
-    // Unavailable for public registration (legacy reasons)
-    EXTRA_STOP_LIST: []
-
-    // To load the list from <FREEFEED_HOME>/banlist.txt (one username per line)
-    // use the following snippet:
+    // Pepyatka won't allow users to use the following usernames, they
+    // are reserved for internal pages.
+    //
+    // To load this list from <PEPYATKA_HOME>/banlist.txt (one
+    // username per line) file use the following snippet:
     //
     // var fs = require('fs')
     // var array = fs.readFileSync('banlist.txt').toString()
-    //               .split('\n').filter(function(n) { return n != '' })
+    //               .split("\n").filter(function(n) { return n != '' })
     // config.application {
-    //   EXTRA_STOP_LIST = array
+    //   USERNAME_STOP_LIST = array
     // }
+    USERNAME_STOP_LIST: ['anonymous', 'public', 'about', 'signin', 'logout',
+                         'signup', 'filter', 'settings', 'account', 'groups',
+                         'friends', 'list', 'search', 'summary', 'share','404',
+                         'iphone', 'attachments', 'files', 'profilepics', 'requests']
   }
 
   config.media = {
