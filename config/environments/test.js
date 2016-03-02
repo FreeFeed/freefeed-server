@@ -52,7 +52,11 @@ export function getConfig() {
   config.thumbnails = {
     url: config.media.url,
     storage: config.media.storage,
-    path: 'attachments/thumbnails/' // must have trailing slash
+    path: 'attachments/thumbnails/', // must have trailing slash
+    bounds: {
+      width: 525,
+      height: 175
+    }
   }
   config.profilePictures = {
     url: config.media.url,
