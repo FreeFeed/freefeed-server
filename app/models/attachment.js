@@ -208,12 +208,12 @@ export function addModel(dbAdapter) {
         let img = promisifyAll(gm(tmpAttachmentFile))
         let size = await img.sizeAsync()
 
-        if (size.width > 525 || size.height > 175) {
+        if (size.width > config.thumbnails.bounds.width || size.height > config.thumbnails.bounds.height) {
           // Looks big enough, needs a resize
           this.noThumbnail = '0'
 
           img = img
-            .resize(525, 175)
+            .resize(config.thumbnails.bounds.width, config.thumbnails.bounds.height)
             .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
             .autoOrient()
             .quality(95)
