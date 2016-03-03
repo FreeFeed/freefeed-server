@@ -85,7 +85,11 @@ export function getConfig() {
   config.thumbnails = {
     url: config.media.url,
     storage: config.media.storage,
-    path: 'attachments/thumbnails/' // must have trailing slash
+    path: 'attachments/thumbnails/', // must have trailing slash
+    bounds: {
+      width: 525,
+      height: 175
+    }
   }
   config.profilePictures = {
     // Profile pictures only support 'fs' for the time being, so we won't use shared values by default
