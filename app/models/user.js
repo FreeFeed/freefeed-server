@@ -1036,13 +1036,14 @@ exports.addModel = function(dbAdapter) {
     const timeline = await dbAdapter.getTimelineById(timelineId)
     const feedOwner = await dbAdapter.getFeedOwnerById(timeline.userId)
 
-    if (!('group' === feedOwner.type && feedOwner.isPrivate === '1'))
+    if ('group' !== feedOwner.type) {
       return
+    }
 
     const adminIds = await feedOwner.getAdministratorIds()
 
     if (_.includes(adminIds, this.id)) {
-      throw new ForbiddenException("Administrators of private groups cannot unsubscribe from own groups")
+      throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
     }
   }
 
