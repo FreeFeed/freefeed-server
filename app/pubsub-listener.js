@@ -30,7 +30,7 @@ export default class PubsubListener {
     }))
 
     this.io.sockets.on('error', function(err) { app.logger.error('socket.io error', err) })
-    this.io.sockets.on('connection', this.onConnect.bind(this))
+    this.io.sockets.on('connection', this.onConnect)
 
     var redisClient = createRedisClient(config.redis.port, config.redis.host, {})
     redisClient.on('error', function(err) { app.logger.error('redis error', err) })
@@ -38,10 +38,10 @@ export default class PubsubListener {
       'comment:new', 'comment:destroy', 'comment:update',
       'like:new', 'like:remove', 'post:hide', 'post:unhide')
 
-    redisClient.on('message', this.onRedisMessage.bind(this))
+    redisClient.on('message', this.onRedisMessage)
   }
 
-  async onConnect(socket) {
+  onConnect = async (socket) => {
     let authToken = socket.handshake.query.token
     const config = configLoader()
     let secret = config.secret
@@ -83,20 +83,20 @@ export default class PubsubListener {
     })
   }
 
-  onRedisMessage(channel, msg) {
+  onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
-      'post:new':         this.onPostNew.bind(this),
-      'post:update':      this.onPostUpdate.bind(this),
-      'post:destroy':     this.onPostDestroy.bind(this),
-      'post:hide':        this.onPostHide.bind(this),
-      'post:unhide':      this.onPostUnhide.bind(this),
+      'post:new':         this.onPostNew,
+      'post:update':      this.onPostUpdate,
+      'post:destroy':     this.onPostDestroy,
+      'post:hide':        this.onPostHide,
+      'post:unhide':      this.onPostUnhide,
 
-      'comment:new':      this.onCommentNew.bind(this),
-      'comment:update':   this.onCommentUpdate.bind(this),
-      'comment:destroy':  this.onCommentDestroy.bind(this),
+      'comment:new':      this.onCommentNew,
+      'comment:update':   this.onCommentUpdate,
+      'comment:destroy':  this.onCommentDestroy,
 
-      'like:new':         this.onLikeNew.bind(this),
-      'like:remove':      this.onLikeRemove.bind(this)
+      'like:new':         this.onLikeNew,
+      'like:remove':      this.onLikeRemove
     }
 
     messageRoutes[channel](
@@ -134,7 +134,7 @@ export default class PubsubListener {
   }
 
   // Message-handlers follow
-  async onPostDestroy(sockets, data) {
+  onPostDestroy = async (sockets, data) => {
     let post = await dbAdapter.getPostById(data.postId)
     let json = { meta: { postId: data.postId } }
 
@@ -149,7 +149,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onPostNew(sockets, data) {
+  onPostNew = async (sockets, data) => {
     let post = await dbAdapter.getPostById(data.postId)
     let json = await new PostSerializer(post).promiseToJSON()
 
@@ -159,7 +159,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onPostUpdate(sockets, data) {
+  onPostUpdate = async (sockets, data) => {
     let post = await dbAdapter.getPostById(data.postId)
     let json = await new PostSerializer(post).promiseToJSON()
 
@@ -174,7 +174,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onCommentNew(sockets, data) {
+  onCommentNew = async (sockets, data) => {
     let comment = await dbAdapter.getCommentById(data.commentId)
 
     if (!comment) {
@@ -197,7 +197,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onCommentUpdate(sockets, data) {
+  onCommentUpdate = async (sockets, data) => {
     let comment = await dbAdapter.getCommentById(data.commentId)
     let post = await dbAdapter.getPostById(comment.postId)
     let json = await new PubsubCommentSerializer(comment).promiseToJSON()
@@ -214,7 +214,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onCommentDestroy(sockets, data) {
+  onCommentDestroy = async (sockets, data) => {
     let json = { postId: data.postId, commentId: data.commentId }
     let post = await dbAdapter.getPostById(data.postId)
     
@@ -228,7 +228,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onLikeNew(sockets, data) {
+  onLikeNew = async (sockets, data) => {
     let user = await dbAdapter.getUserById(data.userId)
     let json = await new LikeSerializer(user).promiseToJSON()
     let post = await dbAdapter.getPostById(data.postId)
@@ -245,7 +245,7 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onLikeRemove(sockets, data) {
+  onLikeRemove = async (sockets, data) => {
     let json = { meta: { userId: data.userId, postId: data.postId } }
     let post = await dbAdapter.getPostById(data.postId)
 
@@ -261,14 +261,14 @@ export default class PubsubListener {
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
-  async onPostHide(sockets, data) {
+  onPostHide = async (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     let json = { meta: { postId: data.postId } }
     sockets.in('timeline:' + data.timelineId).emit('post:hide', json)
   }
 
-  async onPostUnhide(sockets, data) {
+  onPostUnhide = async (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     let json = { meta: { postId: data.postId } }
