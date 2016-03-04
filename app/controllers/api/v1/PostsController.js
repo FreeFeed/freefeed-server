@@ -70,8 +70,10 @@ export default class PostsController {
   }
 
   static async update(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -163,8 +165,10 @@ export default class PostsController {
   }
 
   static async unlike(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       let post = await dbAdapter.getPostById(req.params.postId)
@@ -186,8 +190,10 @@ export default class PostsController {
   }
 
   static async destroy(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -208,8 +214,10 @@ export default class PostsController {
   }
 
   static async hide(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -226,8 +234,10 @@ export default class PostsController {
   }
 
   static async unhide(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Not found' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -244,8 +254,10 @@ export default class PostsController {
   }
 
   static async disableComments(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -267,8 +279,10 @@ export default class PostsController {
   }
 
   static async enableComments(req, res) {
-    if (!req.user)
-      return res.status(401).jsonp({ err: 'Unauthorized' })
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized' })
+      return
+    }
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
