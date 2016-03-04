@@ -62,9 +62,9 @@ export default class BookmarkletController {
       // TODO: code copypasted (with small change about how to deal with empty feeds) from PostsController#create
       // need to refactor this part or merge this two controllers
       let feeds = []
-      if (_.isArray(req.body.meta.feeds)) {
+      if (req.body.meta && _.isArray(req.body.meta.feeds)) {
         feeds = req.body.meta.feeds
-      } else if (req.body.meta.feeds) {
+      } else if (req.body.meta && req.body.meta.feeds) {
         feeds = [req.body.meta.feeds]
       } else { // if no feeds specified post into personal one
         feeds = [req.user.username]
