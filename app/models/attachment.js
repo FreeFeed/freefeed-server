@@ -44,8 +44,10 @@ export function addModel(dbAdapter) {
     this.fileSize = params.fileSize // file size in bytes
     this.mimeType = params.mimeType // used as a fallback, in case we can't detect proper one
     this.fileExtension = params.fileExtension // jpg|png|gif etc.
-    this.noThumbnail = params.noThumbnail // if true, image thumbnail URL == original URL
     this.mediaType = params.mediaType // image | audio | general
+
+    this.noThumbnail = params.noThumbnail // if true, image thumbnail URL == original URL
+    this.imageSizes = params.imageSizes || {} // pixel sizes of thumbnail(s) and original image, e.g. {t: {w: 200, h: 175}, o: {w: 600, h: 525}}
 
     this.artist = params.artist  // filled only for audio
     this.title = params.title   // filled only for audio
@@ -61,6 +63,17 @@ export function addModel(dbAdapter) {
 
   Attachment.className = Attachment
   Attachment.namespace = 'attachment'
+
+  Object.defineProperty(Attachment.prototype, 'imageSizes', {
+    get: function() { return this.imageSizes_ },
+    set: function(newValue) {
+      if (_.isString(newValue)) {
+        newValue = JSON.parse(newValue)
+      }
+
+      this.imageSizes_ = newValue
+    }
+  })
 
   Attachment.prototype.validate = async function() {
     const valid = this.file
@@ -112,6 +125,7 @@ export function addModel(dbAdapter) {
       mediaType: this.mediaType,
       fileExtension: this.fileExtension,
       noThumbnail: this.noThumbnail,
+      imageSizes: JSON.stringify(this.imageSizes),
       userId: this.userId,
       postId: this.postId,
       createdAt: this.createdAt.toString(),
@@ -207,13 +221,20 @@ export function addModel(dbAdapter) {
         // Store a thumbnail for a compatible image
         let img = promisifyAll(gm(tmpAttachmentFile))
         let size = await img.sizeAsync()
+        this.imageSizes.o = {w: size.width, h: size.height}
 
-        if (size.width > 525 || size.height > 175) {
+        if (size.width > config.thumbnails.bounds.width || size.height > config.thumbnails.bounds.height) {
           // Looks big enough, needs a resize
           this.noThumbnail = '0'
 
+          // Calculate new size
+          const scale = Math.min(config.thumbnails.bounds.width / size.width, config.thumbnails.bounds.height / size.height)
+          const w = Math.round(scale * size.width)
+          const h = Math.round(scale * size.height)
+          this.imageSizes.t = {w, h}
+
           img = img
-            .resize(525, 175)
+            .resize(config.thumbnails.bounds.width, config.thumbnails.bounds.height)
             .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
             .autoOrient()
             .quality(95)
@@ -228,6 +249,7 @@ export function addModel(dbAdapter) {
         } else {
           // Since it's small, just use the original image
           this.noThumbnail = '1'
+          this.imageSizes.t = this.imageSizes.o
         }
       }
     } else if (supportedAudioTypes[this.mimeType]) {

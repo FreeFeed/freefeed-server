@@ -95,6 +95,15 @@ describe('Attachment', function() {
           newAttachment.should.have.a.property('noThumbnail')
           newAttachment.noThumbnail.should.be.equal('1')
 
+          newAttachment.should.have.deep.property('imageSizes.t.w')
+          newAttachment.imageSizes.t.w.should.be.equal(1)
+          newAttachment.should.have.deep.property('imageSizes.t.h')
+          newAttachment.imageSizes.t.h.should.be.equal(1)
+          newAttachment.should.have.deep.property('imageSizes.o.w')
+          newAttachment.imageSizes.o.w.should.be.equal(1)
+          newAttachment.should.have.deep.property('imageSizes.o.h')
+          newAttachment.imageSizes.o.h.should.be.equal(1)
+
           newAttachment.getPath().should.be.equal(config.attachments.storage.rootDir + config.attachments.path +
             newAttachment.id + '.' + newAttachment.fileExtension)
           fs.stat(newAttachment.getPath(), function(err, stats) {
