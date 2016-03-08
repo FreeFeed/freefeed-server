@@ -462,16 +462,20 @@ export function enableComments(postId, authToken) {
 }
 
 export async function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
-  let parameters = {
+  const parameters = {
     authToken: userContext.authToken,
     title,
     comment: comment ? comment : '',
-    image: '',
-    meta: { feeds }
+    image: ''
   }
 
   if (image) {
     throw new Error('Attachments support is not implemented in test-helper for Bookmarklet-requests')
+  }
+
+  // we do not fill "meta" always, as older clients do not do this
+  if (feeds) {
+    parameters.meta = { feeds }
   }
 
   return postJson(`/v1/bookmarklet`, parameters)
