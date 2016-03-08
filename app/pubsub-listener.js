@@ -1,5 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
+import _ from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -16,14 +17,11 @@ export default class PubsubListener {
 
     const config = configLoader()
 
-    // took redis-options from https://github.com/socketio/socket.io-redis/issues/17#issuecomment-191017054
-    const redisPub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true, return_buffers: false })
-      , redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, return_buffers: true })
-      , redisClient = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true, return_buffers: false })
+    var redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
+      , redisSub = createRedisClient(config.redis.port, config.redis.host, _.extend(config.redis.options, { detect_buffers: true }))
 
     redisPub.on('error', function(err) { app.logger.error('redisPub error', err) })
     redisSub.on('error', function(err) { app.logger.error('redisSub error', err) })
-    redisClient.on('error', function(err) { app.logger.error('redis error', err) })
 
     this.io = IoServer(server)
     this.io.adapter(redis_adapter({
@@ -34,6 +32,8 @@ export default class PubsubListener {
     this.io.sockets.on('error', function(err) { app.logger.error('socket.io error', err) })
     this.io.sockets.on('connection', this.onConnect)
 
+    var redisClient = createRedisClient(config.redis.port, config.redis.host, {})
+    redisClient.on('error', function(err) { app.logger.error('redis error', err) })
     redisClient.subscribe('post:new', 'post:destroy', 'post:update',
       'comment:new', 'comment:destroy', 'comment:update',
       'like:new', 'like:remove', 'post:hide', 'post:unhide')
@@ -110,7 +110,7 @@ export default class PubsubListener {
       return
     }
 
-    let clientIds = Object.keys(sockets.adapter.rooms[room].sockets)
+    let clientIds = Object.keys(sockets.adapter.rooms[room])
 
     await Promise.all(clientIds.map(async (clientId) => {
       let socket = sockets.connected[clientId]
