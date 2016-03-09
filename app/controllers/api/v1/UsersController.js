@@ -215,17 +215,11 @@ export default class UsersController {
       if (null === user) {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
       }
-    } catch (e) {
-      res.status(404).send({})
-      return
-    }
 
-    if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(403).jsonp({ err: 'User is private' })
-      return
-    }
+      if (false === await user.canBeAccessedByUser(req.user)) {
+        throw new ForbiddenException('User is private')
+      }
 
-    try {
       var timeline = await user.getPostsTimeline()
       var subscribers = await timeline.getSubscribers()
       var jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
@@ -241,7 +235,7 @@ export default class UsersController {
 
       res.jsonp(await json)
     } catch (e) {
-      res.status(422).send({})
+      exceptions.reportError(res)(e)
     }
   }
 
@@ -255,17 +249,11 @@ export default class UsersController {
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
-    } catch (e) {
-      res.status(404).send({})
-      return
-    }
 
-    if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(403).jsonp({ err: 'User is private' })
-      return
-    }
+      if (false === await user.canBeAccessedByUser(req.user)) {
+        throw new ForbiddenException('User is private')
+      }
 
-    try {
       var subscriptions = await user.getSubscriptions()
       var jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
 
@@ -286,7 +274,7 @@ export default class UsersController {
 
       res.jsonp(json)
     } catch (e) {
-      res.status(422).send({message: e.toString()})
+      exceptions.reportError(res)(e)
     }
   }
 
