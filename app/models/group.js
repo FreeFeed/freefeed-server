@@ -229,29 +229,5 @@ export function addModel(dbAdapter) {
     }
   }
 
-  /**
-   * Checks if the specified user can update the settings of this group
-   * (i.e. is an admin in the group).
-   */
-  Group.prototype.validateCanUpdate = async function(updatingUser) {
-    if (!updatingUser) {
-      throw new ForbiddenException("You need to log in before you can manage groups")
-    }
-
-    const adminIds = await this.getAdministratorIds()
-
-    if (!_.includes(adminIds, updatingUser.id)) {
-      throw new ForbiddenException("You aren't an administrator of this group")
-    }
-  }
-
-  Group.prototype.validateUserCanBeUnsubscribed = async function(unsubscribingUser) {
-    const adminIds = await this.getAdministratorIds()
-
-    if (_.includes(adminIds, unsubscribingUser.id)) {
-      throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
-    }
-  }
-
   return Group
 }
