@@ -185,6 +185,7 @@ describe("GroupsController", function() {
     it('should reject nonexisting group', function(done) {
       request
           .post(app.config.host + '/v1/groups/foobar/subscribers/yole/admin')
+          .send({authToken: adminContext.authToken })
           .end(function(err, res) {
             err.should.not.be.empty
             err.status.should.eql(404)
