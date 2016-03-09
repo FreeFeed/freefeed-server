@@ -67,6 +67,10 @@ export default class GroupsController {
   }
 
   static async update(req, res) {
+    if (!req.user) {
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      return
+    }
     let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
@@ -75,7 +79,11 @@ export default class GroupsController {
         throw new NotFoundException("Can't find group")
       }
 
-      await group.validateCanUpdate(req.user)
+      const adminIds = await group.getAdministratorIds()
+      if (!_.includes(adminIds, req.user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group")
+      }
+
       await group.update(attrs)
 
       var json = await new GroupSerializer(group).promiseToJSON()
@@ -86,6 +94,11 @@ export default class GroupsController {
   }
 
   static async changeAdminStatus(req, res, newStatus) {
+    if (!req.user) {
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      return
+    }
+
     try {
       const group = await dbAdapter.getGroupByUsername(req.params.groupName)
 
@@ -93,7 +106,10 @@ export default class GroupsController {
         throw new NotFoundException(`Group "${req.params.groupName}" is not found`)
       }
 
-      await group.validateCanUpdate(req.user)
+      const adminIds = await group.getAdministratorIds()
+      if (!_.includes(adminIds, req.user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group")
+      }
 
       const newAdmin = await dbAdapter.getUserByUsername(req.params.adminName)
 
@@ -122,6 +138,10 @@ export default class GroupsController {
   }
 
   static async updateProfilePicture(req, res) {
+    if (!req.user) {
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      return
+    }
     try {
       const group = await dbAdapter.getGroupByUsername(req.params.groupName)
 
@@ -129,7 +149,10 @@ export default class GroupsController {
         throw new NotFoundException(`User "${req.params.groupName}" is not found`)
       }
 
-      await group.validateCanUpdate(req.user)
+      const adminIds = await group.getAdministratorIds()
+      if (!_.includes(adminIds, req.user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group")
+      }
 
       var form = new formidable.IncomingForm()
 
@@ -202,7 +225,11 @@ export default class GroupsController {
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
       }
-      await group.validateCanUpdate(req.user)
+
+      const adminIds = await group.getAdministratorIds()
+      if (!_.includes(adminIds, req.user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group")
+      }
 
       const user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
@@ -236,7 +263,11 @@ export default class GroupsController {
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
       }
-      await group.validateCanUpdate(req.user)
+
+      const adminIds = await group.getAdministratorIds()
+      if (!_.includes(adminIds, req.user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group")
+      }
 
       const user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
@@ -270,23 +301,24 @@ export default class GroupsController {
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
       }
-      await group.validateCanUpdate(req.user)
+
+      const adminIds = await group.getAdministratorIds()
+      if (!_.includes(adminIds, req.user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group")
+      }
 
       let user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
       let timelineId = await group.getPostsTimelineId()
-      await group.validateUserCanBeUnsubscribed(user)
+      if (_.includes(adminIds, user.id)) {
+        throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
+      }
 
       const timelineIds = await user.getSubscriptionIds()
       if (!_.includes(timelineIds, timelineId)) {
         throw new ForbiddenException("You are not subscribed to that user")
-      }
-
-      const adminIds = await group.getAdministratorIds()
-      if (_.includes(adminIds, user.id)) {
-        throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
       }
 
       await user.unsubscribeFrom(timelineId)
