@@ -570,10 +570,6 @@ export class DbAdapter {
     return this._getSortedSetElements(mkKey(['timeline', timelineId, 'posts']), startIndex, finishIndex)
   }
 
-  getTimelinePostsInTimeInterval(timelineId, timeIntervalStart, timeIntervalEnd) {
-    return this.database.zrevrangebyscoreAsync(mkKey(['timeline', timelineId, 'posts']), timeIntervalStart, timeIntervalEnd)
-  }
-
   removePostFromTimeline(timelineId, postId) {
     return this._removeElementFromSortedSet(mkKey(['timeline', timelineId, 'posts']), postId)
   }

@@ -131,11 +131,6 @@ export function addModel(dbAdapter) {
     return this.postIds
   }
 
-  Timeline.prototype.getPostIdsByScore = async function(min, max) {
-    this.postIds = await dbAdapter.getTimelinePostsInTimeInterval(this.id, min, max)
-    return this.postIds
-  }
-
   Timeline.prototype.getPosts = async function(offset, limit) {
     if (_.isUndefined(offset))
       offset = this.offset
@@ -351,14 +346,6 @@ export function addModel(dbAdapter) {
 
     const feed = await this.getUser()
     await feed.updateLastActivityAt()
-  }
-
-  Timeline.prototype.turnIntoPrivate = function() {
-    this.posts = []
-    this.postIds = []
-    this.limit = 0
-
-    return this
   }
 
   Timeline.prototype.canShow = async function(userId) {
