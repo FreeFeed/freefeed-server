@@ -206,6 +206,11 @@ export default class UsersController {
   }
 
   static async subscribers(req, res) {
+    if (!req.user) {
+      res.status(403).jsonp({ err: 'User is private' })
+      return
+    }
+
     var username = req.params.username
       , user
 
@@ -216,8 +221,11 @@ export default class UsersController {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
       }
 
-      if (false === await user.canBeAccessedByUser(req.user)) {
-        throw new ForbiddenException('User is private')
+      if (user.isPrivate === '1') {
+        const subscriberIds = await user.getSubscriberIds()
+        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+          throw new ForbiddenException('User is private')
+        }
       }
 
       var timeline = await user.getPostsTimeline()
@@ -240,6 +248,11 @@ export default class UsersController {
   }
 
   static async subscriptions(req, res) {
+    if (!req.user) {
+      res.status(403).jsonp({ err: 'User is private' })
+      return
+    }
+
     var username = req.params.username
       , user
 
@@ -250,8 +263,11 @@ export default class UsersController {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      if (false === await user.canBeAccessedByUser(req.user)) {
-        throw new ForbiddenException('User is private')
+      if (user.isPrivate === '1') {
+        const subscriberIds = await user.getSubscriberIds()
+        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+          throw new ForbiddenException('User is private')
+        }
       }
 
       var subscriptions = await user.getSubscriptions()
