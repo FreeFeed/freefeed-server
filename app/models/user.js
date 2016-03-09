@@ -1072,26 +1072,6 @@ exports.addModel = function(dbAdapter) {
     return await dbAdapter.getUsersByIds(subscriptionRequestIds)
   }
 
-  User.prototype.canBeAccessedByUser = async function(otherUser) {
-    if (this.isPrivate !== '1') {
-      return true
-    }
-
-    if (!otherUser) {
-      // no anonymous users allowed
-      return false
-    }
-
-    const subscriberIds = await this.getSubscriberIds()
-
-    if (otherUser.id !== this.id && subscriberIds.indexOf(otherUser.id) == -1) {
-      // not an owner and not a subscriber
-      return false
-    }
-
-    return true
-  }
-
   User.prototype.getFollowedGroups = async function () {
     const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
     if (timelinesIds.length === 0)
