@@ -549,7 +549,6 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.addLike = async function(user) {
-    await user.validateCanLikePost(this)
 
     var timer = monitor.timer('posts.likes.time')
     let timelineIds = await this.getPostedToIds()
@@ -583,7 +582,6 @@ export function addModel(dbAdapter) {
 
   Post.prototype.removeLike = async function(userId) {
     let user = await dbAdapter.getUserById(userId)
-    await user.validateCanUnLikePost(this)
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
     let promises = [

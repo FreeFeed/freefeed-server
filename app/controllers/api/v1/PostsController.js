@@ -151,6 +151,16 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      if (userLikedPost) {
+        throw new ForbiddenException("You can't like post that you have already liked")
+      }
+
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new Error("Not found")
+      }
+
       let affectedTimelines = await post.addLike(req.user)
 
       let stats = await dbAdapter.getStatsById(req.user.id)
@@ -179,6 +189,16 @@ export default class PostsController {
 
       if (post.userId === req.user.id) {
         throw new ForbiddenException("You can't un-like your own post")
+      }
+
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      if (!userLikedPost) {
+        throw new ForbiddenException("You can't un-like post that you haven't yet liked")
+      }
+
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new Error("Not found")
       }
 
       await post.removeLike(req.user.id)

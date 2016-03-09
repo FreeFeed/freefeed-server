@@ -2,7 +2,7 @@ import formidable from 'formidable'
 import _ from 'lodash'
 
 import { dbAdapter, Group, GroupSerializer } from '../../../models'
-import exceptions, { NotFoundException }  from '../../../support/exceptions'
+import exceptions, { NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
 export default class GroupsController {
@@ -162,6 +162,24 @@ export default class GroupsController {
         throw new NotFoundException(`Group "${groupName}" is not found`)
       }
 
+      if (group.isPrivate !== '1') {
+        throw new Error("Group is public")
+      }
+
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
+      if (hasRequest) {
+        throw new ForbiddenException("Subscription request already sent")
+      }
+
+      const followedGroups = await req.user.getFollowedGroups()
+      const followedGroupIds = followedGroups.map((group) => {
+        return group.id
+      })
+
+      if ( _.includes(followedGroupIds, group.id) ) {
+        throw new ForbiddenException("You are already subscribed to that group")
+      }
+
       await req.user.sendPrivateGroupSubscriptionRequest(group.id)
 
       res.jsonp({ err: null, status: 'success' })
@@ -190,6 +208,12 @@ export default class GroupsController {
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
+
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
+      if (!hasRequest) {
+        throw new Error("Invalid")
+      }
+
       await group.acceptSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
@@ -218,6 +242,12 @@ export default class GroupsController {
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
+
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
+      if (!hasRequest) {
+        throw new Error("Invalid")
+      }
+
       await group.rejectSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
@@ -248,7 +278,17 @@ export default class GroupsController {
       }
       let timelineId = await group.getPostsTimelineId()
       await group.validateUserCanBeUnsubscribed(user)
-      await user.validateCanUnsubscribe(timelineId)
+
+      const timelineIds = await user.getSubscriptionIds()
+      if (!_.includes(timelineIds, timelineId)) {
+        throw new ForbiddenException("You are not subscribed to that user")
+      }
+
+      const adminIds = await group.getAdministratorIds()
+      if (_.includes(adminIds, user.id)) {
+        throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
+      }
+
       await user.unsubscribeFrom(timelineId)
 
       res.jsonp({ err: null, status: 'success' })
