@@ -836,7 +836,6 @@ exports.addModel = function(dbAdapter) {
     }
 
     var timelineId = await user.getPostsTimelineId()
-    await this.validateCanSubscribe(timelineId)
     return this.subscribeTo(timelineId)
   }
 
@@ -1004,88 +1003,6 @@ exports.addModel = function(dbAdapter) {
     }
   }
 
-  User.prototype.validateCanSubscribe = async function(timelineId) {
-    const timelineIds = await this.getSubscriptionIds()
-    if (_.includes(timelineIds, timelineId)) {
-      throw new ForbiddenException("You are already subscribed to that user")
-    }
-
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const banIds = await this.getBanIds()
-    if (banIds.indexOf(timeline.userId) >= 0) {
-      throw new ForbiddenException("You cannot subscribe to a banned user")
-    }
-
-    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
-    const theirBanIds = await user.getBanIds()
-    if (theirBanIds.indexOf(this.id) >= 0) {
-      throw new ForbiddenException("This user prevented your from subscribing to them")
-    }
-
-    if (user.isPrivate === '1')
-      throw new ForbiddenException("You cannot subscribe to private feed")
-  }
-
-  User.prototype.validateCanUnsubscribe = async function(timelineId) {
-    const timelineIds = await this.getSubscriptionIds()
-
-    if (!_.includes(timelineIds, timelineId)) {
-      throw new ForbiddenException("You are not subscribed to that user")
-    }
-
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const feedOwner = await dbAdapter.getFeedOwnerById(timeline.userId)
-
-    if ('group' !== feedOwner.type) {
-      return
-    }
-
-    const adminIds = await feedOwner.getAdministratorIds()
-
-    if (_.includes(adminIds, this.id)) {
-      throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
-    }
-  }
-
-  /* checks if user can like some post */
-  User.prototype.validateCanLikePost = function(post) {
-    return this.validateCanLikeOrUnlikePost('like', post)
-  }
-
-  User.prototype.validateCanUnLikePost = function(post) {
-    return this.validateCanLikeOrUnlikePost('unlike', post)
-  }
-
-  User.prototype.validateCanComment = async function(postId) {
-    const post = await dbAdapter.getPostById(postId)
-
-    if (!post)
-      throw new NotFoundException("Not found")
-
-    const valid = await post.canShow(this.id)
-
-    if (!valid)
-      throw new NotFoundException("Not found")
-
-    if (post.commentsDisabled === '1' && post.userId !== this.id)
-      throw new ForbiddenException("Comments disabled")
-  }
-
-  User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {
-    const userLikedPost = await dbAdapter.hasUserLikedPost(this.id, post.id)
-
-    if (userLikedPost && action == 'like')
-      throw new ForbiddenException("You can't like post that you have already liked")
-
-    if (!userLikedPost && action == 'unlike')
-      throw new ForbiddenException("You can't un-like post that you haven't yet liked")
-
-    const valid = await post.canShow(this.id)
-
-    if (!valid)
-      throw new Error("Not found")
-  }
-
   User.prototype.updateLastActivityAt = async function() {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers
@@ -1098,7 +1015,6 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.sendSubscriptionRequest = async function(userId) {
-    await this.validateCanSendSubscriptionRequest(userId)
 
     var currentTime = new Date().getTime()
     return await Promise.all([
@@ -1108,7 +1024,6 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
-    await this.validateCanSendPrivateGroupSubscriptionRequest(groupId)
 
     const currentTime = new Date().getTime()
     return await Promise.all([
@@ -1118,7 +1033,6 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.acceptSubscriptionRequest = async function(userId) {
-    await this.validateCanManageSubscriptionRequests(userId)
 
     await Promise.all([
       dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
@@ -1132,7 +1046,6 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.rejectSubscriptionRequest = async function(userId) {
-    await this.validateCanManageSubscriptionRequests(userId)
 
     return await Promise.all([
       dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
@@ -1157,46 +1070,6 @@ exports.addModel = function(dbAdapter) {
   User.prototype.getSubscriptionRequests = async function() {
     var subscriptionRequestIds = await this.getSubscriptionRequestIds()
     return await dbAdapter.getUsersByIds(subscriptionRequestIds)
-  }
-
-  User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
-    var hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, userId)
-    var user = await dbAdapter.getUserById(userId)
-    var banIds = await user.getBanIds()
-
-    // user can send subscription request if and only if subscription
-    // is a private and this is first time user is subscribing to it
-    const valid = !hasRequest
-               && user.isPrivate === '1'
-               && banIds.indexOf(this.id) === -1
-
-    if (!valid)
-      throw new Error("Invalid")
-  }
-
-  User.prototype.validateCanSendPrivateGroupSubscriptionRequest = async function(groupId) {
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
-    let hasSubscription = false
-    const followedGroups = await this.getFollowedGroups()
-    const followedGroupIds = followedGroups.map((group) => {
-      return group.id
-    })
-    hasSubscription  = _.includes(followedGroupIds, groupId)
-    const group = await dbAdapter.getGroupById(groupId)
-
-    if (hasRequest)
-      throw new ForbiddenException("Subscription request already sent")
-    if (hasSubscription)
-      throw new ForbiddenException("You are already subscribed to that group")
-    if (!!group && group.isPrivate !== '1')
-      throw new Error("Group is public")
-  }
-
-  User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
-    var hasRequest = await dbAdapter.isSubscriptionRequestPresent(userId, this.id)
-
-    if (!hasRequest)
-      throw new Error("Invalid")
   }
 
   User.prototype.canBeAccessedByUser = async function(otherUser) {

@@ -14,7 +14,19 @@ export default class CommentsController {
     var timer = monitor.timer('comments.create-time')
 
     try {
-      await req.user.validateCanComment(req.body.comment.postId)
+      const post = await dbAdapter.getPostById(req.body.comment.postId)
+      if (!post) {
+        throw new NotFoundException("Not found")
+      }
+
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new NotFoundException("Not found")
+      }
+
+      if (post.commentsDisabled === '1' && post.userId !== req.user.id) {
+        throw new ForbiddenException("Comments disabled")
+      }
 
       var newComment = req.user.newComment({
         body: req.body.comment.body,
