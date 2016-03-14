@@ -87,7 +87,7 @@ export function addModel(dbAdapter) {
     // save nested resources
     await Promise.all([
       this.linkAttachments(),
-      this.savePostedTo()
+      dbAdapter.createPostPostedTo(this.id, this.timelineIds)
     ])
 
     await Timeline.publishPost(this)
@@ -98,10 +98,6 @@ export function addModel(dbAdapter) {
     monitor.increment('posts.creates')
 
     return this
-  }
-
-  Post.prototype.savePostedTo = function() {
-    return dbAdapter.createPostPostedTo(this.id, this.timelineIds)
   }
 
   Post.prototype.update = async function(params) {
@@ -598,10 +594,6 @@ export function addModel(dbAdapter) {
 
     let stats = await dbAdapter.getStatsById(userId)
     return stats.removeLike()
-  }
-
-  Post.prototype.getCreatedBy = function() {
-    return dbAdapter.getUserById(this.userId)
   }
 
   Post.prototype.isBannedFor = async function(userId) {
