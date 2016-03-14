@@ -151,19 +151,7 @@ exports.addModel = function(dbAdapter) {
       'resetPasswordSentAt': now
     }
 
-    let promises = [
-      dbAdapter.updateUser(this.id, payload),
-      dbAdapter.createUserResetPasswordToken(this.id, token)
-    ]
-
-    if (this.resetPasswordToken) {
-      promises.push(dbAdapter.deleteUserResetPasswordToken(this.resetPasswordToken))
-    }
-
-    await Promise.all(promises)
-
-    let expireAfter = 60*60*24 // 24 hours
-    await dbAdapter.setUserResetPasswordTokenExpireAfter(token, expireAfter)
+    await dbAdapter.updateUser(this.id, payload, this)
 
     this.resetPasswordToken = token
     return this.resetPasswordToken
@@ -896,7 +884,7 @@ exports.addModel = function(dbAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    return dbAdapter.updateUser(this.id, payload)
+    return dbAdapter.updateUser(this.id, payload, this)
   }
 
   User.prototype.saveProfilePictureWithSize = function(path, uuid, originalSize, size) {
@@ -978,7 +966,7 @@ exports.addModel = function(dbAdapter) {
       let payload = {
         'updatedAt': updatedAt.toString()
       }
-      await dbAdapter.updateUser(this.id, payload)
+      await dbAdapter.updateUser(this.id, payload, this)
     }
   }
 

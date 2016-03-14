@@ -161,7 +161,7 @@ export function addModel(dbAdapter) {
         'isRestricted': this.isRestricted
       }
 
-      await dbAdapter.updateUser(this.id, payload)
+      await dbAdapter.updateUser(this.id, payload, this)
     }
 
     return this
