@@ -296,20 +296,6 @@ exports.addModel = function(dbAdapter) {
     await Promise.all(promises)
   }
 
-  //
-  // Create database index from email to uid
-  //
-  User.prototype.createEmailIndex = async function(email) {
-    // email is optional, so no need to index an empty key
-    if (email && email.length > 0) {
-      await dbAdapter.createUserEmailIndex(this.id, email)
-    }
-  }
-
-  User.prototype.dropIndexForEmail = function(email) {
-    return dbAdapter.dropUserEmailIndex(email)
-  }
-
   User.prototype.create = async function(skip_stoplist) {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
@@ -416,21 +402,7 @@ exports.addModel = function(dbAdapter) {
         preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences)
       }
 
-      var promises = [
-        dbAdapter.updateUser(this.id, preparedPayload)
-      ]
-
-      if (_.has(preparedPayload, 'email')) {
-        if (this.email != "") {
-          promises.push(this.dropIndexForEmail(this.email))
-        }
-
-        if (preparedPayload.email != "") {
-          promises.push(this.createEmailIndex(preparedPayload.email))
-        }
-      }
-
-      await Promise.all(promises)
+      await dbAdapter.updateUser(this.id, preparedPayload, this)
 
       for (let k in payload){
         this[k] = payload[k]
