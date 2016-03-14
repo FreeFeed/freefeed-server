@@ -144,29 +144,28 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.updateResetPasswordToken = async function() {
     let now = new Date().getTime()
-    let oldToken = this.resetPasswordToken
-
-    this.resetPasswordToken = await this.generateResetPasswordToken()
+    let token = await this.generateResetPasswordToken()
 
     let payload = {
-      'resetPasswordToken': this.resetPasswordToken,
+      'resetPasswordToken': token,
       'resetPasswordSentAt': now
     }
 
     let promises = [
       dbAdapter.updateUser(this.id, payload),
-      dbAdapter.createUserResetPasswordToken(this.id, this.resetPasswordToken)
+      dbAdapter.createUserResetPasswordToken(this.id, token)
     ]
 
-    if (oldToken) {
-      promises.push(dbAdapter.deleteUserResetPasswordToken(oldToken))
+    if (this.resetPasswordToken) {
+      promises.push(dbAdapter.deleteUserResetPasswordToken(this.resetPasswordToken))
     }
 
     await Promise.all(promises)
 
     let expireAfter = 60*60*24 // 24 hours
-    await dbAdapter.setUserResetPasswordTokenExpireAfter(this.resetPasswordToken, expireAfter)
+    await dbAdapter.setUserResetPasswordTokenExpireAfter(token, expireAfter)
 
+    this.resetPasswordToken = token
     return this.resetPasswordToken
   }
 
