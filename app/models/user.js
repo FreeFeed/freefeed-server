@@ -299,10 +299,10 @@ exports.addModel = function(dbAdapter) {
   //
   // Create database index from email to uid
   //
-  User.prototype.createEmailIndex = async function() {
+  User.prototype.createEmailIndex = async function(email) {
     // email is optional, so no need to index an empty key
-    if (this.email && this.email.length > 0) {
-      await dbAdapter.createUserEmailIndex(this.id, this.email)
+    if (email && email.length > 0) {
+      await dbAdapter.createUserEmailIndex(this.id, email)
     }
   }
 
@@ -346,17 +346,15 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.update = async function(params) {
-    var hasChanges = false
-      , emailChanged = false
-      , oldEmail = ""
+    let payload = {}
+      , changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
         throw new Error(`"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
       }
 
-      this.screenName = params.screenName
-      hasChanges = true
+      payload.screenName = params.screenName
     }
 
     if (params.hasOwnProperty('email') && params.email != this.email) {
@@ -364,11 +362,7 @@ exports.addModel = function(dbAdapter) {
         throw new Error("Invalid email")
       }
 
-      oldEmail = this.email
-      this.email = params.email
-
-      hasChanges = true
-      emailChanged = true
+      payload.email = params.email
     }
 
     if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
@@ -382,8 +376,7 @@ exports.addModel = function(dbAdapter) {
       else if (params.isPrivate === '0' && this.isPrivate === '1')
         await this.subscribeNonFriends()
 
-      this.isPrivate = params.isPrivate
-      hasChanges = true
+      payload.isPrivate = params.isPrivate
     }
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
@@ -391,8 +384,7 @@ exports.addModel = function(dbAdapter) {
         throw new Error("Description is too long")
       }
 
-      this.description = params.description
-      hasChanges = true
+      payload.description = params.description
     }
 
     if (params.hasOwnProperty('frontendPreferences')) {
@@ -401,43 +393,48 @@ exports.addModel = function(dbAdapter) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
+      let preferences = this.frontendPreferences
+
       // Deep-merge objects
-      _.merge(this.frontendPreferences, params.frontendPreferences)
+      _.merge(preferences, params.frontendPreferences)
 
       // Validate the merged object
-      if (!User.frontendPreferencesIsValid(this.frontendPreferences)) {
+      if (!User.frontendPreferencesIsValid(preferences)) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
-      hasChanges = true
+      payload.frontendPreferences = preferences
     }
 
-    if (hasChanges) {
-      this.updatedAt = new Date().getTime()
+    if (_.intersection(_.keys(payload), changeableKeys).length > 0) {
+      let preparedPayload = payload
+      payload.updatedAt = new Date().getTime()
 
-      var payload = {
-        'screenName': this.screenName,
-        'email': this.email,
-        'isPrivate': this.isPrivate,
-        'description': this.description,
-        'frontendPreferences': JSON.stringify(this.frontendPreferences),
-        'updatedAt': this.updatedAt.toString()
+      preparedPayload.updatedAt = payload.updatedAt.toString()
+
+      if (_.has(payload, 'frontendPreferences')){
+        preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences)
       }
 
       var promises = [
-        dbAdapter.updateUser(this.id, payload)
+        dbAdapter.updateUser(this.id, preparedPayload)
       ]
 
-      if (emailChanged) {
-        if (oldEmail != "") {
-          promises.push(this.dropIndexForEmail(oldEmail))
-        }
+      if (_.has(preparedPayload, 'email')) {
         if (this.email != "") {
-          promises.push(this.createEmailIndex())
+          promises.push(this.dropIndexForEmail(this.email))
+        }
+
+        if (preparedPayload.email != "") {
+          promises.push(this.createEmailIndex(preparedPayload.email))
         }
       }
 
       await Promise.all(promises)
+
+      for (let k in payload){
+        this[k] = payload[k]
+      }
     }
 
     return this
