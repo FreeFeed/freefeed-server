@@ -76,6 +76,16 @@ export class DbAdapter {
       }
     }
 
+    if (has(payload, 'resetPasswordToken')) {
+      if (user.resetPasswordToken) {
+        promises.push(this._deleteUserResetPasswordToken(user.resetPasswordToken))
+      }
+
+      promises.push(this._createUserResetPasswordToken(userId, payload.resetPasswordToken))
+      const expireAfter = 60*60*24 // 24 hours
+      promises.push(this._setUserResetPasswordTokenExpireAfter(payload.resetPasswordToken, expireAfter))
+    }
+
     return Promise.all(promises)
   }
 
@@ -401,15 +411,15 @@ export class DbAdapter {
   // Reset password tokens
   ///////////////////////////////////////////////////
 
-  createUserResetPasswordToken(userId, token) {
+  _createUserResetPasswordToken(userId, token) {
     return this._setIndexValue(mkKey(['reset', token, 'uid']), userId)
   }
 
-  setUserResetPasswordTokenExpireAfter(token, expireAfter) {
+  _setUserResetPasswordTokenExpireAfter(token, expireAfter) {
     return this.database.expireAsync(mkKey(['reset', token, 'uid']), expireAfter)
   }
 
-  deleteUserResetPasswordToken(token) {
+  _deleteUserResetPasswordToken(token) {
     return this._deleteRecord(mkKey(['reset', token, 'uid']))
   }
 
