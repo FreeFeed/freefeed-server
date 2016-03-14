@@ -1,5 +1,5 @@
 import { default as uuid } from 'uuid'
-import { each, isString } from 'lodash'
+import { each, isString, has } from 'lodash'
 
 import { Attachment, Comment, Group, Post, Stats, Timeline, User } from '../models'
 
@@ -55,14 +55,28 @@ export class DbAdapter {
     ]
 
     if (email && email.length > 0) {
-      promises.push(this.createUserEmailIndex(userId, email))
+      promises.push(this._createUserEmailIndex(userId, email))
     }
     await Promise.all(promises)
     return userId
   }
 
-  updateUser(userId, payload) {
-    return this._updateRecord(mkKey(['user', userId]), payload)
+  updateUser(userId, payload, user) {
+    var promises = [
+      this._updateRecord(mkKey(['user', userId]), payload)
+    ]
+
+    if (has(payload, 'email')) {
+      if (this._isUserEmailPresent(user.email)) {
+        promises.push(this._dropUserEmailIndex(user.email))
+      }
+
+      if (this._isUserEmailPresent(payload.email)) {
+        promises.push(this._createUserEmailIndex(userId, payload.email))
+      }
+    }
+
+    return Promise.all(promises)
   }
 
   existsUser(userId) {
@@ -489,11 +503,11 @@ export class DbAdapter {
     return this._getIndexValue(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
   }
 
-  createUserEmailIndex(userId, email) {
+  _createUserEmailIndex(userId, email) {
     return this._setIndexValue(mkKey(['email', this._normalizeUserEmail(email), 'uid']), userId)
   }
 
-  dropUserEmailIndex(email) {
+  _dropUserEmailIndex(email) {
     return this._deleteRecord(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
   }
 
@@ -889,6 +903,10 @@ export class DbAdapter {
   }
 
   ///////////////////////////////////////////////////
+
+  _isUserEmailPresent(email){
+    return email && email.length > 0
+  }
 
   _normalizeUserEmail(email) {
     return email.toLowerCase()
