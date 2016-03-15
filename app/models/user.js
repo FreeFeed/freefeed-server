@@ -943,16 +943,13 @@ exports.addModel = function(dbAdapter) {
   User.prototype.validateCanPost = async function(postingUser) {
     // NOTE: when user is subscribed to another user she in fact is
     // subscribed to her posts timeline
-    const [
-      timelineIdA, timelineIdB,
-      subscriptionIds, subscriberIds
-    ] =
-      await Promise.all([
-        postingUser.getPostsTimelineId(), this.getPostsTimelineId(),
-        postingUser.getSubscriptionIds(), this.getSubscriptionIds()
-      ])
+    const [ timelineIdA, timelineIdB ] =
+      await Promise.all([ postingUser.getPostsTimelineId(), this.getPostsTimelineId() ])
 
-    if ((subscriberIds.indexOf(timelineIdA) == -1 || subscriptionIds.indexOf(timelineIdB) == -1)
+    const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
+    const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
+
+    if ((!currentUserSubscribedToPostingUser || !postingUserSubscribedToCurrentUser)
         && postingUser.username != this.username
     ) {
       throw new ForbiddenException("You can't send private messages to friends that are not mutual")

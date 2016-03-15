@@ -316,8 +316,8 @@ export default class GroupsController {
         throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
       }
 
-      const timelineIds = await user.getSubscriptionIds()
-      if (!_.includes(timelineIds, timelineId)) {
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }
 
