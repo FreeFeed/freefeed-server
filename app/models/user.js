@@ -968,29 +968,15 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.sendSubscriptionRequest = async function(userId) {
-
-    var currentTime = new Date().getTime()
-    return await Promise.all([
-      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, userId),
-      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, userId)
-    ])
+    return await dbAdapter.createSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
-
-    const currentTime = new Date().getTime()
-    return await Promise.all([
-      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, groupId),
-      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, groupId)
-    ])
+    return await dbAdapter.createSubscriptionRequest(this.id, groupId)
   }
 
   User.prototype.acceptSubscriptionRequest = async function(userId) {
-
-    await Promise.all([
-      dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
-      dbAdapter.deleteUserSubscriptionPendingRequest(this.id, userId)
-    ])
+    await dbAdapter.deleteSubscriptionRequest(this.id, userId)
 
     var timelineId = await this.getPostsTimelineId()
 
@@ -999,11 +985,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.rejectSubscriptionRequest = async function(userId) {
-
-    return await Promise.all([
-      dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
-      dbAdapter.deleteUserSubscriptionPendingRequest(this.id, userId)
-    ])
+    return await dbAdapter.deleteSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.getPendingSubscriptionRequestIds = async function() {
