@@ -227,24 +227,27 @@ export function addModel(dbAdapter) {
           // Looks big enough, needs a resize
           this.noThumbnail = '0'
 
-          // Calculate new size
-          const scale = Math.min(config.thumbnails.bounds.width / size.width, config.thumbnails.bounds.height / size.height)
-          const w = Math.round(scale * size.width)
-          const h = Math.round(scale * size.height)
-          this.imageSizes.t = {w, h}
-
+          // Resize image
           img = img
             .resize(config.thumbnails.bounds.width, config.thumbnails.bounds.height)
             .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
             .autoOrient()
             .quality(95)
 
+          // Save thumbnail (temporarily)
+          await img.writeAsync(tmpThumbnailFile)
+
+          // Get thumbnail size
+          const thumbnail = promisifyAll(gm(tmpThumbnailFile))
+          const thumbnailSize = await thumbnail.sizeAsync()
+          this.imageSizes.t = {w: thumbnailSize.width, h: thumbnailSize.height}
+
+          // Save thumbnail (permanently)
           if (config.thumbnails.storage.type === 's3') {
-            await img.writeAsync(tmpThumbnailFile)
             await this.uploadToS3(tmpThumbnailFile, config.thumbnails)
             await fs.unlinkAsync(tmpThumbnailFile)
           } else {
-            await img.writeAsync(this.getThumbnailPath())
+            await fs.renameAsync(tmpThumbnailFile, this.getThumbnailPath())
           }
         } else {
           // Since it's small, just use the original image
