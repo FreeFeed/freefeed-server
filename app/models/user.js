@@ -421,8 +421,7 @@ exports.addModel = function(dbAdapter) {
           let likesTimelineId = await user.getLikesTimelineId()
           let time = await dbAdapter.getUserPostLikedTime(user.id, post.id)
 
-          actions.push(dbAdapter.addPostToTimeline(likesTimelineId, time, post.id))
-          actions.push(dbAdapter.createPostUsageInTimeline(post.id, likesTimelineId))
+          actions.push(dbAdapter.insertPostIntoTimeline(likesTimelineId, time, post.id))
         })
 
         await Promise.all(promises)
@@ -439,8 +438,7 @@ exports.addModel = function(dbAdapter) {
           // post to comments timeline, but who notices this?
           let time = post.updatedAt
 
-          actions.push(dbAdapter.addPostToTimeline(commentsTimelineId, time, post.id))
-          actions.push(dbAdapter.createPostUsageInTimeline(post.id, commentsTimelineId))
+          actions.push(dbAdapter.insertPostIntoTimeline(commentsTimelineId, time, post.id))
         })
 
         await Promise.all(promises)

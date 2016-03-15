@@ -159,10 +159,7 @@ export function addModel(dbAdapter) {
 
     const timelineIds = await this.getTimelineIds()
     const deleteFromTimelinesPromise = Promise.all(timelineIds.map(async (timelineId) => {
-      await Promise.all([
-        dbAdapter.deletePostUsageInTimeline(this.id, timelineId),
-        dbAdapter.removePostFromTimeline(timelineId, this.id)
-      ])
+      await dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
     }))
 
     await Promise.all([
@@ -299,10 +296,7 @@ export function addModel(dbAdapter) {
     const theUser = await dbAdapter.getUserById(userId)
     const hidesTimelineId = await theUser.getHidesTimelineId()
 
-    await Promise.all([
-      dbAdapter.addPostToTimeline(hidesTimelineId, this.updatedAt, this.id),
-      dbAdapter.createPostUsageInTimeline(this.id, hidesTimelineId)
-    ])
+    await dbAdapter.insertPostIntoTimeline(hidesTimelineId, this.updatedAt, this.id)
 
     await pubSub.hidePost(theUser.id, this.id)
   }
@@ -311,10 +305,7 @@ export function addModel(dbAdapter) {
     const theUser = await dbAdapter.getUserById(userId)
     const hidesTimelineId = await theUser.getHidesTimelineId()
 
-    await Promise.all([
-      dbAdapter.removePostFromTimeline(hidesTimelineId, this.id),
-      dbAdapter.deletePostUsageInTimeline(this.id, hidesTimelineId)
-    ])
+    await dbAdapter.withdrawPostFromTimeline(hidesTimelineId, this.id)
 
     await pubSub.unhidePost(theUser.id, this.id)
   }
@@ -582,8 +573,7 @@ export function addModel(dbAdapter) {
     let timelineId = await user.getLikesTimelineId()
     let promises = [
             dbAdapter.removeUserPostLike(this.id, userId),
-            dbAdapter.removePostFromTimeline(timelineId, this.id),
-            dbAdapter.deletePostUsageInTimeline(this.id, timelineId)
+            dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
           ]
     await Promise.all(promises)
     await pubSub.removeLike(this.id, userId)
