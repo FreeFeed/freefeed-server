@@ -460,6 +460,11 @@ export class DbAdapter {
     return this._getAllSortedSetElements(mkKey(['user', userId, 'subscriptions']))
   }
 
+  async isUserSubscribedToTimeline(currentUserId, timelineId){
+    const timelineIds = await this.getUserSubscriptionsIds(currentUserId)
+    return _.includes(timelineIds, timelineId)
+  }
+
   _createUserSubscription(currentUserId, currentTime, timelineId) {
     return this._addElementToSortedSet(mkKey(['user', currentUserId, 'subscriptions']), currentTime, timelineId)
   }
