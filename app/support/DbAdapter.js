@@ -1,5 +1,5 @@
 import { default as uuid } from 'uuid'
-import { each, isString, has } from 'lodash'
+import _ from 'lodash'
 
 import { Attachment, Comment, Group, Post, Stats, Timeline, User } from '../models'
 
@@ -8,7 +8,7 @@ export const mkKey = (keys) => {
   const sep = ':'
 
   for (let key of keys) {
-    if (!isString(key)) {
+    if (!_.isString(key)) {
       throw new Error('keys should be strings')
     }
   }
@@ -58,7 +58,7 @@ export class DbAdapter {
       this._updateRecord(mkKey(['user', userId]), payload)
     ]
 
-    if (has(payload, 'email')) {
+    if (_.has(payload, 'email')) {
       if (this._isUserEmailPresent(user.email)) {
         promises.push(this._dropUserEmailIndex(user.email))
       }
@@ -68,7 +68,7 @@ export class DbAdapter {
       }
     }
 
-    if (has(payload, 'resetPasswordToken')) {
+    if (_.has(payload, 'resetPasswordToken')) {
       if (user.resetPasswordToken) {
         promises.push(this._deleteUserResetPasswordToken(user.resetPasswordToken))
       }
@@ -130,7 +130,7 @@ export class DbAdapter {
   async getUsersByIds(userIds) {
     const users = await this.getFeedOwnersByIds(userIds)
 
-    each(users, user => {
+    _.each(users, user => {
       if (!(user instanceof User)) {
         throw new Error(`Expected User, got ${user.constructor.name}`)
       }
