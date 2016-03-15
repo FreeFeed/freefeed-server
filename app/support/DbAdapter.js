@@ -419,6 +419,21 @@ export class DbAdapter {
   // Subscription requests
   ///////////////////////////////////////////////////
 
+  createSubscriptionRequest(fromUserId, toUserId){
+    var currentTime = new Date().getTime()
+    return Promise.all([
+      this._createUserSubscriptionRequest(fromUserId, currentTime, toUserId),
+      this._createUserSubscriptionPendingRequest(fromUserId, currentTime, toUserId)
+    ])
+  }
+
+  deleteSubscriptionRequest(fromUserId, toUserId){
+    return Promise.all([
+      this._deleteUserSubscriptionRequest(fromUserId, toUserId),
+      this._deleteUserSubscriptionPendingRequest(fromUserId, toUserId)
+    ])
+  }
+
   getUserSubscriptionRequestsIds(currentUserId) {
     return this._getAllSortedSetElements(mkKey(['user', currentUserId, 'requests']))
   }
@@ -428,11 +443,11 @@ export class DbAdapter {
     return score && score >= 0
   }
 
-  createUserSubscriptionRequest(currentUserId, currentTime, followedUserId) {
+  _createUserSubscriptionRequest(currentUserId, currentTime, followedUserId) {
     return this._addElementToSortedSet(mkKey(['user', followedUserId, 'requests']), currentTime, currentUserId)
   }
 
-  deleteUserSubscriptionRequest(currentUserId, followerUserId) {
+  _deleteUserSubscriptionRequest(currentUserId, followerUserId) {
     return this._removeElementFromSortedSet(mkKey(['user', currentUserId, 'requests']), followerUserId)
   }
 
@@ -444,11 +459,11 @@ export class DbAdapter {
     return this._getAllSortedSetElements(mkKey(['user', currentUserId, 'pending']))
   }
 
-  createUserSubscriptionPendingRequest(currentUserId, currentTime, followedUserId) {
+  _createUserSubscriptionPendingRequest(currentUserId, currentTime, followedUserId) {
     return this._addElementToSortedSet(mkKey(['user', currentUserId, 'pending']), currentTime, followedUserId)
   }
 
-  deleteUserSubscriptionPendingRequest(currentUserId, followerUserId) {
+  _deleteUserSubscriptionPendingRequest(currentUserId, followerUserId) {
     return this._removeElementFromSortedSet(mkKey(['user', followerUserId, 'pending']), currentUserId)
   }
 
