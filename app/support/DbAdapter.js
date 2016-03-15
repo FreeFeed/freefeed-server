@@ -30,14 +30,6 @@ export class DbAdapter {
   // User
   ///////////////////////////////////////////////////
 
-  async setUserPassword(userId, updatedAt, hashedPassword) {
-    let payload = {
-      'updatedAt':      updatedAt.toString(),
-      'hashedPassword': hashedPassword
-    }
-    return this._updateRecord(mkKey(['user', userId]), payload)
-  }
-
   async createUser(payload) {
     let userId   = uuid.v4()
     let username = payload.username
