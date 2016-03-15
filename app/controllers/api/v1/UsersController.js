@@ -341,8 +341,8 @@ export default class UsersController {
       }
 
       const timelineId = await user.getPostsTimelineId()
-      const timelineIds = await req.user.getSubscriptionIds()
-      if (_.includes(timelineIds, timelineId)) {
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      if (isSubscribed) {
         throw new ForbiddenException("You are already subscribed to that user")
       }
 
@@ -380,8 +380,8 @@ export default class UsersController {
 
       var timelineId = await req.user.getPostsTimelineId()
 
-      const timelineIds = await user.getSubscriptionIds()
-      if (!_.includes(timelineIds, timelineId)) {
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }
 
@@ -411,8 +411,8 @@ export default class UsersController {
 
       var timelineId = await user.getPostsTimelineId()
 
-      const timelineIds = await req.user.getSubscriptionIds()
-      if (!_.includes(timelineIds, timelineId)) {
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }
 
