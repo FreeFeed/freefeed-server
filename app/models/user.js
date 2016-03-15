@@ -766,13 +766,11 @@ exports.addModel = function(dbAdapter) {
     if (user.username == this.username)
       throw new Error("Invalid")
 
-    let currentTime = new Date().getTime()
     let timelineIds = await user.getPublicTimelineIds()
 
-    let promises = _.flatten(timelineIds.map((timelineId) => [
-      dbAdapter.createUserSubscription(this.id, currentTime, timelineId),
-      dbAdapter.addTimelineSubscriber(timelineId, currentTime, this.id)
-    ]))
+    let promises = _.flatten(timelineIds.map((timelineId) => {
+      return dbAdapter.subscribeUserToTimeline(timelineId, this.id)
+    }))
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
 
@@ -812,10 +810,9 @@ exports.addModel = function(dbAdapter) {
       // remove timelines from user's subscriptions
       let timelineIds = await user.getPublicTimelineIds()
 
-      let unsubPromises = _.flatten(timelineIds.map((timelineId) => [
-        dbAdapter.deleteUserSubscription(this.id, timelineId),
-        dbAdapter.removeTimelineSubscriber(timelineId, this.id)
-      ]))
+      let unsubPromises = _.flatten(timelineIds.map((timelineId) => {
+        return dbAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
+      }))
 
       promises = promises.concat(unsubPromises)
     }

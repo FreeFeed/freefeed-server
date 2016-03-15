@@ -460,11 +460,11 @@ export class DbAdapter {
     return this._getAllSortedSetElements(mkKey(['user', userId, 'subscriptions']))
   }
 
-  createUserSubscription(currentUserId, currentTime, timelineId) {
+  _createUserSubscription(currentUserId, currentTime, timelineId) {
     return this._addElementToSortedSet(mkKey(['user', currentUserId, 'subscriptions']), currentTime, timelineId)
   }
 
-  deleteUserSubscription(currentUserId, timelineId) {
+  _deleteUserSubscription(currentUserId, timelineId) {
     return this._removeElementFromSortedSet(mkKey(['user', currentUserId, 'subscriptions']), timelineId)
   }
 
@@ -628,11 +628,28 @@ export class DbAdapter {
     return this._getAllSortedSetElements(mkKey(['timeline', timelineId, 'subscribers']))
   }
 
-  addTimelineSubscriber(timelineId, currentTime, currentUserId) {
+  subscribeUserToTimeline(timelineId, currentUserId){
+    let currentTime = new Date().getTime()
+    let promises = [
+      this._createUserSubscription(currentUserId, currentTime, timelineId),
+      this._addTimelineSubscriber(timelineId, currentTime, currentUserId)
+    ]
+    return Promise.all(promises)
+  }
+
+  _addTimelineSubscriber(timelineId, currentTime, currentUserId) {
     return this._addElementToSortedSet(mkKey(['timeline', timelineId, 'subscribers']), currentTime, currentUserId)
   }
 
-  removeTimelineSubscriber(timelineId, currentUserId) {
+  unsubscribeUserFromTimeline(timelineId, currentUserId){
+    let promises = [
+      this._deleteUserSubscription(currentUserId, timelineId),
+      this._removeTimelineSubscriber(timelineId, currentUserId)
+    ]
+    return Promise.all(promises)
+  }
+
+  _removeTimelineSubscriber(timelineId, currentUserId) {
     return this._removeElementFromSortedSet(mkKey(['timeline', timelineId, 'subscribers']), currentUserId)
   }
 
