@@ -506,7 +506,6 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.updatePassword = async function(password, passwordConfirmation) {
-    this.updatedAt = new Date().getTime()
     if (password.length === 0) {
       throw new Error('Password cannot be blank')
     } else if (password !== passwordConfirmation) {
@@ -514,10 +513,16 @@ exports.addModel = function(dbAdapter) {
     }
 
     try {
-      this.hashedPassword = await bcrypt.hashAsync(password, 10)
+      let updatedAt = new Date().getTime()
+      let payload = {
+        updatedAt:      updatedAt.toString(),
+        hashedPassword: await bcrypt.hashAsync(password, 10)
+      }
 
-      await dbAdapter.setUserPassword(this.id, this.updatedAt, this.hashedPassword)
+      await dbAdapter.updateUser(this.id, payload, this)
 
+      this.updatedAt = updatedAt
+      this.hashedPassword = payload.hashedPassword
       return this
     } catch(e) {
       throw e //? hmmm?
