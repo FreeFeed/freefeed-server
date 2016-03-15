@@ -348,7 +348,7 @@ export class DbAdapter {
     return this._getSetElements(mkKey(['post', postId, 'timelines']))
   }
 
-  deletePostUsageInTimeline(postId, timelineId) {
+  _deletePostUsageInTimeline(postId, timelineId) {
     return this._removeElementFromSet(mkKey(['post', postId, 'timelines']), timelineId)
   }
 
@@ -577,7 +577,15 @@ export class DbAdapter {
     return this._existsRecord(mkKey(['timeline', timelineId]))
   }
 
-  addPostToTimeline(timelineId, time, postId) {
+  insertPostIntoTimeline(timelineId, time, postId){
+    let promises = [
+      this._addPostToTimeline(timelineId, time, postId),
+      this.createPostUsageInTimeline(postId, timelineId)
+    ]
+    return Promise.all(promises)
+  }
+
+  _addPostToTimeline(timelineId, time, postId) {
     return this._addElementToSortedSet(mkKey(['timeline', timelineId, 'posts']), time, postId)
   }
 
@@ -594,7 +602,15 @@ export class DbAdapter {
     return this._getSortedSetElements(mkKey(['timeline', timelineId, 'posts']), startIndex, finishIndex)
   }
 
-  removePostFromTimeline(timelineId, postId) {
+  withdrawPostFromTimeline(timelineId, postId){
+    let promises = [
+      this._deletePostUsageInTimeline(postId, timelineId),
+      this._removePostFromTimeline(timelineId, postId)
+    ]
+    return Promise.all(promises)
+  }
+
+  _removePostFromTimeline(timelineId, postId) {
     return this._removeElementFromSortedSet(mkKey(['timeline', timelineId, 'posts']), postId)
   }
 

@@ -56,9 +56,8 @@ export function addModel(dbAdapter) {
     const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
 
     promises = allTimelines.map(timelineId => [
-      dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
       dbAdapter.setPostUpdatedAt(post.id, currentTime),
-      dbAdapter.createPostUsageInTimeline(post.id, timelineId)
+      dbAdapter.insertPostIntoTimeline(timelineId, currentTime, post.id)
     ])
 
     await Promise.all(_.flatten(promises))
@@ -253,10 +252,9 @@ export function addModel(dbAdapter) {
   Timeline.prototype.unmerge = async function(timelineId) {
     let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
 
-    await Promise.all(_.flatten(postIds.map((postId) => [
-      dbAdapter.deletePostUsageInTimeline(postId, timelineId),
-      dbAdapter.removePostFromTimeline(timelineId, postId)
-    ])))
+    await Promise.all(_.flatten(postIds.map((postId) =>
+      dbAdapter.withdrawPostFromTimeline(timelineId, postId)
+    )))
 
     return
   }
@@ -334,8 +332,7 @@ export function addModel(dbAdapter) {
     var currentTime = new Date().getTime()
 
     await Promise.all([
-      dbAdapter.addPostToTimeline(this.id, currentTime, postId),
-      dbAdapter.createPostUsageInTimeline(postId, this.id),
+      dbAdapter.insertPostIntoTimeline(this.id, currentTime, postId),
       dbAdapter.setPostUpdatedAt(postId, currentTime)
     ])
 

@@ -104,10 +104,7 @@ export function addModel(dbAdapter) {
     let user = await dbAdapter.getUserById(this.userId)
     let timelineId = await user.getCommentsTimelineId()
 
-    await Promise.all([
-      dbAdapter.removePostFromTimeline(timelineId, this.postId),
-      dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
-    ])
+    await dbAdapter.withdrawPostFromTimeline(timelineId, this.postId)
 
     let stats = await dbAdapter.getStatsById(this.userId)
     let res = await stats.removeComment()
