@@ -390,11 +390,11 @@ export class DbAdapter {
     return this._getAllListElements(mkKey(['post', postId, 'attachments']))
   }
 
-  addAttachmentToPost(postId, attachmentId) {
+  _addAttachmentToPost(postId, attachmentId) {
     return this._addElementToList(mkKey(['post', postId, 'attachments']), attachmentId)
   }
 
-  removeAttachmentsFromPost(postId, attachmentId) {
+  _removeAttachmentsFromPost(postId, attachmentId) {
     return this._removeAllElementsEqualToFromList(mkKey(['post', postId, 'attachments']), attachmentId)
   }
 
@@ -820,7 +820,22 @@ export class DbAdapter {
     return this._updateRecord(mkKey(['attachment', attachmentId]), payload)
   }
 
-  setAttachmentPostId(attachmentId, postId) {
+
+  linkAttachmentToPost(attachmentId, postId){
+    return Promise.all([
+      this._addAttachmentToPost(postId, attachmentId),
+      this._setAttachmentPostId(attachmentId, postId)
+    ])
+  }
+
+  unlinkAttachmentFromPost(attachmentId, postId){
+    return Promise.all([
+      this._removeAttachmentsFromPost(postId, attachmentId),
+      this._setAttachmentPostId(attachmentId, '')
+    ])
+  }
+
+  _setAttachmentPostId(attachmentId, postId) {
     let payload = {
       'postId': postId
     }
