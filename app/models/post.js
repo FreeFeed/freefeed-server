@@ -155,15 +155,9 @@ export function addModel(dbAdapter) {
     await Promise.all(likesStatObjects.map(stat => stat.removeLike()))
 
     const timelineIds = await this.getTimelineIds()
-    const deleteFromTimelinesPromise = Promise.all(timelineIds.map(async (timelineId) => {
+    await Promise.all(timelineIds.map(async (timelineId) => {
       await dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
     }))
-
-    await Promise.all([
-      deleteFromTimelinesPromise,
-      dbAdapter.deletePostLikes(this.id),
-      dbAdapter.deletePostComments(this.id)
-    ])
 
     await dbAdapter.deletePost(this.id)
 
