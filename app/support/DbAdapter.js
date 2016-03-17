@@ -296,7 +296,8 @@ export class DbAdapter {
   deletePost(postId) {
     return Promise.all([
       this._deleteRecord(mkKey(['post', postId])),
-      this._deletePostPostedTo(postId)
+      this._deletePostPostedTo(postId),
+      this._deletePostUsagesInTimelineIndex(postId)
     ])
   }
 
@@ -350,7 +351,7 @@ export class DbAdapter {
     return this._removeElementFromSet(mkKey(['post', postId, 'timelines']), timelineId)
   }
 
-  deletePostUsagesInTimelineIndex(postId) {
+  _deletePostUsagesInTimelineIndex(postId) {
     return this._deleteRecord(mkKey(['post', postId, 'timelines']))
   }
 
