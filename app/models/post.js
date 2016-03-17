@@ -402,10 +402,8 @@ export function addModel(dbAdapter) {
       }
 
       // Update connections in DB
-      return Promise.all([
-        dbAdapter.addAttachmentToPost(this.id, attachment.id),
-        dbAdapter.setAttachmentPostId(attachment.id, this.id)
-      ])
+
+      return dbAdapter.linkAttachmentToPost(attachment.id, this.id)
     })
 
     await Promise.all(attachmentPromises)
@@ -419,10 +417,7 @@ export function addModel(dbAdapter) {
       // should we modify `this.attachments` here?
 
       // Update connections in DB
-      return Promise.all([
-        dbAdapter.removeAttachmentsFromPost(this.id, attachment.id),
-        dbAdapter.setAttachmentPostId(attachment.id, '')
-      ])
+      return dbAdapter.unlinkAttachmentFromPost(attachment.id, this.id)
     })
 
     await Promise.all(attachmentPromises)
