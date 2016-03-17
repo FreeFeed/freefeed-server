@@ -249,7 +249,7 @@ export class DbAdapter {
   // Post
   ///////////////////////////////////////////////////
 
-  async createPost(payload) {
+  async createPost(payload, destinations) {
     let postId = uuid.v4()
     let key    = mkKey(['post', postId])
     let exists = await this._existsRecord(key)
@@ -258,7 +258,10 @@ export class DbAdapter {
       throw new Error("Already exists")
     }
 
-    await this._createRecord(key, payload)
+    await Promise.all([
+      this._createRecord(key, payload),
+      this._createPostPostedTo(postId, destinations)
+    ])
     return postId
   }
 
@@ -291,7 +294,10 @@ export class DbAdapter {
   }
 
   deletePost(postId) {
-    return this._deleteRecord(mkKey(['post', postId]))
+    return Promise.all([
+      this._deleteRecord(mkKey(['post', postId])),
+      this._deletePostPostedTo(postId)
+    ])
   }
 
   ///////////
@@ -354,11 +360,11 @@ export class DbAdapter {
     return this._getSetElements(mkKey(['post', postId, 'to']))
   }
 
-  createPostPostedTo(postId, timelineIds) {
+  _createPostPostedTo(postId, timelineIds) {
     return this._addElementToSet(mkKey(['post', postId, 'to']), timelineIds)
   }
 
-  deletePostPostedTo(postId) {
+  _deletePostPostedTo(postId) {
     return this._deleteRecord(mkKey(['post', postId, 'to']))
   }
 
