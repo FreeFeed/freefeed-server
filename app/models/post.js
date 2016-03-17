@@ -166,7 +166,6 @@ export function addModel(dbAdapter) {
     ])
 
     await dbAdapter.deletePost(this.id)
-    await dbAdapter.deletePostUsagesInTimelineIndex(this.id)  // index of post's timelines
 
     await pubSub.destroyPost(this.id, timelineIds)
 
