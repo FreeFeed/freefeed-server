@@ -297,7 +297,9 @@ export class DbAdapter {
     return Promise.all([
       this._deleteRecord(mkKey(['post', postId])),
       this._deletePostPostedTo(postId),
-      this._deletePostUsagesInTimelineIndex(postId)
+      this._deletePostUsagesInTimelineIndex(postId),
+      this._deletePostLikes(postId),
+      this._deletePostComments(postId)
     ])
   }
 
@@ -329,7 +331,7 @@ export class DbAdapter {
     return this._removeElementFromSortedSet(mkKey(['post', postId, 'likes']), userId)
   }
 
-  deletePostLikes(postId) {
+  _deletePostLikes(postId) {
     return this._deleteRecord(mkKey(['post', postId, 'likes']))
   }
 
@@ -387,7 +389,7 @@ export class DbAdapter {
     return this._addElementToList(mkKey(['post', postId, 'comments']), commentId)
   }
 
-  deletePostComments(postId) {
+  _deletePostComments(postId) {
     return this._deleteRecord(mkKey(['post', postId, 'comments']))
   }
 
