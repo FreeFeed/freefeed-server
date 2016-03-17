@@ -341,10 +341,6 @@ export class DbAdapter {
     return this._addElementToSet(mkKey(['post', postId, 'timelines']), timelineId)
   }
 
-  getPostUsagesInTimelinesCount(postId) {
-    return this._getSetElementsCount(mkKey(['post', postId, 'timelines']))
-  }
-
   getPostUsagesInTimelines(postId) {
     return this._getSetElements(mkKey(['post', postId, 'timelines']))
   }
@@ -613,10 +609,6 @@ export class DbAdapter {
   async isPostPresentInTimeline(timelineId, postId) {
     let score = await this._getSortedSetElementScore(mkKey(['timeline', timelineId, 'posts']), postId)
     return score && score >= 0
-  }
-
-  getTimelinePostsCount(timelineId) {
-    return this._getSortedSetElementsCount(mkKey(['timeline', timelineId, 'posts']))
   }
 
   getTimelinePostsRange(timelineId, startIndex, finishIndex) {
