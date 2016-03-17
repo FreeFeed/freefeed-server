@@ -17,11 +17,7 @@ export default class GroupsController {
       return
     }
 
-    var params = _.reduce(['username', 'screenName', 'description'], function(acc, key) {
-      if (key in req.body.group)
-        acc[key] = req.body.group[key]
-      return acc
-    }, {})
+    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
       var group = new Group(params)
@@ -35,11 +31,7 @@ export default class GroupsController {
   }
 
   static async sudoCreate(req, res) {
-    var params = {
-      username: req.body.group.username,
-      screenName: req.body.group.screenName,
-      isPrivate: req.body.group.isPrivate
-    };
+    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isRestricted'])
 
     try {
       if (!_.isArray(req.body.admins)) {
@@ -75,11 +67,7 @@ export default class GroupsController {
   }
 
   static async update(req, res) {
-    var attrs = _.reduce(['screenName', 'description'], function(acc, key) {
-      if (key in req.body.user)
-        acc[key] = req.body.user[key]
-      return acc
-    }, {})
+    let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
       const group = await dbAdapter.getGroupById(req.params.userId)
@@ -158,5 +146,118 @@ export default class GroupsController {
     } catch (e) {
       exceptions.reportError(res)(e)
     }
+  }
+
+  static async sendRequest(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
+
+    const groupName = req.params.groupName
+    try {
+      const group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+
+      await req.user.sendPrivateGroupSubscriptionRequest(group.id)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async acceptRequest(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
+
+    const groupName = req.params.groupName
+    const userName = req.params.userName
+    try {
+      let group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+      await group.validateCanUpdate(req.user)
+
+      const user = await dbAdapter.getUserByUsername(userName)
+      if (null === user) {
+        throw new NotFoundException(`User "${userName}" is not found`)
+      }
+      await group.acceptSubscriptionRequest(user.id)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async rejectRequest(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
+
+    const groupName = req.params.groupName
+    const userName = req.params.userName
+    try {
+      let group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+      await group.validateCanUpdate(req.user)
+
+      const user = await dbAdapter.getUserByUsername(userName)
+      if (null === user) {
+        throw new NotFoundException(`User "${userName}" is not found`)
+      }
+      await group.rejectSubscriptionRequest(user.id)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async unsubscribeFromGroup(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      return
+    }
+
+    const groupName = req.params.groupName
+    const userName = req.params.userName
+    try {
+      let group = await dbAdapter.getGroupByUsername(groupName)
+
+      if (null === group) {
+        throw new NotFoundException(`Group "${groupName}" is not found`)
+      }
+      await group.validateCanUpdate(req.user)
+
+      let user = await dbAdapter.getUserByUsername(userName)
+      if (null === user) {
+        throw new NotFoundException(`User "${userName}" is not found`)
+      }
+      let timelineId = await group.getPostsTimelineId()
+      await group.validateUserCanBeUnsubscribed(user)
+      await user.validateCanUnsubscribe(timelineId)
+      await user.unsubscribeFrom(timelineId)
+
+      res.jsonp({ err: null, status: 'success' })
+    } catch(e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static _filteredParams(modelDescr, allowedParams){
+    return _.pick(modelDescr, allowedParams)
   }
 }

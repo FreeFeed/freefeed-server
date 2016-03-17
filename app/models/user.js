@@ -1032,6 +1032,19 @@ exports.addModel = function(dbAdapter) {
     if (!_.includes(timelineIds, timelineId)) {
       throw new ForbiddenException("You are not subscribed to that user")
     }
+
+    const timeline = await dbAdapter.getTimelineById(timelineId)
+    const feedOwner = await dbAdapter.getFeedOwnerById(timeline.userId)
+
+    if ('group' !== feedOwner.type) {
+      return
+    }
+
+    const adminIds = await feedOwner.getAdministratorIds()
+
+    if (_.includes(adminIds, this.id)) {
+      throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
+    }
   }
 
   /* checks if user can like some post */
@@ -1094,6 +1107,16 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
+  User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
+    await this.validateCanSendPrivateGroupSubscriptionRequest(groupId)
+
+    const currentTime = new Date().getTime()
+    return await Promise.all([
+      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, groupId),
+      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, groupId)
+    ])
+  }
+
   User.prototype.acceptSubscriptionRequest = async function(userId) {
     await this.validateCanManageSubscriptionRequests(userId)
 
@@ -1151,6 +1174,24 @@ exports.addModel = function(dbAdapter) {
       throw new Error("Invalid")
   }
 
+  User.prototype.validateCanSendPrivateGroupSubscriptionRequest = async function(groupId) {
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
+    let hasSubscription = false
+    const followedGroups = await this.getFollowedGroups()
+    const followedGroupIds = followedGroups.map((group) => {
+      return group.id
+    })
+    hasSubscription  = _.includes(followedGroupIds, groupId)
+    const group = await dbAdapter.getGroupById(groupId)
+
+    if (hasRequest)
+      throw new ForbiddenException("Subscription request already sent")
+    if (hasSubscription)
+      throw new ForbiddenException("You are already subscribed to that group")
+    if (!!group && group.isPrivate !== '1')
+      throw new Error("Group is public")
+  }
+
   User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
     var hasRequest = await dbAdapter.isSubscriptionRequestPresent(userId, this.id)
 
@@ -1176,6 +1217,61 @@ exports.addModel = function(dbAdapter) {
     }
 
     return true
+  }
+
+  User.prototype.getFollowedGroups = async function () {
+    const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
+    if (timelinesIds.length === 0)
+      return []
+
+    const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
+    if (timelines.length === 0)
+      return []
+
+    const timelineOwnerIds = _(timelines).map('userId').uniq().value()
+    if (timelineOwnerIds.length === 0)
+      return []
+
+    const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
+    if (timelineOwners.length === 0)
+      return []
+
+    let followedGroups = timelineOwners.filter((owner) => {
+      return 'group' === owner.type
+    })
+
+    return followedGroups
+  }
+
+  User.prototype.getManagedGroups = async function () {
+    const followedGroups = await this.getFollowedGroups()
+    const currentUserId  = this.id
+
+    let promises = followedGroups.map( async (group)=>{
+      const adminIds = await group.getAdministratorIds()
+      if (adminIds.indexOf(currentUserId) !== -1) {
+        return group
+      }
+      return null
+    })
+
+    let managedGroups = await Promise.all(promises)
+    return _.compact(managedGroups)
+  }
+
+  User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
+    const managedGroups = await this.getManagedGroups()
+
+    let promises = managedGroups.map(async (group)=>{
+      let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
+      return unconfirmedFollowerIds.length > 0
+    })
+
+    return _.some((await Promise.all(promises)), Boolean)
+  }
+
+  User.prototype.getPendingGroupRequests = function () {
+    return this.pendingPrivateGroupSubscriptionRequests()
   }
 
   return User
