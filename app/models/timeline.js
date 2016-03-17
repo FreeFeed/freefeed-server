@@ -55,10 +55,10 @@ export function addModel(dbAdapter) {
     const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
     const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
 
-    promises = allTimelines.map(timelineId => [
-      dbAdapter.setPostUpdatedAt(post.id, currentTime),
-      dbAdapter.insertPostIntoTimeline(timelineId, currentTime, post.id)
-    ])
+    await dbAdapter.setPostUpdatedAt(post.id, currentTime)
+    promises = allTimelines.map(timelineId => {
+      return dbAdapter.insertPostIntoTimeline(timelineId, currentTime, post.id)
+    })
 
     await Promise.all(_.flatten(promises))
     await pubSub.newPost(post.id)
