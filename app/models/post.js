@@ -82,13 +82,10 @@ export function addModel(dbAdapter) {
       'commentsDisabled': this.commentsDisabled
     }
     // save post to the database
-    this.id = await dbAdapter.createPost(payload)
+    this.id = await dbAdapter.createPost(payload, this.timelineIds)
 
     // save nested resources
-    await Promise.all([
-      this.linkAttachments(),
-      dbAdapter.createPostPostedTo(this.id, this.timelineIds)
-    ])
+    await this.linkAttachments()
 
     await Timeline.publishPost(this)
     var stats = await dbAdapter.getStatsById(this.userId)
@@ -164,7 +161,6 @@ export function addModel(dbAdapter) {
 
     await Promise.all([
       deleteFromTimelinesPromise,
-      dbAdapter.deletePostPostedTo(this.id),  // delete posted to key
       dbAdapter.deletePostLikes(this.id),
       dbAdapter.deletePostComments(this.id)
     ])
