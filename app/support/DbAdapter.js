@@ -141,7 +141,7 @@ export class DbAdapter {
 
 
   async getFeedOwnersByIds(ids) {
-    const responses = await this.findRecordsByIds('user', ids)
+    const responses = await this._findRecordsByIds('user', ids)
 
     const objects = responses.map((attrs, i) => {
       if (attrs.type === 'group') {
@@ -155,7 +155,7 @@ export class DbAdapter {
   }
 
   async getFeedOwnerByUsername(username) {
-    const identifier = await this.getUserIdByUsername(username.toLowerCase())
+    const identifier = await this._getUserIdByUsername(username.toLowerCase())
 
     if (null === identifier) {
       return null
@@ -193,7 +193,7 @@ export class DbAdapter {
   }
 
   async getUserByResetToken(token) {
-    const uid = await this.findUserByAttributeIndex('reset', token)
+    const uid = await this._findUserByAttributeIndex('reset', token)
 
     if (null === uid) {
       return null
@@ -203,7 +203,7 @@ export class DbAdapter {
   }
 
   async getUserByEmail(email) {
-    const uid = await this.findUserByAttributeIndex('email', email.toLowerCase())
+    const uid = await this._findUserByAttributeIndex('email', email.toLowerCase())
 
     if (null === uid) {
       return null
@@ -218,7 +218,7 @@ export class DbAdapter {
   }
 
   async getTimelineById(id, params) {
-    const attrs = await this.findRecordById('timeline', id)
+    const attrs = await this._findRecordById('timeline', id)
 
     if (!attrs) {
       return null
@@ -228,7 +228,7 @@ export class DbAdapter {
   }
 
   async getTimelinesByIds(ids, params) {
-    const responses = await this.findRecordsByIds('timeline', ids)
+    const responses = await this._findRecordsByIds('timeline', ids)
     const objects = responses.map((attrs, i) => DbAdapter.initObject(Timeline, attrs, ids[i], params))
 
     return objects
@@ -270,7 +270,7 @@ export class DbAdapter {
   }
 
   async getPostById(id, params) {
-    const attrs = await this.findRecordById('post', id)
+    const attrs = await this._findRecordById('post', id)
 
     if (!attrs) {
       return null
@@ -280,7 +280,7 @@ export class DbAdapter {
   }
 
   async getPostsByIds(ids, params) {
-    const responses = await this.findRecordsByIds('post', ids)
+    const responses = await this._findRecordsByIds('post', ids)
     const objects = responses.map((attrs, i) => DbAdapter.initObject(Post, attrs, ids[i], params))
 
     return objects
@@ -518,7 +518,7 @@ export class DbAdapter {
     return this._existsRecord(mkKey(['username', username, 'uid']))
   }
 
-  getUserIdByUsername(username) {
+  _getUserIdByUsername(username) {
     return this._getIndexValue(mkKey(['username', username, 'uid']))
   }
 
@@ -696,7 +696,7 @@ export class DbAdapter {
   }
 
   async getStatsById(id, params) {
-    const attrs = await this.findRecordById('stats', id)
+    const attrs = await this._findRecordById('stats', id)
 
     if (!attrs) {
       return null
@@ -706,7 +706,7 @@ export class DbAdapter {
   }
 
   async getStatsByIds(ids, params) {
-    const responses = await this.findRecordsByIds('stats', ids)
+    const responses = await this._findRecordsByIds('stats', ids)
     const objects = responses.map((attrs, i) => DbAdapter.initObject(Stats, attrs, ids[i], params))
 
     return objects
@@ -759,7 +759,7 @@ export class DbAdapter {
   }
 
   async getCommentById(id, params) {
-    const attrs = await this.findRecordById('comment', id)
+    const attrs = await this._findRecordById('comment', id)
 
     if (!attrs) {
       return null
@@ -769,7 +769,7 @@ export class DbAdapter {
   }
 
   async getCommentsByIds(ids, params) {
-    const responses = await this.findRecordsByIds('comment', ids)
+    const responses = await this._findRecordsByIds('comment', ids)
     const objects = responses.map((attrs, i) => DbAdapter.initObject(Comment, attrs, ids[i], params))
 
     return objects
@@ -801,7 +801,7 @@ export class DbAdapter {
   }
 
   async getAttachmentById(id, params) {
-    const attrs = await this.findRecordById('attachment', id)
+    const attrs = await this._findRecordById('attachment', id)
 
     if (!attrs) {
       return null
@@ -811,7 +811,7 @@ export class DbAdapter {
   }
 
   async getAttachmentsByIds(ids, params) {
-    const responses = await this.findRecordsByIds('attachment', ids)
+    const responses = await this._findRecordsByIds('attachment', ids)
     const objects = responses.map((attrs, i) => DbAdapter.initObject(Attachment, attrs, ids[i], params))
 
     return objects
@@ -856,18 +856,18 @@ export class DbAdapter {
   // AbstractModel
   ///////////////////////////////////////////////////
 
-  findRecordById(modelName, modelId) {
+  _findRecordById(modelName, modelId) {
     return this._getRecord(mkKey([modelName, modelId]))
   }
 
-  findRecordsByIds(modelName, modelIds) {
+  _findRecordsByIds(modelName, modelIds) {
     let keys     = modelIds.map(id => mkKey([modelName, id]))
     let requests = keys.map(key => ['hgetall', key])
 
     return this.database.batch(requests).execAsync()
   }
 
-  findUserByAttributeIndex(attribute, value) {
+  _findUserByAttributeIndex(attribute, value) {
     return this._getIndexValue(mkKey([attribute, value, 'uid']))
   }
 
