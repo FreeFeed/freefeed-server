@@ -591,10 +591,6 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getHidesTimelineId = function(params) {
     return this.getGenericTimelineId('Hides', params)
-  },
-
-  User.prototype.getHidesTimeline = function(params) {
-    return this.getGenericTimeline('Hides', params)
   }
 
   User.prototype.getRiverOfNewsTimelineId = function(params) {
@@ -623,32 +619,32 @@ exports.addModel = function(dbAdapter) {
     return riverOfNewsTimeline
   }
 
-  User.prototype.getLikesTimelineId = function(params) {
-    return this.getGenericTimelineId('Likes', params)
+  User.prototype.getLikesTimelineId = function() {
+    return this.getGenericTimelineId('Likes')
   }
 
   User.prototype.getLikesTimeline = function(params) {
     return this.getGenericTimeline('Likes', params)
   }
 
-  User.prototype.getPostsTimelineId = function(params) {
-    return this.getGenericTimelineId('Posts', params)
+  User.prototype.getPostsTimelineId = function() {
+    return this.getGenericTimelineId('Posts')
   }
 
   User.prototype.getPostsTimeline = function(params) {
     return this.getGenericTimeline('Posts', params)
   }
 
-  User.prototype.getCommentsTimelineId = function(params) {
-    return this.getGenericTimelineId('Comments', params)
+  User.prototype.getCommentsTimelineId = function() {
+    return this.getGenericTimelineId('Comments')
   }
 
   User.prototype.getCommentsTimeline = function(params) {
     return this.getGenericTimeline('Comments', params)
   }
 
-  User.prototype.getDirectsTimelineId = function(params) {
-    return this.getGenericTimelineId('Directs', params)
+  User.prototype.getDirectsTimelineId = function() {
+    return this.getGenericTimelineId('Directs')
   }
 
   User.prototype.getDirectsTimeline = function(params) {
@@ -667,11 +663,11 @@ exports.addModel = function(dbAdapter) {
     return timelines
   }
 
-  User.prototype.getPublicTimelineIds = function(params) {
+  User.prototype.getPublicTimelineIds = function() {
     return Promise.all([
-      this.getCommentsTimelineId(params),
-      this.getLikesTimelineId(params),
-      this.getPostsTimelineId(params )
+      this.getCommentsTimelineId(),
+      this.getLikesTimelineId(),
+      this.getPostsTimelineId()
     ])
   }
 
