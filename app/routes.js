@@ -15,6 +15,8 @@ import CommentsRoute from './routes/api/v1/CommentsRoute'
 import GroupsRoute from './routes/api/v1/GroupsRoute'
 import PasswordsRoute from './routes/api/v1/PasswordsRoute'
 
+import GroupsRouteV2 from './routes/api/v2/GroupsRoute'
+
 
 const config = configLoader()
 promisifyAll(jwt)
@@ -59,4 +61,6 @@ export default function(app) {
   PostsRoute(app)
   AttachmentsRoute(app)
   CommentsRoute(app)
+
+  GroupsRouteV2(app)
 }

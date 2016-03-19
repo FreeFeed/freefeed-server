@@ -1,9 +1,11 @@
-import { Serializer } from '../../models'
+import { Serializer, AdminSerializer } from '../../models'
 
 
 export function addSerializer() {
   return new Serializer("subscribers", {
     select: ['id', 'username', 'screenName', 'type', 'updatedAt', 'createdAt',
-             'isPrivate', 'profilePictureLargeUrl', 'profilePictureMediumUrl']
+             'isPrivate', 'isRestricted', 'profilePictureLargeUrl', 'profilePictureMediumUrl',
+             'administrators'],
+    administrators: { through: AdminSerializer, embed: true }
   })
 }

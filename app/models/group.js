@@ -19,6 +19,7 @@ export function addModel(dbAdapter) {
     this.createdAt = params.createdAt
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
+    this.isRestricted = params.isRestricted
     this.type = "group"
     this.profilePictureUuid = params.profilePictureUuid || ''
   }
@@ -49,6 +50,13 @@ export function addModel(dbAdapter) {
     set: function(newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
+    }
+  })
+
+  Object.defineProperty(Group.prototype, 'isRestricted', {
+    get: function() { return this.isRestricted_ },
+    set: function(newValue) {
+      this.isRestricted_ = newValue || '0'
     }
   })
 
@@ -90,7 +98,8 @@ export function addModel(dbAdapter) {
         'type': this.type,
         'createdAt': this.createdAt.toString(),
         'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate
+        'isPrivate': this.isPrivate,
+        'isRestricted': this.isRestricted
       }
       this.id = await dbAdapter.createUser(payload)
 
@@ -131,13 +140,25 @@ export function addModel(dbAdapter) {
       hasChanges = true
     }
 
+    if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
+      this.isPrivate = params.isPrivate
+      hasChanges = true
+    }
+
+    if (params.hasOwnProperty('isRestricted') && params.isRestricted != this.isRestricted) {
+      this.isRestricted = params.isRestricted
+      hasChanges = true
+    }
+
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
       var payload = {
         'screenName': this.screenName,
         'description': this.description,
-        'updatedAt': this.updatedAt.toString()
+        'updatedAt': this.updatedAt.toString(),
+        'isPrivate': this.isPrivate,
+        'isRestricted': this.isRestricted
       }
 
       await dbAdapter.updateUser(this.id, payload)
@@ -199,6 +220,13 @@ export function addModel(dbAdapter) {
     if (!_.includes(ids, postingUser.id)) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
+
+    if (this.isRestricted === '1'){
+      let adminIds = await this.getAdministratorIds()
+      if (!_.includes(adminIds, postingUser.id)) {
+        throw new ForbiddenException("You can't post to a restricted group")
+      }
+    }
   }
 
   /**
@@ -214,6 +242,14 @@ export function addModel(dbAdapter) {
 
     if (!_.includes(adminIds, updatingUser.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
+    }
+  }
+
+  Group.prototype.validateUserCanBeUnsubscribed = async function(unsubscribingUser) {
+    const adminIds = await this.getAdministratorIds()
+
+    if (_.includes(adminIds, unsubscribingUser.id)) {
+      throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
     }
   }
 

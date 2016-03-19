@@ -51,7 +51,20 @@ describe("GroupsController", function() {
           })
     })
 
-    xit('should create a private group')
+    it('should create a private group', function(done) {
+      var userName = 'pepyatka-dev';
+      var screenName = 'Pepyatka Developers';
+      request
+        .post(app.config.host + '/v1/groups')
+        .send({ group: {username: userName, screenName: screenName, isPrivate: '1'},
+          authToken: context.authToken })
+        .end(function(err, res) {
+          res.body.should.not.be.empty
+          res.body.should.have.property('groups')
+          res.body.groups.isPrivate.should.eql('1')
+          done()
+        })
+    })
 
     it('should not create a group if a user with that name already exists', function(done) {
       var userName = 'Luna';
@@ -364,6 +377,67 @@ describe("GroupsController", function() {
               res.body.users.profilePictureLargeUrl.should.not.be.empty
               done()
             })
+        })
+    })
+  })
+
+  describe('#unsubscribeFromGroup', function() {
+    var adminContext = {}
+      , secondAdminContext = {}
+      , groupMemberContext = {}
+      , group
+
+    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
+    beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))
+    beforeEach(funcTestHelper.createUserCtx(groupMemberContext, 'Pluto', 'wordpass'))
+
+    beforeEach(function(done) {
+      request
+        .post(app.config.host + '/v1/groups')
+        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0'},
+          authToken: adminContext.authToken })
+        .end(function(err, res) {
+          group = res.body.groups
+          request
+            .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
+            .send({ authToken: secondAdminContext.authToken })
+            .end(function(err, res) {
+              request
+                .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/' + secondAdminContext.user.username +'/admin')
+                .send({authToken: adminContext.authToken })
+                .end(function(err, res) {
+                  request
+                    .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
+                    .send({ authToken: groupMemberContext.authToken })
+                    .end(function(err, res) {
+                      done()
+                    })
+                })
+            })
+        })
+    })
+
+    it('admins should be able to unsubscribe user from group', function (done) {
+      request
+        .post(app.config.host + '/v1/groups/pepyatka-dev/unsubscribeFromGroup/' + groupMemberContext.user.username)
+        .send({ authToken: adminContext.authToken,
+          '_method': 'post' })
+        .end(function (err, res) {
+          res.status.should.eql(200)
+          res.should.not.be.empty
+          res.error.should.be.empty
+          done()
+        })
+    })
+
+    it('should not allow to unsubscribe admins from group', function(done) {
+      request
+        .post(app.config.host + '/v1/groups/pepyatka-dev/unsubscribeFromGroup/' + secondAdminContext.user.username)
+        .send({ authToken: adminContext.authToken })
+        .end(function(err, res) {
+          err.should.not.be.empty
+          err.status.should.eql(403)
+          done()
         })
     })
   })
