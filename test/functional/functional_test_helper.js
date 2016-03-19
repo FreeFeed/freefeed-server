@@ -358,6 +358,17 @@ export function updateUserAsync(userContext, user) {
   )
 }
 
+export function updateGroupAsync(group, adminContext, groupData) {
+  return postJson(
+    `/v1/users/${group.id}`,
+    {
+      authToken: adminContext.authToken,
+      user: groupData,
+      '_method': 'put'
+    }
+  )
+}
+
 export function getUserAsync(context, username) {
   return postJson(
     `/v1/users/${username}`,
@@ -374,6 +385,10 @@ export function goPrivate(userContext) {
 
 export function goPublic(userContext) {
   return updateUserAsync(userContext, { isPrivate: "0" });
+}
+
+export function groupToPrivate(group, userContext) {
+  return updateGroupAsync(group, userContext, { isPrivate: "1" });
 }
 
 export function subscribeToAsync(subscriber, victim) {
@@ -396,12 +411,12 @@ export async function mutualSubscriptions(userContexts) {
   await Promise.all(promises)
 }
 
-export async function createAndReturnPost(userContext, body) {
+export async function createAndReturnPostToFeed(feed, userContext, body) {
   let response = await postJson(
     '/v1/posts',
     {
       post: {body},
-      meta: {feeds: userContext.username},
+      meta: {feeds: feed.username},
       authToken: userContext.authToken
     }
   )
@@ -409,6 +424,10 @@ export async function createAndReturnPost(userContext, body) {
   let data = await response.json()
 
   return data.posts
+}
+
+export function createAndReturnPost(userContext, body) {
+  return createAndReturnPostToFeed(userContext, userContext, body)
 }
 
 export function createCommentAsync (userContext, postId, body) {
@@ -522,11 +541,20 @@ export async function createGroupAsync(context, username, screenName) {
   let response = await postJson(`/v1/groups`, params)
   let data = await response.json()
 
-  let groupData = data.group
-
   return {
-    authToken: data.authToken,
-    group: groupData,
+    group: data.groups,
     username: username
   }
 }
+
+export function promoteToAdmin(group, existingAdminContext, potentialAdminContext) {
+  return postJson(
+    `/v1/groups/${group.username}/subscribers/${potentialAdminContext.user.username}/admin`,
+    {authToken: existingAdminContext.authToken}
+  )
+}
+
+export function sendRequestToJoinGroup(subscriber, group) {
+  return postJson(`/v1/groups/${group.username}/sendRequest`, {authToken: subscriber.authToken})
+}
+
