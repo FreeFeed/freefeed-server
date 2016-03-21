@@ -667,6 +667,8 @@ describe('User', function() {
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('MyDiscussions')
+          timeline.should.have.property('id')
+          timeline.id.should.eql(user.id)
         })
         .then(function() { done() })
     })
