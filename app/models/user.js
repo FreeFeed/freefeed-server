@@ -306,7 +306,7 @@ exports.addModel = function(dbAdapter) {
       'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
-    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs'])
+    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
 
     var stats = new Stats({
       id: this.id

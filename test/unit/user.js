@@ -716,7 +716,7 @@ describe('User', function() {
         .then(function(user) { return user.getTimelines() })
         .then(function(timelines) {
           timelines.should.be.an.instanceOf(Array)
-          timelines.length.should.be.eql(6)
+          timelines.length.should.be.eql(7)
         })
         .then(function() { done() })
     })
@@ -740,7 +740,7 @@ describe('User', function() {
         .then(function(timelines) {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
-          timelines.length.should.be.eql(6)
+          timelines.length.should.be.eql(7)
           var timeline = timelines[0]
           timeline.should.have.property('name')
           timeline.name.should.eql('RiverOfNews')
@@ -754,6 +754,8 @@ describe('User', function() {
           timelines[4].name.should.eql('Posts')
           timelines[5].should.have.property('name')
           timelines[5].name.should.eql('Directs')
+          timelines[6].should.have.property('name')
+          timelines[6].name.should.eql('MyDiscussions')
         })
         .then(function() { done() })
     })
