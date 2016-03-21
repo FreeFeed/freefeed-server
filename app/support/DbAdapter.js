@@ -234,7 +234,7 @@ export class DbAdapter {
     return objects
   }
 
-  getUserDiscussionsTimelineId(userId) {
+  _getUserDiscussionsTimelineId(userId) {
     return userId
   }
 
@@ -563,7 +563,7 @@ export class DbAdapter {
     let timelineId = uuid.v4()
     let userId     = payload.userId
     if (payload.name == "MyDiscussions"){
-      timelineId = this.getUserDiscussionsTimelineId(userId)
+      timelineId = this._getUserDiscussionsTimelineId(userId)
     }
 
     return this._createTimeline(timelineId, userId, payload)
@@ -599,10 +599,6 @@ export class DbAdapter {
 
     await Promise.all(promises)
     return timelineId
-  }
-
-  existsTimeline(timelineId) {
-    return this._existsRecord(mkKey(['timeline', timelineId]))
   }
 
   insertPostIntoTimeline(timelineId, time, postId){
