@@ -108,6 +108,7 @@ export function addModel(dbAdapter) {
       })
 
       let promises = [stats.create()]
+      promises.push(dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts']))
 
       if (ownerId) {
         promises.push(this.addAdministrator(ownerId))

@@ -306,6 +306,7 @@ exports.addModel = function(dbAdapter) {
       'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
+    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs'])
 
     var stats = new Stats({
       id: this.id
@@ -569,6 +570,7 @@ exports.addModel = function(dbAdapter) {
         limit: params.limit
       })
     } else {
+      // TODO: remove after postgres
       timeline = new Timeline({
         name: name,
         userId: this.id
