@@ -526,8 +526,9 @@ export class DbAdapter {
     return this._setIndexValue(mkKey(['username', username, 'uid']), userId)
   }
 
-  getUserIdByEmail(email) {
-    return this._getIndexValue(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
+  async existsUserEmail(email) {
+    let exists = await this._getIndexValue(mkKey(['email', this._normalizeUserEmail(email), 'uid']))
+    return !!exists
   }
 
   _createUserEmailIndex(userId, email) {
