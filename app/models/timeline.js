@@ -75,14 +75,10 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.create = async function() {
-    return this._createTimeline(false)
+    return this._createTimeline()
   }
 
-  Timeline.prototype.createUserDiscussionsTimeline = function() {
-    return this._createTimeline(true)
-  }
-
-  Timeline.prototype._createTimeline = async function(userDiscussionsTimeline) {
+  Timeline.prototype._createTimeline = async function() {
     const currentTime = new Date().getTime()
 
     await this.validate()
@@ -94,11 +90,7 @@ export function addModel(dbAdapter) {
       'updatedAt': currentTime.toString()
     }
 
-    if (userDiscussionsTimeline){
-      this.id = await dbAdapter.createUserDiscussionsTimeline(this.userId, payload)
-    } else {
-      this.id = await dbAdapter.createTimeline(payload)
-    }
+    this.id = await dbAdapter.createTimeline(payload)
 
     this.createdAt = currentTime
     this.updatedAt = currentTime
