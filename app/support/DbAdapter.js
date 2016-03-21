@@ -373,7 +373,7 @@ export class DbAdapter {
     return this._getListElementsCount(mkKey(['post', postId, 'comments']))
   }
 
-  removeCommentFromPost(postId, commentId) {
+  _removeCommentFromPost(postId, commentId) {
     return this._removeOneElementFromList(mkKey(['post', postId, 'comments']), commentId)
   }
 
@@ -381,7 +381,7 @@ export class DbAdapter {
     return this._getListElementsRange(mkKey(['post', postId, 'comments']), fromIndex, toIndex)
   }
 
-  addCommentToPost(postId, commentId) {
+  _addCommentToPost(postId, commentId) {
     return this._addElementToList(mkKey(['post', postId, 'comments']), commentId)
   }
 
@@ -761,7 +761,10 @@ export class DbAdapter {
       throw new Error("Already exists")
     }
 
-    await this._createRecord(key, payload)
+    await Promise.all([
+      this._createRecord(key, payload),
+      this._addCommentToPost(payload.postId, commentId)
+    ])
     return commentId
   }
 
@@ -786,8 +789,11 @@ export class DbAdapter {
     return this._updateRecord(mkKey(['comment', commentId]), payload)
   }
 
-  deleteComment(commentId) {
-    return this._deleteRecord(mkKey(['comment', commentId]))
+  deleteComment(commentId, postId) {
+    return Promise.all([
+      this._deleteRecord(mkKey(['comment', commentId])),
+      this._removeCommentFromPost(postId, commentId)
+    ])
   }
 
   ///////////////////////////////////////////////////

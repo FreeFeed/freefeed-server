@@ -89,8 +89,7 @@ export function addModel(dbAdapter) {
 
   Comment.prototype.destroy = async function() {
     await pubSub.destroyComment(this.id, this.postId)
-    await dbAdapter.deleteComment(this.id)
-    await dbAdapter.removeCommentFromPost(this.postId, this.id)
+    await dbAdapter.deleteComment(this.id, this.postId)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
