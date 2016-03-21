@@ -180,9 +180,9 @@ exports.addModel = function(dbAdapter) {
       return false
     }
 
-    var uid = await dbAdapter.getUserIdByEmail(email)
+    let exists = await dbAdapter.existsUserEmail(email)
 
-    if (uid) {
+    if (exists) {
       // email is taken
       return false
     }
