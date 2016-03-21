@@ -562,12 +562,9 @@ export class DbAdapter {
   createTimeline(payload) {
     let timelineId = uuid.v4()
     let userId     = payload.userId
-
-    return this._createTimeline(timelineId, userId, payload)
-  }
-
-  createUserDiscussionsTimeline(userId, payload) {
-    let timelineId = this.getUserDiscussionsTimelineId(userId)
+    if (payload.name == "MyDiscussions"){
+      timelineId = this.getUserDiscussionsTimelineId(userId)
+    }
 
     return this._createTimeline(timelineId, userId, payload)
   }

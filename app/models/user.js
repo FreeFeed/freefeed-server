@@ -549,7 +549,7 @@ exports.addModel = function(dbAdapter) {
         userId: this.id
       })
 
-      timeline = await timeline.createUserDiscussionsTimeline()
+      timeline = await timeline.create()
       myDiscussionsTimelineId = timeline.id
     }
 
