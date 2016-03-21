@@ -572,6 +572,20 @@ export class DbAdapter {
     return this._createTimeline(timelineId, userId, payload)
   }
 
+  createUserTimelines(userId, timelineNames) {
+    const currentTime = new Date().getTime()
+    let promises = timelineNames.map((n) => {
+      const payload = {
+        'name':      n,
+        'userId':    userId,
+        'createdAt': currentTime.toString(),
+        'updatedAt': currentTime.toString()
+      }
+      return this.createTimeline(payload)
+    })
+    return Promise.all(promises)
+  }
+
   async _createTimeline(timelineId, userId, payload) {
     let timelineKey = mkKey(['timeline', timelineId])
     let name        = payload.name
