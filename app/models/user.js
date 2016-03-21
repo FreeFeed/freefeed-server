@@ -541,17 +541,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.getMyDiscussionsTimeline = async function(params) {
     const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineId(), this.getLikesTimelineId()])
 
-    let myDiscussionsTimelineId = dbAdapter.getUserDiscussionsTimelineId(this.id)
-    let timelineExists = await dbAdapter.existsTimeline(myDiscussionsTimelineId)
-    if (!timelineExists){
-      let timeline = new Timeline({
-        name: "MyDiscussions",
-        userId: this.id
-      })
-
-      timeline = await timeline.create()
-      myDiscussionsTimelineId = timeline.id
-    }
+    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineId()
 
     await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
@@ -589,6 +579,10 @@ exports.addModel = function(dbAdapter) {
     timeline.posts = await timeline.getPosts(timeline.offset, timeline.limit)
 
     return timeline
+  }
+
+  User.prototype.getMyDiscussionsTimelineId = function() {
+    return this.getGenericTimelineId('MyDiscussions')
   }
 
   User.prototype.getHidesTimelineId = function(params) {
