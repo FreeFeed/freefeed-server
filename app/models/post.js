@@ -319,7 +319,6 @@ export function addModel(dbAdapter) {
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id))
-    promises.push(dbAdapter.addCommentToPost(this.id, comment.id))
 
     await Promise.all(promises)
 
