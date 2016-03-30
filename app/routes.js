@@ -16,6 +16,7 @@ import GroupsRoute from './routes/api/v1/GroupsRoute'
 import PasswordsRoute from './routes/api/v1/PasswordsRoute'
 
 import GroupsRouteV2 from './routes/api/v2/GroupsRoute'
+import RequestsRouteV2 from './routes/api/v2/RequestsRoute'
 
 
 const config = configLoader()
@@ -63,4 +64,5 @@ export default function(app) {
   CommentsRoute(app)
 
   GroupsRouteV2(app)
+  RequestsRouteV2(app)
 }
