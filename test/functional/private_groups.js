@@ -371,19 +371,55 @@ describe("PrivateGroups", function() {
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
     beforeEach(funcTestHelper.createUserCtx(groupMemberContext, 'Pluto', 'wordpass'))
 
-    beforeEach(async () => {
-      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers')
-      group = response.group
+    beforeEach(function(done) {
+      request
+        .post(app.config.host + '/v1/groups')
+        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0'},
+          authToken: adminContext.authToken })
+        .end(function(err, res) {
+          group = res.body.groups
+          res.status.should.eql(200)
 
-      await funcTestHelper.subscribeToAsync(secondAdminContext, group)
-      await funcTestHelper.subscribeToAsync(groupMemberContext, group)
+          request
+            .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
+            .send({ authToken: secondAdminContext.authToken })
+            .end(function(err, res) {
+              request
+                .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/' + secondAdminContext.user.username +'/admin')
+                .send({authToken: adminContext.authToken })
+                .end(function(err, res) {})
+            })
 
-      await funcTestHelper.promoteToAdmin(group, adminContext, secondAdminContext)
-      await funcTestHelper.groupToPrivate(group, adminContext)
+          request
+            .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
+            .send({ authToken: groupMemberContext.authToken })
+            .end(function(err, res) {
+              res.status.should.eql(200)
 
-      await funcTestHelper.createAndReturnPostToFeed(group, adminContext, 'Post body')
-
-      await funcTestHelper.sendRequestToJoinGroup(nonAdminContext, group)
+              request
+                .post(app.config.host + '/v1/users/' + group.id)
+                .send({ authToken: adminContext.authToken,
+                  user: { isPrivate: '1'},
+                  '_method': 'put' })
+                .end(function(err, res) {
+                  res.status.should.eql(200)
+                  request
+                    .post(app.config.host + '/v1/posts')
+                    .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: adminContext.authToken })
+                    .end(function(err, res) {
+                      res.status.should.eql(200)
+                      request
+                        .post(app.config.host + '/v1/groups/pepyatka-dev/sendRequest')
+                        .send({ authToken: nonAdminContext.authToken,
+                          '_method': 'post' })
+                        .end(function(err, res) {
+                          res.status.should.eql(200)
+                          done()
+                        })
+                    })
+                })
+            })
+        })
     })
 
     describe('#acceptRequest', function() {
@@ -880,26 +916,55 @@ describe("PrivateGroups", function() {
     })
 
     describe('#whoami:pendingGroupRequests', function() {
-      it('pendingGroupRequests should match managed groups', async () => {
-        const verifyUsersPendingGroupRequests = async (context, shouldHave) => {
-          const response = await funcTestHelper.whoami(context.authToken)
-          response.status.should.eql(200)
+      it('pendingGroupRequests should match managed groups', function(done) {
+        request
+          .get(app.config.host + '/v1/users/whoami')
+          .query({ authToken: adminContext.authToken })
+          .end(function(err, res) {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('pendingGroupRequests')
+            res.body.users.pendingGroupRequests.should.be.true
 
-          const data = await response.json()
-          data.should.have.deep.property('users.pendingGroupRequests')
-          data.users.pendingGroupRequests.should.eql(shouldHave)
-        }
 
-        const contexts = [
-          {context: adminContext, shouldHave: true},
-          {context: secondAdminContext, shouldHave: true},
-          {context: groupMemberContext, shouldHave: false},
-          {context: nonAdminContext, shouldHave: false}
-        ]
+            request
+              .get(app.config.host + '/v1/users/whoami')
+              .query({ authToken: secondAdminContext.authToken })
+              .end(function(err, res) {
+                res.should.not.be.empty
+                res.body.should.not.be.empty
+                res.body.should.have.property('users')
+                res.body.users.should.have.property('pendingGroupRequests')
+                res.body.users.pendingGroupRequests.should.be.true
 
-        for (const {context, shouldHave} of contexts) {
-          await verifyUsersPendingGroupRequests(context, shouldHave)
-        }
+
+                request
+                  .get(app.config.host + '/v1/users/whoami')
+                  .query({ authToken: groupMemberContext.authToken })
+                  .end(function(err, res) {
+                    res.should.not.be.empty
+                    res.body.should.not.be.empty
+                    res.body.should.have.property('users')
+                    res.body.users.should.have.property('pendingGroupRequests')
+                    res.body.users.pendingGroupRequests.should.be.false
+
+
+                    request
+                      .get(app.config.host + '/v1/users/whoami')
+                      .query({ authToken: nonAdminContext.authToken })
+                      .end(function(err, res) {
+                        res.should.not.be.empty
+                        res.body.should.not.be.empty
+                        res.body.should.have.property('users')
+                        res.body.users.should.have.property('pendingGroupRequests')
+                        res.body.users.pendingGroupRequests.should.be.false
+
+                        done()
+                      })
+                  })
+              })
+          })
       })
     })
   })
