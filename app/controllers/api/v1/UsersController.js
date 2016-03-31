@@ -206,11 +206,6 @@ export default class UsersController {
   }
 
   static async subscribers(req, res) {
-    if (!req.user) {
-      res.status(403).jsonp({ err: 'User is private' })
-      return
-    }
-
     var username = req.params.username
       , user
 
@@ -222,6 +217,9 @@ export default class UsersController {
       }
 
       if (user.isPrivate === '1') {
+        if (!req.user) {
+          throw new ForbiddenException('User is private')
+        }
         const subscriberIds = await user.getSubscriberIds()
         if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
           throw new ForbiddenException('User is private')
@@ -248,11 +246,6 @@ export default class UsersController {
   }
 
   static async subscriptions(req, res) {
-    if (!req.user) {
-      res.status(403).jsonp({ err: 'User is private' })
-      return
-    }
-
     var username = req.params.username
       , user
 
@@ -264,6 +257,10 @@ export default class UsersController {
       }
 
       if (user.isPrivate === '1') {
+        if (!req.user) {
+          throw new ForbiddenException('User is private')
+        }
+
         const subscriberIds = await user.getSubscriberIds()
         if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
           throw new ForbiddenException('User is private')
