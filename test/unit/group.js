@@ -73,7 +73,7 @@ describe('Group', function() {
       try {
         await group.create()
       } catch (e) {
-        e.message.should.eql("Invalid screenname")
+        e.message.should.eql(`"${group.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
         return
       }
 
