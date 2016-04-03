@@ -120,5 +120,18 @@ export function getConfig() {
     }
   }
 
+  config.postgres = {
+    client: 'postgresql',
+    connection: {
+      database: 'freefeed_development',
+      user:     'vagrant',
+      password: 'vagrant'
+    },
+    pool: {
+      min: 2,
+      max: 10
+    }
+  }
+
   return config
 }
