@@ -1,4 +1,5 @@
 import { connect as redisConnection } from '../config/database'
+import { connect as postgresConnection } from '../config/postgres'
 import { DbAdapter } from './support/DbAdapter'
 import { PubSubAdapter } from './support/PubSubAdapter'
 import pubSub from './pubsub'
@@ -29,6 +30,7 @@ import { addSerializer as userSerializer } from './serializers/v1/UserSerializer
 // Be careful: order of exports is important.
 export const database = redisConnection()
 export const dbAdapter = new DbAdapter(database)
+export const postgres = postgresConnection()
 
 export { AbstractSerializer } from './serializers/abstract_serializer'
 export { Serializer }         from "./serializers/serializer"
