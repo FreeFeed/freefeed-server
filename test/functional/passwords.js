@@ -1,6 +1,7 @@
 /*eslint-env node, mocha */
 /*global $database */
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import * as funcTestHelper from './functional_test_helper'
@@ -12,6 +13,7 @@ describe("PasswordsController", function() {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#create()", function() {

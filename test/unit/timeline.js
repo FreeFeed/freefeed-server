@@ -1,12 +1,12 @@
 import uuid from 'uuid'
-
+import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Timeline, User } from '../../app/models'
 
 
 describe('Timeline', function() {
-  beforeEach(function(done) {
-    $database.flushdbAsync()
-      .then(function() { done() })
+  beforeEach(async ()=>{
+    await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', function() {

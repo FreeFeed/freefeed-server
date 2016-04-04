@@ -1,5 +1,6 @@
 /*eslint-env node, mocha */
 /*global $database */
+import knexCleaner from 'knex-cleaner'
 import { getSingleton } from '../../app/app'
 import { createUserAsync, createPostViaBookmarklet, createGroupAsync } from './functional_test_helper'
 
@@ -10,6 +11,7 @@ describe('BookmarkletController', () => {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', () => {

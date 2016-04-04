@@ -1,10 +1,11 @@
+import knexCleaner from 'knex-cleaner'
 import { dbAdapter, User, Group } from '../../app/models'
 
 
 describe('Group', function() {
-  beforeEach(function(done) {
-    $database.flushdbAsync()
-      .then(function() { done() })
+  beforeEach(async ()=>{
+    await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', function() {

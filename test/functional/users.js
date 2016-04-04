@@ -4,6 +4,7 @@ import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { load as configLoader } from '../../config/config'
@@ -18,6 +19,7 @@ describe("UsersController", function() {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#create()", function() {
