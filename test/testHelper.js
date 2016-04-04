@@ -18,3 +18,5 @@ global.Promise.config({
 GLOBAL.$redis = require('../config/database')
   , GLOBAL.$database = $redis.connect()
   , GLOBAL.$should = require('chai').should()
+  , GLOBAL.$postgres = require('../config/postgres')
+  , GLOBAL.$pg_database = $postgres.connect()
