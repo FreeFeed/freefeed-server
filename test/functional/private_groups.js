@@ -2,6 +2,7 @@
 /*global $database */
 import request from 'superagent'
 import mkdirp from 'mkdirp'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { load as configLoader } from '../../config/config'
@@ -16,6 +17,7 @@ describe("PrivateGroups", function() {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#create()", function() {

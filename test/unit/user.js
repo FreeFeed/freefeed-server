@@ -1,13 +1,14 @@
 import async from 'async'
 import { expect } from 'chai'
+import knexCleaner from 'knex-cleaner'
 
 import { dbAdapter, Post, Timeline, User } from "../../app/models"
 
 
 describe('User', function() {
-  beforeEach(function(done) {
-    $database.flushdbAsync()
-      .then(function() { done() })
+  beforeEach(async ()=>{
+    await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#validPassword()', function() {

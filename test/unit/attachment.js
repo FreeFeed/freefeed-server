@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import mkdirp from 'mkdirp'
-
+import knexCleaner from 'knex-cleaner'
 import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
@@ -9,9 +9,9 @@ import { load as configLoader } from '../../config/config'
 const config = configLoader()
 
 describe('Attachment', function() {
-  beforeEach(function(done) {
-    $database.flushdbAsync()
-      .then(function() { done() })
+  beforeEach(async ()=>{
+    await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', function() {

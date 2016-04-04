@@ -2,6 +2,7 @@
 /*global $database */
 import request from 'superagent'
 import fetch from 'node-fetch'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { User } from '../../app/models'
@@ -14,6 +15,7 @@ describe("SessionController", () => {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#create()", () => {

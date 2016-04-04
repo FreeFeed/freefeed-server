@@ -2,6 +2,7 @@
 /*global $database */
 import request from 'superagent'
 import _ from 'lodash'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import * as funcTestHelper from './functional_test_helper'
@@ -13,6 +14,7 @@ describe("Privates", function() {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('user Luna and user Mars', function() {
