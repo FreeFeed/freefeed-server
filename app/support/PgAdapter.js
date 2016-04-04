@@ -64,7 +64,8 @@ export class PgAdapter {
 
   async createUser(payload) {
     let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS_MAPPING)
-    return this.database('users').returning('uid').insert(preparedPayload)
+    const res = await this.database('users').returning('uid').insert(preparedPayload)
+    return res[0]
   }
 
   updateUser(userId, payload) {
