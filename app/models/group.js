@@ -76,7 +76,7 @@ export function addModel(dbAdapter) {
     }
 
     if (!this.isValidScreenName()) {
-      throw new Error('Invalid screenname')
+      throw new Error(`"${this.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
     }
 
     if (!this.isValidDescription()) {
@@ -124,7 +124,7 @@ export function addModel(dbAdapter) {
 
     if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
-        throw new Error("Invalid screenname")
+        throw new Error(`"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
       }
 
       this.screenName = params.screenName
