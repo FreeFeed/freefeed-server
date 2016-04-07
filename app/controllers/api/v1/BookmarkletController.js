@@ -8,7 +8,7 @@ import { promisifyAll } from 'bluebird'
 import fetch from 'node-fetch'
 import { wait as waitForStream } from 'promise-streams'
 
-import { dbAdapter, PostSerializer } from '../../../models'
+import { pgAdapter, PostSerializer } from '../../../models'
 import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 
@@ -71,7 +71,7 @@ export default class BookmarkletController {
       }
 
       let promises = feeds.map(async (username) => {
-        let feed = await dbAdapter.getFeedOwnerByUsername(username)
+        let feed = await pgAdapter.getFeedOwnerByUsername(username)
 
         if (null === feed) {
           throw new NotFoundException(`Feed "${username}" is not found`)

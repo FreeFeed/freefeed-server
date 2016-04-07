@@ -1,4 +1,4 @@
-import { dbAdapter } from './models'
+import { dbAdapter, pgAdapter } from './models'
 
 
 export default class pubSub {
@@ -124,7 +124,7 @@ export default class pubSub {
   }
 
   async hidePost(userId, postId) {
-    var user = await dbAdapter.getUserById(userId)
+    var user = await pgAdapter.getUserById(userId)
     var timelineId = await user.getRiverOfNewsTimelineId()
 
     var payload = JSON.stringify({ timelineId, postId })
@@ -132,7 +132,7 @@ export default class pubSub {
   }
 
   async unhidePost(userId, postId) {
-    var user = await dbAdapter.getUserById(userId)
+    var user = await pgAdapter.getUserById(userId)
     var timelineId = await user.getRiverOfNewsTimelineId()
 
     var payload = JSON.stringify({ timelineId, postId })

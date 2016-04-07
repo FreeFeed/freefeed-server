@@ -33,7 +33,7 @@ async function detectMimetype(filename) {
   return mimeType
 }
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pgAdapter) {
   /**
    * @constructor
    */
@@ -144,7 +144,7 @@ export function addModel(dbAdapter) {
 
   // Get user who created the attachment (via Promise, for serializer)
   Attachment.prototype.getCreatedBy = function() {
-    return dbAdapter.getUserById(this.userId)
+    return pgAdapter.getUserById(this.userId)
   }
 
   // Get public URL of attachment (via Promise, for serializer)

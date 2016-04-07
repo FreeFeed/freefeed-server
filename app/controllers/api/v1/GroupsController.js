@@ -1,7 +1,7 @@
 import formidable from 'formidable'
 import _ from 'lodash'
 
-import { dbAdapter, Group, GroupSerializer } from '../../../models'
+import { dbAdapter, pgAdapter, Group, GroupSerializer } from '../../../models'
 import exceptions, { NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
@@ -39,7 +39,7 @@ export default class GroupsController {
       }
 
       let adminPromises = req.body.admins.map(async (username) => {
-        const admin = await dbAdapter.getUserByUsername(username)
+        const admin = await pgAdapter.getUserByUsername(username)
         return (null === admin) ? false : admin;
       })
       let admins = await Promise.all(adminPromises)
@@ -74,7 +74,7 @@ export default class GroupsController {
     let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
-      const group = await dbAdapter.getGroupById(req.params.userId)
+      const group = await pgAdapter.getGroupById(req.params.userId)
       if (null === group) {
         throw new NotFoundException("Can't find group")
       }
@@ -100,7 +100,7 @@ export default class GroupsController {
     }
 
     try {
-      const group = await dbAdapter.getGroupByUsername(req.params.groupName)
+      const group = await pgAdapter.getGroupByUsername(req.params.groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${req.params.groupName}" is not found`)
@@ -111,7 +111,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      const newAdmin = await dbAdapter.getUserByUsername(req.params.adminName)
+      const newAdmin = await pgAdapter.getUserByUsername(req.params.adminName)
 
       if (null === newAdmin) {
         throw new NotFoundException(`User "${req.params.adminName}" is not found`)
@@ -143,7 +143,7 @@ export default class GroupsController {
       return
     }
     try {
-      const group = await dbAdapter.getGroupByUsername(req.params.groupName)
+      const group = await pgAdapter.getGroupByUsername(req.params.groupName)
 
       if (null === group) {
         throw new NotFoundException(`User "${req.params.groupName}" is not found`)
@@ -179,7 +179,7 @@ export default class GroupsController {
 
     const groupName = req.params.groupName
     try {
-      const group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await pgAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -220,7 +220,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      let group = await pgAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -231,7 +231,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      const user = await dbAdapter.getUserByUsername(userName)
+      const user = await pgAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
@@ -258,7 +258,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      let group = await pgAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -269,7 +269,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      const user = await dbAdapter.getUserByUsername(userName)
+      const user = await pgAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
@@ -296,7 +296,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      let group = await pgAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -307,7 +307,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      let user = await dbAdapter.getUserByUsername(userName)
+      let user = await pgAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }

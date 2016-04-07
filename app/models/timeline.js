@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { PubSub as pubSub } from '../models'
 
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pgAdapter) {
   /**
    * @constructor
    */
@@ -36,6 +36,7 @@ export function addModel(dbAdapter) {
    * timeline of the posting user and the River of News timelines of all
    * subscribers of the feeds to which it is posted).
    */
+
   Timeline.publishPost = async function(post) {
     const currentTime = new Date().getTime()
 
@@ -133,7 +134,7 @@ export function addModel(dbAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
+    let reader = this.currentUser ? (await pgAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
@@ -155,7 +156,7 @@ export function addModel(dbAdapter) {
     })
 
     let uids = _.uniq(posts.map(post => post.userId))
-    let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
+    let users = (await pgAdapter.getUsersByIds(uids)).filter(Boolean)
     let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
 
     let usersCache = {}
@@ -167,7 +168,7 @@ export function addModel(dbAdapter) {
 
     async function userById(id) {
       if (!(id in usersCache)) {
-        let user = await dbAdapter.getUserById(id)
+        let user = await pgAdapter.getUserById(id)
 
         if (!user) {
           throw new Error(`no user for id=${id}`)
@@ -252,7 +253,7 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getUser = function() {
-    return dbAdapter.getFeedOwnerById(this.userId)
+    return pgAdapter.getFeedOwnerById(this.userId)
   }
 
   /**
@@ -273,7 +274,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
     var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await dbAdapter.getUsersByIds(userIds)
+    this.subscribers = await pgAdapter.getUsersByIds(userIds)
 
     return this.subscribers
   }

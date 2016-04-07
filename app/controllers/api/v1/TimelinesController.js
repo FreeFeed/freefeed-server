@@ -1,4 +1,4 @@
-import { dbAdapter, TimelineSerializer } from '../../../models'
+import { pgAdapter, TimelineSerializer } from '../../../models'
 import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 
@@ -50,7 +50,7 @@ export default class TimelineController {
     try {
       var username = req.params.username
 
-      const user = await dbAdapter.getFeedOwnerByUsername(username)
+      const user = await pgAdapter.getFeedOwnerByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`Feed "${username}" is not found`)
@@ -74,7 +74,7 @@ export default class TimelineController {
     try {
       var username = req.params.username
 
-      const user = await dbAdapter.getUserByUsername(username)
+      const user = await pgAdapter.getUserByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
@@ -98,7 +98,7 @@ export default class TimelineController {
     try {
       var username = req.params.username
 
-      const user = await dbAdapter.getUserByUsername(username)
+      const user = await pgAdapter.getUserByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)

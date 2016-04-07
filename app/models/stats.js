@@ -1,4 +1,4 @@
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pgAdapter) {
   var Stats = function(params) {
     this.id = params.id
     this.posts = params.posts || 0
@@ -18,7 +18,7 @@ export function addModel(dbAdapter) {
     if (!valid)
       throw new Error("Invalid")
 
-    const userExists = (1 == await dbAdapter.existsUser(this.id))
+    const userExists = (1 == await pgAdapter.existsUser(this.id))
 
     if (!userExists)
       throw new Error("No user = No stats")
