@@ -1,13 +1,15 @@
 import _ from 'lodash'
+import validator from 'validator'
 
 import { Group, User } from '../models'
 
-const USER_COLUMNS_MAPPING = {
+const USER_COLUMNS = {
   username:               "username",
   screenName:             "screen_name",
   email:                  "email",
   description:            "description",
   type:                   "type",
+  profilePictureUuid:     "profile_picture_uuid",
   createdAt:              "created_at",
   updatedAt:              "updated_at",
   isPrivate:              "is_private",
@@ -19,13 +21,35 @@ const USER_COLUMNS_MAPPING = {
   frontendPreferences:    "frontend_preferences"
 }
 
-const USER_COLUMNS_REVERSE_MAPPING = {
+const USER_COLUMNS_MAPPING = {
+  username:               (username)=>{return username.toLowerCase()},
+  createdAt:              (timestamp)=>{
+    var d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  updatedAt:              (timestamp)=>{
+    var d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  isPrivate:              (is_private)=>{return is_private === '1'},
+  isRestricted:           (is_restricted)=>{return is_restricted === '1'},
+  resetPasswordSentAt:    (timestamp)=>{
+    var d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  }
+}
+
+const USER_FIELDS = {
   uid:                        "id",
   username:                   "username",
   screen_name:                "screenName",
   email:                      "email",
   description:                "description",
   type:                       "type",
+  profile_picture_uuid:       "profilePictureUuid",
   created_at:                 "createdAt",
   updated_at:                 "updatedAt",
   is_private:                 "isPrivate",
@@ -35,6 +59,15 @@ const USER_COLUMNS_REVERSE_MAPPING = {
   reset_password_sent_at:     "resetPasswordSentAt",
   reset_password_expires_at:  "resetPasswordExpiresAt",
   frontend_preferences:       "frontendPreferences"
+}
+
+const USER_FIELDS_MAPPING = {
+  created_at:                 (time)=>{ return time.getTime() },
+  updated_at:                 (time)=>{ return time.getTime() },
+  is_private:                 (is_private)=>{return is_private ? '1' : '0' },
+  is_restricted:              (is_restricted)=>{return is_restricted ? '1' : '0' },
+  reset_password_sent_at:     (time)=>{ return time && time.getTime() },
+  reset_password_expires_at:  (time)=>{ return time && time.getTime() }
 }
 
 export class PgAdapter {
@@ -50,37 +83,37 @@ export class PgAdapter {
   // User
   ///////////////////////////////////////////////////
 
-  prepareUserPayload(payload, mapping){
+  prepareUserPayload(payload, namesMapping, valuesMapping){
     return _.transform(payload, (result, val, key) => {
-      let mappedKey = mapping[key]
+      let mappedVal = val
+      if (valuesMapping[key]){
+        mappedVal = valuesMapping[key](val)
+      }
+      let mappedKey = namesMapping[key]
       if (mappedKey){
-        result[mappedKey] = val
+        result[mappedKey] = mappedVal
       }
     })
-
-    // TODO: downcase email!
-    // TODO: username.toLowerCase()
   }
 
   async createUser(payload) {
-    let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS_MAPPING)
+    let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
     return res[0]
   }
 
   updateUser(userId, payload) {
-    let tokenExpirationTime = new Date().getTime()
+    let tokenExpirationTime = new Date(Date.now())
     const expireAfter = 60*60*24 // 24 hours
 
-    let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS_MAPPING)
-
+    let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
 
     if (_.has(preparedPayload, 'reset_password_token')) {
       tokenExpirationTime.setHours(tokenExpirationTime.getHours() + expireAfter)
-      preparedPayload['reset_password_expires_at'] = tokenExpirationTime
+      preparedPayload['reset_password_expires_at'] = tokenExpirationTime.toISOString()
     }
 
-    return this.database('users').where('uid', userId).insert(preparedPayload)
+    return this.database('users').where('uid', userId).update(preparedPayload)
   }
 
   async existsUser(userId) {
@@ -94,8 +127,7 @@ export class PgAdapter {
   }
 
   async existsUserEmail(email) {
-    let preparedEmail = this._normalizeUserEmail(email)
-    const res = await this.database('users').where('email', preparedEmail).count()
+    const res = await this.database('users').whereRaw("LOWER(email)=LOWER(?)", email).count()
     return parseInt(res[0].count)
   }
 
@@ -156,14 +188,13 @@ export class PgAdapter {
       return null
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_COLUMNS_REVERSE_MAPPING)
+    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     return PgAdapter.initObject(User, attrs, attrs.id)
   }
 
   async getUserByEmail(email) {
-    let preparedEmail = this._normalizeUserEmail(email)
-    const res = await this.database('users').where('email', preparedEmail)
+    const res = await this.database('users').whereRaw("LOWER(email)=LOWER(?)", email)
     let attrs = res[0]
 
     if (!attrs) {
@@ -174,7 +205,7 @@ export class PgAdapter {
       throw new Error(`Expected User, got ${attrs.type}`)
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_COLUMNS_REVERSE_MAPPING)
+    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     return PgAdapter.initObject(User, attrs, attrs.id)
   }
@@ -187,6 +218,9 @@ export class PgAdapter {
 
 
   async getFeedOwnerById(id) {
+    if (!validator.isUUID(id,4)){
+      return null
+    }
     const res = await this.database('users').where('uid', id)
     let attrs = res[0]
 
@@ -194,7 +228,7 @@ export class PgAdapter {
       return null
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_COLUMNS_REVERSE_MAPPING)
+    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     if (attrs.type === 'group') {
       return PgAdapter.initObject(Group, attrs, id)
@@ -204,11 +238,11 @@ export class PgAdapter {
   }
 
   async getFeedOwnersByIds(ids) {
-    const responses = await this.database('users').where('uid', ids)
+    const responses = await this.database('users').whereIn('uid', ids)
 
     const objects = responses.map((attrs, i) => {
       if (attrs){
-        attrs = this.prepareUserPayload(attrs, USER_COLUMNS_REVERSE_MAPPING)
+        attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
       }
 
       if (attrs.type === 'group') {
@@ -229,7 +263,7 @@ export class PgAdapter {
       return null
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_COLUMNS_REVERSE_MAPPING)
+    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     if (attrs.type === 'group') {
       return PgAdapter.initObject(Group, attrs, attrs.id)
@@ -268,12 +302,5 @@ export class PgAdapter {
     }
 
     return feed
-  }
-
-
-  ///////////
-
-  _normalizeUserEmail(email) {
-    return email.toLowerCase()
   }
 }
