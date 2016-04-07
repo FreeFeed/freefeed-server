@@ -709,7 +709,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.getBanIds = function() {
-    return dbAdapter.getUserBansIds(this.id)
+    return pgAdapter.getUserBansIds(this.id)
   }
 
   User.prototype.getBans = async function() {
@@ -728,7 +728,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
 
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
-      dbAdapter.createUserBan(this.id, user.id),
+      pgAdapter.createUserBan(this.id, user.id),
       monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request
@@ -747,7 +747,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     }
 
     monitor.increment('users.unbans')
-    return dbAdapter.deleteUserBan(this.id, user.id)
+    return pgAdapter.deleteUserBan(this.id, user.id)
   }
 
   // Subscribe to user-owner of a given `timelineId`

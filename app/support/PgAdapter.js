@@ -351,4 +351,35 @@ export class PgAdapter {
     })
     return attrs
   }
+
+  ///////////////////////////////////////////////////
+  // Bans
+  ///////////////////////////////////////////////////
+
+  async getUserBansIds(userId) {
+    const res = await this.database('bans').select('banned_user_id').orderBy('created_at', 'desc').where('user_id', userId)
+    const attrs = res.map((record)=>{
+      return record.banned_user_id
+    })
+    return attrs
+  }
+
+  createUserBan(currentUserId, bannedUserId) {
+    const currentTime = new Date().toISOString()
+
+    const payload = {
+      user_id: currentUserId,
+      banned_user_id: bannedUserId,
+      created_at: currentTime
+    }
+
+    return this.database('bans').returning('id').insert(payload)
+  }
+
+  deleteUserBan(currentUserId, bannedUserId) {
+    return this.database('bans').where({
+      user_id: currentUserId,
+      banned_user_id: bannedUserId
+    }).delete()
+  }
 }
