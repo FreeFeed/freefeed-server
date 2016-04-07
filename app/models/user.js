@@ -960,15 +960,15 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.sendSubscriptionRequest = async function(userId) {
-    return await dbAdapter.createSubscriptionRequest(this.id, userId)
+    return await pgAdapter.createSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
-    return await dbAdapter.createSubscriptionRequest(this.id, groupId)
+    return await pgAdapter.createSubscriptionRequest(this.id, groupId)
   }
 
   User.prototype.acceptSubscriptionRequest = async function(userId) {
-    await dbAdapter.deleteSubscriptionRequest(this.id, userId)
+    await pgAdapter.deleteSubscriptionRequest(this.id, userId)
 
     var timelineId = await this.getPostsTimelineId()
 
@@ -977,11 +977,11 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.rejectSubscriptionRequest = async function(userId) {
-    return await dbAdapter.deleteSubscriptionRequest(this.id, userId)
+    return await pgAdapter.deleteSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.getPendingSubscriptionRequestIds = async function() {
-    this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(this.id)
+    this.pendingSubscriptionRequestIds = await pgAdapter.getUserSubscriptionPendingRequestsIds(this.id)
     return this.pendingSubscriptionRequestIds
   }
 
@@ -991,7 +991,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
-    return await dbAdapter.getUserSubscriptionRequestsIds(this.id)
+    return await pgAdapter.getUserSubscriptionRequestsIds(this.id)
   }
 
   User.prototype.getSubscriptionRequests = async function() {

@@ -108,7 +108,7 @@ export default class UsersController {
         throw new Error("Invalid")
       }
 
-      var hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
+      var hasRequest = await pgAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
       var banIds = await user.getBanIds()
 
       const valid = !hasRequest && banIds.indexOf(req.user.id) === -1
@@ -138,7 +138,7 @@ export default class UsersController {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
+      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
@@ -163,7 +163,7 @@ export default class UsersController {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
+      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
