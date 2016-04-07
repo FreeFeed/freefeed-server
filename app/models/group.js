@@ -6,7 +6,7 @@ import { Stats, User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pgAdapter) {
   /**
    * @constructor
    * @extends User
@@ -101,7 +101,7 @@ export function addModel(dbAdapter) {
         'isPrivate': this.isPrivate,
         'isRestricted': this.isRestricted
       }
-      this.id = await dbAdapter.createUser(payload)
+      this.id = await pgAdapter.createUser(payload)
 
       var stats = new Stats({
         id: this.id
@@ -162,14 +162,14 @@ export function addModel(dbAdapter) {
         'isRestricted': this.isRestricted
       }
 
-      await dbAdapter.updateUser(this.id, payload, this)
+      await pgAdapter.updateUser(this.id, payload)
     }
 
     return this
   }
 
   Group.prototype.subscribeOwner = async function(ownerId) {
-    let owner = await dbAdapter.getUserById(ownerId)
+    let owner = await pgAdapter.getUserById(ownerId)
 
     if (!owner) {
       return null
@@ -206,7 +206,7 @@ export function addModel(dbAdapter) {
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await dbAdapter.getUsersByIds(adminIds)
+    this.administrators = await pgAdapter.getUsersByIds(adminIds)
 
     return this.administrators
   }

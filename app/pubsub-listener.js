@@ -5,7 +5,7 @@ import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
+import { dbAdapter, pgAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
 import { load as configLoader } from '../config/config'
 
 
@@ -49,7 +49,7 @@ export default class PubsubListener {
 
     try {
       let decoded = await jwt.verifyAsync(authToken, secret)
-      socket.user = await dbAdapter.getUserById(decoded.userId)
+      socket.user = await pgAdapter.getUserById(decoded.userId)
     } catch(e) {
       socket.user = { id: null }
     }
@@ -229,7 +229,7 @@ export default class PubsubListener {
   }
 
   onLikeNew = async (sockets, data) => {
-    let user = await dbAdapter.getUserById(data.userId)
+    let user = await pgAdapter.getUserById(data.userId)
     let json = await new LikeSerializer(user).promiseToJSON()
     let post = await dbAdapter.getPostById(data.postId)
     json.meta = { postId: data.postId }

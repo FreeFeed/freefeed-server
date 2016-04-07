@@ -1,6 +1,6 @@
 import _ from 'lodash'
 
-import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
+import { dbAdapter, pgAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
 import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -27,8 +27,7 @@ export default class PostsController {
 
     try {
       let promises = feeds.map(async (username) => {
-        let feed = await dbAdapter.getFeedOwnerByUsername(username)
-
+        let feed = await pgAdapter.getFeedOwnerByUsername(username)
         if (null === feed) {
           throw new NotFoundException(`Feed "${username}" is not found`)
         }
@@ -114,7 +113,7 @@ export default class PostsController {
         throw new ForbiddenException("Not found")
 
       if (req.user) {
-        let author = await dbAdapter.getUserById(post.userId)
+        let author = await pgAdapter.getUserById(post.userId)
         let banIds = await author.getBanIds()
 
         if (banIds.indexOf(req.user.id) >= 0)

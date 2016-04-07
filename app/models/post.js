@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { Timeline, PubSub as pubSub } from '../models'
 
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pgAdapter) {
   /**
    * @constructor
    */
@@ -170,14 +170,14 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getCreatedBy = function() {
-    return dbAdapter.getUserById(this.userId)
+    return pgAdapter.getUserById(this.userId)
   }
 
   Post.prototype.getSubscribedTimelineIds = async function(groupOnly) {
     if (typeof groupOnly === 'undefined')
       groupOnly = false
 
-    let feed = await dbAdapter.getFeedOwnerById(this.userId)
+    let feed = await pgAdapter.getFeedOwnerById(this.userId)
 
     let feeds = [feed.getRiverOfNewsTimelineId()]
     if (!groupOnly)
@@ -231,7 +231,7 @@ export function addModel(dbAdapter) {
 
     let postedToIds = await this.getPostedToIds()
     let timelines = await dbAdapter.getTimelinesByIds(postedToIds)
-    let timelineOwners = await dbAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
+    let timelineOwners = await pgAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
 
     // Adds the specified post to River of News if and only if
     // that post has been published to user's Post timeline,
@@ -282,7 +282,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.hide = async function(userId) {
-    const theUser = await dbAdapter.getUserById(userId)
+    const theUser = await pgAdapter.getUserById(userId)
     const hidesTimelineId = await theUser.getHidesTimelineId()
 
     await dbAdapter.insertPostIntoTimeline(hidesTimelineId, this.updatedAt, this.id)
@@ -291,7 +291,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.unhide = async function(userId) {
-    const theUser = await dbAdapter.getUserById(userId)
+    const theUser = await pgAdapter.getUserById(userId)
     const hidesTimelineId = await theUser.getHidesTimelineId()
 
     await dbAdapter.withdrawPostFromTimeline(hidesTimelineId, this.id)
@@ -300,7 +300,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.addComment = async function(comment) {
-    let user = await dbAdapter.getUserById(comment.userId)
+    let user = await pgAdapter.getUserById(comment.userId)
 
     let timelineIds = await this.getPostedToIds()
 
@@ -361,7 +361,7 @@ export function addModel(dbAdapter) {
     let banIds = []
 
     if (this.currentUser) {
-      let user = await dbAdapter.getUserById(this.currentUser)
+      let user = await pgAdapter.getUserById(this.currentUser)
       if (user)
         banIds = await user.getBanIds()
     }
@@ -476,7 +476,7 @@ export function addModel(dbAdapter) {
     let banIds = []
 
     if (this.currentUser) {
-      let user = await dbAdapter.getUserById(this.currentUser)
+      let user = await pgAdapter.getUserById(this.currentUser)
 
       if (user) {
         banIds = await user.getBanIds()
@@ -486,7 +486,7 @@ export function addModel(dbAdapter) {
     let userIds = (await this.getLikeIds())
       .filter(userId => (banIds.indexOf(userId) === -1))
 
-    let users = await dbAdapter.getUsersByIds(userIds)
+    let users = await pgAdapter.getUsersByIds(userIds)
 
     // filter non-existant likers
     this.likes = users.filter(Boolean)
@@ -501,7 +501,7 @@ export function addModel(dbAdapter) {
       if (timeline.isDirects())
         return true
 
-      let owner = await dbAdapter.getUserById(timeline.userId)
+      let owner = await pgAdapter.getUserById(timeline.userId)
 
       return (owner.isPrivate === '1')
     })
@@ -551,7 +551,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.removeLike = async function(userId) {
-    let user = await dbAdapter.getUserById(userId)
+    let user = await pgAdapter.getUserById(userId)
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
     let promises = [
@@ -570,7 +570,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.isBannedFor = async function(userId) {
-    const user = await dbAdapter.getUserById(userId)
+    const user = await pgAdapter.getUserById(userId)
     const banIds = await user.getBanIds()
 
     const index = banIds.indexOf(this.userId)

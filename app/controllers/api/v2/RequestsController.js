@@ -1,4 +1,4 @@
-import { dbAdapter } from '../../../models'
+import { dbAdapter, pgAdapter } from '../../../models'
 import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 export default class RequestsController {
@@ -10,7 +10,7 @@ export default class RequestsController {
 
     const followedFeedOwnerName = req.params.followedUserName
     try {
-      const followedFeedOwner = await dbAdapter.getFeedOwnerByUsername(followedFeedOwnerName)
+      const followedFeedOwner = await pgAdapter.getFeedOwnerByUsername(followedFeedOwnerName)
 
       if (null === followedFeedOwner) {
         throw new NotFoundException(`Feed owner "${followedFeedOwnerName}" is not found`)

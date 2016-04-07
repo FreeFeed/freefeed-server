@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { PubSub as pubSub } from '../models'
 
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pgAdapter) {
   /**
    * @constructor
    */
@@ -100,7 +100,7 @@ export function addModel(dbAdapter) {
       return true
     }
 
-    let user = await dbAdapter.getUserById(this.userId)
+    let user = await pgAdapter.getUserById(this.userId)
     let timelineId = await user.getCommentsTimelineId()
 
     await dbAdapter.withdrawPostFromTimeline(timelineId, this.postId)
@@ -111,7 +111,7 @@ export function addModel(dbAdapter) {
   }
 
   Comment.prototype.getCreatedBy = function() {
-    return dbAdapter.getUserById(this.userId)
+    return pgAdapter.getUserById(this.userId)
   }
 
   return Comment
