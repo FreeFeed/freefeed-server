@@ -189,7 +189,7 @@ export default class GroupsController {
         throw new Error("Group is public")
       }
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
+      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
       if (hasRequest) {
         throw new ForbiddenException("Subscription request already sent")
       }
@@ -236,7 +236,7 @@ export default class GroupsController {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
+      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
@@ -274,7 +274,7 @@ export default class GroupsController {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
+      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
