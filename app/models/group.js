@@ -182,7 +182,7 @@ export function addModel(dbAdapter, pgAdapter) {
   }
 
   Group.prototype.addAdministrator = function(feedId) {
-    return dbAdapter.addAdministratorToGroup(this.id, feedId)
+    return pgAdapter.addAdministratorToGroup(this.id, feedId)
   }
 
   Group.prototype.removeAdministrator = async function(feedId) {
@@ -196,11 +196,11 @@ export function addModel(dbAdapter, pgAdapter) {
       throw new Error("Cannot remove last administrator")
     }
 
-    return dbAdapter.removeAdministratorFromGroup(this.id, feedId)
+    return pgAdapter.removeAdministratorFromGroup(this.id, feedId)
   }
 
   Group.prototype.getAdministratorIds = async function() {
-    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.id)
+    this.administratorIds = await pgAdapter.getGroupAdministratorsIds(this.id)
     return this.administratorIds
   }
 
