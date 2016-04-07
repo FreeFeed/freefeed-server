@@ -1,4 +1,4 @@
-import { dbAdapter } from '../../../models'
+import { pgAdapter } from '../../../models'
 import { UsersController, GroupsController } from '../../../controllers'
 import exceptions, { NotFoundException } from '../../../support/exceptions'
 
@@ -6,7 +6,7 @@ import exceptions, { NotFoundException } from '../../../support/exceptions'
 export default class FeedFactoriesController {
   static async update(req, res) {
     try {
-      const feed = await dbAdapter.getFeedOwnerById(req.params.userId)
+      const feed = await pgAdapter.getFeedOwnerById(req.params.userId)
 
       if (!feed) {
         throw new NotFoundException(`Feed ${req.params.userId} is not found`)
