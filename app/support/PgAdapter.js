@@ -382,4 +382,35 @@ export class PgAdapter {
       banned_user_id: bannedUserId
     }).delete()
   }
+
+  ///////////////////////////////////////////////////
+  // Group administrators
+  ///////////////////////////////////////////////////
+
+  async getGroupAdministratorsIds(groupId) {
+    const res = await this.database('group_admins').select('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
+    const attrs = res.map((record)=>{
+      return record.user_id
+    })
+    return attrs
+  }
+
+  addAdministratorToGroup(groupId, adminId) {
+    const currentTime = new Date().toISOString()
+
+    const payload = {
+      user_id: adminId,
+      group_id: groupId,
+      created_at: currentTime
+    }
+
+    return this.database('group_admins').returning('id').insert(payload)
+  }
+
+  removeAdministratorFromGroup(groupId, adminId) {
+    return this.database('group_admins').where({
+      user_id: adminId,
+      group_id: groupId
+    }).delete()
+  }
 }
