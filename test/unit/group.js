@@ -1,4 +1,4 @@
-import { dbAdapter, Group } from '../../app/models'
+import { dbAdapter, User, Group } from '../../app/models'
 
 
 describe('Group', function() {
@@ -8,11 +8,21 @@ describe('Group', function() {
   })
 
   describe('#create()', function() {
+    let groupAdmin
+    beforeEach(async () => {
+      groupAdmin = new User({
+        username: 'Pluto',
+        password: 'password'
+      })
+
+      await groupAdmin.create()
+    })
+
     it('should create without error', function(done) {
       var group = new Group({
         username: 'FriendFeed'
       })
-      var ownerId = 'abc'
+      var ownerId = groupAdmin.id
 
       group.create(ownerId)
         .then(function(group) {
@@ -193,47 +203,64 @@ describe('Group', function() {
   })
 
   describe('addAdministrator', function() {
-    var group
+    let group
+      , groupAdmin
+    beforeEach(async () => {
+      groupAdmin = new User({
+        username: 'Pluto',
+        password: 'password'
+      })
 
-    beforeEach(function(done) {
+      await groupAdmin.create()
+
       group = new Group({
         username: 'Luna',
         screenName: 'Moon'
       })
-      group.create().then(function() {
-        done()
-      })
+      await group.create()
     })
 
     it('should add an administrator', function(done) {
-      group.addAdministrator('123')
+      group.addAdministrator(groupAdmin.id)
         .then(function() {
           return group.getAdministratorIds()
         })
         .then(function(res) {
-          res.should.contain('123')
+          res.should.contain(groupAdmin.id)
         })
         .then(function() { done() })
     })
   })
 
   describe('removeAdministrator', function() {
-    var group
+    let group
+      , groupAdmin
+      , secondGroupAdmin
+    beforeEach(async () => {
+      groupAdmin = new User({
+        username: 'Pluto',
+        password: 'password'
+      })
 
-    beforeEach(function(done) {
+      await groupAdmin.create()
+
+      secondGroupAdmin = new User({
+        username: 'Jupiter',
+        password: 'password'
+      })
+
+      await secondGroupAdmin.create()
+
       group = new Group({
         username: 'Luna',
         screenName: 'Moon'
       })
-      group.create('123').then(function() {
-        group.addAdministrator('456').then(function() {
-          done()
-        })
-      })
+      await group.create(groupAdmin.id)
+      await group.addAdministrator(secondGroupAdmin.id)
     })
 
     it('should remove an administrator', function(done) {
-      group.removeAdministrator('123')
+      group.removeAdministrator(groupAdmin.id)
           .then(function() {
             return group.getAdministratorIds()
           })
@@ -244,9 +271,9 @@ describe('Group', function() {
     })
 
     it('should refuse to remove the last administrator', function(done) {
-      group.removeAdministrator('456')
+      group.removeAdministrator(secondGroupAdmin.id)
           .then(function() {
-            return group.removeAdministrator('123')
+            return group.removeAdministrator(groupAdmin.id)
           })
           .catch(function(e) {
             e.message.should.eql("Cannot remove last administrator")
