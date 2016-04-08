@@ -376,7 +376,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Post.prototype.linkAttachments = async function(attachmentList) {
     const attachmentIds = attachmentList || this.attachments || []
-    const attachments = await dbAdapter.getAttachmentsByIds(attachmentIds)
+    const attachments = await pgAdapter.getAttachmentsByIds(attachmentIds)
 
     const attachmentPromises = attachments.map((attachment) => {
       if (this.attachments) {
@@ -391,7 +391,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
       // Update connections in DB
 
-      return dbAdapter.linkAttachmentToPost(attachment.id, this.id)
+      return pgAdapter.linkAttachmentToPost(attachment.id, this.id)
     })
 
     await Promise.all(attachmentPromises)
@@ -399,26 +399,26 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Post.prototype.unlinkAttachments = async function(attachmentList) {
     const attachmentIds = attachmentList || []
-    const attachments = await dbAdapter.getAttachmentsByIds(attachmentIds)
+    const attachments = await pgAdapter.getAttachmentsByIds(attachmentIds)
 
     const attachmentPromises = attachments.map((attachment) => {
       // should we modify `this.attachments` here?
 
       // Update connections in DB
-      return dbAdapter.unlinkAttachmentFromPost(attachment.id, this.id)
+      return pgAdapter.unlinkAttachmentFromPost(attachment.id, this.id)
     })
 
     await Promise.all(attachmentPromises)
   }
 
   Post.prototype.getAttachmentIds = async function() {
-    this.attachmentIds = await dbAdapter.getPostAttachments(this.id)
+    this.attachmentIds = await pgAdapter.getPostAttachments(this.id)
     return this.attachmentIds
   }
 
   Post.prototype.getAttachments = async function() {
     const attachmentIds = await this.getAttachmentIds()
-    this.attachments = await dbAdapter.getAttachmentsByIds(attachmentIds)
+    this.attachments = await pgAdapter.getAttachmentsByIds(attachmentIds)
 
     return this.attachments
   }
