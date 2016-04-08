@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import validator from 'validator'
 
-import { Group, User } from '../models'
+import { Attachment, Group, User } from '../models'
 
 const USER_COLUMNS = {
   username:               "username",
@@ -70,6 +70,79 @@ const USER_FIELDS_MAPPING = {
   reset_password_expires_at:  (time)=>{ return time && time.getTime() }
 }
 
+const ATTACHMENT_COLUMNS = {
+  createdAt:              "created_at",
+  updatedAt:              "updated_at",
+  fileName:               "file_name",
+  fileSize:               "file_size",
+  mimeType:               "mime_type",
+  mediaType:              "media_type",
+  fileExtension:          "file_extension",
+  noThumbnail:            "no_thumbnail",
+  imageSizes:             "image_sizes",
+  artist:                 "artist",
+  title:                  "title",
+  userId:                 "user_id",
+  postId:                 "post_id"
+}
+
+const ATTACHMENT_COLUMNS_MAPPING = {
+  createdAt:              (timestamp)=>{
+    let d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  updatedAt:              (timestamp)=>{
+    let d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  noThumbnail:            (no_thumbnail)=>{return no_thumbnail === '1'},
+  fileSize:               (file_size)=>{
+    return parseInt(file_size, 10)
+  },
+  postId:                 (post_id)=> {
+    if (validator.isUUID(post_id, 4)) {
+      return post_id
+    }
+    return null
+  },
+  userId:                 (user_id)=> {
+    if (validator.isUUID(user_id, 4)) {
+      return user_id
+    }
+    return null
+  }
+}
+
+const ATTACHMENT_FIELDS = {
+  uid:                    "id",
+  created_at:             "createdAt",
+  updated_at:             "updatedAt",
+  file_name:              "fileName",
+  file_size:              "fileSize",
+  mime_type:              "mimeType",
+  media_type:             "mediaType",
+  file_extension:         "fileExtension",
+  no_thumbnail:           "noThumbnail",
+  image_sizes:            "imageSizes",
+  artist:                 "artist",
+  title:                  "title",
+  user_id:                "userId",
+  post_id:                "postId"
+}
+
+const ATTACHMENT_FIELDS_MAPPING = {
+  created_at:                 (time)=>{ return time.getTime() },
+  updated_at:                 (time)=>{ return time.getTime() },
+  no_thumbnail:               (no_thumbnail)=>{return no_thumbnail ? '1' : '0' },
+  file_size:                  (file_size)=>{return file_size && file_size.toString()},
+  post_id:                    (post_id)=> {return post_id ? post_id : ''},
+  user_id:                    (user_id)=> {return user_id ? user_id : ''}
+}
+
+
+
 export class PgAdapter {
   constructor(database) {
     this.database = database
@@ -83,7 +156,7 @@ export class PgAdapter {
   // User
   ///////////////////////////////////////////////////
 
-  prepareUserPayload(payload, namesMapping, valuesMapping){
+  _prepareModelPayload(payload, namesMapping, valuesMapping){
     return _.transform(payload, (result, val, key) => {
       let mappedVal = val
       if (valuesMapping[key]){
@@ -97,7 +170,7 @@ export class PgAdapter {
   }
 
   async createUser(payload) {
-    let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
+    let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
     return res[0]
   }
@@ -106,7 +179,7 @@ export class PgAdapter {
     let tokenExpirationTime = new Date(Date.now())
     const expireAfter = 60*60*24 // 24 hours
 
-    let preparedPayload = this.prepareUserPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
+    let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
 
     if (_.has(preparedPayload, 'reset_password_token')) {
       tokenExpirationTime.setHours(tokenExpirationTime.getHours() + expireAfter)
@@ -188,7 +261,7 @@ export class PgAdapter {
       return null
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     return PgAdapter.initObject(User, attrs, attrs.id)
   }
@@ -205,7 +278,7 @@ export class PgAdapter {
       throw new Error(`Expected User, got ${attrs.type}`)
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     return PgAdapter.initObject(User, attrs, attrs.id)
   }
@@ -228,7 +301,7 @@ export class PgAdapter {
       return null
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     if (attrs.type === 'group') {
       return PgAdapter.initObject(Group, attrs, id)
@@ -242,7 +315,7 @@ export class PgAdapter {
 
     const objects = responses.map((attrs, i) => {
       if (attrs){
-        attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
       }
 
       if (attrs.type === 'group') {
@@ -263,7 +336,7 @@ export class PgAdapter {
       return null
     }
 
-    attrs = this.prepareUserPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     if (attrs.type === 'group') {
       return PgAdapter.initObject(Group, attrs, attrs.id)
@@ -412,5 +485,73 @@ export class PgAdapter {
       user_id: adminId,
       group_id: groupId
     }).delete()
+  }
+
+  ///////////////////////////////////////////////////
+  // Attachments
+  ///////////////////////////////////////////////////
+
+  async createAttachment(payload) {
+    let preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
+    const res = await this.database('attachments').returning('uid').insert(preparedPayload)
+    return res[0]
+  }
+
+  async getAttachmentById(id) {
+    if (!validator.isUUID(id,4)){
+      return null
+    }
+    const res = await this.database('attachments').where('uid', id)
+    let attrs = res[0]
+
+    if (!attrs) {
+      return null
+    }
+
+    attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
+    return PgAdapter.initObject(Attachment, attrs, id)
+  }
+
+  async getAttachmentsByIds(ids) {
+    const responses = await this.database('attachments').whereIn('uid', ids)
+
+    const objects = responses.map((attrs, i) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
+      }
+
+      return PgAdapter.initObject(Attachment, attrs, ids[i])
+    })
+
+    return objects
+  }
+
+  updateAttachment(attachmentId, payload) {
+    let preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
+
+    return this.database('attachments').where('uid', attachmentId).update(preparedPayload)
+  }
+
+
+  linkAttachmentToPost(attachmentId, postId){
+    let payload = {
+      post_id: postId
+    }
+    return this.database('attachments').where('uid', attachmentId).update(payload)
+  }
+
+  unlinkAttachmentFromPost(attachmentId, postId){
+    let payload = {
+      post_id: null
+    }
+    return this.database('attachments').where('uid', attachmentId).where('post_id', postId).update(payload)
+  }
+
+  async getPostAttachments(postId) {
+    const res = await this.database('attachments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
+    const attrs = res.map((record)=>{
+      return record.uid
+    })
+    return attrs
   }
 }
