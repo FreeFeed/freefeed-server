@@ -4,6 +4,7 @@ import request  from 'superagent'
 import _ from 'lodash'
 import uuid from 'uuid'
 import { mkKey } from '../../app/support/DbAdapter'
+import { pgAdapter } from '../../app/models'
 
 import { getSingleton as initApp } from '../../app/app'
 
@@ -501,16 +502,16 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 }
 
 export async function createMockAttachmentAsync(context) {
-  const attachmentId  = uuid.v4()
+  let attachmentId
   const params = {
     fileName: 'lion.jpg',
     userId: context.user.id,
     postId: '',
-    createdAt: (new Date()).toString(),
-    updatedAt: (new Date()).toString()
+    createdAt: (new Date()).getTime(),
+    updatedAt: (new Date()).getTime()
   }
 
-  await $database.hmsetAsync(mkKey(['attachment', attachmentId]), params)
+  attachmentId = await pgAdapter.createAttachment(params)
 
   return {
     id: attachmentId,

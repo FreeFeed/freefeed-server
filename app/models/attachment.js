@@ -94,7 +94,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
     await this.validate()
 
-    this.id = await dbAdapter.createAttachment({
+    this.id = await pgAdapter.createAttachment({
       postId:    this.postId,
       createdAt: this.createdAt.toString(),
       updatedAt: this.updatedAt.toString()
@@ -137,7 +137,7 @@ export function addModel(dbAdapter, pgAdapter) {
       params.title = this.title
     }
 
-    await dbAdapter.updateAttachment(this.id, params)
+    await pgAdapter.updateAttachment(this.id, params)
 
     return this
   }

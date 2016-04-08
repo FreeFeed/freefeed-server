@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import mkdirp from 'mkdirp'
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, User, Attachment } from '../../app/models'
+import { pgAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
 
@@ -69,7 +69,7 @@ describe('Attachment', function() {
           newAttachment.should.be.an.instanceOf(Attachment)
           newAttachment.should.not.be.empty
           newAttachment.should.have.property('id')
-          return dbAdapter.getAttachmentById(attachment.id)
+          return pgAdapter.getAttachmentById(attachment.id)
         }).then(function(newAttachment) {
           newAttachment.should.be.an.instanceOf(Attachment)
           newAttachment.should.not.be.empty
