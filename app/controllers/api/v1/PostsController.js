@@ -150,7 +150,7 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
-      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      const userLikedPost = await pgAdapter.hasUserLikedPost(req.user.id, post.id)
       if (userLikedPost) {
         throw new ForbiddenException("You can't like post that you have already liked")
       }
@@ -190,7 +190,7 @@ export default class PostsController {
         throw new ForbiddenException("You can't un-like your own post")
       }
 
-      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      const userLikedPost = await pgAdapter.hasUserLikedPost(req.user.id, post.id)
       if (!userLikedPost) {
         throw new ForbiddenException("You can't un-like post that you haven't yet liked")
       }
