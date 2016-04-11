@@ -175,7 +175,7 @@ export default class PubsubListener {
   }
 
   onCommentNew = async (sockets, data) => {
-    let comment = await dbAdapter.getCommentById(data.commentId)
+    let comment = await pgAdapter.getCommentById(data.commentId)
 
     if (!comment) {
       // might be outdated event
@@ -198,7 +198,7 @@ export default class PubsubListener {
   }
 
   onCommentUpdate = async (sockets, data) => {
-    let comment = await dbAdapter.getCommentById(data.commentId)
+    let comment = await pgAdapter.getCommentById(data.commentId)
     let post = await dbAdapter.getPostById(comment.postId)
     let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
