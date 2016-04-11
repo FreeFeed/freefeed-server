@@ -1,6 +1,6 @@
 import monitor from 'monitor-dog'
 
-import { dbAdapter, CommentSerializer, PubSub } from '../../../models'
+import { dbAdapter, pgAdapter, CommentSerializer, PubSub } from '../../../models'
 import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -35,11 +35,11 @@ export default class CommentsController {
 
       let timelines = await newComment.create()
 
-      let json = await new CommentSerializer(newComment).promiseToJSON()
-      res.jsonp(json)
-
       await PubSub.newComment(newComment, timelines)
       monitor.increment('comments.creates')
+
+      let json = await new CommentSerializer(newComment).promiseToJSON()
+      res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
     } finally {
@@ -56,7 +56,7 @@ export default class CommentsController {
     var timer = monitor.timer('comments.update-time')
 
     try {
-      const comment = await dbAdapter.getCommentById(req.params.commentId)
+      const comment = await pgAdapter.getCommentById(req.params.commentId)
 
       if (null === comment) {
         throw new NotFoundException("Can't find comment")
@@ -92,7 +92,7 @@ export default class CommentsController {
     var timer = monitor.timer('comments.destroy-time')
 
     try {
-      const comment = await dbAdapter.getCommentById(req.params.commentId)
+      const comment = await pgAdapter.getCommentById(req.params.commentId)
 
       if (null === comment) {
         throw new NotFoundException("Can't find comment")

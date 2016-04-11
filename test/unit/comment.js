@@ -1,6 +1,6 @@
 import { isNull } from 'lodash'
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, Comment, Post, User } from '../../app/models'
+import { dbAdapter, pgAdapter, Comment, Post, User } from '../../app/models'
 
 
 describe('Comment', function() {
@@ -101,7 +101,7 @@ describe('Comment', function() {
 
           return comment
         })
-        .then(function(comment) { return dbAdapter.getCommentById(comment.id) })
+        .then(function(comment) { return pgAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -121,7 +121,7 @@ describe('Comment', function() {
         })
 
       comment.create()
-        .then(function(timelines) { return dbAdapter.getCommentById(comment.id) })
+        .then(function(timelines) { return pgAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -181,7 +181,7 @@ describe('Comment', function() {
       })
 
       comment.create()
-        .then(function(timelines) { return dbAdapter.getCommentById(comment.id) })
+        .then(function(timelines) { return pgAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -194,7 +194,7 @@ describe('Comment', function() {
     it('should not find comment with invalid id', function(done) {
       var identifier = "comment:identifier"
 
-      dbAdapter.getCommentById(identifier)
+      pgAdapter.getCommentById(identifier)
         .then(function(comment) {
           $should.not.exist(comment)
         })
@@ -239,7 +239,7 @@ describe('Comment', function() {
       let comment = comments[0]
       await comment.destroy()
 
-      let oldComment = await dbAdapter.getCommentById(comment.id)
+      let oldComment = await pgAdapter.getCommentById(comment.id)
       isNull(oldComment).should.be.true
 
       comments = await post.getComments()

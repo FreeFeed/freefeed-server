@@ -55,7 +55,7 @@ export function addModel(dbAdapter, pgAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    this.id = await dbAdapter.createComment(payload)
+    this.id = await pgAdapter.createComment(payload)
 
     let post = await dbAdapter.getPostById(this.postId)
     let timelines = await post.addComment(this)
@@ -76,7 +76,7 @@ export function addModel(dbAdapter, pgAdapter) {
       'body':      this.body,
       'updatedAt': this.updatedAt.toString()
     }
-    await dbAdapter.updateComment(this.id, payload)
+    await pgAdapter.updateComment(this.id, payload)
 
     await pubSub.updateComment(this.id)
 
@@ -89,7 +89,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Comment.prototype.destroy = async function() {
     await pubSub.destroyComment(this.id, this.postId)
-    await dbAdapter.deleteComment(this.id, this.postId)
+    await pgAdapter.deleteComment(this.id, this.postId)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
