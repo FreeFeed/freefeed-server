@@ -77,7 +77,7 @@ export default class pubSub {
   }
 
   async updateComment(commentId) {
-    var comment = await dbAdapter.getCommentById(commentId)
+    var comment = await pgAdapter.getCommentById(commentId)
     var post = await comment.getPost()
 
     let payload = JSON.stringify({ postId: post.id, commentId })

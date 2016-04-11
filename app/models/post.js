@@ -326,7 +326,7 @@ export function addModel(dbAdapter, pgAdapter) {
   }
 
   Post.prototype.getOmittedComments = async function() {
-    const length = await dbAdapter.getPostCommentsCount(this.id)
+    const length = await pgAdapter.getPostCommentsCount(this.id)
 
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
       this.omittedComments = length - this.maxComments
@@ -337,14 +337,14 @@ export function addModel(dbAdapter, pgAdapter) {
   }
 
   Post.prototype.getCommentIds = async function() {
-    let length = await dbAdapter.getPostCommentsCount(this.id)
+    let length = await pgAdapter.getPostCommentsCount(this.id)
 
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
       // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
       // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
-      let commentIds = await dbAdapter.getPostCommentsRange(this.id, 0, this.maxComments - 2)
+      let commentIds = await pgAdapter.getPostFirstNCommentsIds(this.id, this.maxComments - 1)
       // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
-      let moreCommentIds = await dbAdapter.getPostCommentsRange(this.id, -1, -1)
+      let moreCommentIds = await pgAdapter.getPostLastCommentId(this.id)
 
       this.omittedComments = length - this.maxComments
       this.commentIds = commentIds.concat(moreCommentIds)
@@ -352,7 +352,7 @@ export function addModel(dbAdapter, pgAdapter) {
       return this.commentIds
     } else {  // eslint-disable-line no-else-return
       // get ALL comment ids
-      this.commentIds = await dbAdapter.getPostCommentsRange(this.id, 0, -1)
+      this.commentIds = await pgAdapter.getAllPostCommentsIds(this.id)
       return this.commentIds
     }
   }
@@ -367,7 +367,7 @@ export function addModel(dbAdapter, pgAdapter) {
     }
 
     let commentIds = await this.getCommentIds()
-    let comments = await dbAdapter.getCommentsByIds(commentIds)
+    let comments = await pgAdapter.getCommentsByIds(commentIds)
 
     this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
 
