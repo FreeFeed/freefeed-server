@@ -420,7 +420,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
           let likesTimelineId = await user.getLikesTimelineId()
-          let time = await dbAdapter.getUserPostLikedTime(user.id, post.id)
+          let time = await pgAdapter.getUserPostLikedTime(user.id, post.id)
 
           actions.push(dbAdapter.insertPostIntoTimeline(likesTimelineId, time, post.id))
         })

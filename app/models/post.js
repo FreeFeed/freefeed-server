@@ -426,10 +426,10 @@ export function addModel(dbAdapter, pgAdapter) {
   Post.prototype.getLikeIds = async function() {
     const omittedLikes = await this.getOmittedLikes()
 
-    let likeIds = await dbAdapter.getPostLikesRange(this.id, 0, -omittedLikes - 1)
+    let likeIds = await pgAdapter.getPostLikesRange(this.id, omittedLikes)
 
     if (omittedLikes > 0) {
-      const hasUserLikedPost = await dbAdapter.hasUserLikedPost(this.currentUser, this.id)
+      const hasUserLikedPost = await pgAdapter.hasUserLikedPost(this.currentUser, this.id)
 
       if (hasUserLikedPost) {
         if (likeIds.indexOf(this.currentUser) === -1) {
@@ -459,7 +459,7 @@ export function addModel(dbAdapter, pgAdapter) {
   }
 
   Post.prototype.getOmittedLikes = async function() {
-    const length = await dbAdapter.getPostLikesCount(this.id)
+    const length = await pgAdapter.getPostLikesCount(this.id)
 
     if (this.maxLikes !== 'all') {
       const threshold = this.maxLikes + 1
@@ -539,7 +539,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
     let promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
 
-    promises.push(dbAdapter.createUserPostLike(this.id, user.id))
+    promises.push(pgAdapter.createUserPostLike(this.id, user.id))
 
     await Promise.all(promises)
 
@@ -555,7 +555,7 @@ export function addModel(dbAdapter, pgAdapter) {
     var timer = monitor.timer('posts.unlikes.time')
     let timelineId = await user.getLikesTimelineId()
     let promises = [
-            dbAdapter.removeUserPostLike(this.id, userId),
+            pgAdapter.removeUserPostLike(this.id, userId),
             dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
           ]
     await Promise.all(promises)
