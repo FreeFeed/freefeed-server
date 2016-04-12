@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import validator from 'validator'
 
-import { Attachment, Comment, Group, User } from '../models'
+import { Attachment, Comment, Group, Timeline, User } from '../models'
 
 const USER_COLUMNS = {
   username:               "username",
@@ -177,6 +177,41 @@ const COMMENT_FIELDS_MAPPING = {
   created_at:                 (time)=>{ return time.getTime() },
   updated_at:                 (time)=>{ return time.getTime() },
   post_id:                    (post_id)=> {return post_id ? post_id : ''},
+  user_id:                    (user_id)=> {return user_id ? user_id : ''}
+}
+
+
+const FEED_COLUMNS = {
+  createdAt:              "created_at",
+  updatedAt:              "updated_at",
+  name:                   "name",
+  userId:                 "user_id"
+}
+
+const FEED_COLUMNS_MAPPING = {
+  createdAt:              (timestamp)=>{
+    let d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  updatedAt:              (timestamp)=>{
+    let d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  }
+}
+
+const FEED_FIELDS = {
+  uid:                    "id",
+  created_at:             "createdAt",
+  updated_at:             "updatedAt",
+  name:                   "name",
+  user_id:                "userId"
+}
+
+const FEED_FIELDS_MAPPING = {
+  created_at:                 (time)=>{ return time.getTime() },
+  updated_at:                 (time)=>{ return time.getTime() },
   user_id:                    (user_id)=> {return user_id ? user_id : ''}
 }
 
@@ -736,5 +771,89 @@ export class PgAdapter {
 
   _deletePostComments(postId) {
     return this.database('comments').where({ post_id: postId }).delete()
+  }
+
+
+  ///////////////////////////////////////////////////
+  // Feeds
+  ///////////////////////////////////////////////////
+
+  async createTimeline(payload) {
+    let preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
+    if (preparedPayload.name == "MyDiscussions"){
+      preparedPayload.uid = preparedPayload.user_id
+    }
+    const res = await this.database('feeds').returning('uid').insert(preparedPayload)
+    return res[0]
+  }
+
+  createUserTimelines(userId, timelineNames) {
+    const currentTime = new Date().getTime()
+    let promises = timelineNames.map((n) => {
+      const payload = {
+        'name':      n,
+        'userId':    userId,
+        'createdAt': currentTime.toString(),
+        'updatedAt': currentTime.toString()
+      }
+      return this.createTimeline(payload)
+    })
+    return Promise.all(promises)
+  }
+
+  async getUserTimelinesIds(userId) {
+    const res = await this.database('feeds').where('user_id', userId)
+    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'})
+    const hides         = _.filter(res, (record) => { return record.name == 'Hides'})
+    const comments      = _.filter(res, (record) => { return record.name == 'Comments'})
+    const likes         = _.filter(res, (record) => { return record.name == 'Likes'})
+    const posts         = _.filter(res, (record) => { return record.name == 'Posts'})
+    const directs       = _.filter(res, (record) => { return record.name == 'Directs'})
+    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'})
+
+    let timelines =  {
+      'RiverOfNews':   riverOfNews[0] && riverOfNews[0].uid,
+      'Hides':         hides[0] && hides[0].uid,
+      'Comments':      comments[0] && comments[0].uid,
+      'Likes':         likes[0] && likes[0].uid,
+      'Posts':         posts[0] && posts[0].uid
+    }
+
+    if(directs[0]){
+      timelines['Directs'] = directs[0].uid
+    }
+
+    if(myDiscussions[0]){
+      timelines['MyDiscussions'] = myDiscussions[0].uid
+    }
+
+    return timelines
+  }
+
+  async getTimelineById(id, params) {
+    if (!validator.isUUID(id,4)){
+      return null
+    }
+    const res = await this.database('feeds').where('uid', id)
+    let attrs = res[0]
+
+    if (!attrs) {
+      return null
+    }
+
+    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
+    return PgAdapter.initObject(Timeline, attrs, id, params)
+  }
+
+  async getTimelinesByIds(ids, params) {
+    const responses = await this.database('feeds').whereIn('uid', ids)
+
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
+      }
+      return PgAdapter.initObject(Timeline, attrs, attrs.id, params)
+    })
+    return objects
   }
 }

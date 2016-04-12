@@ -1,6 +1,6 @@
 import uuid from 'uuid'
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, Timeline, User } from '../../app/models'
+import { pgAdapter, Timeline, User } from '../../app/models'
 
 
 describe('Timeline', function() {
@@ -25,7 +25,7 @@ describe('Timeline', function() {
 
           return timeline
         })
-        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
+        .then(function(timeline) { return pgAdapter.getTimelineById(timeline.id) })
         .then(function(newTimeline) {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -45,7 +45,7 @@ describe('Timeline', function() {
 
       timeline.create()
         .then(function(timeline) { return timeline })
-        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
+        .then(function(timeline) { return pgAdapter.getTimelineById(timeline.id) })
         .then(function(newTimeline) {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -81,7 +81,7 @@ describe('Timeline', function() {
 
       timeline.create()
         .then(function(timeline) { return timeline })
-        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
+        .then(function(timeline) { return pgAdapter.getTimelineById(timeline.id) })
         .then(function(newTimeline) {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -94,7 +94,7 @@ describe('Timeline', function() {
     it('should not find timeline with an invalid id', function(done) {
       var identifier = "timeline:identifier"
 
-      dbAdapter.getTimelineById(identifier)
+      pgAdapter.getTimelineById(identifier)
         .then(function(timeline) {
           $should.not.exist(timeline)
         })
