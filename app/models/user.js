@@ -306,7 +306,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
       'frontendPreferences': JSON.stringify({})
     }
     this.id = await pgAdapter.createUser(payload)
-    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
+    await pgAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
 
     var stats = new Stats({
       id: this.id
@@ -545,7 +545,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
 
     await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
-    return dbAdapter.getTimelineById(myDiscussionsTimelineId, params)
+    return pgAdapter.getTimelineById(myDiscussionsTimelineId, params)
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
@@ -555,7 +555,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
 
     if (timelineIds[name]) {
       params = params || {}
-      timeline = await dbAdapter.getTimelineById(timelineIds[name], {
+      timeline = await pgAdapter.getTimelineById(timelineIds[name], {
         offset: params.offset,
         limit: params.limit
       })
@@ -575,7 +575,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   User.prototype.getGenericTimeline = async function(name, params) {
     let timelineId = await this[`get${name}TimelineId`](params)
 
-    let timeline = await dbAdapter.getTimelineById(timelineId, params)
+    let timeline = await pgAdapter.getTimelineById(timelineId, params)
     timeline.posts = await timeline.getPosts(timeline.offset, timeline.limit)
 
     return timeline
@@ -597,7 +597,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     let timelineId = await this.getRiverOfNewsTimelineId(params)
     let hidesTimelineId = await this.getHidesTimelineId(params)
 
-    let riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
+    let riverOfNewsTimeline = await pgAdapter.getTimelineById(timelineId, params)
     let banIds = await this.getBanIds()
     let posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
                                                    riverOfNewsTimeline.limit)
@@ -648,15 +648,19 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.getTimelineIds = async function() {
-    let timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
+    let timelineIds = await pgAdapter.getUserTimelinesIds(this.id)
     return timelineIds || {}
   }
 
   User.prototype.getTimelines = async function(params) {
     const timelineIds = await this.getTimelineIds()
-    const timelines = await dbAdapter.getTimelinesByIds(_.values(timelineIds), params)
+    const timelines = await pgAdapter.getTimelinesByIds(_.values(timelineIds), params)
+    const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
+    const sortedTimelines = _.sortBy(timelines, (tl)=>{
+      return _.indexOf(timelinesOrder, tl.name)
+    })
 
-    return timelines
+    return sortedTimelines
   }
 
   User.prototype.getPublicTimelineIds = function() {
@@ -677,7 +681,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
    */
   User.prototype.getSubscriptions = async function() {
     var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.subscriptions = await pgAdapter.getTimelinesByIds(timelineIds)
 
     return this.subscriptions
   }
@@ -752,7 +756,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
 
   // Subscribe to user-owner of a given `timelineId`
   User.prototype.subscribeTo = async function(timelineId) {
-    let timeline = await dbAdapter.getTimelineById(timelineId)
+    let timeline = await pgAdapter.getTimelineById(timelineId)
     let user = await pgAdapter.getFeedOwnerById(timeline.userId)
 
     if (user.username == this.username)
@@ -789,7 +793,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
-    var timeline = await dbAdapter.getTimelineById(timelineId)
+    var timeline = await pgAdapter.getTimelineById(timelineId)
     var user = await pgAdapter.getFeedOwnerById(timeline.userId)
 
     // a user cannot unsubscribe from herself
@@ -1004,7 +1008,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     if (timelinesIds.length === 0)
       return []
 
-    const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
+    const timelines = await pgAdapter.getTimelinesByIds(timelinesIds)
     if (timelines.length === 0)
       return []
 
