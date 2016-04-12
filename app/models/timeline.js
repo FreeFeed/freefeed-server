@@ -43,7 +43,7 @@ export function addModel(dbAdapter, pgAdapter) {
     // We can use post.timelineIds here instead of post.getPostedToIds
     // because we are about to create that post and have just received
     // a request from user, so postedToIds == timelineIds here
-    const timelines = await dbAdapter.getTimelinesByIds(post.timelineIds)
+    const timelines = await pgAdapter.getTimelinesByIds(post.timelineIds)
 
     let promises = timelines.map(async (timeline) => {
       const feed = await timeline.getUser()
@@ -91,7 +91,7 @@ export function addModel(dbAdapter, pgAdapter) {
       'updatedAt': currentTime.toString()
     }
 
-    this.id = await dbAdapter.createTimeline(payload)
+    this.id = await pgAdapter.createTimeline(payload)
 
     this.createdAt = currentTime
     this.updatedAt = currentTime
@@ -234,7 +234,7 @@ export function addModel(dbAdapter, pgAdapter) {
   Timeline.prototype.mergeTo = async function(timelineId) {
     await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
 
-    let timeline = await dbAdapter.getTimelineById(timelineId)
+    let timeline = await pgAdapter.getTimelineById(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
     let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(postId, timelineId))

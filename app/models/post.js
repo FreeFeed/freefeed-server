@@ -192,7 +192,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Post.prototype.getSubscribedTimelines = async function() {
     var timelineIds = await this.getSubscribedTimelineIds()
-    this.subscribedTimelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.subscribedTimelines = await pgAdapter.getTimelinesByIds(timelineIds)
 
     return this.subscribedTimelines
   }
@@ -205,7 +205,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Post.prototype.getTimelines = async function() {
     var timelineIds = await this.getTimelineIds()
-    this.timelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.timelines = await pgAdapter.getTimelinesByIds(timelineIds)
 
     return this.timelines
   }
@@ -218,7 +218,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Post.prototype.getPostedTo = async function() {
     var timelineIds = await this.getPostedToIds()
-    this.postedTo = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.postedTo = await pgAdapter.getTimelinesByIds(timelineIds)
 
     return this.postedTo
   }
@@ -230,7 +230,7 @@ export function addModel(dbAdapter, pgAdapter) {
     timelineIds.push(timeline.id)
 
     let postedToIds = await this.getPostedToIds()
-    let timelines = await dbAdapter.getTimelinesByIds(postedToIds)
+    let timelines = await pgAdapter.getTimelinesByIds(postedToIds)
     let timelineOwners = await pgAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
 
     // Adds the specified post to River of News if and only if
@@ -254,7 +254,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Post.prototype.getGenericFriendOfFriendTimelines = async function(user, type) {
     let timelineIds = await this.getGenericFriendOfFriendTimelineIds(user, type)
-    return await dbAdapter.getTimelinesByIds(timelineIds)
+    return await pgAdapter.getTimelinesByIds(timelineIds)
   }
 
   Post.prototype.getPostsFriendOfFriendTimelineIds = function(user) {
@@ -312,7 +312,7 @@ export function addModel(dbAdapter, pgAdapter) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    let timelines = await pgAdapter.getTimelinesByIds(timelineIds)
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()
@@ -531,7 +531,7 @@ export function addModel(dbAdapter, pgAdapter) {
       timelineIds = _.uniq(timelineIds)
     }
 
-    let timelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    let timelines = await pgAdapter.getTimelinesByIds(timelineIds)
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()
