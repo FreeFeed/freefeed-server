@@ -1,4 +1,4 @@
-import { dbAdapter, pgAdapter } from './models'
+import { pgAdapter } from './models'
 
 
 export default class pubSub {
@@ -7,7 +7,7 @@ export default class pubSub {
   }
 
   async newPost(postId) {
-    var post = await dbAdapter.getPostById(postId)
+    var post = await pgAdapter.getPostById(postId)
     var timelines = await post.getTimelines()
 
     var promises = timelines.map(async (timeline) => {
@@ -32,7 +32,7 @@ export default class pubSub {
   }
 
   async updatePost(postId) {
-    var post = await dbAdapter.getPostById(postId)
+    var post = await pgAdapter.getPostById(postId)
     var timelineIds = await post.getTimelineIds()
 
     var promises = timelineIds.map(async (timelineId) => {
@@ -63,7 +63,7 @@ export default class pubSub {
   }
 
   async destroyComment(commentId, postId) {
-    var post = await dbAdapter.getPostById(postId)
+    var post = await pgAdapter.getPostById(postId)
     let payload = JSON.stringify({ postId, commentId })
     await this.publisher.commentDestroyed(payload)
 
@@ -109,7 +109,7 @@ export default class pubSub {
   }
 
   async removeLike(postId, userId) {
-    var post = await dbAdapter.getPostById(postId)
+    var post = await pgAdapter.getPostById(postId)
     var timelineIds = await post.getTimelineIds()
 
     var promises = timelineIds.map(async (timelineId) => {

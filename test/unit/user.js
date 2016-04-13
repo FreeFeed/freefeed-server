@@ -2,7 +2,7 @@ import async from 'async'
 import { expect } from 'chai'
 import knexCleaner from 'knex-cleaner'
 
-import { dbAdapter, pgAdapter, Post, Timeline, User } from "../../app/models"
+import { pgAdapter, Post, Timeline, User } from "../../app/models"
 
 
 describe('User', function() {
@@ -786,7 +786,7 @@ describe('User', function() {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
+        .then(function(newPost) { return pgAdapter.getPostById(newPost.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -811,7 +811,7 @@ describe('User', function() {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
+        .then(function(newPost) { return pgAdapter.getPostById(newPost.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
