@@ -1,7 +1,7 @@
 import formidable from 'formidable'
 import _ from 'lodash'
 
-import { dbAdapter, pgAdapter, Group, GroupSerializer } from '../../../models'
+import { pgAdapter, Group, GroupSerializer } from '../../../models'
 import exceptions, { NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
@@ -316,7 +316,7 @@ export default class GroupsController {
         throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
       }
 
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }
