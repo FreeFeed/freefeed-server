@@ -667,7 +667,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(this.id)
+    this.subscriptionsIds = await pgAdapter.getUserSubscriptionsIds(this.id)
     return this.subscriptionsIds
   }
 
@@ -760,7 +760,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     let timelineIds = await user.getPublicTimelineIds()
 
     let promises = _.flatten(timelineIds.map((timelineId) => {
-      return dbAdapter.subscribeUserToTimeline(timelineId, this.id)
+      return pgAdapter.subscribeUserToTimeline(timelineId, this.id)
     }))
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
@@ -802,7 +802,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
       let timelineIds = await user.getPublicTimelineIds()
 
       let unsubPromises = _.flatten(timelineIds.map((timelineId) => {
-        return dbAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
+        return pgAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
       }))
 
       promises = promises.concat(unsubPromises)
@@ -937,8 +937,8 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     const [ timelineIdA, timelineIdB ] =
       await Promise.all([ postingUser.getPostsTimelineId(), this.getPostsTimelineId() ])
 
-    const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
-    const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
+    const currentUserSubscribedToPostingUser = await pgAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
+    const postingUserSubscribedToCurrentUser = await pgAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
 
     if ((!currentUserSubscribedToPostingUser || !postingUserSubscribedToCurrentUser)
         && postingUser.username != this.username
@@ -999,7 +999,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
   }
 
   User.prototype.getFollowedGroups = async function () {
-    const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
+    const timelinesIds = await pgAdapter.getUserSubscriptionsIds(this.id)
     if (timelinesIds.length === 0)
       return []
 
