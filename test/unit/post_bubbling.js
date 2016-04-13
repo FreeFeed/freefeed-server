@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, Comment, Post, User, Group } from "../../app/models"
+import { Comment, Post, User, Group } from "../../app/models"
 
 
 describe('PostBubbling', function() {

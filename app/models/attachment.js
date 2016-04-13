@@ -33,7 +33,7 @@ async function detectMimetype(filename) {
   return mimeType
 }
 
-export function addModel(dbAdapter, pgAdapter) {
+export function addModel(pgAdapter) {
   /**
    * @constructor
    */

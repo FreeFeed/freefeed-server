@@ -6,7 +6,7 @@ import { User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
-export function addModel(dbAdapter, pgAdapter) {
+export function addModel(pgAdapter) {
   /**
    * @constructor
    * @extends User
