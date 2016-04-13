@@ -694,6 +694,11 @@ export class PgAdapter {
     return parseInt(res[0].count)
   }
 
+  async getUserLikesCount(userId){
+    const res = await this.database('likes').where({ user_id: userId }).count()
+    return parseInt(res[0].count)
+  }
+
   async getPostLikesRange(postId, omittedLikesCount) {
     const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
     let userIds = res.map((record)=>{
@@ -789,6 +794,11 @@ export class PgAdapter {
 
   async getPostCommentsCount(postId) {
     const res = await this.database('comments').where({ post_id: postId }).count()
+    return parseInt(res[0].count)
+  }
+
+  async getUserCommentsCount(userId){
+    const res = await this.database('comments').where({ user_id: userId }).count()
     return parseInt(res[0].count)
   }
 
@@ -962,6 +972,11 @@ export class PgAdapter {
       return PgAdapter.initObject(Post, attrs, attrs.id, params)
     })
     return objects
+  }
+
+  async getUserPostsCount(userId){
+    const res = await this.database('posts').where({ user_id: userId }).count()
+    return parseInt(res[0].count)
   }
 
   setPostUpdatedAt(postId, time) {
