@@ -82,7 +82,7 @@ export function addModel(dbAdapter, pgAdapter) {
       'commentsDisabled': this.commentsDisabled
     }
     // save post to the database
-    this.id = await dbAdapter.createPost(payload, this.timelineIds)
+    this.id = await pgAdapter.createPost(payload, this.timelineIds)
 
     // save nested resources
     await this.linkAttachments()
@@ -114,7 +114,7 @@ export function addModel(dbAdapter, pgAdapter) {
       'body':      this.body,
       'updatedAt': this.updatedAt.toString()
     }
-    await dbAdapter.updatePost(this.id, payload)
+    await pgAdapter.updatePost(this.id, payload)
 
     // Update post attachments in DB
     await Promise.all([
@@ -136,7 +136,7 @@ export function addModel(dbAdapter, pgAdapter) {
     let payload = {
       'commentsDisabled': this.commentsDisabled
     }
-    await dbAdapter.updatePost(this.id, payload)
+    await pgAdapter.updatePost(this.id, payload)
 
     // Finally, publish changes
     await pubSub.updatePost(this.id)
@@ -156,10 +156,10 @@ export function addModel(dbAdapter, pgAdapter) {
 
     const timelineIds = await this.getTimelineIds()
     await Promise.all(timelineIds.map(async (timelineId) => {
-      await dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
+      await pgAdapter.withdrawPostFromTimeline(timelineId, this.id)
     }))
 
-    await dbAdapter.deletePost(this.id)
+    await pgAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
 
@@ -198,7 +198,7 @@ export function addModel(dbAdapter, pgAdapter) {
   }
 
   Post.prototype.getTimelineIds = async function() {
-    var timelineIds = await dbAdapter.getPostUsagesInTimelines(this.id)
+    var timelineIds = await pgAdapter.getPostUsagesInTimelines(this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -211,7 +211,7 @@ export function addModel(dbAdapter, pgAdapter) {
   }
 
   Post.prototype.getPostedToIds = async function() {
-    var timelineIds = await dbAdapter.getPostPostedToIds(this.id)
+    var timelineIds = await pgAdapter.getPostPostedToIds(this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -285,7 +285,7 @@ export function addModel(dbAdapter, pgAdapter) {
     const theUser = await pgAdapter.getUserById(userId)
     const hidesTimelineId = await theUser.getHidesTimelineId()
 
-    await dbAdapter.insertPostIntoTimeline(hidesTimelineId, this.updatedAt, this.id)
+    await pgAdapter.insertPostIntoTimeline(hidesTimelineId, this.id)
 
     await pubSub.hidePost(theUser.id, this.id)
   }
@@ -294,7 +294,7 @@ export function addModel(dbAdapter, pgAdapter) {
     const theUser = await pgAdapter.getUserById(userId)
     const hidesTimelineId = await theUser.getHidesTimelineId()
 
-    await dbAdapter.withdrawPostFromTimeline(hidesTimelineId, this.id)
+    await pgAdapter.withdrawPostFromTimeline(hidesTimelineId, this.id)
 
     await pubSub.unhidePost(theUser.id, this.id)
   }
@@ -556,7 +556,7 @@ export function addModel(dbAdapter, pgAdapter) {
     let timelineId = await user.getLikesTimelineId()
     let promises = [
             pgAdapter.removeUserPostLike(this.id, userId),
-            dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
+            pgAdapter.withdrawPostFromTimeline(timelineId, this.id)
           ]
     await Promise.all(promises)
     await pubSub.removeLike(this.id, userId)
@@ -585,7 +585,7 @@ export function addModel(dbAdapter, pgAdapter) {
     let owner = await timeline.getUser()
     let hidesTimelineId = await owner.getHidesTimelineId()
 
-    return dbAdapter.isPostPresentInTimeline(hidesTimelineId, this.id)
+    return pgAdapter.isPostPresentInTimeline(hidesTimelineId, this.id)
   }
 
   Post.prototype.canShow = async function(userId) {

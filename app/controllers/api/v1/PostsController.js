@@ -75,7 +75,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await pgAdapter.getPostById(req.params.postId)
 
       if (post.userId != req.user.id) {
         throw new ForbiddenException("You can't update another user's post")
@@ -96,7 +96,7 @@ export default class PostsController {
   static async show(req, res) {
     try {
       var userId = req.user ? req.user.id : null
-      const post = await dbAdapter.getPostById(req.params.postId, {
+      const post = await pgAdapter.getPostById(req.params.postId, {
         maxComments: req.query.maxComments,
         maxLikes: req.query.maxLikes,
         currentUser: userId
@@ -140,7 +140,7 @@ export default class PostsController {
     }
 
     try {
-      let post = await dbAdapter.getPostById(req.params.postId)
+      let post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -180,7 +180,7 @@ export default class PostsController {
     }
 
     try {
-      let post = await dbAdapter.getPostById(req.params.postId)
+      let post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -215,7 +215,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -239,7 +239,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -259,7 +259,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -279,7 +279,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -304,7 +304,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await pgAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");

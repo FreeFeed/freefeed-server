@@ -420,9 +420,8 @@ exports.addModel = function(dbAdapter, pgAdapter) {
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
           let likesTimelineId = await user.getLikesTimelineId()
-          let time = await pgAdapter.getUserPostLikedTime(user.id, post.id)
 
-          actions.push(dbAdapter.insertPostIntoTimeline(likesTimelineId, time, post.id))
+          actions.push(pgAdapter.insertPostIntoTimeline(likesTimelineId, post.id))
         })
 
         await Promise.all(promises)
@@ -435,11 +434,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
         let promises = usersChunk.map(async (user) => {
           let commentsTimelineId = await user.getCommentsTimelineId()
 
-          // NOTE: I'm cheating with time when we supposed to add that
-          // post to comments timeline, but who notices this?
-          let time = post.updatedAt
-
-          actions.push(dbAdapter.insertPostIntoTimeline(commentsTimelineId, time, post.id))
+          actions.push(pgAdapter.insertPostIntoTimeline(commentsTimelineId, post.id))
         })
 
         await Promise.all(promises)
@@ -543,7 +538,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
 
     let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineId()
 
-    await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
+    await pgAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
     return pgAdapter.getTimelineById(myDiscussionsTimelineId, params)
   }
@@ -603,7 +598,7 @@ exports.addModel = function(dbAdapter, pgAdapter) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
+      let postInTimeline = await pgAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
 
       if (postInTimeline) {
         post.isHidden = true

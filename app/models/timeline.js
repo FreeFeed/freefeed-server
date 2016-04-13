@@ -56,9 +56,9 @@ export function addModel(dbAdapter, pgAdapter) {
     const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
     const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
 
-    await dbAdapter.setPostUpdatedAt(post.id, currentTime)
+    await pgAdapter.setPostUpdatedAt(post.id, currentTime)
     promises = allTimelines.map(timelineId => {
-      return dbAdapter.insertPostIntoTimeline(timelineId, currentTime, post.id)
+      return pgAdapter.insertPostIntoTimeline(timelineId, post.id)
     })
 
     await Promise.all(_.flatten(promises))
@@ -118,7 +118,7 @@ export function addModel(dbAdapter, pgAdapter) {
     if (!valid)
       return []
 
-    this.postIds = await dbAdapter.getTimelinePostsRange(this.id, offset, offset + limit - 1)
+    this.postIds = await pgAdapter.getTimelinePostsRange(this.id, offset, limit)
 
     return this.postIds
   }
@@ -146,7 +146,7 @@ export function addModel(dbAdapter, pgAdapter) {
       return true
     })
 
-    let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
+    let posts = (await pgAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
     posts = posts.filter(post => {
       if (!_.isString(post.userId)) {
         console.warn(`got weird uid (author of post ${post.id}): ${post.userId}`)  // eslint-disable-line no-console
@@ -232,21 +232,19 @@ export function addModel(dbAdapter, pgAdapter) {
    * @param timelineId
    */
   Timeline.prototype.mergeTo = async function(timelineId) {
-    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
+    await pgAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
 
     let timeline = await pgAdapter.getTimelineById(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
-    let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(postId, timelineId))
-
-    await Promise.all(promises)
+    await pgAdapter.createPostsUsagesInTimeline(postIds, timelineId)
   }
 
   Timeline.prototype.unmerge = async function(timelineId) {
-    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
+    let postIds = await pgAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
 
     await Promise.all(_.flatten(postIds.map((postId) =>
-      dbAdapter.withdrawPostFromTimeline(timelineId, postId)
+      pgAdapter.withdrawPostFromTimeline(timelineId, postId)
     )))
 
     return
@@ -314,7 +312,7 @@ export function addModel(dbAdapter, pgAdapter) {
 
   Timeline.prototype.updatePost = async function(postId, action) {
     if (action === "like") {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(this.id, postId)
+      let postInTimeline = await pgAdapter.isPostPresentInTimeline(this.id, postId)
 
       if (postInTimeline) {
         // For the time being, like does not bump post if it is already present in timeline
@@ -325,8 +323,8 @@ export function addModel(dbAdapter, pgAdapter) {
     var currentTime = new Date().getTime()
 
     await Promise.all([
-      dbAdapter.insertPostIntoTimeline(this.id, currentTime, postId),
-      dbAdapter.setPostUpdatedAt(postId, currentTime)
+      pgAdapter.insertPostIntoTimeline(this.id, postId),
+      pgAdapter.setPostUpdatedAt(postId, currentTime)
     ])
 
     // does not update lastActivity on like
