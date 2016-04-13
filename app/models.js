@@ -9,7 +9,6 @@ import { addModel as attachmentModel } from './models/attachment'
 import { addModel as commentModel } from './models/comment'
 import { addModel as groupModel } from './models/group'
 import { addModel as postModel } from './models/post'
-import { addModel as statsModel } from './models/stats'
 import { addModel as timelineModel } from './models/timeline'
 import { addModel as userModel } from './models/user'
 
@@ -46,7 +45,6 @@ export const Post          = postModel(dbAdapter, pgAdapter)
 export const Timeline      = timelineModel(dbAdapter, pgAdapter)
 export const Attachment    = attachmentModel(dbAdapter, pgAdapter)
 export const Comment       = commentModel(dbAdapter, pgAdapter)
-export const Stats         = statsModel(dbAdapter, pgAdapter)
 
 export const AdminSerializer               = adminSerializer()
 export const UserSerializer                = userSerializer()

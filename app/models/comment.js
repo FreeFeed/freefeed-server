@@ -60,9 +60,6 @@ export function addModel(dbAdapter, pgAdapter) {
     let post = await pgAdapter.getPostById(this.postId)
     let timelines = await post.addComment(this)
 
-    let stats = await dbAdapter.getStatsById(this.userId)
-    await stats.addComment()
-
     return timelines
   }
 
@@ -103,11 +100,7 @@ export function addModel(dbAdapter, pgAdapter) {
     let user = await pgAdapter.getUserById(this.userId)
     let timelineId = await user.getCommentsTimelineId()
 
-    await pgAdapter.withdrawPostFromTimeline(timelineId, this.postId)
-
-    let stats = await dbAdapter.getStatsById(this.userId)
-    let res = await stats.removeComment()
-    return res
+    return pgAdapter.withdrawPostFromTimeline(timelineId, this.postId)
   }
 
   Comment.prototype.getCreatedBy = function() {

@@ -88,8 +88,6 @@ export function addModel(dbAdapter, pgAdapter) {
     await this.linkAttachments()
 
     await Timeline.publishPost(this)
-    var stats = await dbAdapter.getStatsById(this.userId)
-    await stats.addPost()
 
     timer.stop()
     monitor.increment('posts.creates')
@@ -149,11 +147,6 @@ export function addModel(dbAdapter, pgAdapter) {
     const comments = await this.getComments()
     await Promise.all(comments.map(comment => comment.destroy()))
 
-    // decrement likes counter for users who liked this post
-    const userIds = await this.getLikeIds()
-    const likesStatObjects = await dbAdapter.getStatsByIds(userIds)
-    await Promise.all(likesStatObjects.map(stat => stat.removeLike()))
-
     const timelineIds = await this.getTimelineIds()
     await Promise.all(timelineIds.map(async (timelineId) => {
       await pgAdapter.withdrawPostFromTimeline(timelineId, this.id)
@@ -162,9 +155,6 @@ export function addModel(dbAdapter, pgAdapter) {
     await pgAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
-
-    const authorStats = await dbAdapter.getStatsById(this.userId)
-    await authorStats.removePost()
 
     monitor.increment('posts.destroys')
   }
@@ -565,8 +555,7 @@ export function addModel(dbAdapter, pgAdapter) {
     monitor.increment('posts.unlikes')
     monitor.increment('posts.unreactions')
 
-    let stats = await dbAdapter.getStatsById(userId)
-    return stats.removeLike()
+    return true
   }
 
   Post.prototype.isBannedFor = async function(userId) {

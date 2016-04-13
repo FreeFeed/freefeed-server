@@ -11,7 +11,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
-import { Attachment, Comment, Post, Stats, Timeline } from '../models'
+import { Attachment, Comment, Post, Timeline } from '../models'
 
 
 promisifyAll(bcrypt)
@@ -307,12 +307,6 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     }
     this.id = await pgAdapter.createUser(payload)
     await pgAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
-
-    var stats = new Stats({
-      id: this.id
-    })
-
-    await stats.create()
     timer.stop() // @todo finally {}
     monitor.increment('users.creates')
 
@@ -765,9 +759,6 @@ exports.addModel = function(dbAdapter, pgAdapter) {
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
 
-    promises.push((await dbAdapter.getStatsById(this.id)).addSubscription())
-    promises.push((await dbAdapter.getStatsById(user.id)).addSubscriber())
-
     await Promise.all(promises)
 
     monitor.increment('users.subscriptions')
@@ -819,10 +810,6 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     if (options.comments)
       promises.push(timeline.unmerge(await this.getCommentsTimelineId()))
 
-    // update counters for subscriber and her friend
-    promises.push((await dbAdapter.getStatsById(this.id)).removeSubscription())
-    promises.push((await dbAdapter.getStatsById(user.id)).removeSubscriber())
-
     await Promise.all(promises)
 
     monitor.increment('users.unsubscriptions')
@@ -830,8 +817,14 @@ exports.addModel = function(dbAdapter, pgAdapter) {
     return this
   }
 
-  User.prototype.getStatistics = function() {
-    return dbAdapter.getStatsById(this.id)
+  User.prototype.getStatistics = async function() {
+    return {
+      posts:         await pgAdapter.getUserPostsCount(this.id),
+      likes:         await pgAdapter.getUserLikesCount(this.id),
+      comments:      await pgAdapter.getUserCommentsCount(this.id),
+      subscribers:   (await this.getSubscriberIds()).length,
+      subscriptions: (await this.getFriendIds()).length
+    }
   }
 
   User.prototype.newComment = function(attrs) {
