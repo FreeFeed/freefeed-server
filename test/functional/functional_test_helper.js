@@ -3,7 +3,6 @@ import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
 import uuid from 'uuid'
-import { mkKey } from '../../app/support/DbAdapter'
 import { pgAdapter } from '../../app/models'
 
 import { getSingleton as initApp } from '../../app/app'

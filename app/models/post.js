@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { Timeline, PubSub as pubSub } from '../models'
 
 
-export function addModel(dbAdapter, pgAdapter) {
+export function addModel(pgAdapter) {
   /**
    * @constructor
    */

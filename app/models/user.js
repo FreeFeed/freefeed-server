@@ -20,7 +20,7 @@ promisifyAll(gm)
 
 let config = configLoader()
 
-exports.addModel = function(dbAdapter, pgAdapter) {
+exports.addModel = function(pgAdapter) {
   /**
    * @constructor
    */
