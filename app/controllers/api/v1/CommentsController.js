@@ -1,6 +1,6 @@
 import monitor from 'monitor-dog'
 
-import { dbAdapter, pgAdapter, CommentSerializer, PubSub } from '../../../models'
+import { pgAdapter, CommentSerializer, PubSub } from '../../../models'
 import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -14,7 +14,7 @@ export default class CommentsController {
     var timer = monitor.timer('comments.create-time')
 
     try {
-      const post = await dbAdapter.getPostById(req.body.comment.postId)
+      const post = await pgAdapter.getPostById(req.body.comment.postId)
       if (!post) {
         throw new NotFoundException("Not found")
       }
@@ -99,7 +99,7 @@ export default class CommentsController {
       }
 
       if (comment.userId !== req.user.id) {
-        const post = await dbAdapter.getPostById(comment.postId);
+        const post = await pgAdapter.getPostById(comment.postId);
 
         if (null === post) {
           throw new NotFoundException("Can't find post")

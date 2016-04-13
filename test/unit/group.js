@@ -1,5 +1,5 @@
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, pgAdapter, User, Group } from '../../app/models'
+import { pgAdapter, User, Group } from '../../app/models'
 
 
 describe('Group', function() {

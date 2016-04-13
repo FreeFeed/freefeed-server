@@ -1,6 +1,6 @@
 import { isNull } from 'lodash'
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, pgAdapter, Comment, Post, User } from '../../app/models'
+import { pgAdapter, Comment, Post, User } from '../../app/models'
 
 
 describe('Comment', function() {
