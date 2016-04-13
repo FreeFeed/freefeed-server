@@ -1,6 +1,6 @@
 import _ from 'lodash'
 
-import { dbAdapter, pgAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
+import { pgAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
 import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -161,9 +161,6 @@ export default class PostsController {
       }
 
       let affectedTimelines = await post.addLike(req.user)
-
-      let stats = await dbAdapter.getStatsById(req.user.id)
-      await stats.addLike()
 
       res.status(200).send({})
 
