@@ -429,18 +429,18 @@ export class PgAdapter {
   }
 
   async getFeedOwnersByIds(ids) {
-    const responses = await this.database('users').whereIn('uid', ids)
+    const responses = await this.database('users').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
-    const objects = responses.map((attrs, i) => {
+    const objects = responses.map((attrs) => {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
       }
 
       if (attrs.type === 'group') {
-        return PgAdapter.initObject(Group, attrs, ids[i])
+        return PgAdapter.initObject(Group, attrs, attrs.id)
       }
 
-      return PgAdapter.initObject(User, attrs, ids[i])
+      return PgAdapter.initObject(User, attrs, attrs.id)
     })
 
     return objects
@@ -631,14 +631,14 @@ export class PgAdapter {
   }
 
   async getAttachmentsByIds(ids) {
-    const responses = await this.database('attachments').whereIn('uid', ids)
+    const responses = await this.database('attachments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
-    const objects = responses.map((attrs, i) => {
+    const objects = responses.map((attrs) => {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
       }
 
-      return PgAdapter.initObject(Attachment, attrs, ids[i])
+      return PgAdapter.initObject(Attachment, attrs, attrs.id)
     })
 
     return objects
@@ -761,14 +761,14 @@ export class PgAdapter {
   }
 
   async getCommentsByIds(ids) {
-    const responses = await this.database('comments').whereIn('uid', ids)
+    const responses = await this.database('comments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
-    const objects = responses.map((attrs, i) => {
+    const objects = responses.map((attrs) => {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
       }
 
-      return PgAdapter.initObject(Comment, attrs, ids[i])
+      return PgAdapter.initObject(Comment, attrs, attrs.id)
     })
 
     return objects
@@ -890,7 +890,7 @@ export class PgAdapter {
   }
 
   async getTimelinesByIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('uid', ids)
+    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
     const objects = responses.map((attrs) => {
       if (attrs){
