@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
-import { dbAdapter, pgAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
+import { pgAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
 import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { load as configLoader } from "../../../../config/config"
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -338,7 +338,7 @@ export default class UsersController {
       }
 
       const timelineId = await user.getPostsTimelineId()
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
       if (isSubscribed) {
         throw new ForbiddenException("You are already subscribed to that user")
       }
@@ -377,7 +377,7 @@ export default class UsersController {
 
       var timelineId = await req.user.getPostsTimelineId()
 
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }
@@ -408,7 +408,7 @@ export default class UsersController {
 
       var timelineId = await user.getPostsTimelineId()
 
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }

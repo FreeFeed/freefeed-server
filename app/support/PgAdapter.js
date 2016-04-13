@@ -1069,4 +1069,60 @@ export class PgAdapter {
 
     return _.intersection(postIds1, postIds2)
   }
+
+  ///////////////////////////////////////////////////
+  // Subscriptions
+  ///////////////////////////////////////////////////
+
+  async getUserSubscriptionsIds(userId) {
+    const res = await this.database('subscriptions').select('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
+    const attrs = res.map((record)=>{
+      return record.feed_id
+    })
+    return attrs
+  }
+
+  async isUserSubscribedToTimeline(currentUserId, timelineId){
+    const res = await this.database('subscriptions').where({
+      feed_id: timelineId,
+      user_id: currentUserId
+    }).count()
+    return parseInt(res[0].count) != 0
+  }
+
+  async getTimelineSubscribers(timelineId) {
+    const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
+    const attrs = res.map((record)=>{
+      return record.user_id
+    })
+    return attrs
+  }
+
+  async subscribeUserToTimeline(timelineId, currentUserId){
+    const currentTime = new Date().toISOString()
+
+    const payload = {
+      feed_id: timelineId,
+      user_id: currentUserId,
+      created_at: currentTime
+    }
+    await this.database('subscriptions').returning('id').insert(payload)
+
+    let feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineId]))[0]
+
+    return this.database
+      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ?', [[feedIntId], currentUserId])
+  }
+
+  async unsubscribeUserFromTimeline(timelineId, currentUserId){
+    await this.database('subscriptions').where({
+      feed_id: timelineId,
+      user_id: currentUserId
+    }).delete()
+
+    let feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineId]))[0]
+
+    return this.database
+      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ?', [[feedIntId], currentUserId])
+  }
 }

@@ -258,7 +258,7 @@ export function addModel(dbAdapter, pgAdapter) {
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
   Timeline.prototype.getSubscriberIds = async function(includeSelf) {
-    let userIds = await dbAdapter.getTimelineSubscribers(this.id)
+    let userIds = await pgAdapter.getTimelineSubscribers(this.id)
 
     // A user is always subscribed to their own posts timeline.
     if (includeSelf && (this.isPosts() || this.isDirects())) {
