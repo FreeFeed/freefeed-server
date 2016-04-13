@@ -2,7 +2,7 @@ import { inherits } from "util"
 
 import _ from 'lodash'
 
-import { Stats, User } from '../models'
+import { User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
@@ -103,11 +103,7 @@ export function addModel(dbAdapter, pgAdapter) {
       }
       this.id = await pgAdapter.createUser(payload)
 
-      var stats = new Stats({
-        id: this.id
-      })
-
-      let promises = [stats.create()]
+      let promises = []
       promises.push(pgAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts']))
 
       if (ownerId) {
