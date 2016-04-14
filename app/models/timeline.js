@@ -155,6 +155,44 @@ export function addModel(pgAdapter) {
       return true
     })
 
+    if (reader) {
+      let oldestPostTime
+      if (posts[posts.length - 1]) {
+        oldestPostTime = posts[posts.length - 1].updatedAt
+      }
+
+      let localBumps = await pgAdapter.getUserLocalBumps(reader.id, oldestPostTime)
+      let localBumpedPostIds = localBumps.map((bump) => { return bump.postId })
+
+      let absentPostIds = _.difference(localBumpedPostIds, postIds)
+      if (absentPostIds.length > 0){
+        let localBumpedPosts = await pgAdapter.getPostsByIds(absentPostIds, {currentUser: this.currentUser})
+        localBumpedPosts = _.sortBy(localBumpedPosts, (post)=>{
+          return _.indexOf(absentPostIds, post.id)
+        })
+        posts = localBumpedPosts.concat(posts)
+      }
+
+      for (let p of posts){
+        if(_.includes(localBumpedPostIds, p.id)){
+          let bump = _.find(localBumps, (b)=>{ return b.postId === p.id })
+          p.bumpedAt = bump.bumpedAt
+        }
+      }
+    }
+
+    posts.sort((p1, p2)=>{
+      let t1 = p1.updatedAt
+      let t2 = p2.updatedAt
+      if (p1.bumpedAt){
+        t1 = p1.bumpedAt
+      }
+      if (p2.bumpedAt){
+        t2 = p2.bumpedAt
+      }
+      return t2 - t1
+    })
+
     let uids = _.uniq(posts.map(post => post.userId))
     let users = (await pgAdapter.getUsersByIds(uids)).filter(Boolean)
     let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
@@ -322,10 +360,17 @@ export function addModel(pgAdapter) {
 
     var currentTime = new Date().getTime()
 
-    await Promise.all([
-      pgAdapter.insertPostIntoTimeline(this.id, postId),
-      pgAdapter.setPostUpdatedAt(postId, currentTime)
-    ])
+    if (action === "like") {
+      await pgAdapter.insertPostIntoTimeline(this.id, postId)
+      if(this.isRiverOfNews()) {
+        await pgAdapter.createLocalBump(postId, this.userId)
+      }
+    } else {
+      await Promise.all([
+        pgAdapter.insertPostIntoTimeline(this.id, postId),
+        pgAdapter.setPostUpdatedAt(postId, currentTime)
+      ])
+    }
 
     // does not update lastActivity on like
     if (action === 'like') {
