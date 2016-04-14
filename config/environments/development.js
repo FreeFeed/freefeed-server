@@ -1,3 +1,5 @@
+import {development as postgresConfig} from '../../knexfile'
+
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
 process.env.MONITOR_PREFIX = 'development'
 
@@ -120,18 +122,7 @@ export function getConfig() {
     }
   }
 
-  config.postgres = {
-    client: 'postgresql',
-    connection: {
-      database: 'freefeed_development',
-      user:     'vagrant',
-      password: 'vagrant'
-    },
-    pool: {
-      min: 2,
-      max: 10
-    }
-  }
+  config.postgres = postgresConfig
 
   return config
 }
