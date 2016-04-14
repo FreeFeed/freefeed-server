@@ -818,13 +818,21 @@ exports.addModel = function(pgAdapter) {
   }
 
   User.prototype.getStatistics = async function() {
-    return {
-      posts:         await pgAdapter.getUserPostsCount(this.id),
-      likes:         await pgAdapter.getUserLikesCount(this.id),
-      comments:      await pgAdapter.getUserCommentsCount(this.id),
-      subscribers:   (await this.getSubscriberIds()).length,
-      subscriptions: (await this.getFriendIds()).length
+    let res
+
+    try {
+      res = {
+        posts:         await pgAdapter.getUserPostsCount(this.id),
+        likes:         await pgAdapter.getUserLikesCount(this.id),
+        comments:      await pgAdapter.getUserCommentsCount(this.id),
+        subscribers:   (await this.getSubscriberIds()).length,
+        subscriptions: (await this.getFriendIds()).length
+      }
+    } catch (e) {
+      res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
     }
+
+    return res
   }
 
   User.prototype.newComment = function(attrs) {
