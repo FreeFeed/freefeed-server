@@ -18,6 +18,22 @@ module.exports = {
     }
   },
 
+  test: {
+    client: 'postgresql',
+    connection: {
+      database: 'freefeed_test',
+      user:     'freefeed',
+      password: 'freefeed'
+    },
+    pool: {
+      min: 2,
+      max: 10
+    },
+    migrations: {
+      tableName: 'knex_migrations'
+    }
+  },
+
   staging: {
     client: 'postgresql',
     connection: {
