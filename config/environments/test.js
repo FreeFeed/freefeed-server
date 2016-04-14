@@ -1,4 +1,5 @@
 import stubTransport from 'nodemailer-stub-transport'
+import {test as postgresConfig} from '../../knexfile'
 
 
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
@@ -75,18 +76,7 @@ export function getConfig() {
     options: {}
   }
 
-  config.postgres = {
-    client: 'postgresql',
-    connection: {
-      database: 'freefeed_test',
-      user:     'vagrant',
-      password: 'vagrant'
-    },
-    pool: {
-      min: 2,
-      max: 10
-    }
-  }
+  config.postgres = postgresConfig
 
   return config
 }
