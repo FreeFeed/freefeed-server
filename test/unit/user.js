@@ -300,7 +300,7 @@ describe('User', function() {
           })
         })
         .catch(function(e) {
-          e.message.should.eql("Invalid screenname")
+          e.message.should.eql(`"" is not a valid display name. Names must be between 3 and 25 characters long.`)
           done()
         })
     })
