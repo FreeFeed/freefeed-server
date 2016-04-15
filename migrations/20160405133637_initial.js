@@ -1,23 +1,38 @@
 
 exports.up = function(knex, Promise) {
   return Promise.all([
+    knex.raw("SET statement_timeout = 0"),
+    knex.raw("SET lock_timeout = 0"),
+    knex.raw("SET client_encoding = 'UTF8'"),
+    knex.raw("SET standard_conforming_strings = on"),
+    knex.raw("SET check_function_bodies = false"),
+    knex.raw("SET client_min_messages = warning"),
+    knex.raw("SET row_security = off"),
+    knex.raw("CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog"),
+    knex.raw("CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public"),
+    knex.raw("CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public"),
+    knex.raw("SET search_path = public, pg_catalog"),
+    knex.raw("SET default_tablespace = ''"),
+    knex.raw("SET default_with_oids = false"),
+
     knex.schema.createTable('users', function(table) {
       table.increments().notNullable().primary();
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
-      table.text('username').notNullable();
+      table.text('username').notNullable().unique();
       table.text('screen_name').notNullable();
       table.text('description').defaultTo('').notNullable();
-      table.string('type').defaultTo('user').notNullable();
-      table.text('profile_picture_uuid').notNullable();
+      table.text('type').defaultTo('user').notNullable();
+      table.text('profile_picture_uuid');
       table.text('email');//NB! email not required here, maybe change?
-      table.timestamps();
+      table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
+      table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
       table.boolean('is_private').defaultTo(false).notNullable();
       table.boolean('is_restricted').defaultTo(false).notNullable();
-      table.text('hashed_password').notNullable();
+      table.text('hashed_password');
       table.text('reset_password_token');
       table.timestamp('reset_password_sent_at');
       table.timestamp('reset_password_expires_at');
-      table.text('frontendPreferences');
+      table.text('frontend_preferences');
       table.specificType('subscribed_feed_ids', 'integer[]').defaultTo(knex.raw('ARRAY[]::integer[]')).notNullable();
       table.specificType('hidden_feed_ids', 'integer[]').defaultTo(knex.raw('ARRAY[]::integer[]')).notNullable();
 
@@ -38,10 +53,11 @@ exports.up = function(knex, Promise) {
       table.increments().notNullable().primary();
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
       table.text('body');
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
-      table.timestamps();
+      table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
+      table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
       table.boolean('comments_disabled').defaultTo(false).notNullable();
       table.specificType('feed_ids', 'integer[]').defaultTo(knex.raw('ARRAY[]::integer[]')).notNullable();
       table.specificType('destination_feed_ids', 'integer[]').defaultTo(knex.raw('ARRAY[]::integer[]')).notNullable();
@@ -56,19 +72,16 @@ exports.up = function(knex, Promise) {
     knex.schema.createTable('attachments', function(table) {
       table.increments().notNullable().primary();
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
-      table.timestamps();
+      table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
+      table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
       table.text('file_name');
-      table.biginteger('file_size').notNullable();
-      table.text('mime_type').notNullable();
-      table.text('media_type').notNullable();
-      table.string('file_extension');
-      table.boolean('no_thumbnail').notNullable();
-      table.integer('post_id').notNullable()
-        .references('id').inTable('posts')
-        .onUpdate('cascade').onDelete('cascade');
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
-        .onUpdate('cascade').onDelete('cascade');
+      table.biginteger('file_size');
+      table.text('mime_type');
+      table.text('media_type');
+      table.text('file_extension');
+      table.boolean('no_thumbnail').defaultTo(true).notNullable();
+      table.uuid('post_id');
+      table.uuid('user_id');
       table.text('artist');
       table.text('title');
       table.text('image_sizes');
@@ -81,11 +94,11 @@ exports.up = function(knex, Promise) {
 
     knex.schema.createTable('bans', function(table) {
       table.increments().notNullable().primary();
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
-      table.integer('banned_user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('banned_user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
 
@@ -97,13 +110,13 @@ exports.up = function(knex, Promise) {
       table.increments().notNullable().primary();
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
       table.text('body');
-      table.integer('post_id').notNullable()
-        .references('id').inTable('posts')
+      table.uuid('post_id').notNullable();
+      //TODO: foreign key post_id (fix tests)
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
-        .onUpdate('cascade').onDelete('cascade');
-      table.timestamps();
+      table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
+      table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
 
       table.index('uid', 'comments_uid_idx', 'btree');
       table.index('created_at', 'comments_created_at_idx', 'btree');
@@ -114,11 +127,11 @@ exports.up = function(knex, Promise) {
     knex.schema.createTable('feeds', function(table) {
       table.increments().notNullable().primary();
       table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
-      table.string('name').notNullable();
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
-        .onUpdate('cascade').onDelete('cascade');
-      table.timestamps();
+      table.text('name').notNullable();
+      table.uuid('user_id').notNullable();
+      //TODO: foreign key user_id (fix tests)
+      table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
+      table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
 
       table.index('uid', 'feeds_uid_idx', 'btree');
       table.index('created_at', 'feeds_created_at_idx', 'btree');
@@ -129,11 +142,11 @@ exports.up = function(knex, Promise) {
 
     knex.schema.createTable('group_admins', function(table) {
       table.increments().notNullable().primary();
-      table.integer('group_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('group_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');//Todo: add constraint(type=='group')
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');//Todo: add constraint(type=='user')
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
 
@@ -143,11 +156,10 @@ exports.up = function(knex, Promise) {
 
     knex.schema.createTable('likes', function(table) {
       table.increments().notNullable().primary();
-      table.integer('post_id').notNullable()
-        .references('id').inTable('posts')
-        .onUpdate('cascade').onDelete('cascade');
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('post_id').notNullable();
+      //TODO: foreign key post_id (fix tests)
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
 
@@ -155,13 +167,27 @@ exports.up = function(knex, Promise) {
       table.index(['post_id', 'user_id'], 'likes_post_id_user_id_idx', 'btree');
     }),
 
+    knex.schema.createTable('local_bumps', function(table) {
+      table.increments().notNullable().primary();
+      table.uuid('post_id').notNullable()
+        .references('uid').inTable('posts')
+        .onUpdate('cascade').onDelete('cascade');
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
+        .onUpdate('cascade').onDelete('cascade');
+      table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
+
+      table.index('created_at', 'local_bumps_created_at_idx', 'btree');
+      table.index(['post_id', 'user_id'], 'local_bumps_post_id_user_id_idx', 'btree');
+    }),
+
     knex.schema.createTable('subscription_requests', function(table) {
       table.increments().notNullable().primary();
-      table.integer('from_user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('from_user_id').notNullable().defaultTo(knex.raw('gen_random_uuid()'))
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
-      table.integer('to_user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('to_user_id').notNullable().defaultTo(knex.raw('gen_random_uuid()'))
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
 
@@ -171,11 +197,11 @@ exports.up = function(knex, Promise) {
 
     knex.schema.createTable('subscriptions', function(table) {
       table.increments().notNullable().primary();
-      table.integer('user_id').notNullable()
-        .references('id').inTable('users')
+      table.uuid('user_id').notNullable()
+        .references('uid').inTable('users')
         .onUpdate('cascade').onDelete('cascade');
-      table.integer('feed_id').notNullable()
-        .references('id').inTable('feeds')
+      table.uuid('feed_id').notNullable()
+        .references('uid').inTable('feeds')
         .onUpdate('cascade').onDelete('cascade');
       table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
 
@@ -189,6 +215,7 @@ exports.down = function(knex, Promise) {
   return Promise.all([
     knex.schema.dropTableIfExists('subscriptions'),
     knex.schema.dropTableIfExists('subscription_requests'),
+    knex.schema.dropTableIfExists('local_bumps'),
     knex.schema.dropTableIfExists('likes'),
     knex.schema.dropTableIfExists('group_admins'),
     knex.schema.dropTableIfExists('feeds'),
