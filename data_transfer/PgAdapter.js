@@ -41,34 +41,6 @@ const USER_COLUMNS_MAPPING = {
   }
 }
 
-const USER_FIELDS = {
-  uid:                        "id",
-  username:                   "username",
-  screen_name:                "screenName",
-  email:                      "email",
-  description:                "description",
-  type:                       "type",
-  profile_picture_uuid:       "profilePictureUuid",
-  created_at:                 "createdAt",
-  updated_at:                 "updatedAt",
-  is_private:                 "isPrivate",
-  is_restricted:              "isRestricted",
-  hashed_password:            "hashedPassword",
-  reset_password_token:       "resetPasswordToken",
-  reset_password_sent_at:     "resetPasswordSentAt",
-  reset_password_expires_at:  "resetPasswordExpiresAt",
-  frontend_preferences:       "frontendPreferences"
-}
-
-const USER_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
-  is_private:                 (is_private)=>{return is_private ? '1' : '0' },
-  is_restricted:              (is_restricted)=>{return is_restricted ? '1' : '0' },
-  reset_password_sent_at:     (time)=>{ return time && time.getTime() },
-  reset_password_expires_at:  (time)=>{ return time && time.getTime() }
-}
-
 const ATTACHMENT_COLUMNS = {
   createdAt:              "created_at",
   updatedAt:              "updated_at",
@@ -181,6 +153,7 @@ const COMMENT_FIELDS_MAPPING = {
 
 
 const FEED_COLUMNS = {
+  id:                     "uid",
   createdAt:              "created_at",
   updatedAt:              "updated_at",
   name:                   "name",
@@ -199,21 +172,6 @@ const FEED_COLUMNS_MAPPING = {
     return d.toISOString()
   }
 }
-
-const FEED_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  name:                   "name",
-  user_id:                "userId"
-}
-
-const FEED_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
-}
-
 
 const POST_COLUMNS = {
   createdAt:              "created_at",
@@ -578,94 +536,6 @@ export class PgAdapter {
     }
     const res = await this.database('feeds').returning('uid').insert(preparedPayload)
     return res[0]
-  }
-
-  createUserTimelines(userId, timelineNames) {
-    const currentTime = new Date().getTime()
-    let promises = timelineNames.map((n) => {
-      const payload = {
-        'name':      n,
-        'userId':    userId,
-        'createdAt': currentTime.toString(),
-        'updatedAt': currentTime.toString()
-      }
-      return this.createTimeline(payload)
-    })
-    return Promise.all(promises)
-  }
-
-  async getUserTimelinesIds(userId) {
-    const res = await this.database('feeds').where('user_id', userId)
-    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'})
-    const hides         = _.filter(res, (record) => { return record.name == 'Hides'})
-    const comments      = _.filter(res, (record) => { return record.name == 'Comments'})
-    const likes         = _.filter(res, (record) => { return record.name == 'Likes'})
-    const posts         = _.filter(res, (record) => { return record.name == 'Posts'})
-    const directs       = _.filter(res, (record) => { return record.name == 'Directs'})
-    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'})
-
-    let timelines =  {
-      'RiverOfNews':   riverOfNews[0] && riverOfNews[0].uid,
-      'Hides':         hides[0] && hides[0].uid,
-      'Comments':      comments[0] && comments[0].uid,
-      'Likes':         likes[0] && likes[0].uid,
-      'Posts':         posts[0] && posts[0].uid
-    }
-
-    if(directs[0]){
-      timelines['Directs'] = directs[0].uid
-    }
-
-    if(myDiscussions[0]){
-      timelines['MyDiscussions'] = myDiscussions[0].uid
-    }
-
-    return timelines
-  }
-
-  async getTimelineById(id, params) {
-    if (!validator.isUUID(id,4)){
-      return null
-    }
-    const res = await this.database('feeds').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return attrs
-  }
-
-  async getTimelinesByIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs){
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return attrs
-    })
-    return objects
-  }
-
-  async getTimelinesIntIdsByUUIDs(uuids) {
-    const responses = await this.database('feeds').select('id').whereIn('uid', uuids)
-
-    const ids = responses.map((record) => {
-      return record.id
-    })
-    return ids
-  }
-
-  async getTimelinesUUIDsByIntIds(ids) {
-    const responses = await this.database('feeds').select('uid').whereIn('id', ids)
-
-    const uuids = responses.map((record) => {
-      return record.uid
-    })
-    return uuids
   }
 
   ///////////////////////////////////////////////////
