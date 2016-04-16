@@ -5,9 +5,10 @@ export class DataTransfer{
     this.pgAdapter = pgAdapter
     this.redis = redis
 
-    this.writeUsers                 = true
-    this.writeSubscriptionRequests  = true
-    this.writeBans                  = true
+    this.writeUsers                 = false
+    this.writeSubscriptionRequests  = false
+    this.writeBans                  = false
+    this.writeAdmins                = false
   }
 
   async run(pgAdapter, redis){
@@ -18,6 +19,8 @@ export class DataTransfer{
     await this._transferSubscriptionRequests()
 
     await this._transferBans()
+
+    await this._transferGroupAdmins()
   }
 
   async _transferUsers(){
@@ -64,6 +67,21 @@ export class DataTransfer{
         console.log(id, b[0], b[1])
         if(this.writeBans){
           await this.pgAdapter.createUserBan(id, b[0], b[1])
+        }
+      }
+    }
+  }
+
+  async _transferGroupAdmins(){
+    for (let id of this.userIds){
+      console.log("Processing admins of user", id)
+
+      let adminsRaw = await this.redis.zrangeAsync(`user:${id}:administrators`, 0, -1, 'WITHSCORES')
+      let admins = _.chunk(adminsRaw, 2)
+      for (let a of admins){
+        console.log(id, a[0], a[1])
+        if(this.writeAdmins){
+          await this.pgAdapter.addAdministratorToGroup(id, a[0], a[1])
         }
       }
     }
