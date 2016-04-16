@@ -9,7 +9,8 @@
     "start": "babel-node --stage 1 --ignore node_modules index",
     "test": "eslint app && NODE_ENV=test mocha",
     "console": "babel-node --stage 1 --ignore node_modules bin/console",
-    "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec"
+    "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
+    "data_transfer": "babel-node --stage 1 --ignore node_modules data_transfer"
   },
   "repository": {
     "type": "git",
