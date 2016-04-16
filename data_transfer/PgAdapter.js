@@ -2,6 +2,7 @@ import _ from 'lodash'
 import validator from 'validator'
 
 const USER_COLUMNS = {
+  id:                     "uid",
   username:               "username",
   screenName:             "screen_name",
   email:                  "email",
@@ -263,10 +264,6 @@ export class PgAdapter {
   constructor(database) {
     this.database = database
   }
-
-  static initObject(classDef, attrs, id, params) {
-    return new classDef({...attrs, ...{id}, ...params})
-  }
   
   ///////////////////////////////////////////////////
   // User
@@ -291,251 +288,40 @@ export class PgAdapter {
     return res[0]
   }
 
-  updateUser(userId, payload) {
-    let tokenExpirationTime = new Date(Date.now())
-    const expireAfter = 60*60*24 // 24 hours
-
-    let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
-
-    if (_.has(preparedPayload, 'reset_password_token')) {
-      tokenExpirationTime.setHours(tokenExpirationTime.getHours() + expireAfter)
-      preparedPayload['reset_password_expires_at'] = tokenExpirationTime.toISOString()
-    }
-
-    return this.database('users').where('uid', userId).update(preparedPayload)
-  }
-
-  async existsUser(userId) {
-    const res = await this.database('users').where('uid', userId).count()
-    return parseInt(res[0].count)
-  }
-
-  async existsUsername(username) {
-    const res = await this.database('users').where('username', username).count()
-    return parseInt(res[0].count)
-  }
-
-  async existsUserEmail(email) {
-    const res = await this.database('users').whereRaw("LOWER(email)=LOWER(?)", email).count()
-    return parseInt(res[0].count)
-  }
-
-  async getUserById(id) {
-    const user = await this.getFeedOwnerById(id)
-
-    if (!user) {
-      return null
-    }
-
-    return user
-  }
-
-  async getUsersByIds(userIds) {
-    const users = await this.getFeedOwnersByIds(userIds)
-
-    return users
-  }
-
-  async getUserByUsername(username) {
-    const feed = await this.getFeedOwnerByUsername(username)
-
-    if (null === feed) {
-      return null
-    }
-
-    return feed
-  }
-
-  async getUserByResetToken(token) {
-    const res = await this.database('users').where('reset_password_token', token)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    if (attrs.type !== 'user') {
-      throw new Error(`Expected User, got ${attrs.type}`)
-    }
-
-    const now = new Date().getTime()
-    if (attrs.reset_password_expires_at < now){
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return attrs
-  }
-
-  async getUserByEmail(email) {
-    const res = await this.database('users').whereRaw("LOWER(email)=LOWER(?)", email)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    if (attrs.type !== 'user') {
-      throw new Error(`Expected User, got ${attrs.type}`)
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return attrs
-  }
-
-
-
-
-
-
-
-
-  async getFeedOwnerById(id) {
-    if (!validator.isUUID(id,4)){
-      return null
-    }
-    const res = await this.database('users').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return attrs
-  }
-
-  async getFeedOwnersByIds(ids) {
-    const responses = await this.database('users').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs){
-        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-      }
-
-      return attrs
-    })
-
-    return objects
-  }
-
-  async getFeedOwnerByUsername(username) {
-    const res = await this.database('users').where('username', username.toLowerCase())
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return attrs
-  }
-
-
-
-
-
-  async getGroupById(id) {
-    const user = await this.getFeedOwnerById(id)
-
-    if (!user) {
-      return null
-    }
-
-    return user
-  }
-
-  async getGroupByUsername(username) {
-    const feed = await this.getFeedOwnerByUsername(username)
-
-    if (null === feed) {
-      return null
-    }
-
-    return feed
-  }
-
-
   ///////////////////////////////////////////////////
   // Subscription requests
   ///////////////////////////////////////////////////
 
-  createSubscriptionRequest(fromUserId, toUserId){
-    const currentTime = new Date().toISOString()
+  createSubscriptionRequest(fromUserId, toUserId, timestamp){
+    const d = new Date()
+    d.setTime(timestamp)
+    const requestTime = d.toISOString()
 
     const payload = {
       from_user_id: fromUserId,
       to_user_id: toUserId,
-      created_at: currentTime
+      created_at: requestTime
     }
 
     return this.database('subscription_requests').returning('id').insert(payload)
-  }
-
-  deleteSubscriptionRequest(toUserId, fromUserId){
-    return this.database('subscription_requests').where({
-      from_user_id: fromUserId,
-      to_user_id: toUserId
-    }).delete()
-  }
-
-  async getUserSubscriptionRequestsIds(toUserId) {
-    const res = await this.database('subscription_requests').select('from_user_id').orderBy('created_at', 'desc').where('to_user_id', toUserId)
-    const attrs = res.map((record)=>{
-      return record.from_user_id
-    })
-    return attrs
-  }
-
-  async isSubscriptionRequestPresent(fromUserId, toUserId) {
-    const res = await this.database('subscription_requests').where({
-      from_user_id: fromUserId,
-      to_user_id: toUserId
-    }).count()
-    return parseInt(res[0].count) != 0
-  }
-
-  async getUserSubscriptionPendingRequestsIds(fromUserId) {
-    const res = await this.database('subscription_requests').select('to_user_id').orderBy('created_at', 'desc').where('from_user_id', fromUserId)
-    const attrs = res.map((record)=>{
-      return record.to_user_id
-    })
-    return attrs
   }
 
   ///////////////////////////////////////////////////
   // Bans
   ///////////////////////////////////////////////////
 
-  async getUserBansIds(userId) {
-    const res = await this.database('bans').select('banned_user_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record)=>{
-      return record.banned_user_id
-    })
-    return attrs
-  }
-
-  createUserBan(currentUserId, bannedUserId) {
-    const currentTime = new Date().toISOString()
+  createUserBan(currentUserId, bannedUserId, timestamp){
+    const d = new Date()
+    d.setTime(timestamp)
+    const banTime = d.toISOString()
 
     const payload = {
       user_id: currentUserId,
       banned_user_id: bannedUserId,
-      created_at: currentTime
+      created_at: banTime
     }
 
     return this.database('bans').returning('id').insert(payload)
-  }
-
-  deleteUserBan(currentUserId, bannedUserId) {
-    return this.database('bans').where({
-      user_id: currentUserId,
-      banned_user_id: bannedUserId
-    }).delete()
   }
 
   ///////////////////////////////////////////////////
