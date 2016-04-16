@@ -7,6 +7,7 @@ import { selectDatabase } from './config/database'
 import { connect as redisConnection } from './config/database'
 import { connect as postgresConnection } from './config/postgres'
 import { PgAdapter } from './data_transfer/PgAdapter'
+import { DataTransfer } from './data_transfer/transfer'
 
 
 const postgres = postgresConnection()
@@ -18,6 +19,8 @@ async function main(){
   await selectDatabase()
   redis = redisConnection()
   console.log("Redis initialized")
+  let transfer = new DataTransfer(pgAdapter, redis)
+  await transfer.run()
 }
 
 main().then(()=> {
