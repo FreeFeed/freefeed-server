@@ -328,16 +328,10 @@ export class PgAdapter {
   // Group administrators
   ///////////////////////////////////////////////////
 
-  async getGroupAdministratorsIds(groupId) {
-    const res = await this.database('group_admins').select('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
-    const attrs = res.map((record)=>{
-      return record.user_id
-    })
-    return attrs
-  }
-
-  addAdministratorToGroup(groupId, adminId) {
-    const currentTime = new Date().toISOString()
+  addAdministratorToGroup(groupId, adminId, timestamp){
+    const d = new Date()
+    d.setTime(timestamp)
+    const currentTime = d.toISOString()
 
     const payload = {
       user_id: adminId,
@@ -346,13 +340,6 @@ export class PgAdapter {
     }
 
     return this.database('group_admins').returning('id').insert(payload)
-  }
-
-  removeAdministratorFromGroup(groupId, adminId) {
-    return this.database('group_admins').where({
-      user_id: adminId,
-      group_id: groupId
-    }).delete()
   }
 
   ///////////////////////////////////////////////////
