@@ -9,6 +9,8 @@ export class DataTransfer{
     this.writeSubscriptionRequests  = false
     this.writeBans                  = false
     this.writeAdmins                = false
+    this.writeUserFeeds             = false
+    this.writeGroupFeeds            = false
   }
 
   async run(pgAdapter, redis){
@@ -21,6 +23,8 @@ export class DataTransfer{
     await this._transferBans()
 
     await this._transferGroupAdmins()
+
+    await this._transferFeeds()
   }
 
   async _transferUsers(){
@@ -85,5 +89,74 @@ export class DataTransfer{
         }
       }
     }
+  }
+
+  async _transferFeeds(){
+    for (let id of this.userIds){
+      const user = await this.redis.hgetallAsync(`user:${id}`)
+      if (user.type === 'user') {
+        await this._transferUserFeeds(id)
+      } else {
+        await this._transferGroupFeeds(id)
+      }
+    }
+  }
+
+  async _transferUserFeeds(id){
+    console.log("Processing feeds of user", id)
+
+    let requiredFeedIds = {
+      'RiverOfNews':   null,
+      'Hides':         null,
+      'Comments':      null,
+      'Likes':         null,
+      'Posts':         null,
+      'Directs':       null,
+      'MyDiscussions': null
+    }
+
+    let userFeedIds = await this.redis.hgetallAsync(`user:${id}:timelines`)
+    _.merge(requiredFeedIds, userFeedIds)
+
+    return Promise.all(_.map(requiredFeedIds, async (feedId, feedName)=>{
+      let feed = {
+        name: feedName,
+        userId: id
+      }
+      if (feedId){
+        feed = await this.redis.hgetallAsync(`timeline:${feedId}`)
+      }
+      if(this.writeUserFeeds){
+        await this.pgAdapter.createTimeline(feed)
+      }
+    }))
+  }
+
+  async _transferGroupFeeds(id){
+    console.log("Processing feeds of group", id)
+
+    let requiredFeedIds = {
+      'RiverOfNews':   null,
+      'Hides':         null,
+      'Comments':      null,
+      'Likes':         null,
+      'Posts':         null
+    }
+
+    let groupFeedIds = await this.redis.hgetallAsync(`user:${id}:timelines`)
+    _.merge(requiredFeedIds, groupFeedIds)
+
+    return Promise.all(_.map(requiredFeedIds, async (feedId, feedName)=>{
+      let feed = {
+        name: feedName,
+        userId: id
+      }
+      if (feedId){
+        feed = await this.redis.hgetallAsync(`timeline:${feedId}`)
+      }
+      if(this.writeGroupFeeds){
+        await this.pgAdapter.createTimeline(feed)
+      }
+    }))
   }
 }
