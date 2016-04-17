@@ -11,6 +11,7 @@ export class DataTransfer{
     this.writeAdmins                = false
     this.writeUserFeeds             = false
     this.writeGroupFeeds            = false
+    this.writeSubscriptions         = false
   }
 
   async run(pgAdapter, redis){
@@ -25,6 +26,8 @@ export class DataTransfer{
     await this._transferGroupAdmins()
 
     await this._transferFeeds()
+
+    await this._transferSubscriptions()
   }
 
   async _transferUsers(){
@@ -160,5 +163,20 @@ export class DataTransfer{
         await this.pgAdapter.createTimeline(feed)
       }
     }))
+  }
+
+  async _transferSubscriptions(){
+    for (let id of this.userIds){
+      console.log("Processing subscriptions of user", id)
+
+      let subsRaw = await this.redis.zrangeAsync(`user:${id}:subscriptions`, 0, -1, 'WITHSCORES')
+      let subs = _.chunk(subsRaw, 2)
+      for (let s of subs){
+        console.log(id, s[0], s[1])
+        if(this.writeSubscriptions){
+          await this.pgAdapter.subscribeUserToTimeline(s[0], id, s[1])
+        }
+      }
+    }
   }
 }
