@@ -14,6 +14,7 @@ export class DataTransfer{
     this.writeSubscriptions         = false
     this.writePosts                 = false
     this.writeAttachments           = false
+    this.writeComments              = false
   }
 
   async run(pgAdapter, redis){
@@ -38,6 +39,10 @@ export class DataTransfer{
     this.attachmentKeys = await this.redis.keysAsync("attachment:????????????????????????????????????")
 
     this.attachmentIds = await this._transferAttachments()
+
+    this.commentKeys = await this.redis.keysAsync("comment:????????????????????????????????????")
+
+    this.commentIds = await this._transferComments()
   }
 
   async _transferUsers(){
@@ -229,5 +234,26 @@ export class DataTransfer{
       attachmentIds.push(attachmentId)
     }
     return attachmentIds
+  }
+
+  async _transferComments(){
+    let commentIds = []
+    for (let k of this.commentKeys){
+      const commentId = k.substr(8)
+
+      console.log("Processing comment", commentId)
+
+      const commentHash = await this.redis.hgetallAsync(k)
+      commentHash.id = commentId
+
+      console.log(commentHash)
+
+      if( this.writeComments ) {
+        await this.pgAdapter.createComment(commentHash)
+      }
+
+      commentIds.push(commentId)
+    }
+    return commentIds
   }
 }

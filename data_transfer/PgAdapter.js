@@ -89,6 +89,7 @@ const ATTACHMENT_COLUMNS_MAPPING = {
 
 
 const COMMENT_COLUMNS = {
+  id:                     "uid",
   createdAt:              "created_at",
   updatedAt:              "updated_at",
   body:                   "body",
@@ -108,23 +109,6 @@ const COMMENT_COLUMNS_MAPPING = {
     return d.toISOString()
   }
 }
-
-const COMMENT_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  body:                   "body",
-  user_id:                "userId",
-  post_id:                "postId"
-}
-
-const COMMENT_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
-  post_id:                    (post_id)=> {return post_id ? post_id : ''},
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
-}
-
 
 const FEED_COLUMNS = {
   id:                     "uid",
@@ -346,84 +330,6 @@ export class PgAdapter {
     const res = await this.database('comments').returning('uid').insert(preparedPayload)
     return res[0]
   }
-
-  async getCommentById(id) {
-    if (!validator.isUUID(id,4)){
-      return null
-    }
-    const res = await this.database('comments').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-    return attrs
-  }
-
-  async getCommentsByIds(ids) {
-    const responses = await this.database('comments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs){
-        attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-      }
-
-      return attrs
-    })
-
-    return objects
-  }
-
-  updateComment(commentId, payload) {
-    let preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
-
-    return this.database('comments').where('uid', commentId).update(preparedPayload)
-  }
-
-  deleteComment(commentId, postId) {
-    return this.database('comments').where({
-      uid: commentId,
-      post_id: postId
-    }).delete()
-  }
-
-  async getPostCommentsCount(postId) {
-    const res = await this.database('comments').where({ post_id: postId }).count()
-    return parseInt(res[0].count)
-  }
-
-  async getUserCommentsCount(userId){
-    const res = await this.database('comments').where({ user_id: userId }).count()
-    return parseInt(res[0].count)
-  }
-
-  async getPostFirstNCommentsIds(postId, n){
-    const res = await this.database('comments').select('uid').limit(n).orderBy('created_at', 'asc').where('post_id', postId)
-    let commentIds = res.map((record)=>{
-      return record.uid
-    })
-    return commentIds
-  }
-
-  async getPostLastCommentId(postId){
-    const res = await this.database('comments').select('uid').limit(1).orderBy('created_at', 'desc').where('post_id', postId)
-    return res[0].uid
-  }
-
-  async getAllPostCommentsIds(postId){
-    const res = await this.database('comments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
-    let commentIds = res.map((record)=>{
-      return record.uid
-    })
-    return commentIds
-  }
-
-  _deletePostComments(postId) {
-    return this.database('comments').where({ post_id: postId }).delete()
-  }
-
 
   ///////////////////////////////////////////////////
   // Feeds
