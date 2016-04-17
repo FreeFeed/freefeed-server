@@ -12,6 +12,7 @@ export class DataTransfer{
     this.writeUserFeeds             = false
     this.writeGroupFeeds            = false
     this.writeSubscriptions         = false
+    this.writePosts                 = false
   }
 
   async run(pgAdapter, redis){
@@ -28,6 +29,10 @@ export class DataTransfer{
     await this._transferFeeds()
 
     await this._transferSubscriptions()
+
+    this.postKeys = await this.redis.keysAsync("post:????????????????????????????????????")
+
+    this.postIds = await this._transferPosts()
   }
 
   async _transferUsers(){
@@ -178,5 +183,27 @@ export class DataTransfer{
         }
       }
     }
+  }
+
+  async _transferPosts(){
+    let postIds = []
+    for (let k of this.postKeys){
+      const postId = k.substr(5)
+
+      console.log("Processing post", postId)
+
+      const postHash = await this.redis.hgetallAsync(k)
+      postHash.id = postId
+
+      const postDestinations = await this.redis.smembersAsync(`post:${postId}:to`)
+      const postUsages = await this.redis.smembersAsync(`post:${postId}:timelines`)
+
+      if( this.writePosts ) {
+        await this.pgAdapter.createPost(postHash, postDestinations, postUsages)
+      }
+
+      postIds.push(postId)
+    }
+    return postIds
   }
 }

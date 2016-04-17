@@ -174,6 +174,7 @@ const FEED_COLUMNS_MAPPING = {
 }
 
 const POST_COLUMNS = {
+  id:                     "uid",
   createdAt:              "created_at",
   updatedAt:              "updated_at",
   userId:                 "user_id",
@@ -200,23 +201,6 @@ const POST_COLUMNS_MAPPING = {
     return null
   }
 }
-
-const POST_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  user_id:                "userId",
-  body:                   "body",
-  comments_disabled:      "commentsDisabled"
-}
-
-const POST_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
-  comments_disabled:          (comments_disabled)=>{return comments_disabled ? '1' : '0' },
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
-}
-
 
 export class PgAdapter {
   constructor(database) {
@@ -551,157 +535,16 @@ export class PgAdapter {
   // Post
   ///////////////////////////////////////////////////
 
-  async createPost(payload, destinations) {
+  async createPost(payload, destinations, usages) {
     let preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     let destTimelineIntIds = await this.getTimelinesIntIdsByUUIDs(destinations)
     preparedPayload.destination_feed_ids = destTimelineIntIds
+    let usagesTimelineIntIds = await this.getTimelinesIntIdsByUUIDs(usages)
+    preparedPayload.feed_ids = usagesTimelineIntIds
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
   }
 
-  updatePost(postId, payload) {
-    let preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
-    return this.database('posts').where('uid', postId).update(preparedPayload)
-  }
-
-  async getPostById(id, params) {
-    if (!validator.isUUID(id,4)){
-      return null
-    }
-    const res = await this.database('posts').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-    return attrs
-  }
-
-  async getPostsByIds(ids, params) {
-    const responses = await this.database('posts').orderBy('updated_at', 'desc').whereIn('uid', ids)
-
-    const objects = responses.map((attrs) => {
-      if (attrs){
-        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-      }
-
-      return attrs
-    })
-    return objects
-  }
-
-  async getUserPostsCount(userId){
-    const res = await this.database('posts').where({ user_id: userId }).count()
-    return parseInt(res[0].count)
-  }
-
-  setPostUpdatedAt(postId, time) {
-    let d = new Date()
-    d.setTime(time)
-    let payload = {
-      updated_at: d.toISOString()
-    }
-    return this.database('posts').where('uid', postId).update(payload)
-  }
-
-  async deletePost(postId) {
-    await this.database('posts').where({
-      uid: postId
-    }).delete()
-
-
-    //TODO: delete post local bumps
-    return await Promise.all([
-      this._deletePostLikes(postId),
-      this._deletePostComments(postId)
-    ])
-  }
-
-  async getPostPostedToIds(postId) {
-    const res = await this.database('posts').where('uid', postId)
-    const post = res[0]
-
-    if (!post) {
-      return []
-    }
-
-    const destIntIds = post.destination_feed_ids
-    const destUUIDs = await this.getTimelinesUUIDsByIntIds(destIntIds)
-    return destUUIDs
-  }
-
-  async createPostsUsagesInTimeline(postIds, timelineUUID) {
-    const feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineUUID]))[0]
-    let preparedPostIds = postIds.map((el)=>{ return "'" + el + "'"; })
-    if ( !feedIntId || preparedPostIds.length == 0 ) {
-      return null
-    }
-    return this.database
-      .raw(`UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE uid IN (${preparedPostIds.toString()})`, [[feedIntId]])
-  }
-
-  async getPostUsagesInTimelines(postId) {
-    const res = await this.database('posts').where('uid', postId)
-    let attrs = res[0]
-    if (!attrs){
-      return []
-    }
-
-    return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
-  }
-
-  insertPostIntoTimeline(timelineId, postId){
-    return this.createPostsUsagesInTimeline([postId], timelineId)
-  }
-
-  async withdrawPostFromTimeline(timelineUUID, postUUID){
-    const feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineUUID]))[0]
-
-    return this.database
-      .raw('UPDATE posts SET feed_ids = uniq(feed_ids - ?) WHERE uid = ?', [[feedIntId], postUUID])
-  }
-
-  async isPostPresentInTimeline(timelineId, postId) {
-    let postUsages = await this.getPostUsagesInTimelines(postId)
-    return _.includes(postUsages, timelineId)
-  }
-
-  async getTimelinePostsRange(timelineId, offset, limit) {
-    const feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineId]))[0]
-    let res = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[feedIntId]])
-    let postIds = res.map((record)=>{
-      return record.uid
-    })
-    return postIds
-  }
-
-  async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {
-    const srcFeed1IntId = (await this.getTimelinesIntIdsByUUIDs([sourceTimelineId1]))[0]
-    const srcFeed2IntId = (await this.getTimelinesIntIdsByUUIDs([sourceTimelineId2]))[0]
-    const destFeedIntId = (await this.getTimelinesIntIdsByUUIDs([destinationTimelineId]))[0]
-
-    await this.database
-      .raw('UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE feed_ids && ?', [[destFeedIntId], [srcFeed1IntId, srcFeed2IntId]])
-  }
-
-  async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
-    const feed1IntId = (await this.getTimelinesIntIdsByUUIDs([timelineId1]))[0]
-    const feed2IntId = (await this.getTimelinesIntIdsByUUIDs([timelineId2]))[0]
-
-    let res1 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[feed1IntId]])
-    let postIds1 = res1.map((record)=>{
-      return record.uid
-    })
-
-    let res2 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[feed2IntId]])
-    let postIds2 = res2.map((record)=>{
-      return record.uid
-    })
-
-    return _.intersection(postIds1, postIds2)
-  }
 
   ///////////////////////////////////////////////////
   // Subscriptions
