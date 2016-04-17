@@ -42,6 +42,7 @@ const USER_COLUMNS_MAPPING = {
 }
 
 const ATTACHMENT_COLUMNS = {
+  id:                     "uid",
   createdAt:              "created_at",
   updatedAt:              "updated_at",
   fileName:               "file_name",
@@ -85,33 +86,6 @@ const ATTACHMENT_COLUMNS_MAPPING = {
     return null
   }
 }
-
-const ATTACHMENT_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  file_name:              "fileName",
-  file_size:              "fileSize",
-  mime_type:              "mimeType",
-  media_type:             "mediaType",
-  file_extension:         "fileExtension",
-  no_thumbnail:           "noThumbnail",
-  image_sizes:            "imageSizes",
-  artist:                 "artist",
-  title:                  "title",
-  user_id:                "userId",
-  post_id:                "postId"
-}
-
-const ATTACHMENT_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
-  no_thumbnail:               (no_thumbnail)=>{return no_thumbnail ? '1' : '0' },
-  file_size:                  (file_size)=>{return file_size && file_size.toString()},
-  post_id:                    (post_id)=> {return post_id ? post_id : ''},
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
-}
-
 
 
 const COMMENT_COLUMNS = {
@@ -292,64 +266,6 @@ export class PgAdapter {
     let preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
     const res = await this.database('attachments').returning('uid').insert(preparedPayload)
     return res[0]
-  }
-
-  async getAttachmentById(id) {
-    if (!validator.isUUID(id,4)){
-      return null
-    }
-    const res = await this.database('attachments').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-    return attrs
-  }
-
-  async getAttachmentsByIds(ids) {
-    const responses = await this.database('attachments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs){
-        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-      }
-
-      return attrs
-    })
-
-    return objects
-  }
-
-  updateAttachment(attachmentId, payload) {
-    let preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
-
-    return this.database('attachments').where('uid', attachmentId).update(preparedPayload)
-  }
-
-
-  linkAttachmentToPost(attachmentId, postId){
-    let payload = {
-      post_id: postId
-    }
-    return this.database('attachments').where('uid', attachmentId).update(payload)
-  }
-
-  unlinkAttachmentFromPost(attachmentId, postId){
-    let payload = {
-      post_id: null
-    }
-    return this.database('attachments').where('uid', attachmentId).where('post_id', postId).update(payload)
-  }
-
-  async getPostAttachments(postId) {
-    const res = await this.database('attachments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
-    const attrs = res.map((record)=>{
-      return record.uid
-    })
-    return attrs
   }
 
   ///////////////////////////////////////////////////
