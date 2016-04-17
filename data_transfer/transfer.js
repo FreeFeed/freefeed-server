@@ -125,6 +125,7 @@ export class DataTransfer{
       }
       if (feedId){
         feed = await this.redis.hgetallAsync(`timeline:${feedId}`)
+        feed.id = feedId
       }
       if(this.writeUserFeeds){
         await this.pgAdapter.createTimeline(feed)
@@ -153,6 +154,7 @@ export class DataTransfer{
       }
       if (feedId){
         feed = await this.redis.hgetallAsync(`timeline:${feedId}`)
+        feed.id = feedId
       }
       if(this.writeGroupFeeds){
         await this.pgAdapter.createTimeline(feed)
