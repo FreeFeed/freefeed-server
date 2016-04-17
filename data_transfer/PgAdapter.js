@@ -538,6 +538,15 @@ export class PgAdapter {
     return res[0]
   }
 
+  async getTimelinesIntIdsByUUIDs(uuids) {
+    const responses = await this.database('feeds').select('id').whereIn('uid', uuids)
+
+    const ids = responses.map((record) => {
+      return record.id
+    })
+    return ids
+  }
+
   ///////////////////////////////////////////////////
   // Post
   ///////////////////////////////////////////////////
@@ -698,32 +707,10 @@ export class PgAdapter {
   // Subscriptions
   ///////////////////////////////////////////////////
 
-  async getUserSubscriptionsIds(userId) {
-    const res = await this.database('subscriptions').select('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record)=>{
-      return record.feed_id
-    })
-    return attrs
-  }
-
-  async isUserSubscribedToTimeline(currentUserId, timelineId){
-    const res = await this.database('subscriptions').where({
-      feed_id: timelineId,
-      user_id: currentUserId
-    }).count()
-    return parseInt(res[0].count) != 0
-  }
-
-  async getTimelineSubscribers(timelineId) {
-    const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
-    const attrs = res.map((record)=>{
-      return record.user_id
-    })
-    return attrs
-  }
-
-  async subscribeUserToTimeline(timelineId, currentUserId){
-    const currentTime = new Date().toISOString()
+  async subscribeUserToTimeline(timelineId, currentUserId, timestamp){
+    let d = new Date()
+    d.setTime(timestamp)
+    const currentTime = d.toISOString()
 
     const payload = {
       feed_id: timelineId,
@@ -736,58 +723,5 @@ export class PgAdapter {
 
     return this.database
       .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ?', [[feedIntId], currentUserId])
-  }
-
-  async unsubscribeUserFromTimeline(timelineId, currentUserId){
-    await this.database('subscriptions').where({
-      feed_id: timelineId,
-      user_id: currentUserId
-    }).delete()
-
-    let feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineId]))[0]
-
-    return this.database
-      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ?', [[feedIntId], currentUserId])
-  }
-
-  ///////////////////////////////////////////////////
-  // LocalBumps
-  ///////////////////////////////////////////////////
-
-  async createLocalBump(postId, userId) {
-    //console.log("createLocalBump", postId, userId)
-    const existingPostLocalBumps = await this.database('local_bumps').where({
-      post_id: postId,
-      user_id: userId
-    }).count()
-    //console.log("createLocalBump bump already exist", existingPostLocalBumps)
-    if (parseInt(existingPostLocalBumps[0].count) > 0){
-      return true
-    }
-
-    const payload = {
-      post_id: postId,
-      user_id: userId
-    }
-
-    return this.database('local_bumps').returning('id').insert(payload)
-  }
-
-  async getUserLocalBumps(userId, newerThan) {
-    //console.log(await this.database('local_bumps').select())
-    let time = new Date()
-    if (newerThan){
-      time.setTime(newerThan)
-    }
-
-    const res = await this.database('local_bumps').orderBy('created_at', 'desc').where('user_id', userId).where('created_at', '>', time.toISOString())
-    let bumps = res.map((record)=>{
-      return {
-        postId: record.post_id,
-        bumpedAt: record.created_at.getTime()
-      }
-    })
-    //console.log("getUserLocalBumps", userId, time.toISOString(), bumps)
-    return bumps
   }
 }
