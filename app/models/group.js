@@ -6,7 +6,7 @@ import { User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
-export function addModel(pgAdapter) {
+export function addModel(dbAdapter) {
   /**
    * @constructor
    * @extends User
@@ -101,10 +101,10 @@ export function addModel(pgAdapter) {
         'isPrivate': this.isPrivate,
         'isRestricted': this.isRestricted
       }
-      this.id = await pgAdapter.createUser(payload)
+      this.id = await dbAdapter.createUser(payload)
 
       let promises = []
-      promises.push(pgAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts']))
+      promises.push(dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts']))
 
       if (ownerId) {
         promises.push(this.addAdministrator(ownerId))
@@ -158,14 +158,14 @@ export function addModel(pgAdapter) {
         'isRestricted': this.isRestricted
       }
 
-      await pgAdapter.updateUser(this.id, payload)
+      await dbAdapter.updateUser(this.id, payload)
     }
 
     return this
   }
 
   Group.prototype.subscribeOwner = async function(ownerId) {
-    let owner = await pgAdapter.getUserById(ownerId)
+    let owner = await dbAdapter.getUserById(ownerId)
 
     if (!owner) {
       return null
@@ -178,7 +178,7 @@ export function addModel(pgAdapter) {
   }
 
   Group.prototype.addAdministrator = function(feedId) {
-    return pgAdapter.addAdministratorToGroup(this.id, feedId)
+    return dbAdapter.addAdministratorToGroup(this.id, feedId)
   }
 
   Group.prototype.removeAdministrator = async function(feedId) {
@@ -192,17 +192,17 @@ export function addModel(pgAdapter) {
       throw new Error("Cannot remove last administrator")
     }
 
-    return pgAdapter.removeAdministratorFromGroup(this.id, feedId)
+    return dbAdapter.removeAdministratorFromGroup(this.id, feedId)
   }
 
   Group.prototype.getAdministratorIds = async function() {
-    this.administratorIds = await pgAdapter.getGroupAdministratorsIds(this.id)
+    this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.id)
     return this.administratorIds
   }
 
   Group.prototype.getAdministrators = async function() {
     var adminIds = await this.getAdministratorIds()
-    this.administrators = await pgAdapter.getUsersByIds(adminIds)
+    this.administrators = await dbAdapter.getUsersByIds(adminIds)
 
     return this.administrators
   }

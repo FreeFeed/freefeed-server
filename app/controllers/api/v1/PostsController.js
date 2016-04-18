@@ -1,6 +1,6 @@
 import _ from 'lodash'
 
-import { pgAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
+import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
 import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -27,7 +27,7 @@ export default class PostsController {
 
     try {
       let promises = feeds.map(async (username) => {
-        let feed = await pgAdapter.getFeedOwnerByUsername(username)
+        let feed = await dbAdapter.getFeedOwnerByUsername(username)
         if (null === feed) {
           throw new NotFoundException(`Feed "${username}" is not found`)
         }
@@ -75,7 +75,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await pgAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (post.userId != req.user.id) {
         throw new ForbiddenException("You can't update another user's post")
@@ -96,7 +96,7 @@ export default class PostsController {
   static async show(req, res) {
     try {
       var userId = req.user ? req.user.id : null
-      const post = await pgAdapter.getPostById(req.params.postId, {
+      const post = await dbAdapter.getPostById(req.params.postId, {
         maxComments: req.query.maxComments,
         maxLikes: req.query.maxLikes,
         currentUser: userId
@@ -113,7 +113,7 @@ export default class PostsController {
         throw new ForbiddenException("Not found")
 
       if (req.user) {
-        let author = await pgAdapter.getUserById(post.userId)
+        let author = await dbAdapter.getUserById(post.userId)
         let banIds = await author.getBanIds()
 
         if (banIds.indexOf(req.user.id) >= 0)
@@ -140,7 +140,7 @@ export default class PostsController {
     }
 
     try {
-      let post = await pgAdapter.getPostById(req.params.postId)
+      let post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -150,7 +150,7 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
-      const userLikedPost = await pgAdapter.hasUserLikedPost(req.user.id, post.id)
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
       if (userLikedPost) {
         throw new ForbiddenException("You can't like post that you have already liked")
       }
@@ -177,7 +177,7 @@ export default class PostsController {
     }
 
     try {
-      let post = await pgAdapter.getPostById(req.params.postId)
+      let post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -187,7 +187,7 @@ export default class PostsController {
         throw new ForbiddenException("You can't un-like your own post")
       }
 
-      const userLikedPost = await pgAdapter.hasUserLikedPost(req.user.id, post.id)
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
       if (!userLikedPost) {
         throw new ForbiddenException("You can't un-like post that you haven't yet liked")
       }
@@ -212,7 +212,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await pgAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -236,7 +236,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await pgAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -256,7 +256,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await pgAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -276,7 +276,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await pgAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -301,7 +301,7 @@ export default class PostsController {
     }
 
     try {
-      const post = await pgAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");

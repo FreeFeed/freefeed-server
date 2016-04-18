@@ -1,4 +1,4 @@
-import { pgAdapter } from '../../../models'
+import { dbAdapter } from '../../../models'
 import { UserMailer } from '../../../mailers'
 import exceptions, { NotFoundException } from '../../../support/exceptions'
 
@@ -13,7 +13,7 @@ export default class PasswordsController {
     }
 
     try {
-      const user = await pgAdapter.getUserByEmail(email)
+      const user = await dbAdapter.getUserByEmail(email)
 
       if (null === user) {
         throw new NotFoundException(`User is not found`)
@@ -38,7 +38,7 @@ export default class PasswordsController {
     }
 
     try {
-      const user = await pgAdapter.getUserByResetToken(token)
+      const user = await dbAdapter.getUserByResetToken(token)
 
       if (null === user) {
         throw new NotFoundException(`Record not found`)

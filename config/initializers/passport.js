@@ -1,6 +1,6 @@
 import {Strategy as LocalStrategy} from 'passport-local'
 
-import { pgAdapter } from '../../app/models'
+import { dbAdapter } from '../../app/models'
 
 
 export function init(passport) {
@@ -9,7 +9,7 @@ export function init(passport) {
     passwordField: 'password'
   }, async (username, clearPassword, done) => {
     try {
-      const user = await pgAdapter.getUserByUsername(username)
+      const user = await dbAdapter.getUserByUsername(username)
 
       if (!user) {
         // db inconsistency. got id, but didn't find object
