@@ -1,7 +1,7 @@
 import formidable from 'formidable'
 import _ from 'lodash'
 
-import { pgAdapter, Group, GroupSerializer } from '../../../models'
+import { dbAdapter, Group, GroupSerializer } from '../../../models'
 import exceptions, { NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
@@ -39,7 +39,7 @@ export default class GroupsController {
       }
 
       let adminPromises = req.body.admins.map(async (username) => {
-        const admin = await pgAdapter.getUserByUsername(username)
+        const admin = await dbAdapter.getUserByUsername(username)
         return (null === admin) ? false : admin;
       })
       let admins = await Promise.all(adminPromises)
@@ -74,7 +74,7 @@ export default class GroupsController {
     let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
-      const group = await pgAdapter.getGroupById(req.params.userId)
+      const group = await dbAdapter.getGroupById(req.params.userId)
       if (null === group) {
         throw new NotFoundException("Can't find group")
       }
@@ -100,7 +100,7 @@ export default class GroupsController {
     }
 
     try {
-      const group = await pgAdapter.getGroupByUsername(req.params.groupName)
+      const group = await dbAdapter.getGroupByUsername(req.params.groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${req.params.groupName}" is not found`)
@@ -111,7 +111,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      const newAdmin = await pgAdapter.getUserByUsername(req.params.adminName)
+      const newAdmin = await dbAdapter.getUserByUsername(req.params.adminName)
 
       if (null === newAdmin) {
         throw new NotFoundException(`User "${req.params.adminName}" is not found`)
@@ -143,7 +143,7 @@ export default class GroupsController {
       return
     }
     try {
-      const group = await pgAdapter.getGroupByUsername(req.params.groupName)
+      const group = await dbAdapter.getGroupByUsername(req.params.groupName)
 
       if (null === group) {
         throw new NotFoundException(`User "${req.params.groupName}" is not found`)
@@ -179,7 +179,7 @@ export default class GroupsController {
 
     const groupName = req.params.groupName
     try {
-      const group = await pgAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -189,7 +189,7 @@ export default class GroupsController {
         throw new Error("Group is public")
       }
 
-      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
       if (hasRequest) {
         throw new ForbiddenException("Subscription request already sent")
       }
@@ -220,7 +220,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await pgAdapter.getGroupByUsername(groupName)
+      let group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -231,12 +231,12 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      const user = await pgAdapter.getUserByUsername(userName)
+      const user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
 
-      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, group.id)
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
@@ -258,7 +258,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await pgAdapter.getGroupByUsername(groupName)
+      let group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -269,12 +269,12 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      const user = await pgAdapter.getUserByUsername(userName)
+      const user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
 
-      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, group.id)
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
@@ -296,7 +296,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await pgAdapter.getGroupByUsername(groupName)
+      let group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -307,7 +307,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      let user = await pgAdapter.getUserByUsername(userName)
+      let user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
@@ -316,7 +316,7 @@ export default class GroupsController {
         throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
       }
 
-      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }

@@ -1,6 +1,6 @@
 import _ from 'lodash'
 
-import { pgAdapter } from '../../../models'
+import { dbAdapter } from '../../../models'
 import exceptions from '../../../support/exceptions'
 
 
@@ -19,7 +19,7 @@ export default class GroupsController {
         let groupDescr = _.pick(group, ['id', 'username', 'screenName', 'isPrivate', 'isRestricted'])
 
         let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
-        let unconfirmedFollowers = await pgAdapter.getUsersByIds(unconfirmedFollowerIds)
+        let unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
         let requests = unconfirmedFollowers.map( async (user)=>{
           let request = _.pick(user, ['id', 'username', 'screenName'])
           request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import express from 'express'
 
 import { load as configLoader } from '../config/config'
-import { pgAdapter } from './models'
+import { dbAdapter } from './models'
 
 import SessionRoute from './routes/api/v1/SessionRoute'
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute'
@@ -31,7 +31,7 @@ export default function(app) {
     if (authToken) {
       try {
         let decoded = await jwt.verifyAsync(authToken, config.secret)
-        let user = await pgAdapter.getUserById(decoded.userId)
+        let user = await dbAdapter.getUserById(decoded.userId)
 
         if (user) {
           req.user = user

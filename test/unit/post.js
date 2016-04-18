@@ -1,5 +1,5 @@
 import knexCleaner from 'knex-cleaner'
-import { pgAdapter, Comment, Post, User } from "../../app/models"
+import { dbAdapter, Comment, Post, User } from "../../app/models"
 
 
 describe('Post', function() {
@@ -84,7 +84,7 @@ describe('Post', function() {
 
           return post
         })
-        .then(function(post) { return pgAdapter.getPostById(post.id) })
+        .then(function(post) { return dbAdapter.getPostById(post.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -108,7 +108,7 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) { return pgAdapter.getPostById(post.id) })
+        .then(function(post) { return dbAdapter.getPostById(post.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -217,7 +217,7 @@ describe('Post', function() {
           return post
         })
         .then(function(post) {
-          return pgAdapter.getPostById(post.id)
+          return dbAdapter.getPostById(post.id)
         })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
@@ -262,7 +262,7 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) { return pgAdapter.getPostById(post.id) })
+        .then(function(post) { return dbAdapter.getPostById(post.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -275,7 +275,7 @@ describe('Post', function() {
     it('should not find post with an invalid id', function(done) {
       var identifier = "post:identifier"
 
-      pgAdapter.getPostById(identifier)
+      dbAdapter.getPostById(identifier)
         .then(function(post) {
           $should.not.exist(post)
         })
@@ -726,7 +726,7 @@ describe('Post', function() {
         })
         .then(function(comment) { return comment.create() })
         .then(function() { return post.destroy() })
-        .then(function() { return pgAdapter.getPostById(post.id) })
+        .then(function() { return dbAdapter.getPostById(post.id) })
         .then(function(post) {
           (post === null).should.be.true
           done()

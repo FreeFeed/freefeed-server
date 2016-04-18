@@ -20,7 +20,7 @@ promisifyAll(gm)
 
 let config = configLoader()
 
-exports.addModel = function(pgAdapter) {
+exports.addModel = function(dbAdapter) {
   /**
    * @constructor
    */
@@ -151,7 +151,7 @@ exports.addModel = function(pgAdapter) {
       'resetPasswordSentAt': now
     }
 
-    await pgAdapter.updateUser(this.id, payload)
+    await dbAdapter.updateUser(this.id, payload)
 
     this.resetPasswordToken = token
     return this.resetPasswordToken
@@ -180,7 +180,7 @@ exports.addModel = function(pgAdapter) {
       return false
     }
 
-    let exists = await pgAdapter.existsUserEmail(email)
+    let exists = await dbAdapter.existsUserEmail(email)
 
     if (exists) {
       // email is taken
@@ -268,7 +268,7 @@ exports.addModel = function(pgAdapter) {
   }
 
   User.prototype.validateUsernameUniqueness = async function() {
-    let res = await pgAdapter.existsUsername(this.username)
+    let res = await dbAdapter.existsUsername(this.username)
 
     if (res !== 0)
       throw new Error("Already exists")
@@ -305,8 +305,8 @@ exports.addModel = function(pgAdapter) {
       'hashedPassword': this.hashedPassword,
       'frontendPreferences': JSON.stringify({})
     }
-    this.id = await pgAdapter.createUser(payload)
-    await pgAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
+    this.id = await dbAdapter.createUser(payload)
+    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
     timer.stop() // @todo finally {}
     monitor.increment('users.creates')
 
@@ -384,7 +384,7 @@ exports.addModel = function(pgAdapter) {
         preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences)
       }
 
-      await pgAdapter.updateUser(this.id, preparedPayload)
+      await dbAdapter.updateUser(this.id, preparedPayload)
 
       for (let k in payload){
         this[k] = payload[k]
@@ -415,20 +415,20 @@ exports.addModel = function(pgAdapter) {
         let promises = usersChunk.map(async (user) => {
           let likesTimelineId = await user.getLikesTimelineId()
 
-          actions.push(pgAdapter.insertPostIntoTimeline(likesTimelineId, post.id))
+          actions.push(dbAdapter.insertPostIntoTimeline(likesTimelineId, post.id))
         })
 
         await Promise.all(promises)
       }
 
       let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
-      let commenters = await pgAdapter.getUsersByIds(uniqueCommenterUids)
+      let commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
           let commentsTimelineId = await user.getCommentsTimelineId()
 
-          actions.push(pgAdapter.insertPostIntoTimeline(commentsTimelineId, post.id))
+          actions.push(dbAdapter.insertPostIntoTimeline(commentsTimelineId, post.id))
         })
 
         await Promise.all(promises)
@@ -509,7 +509,7 @@ exports.addModel = function(pgAdapter) {
         hashedPassword: await bcrypt.hashAsync(password, 10)
       }
 
-      await pgAdapter.updateUser(this.id, payload)
+      await dbAdapter.updateUser(this.id, payload)
 
       this.updatedAt = updatedAt
       this.hashedPassword = payload.hashedPassword
@@ -532,9 +532,9 @@ exports.addModel = function(pgAdapter) {
 
     let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineId()
 
-    await pgAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
+    await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
-    return pgAdapter.getTimelineById(myDiscussionsTimelineId, params)
+    return dbAdapter.getTimelineById(myDiscussionsTimelineId, params)
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
@@ -544,7 +544,7 @@ exports.addModel = function(pgAdapter) {
 
     if (timelineIds[name]) {
       params = params || {}
-      timeline = await pgAdapter.getTimelineById(timelineIds[name], {
+      timeline = await dbAdapter.getTimelineById(timelineIds[name], {
         offset: params.offset,
         limit: params.limit
       })
@@ -564,7 +564,7 @@ exports.addModel = function(pgAdapter) {
   User.prototype.getGenericTimeline = async function(name, params) {
     let timelineId = await this[`get${name}TimelineId`](params)
 
-    let timeline = await pgAdapter.getTimelineById(timelineId, params)
+    let timeline = await dbAdapter.getTimelineById(timelineId, params)
     timeline.posts = await timeline.getPosts(timeline.offset, timeline.limit)
 
     return timeline
@@ -586,13 +586,13 @@ exports.addModel = function(pgAdapter) {
     let timelineId = await this.getRiverOfNewsTimelineId(params)
     let hidesTimelineId = await this.getHidesTimelineId(params)
 
-    let riverOfNewsTimeline = await pgAdapter.getTimelineById(timelineId, params)
+    let riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
     let banIds = await this.getBanIds()
     let posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let postInTimeline = await pgAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
+      let postInTimeline = await dbAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
 
       if (postInTimeline) {
         post.isHidden = true
@@ -637,13 +637,13 @@ exports.addModel = function(pgAdapter) {
   }
 
   User.prototype.getTimelineIds = async function() {
-    let timelineIds = await pgAdapter.getUserTimelinesIds(this.id)
+    let timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
     return timelineIds || {}
   }
 
   User.prototype.getTimelines = async function(params) {
     const timelineIds = await this.getTimelineIds()
-    const timelines = await pgAdapter.getTimelinesByIds(_.values(timelineIds), params)
+    const timelines = await dbAdapter.getTimelinesByIds(_.values(timelineIds), params)
     const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
     const sortedTimelines = _.sortBy(timelines, (tl)=>{
       return _.indexOf(timelinesOrder, tl.name)
@@ -661,7 +661,7 @@ exports.addModel = function(pgAdapter) {
   }
 
   User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await pgAdapter.getUserSubscriptionsIds(this.id)
+    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(this.id)
     return this.subscriptionsIds
   }
 
@@ -670,7 +670,7 @@ exports.addModel = function(pgAdapter) {
    */
   User.prototype.getSubscriptions = async function() {
     var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await pgAdapter.getTimelinesByIds(timelineIds)
+    this.subscriptions = await dbAdapter.getTimelinesByIds(timelineIds)
 
     return this.subscriptions
   }
@@ -684,7 +684,7 @@ exports.addModel = function(pgAdapter) {
 
   User.prototype.getFriends = async function() {
     var userIds = await this.getFriendIds()
-    return await pgAdapter.getUsersByIds(userIds)
+    return await dbAdapter.getUsersByIds(userIds)
   }
 
   User.prototype.getSubscriberIds = async function() {
@@ -696,24 +696,24 @@ exports.addModel = function(pgAdapter) {
 
   User.prototype.getSubscribers = async function() {
     var subscriberIds = await this.getSubscriberIds()
-    this.subscribers = await pgAdapter.getUsersByIds(subscriberIds)
+    this.subscribers = await dbAdapter.getUsersByIds(subscriberIds)
 
     return this.subscribers
   }
 
   User.prototype.getBanIds = function() {
-    return pgAdapter.getUserBansIds(this.id)
+    return dbAdapter.getUserBansIds(this.id)
   }
 
   User.prototype.getBans = async function() {
     const userIds = await this.getBanIds()
-    const users = await pgAdapter.getUsersByIds(userIds)
+    const users = await dbAdapter.getUsersByIds(userIds)
 
     return users
   }
 
   User.prototype.ban = async function(username) {
-    const user = await pgAdapter.getUserByUsername(username)
+    const user = await dbAdapter.getUserByUsername(username)
 
     if (null === user) {
       throw new NotFoundException(`User "${username}" is not found`)
@@ -721,7 +721,7 @@ exports.addModel = function(pgAdapter) {
 
     var promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
-      pgAdapter.createUserBan(this.id, user.id),
+      dbAdapter.createUserBan(this.id, user.id),
       monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request
@@ -733,20 +733,20 @@ exports.addModel = function(pgAdapter) {
   }
 
   User.prototype.unban = async function(username) {
-    const user = await pgAdapter.getUserByUsername(username)
+    const user = await dbAdapter.getUserByUsername(username)
 
     if (null === user) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
     monitor.increment('users.unbans')
-    return pgAdapter.deleteUserBan(this.id, user.id)
+    return dbAdapter.deleteUserBan(this.id, user.id)
   }
 
   // Subscribe to user-owner of a given `timelineId`
   User.prototype.subscribeTo = async function(timelineId) {
-    let timeline = await pgAdapter.getTimelineById(timelineId)
-    let user = await pgAdapter.getFeedOwnerById(timeline.userId)
+    let timeline = await dbAdapter.getTimelineById(timelineId)
+    let user = await dbAdapter.getFeedOwnerById(timeline.userId)
 
     if (user.username == this.username)
       throw new Error("Invalid")
@@ -754,7 +754,7 @@ exports.addModel = function(pgAdapter) {
     let timelineIds = await user.getPublicTimelineIds()
 
     let promises = _.flatten(timelineIds.map((timelineId) => {
-      return pgAdapter.subscribeUserToTimeline(timelineId, this.id)
+      return dbAdapter.subscribeUserToTimeline(timelineId, this.id)
     }))
 
     promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
@@ -768,7 +768,7 @@ exports.addModel = function(pgAdapter) {
 
   // Subscribe this user to `username`
   User.prototype.subscribeToUsername = async function(username) {
-    const user = await pgAdapter.getFeedOwnerByUsername(username)
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
 
     if (null === user) {
       throw new NotFoundException(`Feed "${username}" is not found`)
@@ -779,8 +779,8 @@ exports.addModel = function(pgAdapter) {
   }
 
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
-    var timeline = await pgAdapter.getTimelineById(timelineId)
-    var user = await pgAdapter.getFeedOwnerById(timeline.userId)
+    var timeline = await dbAdapter.getTimelineById(timelineId)
+    var user = await dbAdapter.getFeedOwnerById(timeline.userId)
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
@@ -793,7 +793,7 @@ exports.addModel = function(pgAdapter) {
       let timelineIds = await user.getPublicTimelineIds()
 
       let unsubPromises = _.flatten(timelineIds.map((timelineId) => {
-        return pgAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
+        return dbAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
       }))
 
       promises = promises.concat(unsubPromises)
@@ -822,9 +822,9 @@ exports.addModel = function(pgAdapter) {
 
     try {
       res = {
-        posts:         await pgAdapter.getUserPostsCount(this.id),
-        likes:         await pgAdapter.getUserLikesCount(this.id),
-        comments:      await pgAdapter.getUserCommentsCount(this.id),
+        posts:         await dbAdapter.getUserPostsCount(this.id),
+        likes:         await dbAdapter.getUserLikesCount(this.id),
+        comments:      await dbAdapter.getUserCommentsCount(this.id),
         subscribers:   (await this.getSubscriberIds()).length,
         subscriptions: (await this.getFriendIds()).length
       }
@@ -876,7 +876,7 @@ exports.addModel = function(pgAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    return pgAdapter.updateUser(this.id, payload)
+    return dbAdapter.updateUser(this.id, payload)
   }
 
   User.prototype.saveProfilePictureWithSize = function(path, uuid, originalSize, size) {
@@ -938,8 +938,8 @@ exports.addModel = function(pgAdapter) {
     const [ timelineIdA, timelineIdB ] =
       await Promise.all([ postingUser.getPostsTimelineId(), this.getPostsTimelineId() ])
 
-    const currentUserSubscribedToPostingUser = await pgAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
-    const postingUserSubscribedToCurrentUser = await pgAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
+    const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
+    const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
 
     if ((!currentUserSubscribedToPostingUser || !postingUserSubscribedToCurrentUser)
         && postingUser.username != this.username
@@ -955,56 +955,56 @@ exports.addModel = function(pgAdapter) {
       let payload = {
         'updatedAt': updatedAt.toString()
       }
-      await pgAdapter.updateUser(this.id, payload)
+      await dbAdapter.updateUser(this.id, payload)
     }
   }
 
   User.prototype.sendSubscriptionRequest = async function(userId) {
-    return await pgAdapter.createSubscriptionRequest(this.id, userId)
+    return await dbAdapter.createSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
-    return await pgAdapter.createSubscriptionRequest(this.id, groupId)
+    return await dbAdapter.createSubscriptionRequest(this.id, groupId)
   }
 
   User.prototype.acceptSubscriptionRequest = async function(userId) {
-    await pgAdapter.deleteSubscriptionRequest(this.id, userId)
+    await dbAdapter.deleteSubscriptionRequest(this.id, userId)
 
     var timelineId = await this.getPostsTimelineId()
 
-    var user = await pgAdapter.getUserById(userId)
+    var user = await dbAdapter.getUserById(userId)
     return user.subscribeTo(timelineId)
   }
 
   User.prototype.rejectSubscriptionRequest = async function(userId) {
-    return await pgAdapter.deleteSubscriptionRequest(this.id, userId)
+    return await dbAdapter.deleteSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.getPendingSubscriptionRequestIds = async function() {
-    this.pendingSubscriptionRequestIds = await pgAdapter.getUserSubscriptionPendingRequestsIds(this.id)
+    this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(this.id)
     return this.pendingSubscriptionRequestIds
   }
 
   User.prototype.getPendingSubscriptionRequests = async function() {
     var pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
-    return await pgAdapter.getUsersByIds(pendingSubscriptionRequestIds)
+    return await dbAdapter.getUsersByIds(pendingSubscriptionRequestIds)
   }
 
   User.prototype.getSubscriptionRequestIds = async function() {
-    return await pgAdapter.getUserSubscriptionRequestsIds(this.id)
+    return await dbAdapter.getUserSubscriptionRequestsIds(this.id)
   }
 
   User.prototype.getSubscriptionRequests = async function() {
     var subscriptionRequestIds = await this.getSubscriptionRequestIds()
-    return await pgAdapter.getUsersByIds(subscriptionRequestIds)
+    return await dbAdapter.getUsersByIds(subscriptionRequestIds)
   }
 
   User.prototype.getFollowedGroups = async function () {
-    const timelinesIds = await pgAdapter.getUserSubscriptionsIds(this.id)
+    const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
     if (timelinesIds.length === 0)
       return []
 
-    const timelines = await pgAdapter.getTimelinesByIds(timelinesIds)
+    const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
     if (timelines.length === 0)
       return []
 
@@ -1012,7 +1012,7 @@ exports.addModel = function(pgAdapter) {
     if (timelineOwnerIds.length === 0)
       return []
 
-    const timelineOwners = await pgAdapter.getFeedOwnersByIds(timelineOwnerIds)
+    const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
     if (timelineOwners.length === 0)
       return []
 

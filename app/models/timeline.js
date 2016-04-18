@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { PubSub as pubSub } from '../models'
 
 
-export function addModel(pgAdapter) {
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */
@@ -43,7 +43,7 @@ export function addModel(pgAdapter) {
     // We can use post.timelineIds here instead of post.getPostedToIds
     // because we are about to create that post and have just received
     // a request from user, so postedToIds == timelineIds here
-    const timelines = await pgAdapter.getTimelinesByIds(post.timelineIds)
+    const timelines = await dbAdapter.getTimelinesByIds(post.timelineIds)
 
     let promises = timelines.map(async (timeline) => {
       const feed = await timeline.getUser()
@@ -56,9 +56,9 @@ export function addModel(pgAdapter) {
     const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
     const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
 
-    await pgAdapter.setPostUpdatedAt(post.id, currentTime)
+    await dbAdapter.setPostUpdatedAt(post.id, currentTime)
     promises = allTimelines.map(timelineId => {
-      return pgAdapter.insertPostIntoTimeline(timelineId, post.id)
+      return dbAdapter.insertPostIntoTimeline(timelineId, post.id)
     })
 
     await Promise.all(_.flatten(promises))
@@ -91,7 +91,7 @@ export function addModel(pgAdapter) {
       'updatedAt': currentTime.toString()
     }
 
-    this.id = await pgAdapter.createTimeline(payload)
+    this.id = await dbAdapter.createTimeline(payload)
 
     this.createdAt = currentTime
     this.updatedAt = currentTime
@@ -118,7 +118,7 @@ export function addModel(pgAdapter) {
     if (!valid)
       return []
 
-    this.postIds = await pgAdapter.getTimelinePostsRange(this.id, offset, limit)
+    this.postIds = await dbAdapter.getTimelinePostsRange(this.id, offset, limit)
 
     return this.postIds
   }
@@ -134,7 +134,7 @@ export function addModel(pgAdapter) {
     else if (limit < 0)
       limit = 0
 
-    let reader = this.currentUser ? (await pgAdapter.getUserById(this.currentUser)) : null
+    let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
 
     let postIds = await this.getPostIds(offset, limit)
@@ -146,7 +146,7 @@ export function addModel(pgAdapter) {
       return true
     })
 
-    let posts = (await pgAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
+    let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
     posts = posts.filter(post => {
       if (!_.isString(post.userId)) {
         console.warn(`got weird uid (author of post ${post.id}): ${post.userId}`)  // eslint-disable-line no-console
@@ -161,12 +161,12 @@ export function addModel(pgAdapter) {
         oldestPostTime = posts[posts.length - 1].updatedAt
       }
 
-      let localBumps = await pgAdapter.getUserLocalBumps(reader.id, oldestPostTime)
+      let localBumps = await dbAdapter.getUserLocalBumps(reader.id, oldestPostTime)
       let localBumpedPostIds = localBumps.map((bump) => { return bump.postId })
 
       let absentPostIds = _.difference(localBumpedPostIds, postIds)
       if (absentPostIds.length > 0){
-        let localBumpedPosts = await pgAdapter.getPostsByIds(absentPostIds, {currentUser: this.currentUser})
+        let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, {currentUser: this.currentUser})
         localBumpedPosts = _.sortBy(localBumpedPosts, (post)=>{
           return _.indexOf(absentPostIds, post.id)
         })
@@ -194,7 +194,7 @@ export function addModel(pgAdapter) {
     })
 
     let uids = _.uniq(posts.map(post => post.userId))
-    let users = (await pgAdapter.getUsersByIds(uids)).filter(Boolean)
+    let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
     let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
 
     let usersCache = {}
@@ -206,7 +206,7 @@ export function addModel(pgAdapter) {
 
     async function userById(id) {
       if (!(id in usersCache)) {
-        let user = await pgAdapter.getUserById(id)
+        let user = await dbAdapter.getUserById(id)
 
         if (!user) {
           throw new Error(`no user for id=${id}`)
@@ -270,33 +270,33 @@ export function addModel(pgAdapter) {
    * @param timelineId
    */
   Timeline.prototype.mergeTo = async function(timelineId) {
-    await pgAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
+    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
 
-    let timeline = await pgAdapter.getTimelineById(timelineId)
+    let timeline = await dbAdapter.getTimelineById(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
-    await pgAdapter.createPostsUsagesInTimeline(postIds, timelineId)
+    await dbAdapter.createPostsUsagesInTimeline(postIds, timelineId)
   }
 
   Timeline.prototype.unmerge = async function(timelineId) {
-    let postIds = await pgAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
+    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
 
     await Promise.all(_.flatten(postIds.map((postId) =>
-      pgAdapter.withdrawPostFromTimeline(timelineId, postId)
+      dbAdapter.withdrawPostFromTimeline(timelineId, postId)
     )))
 
     return
   }
 
   Timeline.prototype.getUser = function() {
-    return pgAdapter.getFeedOwnerById(this.userId)
+    return dbAdapter.getFeedOwnerById(this.userId)
   }
 
   /**
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
   Timeline.prototype.getSubscriberIds = async function(includeSelf) {
-    let userIds = await pgAdapter.getTimelineSubscribers(this.id)
+    let userIds = await dbAdapter.getTimelineSubscribers(this.id)
 
     // A user is always subscribed to their own posts timeline.
     if (includeSelf && (this.isPosts() || this.isDirects())) {
@@ -310,7 +310,7 @@ export function addModel(pgAdapter) {
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
     var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await pgAdapter.getUsersByIds(userIds)
+    this.subscribers = await dbAdapter.getUsersByIds(userIds)
 
     return this.subscribers
   }
@@ -350,7 +350,7 @@ export function addModel(pgAdapter) {
 
   Timeline.prototype.updatePost = async function(postId, action) {
     if (action === "like") {
-      let postInTimeline = await pgAdapter.isPostPresentInTimeline(this.id, postId)
+      let postInTimeline = await dbAdapter.isPostPresentInTimeline(this.id, postId)
 
       if (postInTimeline) {
         // For the time being, like does not bump post if it is already present in timeline
@@ -361,14 +361,14 @@ export function addModel(pgAdapter) {
     var currentTime = new Date().getTime()
 
     if (action === "like") {
-      await pgAdapter.insertPostIntoTimeline(this.id, postId)
+      await dbAdapter.insertPostIntoTimeline(this.id, postId)
       if(this.isRiverOfNews()) {
-        await pgAdapter.createLocalBump(postId, this.userId)
+        await dbAdapter.createLocalBump(postId, this.userId)
       }
     } else {
       await Promise.all([
-        pgAdapter.insertPostIntoTimeline(this.id, postId),
-        pgAdapter.setPostUpdatedAt(postId, currentTime)
+        dbAdapter.insertPostIntoTimeline(this.id, postId),
+        dbAdapter.setPostUpdatedAt(postId, currentTime)
       ])
     }
 
