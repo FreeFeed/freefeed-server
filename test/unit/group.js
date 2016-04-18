@@ -1,5 +1,5 @@
 import knexCleaner from 'knex-cleaner'
-import { pgAdapter, User, Group } from '../../app/models'
+import { dbAdapter, User, Group } from '../../app/models'
 
 
 describe('Group', function() {
@@ -33,7 +33,7 @@ describe('Group', function() {
 
           return group
         })
-        .then((group) => { return pgAdapter.getGroupById(group.id) })
+        .then((group) => { return dbAdapter.getGroupById(group.id) })
         .then(function(newGroup) {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty
@@ -42,7 +42,7 @@ describe('Group', function() {
           newGroup.should.have.property('type')
           newGroup.type.should.eql('group')
 
-          return pgAdapter.getGroupByUsername(group.username)
+          return dbAdapter.getGroupByUsername(group.username)
         })
         .then(function(groupByName) {
           groupByName.id.should.eql(group.id)

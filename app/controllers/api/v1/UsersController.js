@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
-import { pgAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
+import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
 import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { load as configLoader } from "../../../../config/config"
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -33,7 +33,7 @@ export default class UsersController {
       await user.create(false)
 
       try {
-        const onboardingUser = await pgAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+        const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
 
         if (null === onboardingUser) {
           throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
@@ -70,7 +70,7 @@ export default class UsersController {
       await user.create(true)
 
       try {
-        const onboardingUser = await pgAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+        const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
 
         if (null === onboardingUser) {
           throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
@@ -98,7 +98,7 @@ export default class UsersController {
     }
 
     try {
-      const user = await pgAdapter.getFeedOwnerByUsername(req.params.username)
+      const user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
 
       if (null === user) {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
@@ -108,7 +108,7 @@ export default class UsersController {
         throw new Error("Invalid")
       }
 
-      var hasRequest = await pgAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
+      var hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
       var banIds = await user.getBanIds()
 
       const valid = !hasRequest && banIds.indexOf(req.user.id) === -1
@@ -132,13 +132,13 @@ export default class UsersController {
     }
 
     try {
-      const user = await pgAdapter.getUserByUsername(req.params.username)
+      const user = await dbAdapter.getUserByUsername(req.params.username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
@@ -157,13 +157,13 @@ export default class UsersController {
     }
 
     try {
-      const user = await pgAdapter.getUserByUsername(req.params.username)
+      const user = await dbAdapter.getUserByUsername(req.params.username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      const hasRequest = await pgAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
       if (!hasRequest) {
         throw new Error("Invalid")
       }
@@ -189,7 +189,7 @@ export default class UsersController {
 
   static async show(req, res) {
     try {
-      var feed = await pgAdapter.getFeedOwnerByUsername(req.params.username)
+      var feed = await dbAdapter.getFeedOwnerByUsername(req.params.username)
 
       if (null === feed) {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
@@ -210,7 +210,7 @@ export default class UsersController {
       , user
 
     try {
-      user = await pgAdapter.getFeedOwnerByUsername(username)
+      user = await dbAdapter.getFeedOwnerByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
@@ -250,7 +250,7 @@ export default class UsersController {
       , user
 
     try {
-      user = await pgAdapter.getUserByUsername(username)
+      user = await dbAdapter.getUserByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
@@ -327,7 +327,7 @@ export default class UsersController {
 
     try {
       const username = req.params.username
-      const user = await pgAdapter.getFeedOwnerByUsername(username)
+      const user = await dbAdapter.getFeedOwnerByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`Feed "${username}" is not found`)
@@ -338,7 +338,7 @@ export default class UsersController {
       }
 
       const timelineId = await user.getPostsTimelineId()
-      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
       if (isSubscribed) {
         throw new ForbiddenException("You are already subscribed to that user")
       }
@@ -369,7 +369,7 @@ export default class UsersController {
     }
 
     try {
-      var user = await pgAdapter.getUserByUsername(req.params.username)
+      var user = await dbAdapter.getUserByUsername(req.params.username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
@@ -377,7 +377,7 @@ export default class UsersController {
 
       var timelineId = await req.user.getPostsTimelineId()
 
-      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }
@@ -400,7 +400,7 @@ export default class UsersController {
     var timer = monitor.timer('users.unsubscribe-time')
 
     try {
-      var user = await pgAdapter.getFeedOwnerByUsername(req.params.username)
+      var user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
 
       if (null === user) {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
@@ -408,7 +408,7 @@ export default class UsersController {
 
       var timelineId = await user.getPostsTimelineId()
 
-      const isSubscribed = await pgAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException("You are not subscribed to that user")
       }

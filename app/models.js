@@ -1,6 +1,6 @@
 import { connect as redisConnection } from '../config/database'
 import { connect as postgresConnection } from '../config/postgres'
-import { PgAdapter } from './support/PgAdapter'
+import { DbAdapter } from './support/DbAdapter'
 import { PubSubAdapter } from './support/PubSubAdapter'
 import pubSub from './pubsub'
 
@@ -29,7 +29,7 @@ import { addSerializer as userSerializer } from './serializers/v1/UserSerializer
 // Be careful: order of exports is important.
 export const database = redisConnection()
 export const postgres = postgresConnection()
-export const pgAdapter = new PgAdapter(postgres)
+export const dbAdapter = new DbAdapter(postgres)
 
 export { AbstractSerializer } from './serializers/abstract_serializer'
 export { Serializer }         from "./serializers/serializer"
@@ -37,12 +37,12 @@ export { Serializer }         from "./serializers/serializer"
 const pubsubAdapter = new PubSubAdapter(database)
 export const PubSub = new pubSub(pubsubAdapter)
 
-export const User          = userModel(pgAdapter)
-export const Group         = groupModel(pgAdapter)
-export const Post          = postModel(pgAdapter)
-export const Timeline      = timelineModel(pgAdapter)
-export const Attachment    = attachmentModel(pgAdapter)
-export const Comment       = commentModel(pgAdapter)
+export const User          = userModel(dbAdapter)
+export const Group         = groupModel(dbAdapter)
+export const Post          = postModel(dbAdapter)
+export const Timeline      = timelineModel(dbAdapter)
+export const Attachment    = attachmentModel(dbAdapter)
+export const Comment       = commentModel(dbAdapter)
 
 export const AdminSerializer               = adminSerializer()
 export const UserSerializer                = userSerializer()

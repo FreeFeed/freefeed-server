@@ -261,7 +261,7 @@ const POST_FIELDS_MAPPING = {
 }
 
 
-export class PgAdapter {
+export class DbAdapter {
   constructor(database) {
     this.database = database
   }
@@ -381,7 +381,7 @@ export class PgAdapter {
 
     attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
-    return PgAdapter.initObject(User, attrs, attrs.id)
+    return DbAdapter.initObject(User, attrs, attrs.id)
   }
 
   async getUserByEmail(email) {
@@ -398,7 +398,7 @@ export class PgAdapter {
 
     attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
-    return PgAdapter.initObject(User, attrs, attrs.id)
+    return DbAdapter.initObject(User, attrs, attrs.id)
   }
 
 
@@ -422,10 +422,10 @@ export class PgAdapter {
     attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     if (attrs.type === 'group') {
-      return PgAdapter.initObject(Group, attrs, id)
+      return DbAdapter.initObject(Group, attrs, id)
     }
 
-    return PgAdapter.initObject(User, attrs, id)
+    return DbAdapter.initObject(User, attrs, id)
   }
 
   async getFeedOwnersByIds(ids) {
@@ -437,10 +437,10 @@ export class PgAdapter {
       }
 
       if (attrs.type === 'group') {
-        return PgAdapter.initObject(Group, attrs, attrs.id)
+        return DbAdapter.initObject(Group, attrs, attrs.id)
       }
 
-      return PgAdapter.initObject(User, attrs, attrs.id)
+      return DbAdapter.initObject(User, attrs, attrs.id)
     })
 
     return objects
@@ -457,10 +457,10 @@ export class PgAdapter {
     attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
 
     if (attrs.type === 'group') {
-      return PgAdapter.initObject(Group, attrs, attrs.id)
+      return DbAdapter.initObject(Group, attrs, attrs.id)
     }
 
-    return PgAdapter.initObject(User, attrs, attrs.id)
+    return DbAdapter.initObject(User, attrs, attrs.id)
   }
 
 
@@ -627,7 +627,7 @@ export class PgAdapter {
     }
 
     attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-    return PgAdapter.initObject(Attachment, attrs, id)
+    return DbAdapter.initObject(Attachment, attrs, id)
   }
 
   async getAttachmentsByIds(ids) {
@@ -638,7 +638,7 @@ export class PgAdapter {
         attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
       }
 
-      return PgAdapter.initObject(Attachment, attrs, attrs.id)
+      return DbAdapter.initObject(Attachment, attrs, attrs.id)
     })
 
     return objects
@@ -762,7 +762,7 @@ export class PgAdapter {
     }
 
     attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-    return PgAdapter.initObject(Comment, attrs, id)
+    return DbAdapter.initObject(Comment, attrs, id)
   }
 
   async getCommentsByIds(ids) {
@@ -773,7 +773,7 @@ export class PgAdapter {
         attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
       }
 
-      return PgAdapter.initObject(Comment, attrs, attrs.id)
+      return DbAdapter.initObject(Comment, attrs, attrs.id)
     })
 
     return objects
@@ -896,7 +896,7 @@ export class PgAdapter {
     }
 
     attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return PgAdapter.initObject(Timeline, attrs, id, params)
+    return DbAdapter.initObject(Timeline, attrs, id, params)
   }
 
   async getTimelinesByIds(ids, params) {
@@ -906,7 +906,7 @@ export class PgAdapter {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
       }
-      return PgAdapter.initObject(Timeline, attrs, attrs.id, params)
+      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
     })
     return objects
   }
@@ -958,7 +958,7 @@ export class PgAdapter {
     }
 
     attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-    return PgAdapter.initObject(Post, attrs, id, params)
+    return DbAdapter.initObject(Post, attrs, id, params)
   }
 
   async getPostsByIds(ids, params) {
@@ -969,7 +969,7 @@ export class PgAdapter {
         attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
       }
 
-      return PgAdapter.initObject(Post, attrs, attrs.id, params)
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
     })
     return objects
   }

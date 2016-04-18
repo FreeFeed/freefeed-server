@@ -2,7 +2,7 @@ import async from 'async'
 import { expect } from 'chai'
 import knexCleaner from 'knex-cleaner'
 
-import { pgAdapter, Post, Timeline, User } from "../../app/models"
+import { dbAdapter, Post, Timeline, User } from "../../app/models"
 
 
 describe('User', function() {
@@ -321,7 +321,7 @@ describe('User', function() {
 
           return user
         })
-        .then((user) => pgAdapter.getUserById(user.id))
+        .then((user) => dbAdapter.getUserById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -348,7 +348,7 @@ describe('User', function() {
 
           return user
         })
-        .then((user) => pgAdapter.getUserById(user.id))
+        .then((user) => dbAdapter.getUserById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -377,7 +377,7 @@ describe('User', function() {
 
           return user
         })
-        .then(() => pgAdapter.getUserById(user.id))
+        .then(() => dbAdapter.getUserById(user.id))
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -452,7 +452,7 @@ describe('User', function() {
         await user.create()
         await user.update({ email: user.email })
 
-        var newUser = await pgAdapter.getUserByEmail(user.email)
+        var newUser = await dbAdapter.getUserByEmail(user.email)
 
         newUser.should.be.an.instanceOf(User)
         newUser.should.not.be.empty
@@ -472,7 +472,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.update({ email: user.email }) })
-        .then(function(user) { return pgAdapter.getUserByEmail('noreply@example.com') })
+        .then(function(user) { return dbAdapter.getUserByEmail('noreply@example.com') })
         .then(function(e) {
           expect(e).to.be.a('null')
           done()
@@ -489,7 +489,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return pgAdapter.getUserByResetToken(token) })
+        .then(function(token) { return dbAdapter.getUserByResetToken(token) })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -507,7 +507,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return pgAdapter.getUserByResetToken('token') })
+        .then(function(token) { return dbAdapter.getUserByResetToken('token') })
         .then(function(e) {
           expect(e).to.be.a('null')
           done()
@@ -519,7 +519,7 @@ describe('User', function() {
     it('should not find user with an invalid id', function(done) {
       var identifier = "user:identifier"
 
-      pgAdapter.getUserById(identifier)
+      dbAdapter.getUserById(identifier)
         .then(function(user) {
           $should.not.exist(user)
           done()
@@ -534,7 +534,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user })
-        .then(function(user) { return pgAdapter.getUserById(user.id) })
+        .then(function(user) { return dbAdapter.getUserById(user.id) })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -553,7 +553,7 @@ describe('User', function() {
       })
 
       user.create()
-        .then(function(user) { return pgAdapter.getUserByUsername(user.username) })
+        .then(function(user) { return dbAdapter.getUserByUsername(user.username) })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -786,7 +786,7 @@ describe('User', function() {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return pgAdapter.getPostById(newPost.id) })
+        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -811,7 +811,7 @@ describe('User', function() {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return pgAdapter.getPostById(newPost.id) })
+        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
         .then(function(newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty

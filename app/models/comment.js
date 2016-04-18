@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { PubSub as pubSub } from '../models'
 
 
-export function addModel(pgAdapter) {
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */
@@ -55,9 +55,9 @@ export function addModel(pgAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
 
-    this.id = await pgAdapter.createComment(payload)
+    this.id = await dbAdapter.createComment(payload)
 
-    let post = await pgAdapter.getPostById(this.postId)
+    let post = await dbAdapter.getPostById(this.postId)
     let timelines = await post.addComment(this)
 
     return timelines
@@ -73,7 +73,7 @@ export function addModel(pgAdapter) {
       'body':      this.body,
       'updatedAt': this.updatedAt.toString()
     }
-    await pgAdapter.updateComment(this.id, payload)
+    await dbAdapter.updateComment(this.id, payload)
 
     await pubSub.updateComment(this.id)
 
@@ -81,30 +81,30 @@ export function addModel(pgAdapter) {
   }
 
   Comment.prototype.getPost = function() {
-    return pgAdapter.getPostById(this.postId)
+    return dbAdapter.getPostById(this.postId)
   }
 
   Comment.prototype.destroy = async function() {
     await pubSub.destroyComment(this.id, this.postId)
-    await pgAdapter.deleteComment(this.id, this.postId)
+    await dbAdapter.deleteComment(this.id, this.postId)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
-    let post = await pgAdapter.getPostById(this.postId)
+    let post = await dbAdapter.getPostById(this.postId)
     let comments = await post.getComments()
 
     if (_.any(comments, 'userId', this.userId)) {
       return true
     }
 
-    let user = await pgAdapter.getUserById(this.userId)
+    let user = await dbAdapter.getUserById(this.userId)
     let timelineId = await user.getCommentsTimelineId()
 
-    return pgAdapter.withdrawPostFromTimeline(timelineId, this.postId)
+    return dbAdapter.withdrawPostFromTimeline(timelineId, this.postId)
   }
 
   Comment.prototype.getCreatedBy = function() {
-    return pgAdapter.getUserById(this.userId)
+    return dbAdapter.getUserById(this.userId)
   }
 
   return Comment

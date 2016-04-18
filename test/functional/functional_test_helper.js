@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
 import uuid from 'uuid'
-import { pgAdapter } from '../../app/models'
+import { dbAdapter } from '../../app/models'
 
 import { getSingleton as initApp } from '../../app/app'
 
@@ -510,7 +510,7 @@ export async function createMockAttachmentAsync(context) {
     updatedAt: (new Date()).getTime()
   }
 
-  attachmentId = await pgAdapter.createAttachment(params)
+  attachmentId = await dbAdapter.createAttachment(params)
 
   return {
     id: attachmentId,
