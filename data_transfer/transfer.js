@@ -15,6 +15,7 @@ export class DataTransfer{
     this.writePosts                 = false
     this.writeAttachments           = false
     this.writeComments              = false
+    this.writeLikes                 = false
   }
 
   async run(pgAdapter, redis){
@@ -43,6 +44,8 @@ export class DataTransfer{
     this.commentKeys = await this.redis.keysAsync("comment:????????????????????????????????????")
 
     this.commentIds = await this._transferComments()
+
+    await this._transferLikes()
   }
 
   async _transferUsers(){
@@ -255,5 +258,20 @@ export class DataTransfer{
       commentIds.push(commentId)
     }
     return commentIds
+  }
+
+  async _transferLikes(){
+    for (let id of this.postIds){
+      console.log("Processing likes of post", id)
+
+      let likesRaw = await this.redis.zrangeAsync(`post:${id}:likes`, 0, -1, 'WITHSCORES')
+      let likes = _.chunk(likesRaw, 2)
+      for (let like of likes){
+        console.log(id, like[0], like[1])
+        if(this.writeLikes){
+          await this.pgAdapter.createUserPostLike(id, like[0], like[1])
+        }
+      }
+    }
   }
 }
