@@ -256,8 +256,10 @@ export class PgAdapter {
   // Likes
   ///////////////////////////////////////////////////
 
-  createUserPostLike(postId, userId) {
-    const currentTime = new Date().toISOString()
+  createUserPostLike(postId, userId, timestamp) {
+    const d = new Date()
+    d.setTime(timestamp)
+    const currentTime = d.toISOString()
 
     const payload = {
       post_id: postId,
@@ -266,59 +268,6 @@ export class PgAdapter {
     }
 
     return this.database('likes').returning('id').insert(payload)
-  }
-
-  async getPostLikesCount(postId) {
-    const res = await this.database('likes').where({ post_id: postId }).count()
-    return parseInt(res[0].count)
-  }
-
-  async getUserLikesCount(userId){
-    const res = await this.database('likes').where({ user_id: userId }).count()
-    return parseInt(res[0].count)
-  }
-
-  async getPostLikesRange(postId, omittedLikesCount) {
-    const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
-    let userIds = res.map((record)=>{
-      return record.user_id
-    })
-    userIds.splice(userIds.length - omittedLikesCount, omittedLikesCount)
-    return userIds
-  }
-
-  async hasUserLikedPost(userId, postId) {
-    const res = await this.database('likes').where({
-      post_id: postId,
-      user_id: userId
-    }).count()
-    return parseInt(res[0].count) != 0
-  }
-
-  async getUserPostLikedTime(userId, postId) {
-    const res = await this.database('likes').select('created_at').where({
-      post_id: postId,
-      user_id: userId
-    })
-    const record = res[0]
-
-    if (!record){
-      return null
-    }
-    return record.created_at.getTime()
-  }
-
-  removeUserPostLike(postId, userId) {
-    return this.database('likes').where({
-      post_id: postId,
-      user_id: userId
-    }).delete()
-  }
-
-  _deletePostLikes(postId) {
-
-    //TODO: 2 pg!
-    return this.database('likes').where({ post_id: postId }).delete()
   }
 
   ///////////////////////////////////////////////////
