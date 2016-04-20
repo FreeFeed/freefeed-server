@@ -2,6 +2,7 @@
 /*global $database */
 import fetch from 'node-fetch'
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { createUserAsync } from '../functional/functional_test_helper'
@@ -13,6 +14,7 @@ describe("UsersControllerV2", function() {
   beforeEach(async () => {
     app = await getSingleton()
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#blockedByMe()", function() {
