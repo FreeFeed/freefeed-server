@@ -207,15 +207,20 @@ export class DataTransfer{
 
       const postHash = await this.redis.hgetallAsync(k)
       postHash.id = postId
+      const authorId = postHash.userId
+      if (authorId && _.includes(this.userIds, authorId)) {
 
-      const postDestinations = await this.redis.smembersAsync(`post:${postId}:to`)
-      const postUsages = await this.redis.smembersAsync(`post:${postId}:timelines`)
+        const postDestinations = await this.redis.smembersAsync(`post:${postId}:to`)
+        const postUsages       = await this.redis.smembersAsync(`post:${postId}:timelines`)
 
-      if( this.writePosts ) {
-        await this.pgAdapter.createPost(postHash, postDestinations, postUsages)
+        if (this.writePosts) {
+          await this.pgAdapter.createPost(postHash, postDestinations, postUsages)
+        }
+
+        postIds.push(postId)
+      } else {
+        console.log("Found post without author", postHash)
       }
-
-      postIds.push(postId)
     }
     return postIds
   }
