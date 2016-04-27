@@ -406,8 +406,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getAttachments = async function() {
-    const attachmentIds = await this.getAttachmentIds()
-    this.attachments = await dbAdapter.getAttachmentsByIds(attachmentIds)
+    this.attachments = await dbAdapter.getAttachmentsOfPost(this.id)
 
     return this.attachments
   }

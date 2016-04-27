@@ -675,6 +675,19 @@ export class DbAdapter {
     return attrs
   }
 
+  async getAttachmentsOfPost(postId) {
+    const responses = await this.database('attachments').orderBy('created_at', 'asc').where('post_id', postId)
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Attachment, attrs, attrs.id)
+    })
+
+    return objects
+  }
+
   ///////////////////////////////////////////////////
   // Likes
   ///////////////////////////////////////////////////
