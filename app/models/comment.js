@@ -98,9 +98,9 @@ export function addModel(dbAdapter) {
     }
 
     let user = await dbAdapter.getUserById(this.userId)
-    let timelineId = await user.getCommentsTimelineId()
+    let timelineId = await user.getCommentsTimelineIntId()
 
-    return dbAdapter.withdrawPostFromTimeline(timelineId, this.postId)
+    return dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
   }
 
   Comment.prototype.getCreatedBy = function() {

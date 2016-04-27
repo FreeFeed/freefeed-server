@@ -413,12 +413,10 @@ exports.addModel = function(dbAdapter) {
 
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
-          let likesTimelineId = await user.getLikesTimelineId()
-
-          actions.push(dbAdapter.insertPostIntoTimeline(likesTimelineId, post.id))
+          return user.getLikesTimelineIntId()
         })
-
-        await Promise.all(promises)
+        let likesFeedsIntIds = await Promise.all(promises)
+        actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
 
       let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
@@ -426,12 +424,11 @@ exports.addModel = function(dbAdapter) {
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
-          let commentsTimelineId = await user.getCommentsTimelineId()
-
-          actions.push(dbAdapter.insertPostIntoTimeline(commentsTimelineId, post.id))
+          return user.getCommentsTimelineIntId()
         })
 
-        await Promise.all(promises)
+        let commentsFeedsIntIds = await Promise.all(promises)
+        actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
       }
 
       await Promise.all(actions)
@@ -442,7 +439,7 @@ exports.addModel = function(dbAdapter) {
     for (let usersChunk of _.chunk(fixedUsers, 10)) {
       let promises = usersChunk.map(async (user) => {
         let [riverId, commentsTimeline, likesTimeline] = await Promise.all([
-          user.getRiverOfNewsTimelineId(),
+          user.getRiverOfNewsTimelineIntId(),
           user.getCommentsTimeline(),
           user.getLikesTimeline()
         ])
@@ -528,13 +525,13 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineId(), this.getLikesTimelineId()])
+    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineIntId(), this.getLikesTimelineIntId()])
 
-    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineId()
+    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
     await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
-    return dbAdapter.getTimelineById(myDiscussionsTimelineId, params)
+    return dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
@@ -561,6 +558,14 @@ exports.addModel = function(dbAdapter) {
     return timeline.id
   }
 
+  User.prototype.getGenericTimelineIntId = async function(name) {
+    let timelineIds = await this.getTimelineIds()
+
+    let timeline = await dbAdapter.getTimelineById(timelineIds[name])
+
+    return timeline.intId
+  }
+
   User.prototype.getGenericTimeline = async function(name, params) {
     let timelineId = await this[`get${name}TimelineId`](params)
 
@@ -570,16 +575,24 @@ exports.addModel = function(dbAdapter) {
     return timeline
   }
 
-  User.prototype.getMyDiscussionsTimelineId = function() {
-    return this.getGenericTimelineId('MyDiscussions')
+  User.prototype.getMyDiscussionsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('MyDiscussions')
   }
 
   User.prototype.getHidesTimelineId = function(params) {
     return this.getGenericTimelineId('Hides', params)
   }
 
+  User.prototype.getHidesTimelineIntId = function(params) {
+    return this.getGenericTimelineIntId('Hides', params)
+  }
+
   User.prototype.getRiverOfNewsTimelineId = function(params) {
     return this.getGenericTimelineId('RiverOfNews', params)
+  }
+
+  User.prototype.getRiverOfNewsTimelineIntId = function(params) {
+    return this.getGenericTimelineIntId('RiverOfNews', params)
   }
 
   User.prototype.getRiverOfNewsTimeline = async function(params) {
@@ -608,6 +621,10 @@ exports.addModel = function(dbAdapter) {
     return this.getGenericTimelineId('Likes')
   }
 
+  User.prototype.getLikesTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Likes')
+  }
+
   User.prototype.getLikesTimeline = function(params) {
     return this.getGenericTimeline('Likes', params)
   }
@@ -616,12 +633,20 @@ exports.addModel = function(dbAdapter) {
     return this.getGenericTimelineId('Posts')
   }
 
+  User.prototype.getPostsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Posts')
+  }
+
   User.prototype.getPostsTimeline = function(params) {
     return this.getGenericTimeline('Posts', params)
   }
 
   User.prototype.getCommentsTimelineId = function() {
     return this.getGenericTimelineId('Comments')
+  }
+
+  User.prototype.getCommentsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Comments')
   }
 
   User.prototype.getCommentsTimeline = function(params) {
@@ -757,7 +782,7 @@ exports.addModel = function(dbAdapter) {
       return dbAdapter.subscribeUserToTimeline(timelineId, this.id)
     }))
 
-    promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
+    promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineIntId()))
 
     await Promise.all(promises)
 
@@ -800,15 +825,15 @@ exports.addModel = function(dbAdapter) {
     }
 
     // remove all posts of The Timeline from user's River of News
-    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineId()))
+    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))
 
     // remove all posts of The Timeline from likes timeline of user
     if (options.likes)
-      promises.push(timeline.unmerge(await this.getLikesTimelineId()))
+      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()))
 
     // remove all post of The Timeline from comments timeline of user
     if (options.comments)
-      promises.push(timeline.unmerge(await this.getCommentsTimelineId()))
+      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()))
 
     await Promise.all(promises)
 

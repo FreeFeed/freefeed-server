@@ -10,13 +10,14 @@ export function addModel(dbAdapter) {
    * @constructor
    */
   var Post = function(params) {
-    this.id = params.id
-    this.body = params.body
-    this.attachments = params.attachments
-    this.userId = params.userId
-    this.timelineIds = params.timelineIds
-    this.currentUser = params.currentUser
+    this.id               = params.id
+    this.body             = params.body
+    this.attachments      = params.attachments
+    this.userId           = params.userId
+    this.timelineIds      = params.timelineIds
+    this.currentUser      = params.currentUser
     this.commentsDisabled = params.commentsDisabled
+    this.feedIntIds       = params.feedIntIds || []
 
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
@@ -81,8 +82,9 @@ export function addModel(dbAdapter) {
       'updatedAt': this.updatedAt.toString(),
       'commentsDisabled': this.commentsDisabled
     }
+    this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)
     // save post to the database
-    this.id = await dbAdapter.createPost(payload, this.timelineIds)
+    this.id = await dbAdapter.createPost(payload, this.feedIntIds)
 
     // save nested resources
     await this.linkAttachments()
@@ -148,10 +150,7 @@ export function addModel(dbAdapter) {
     await Promise.all(comments.map(comment => comment.destroy()))
 
     const timelineIds = await this.getTimelineIds()
-    await Promise.all(timelineIds.map(async (timelineId) => {
-      await dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
-    }))
-
+    await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id)
     await dbAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
@@ -273,18 +272,18 @@ export function addModel(dbAdapter) {
 
   Post.prototype.hide = async function(userId) {
     const theUser = await dbAdapter.getUserById(userId)
-    const hidesTimelineId = await theUser.getHidesTimelineId()
+    const hidesTimelineId = await theUser.getHidesTimelineIntId()
 
-    await dbAdapter.insertPostIntoTimeline(hidesTimelineId, this.id)
+    await dbAdapter.insertPostIntoFeeds([hidesTimelineId], this.id)
 
     await pubSub.hidePost(theUser.id, this.id)
   }
 
   Post.prototype.unhide = async function(userId) {
     const theUser = await dbAdapter.getUserById(userId)
-    const hidesTimelineId = await theUser.getHidesTimelineId()
+    const hidesTimelineId = await theUser.getHidesTimelineIntId()
 
-    await dbAdapter.withdrawPostFromTimeline(hidesTimelineId, this.id)
+    await dbAdapter.withdrawPostFromFeeds([hidesTimelineId], this.id)
 
     await pubSub.unhidePost(theUser.id, this.id)
   }
@@ -543,10 +542,10 @@ export function addModel(dbAdapter) {
   Post.prototype.removeLike = async function(userId) {
     let user = await dbAdapter.getUserById(userId)
     var timer = monitor.timer('posts.unlikes.time')
-    let timelineId = await user.getLikesTimelineId()
+    let timelineId = await user.getLikesTimelineIntId()
     let promises = [
             dbAdapter.removeUserPostLike(this.id, userId),
-            dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
+            dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
           ]
     await Promise.all(promises)
     await pubSub.removeLike(this.id, userId)

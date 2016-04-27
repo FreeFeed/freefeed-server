@@ -9,6 +9,7 @@ export function addModel(dbAdapter) {
    */
   var Timeline = function(params) {
     this.id = params.id
+    this.intId = params.intId
     this.name = params.name
     this.userId = params.userId
     if (parseInt(params.createdAt, 10))
@@ -49,19 +50,13 @@ export function addModel(dbAdapter) {
       const feed = await timeline.getUser()
       await feed.updateLastActivityAt()
 
-      const ids = await timeline.getSubscribedTimelineIds()
-      return ids
+      return timeline.getSubscribersRiversOfNewsIntIds()
     })
 
     const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
-    const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
-
+    const allTimelines = _.uniq(_.union(post.feedIntIds, allSubscribedTimelineIds))
     await dbAdapter.setPostUpdatedAt(post.id, currentTime)
-    promises = allTimelines.map(timelineId => {
-      return dbAdapter.insertPostIntoTimeline(timelineId, post.id)
-    })
-
-    await Promise.all(_.flatten(promises))
+    await dbAdapter.insertPostIntoFeeds(allTimelines, post.id)
     await pubSub.newPost(post.id)
   }
 
@@ -118,8 +113,7 @@ export function addModel(dbAdapter) {
     if (!valid)
       return []
 
-    this.postIds = await dbAdapter.getTimelinePostsRange(this.id, offset, limit)
-
+    this.postIds = await dbAdapter.getTimelinePostsRange(this.intId, offset, limit)
     return this.postIds
   }
 
@@ -270,19 +264,19 @@ export function addModel(dbAdapter) {
    * @param timelineId
    */
   Timeline.prototype.mergeTo = async function(timelineId) {
-    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
+    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.intId)
 
-    let timeline = await dbAdapter.getTimelineById(timelineId)
+    let timeline = await dbAdapter.getTimelineByIntId(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
-    await dbAdapter.createPostsUsagesInTimeline(postIds, timelineId)
+    await dbAdapter.createPostsUsagesInTimeline(postIds, [timelineId])
   }
 
-  Timeline.prototype.unmerge = async function(timelineId) {
-    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
+  Timeline.prototype.unmerge = async function(feedIntId) {
+    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.intId, feedIntId)
 
     await Promise.all(_.flatten(postIds.map((postId) =>
-      dbAdapter.withdrawPostFromTimeline(timelineId, postId)
+      dbAdapter.withdrawPostFromFeeds([feedIntId], postId)
     )))
 
     return
@@ -324,6 +318,11 @@ export function addModel(dbAdapter) {
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()))
   }
 
+  Timeline.prototype.getSubscribersRiversOfNewsIntIds = async function() {
+    var subscribers = await this.getSubscribers(true);
+    return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()))
+  }
+
   Timeline.prototype.isRiverOfNews = function() {
     return this.name === "RiverOfNews"
   }
@@ -361,13 +360,13 @@ export function addModel(dbAdapter) {
     var currentTime = new Date().getTime()
 
     if (action === "like") {
-      await dbAdapter.insertPostIntoTimeline(this.id, postId)
+      await dbAdapter.insertPostIntoFeeds([this.intId], postId)
       if(this.isRiverOfNews()) {
         await dbAdapter.createLocalBump(postId, this.userId)
       }
     } else {
       await Promise.all([
-        dbAdapter.insertPostIntoTimeline(this.id, postId),
+        dbAdapter.insertPostIntoFeeds([this.intId], postId),
         dbAdapter.setPostUpdatedAt(postId, currentTime)
       ])
     }
