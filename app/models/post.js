@@ -415,38 +415,20 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getLikeIds = async function() {
-    const omittedLikes = await this.getOmittedLikes()
+    const omittedLikesCount = await this.getOmittedLikes()
+    let likedUsersIds = await dbAdapter.getPostLikedUsersIds(this.id)
 
-    let likeIds = await dbAdapter.getPostLikesRange(this.id, omittedLikes)
+    likedUsersIds = likedUsersIds.sort((a, b) => {
+      if (a == this.currentUser)
+        return -1
 
-    if (omittedLikes > 0) {
-      const hasUserLikedPost = await dbAdapter.hasUserLikedPost(this.currentUser, this.id)
+      if (b == this.currentUser)
+        return 1
 
-      if (hasUserLikedPost) {
-        if (likeIds.indexOf(this.currentUser) === -1) {
-          likeIds = [this.currentUser].concat(likeIds.slice(0, -1))
-        } else {
-          likeIds = likeIds.sort((a, b) => {
-            if (a == this.currentUser)
-              return -1
-
-            if (b == this.currentUser)
-              return 1
-
-            return 0
-          })
-        }
-      }
-    } else {
-      let to = 0
-      let from = _.findIndex(likeIds, user => (user == this.currentUser))
-
-      if (from > 0) {
-        likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
-      }
-    }
-
-    return likeIds
+      return 0
+    })
+    likedUsersIds.splice(likedUsersIds.length - omittedLikesCount, omittedLikesCount)
+    return likedUsersIds
   }
 
   Post.prototype.getOmittedLikes = async function() {

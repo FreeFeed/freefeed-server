@@ -714,12 +714,11 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getPostLikesRange(postId, omittedLikesCount) {
+  async getPostLikedUsersIds(postId) {
     const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
     let userIds = res.map((record)=>{
       return record.user_id
     })
-    userIds.splice(userIds.length - omittedLikesCount, omittedLikesCount)
     return userIds
   }
 
