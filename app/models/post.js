@@ -325,25 +325,29 @@ export function addModel(dbAdapter) {
     return 0
   }
 
-  Post.prototype.getCommentIds = async function() {
-    let length = await dbAdapter.getPostCommentsCount(this.id)
+  Post.prototype.getPostComments = async function() {
+    const comments = await dbAdapter.getAllPostComments(this.id)
+    const commentsIds = comments.map((cmt)=>{
+      return cmt.id
+    })
 
+    const length = comments.length
+    let visibleCommentsIds = commentsIds
+    let visibleComments = comments
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
-      // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
-      // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
-      let commentIds = await dbAdapter.getPostFirstNCommentsIds(this.id, this.maxComments - 1)
-      // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
-      let moreCommentIds = await dbAdapter.getPostLastCommentId(this.id)
+
+      let firstNCommentIds = commentsIds.slice(0, this.maxComments - 1)
+      let firstNComments   = comments.slice(0, this.maxComments - 1)
+      let lastCommentId = _.last(commentsIds)
+      let lastComment   = _.last(comments)
 
       this.omittedComments = length - this.maxComments
-      this.commentIds = commentIds.concat(moreCommentIds)
-
-      return this.commentIds
-    } else {  // eslint-disable-line no-else-return
-      // get ALL comment ids
-      this.commentIds = await dbAdapter.getAllPostCommentsIds(this.id)
-      return this.commentIds
+      visibleCommentsIds = firstNCommentIds.concat(lastCommentId)
+      visibleComments = firstNComments.concat(lastComment)
     }
+
+    this.commentIds = visibleCommentsIds
+    return visibleComments
   }
 
   Post.prototype.getComments = async function() {
@@ -355,8 +359,7 @@ export function addModel(dbAdapter) {
         banIds = await user.getBanIds()
     }
 
-    let commentIds = await this.getCommentIds()
-    let comments = await dbAdapter.getCommentsByIds(commentIds)
+    let comments = await this.getPostComments()
 
     this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
 

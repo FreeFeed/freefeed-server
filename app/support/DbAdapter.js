@@ -780,20 +780,6 @@ export class DbAdapter {
     return DbAdapter.initObject(Comment, attrs, id)
   }
 
-  async getCommentsByIds(ids) {
-    const responses = await this.database('comments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs){
-        attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Comment, attrs, attrs.id)
-    })
-
-    return objects
-  }
-
   updateComment(commentId, payload) {
     let preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
 
@@ -817,25 +803,17 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getPostFirstNCommentsIds(postId, n){
-    const res = await this.database('comments').select('uid').limit(n).orderBy('created_at', 'asc').where('post_id', postId)
-    let commentIds = res.map((record)=>{
-      return record.uid
-    })
-    return commentIds
-  }
+  async getAllPostComments(postId){
+    const responses = await this.database('comments').orderBy('created_at', 'asc').where('post_id', postId)
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
+      }
 
-  async getPostLastCommentId(postId){
-    const res = await this.database('comments').select('uid').limit(1).orderBy('created_at', 'desc').where('post_id', postId)
-    return res[0].uid
-  }
-
-  async getAllPostCommentsIds(postId){
-    const res = await this.database('comments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
-    let commentIds = res.map((record)=>{
-      return record.uid
+      return DbAdapter.initObject(Comment, attrs, attrs.id)
     })
-    return commentIds
+
+    return objects
   }
 
   _deletePostComments(postId) {
