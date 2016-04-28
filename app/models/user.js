@@ -830,22 +830,23 @@ exports.addModel = function(dbAdapter) {
     return this
   }
 
-  User.prototype.getStatistics = async function() {
+  User.prototype.calculateStatsValues = async function() {
     let res
-
     try {
-      res = {
-        posts:         await dbAdapter.getUserPostsCount(this.id),
-        likes:         await dbAdapter.getUserLikesCount(this.id),
-        comments:      await dbAdapter.getUserCommentsCount(this.id),
-        subscribers:   (await this.getSubscriberIds()).length,
-        subscriptions: (await this.getFriendIds()).length
-      }
+      res = await dbAdapter.getUserStats(this.id, this.subscribedFeedIds)
     } catch (e) {
       res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
     }
 
     return res
+  }
+
+
+  User.prototype.getStatistics = async function() {
+    if (!this.statsValues){
+      this.statsValues = await this.calculateStatsValues()
+    }
+    return this.statsValues
   }
 
   User.prototype.newComment = function(attrs) {

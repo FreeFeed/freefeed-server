@@ -499,6 +499,33 @@ export class DbAdapter {
   }
 
 
+  async getUserStats(userId, readableFeedsIds){
+    const userPostsFeed = await this.database('feeds').returning('uid').where({
+      user_id: userId,
+      name:    'Posts'
+    })
+    const userPostsFeedId = userPostsFeed[0].uid
+    const readablePostFeeds = this.database('feeds').whereIn('id', readableFeedsIds).where('name', 'Posts')
+
+    let promises = [
+      this.getUserPostsCount(userId),
+      this.getUserLikesCount(userId),
+      this.getUserCommentsCount(userId),
+      this.getTimelineSubscribersIds(userPostsFeedId),
+      readablePostFeeds
+    ]
+    let values = await Promise.all(promises)
+    let res = {
+      posts:         values[0],
+      likes:         values[1],
+      comments:      values[2],
+      subscribers:   (values[3]).length,
+      subscriptions: (readablePostFeeds).length
+    }
+    return res
+  }
+
+
   ///////////////////////////////////////////////////
   // Subscription requests
   ///////////////////////////////////////////////////
