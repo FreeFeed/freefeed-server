@@ -58,7 +58,8 @@ const USER_FIELDS = {
   reset_password_token:       "resetPasswordToken",
   reset_password_sent_at:     "resetPasswordSentAt",
   reset_password_expires_at:  "resetPasswordExpiresAt",
-  frontend_preferences:       "frontendPreferences"
+  frontend_preferences:       "frontendPreferences",
+  subscribed_feed_ids:        "subscribedFeedIds"
 }
 
 const USER_FIELDS_MAPPING = {
@@ -905,6 +906,18 @@ export class DbAdapter {
 
   async getTimelinesByIds(ids, params) {
     const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
+
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
+      }
+      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
+    })
+    return objects
+  }
+
+  async getTimelinesByIntIds(ids, params) {
+    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`)
 
     const objects = responses.map((attrs) => {
       if (attrs){

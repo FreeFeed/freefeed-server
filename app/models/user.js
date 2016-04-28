@@ -50,6 +50,7 @@ exports.addModel = function(dbAdapter) {
     this.type = "user"
 
     this.profilePictureUuid = params.profilePictureUuid || ''
+    this.subscribedFeedIds = params.subscribedFeedIds || []
 
     this.initPassword = async function() {
       if (!_.isNull(password)) {
@@ -685,18 +686,11 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
-  User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(this.id)
-    return this.subscriptionsIds
-  }
-
   /**
    * @return {Timeline[]}
    */
   User.prototype.getSubscriptions = async function() {
-    var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await dbAdapter.getTimelinesByIds(timelineIds)
-
+    this.subscriptions = await dbAdapter.getTimelinesByIntIds(this.subscribedFeedIds)
     return this.subscriptions
   }
 
@@ -777,9 +771,11 @@ exports.addModel = function(dbAdapter) {
       throw new Error("Invalid")
 
     let timelineIds = await user.getPublicTimelineIds()
-    await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
+    let subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
     await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
+
+    this.subscribedFeedIds = subscribedFeedsIntIds
 
     monitor.increment('users.subscriptions')
 
@@ -812,7 +808,8 @@ exports.addModel = function(dbAdapter) {
       // remove timelines from user's subscriptions
       let timelineIds = await user.getPublicTimelineIds()
 
-      await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
+      let subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
+      this.subscribedFeedIds = subscribedFeedsIntIds
     }
 
     // remove all posts of The Timeline from user's River of News
