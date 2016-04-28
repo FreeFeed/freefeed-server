@@ -253,7 +253,7 @@ const POST_FIELDS = {
   user_id:                "userId",
   body:                   "body",
   comments_disabled:      "commentsDisabled",
-  feedIntIds:             "feed_ids"
+  feed_ids:               "feedIntIds"
 }
 
 const POST_FIELDS_MAPPING = {
