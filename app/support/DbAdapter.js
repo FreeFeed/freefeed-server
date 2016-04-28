@@ -1105,32 +1105,41 @@ export class DbAdapter {
     return attrs
   }
 
-  async subscribeUserToTimeline(timelineId, currentUserId){
-    const currentTime = new Date().toISOString()
+  async subscribeUserToTimelines(timelineIds, currentUserId){
+    let subsPromises = timelineIds.map((id)=>{
+      const currentTime = new Date().toISOString()
 
-    const payload = {
-      feed_id: timelineId,
-      user_id: currentUserId,
-      created_at: currentTime
-    }
-    await this.database('subscriptions').returning('id').insert(payload)
+      const payload = {
+        feed_id: id,
+        user_id: currentUserId,
+        created_at: currentTime
+      }
+      return this.database('subscriptions').returning('id').insert(payload)
+    })
+    await Promise.all(subsPromises)
 
-    let feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineId]))[0]
+    let feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
-    return this.database
-      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ?', [[feedIntId], currentUserId])
+    let res = await this.database
+      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ? RETURNING subscribed_feed_ids', [feedIntIds, currentUserId])
+
+    return res.rows[0].subscribed_feed_ids
   }
 
-  async unsubscribeUserFromTimeline(timelineId, currentUserId){
-    await this.database('subscriptions').where({
-      feed_id: timelineId,
-      user_id: currentUserId
-    }).delete()
+  async unsubscribeUserFromTimelines(timelineIds, currentUserId){
+    let unsubsPromises = timelineIds.map((id)=> {
+      return this.database('subscriptions').where({
+        feed_id: id,
+        user_id: currentUserId
+      }).delete()
+    })
+    await Promise.all(unsubsPromises)
 
-    let feedIntId = (await this.getTimelinesIntIdsByUUIDs([timelineId]))[0]
+    let feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
-    return this.database
-      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ?', [[feedIntId], currentUserId])
+    let res = await this.database
+      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids', [feedIntIds, currentUserId])
+    return res.rows[0].subscribed_feed_ids
   }
 
   ///////////////////////////////////////////////////

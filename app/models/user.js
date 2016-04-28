@@ -777,14 +777,9 @@ exports.addModel = function(dbAdapter) {
       throw new Error("Invalid")
 
     let timelineIds = await user.getPublicTimelineIds()
+    await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
-    let promises = _.flatten(timelineIds.map((timelineId) => {
-      return dbAdapter.subscribeUserToTimeline(timelineId, this.id)
-    }))
-
-    promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineIntId()))
-
-    await Promise.all(promises)
+    await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
 
     monitor.increment('users.subscriptions')
 
@@ -817,11 +812,7 @@ exports.addModel = function(dbAdapter) {
       // remove timelines from user's subscriptions
       let timelineIds = await user.getPublicTimelineIds()
 
-      let unsubPromises = _.flatten(timelineIds.map((timelineId) => {
-        return dbAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
-      }))
-
-      promises = promises.concat(unsubPromises)
+      await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
     }
 
     // remove all posts of The Timeline from user's River of News
