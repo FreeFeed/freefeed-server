@@ -195,8 +195,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getTimelines = async function() {
-    var timelineIds = await this.getTimelineIds()
-    this.timelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.timelines = await dbAdapter.getTimelinesByIntIds(this.feedIntIds)
 
     return this.timelines
   }
