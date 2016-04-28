@@ -18,6 +18,7 @@ export function addModel(dbAdapter) {
     this.currentUser      = params.currentUser
     this.commentsDisabled = params.commentsDisabled
     this.feedIntIds       = params.feedIntIds || []
+    this.destinationFeedIds = params.destinationFeedIds || []
 
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
@@ -83,6 +84,7 @@ export function addModel(dbAdapter) {
       'commentsDisabled': this.commentsDisabled
     }
     this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)
+    this.destinationFeedIds = this.feedIntIds
     // save post to the database
     this.id = await dbAdapter.createPost(payload, this.feedIntIds)
 
@@ -200,14 +202,13 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getPostedToIds = async function() {
-    var timelineIds = await dbAdapter.getPostPostedToIds(this.id)
+    let timelineIds = await dbAdapter.getTimelinesUUIDsByIntIds(this.destination_feed_ids)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
 
   Post.prototype.getPostedTo = async function() {
-    var timelineIds = await this.getPostedToIds()
-    this.postedTo = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.postedTo = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
 
     return this.postedTo
   }
@@ -218,8 +219,7 @@ export function addModel(dbAdapter) {
     let timeline = await user['get' + type + 'Timeline']()
     timelineIds.push(timeline.id)
 
-    let postedToIds = await this.getPostedToIds()
-    let timelines = await dbAdapter.getTimelinesByIds(postedToIds)
+    let timelines = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
     let timelineOwners = await dbAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
 
     // Adds the specified post to River of News if and only if

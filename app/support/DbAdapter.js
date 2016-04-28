@@ -253,7 +253,8 @@ const POST_FIELDS = {
   user_id:                "userId",
   body:                   "body",
   comments_disabled:      "commentsDisabled",
-  feed_ids:               "feedIntIds"
+  feed_ids:               "feedIntIds",
+  destination_feed_ids:   "destinationFeedIds"
 }
 
 const POST_FIELDS_MAPPING = {
@@ -1042,19 +1043,6 @@ export class DbAdapter {
       this._deletePostLikes(postId),
       this._deletePostComments(postId)
     ])
-  }
-
-  async getPostPostedToIds(postId) {
-    const res = await this.database('posts').where('uid', postId)
-    const post = res[0]
-
-    if (!post) {
-      return []
-    }
-
-    const destIntIds = post.destination_feed_ids
-    const destUUIDs = await this.getTimelinesUUIDsByIntIds(destIntIds)
-    return destUUIDs
   }
 
   async createPostsUsagesInTimeline(postIds, feedIntIds) {
