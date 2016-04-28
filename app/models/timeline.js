@@ -355,7 +355,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.updatePost = async function(postId, action) {
     if (action === "like") {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(this.id, postId)
+      let postInTimeline = await dbAdapter.isPostPresentInTimeline(this.intId, postId)
 
       if (postInTimeline) {
         // For the time being, like does not bump post if it is already present in timeline

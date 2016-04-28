@@ -1074,8 +1074,9 @@ export class DbAdapter {
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
-    let postUsages = await this.getPostUsagesInTimelines(postId)
-    return _.includes(postUsages, timelineId)
+    const res = await this.database('posts').where('uid', postId)
+    let postData = res[0]
+    return _.includes(postData.feed_ids, timelineId)
   }
 
   async getTimelinePostsRange(timelineId, offset, limit) {

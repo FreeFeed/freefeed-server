@@ -555,9 +555,9 @@ export function addModel(dbAdapter) {
       return false
 
     let owner = await timeline.getUser()
-    let hidesTimelineId = await owner.getHidesTimelineId()
+    let hidesTimelineIntId = await owner.getHidesTimelineIntId()
 
-    return dbAdapter.isPostPresentInTimeline(hidesTimelineId, this.id)
+    return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
   Post.prototype.canShow = async function(userId) {
