@@ -606,7 +606,7 @@ exports.addModel = function(dbAdapter) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, post.id)
+      let postInTimeline = _.includes(post.feedIntIds, hidesTimelineIntId)
 
       if (postInTimeline) {
         post.isHidden = true
@@ -707,7 +707,8 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getSubscriberIds = async function() {
-    var timeline = await this.getPostsTimeline()
+    let postsFeedIntId = await this.getPostsTimelineIntId()
+    let timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
     this.subscriberIds = await timeline.getSubscriberIds()
 
     return this.subscriberIds
