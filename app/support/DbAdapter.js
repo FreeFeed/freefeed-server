@@ -1110,12 +1110,29 @@ export class DbAdapter {
     return parseInt(res[0].count) != 0
   }
 
-  async getTimelineSubscribers(timelineId) {
+  async getTimelineSubscribersIds(timelineId) {
     const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
     const attrs = res.map((record)=>{
       return record.user_id
     })
     return attrs
+  }
+
+  async getTimelineSubscribers(timelineIntId) {
+    const responses = this.database('users').whereRaw('subscribed_feed_ids && ?', [[timelineIntId]])
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+      }
+
+      if (attrs.type === 'group') {
+        return DbAdapter.initObject(Group, attrs, attrs.id)
+      }
+
+      return DbAdapter.initObject(User, attrs, attrs.id)
+    })
+
+    return objects
   }
 
   async subscribeUserToTimelines(timelineIds, currentUserId){

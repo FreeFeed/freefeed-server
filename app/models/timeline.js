@@ -290,7 +290,7 @@ export function addModel(dbAdapter) {
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
   Timeline.prototype.getSubscriberIds = async function(includeSelf) {
-    let userIds = await dbAdapter.getTimelineSubscribers(this.id)
+    let userIds = await dbAdapter.getTimelineSubscribersIds(this.id)
 
     // A user is always subscribed to their own posts timeline.
     if (includeSelf && (this.isPosts() || this.isDirects())) {
@@ -303,8 +303,14 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
-    var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await dbAdapter.getUsersByIds(userIds)
+    let users = await dbAdapter.getTimelineSubscribers(this.intId)
+
+    if (includeSelf && (this.isPosts() || this.isDirects())) {
+      let currentUser = await dbAdapter.getUserById(this.userId)
+      users = users.concat(currentUser)
+    }
+
+    this.subscribers = users
 
     return this.subscribers
   }
