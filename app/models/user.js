@@ -725,13 +725,6 @@ exports.addModel = function(dbAdapter) {
     return dbAdapter.getUserBansIds(this.id)
   }
 
-  User.prototype.getBans = async function() {
-    const userIds = await this.getBanIds()
-    const users = await dbAdapter.getUsersByIds(userIds)
-
-    return users
-  }
-
   User.prototype.ban = async function(username) {
     const user = await dbAdapter.getUserByUsername(username)
 
