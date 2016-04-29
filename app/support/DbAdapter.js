@@ -974,6 +974,22 @@ export class DbAdapter {
     return uuids
   }
 
+  async getUserNamedFeed(userId, name, params){
+    const response = await this.database('feeds').returning('uid').where({
+      user_id: userId,
+      name:    name
+    })
+
+    let namedFeed = response[0]
+
+    if (!namedFeed) {
+      return null
+    }
+
+    namedFeed = this._prepareModelPayload(namedFeed, FEED_FIELDS, FEED_FIELDS_MAPPING)
+    return DbAdapter.initObject(Timeline, namedFeed, namedFeed.id, params)
+  }
+
   ///////////////////////////////////////////////////
   // Post
   ///////////////////////////////////////////////////

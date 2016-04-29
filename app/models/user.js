@@ -13,7 +13,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
-import { Attachment, Comment, Post, Timeline } from '../models'
+import { Attachment, Comment, Post } from '../models'
 
 
 promisifyAll(bcrypt)
@@ -537,25 +537,9 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
-    let timelineIds = await this.getTimelineIds()
+    params = params || {}
 
-    let timeline
-
-    if (timelineIds[name]) {
-      params = params || {}
-      timeline = await dbAdapter.getTimelineById(timelineIds[name], {
-        offset: params.offset,
-        limit: params.limit
-      })
-    } else {
-      // TODO: remove after postgres
-      timeline = new Timeline({
-        name: name,
-        userId: this.id
-      })
-
-      timeline = await timeline.create()
-    }
+    let timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
 
     return timeline.id
   }
