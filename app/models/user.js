@@ -69,7 +69,6 @@ exports.addModel = function(dbAdapter) {
 
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
-  User.PROFILE_PICTURE_SIZE_SMALL = 25
 
   Object.defineProperty(User.prototype, 'username', {
     get: function() { return this.username_ },
@@ -915,8 +914,7 @@ exports.addModel = function(dbAdapter) {
 
     let sizes = [
       User.PROFILE_PICTURE_SIZE_LARGE,
-      User.PROFILE_PICTURE_SIZE_MEDIUM,
-      User.PROFILE_PICTURE_SIZE_SMALL
+      User.PROFILE_PICTURE_SIZE_MEDIUM
     ]
 
     let promises = sizes.map(size => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
