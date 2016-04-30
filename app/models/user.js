@@ -934,6 +934,8 @@ exports.addModel = function(dbAdapter) {
     var image = promisifyAll(gm(path))
     var origWidth = originalSize.width
     var origHeight = originalSize.height
+    var retinaSize = size * 2
+
     if (origWidth > origHeight) {
       var dx = origWidth - origHeight
       image = image.crop(origHeight, origHeight, dx / 2, 0)
@@ -941,11 +943,13 @@ exports.addModel = function(dbAdapter) {
       var dy = origHeight - origWidth
       image = image.crop(origWidth, origWidth, 0, dy / 2)
     }
+
     image = image
-      .resize(size, size)
+      .resize(retinaSize, retinaSize)
       .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
       .autoOrient()
       .quality(95)
+
     var destPath = this.getProfilePicturePath(uuid, size)
     return image.writeAsync(destPath)
   }
