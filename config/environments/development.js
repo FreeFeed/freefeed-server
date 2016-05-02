@@ -94,12 +94,8 @@ export function getConfig() {
     }
   }
   config.profilePictures = {
-    // Profile pictures only support 'fs' for the time being, so we won't use shared values by default
-    url: config.host + '/',
-    storage: {
-      type: 'fs',
-      rootDir: config.media.storage.rootDir
-    },
+    url: config.media.url,
+    storage: config.media.storage,
     path: 'profilepics/' // must have trailing slash
   }
 
