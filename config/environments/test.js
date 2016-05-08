@@ -52,6 +52,14 @@ export function getConfig() {
       t: {
         path: 'attachments/thumbnails/', // must have trailing slash
         bounds: { width: 525, height: 175 }
+      },
+      t2: {
+        path: 'attachments/thumbnails2/', // must have trailing slash
+        bounds: { width: 1050, height: 350 }
+      },
+      anotherTestSize: {
+        path: 'attachments/anotherTestSize/', // must have trailing slash
+        bounds: { width: 1600, height: 1200 }
       }
     }
   }
