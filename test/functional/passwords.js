@@ -35,7 +35,7 @@ describe("PasswordsController", function() {
 
       let data = await response.json()
       data.should.have.property('message')
-      data.message.should.eql('We will send a password reset link to ' + oldEmail + ' in a moment')
+      data.message.should.eql('Password reset link has been sent to ' + oldEmail)
     })
 
     it('should generate resetToken by new email of user', async () => {
@@ -51,7 +51,7 @@ describe("PasswordsController", function() {
 
       let data = await response.json()
       data.should.have.property('message')
-      data.message.should.eql('We will send a password reset link to ' + email + ' in a moment')
+      data.message.should.eql('Password reset link has been sent to ' + email)
     })
 
     it('should generate resetToken by email with capital letters', async () => {
@@ -64,7 +64,7 @@ describe("PasswordsController", function() {
 
       let data = await response.json()
       data.should.have.property('message')
-      data.message.should.eql('We will send a password reset link to ' + email + ' in a moment')
+      data.message.should.eql('Password reset link has been sent to ' + email)
     })
   })
 
@@ -80,7 +80,7 @@ describe("PasswordsController", function() {
       funcTestHelper.resetPassword('token')(function(err, res) {
         res.body.should.not.be.empty
         res.body.should.have.property('err')
-        res.body.err.should.eql('Record not found')
+        res.body.err.should.eql('Password reset token not found or has expired')
         done()
       })
     })
