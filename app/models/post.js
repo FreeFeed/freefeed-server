@@ -403,7 +403,10 @@ export function addModel(dbAdapter) {
     const attachmentIds = attachmentList || this.attachments || []
     const attachments = await dbAdapter.getAttachmentsByIds(attachmentIds)
 
-    const attachmentPromises = attachments.map((attachment) => {
+    const attachmentPromises = attachments.filter((attachment) => {
+      // Filter out invalid attachments
+      return attachment.fileSize !== undefined
+    }).map((attachment) => {
       if (this.attachments) {
         const pos = this.attachments.indexOf(attachment.id)
 

@@ -158,7 +158,12 @@ export function addModel(dbAdapter) {
       return this.getUrl()
     }
 
-    return config.thumbnails.url + config.thumbnails.path + this.getFilename()
+    return this.getResizedImageUrl('t')
+  }
+
+  // Get public URL of resized image attachment
+  Attachment.prototype.getResizedImageUrl = function(sizeId) {
+    return config.attachments.url + config.attachments.imageSizes[sizeId].path + this.getFilename()
   }
 
   // Get local filesystem path for original file
@@ -166,9 +171,9 @@ export function addModel(dbAdapter) {
     return config.attachments.storage.rootDir + config.attachments.path + this.getFilename()
   }
 
-  // Get local filesystem path for thumbnail file
-  Attachment.prototype.getThumbnailPath = function() {
-    return config.thumbnails.storage.rootDir + config.thumbnails.path + this.getFilename()
+  // Get local filesystem path for resized image file
+  Attachment.prototype.getResizedImagePath = function(sizeId) {
+    return config.attachments.storage.rootDir + config.attachments.imageSizes[sizeId].path + this.getFilename()
   }
 
   // Get file name
@@ -183,7 +188,6 @@ export function addModel(dbAdapter) {
   // Store the file and process its thumbnail, if necessary
   Attachment.prototype.handleMedia = async function() {
     var tmpAttachmentFile = this.file.path
-    var tmpThumbnailFile = tmpAttachmentFile + '.thumbnail'
 
     const supportedImageTypes = {
       'image/jpeg': 'jpg',
@@ -213,46 +217,27 @@ export function addModel(dbAdapter) {
       // Set media properties for 'image' type
       this.mediaType = 'image'
       this.fileExtension = supportedImageTypes[this.mimeType]
+      this.noThumbnail = '1' // this may be overriden below
 
-      // SVG is special (it's a vector image, so doesn't need resizing)
-      if (this.mimeType === 'image/svg+xml') {
-        this.noThumbnail = '1'
-      } else {
-        // Store a thumbnail for a compatible image
-        let img = promisifyAll(gm(tmpAttachmentFile))
-        let size = await img.sizeAsync()
-        this.imageSizes.o = {w: size.width, h: size.height}
+      // Store original image size
+      let originalImage = promisifyAll(gm(tmpAttachmentFile))
+      let originalSize = await originalImage.sizeAsync()
+      this.imageSizes.o = {
+        w: originalSize.width,
+        h: originalSize.height,
+        url: await this.getUrl()
+      }
 
-        if (size.width > config.thumbnails.bounds.width || size.height > config.thumbnails.bounds.height) {
-          // Looks big enough, needs a resize
-          this.noThumbnail = '0'
-
-          // Resize image
-          img = img
-            .resize(config.thumbnails.bounds.width, config.thumbnails.bounds.height)
-            .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
-            .autoOrient()
-            .quality(95)
-
-          // Save thumbnail (temporarily)
-          await img.writeAsync(tmpThumbnailFile)
-
-          // Get thumbnail size
-          const thumbnail = promisifyAll(gm(tmpThumbnailFile))
-          const thumbnailSize = await thumbnail.sizeAsync()
-          this.imageSizes.t = {w: thumbnailSize.width, h: thumbnailSize.height}
-
-          // Save thumbnail (permanently)
-          if (config.thumbnails.storage.type === 's3') {
-            await this.uploadToS3(tmpThumbnailFile, config.thumbnails)
-            await fs.unlinkAsync(tmpThumbnailFile)
-          } else {
-            await fs.renameAsync(tmpThumbnailFile, this.getThumbnailPath())
+      // Create resized images, unless SVG
+      // (SVG is a vector image, so doesn't need resizing)
+      if (this.mimeType !== 'image/svg+xml') {
+        // Iterate over image sizes old-fashioned (and very synchronous) way
+        // because gm is acting up weirdly when writing files in parallel mode
+        for (let sizeId in config.attachments.imageSizes) {
+          if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
+            const sizeConfig = config.attachments.imageSizes[sizeId]
+            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)
           }
-        } else {
-          // Since it's small, just use the original image
-          this.noThumbnail = '1'
-          this.imageSizes.t = this.imageSizes.o
         }
       }
     } else if (supportedAudioTypes[this.mimeType]) {
@@ -281,24 +266,58 @@ export function addModel(dbAdapter) {
 
     // Store an original attachment
     if (config.attachments.storage.type === 's3') {
-      await this.uploadToS3(tmpAttachmentFile, config.attachments)
+      await this.uploadToS3(tmpAttachmentFile, config.attachments.path)
       await fs.unlinkAsync(tmpAttachmentFile)
     } else {
       await fs.renameAsync(tmpAttachmentFile, this.getPath())
     }
   }
 
+  Attachment.prototype.resizeAndSaveImage = async function(originalImage, originalSize, sizeConfig, sizeId) {
+    if (originalSize.width > sizeConfig.bounds.width || originalSize.height > sizeConfig.bounds.height) {
+      const tmpImageFile = this.file.path + '.resized.' + sizeId
+
+      // Resize image
+      const img = originalImage
+        .resize(sizeConfig.bounds.width, sizeConfig.bounds.height)
+        .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+        .autoOrient()
+        .quality(95)
+
+      // Save image (temporarily)
+      await img.writeAsync(tmpImageFile)
+
+      // Get image size
+      const resizedImage = promisifyAll(gm(tmpImageFile))
+      const resizedImageSize = await resizedImage.sizeAsync()
+      this.imageSizes[sizeId] = {
+        w: resizedImageSize.width,
+        h: resizedImageSize.height,
+        url: this.getResizedImageUrl(sizeId)
+      }
+      this.noThumbnail = '0'
+
+      // Save image (permanently)
+      if (config.attachments.storage.type === 's3') {
+        await this.uploadToS3(tmpImageFile, sizeConfig.path)
+        await fs.unlinkAsync(tmpImageFile)
+      } else {
+        await fs.renameAsync(tmpImageFile, this.getResizedImagePath(sizeId))
+      }
+    }
+  }
+
   // Upload original attachment or its thumbnail to the S3 bucket
-  Attachment.prototype.uploadToS3 = async function(sourceFile, subConfig) {
+  Attachment.prototype.uploadToS3 = async function(sourceFile, destPath) {
     let s3 = new aws.S3({
-      'accessKeyId': subConfig.storage.accessKeyId || null,
-      'secretAccessKey': subConfig.storage.secretAccessKey || null
+      'accessKeyId': config.attachments.storage.accessKeyId || null,
+      'secretAccessKey': config.attachments.storage.secretAccessKey || null
     })
     let putObject = promisify(s3.putObject, {context: s3})
     await putObject({
       ACL: 'public-read',
-      Bucket: subConfig.storage.bucket,
-      Key: subConfig.path + this.getFilename(),
+      Bucket: config.attachments.storage.bucket,
+      Key: destPath + this.getFilename(),
       Body: fs.createReadStream(sourceFile),
       ContentType: this.mimeType,
       ContentDisposition: this.getContentDisposition()

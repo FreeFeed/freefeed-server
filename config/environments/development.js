@@ -80,15 +80,16 @@ export function getConfig() {
     url: config.media.url,
     storage: config.media.storage,
     path: 'attachments/', // must have trailing slash
-    fileSizeLimit: '10mb'
-  }
-  config.thumbnails = {
-    url: config.media.url,
-    storage: config.media.storage,
-    path: 'attachments/thumbnails/', // must have trailing slash
-    bounds: {
-      width: 525,
-      height: 175
+    fileSizeLimit: '10mb',
+    imageSizes: {
+      t: {
+        path: 'attachments/thumbnails/', // must have trailing slash
+        bounds: { width: 525, height: 175 }
+      },
+      t2: {
+        path: 'attachments/thumbnails2/', // must have trailing slash
+        bounds: { width: 1050, height: 350 }
+      }
     }
   }
   config.profilePictures = {
