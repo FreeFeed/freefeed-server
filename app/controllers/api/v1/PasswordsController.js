@@ -16,14 +16,14 @@ export default class PasswordsController {
       const user = await dbAdapter.getUserByEmail(email)
 
       if (null === user) {
-        throw new NotFoundException(`User is not found`)
+        throw new NotFoundException(`Invalid email address or user not found`)
       }
 
       await user.updateResetPasswordToken()
 
       await UserMailer.resetPassword(user, { user })
 
-      res.jsonp({ message: `We will send a password reset link to ${user.email} in a moment` })
+      res.jsonp({ message: `Password reset link has been sent to ${user.email}` })
     } catch (e) {
       exceptions.reportError(res)(e)
     }
@@ -41,7 +41,7 @@ export default class PasswordsController {
       const user = await dbAdapter.getUserByResetToken(token)
 
       if (null === user) {
-        throw new NotFoundException(`Record not found`)
+        throw new NotFoundException(`Password reset token not found or has expired`)
       }
 
       await user.updatePassword(req.body.newPassword, req.body.passwordConfirmation)
