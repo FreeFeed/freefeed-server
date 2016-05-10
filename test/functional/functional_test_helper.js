@@ -504,6 +504,7 @@ export async function createMockAttachmentAsync(context) {
   let attachmentId
   const params = {
     fileName: 'lion.jpg',
+    fileSize: 12345,
     userId: context.user.id,
     postId: '',
     createdAt: (new Date()).getTime(),
