@@ -10,13 +10,15 @@ export function addModel(dbAdapter) {
    * @constructor
    */
   var Post = function(params) {
-    this.id = params.id
-    this.body = params.body
-    this.attachments = params.attachments
-    this.userId = params.userId
-    this.timelineIds = params.timelineIds
-    this.currentUser = params.currentUser
+    this.id               = params.id
+    this.body             = params.body
+    this.attachments      = params.attachments
+    this.userId           = params.userId
+    this.timelineIds      = params.timelineIds
+    this.currentUser      = params.currentUser
     this.commentsDisabled = params.commentsDisabled
+    this.feedIntIds       = params.feedIntIds || []
+    this.destinationFeedIds = params.destinationFeedIds || []
 
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
@@ -81,8 +83,10 @@ export function addModel(dbAdapter) {
       'updatedAt': this.updatedAt.toString(),
       'commentsDisabled': this.commentsDisabled
     }
+    this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)
+    this.destinationFeedIds = this.feedIntIds
     // save post to the database
-    this.id = await dbAdapter.createPost(payload, this.timelineIds)
+    this.id = await dbAdapter.createPost(payload, this.feedIntIds)
 
     // save nested resources
     await this.linkAttachments()
@@ -148,10 +152,7 @@ export function addModel(dbAdapter) {
     await Promise.all(comments.map(comment => comment.destroy()))
 
     const timelineIds = await this.getTimelineIds()
-    await Promise.all(timelineIds.map(async (timelineId) => {
-      await dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
-    }))
-
+    await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id)
     await dbAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
@@ -194,21 +195,19 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getTimelines = async function() {
-    var timelineIds = await this.getTimelineIds()
-    this.timelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.timelines = await dbAdapter.getTimelinesByIntIds(this.feedIntIds)
 
     return this.timelines
   }
 
   Post.prototype.getPostedToIds = async function() {
-    var timelineIds = await dbAdapter.getPostPostedToIds(this.id)
+    let timelineIds = await dbAdapter.getTimelinesUUIDsByIntIds(this.destination_feed_ids)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
 
   Post.prototype.getPostedTo = async function() {
-    var timelineIds = await this.getPostedToIds()
-    this.postedTo = await dbAdapter.getTimelinesByIds(timelineIds)
+    this.postedTo = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
 
     return this.postedTo
   }
@@ -219,8 +218,7 @@ export function addModel(dbAdapter) {
     let timeline = await user['get' + type + 'Timeline']()
     timelineIds.push(timeline.id)
 
-    let postedToIds = await this.getPostedToIds()
-    let timelines = await dbAdapter.getTimelinesByIds(postedToIds)
+    let timelines = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
     let timelineOwners = await dbAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
 
     // Adds the specified post to River of News if and only if
@@ -273,18 +271,18 @@ export function addModel(dbAdapter) {
 
   Post.prototype.hide = async function(userId) {
     const theUser = await dbAdapter.getUserById(userId)
-    const hidesTimelineId = await theUser.getHidesTimelineId()
+    const hidesTimelineId = await theUser.getHidesTimelineIntId()
 
-    await dbAdapter.insertPostIntoTimeline(hidesTimelineId, this.id)
+    await dbAdapter.insertPostIntoFeeds([hidesTimelineId], this.id)
 
     await pubSub.hidePost(theUser.id, this.id)
   }
 
   Post.prototype.unhide = async function(userId) {
     const theUser = await dbAdapter.getUserById(userId)
-    const hidesTimelineId = await theUser.getHidesTimelineId()
+    const hidesTimelineId = await theUser.getHidesTimelineIntId()
 
-    await dbAdapter.withdrawPostFromTimeline(hidesTimelineId, this.id)
+    await dbAdapter.withdrawPostFromFeeds([hidesTimelineId], this.id)
 
     await pubSub.unhidePost(theUser.id, this.id)
   }
@@ -326,25 +324,29 @@ export function addModel(dbAdapter) {
     return 0
   }
 
-  Post.prototype.getCommentIds = async function() {
-    let length = await dbAdapter.getPostCommentsCount(this.id)
+  Post.prototype.getPostComments = async function() {
+    const comments = await dbAdapter.getAllPostComments(this.id)
+    const commentsIds = comments.map((cmt)=>{
+      return cmt.id
+    })
 
+    const length = comments.length
+    let visibleCommentsIds = commentsIds
+    let visibleComments = comments
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
-      // `lrange smth 0 0` means "get elements from 0-th to 0-th" (that will be 1 element)
-      // if `maxComments` is larger than 2, we'll have more comment ids from the beginning of list
-      let commentIds = await dbAdapter.getPostFirstNCommentsIds(this.id, this.maxComments - 1)
-      // `lrange smth -1 -1` means "get elements from last to last" (that will be 1 element too)
-      let moreCommentIds = await dbAdapter.getPostLastCommentId(this.id)
+
+      let firstNCommentIds = commentsIds.slice(0, this.maxComments - 1)
+      let firstNComments   = comments.slice(0, this.maxComments - 1)
+      let lastCommentId = _.last(commentsIds)
+      let lastComment   = _.last(comments)
 
       this.omittedComments = length - this.maxComments
-      this.commentIds = commentIds.concat(moreCommentIds)
-
-      return this.commentIds
-    } else {  // eslint-disable-line no-else-return
-      // get ALL comment ids
-      this.commentIds = await dbAdapter.getAllPostCommentsIds(this.id)
-      return this.commentIds
+      visibleCommentsIds = firstNCommentIds.concat(lastCommentId)
+      visibleComments = firstNComments.concat(lastComment)
     }
+
+    this.commentIds = visibleCommentsIds
+    return visibleComments
   }
 
   Post.prototype.getComments = async function() {
@@ -356,8 +358,7 @@ export function addModel(dbAdapter) {
         banIds = await user.getBanIds()
     }
 
-    let commentIds = await this.getCommentIds()
-    let comments = await dbAdapter.getCommentsByIds(commentIds)
+    let comments = await this.getPostComments()
 
     this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
 
@@ -410,45 +411,26 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getAttachments = async function() {
-    const attachmentIds = await this.getAttachmentIds()
-    this.attachments = await dbAdapter.getAttachmentsByIds(attachmentIds)
+    this.attachments = await dbAdapter.getAttachmentsOfPost(this.id)
 
     return this.attachments
   }
 
   Post.prototype.getLikeIds = async function() {
-    const omittedLikes = await this.getOmittedLikes()
+    const omittedLikesCount = await this.getOmittedLikes()
+    let likedUsersIds = await dbAdapter.getPostLikedUsersIds(this.id)
 
-    let likeIds = await dbAdapter.getPostLikesRange(this.id, omittedLikes)
+    likedUsersIds = likedUsersIds.sort((a, b) => {
+      if (a == this.currentUser)
+        return -1
 
-    if (omittedLikes > 0) {
-      const hasUserLikedPost = await dbAdapter.hasUserLikedPost(this.currentUser, this.id)
+      if (b == this.currentUser)
+        return 1
 
-      if (hasUserLikedPost) {
-        if (likeIds.indexOf(this.currentUser) === -1) {
-          likeIds = [this.currentUser].concat(likeIds.slice(0, -1))
-        } else {
-          likeIds = likeIds.sort((a, b) => {
-            if (a == this.currentUser)
-              return -1
-
-            if (b == this.currentUser)
-              return 1
-
-            return 0
-          })
-        }
-      }
-    } else {
-      let to = 0
-      let from = _.findIndex(likeIds, user => (user == this.currentUser))
-
-      if (from > 0) {
-        likeIds.splice(to, 0, likeIds.splice(from, 1)[0])
-      }
-    }
-
-    return likeIds
+      return 0
+    })
+    likedUsersIds.splice(likedUsersIds.length - omittedLikesCount, omittedLikesCount)
+    return likedUsersIds
   }
 
   Post.prototype.getOmittedLikes = async function() {
@@ -546,10 +528,10 @@ export function addModel(dbAdapter) {
   Post.prototype.removeLike = async function(userId) {
     let user = await dbAdapter.getUserById(userId)
     var timer = monitor.timer('posts.unlikes.time')
-    let timelineId = await user.getLikesTimelineId()
+    let timelineId = await user.getLikesTimelineIntId()
     let promises = [
             dbAdapter.removeUserPostLike(this.id, userId),
-            dbAdapter.withdrawPostFromTimeline(timelineId, this.id)
+            dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
           ]
     await Promise.all(promises)
     await pubSub.removeLike(this.id, userId)
@@ -575,9 +557,9 @@ export function addModel(dbAdapter) {
       return false
 
     let owner = await timeline.getUser()
-    let hidesTimelineId = await owner.getHidesTimelineId()
+    let hidesTimelineIntId = await owner.getHidesTimelineIntId()
 
-    return dbAdapter.isPostPresentInTimeline(hidesTimelineId, this.id)
+    return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
   Post.prototype.canShow = async function(userId) {

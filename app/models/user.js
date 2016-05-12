@@ -52,6 +52,7 @@ exports.addModel = function(dbAdapter) {
     this.type = "user"
 
     this.profilePictureUuid = params.profilePictureUuid || ''
+    this.subscribedFeedIds = params.subscribedFeedIds || []
 
     this.initPassword = async function() {
       if (!_.isNull(password)) {
@@ -414,12 +415,10 @@ exports.addModel = function(dbAdapter) {
 
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
-          let likesTimelineId = await user.getLikesTimelineId()
-
-          actions.push(dbAdapter.insertPostIntoTimeline(likesTimelineId, post.id))
+          return user.getLikesTimelineIntId()
         })
-
-        await Promise.all(promises)
+        let likesFeedsIntIds = await Promise.all(promises)
+        actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
 
       let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
@@ -427,12 +426,11 @@ exports.addModel = function(dbAdapter) {
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
-          let commentsTimelineId = await user.getCommentsTimelineId()
-
-          actions.push(dbAdapter.insertPostIntoTimeline(commentsTimelineId, post.id))
+          return user.getCommentsTimelineIntId()
         })
 
-        await Promise.all(promises)
+        let commentsFeedsIntIds = await Promise.all(promises)
+        actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
       }
 
       await Promise.all(actions)
@@ -443,7 +441,7 @@ exports.addModel = function(dbAdapter) {
     for (let usersChunk of _.chunk(fixedUsers, 10)) {
       let promises = usersChunk.map(async (user) => {
         let [riverId, commentsTimeline, likesTimeline] = await Promise.all([
-          user.getRiverOfNewsTimelineId(),
+          user.getRiverOfNewsTimelineIntId(),
           user.getCommentsTimeline(),
           user.getLikesTimeline()
         ])
@@ -529,13 +527,13 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineId(), this.getLikesTimelineId()])
+    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineIntId(), this.getLikesTimelineIntId()])
 
-    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineId()
+    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
     await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
 
-    return dbAdapter.getTimelineById(myDiscussionsTimelineId, params)
+    return dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
@@ -562,6 +560,14 @@ exports.addModel = function(dbAdapter) {
     return timeline.id
   }
 
+  User.prototype.getGenericTimelineIntId = async function(name) {
+    let timelineIds = await this.getTimelineIds()
+
+    let timeline = await dbAdapter.getTimelineById(timelineIds[name])
+
+    return timeline.intId
+  }
+
   User.prototype.getGenericTimeline = async function(name, params) {
     let timelineId = await this[`get${name}TimelineId`](params)
 
@@ -571,21 +577,29 @@ exports.addModel = function(dbAdapter) {
     return timeline
   }
 
-  User.prototype.getMyDiscussionsTimelineId = function() {
-    return this.getGenericTimelineId('MyDiscussions')
+  User.prototype.getMyDiscussionsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('MyDiscussions')
   }
 
   User.prototype.getHidesTimelineId = function(params) {
     return this.getGenericTimelineId('Hides', params)
   }
 
+  User.prototype.getHidesTimelineIntId = function(params) {
+    return this.getGenericTimelineIntId('Hides', params)
+  }
+
   User.prototype.getRiverOfNewsTimelineId = function(params) {
     return this.getGenericTimelineId('RiverOfNews', params)
   }
 
+  User.prototype.getRiverOfNewsTimelineIntId = function(params) {
+    return this.getGenericTimelineIntId('RiverOfNews', params)
+  }
+
   User.prototype.getRiverOfNewsTimeline = async function(params) {
     let timelineId = await this.getRiverOfNewsTimelineId(params)
-    let hidesTimelineId = await this.getHidesTimelineId(params)
+    let hidesTimelineIntId = await this.getHidesTimelineIntId(params)
 
     let riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
     let banIds = await this.getBanIds()
@@ -593,7 +607,7 @@ exports.addModel = function(dbAdapter) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
+      let postInTimeline = _.includes(post.feedIntIds, hidesTimelineIntId)
 
       if (postInTimeline) {
         post.isHidden = true
@@ -609,6 +623,10 @@ exports.addModel = function(dbAdapter) {
     return this.getGenericTimelineId('Likes')
   }
 
+  User.prototype.getLikesTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Likes')
+  }
+
   User.prototype.getLikesTimeline = function(params) {
     return this.getGenericTimeline('Likes', params)
   }
@@ -617,12 +635,20 @@ exports.addModel = function(dbAdapter) {
     return this.getGenericTimelineId('Posts')
   }
 
+  User.prototype.getPostsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Posts')
+  }
+
   User.prototype.getPostsTimeline = function(params) {
     return this.getGenericTimeline('Posts', params)
   }
 
   User.prototype.getCommentsTimelineId = function() {
     return this.getGenericTimelineId('Comments')
+  }
+
+  User.prototype.getCommentsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Comments')
   }
 
   User.prototype.getCommentsTimeline = function(params) {
@@ -661,18 +687,11 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
-  User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(this.id)
-    return this.subscriptionsIds
-  }
-
   /**
    * @return {Timeline[]}
    */
   User.prototype.getSubscriptions = async function() {
-    var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await dbAdapter.getTimelinesByIds(timelineIds)
-
+    this.subscriptions = await dbAdapter.getTimelinesByIntIds(this.subscribedFeedIds)
     return this.subscriptions
   }
 
@@ -689,7 +708,8 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getSubscriberIds = async function() {
-    var timeline = await this.getPostsTimeline()
+    let postsFeedIntId = await this.getPostsTimelineIntId()
+    let timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
     this.subscriberIds = await timeline.getSubscriberIds()
 
     return this.subscriberIds
@@ -704,13 +724,6 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getBanIds = function() {
     return dbAdapter.getUserBansIds(this.id)
-  }
-
-  User.prototype.getBans = async function() {
-    const userIds = await this.getBanIds()
-    const users = await dbAdapter.getUsersByIds(userIds)
-
-    return users
   }
 
   User.prototype.ban = async function(username) {
@@ -753,14 +766,11 @@ exports.addModel = function(dbAdapter) {
       throw new Error("Invalid")
 
     let timelineIds = await user.getPublicTimelineIds()
+    let subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
-    let promises = _.flatten(timelineIds.map((timelineId) => {
-      return dbAdapter.subscribeUserToTimeline(timelineId, this.id)
-    }))
+    await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
 
-    promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
-
-    await Promise.all(promises)
+    this.subscribedFeedIds = subscribedFeedsIntIds
 
     monitor.increment('users.subscriptions')
 
@@ -793,23 +803,20 @@ exports.addModel = function(dbAdapter) {
       // remove timelines from user's subscriptions
       let timelineIds = await user.getPublicTimelineIds()
 
-      let unsubPromises = _.flatten(timelineIds.map((timelineId) => {
-        return dbAdapter.unsubscribeUserFromTimeline(timelineId, this.id)
-      }))
-
-      promises = promises.concat(unsubPromises)
+      let subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
+      this.subscribedFeedIds = subscribedFeedsIntIds
     }
 
     // remove all posts of The Timeline from user's River of News
-    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineId()))
+    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))
 
     // remove all posts of The Timeline from likes timeline of user
     if (options.likes)
-      promises.push(timeline.unmerge(await this.getLikesTimelineId()))
+      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()))
 
     // remove all post of The Timeline from comments timeline of user
     if (options.comments)
-      promises.push(timeline.unmerge(await this.getCommentsTimelineId()))
+      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()))
 
     await Promise.all(promises)
 
@@ -818,22 +825,23 @@ exports.addModel = function(dbAdapter) {
     return this
   }
 
-  User.prototype.getStatistics = async function() {
+  User.prototype.calculateStatsValues = async function() {
     let res
-
     try {
-      res = {
-        posts:         await dbAdapter.getUserPostsCount(this.id),
-        likes:         await dbAdapter.getUserLikesCount(this.id),
-        comments:      await dbAdapter.getUserCommentsCount(this.id),
-        subscribers:   (await this.getSubscriberIds()).length,
-        subscriptions: (await this.getFriendIds()).length
-      }
+      res = await dbAdapter.getUserStats(this.id, this.subscribedFeedIds)
     } catch (e) {
       res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
     }
 
     return res
+  }
+
+
+  User.prototype.getStatistics = async function() {
+    if (!this.statsValues){
+      this.statsValues = await this.calculateStatsValues()
+    }
+    return this.statsValues
   }
 
   User.prototype.newComment = function(attrs) {
