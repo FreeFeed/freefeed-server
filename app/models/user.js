@@ -1,7 +1,9 @@
 import crypto from 'crypto'
 
 import bcrypt from 'bcrypt'
-import { promisifyAll } from 'bluebird'
+import { promisify, promisifyAll } from 'bluebird'
+import aws from 'aws-sdk'
+import fs from 'fs'
 import gm from 'gm'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
@@ -69,7 +71,6 @@ exports.addModel = function(dbAdapter) {
 
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
-  User.PROFILE_PICTURE_SIZE_SMALL = 25
 
   Object.defineProperty(User.prototype, 'username', {
     get: function() { return this.username_ },
@@ -862,8 +863,7 @@ exports.addModel = function(dbAdapter) {
 
     let sizes = [
       User.PROFILE_PICTURE_SIZE_LARGE,
-      User.PROFILE_PICTURE_SIZE_MEDIUM,
-      User.PROFILE_PICTURE_SIZE_SMALL
+      User.PROFILE_PICTURE_SIZE_MEDIUM
     ]
 
     let promises = sizes.map(size => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
@@ -879,10 +879,12 @@ exports.addModel = function(dbAdapter) {
     return dbAdapter.updateUser(this.id, payload)
   }
 
-  User.prototype.saveProfilePictureWithSize = function(path, uuid, originalSize, size) {
+  User.prototype.saveProfilePictureWithSize = async function(path, uuid, originalSize, size) {
     var image = promisifyAll(gm(path))
     var origWidth = originalSize.width
     var origHeight = originalSize.height
+    var retinaSize = size * 2
+
     if (origWidth > origHeight) {
       var dx = origWidth - origHeight
       image = image.crop(origHeight, origHeight, dx / 2, 0)
@@ -890,13 +892,42 @@ exports.addModel = function(dbAdapter) {
       var dy = origHeight - origWidth
       image = image.crop(origWidth, origWidth, 0, dy / 2)
     }
+
     image = image
-      .resize(size, size)
+      .resize(retinaSize, retinaSize)
       .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
       .autoOrient()
       .quality(95)
+
+    if (config.profilePictures.storage.type === 's3') {
+      const tmpPictureFile = path + '.resized.' + size
+      const destPictureFile = this.getProfilePictureFilename(uuid, size)
+
+      await image.writeAsync(tmpPictureFile)
+      await this.uploadToS3(tmpPictureFile, destPictureFile, config.profilePictures)
+
+      return fs.unlinkAsync(tmpPictureFile)
+    }
+
     var destPath = this.getProfilePicturePath(uuid, size)
     return image.writeAsync(destPath)
+  }
+
+  // Upload profile picture to the S3 bucket
+  User.prototype.uploadToS3 = async function(sourceFile, destFile, subConfig) {
+    const s3 = new aws.S3({
+      'accessKeyId': subConfig.storage.accessKeyId || null,
+      'secretAccessKey': subConfig.storage.secretAccessKey || null
+    })
+    const putObject = promisify(s3.putObject, {context: s3})
+    await putObject({
+      ACL: 'public-read',
+      Bucket: subConfig.storage.bucket,
+      Key: subConfig.path + destFile,
+      Body: fs.createReadStream(sourceFile),
+      ContentType: 'image/jpeg',
+      ContentDisposition: 'inline'
+    })
   }
 
   User.prototype.getProfilePicturePath = function(uuid, size) {
