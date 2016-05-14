@@ -743,8 +743,10 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getPostLikedUsersIds(postId) {
+  async getPostLikersIdsWithoutBannedUsers(postId, viewerUserId) {
+    let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
+      .where('user_id', 'not in', subquery)
     let userIds = res.map((record)=>{
       return record.user_id
     })

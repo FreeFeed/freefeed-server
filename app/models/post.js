@@ -418,7 +418,7 @@ export function addModel(dbAdapter) {
 
   Post.prototype.getLikeIds = async function() {
     const omittedLikesCount = await this.getOmittedLikes()
-    let likedUsersIds = await dbAdapter.getPostLikedUsersIds(this.id)
+    let likedUsersIds = await dbAdapter.getPostLikersIdsWithoutBannedUsers(this.id, this.currentUser)
 
     likedUsersIds = likedUsersIds.sort((a, b) => {
       if (a == this.currentUser)
@@ -448,18 +448,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getLikes = async function() {
-    let banIds = []
-
-    if (this.currentUser) {
-      let user = await dbAdapter.getUserById(this.currentUser)
-
-      if (user) {
-        banIds = await user.getBanIds()
-      }
-    }
-
-    let userIds = (await this.getLikeIds())
-      .filter(userId => (banIds.indexOf(userId) === -1))
+    let userIds = await this.getLikeIds()
 
     let users = await dbAdapter.getUsersByIds(userIds)
 
