@@ -325,7 +325,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getPostComments = async function() {
-    const comments = await dbAdapter.getAllPostComments(this.id)
+    const comments = await dbAdapter.getAllPostCommentsWithoutBannedUsers(this.id, this.currentUser)
     const commentsIds = comments.map((cmt)=>{
       return cmt.id
     })
@@ -350,17 +350,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getComments = async function() {
-    let banIds = []
-
-    if (this.currentUser) {
-      let user = await dbAdapter.getUserById(this.currentUser)
-      if (user)
-        banIds = await user.getBanIds()
-    }
-
-    let comments = await this.getPostComments()
-
-    this.comments = comments.filter(comment => (banIds.indexOf(comment.userId) === -1))
+    this.comments = await this.getPostComments()
 
     return this.comments
   }

@@ -833,8 +833,10 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getAllPostComments(postId){
+  async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId){
+    let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const responses = await this.database('comments').orderBy('created_at', 'asc').where('post_id', postId)
+      .where('user_id', 'not in', subquery)
     const objects = responses.map((attrs) => {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
