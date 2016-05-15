@@ -586,6 +586,14 @@ export class DbAdapter {
     return attrs
   }
 
+  async getBannedUserIds(bannersUserIds) {
+    const res = await this.database('bans').select('banned_user_id').where('user_id', 'in', bannersUserIds)
+    const ids = res.map((record)=>{
+      return record.banned_user_id
+    })
+    return ids
+  }
+
   createUserBan(currentUserId, bannedUserId) {
     const currentTime = new Date().toISOString()
 

@@ -189,13 +189,13 @@ export function addModel(dbAdapter) {
 
     let uids = _.uniq(posts.map(post => post.userId))
     let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
-    let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
+    let bans = await dbAdapter.getBannedUserIds(uids)
 
     let usersCache = {}
 
     for (let i = 0; i < users.length; i++) {
       let user = users[i];
-      usersCache[user.id] = [user, bans[i]];
+      usersCache[user.id] = [user, bans[i] || []];
     }
 
     async function userById(id) {
