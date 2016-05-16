@@ -57,8 +57,10 @@ exports.init = async function(app) {
   app.use(responseTime(function (req, res, time) {
     let val = time.toFixed(3) + 'ms'
     res.setHeader('X-Response-Time', val)
-    let resource = (req.method + req.url).toLowerCase()
-    app.logger.warn(resource, time)
+    if (!config.disableActionTimingLog) {
+      let resource = (req.method + req.url).toLowerCase()
+      app.logger.warn(resource, time)
+    }
   }))
   return selectEnvironment(app)
 }
