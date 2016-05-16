@@ -1124,8 +1124,8 @@ export class DbAdapter {
     return postIds
   }
 
-  async getFeedPostsRange(timelineId, offset, limit, fromDate, params) {
-    let responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('updated_at > ? and feed_ids && ?', [fromDate, [timelineId]])
+  async getFeedsPostsRange(timelineIds, offset, limit, fromDate, params) {
+    let responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('updated_at > ? and feed_ids && ?', [fromDate, timelineIds])
     const objects = responses.map((attrs) => {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
