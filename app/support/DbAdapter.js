@@ -1124,6 +1124,18 @@ export class DbAdapter {
     return postIds
   }
 
+  async getFeedPostsRange(timelineId, offset, limit, params) {
+    let responses = await this.database('posts').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[timelineId]])
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
+    })
+    return objects
+  }
+
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {
     return this.database
       .raw('UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE feed_ids && ?', [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]])

@@ -117,38 +117,37 @@ export function addModel(dbAdapter) {
     return this.postIds
   }
 
-  Timeline.prototype.getPosts = async function(offset, limit) {
+  Timeline.prototype.getFeedPosts = async function(offset, limit, params) {
     if (_.isUndefined(offset))
       offset = this.offset
     else if (offset < 0)
       offset = 0
 
+    // -1 = special magic number, meaning “do not use limit defaults,
+    // do not use passed in value, use 0 instead". this is at the very least
+    // used in Timeline.mergeTo()
     if (_.isUndefined(limit))
       limit = this.limit
     else if (limit < 0)
       limit = 0
 
+    let valid = await this.canShow(this.currentUser)
+
+    if (!valid)
+      return []
+
+    return dbAdapter.getFeedPostsRange(this.intId, offset, limit, params)
+  }
+
+  Timeline.prototype.getPosts = async function(offset, limit) {
     let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
     let readerOwnFeeds = reader ? (await reader.getPublicTimelinesIntIds()) : []
     let feedOwner = await this.getUser()
 
-    let postIds = await this.getPostIds(offset, limit)
-    postIds = postIds.filter(id => {
-      if (!_.isString(id)) {
-        console.warn(`got weird id in timeline ${this.id}: ${id}`)  // eslint-disable-line no-console
-        return false
-      }
-      return true
-    })
-
-    let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
-    posts = posts.filter(post => {
-      if (!_.isString(post.userId)) {
-        console.warn(`got weird uid (author of post ${post.id}): ${post.userId}`)  // eslint-disable-line no-console
-        return false
-      }
-      return true
+    let posts = await this.getFeedPosts(offset, limit, { currentUser: this.currentUser })
+    let postIds = posts.map((p)=>{
+      return p.id
     })
 
     if (reader) {
