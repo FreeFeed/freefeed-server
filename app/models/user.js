@@ -527,13 +527,11 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineIntId(), this.getLikesTimelineIntId()])
-
     let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
-    await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
-
-    return dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
+    let feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
+    feed.posts = await feed.getPosts(feed.offset, feed.limit)
+    return feed
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {

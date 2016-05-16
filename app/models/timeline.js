@@ -117,7 +117,7 @@ export function addModel(dbAdapter) {
     return this.postIds
   }
 
-  Timeline.prototype.getFeedPosts = async function(offset, limit, params) {
+  Timeline.prototype.getFeedPosts = async function(offset, limit, params, customFeedIds) {
     if (_.isUndefined(offset))
       offset = this.offset
     else if (offset < 0)
@@ -139,7 +139,12 @@ export function addModel(dbAdapter) {
     let fromDate = new Date()
     fromDate.setDate(fromDate.getDate() - offset - limit)
 
-    return dbAdapter.getFeedsPostsRange([this.intId], offset, limit, fromDate.toISOString(), params)
+    let feedIds = [this.intId]
+    if (customFeedIds){
+      feedIds = customFeedIds
+    }
+
+    return dbAdapter.getFeedsPostsRange(feedIds, offset, limit, fromDate.toISOString(), params)
   }
 
   Timeline.prototype.getPosts = async function(offset, limit) {
@@ -148,7 +153,13 @@ export function addModel(dbAdapter) {
     let readerOwnFeeds = reader ? (await reader.getPublicTimelinesIntIds()) : []
     let feedOwner = await this.getUser()
 
-    let posts = await this.getFeedPosts(offset, limit, { currentUser: this.currentUser })
+    let posts
+    if (this.name != 'MyDiscussions') {
+      posts = await this.getFeedPosts(offset, limit, {currentUser: this.currentUser})
+    } else {
+      const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()])
+      posts = await this.getFeedPosts(offset, limit, {currentUser: this.currentUser}, myDiscussionsFeedSourcesIds)
+    }
     let postIds = posts.map((p)=>{
       return p.id
     })
