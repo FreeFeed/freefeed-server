@@ -671,6 +671,10 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
+  User.prototype.getPublicTimelinesIntIds = function() {
+    return dbAdapter.getUserNamedFeedsIntIds(this.id, ['Posts', 'Likes', 'Comments'])
+  }
+
   /**
    * @return {Timeline[]}
    */

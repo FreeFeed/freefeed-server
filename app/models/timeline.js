@@ -130,6 +130,8 @@ export function addModel(dbAdapter) {
 
     let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
+    let readerOwnFeeds = reader ? (await reader.getPublicTimelinesIntIds()) : []
+    let feedOwner = await this.getUser()
 
     let postIds = await this.getPostIds(offset, limit)
     postIds = postIds.filter(id => {
@@ -235,6 +237,18 @@ export function addModel(dbAdapter) {
         return null
 
       if (author.isPrivate) {
+        if (feedOwner.isPrivate !== '1' && (this.isPosts()) || this.isDirects()) {
+          return post
+        }
+
+        if (_.intersection(post.destinationFeedIds, readerOwnFeeds).length > 0) {
+          return post
+        }
+
+        if (reader && _.intersection(post.destinationFeedIds, reader.subscribedFeedIds).length > 0) {
+          return post
+        }
+
         let postTimelines = await post.getTimelines()
         let promises = postTimelines.map(async (timeline) => {
           if (!timeline.isPosts() && !timeline.isDirects()) {
