@@ -54,13 +54,13 @@ exports.init = async function(app) {
 
   var accessLogStream = fs.createWriteStream(__dirname + '/../log/' + env + '.log', {flags: 'a'})
   app.use(morgan('combined', {stream: accessLogStream}))
-  app.use(responseTime(function (req, res, time) {
-    let val = time.toFixed(3) + 'ms'
-    res.setHeader('X-Response-Time', val)
-    if (!config.disableActionTimingLog) {
+  if (config.logResponseTime) {
+    app.use(responseTime(function (req, res, time) {
+      let val = time.toFixed(3) + 'ms'
+      res.setHeader('X-Response-Time', val)
       let resource = (req.method + req.url).toLowerCase()
       app.logger.warn(resource, time)
-    }
-  }))
+    }))
+  }
   return selectEnvironment(app)
 }
