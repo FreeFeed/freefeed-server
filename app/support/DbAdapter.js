@@ -1011,6 +1011,15 @@ export class DbAdapter {
     return ids
   }
 
+  async getUsersNamedFeedsIntIds(userIds, names){
+    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names)
+
+    const ids = responses.map((record) => {
+      return record.id
+    })
+    return ids
+  }
+
   ///////////////////////////////////////////////////
   // Post
   ///////////////////////////////////////////////////
