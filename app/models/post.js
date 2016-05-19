@@ -212,46 +212,10 @@ export function addModel(dbAdapter) {
     return this.postedTo
   }
 
-  Post.prototype.getGenericFriendOfFriendTimelineIds = async function(user, type) {
-    let timelineIds = []
-
-    let timeline = await user['get' + type + 'Timeline']()
-    timelineIds.push(timeline.id)
-
-    let timelines = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
-    let timelineOwners = await dbAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
-
-    // Adds the specified post to River of News if and only if
-    // that post has been published to user's Post timeline,
-    // otherwise this post will stay in group(s) timelines
-    let groupOnly = true
-
-    if (_.any(timelineOwners.map((owner) => owner.isUser()))) {
-      groupOnly = false
-
-      let feeds = await timeline.getSubscribers()
-      timelineIds.push(...await Promise.all(feeds.map(feed => feed.getRiverOfNewsTimelineId())))
-    }
-
-    timelineIds.push(...await this.getSubscribedTimelineIds(groupOnly))
-    timelineIds.push(await user.getRiverOfNewsTimelineId())
-    timelineIds = _.uniq(timelineIds)
-
-    return timelineIds
-  }
-
-  Post.prototype.getLikesFriendOfFriendTimelineIds = function(user) {
-    return this.getGenericFriendOfFriendTimelineIds(user, 'Likes')
-  }
-
-  Post.prototype.getCommentsFriendOfFriendTimelineIds = function(user) {
-    return this.getGenericFriendOfFriendTimelineIds(user, 'Comments')
-  }
-
-  Post.prototype.getCommentsFriendOfFriendTimelineIntIds = async function(user) {
+  Post.prototype.getGenericFriendOfFriendTimelineIntIds = async function(user, type) {
     let timelineIntIds = []
 
-    let userTimelineIntId = await user.getCommentsTimelineIntId()
+    let userTimelineIntId = await user['get' + type + 'TimelineIntId']()
     let timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId)
     timelineIntIds.push(userTimelineIntId)
 
@@ -283,6 +247,14 @@ export function addModel(dbAdapter) {
     timelineIntIds = _.uniq(_.flatten(timelineIntIds))
 
     return timelineIntIds
+  }
+
+  Post.prototype.getLikesFriendOfFriendTimelineIntIds = function(user) {
+    return this.getGenericFriendOfFriendTimelineIntIds(user, 'Likes')
+  }
+
+  Post.prototype.getCommentsFriendOfFriendTimelineIntIds = function(user) {
+    return this.getGenericFriendOfFriendTimelineIntIds(user, 'Comments')
   }
 
   Post.prototype.hide = async function(userId) {
@@ -491,17 +463,17 @@ export function addModel(dbAdapter) {
   Post.prototype.addLike = async function(user) {
 
     var timer = monitor.timer('posts.likes.time')
-    let timelineIds = await this.getPostedToIds()
+    let timelineIntIds = this.destinationFeedIds
 
     // only subscribers are allowed to read direct posts
     if (!await this.isStrictlyDirect()) {
-      let moreTimelineIds = await this.getLikesFriendOfFriendTimelineIds(user)
-      timelineIds.push(...moreTimelineIds)
+      let moreTimelineIntIds = await this.getLikesFriendOfFriendTimelineIntIds(user)
+      timelineIntIds.push(...moreTimelineIntIds)
 
-      timelineIds = _.uniq(timelineIds)
+      timelineIntIds = _.uniq(timelineIntIds)
     }
 
-    let timelines = await dbAdapter.getTimelinesByIds(timelineIds)
+    let timelines = await dbAdapter.getTimelinesByIntIds(timelineIntIds)
 
     // no need to post updates to rivers of banned users
     let bannedIds = await user.getBanIds()
