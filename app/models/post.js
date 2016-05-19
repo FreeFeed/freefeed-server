@@ -240,25 +240,8 @@ export function addModel(dbAdapter) {
     return timelineIds
   }
 
-  Post.prototype.getGenericFriendOfFriendTimelines = async function(user, type) {
-    let timelineIds = await this.getGenericFriendOfFriendTimelineIds(user, type)
-    return await dbAdapter.getTimelinesByIds(timelineIds)
-  }
-
-  Post.prototype.getPostsFriendOfFriendTimelineIds = function(user) {
-    return this.getGenericFriendOfFriendTimelineIds(user, 'Posts')
-  }
-
-  Post.prototype.getPostsFriendOfFriendTimelines = function(user) {
-    return this.getGenericFriendOfFriendTimelines(user, 'Posts')
-  }
-
   Post.prototype.getLikesFriendOfFriendTimelineIds = function(user) {
     return this.getGenericFriendOfFriendTimelineIds(user, 'Likes')
-  }
-
-  Post.prototype.getLikesFriendOfFriendTimelines = function(user) {
-    return this.getGenericFriendOfFriendTimelines(user, 'Likes')
   }
 
   Post.prototype.getCommentsFriendOfFriendTimelineIds = function(user) {
@@ -300,11 +283,6 @@ export function addModel(dbAdapter) {
     timelineIntIds = _.uniq(_.flatten(timelineIntIds))
 
     return timelineIntIds
-  }
-
-
-  Post.prototype.getCommentsFriendOfFriendTimelines = function(user) {
-    return this.getGenericFriendOfFriendTimelines(user, 'Comments')
   }
 
   Post.prototype.hide = async function(userId) {
