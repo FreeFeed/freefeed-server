@@ -84,7 +84,7 @@ export function addModel(dbAdapter) {
       'commentsDisabled': this.commentsDisabled
     }
     this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)
-    this.destinationFeedIds = this.feedIntIds
+    this.destinationFeedIds = this.feedIntIds.slice()
     // save post to the database
     this.id = await dbAdapter.createPost(payload, this.feedIntIds)
 
@@ -278,7 +278,7 @@ export function addModel(dbAdapter) {
   Post.prototype.addComment = async function(comment) {
     let user = await dbAdapter.getUserById(comment.userId)
 
-    let timelineIntIds = this.destinationFeedIds
+    let timelineIntIds = this.destinationFeedIds.slice()
 
     // only subscribers are allowed to read direct posts
     if (!await this.isStrictlyDirect()) {
@@ -294,11 +294,48 @@ export function addModel(dbAdapter) {
     let bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
-    let promises = timelines.map((timeline) => timeline.updatePost(this.id))
-
-    await Promise.all(promises)
+    await this.publishChangesToFeeds(timelines, false)
 
     return timelines
+  }
+
+  Post.prototype.publishChangesToFeeds = async function(timelines, isLikeAction = false){
+    let feedsIntIds = timelines.map((t)=> t.intId)
+    let insertIntoFeedIds = _.difference(feedsIntIds, this.feedIntIds)
+    let timelineOwnersIds = timelines.map((t)=> t.userId)
+    let riversOfNewsOwners = timelines.map((t)=> {
+      if (t.isRiverOfNews() && _.includes(insertIntoFeedIds, t.intId)){
+        return t.userId
+      }
+      return null
+    })
+
+    riversOfNewsOwners = _.compact(riversOfNewsOwners)
+
+    if (insertIntoFeedIds.length > 0) {
+      await dbAdapter.insertPostIntoFeeds(insertIntoFeedIds, this.id)
+    }
+
+    if (isLikeAction) {
+      if (insertIntoFeedIds.length == 0) {
+        // For the time being, like does not bump post if it is already present in timeline
+        return
+      }
+
+      let promises = riversOfNewsOwners.map((ownerId)=> dbAdapter.createLocalBump(this.id, ownerId))
+      await Promise.all(promises)
+
+      return
+    }
+
+    let currentTime = new Date().getTime()
+    await dbAdapter.setPostUpdatedAt(this.id, currentTime)
+
+    let promises = timelineOwnersIds.map(async (ownerId)=> {
+      const feedOwner = await dbAdapter.getFeedOwnerById(ownerId)
+      return feedOwner.updateLastActivityAt()
+    })
+    await Promise.all(promises)
   }
 
   Post.prototype.getOmittedComments = async function() {
@@ -463,7 +500,7 @@ export function addModel(dbAdapter) {
   Post.prototype.addLike = async function(user) {
 
     var timer = monitor.timer('posts.likes.time')
-    let timelineIntIds = this.destinationFeedIds
+    let timelineIntIds = this.destinationFeedIds.slice()
 
     // only subscribers are allowed to read direct posts
     if (!await this.isStrictlyDirect()) {
