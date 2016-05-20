@@ -498,6 +498,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.addLike = async function(user) {
+    let relevantPostState = await dbAdapter.getPostById(this.id)
+    this.feedIntIds = relevantPostState.feedIntIds
+    this.destinationFeedIds = relevantPostState.destinationFeedIds
 
     var timer = monitor.timer('posts.likes.time')
     let timelineIntIds = this.destinationFeedIds.slice()
@@ -516,11 +519,9 @@ export function addModel(dbAdapter) {
     let bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
-    let promises = timelines.map((timeline) => timeline.updatePost(this.id, 'like'))
+    await this.publishChangesToFeeds(timelines, true)
 
-    promises.push(dbAdapter.createUserPostLike(this.id, user.id))
-
-    await Promise.all(promises)
+    await dbAdapter.createUserPostLike(this.id, user.id)
 
     timer.stop()
     monitor.increment('posts.likes')
