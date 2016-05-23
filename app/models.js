@@ -3,6 +3,8 @@ import { connect as postgresConnection } from '../config/postgres'
 import { DbAdapter } from './support/DbAdapter'
 import { PubSubAdapter } from './support/PubSubAdapter'
 import pubSub from './pubsub'
+import { load as configLoader } from "../config/config"
+import pubSubStub from './pubsub-stub'
 
 import { addModel as attachmentModel } from './models/attachment'
 import { addModel as commentModel } from './models/comment'
@@ -35,7 +37,11 @@ export { AbstractSerializer } from './serializers/abstract_serializer'
 export { Serializer }         from "./serializers/serializer"
 
 const pubsubAdapter = new PubSubAdapter(database)
-export const PubSub = new pubSub(pubsubAdapter)
+const config = configLoader()
+export let PubSub = new pubSub(pubsubAdapter)
+if (config.disableRealtime){
+  PubSub = new pubSubStub()
+}
 
 export const User          = userModel(dbAdapter)
 export const Group         = groupModel(dbAdapter)
