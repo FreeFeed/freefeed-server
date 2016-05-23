@@ -41,18 +41,6 @@ AbstractSerializer.prototype = {
     return this.NESTED_STRATEGY
   },
 
-  prepareNestedField: function(name) {
-    var nestedField = name
-
-    if (name[name.length - 1] === 's') {
-      nestedField = name.substr(0, name.length-1) + "Ids"
-    } else {
-      nestedField += "Id"
-    }
-
-    return nestedField
-  },
-
   processMultiObjects: function(objects, strategy, serializer, root, level, f) {
     var result = []
     var jsonAdder = function(done) {
@@ -185,8 +173,7 @@ AbstractSerializer.prototype = {
         break
 
       case serializer.THROUGH_POINT:
-        var node = serializer.embed ? serializer.prepareNestedField(field) : field
-        serializer.processThroughPoint(field, jsonAdder(node, done), root, level)
+        serializer.processThroughPoint(field, jsonAdder(field, done), root, level)
         break
       }
     }
