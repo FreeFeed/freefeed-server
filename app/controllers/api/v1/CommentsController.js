@@ -71,10 +71,8 @@ export default class CommentsController {
       await comment.update({
         body: req.body.comment.body
       })
-
-      new CommentSerializer(comment).toJSON(function (err, json) {
-        res.jsonp(json)
-      })
+      let json = await new CommentSerializer(comment).promiseToJSON()
+      res.jsonp(json)
       monitor.increment('comments.updates')
     } catch (e) {
       exceptions.reportError(res)(e)
