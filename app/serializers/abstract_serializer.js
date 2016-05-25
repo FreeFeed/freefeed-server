@@ -13,6 +13,9 @@ AbstractSerializer.prototype = {
   END_POINT: 1,
   NESTED_STRATEGY: 2,
   THROUGH_POINT: 3,
+  RELATION_POINT: 4,
+
+  RELATIONS_STORAGE: '__relations',
 
   getField: async function (field){
     if (!this.object) {
@@ -38,6 +41,10 @@ AbstractSerializer.prototype = {
 
     if (this.strategy[field].through) {
       return this.THROUGH_POINT
+    }
+
+    if (this.strategy[field].relation) {
+      return this.RELATION_POINT
     }
 
     return this.NESTED_STRATEGY
@@ -145,6 +152,37 @@ AbstractSerializer.prototype = {
     return null
   },
 
+  processRelationPoint: async function (field, root, level) {
+    let serializer = new this.strategy[field].serializeUsing(null)
+    const modelName = serializer.name
+    const tempIdsStorageName = `__${modelName}_ids`
+    let storeTempModelIds = (modelIds)=>{
+      if (!root[this.RELATIONS_STORAGE]){
+        root[this.RELATIONS_STORAGE] = {}
+      }
+      root[this.RELATIONS_STORAGE][modelName] = tempIdsStorageName
+      if (typeof root[tempIdsStorageName] === 'undefined') {
+        root[tempIdsStorageName] = modelIds
+      } else {
+        root[tempIdsStorageName] = root[tempIdsStorageName].concat(modelIds)
+      }
+    }
+
+    let fieldValue = await this.getField(field)
+    if (!Array.isArray(fieldValue)){
+      if(fieldValue){
+        storeTempModelIds([fieldValue])
+      }
+      return null
+    }
+
+    if (typeof fieldValue != 'undefined' && fieldValue.length > 0) {
+      storeTempModelIds(fieldValue)
+    }
+
+    return null
+  },
+
   processNode: async function(root, field, level) {
     let fieldType = this.decideNode(field)
     let res
@@ -159,6 +197,10 @@ AbstractSerializer.prototype = {
 
       case this.THROUGH_POINT:
         res = await this.processThroughPoint(field, root, level)
+        break
+
+      case this.RELATION_POINT:
+        res = this.processRelationPoint(field, root, level)
         break
     }
 
@@ -192,9 +234,53 @@ AbstractSerializer.prototype = {
       let inner_json = json
       json = {}
       json[name] = inner_json
-
+      await this.loadRelations(root, level)
       json = _.extend(json, root)
     }
     return json
+  },
+
+  loadRelations: function (root, level){
+    let relations = root[this.RELATIONS_STORAGE]
+    if (!relations){
+      return
+    }
+
+    let relationsDescr = _.compact(_.map(this.strategy, (v)=>{
+      if(v['relation']){
+        const serializer = new v.serializeUsing(null)
+        v.relKey = serializer.name
+        return v
+      }
+      return null
+    }))
+
+    relationsDescr = relationsDescr.map((descr)=>{
+      const objectIdsKey = relations[descr.relKey]
+      descr.objectIds = _.uniq(root[objectIdsKey])
+      descr.jsonKey = objectIdsKey
+      return descr
+    })
+
+    delete root[this.RELATIONS_STORAGE]
+
+    let promises = relationsDescr.map(async (rel)=>{
+      root[rel.relKey] = await this.serializeRelation(root, rel.objectIds, rel.model, rel.serializeUsing, level)
+      delete root[rel.jsonKey]
+    })
+    return Promise.all(promises)
+  },
+
+  serializeRelation: async (root, objectIds, model, serializer, level)=>{
+    let objects = await model.getObjectsByIds(objectIds)
+    let promises = objects.map((object)=>{
+      return new serializer(object).promiseToJSON(root, level + 1)
+    })
+    let results = await Promise.all(promises)
+
+    if (results.length == 1){
+      return results[0]
+    }
+    return results
   }
 }
