@@ -257,14 +257,24 @@ AbstractSerializer.prototype = {
 
     let relationsDescr = _.map(relations, (descr, k)=>{
       descr.relKey = k
-      descr.objectIds = _.uniq(root[descr.objectIdsKey])
+      let relatedObjectsIds = _.uniq(root[descr.objectIdsKey])
+      let existingObjects = root[descr.relKey]
+        , existingObjectsIds = []
+      if(Array.isArray(existingObjects) && existingObjects.length > 0 ){
+        existingObjectsIds = existingObjects.map((obj)=>obj.id)
+        relatedObjectsIds = _.difference(relatedObjectsIds, existingObjectsIds)
+      }
+      descr.objectIds = relatedObjectsIds
       return descr
     })
 
     delete root[this.RELATIONS_STORAGE]
 
     let promises = relationsDescr.map(async (rel)=>{
-      root[rel.relKey] = await this.serializeRelation(root, rel.objectIds, rel.model, rel.serializeUsing, level)
+      let relatedObjects = await this.serializeRelation(root, rel.objectIds, rel.model, rel.serializeUsing, level)
+      let existingObjects = root[rel.relKey] || []
+      relatedObjects = relatedObjects || []
+      root[rel.relKey] = relatedObjects.concat(existingObjects)
       delete root[rel.objectIdsKey]
     })
     return Promise.all(promises)
@@ -275,11 +285,6 @@ AbstractSerializer.prototype = {
     let promises = objects.map((object)=>{
       return new serializer(object).promiseToJSON(root, level + 1)
     })
-    let results = await Promise.all(promises)
-
-    if (results.length == 1){
-      return results[0]
-    }
-    return results
+    return Promise.all(promises)
   }
 }
