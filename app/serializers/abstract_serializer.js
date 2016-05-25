@@ -220,6 +220,11 @@ AbstractSerializer.prototype = {
     let nodeProcessor = async (fieldName)=>{
       let res = await this.processNode(root, fieldName, level + 1)
       if (res != null) {
+        let currentStrategy = this.strategy[fieldName]
+        if (currentStrategy && currentStrategy['relation'] && currentStrategy['customFieldName']){
+          fieldName = currentStrategy['customFieldName']
+        }
+
         json[fieldName] = res
       }
     }
