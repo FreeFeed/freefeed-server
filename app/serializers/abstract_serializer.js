@@ -172,12 +172,14 @@ AbstractSerializer.prototype = {
     if (!Array.isArray(fieldValue)){
       if(fieldValue){
         storeTempModelIds([fieldValue])
+        return fieldValue
       }
       return null
     }
 
     if (typeof fieldValue != 'undefined' && fieldValue.length > 0) {
       storeTempModelIds(fieldValue)
+      return fieldValue
     }
 
     return null
