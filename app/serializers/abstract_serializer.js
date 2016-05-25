@@ -160,7 +160,9 @@ AbstractSerializer.prototype = {
       if (!root[this.RELATIONS_STORAGE]){
         root[this.RELATIONS_STORAGE] = {}
       }
-      root[this.RELATIONS_STORAGE][modelName] = tempIdsStorageName
+      this.strategy[field].objectIdsKey = tempIdsStorageName
+
+      root[this.RELATIONS_STORAGE][modelName] = this.strategy[field]
       if (typeof root[tempIdsStorageName] === 'undefined') {
         root[tempIdsStorageName] = modelIds
       } else {
@@ -253,19 +255,9 @@ AbstractSerializer.prototype = {
       return
     }
 
-    let relationsDescr = _.compact(_.map(this.strategy, (v)=>{
-      if(v['relation']){
-        const serializer = new v.serializeUsing(null)
-        v.relKey = serializer.name
-        return v
-      }
-      return null
-    }))
-
-    relationsDescr = relationsDescr.map((descr)=>{
-      const objectIdsKey = relations[descr.relKey]
-      descr.objectIds = _.uniq(root[objectIdsKey])
-      descr.jsonKey = objectIdsKey
+    let relationsDescr = _.map(relations, (descr, k)=>{
+      descr.relKey = k
+      descr.objectIds = _.uniq(root[descr.objectIdsKey])
       return descr
     })
 
@@ -273,7 +265,7 @@ AbstractSerializer.prototype = {
 
     let promises = relationsDescr.map(async (rel)=>{
       root[rel.relKey] = await this.serializeRelation(root, rel.objectIds, rel.model, rel.serializeUsing, level)
-      delete root[rel.jsonKey]
+      delete root[rel.objectIdsKey]
     })
     return Promise.all(promises)
   },
