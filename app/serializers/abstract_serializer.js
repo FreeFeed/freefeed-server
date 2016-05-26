@@ -1,5 +1,3 @@
-import async from 'async'
-import { promisify } from 'bluebird'
 import _ from 'lodash'
 import s from 'underscore.string'
 
@@ -152,7 +150,7 @@ AbstractSerializer.prototype = {
     return null
   },
 
-  processRelationPoint: async function (field, root, level) {
+  processRelationPoint: async function (field, root) {
     let serializer = new this.strategy[field].serializeUsing(null)
     const modelName = serializer.name
     const tempIdsStorageName = `__${modelName}_ids`
@@ -252,7 +250,7 @@ AbstractSerializer.prototype = {
   loadRelations: function (root, level){
     let relations = root[this.RELATIONS_STORAGE]
     if (!relations){
-      return
+      return null
     }
 
     let relationsDescr = _.map(relations, (descr, k)=>{
