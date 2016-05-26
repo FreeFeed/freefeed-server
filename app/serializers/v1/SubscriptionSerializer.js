@@ -1,9 +1,9 @@
-import { Serializer, SubscriberSerializer } from '../../models'
+import { Serializer, SubscriberSerializer, User } from '../../models'
 
 
 export function addSerializer() {
   return new Serializer('subscriptions', {
-    select: ['id', 'user', 'name'],
-    user: { through: SubscriberSerializer, embed: true }
+    select: ['id', 'userId', 'name'],
+    userId: { relation: true, model: User, serializeUsing: SubscriberSerializer, customFieldName: 'user' }
   })
 }

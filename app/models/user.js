@@ -131,6 +131,10 @@ exports.addModel = function(dbAdapter) {
     return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST)
   }
 
+  User.getObjectsByIds = (objectIds) => {
+    return dbAdapter.getFeedOwnersByIds(objectIds)
+  }
+
   User.prototype.isUser = function() {
     return this.type === "user"
   }

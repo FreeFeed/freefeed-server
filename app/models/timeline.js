@@ -60,6 +60,10 @@ export function addModel(dbAdapter) {
     await pubSub.newPost(post.id)
   }
 
+  Timeline.getObjectsByIds = async function (objectIds){
+    return dbAdapter.getTimelinesByIds(objectIds)
+  }
+
   Timeline.prototype.validate = async function() {
     const valid = this.name
       && this.name.length > 0
