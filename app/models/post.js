@@ -341,7 +341,10 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getOmittedComments = async function() {
-    const length = await dbAdapter.getPostCommentsCount(this.id)
+    let length = this.commentsCount
+    if (length == null) {
+      length = await dbAdapter.getPostCommentsCount(this.id)
+    }
 
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
       this.omittedComments = length - this.maxComments
@@ -451,7 +454,10 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getOmittedLikes = async function() {
-    const length = await dbAdapter.getPostLikesCount(this.id)
+    let length = this.likesCount
+    if (length == null){
+      length = await dbAdapter.getPostLikesCount(this.id)
+    }
 
     if (this.maxLikes !== 'all') {
       const threshold = this.maxLikes + 1

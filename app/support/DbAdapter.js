@@ -1171,8 +1171,8 @@ export class DbAdapter {
 
     const objects = responses.map((attrs) => {
       if (attrs){
-        attrs.comments_count  = commentsCount[attrs.uid]
-        attrs.likes_count     = likesCount[attrs.uid]
+        attrs.comments_count  = commentsCount[attrs.uid] || 0
+        attrs.likes_count     = likesCount[attrs.uid] || 0
         attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
       }
 
