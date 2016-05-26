@@ -254,7 +254,9 @@ const POST_FIELDS = {
   body:                   "body",
   comments_disabled:      "commentsDisabled",
   feed_ids:               "feedIntIds",
-  destination_feed_ids:   "destinationFeedIds"
+  destination_feed_ids:   "destinationFeedIds",
+  comments_count:         "commentsCount",
+  likes_count:            "likesCount"
 }
 
 const POST_FIELDS_MAPPING = {
@@ -1138,8 +1140,39 @@ export class DbAdapter {
     if (responses.length < limit){
       responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [timelineIds])
     }
+
+    let postUids = responses.map((p)=>p.uid)
+    let commentsCount = {}
+    let likesCount = {}
+
+    let groupedComments = await this.database('comments')
+      .select('post_id', this.database.raw('count(id) as comments_count'))
+      .where('post_id', 'in', postUids)
+      .groupBy('post_id')
+
+    for (let group of groupedComments) {
+      if(!commentsCount[group.post_id]){
+        commentsCount[group.post_id] = 0
+      }
+      commentsCount[group.post_id] += parseInt(group.comments_count)
+    }
+
+    let groupedLikes = await this.database('likes')
+      .select('post_id', this.database.raw('count(id) as likes_count'))
+      .where('post_id', 'in', postUids)
+      .groupBy('post_id')
+
+    for (let group of groupedLikes) {
+      if(!likesCount[group.post_id]){
+        likesCount[group.post_id] = 0
+      }
+      likesCount[group.post_id] += parseInt(group.likes_count)
+    }
+
     const objects = responses.map((attrs) => {
       if (attrs){
+        attrs.comments_count  = commentsCount[attrs.uid]
+        attrs.likes_count     = likesCount[attrs.uid]
         attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
       }
 

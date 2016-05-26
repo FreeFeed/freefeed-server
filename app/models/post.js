@@ -19,6 +19,8 @@ export function addModel(dbAdapter) {
     this.commentsDisabled = params.commentsDisabled
     this.feedIntIds       = params.feedIntIds || []
     this.destinationFeedIds = params.destinationFeedIds || []
+    this.commentsCount    = params.commentsCount
+    this.likesCount       = params.likesCount
 
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
