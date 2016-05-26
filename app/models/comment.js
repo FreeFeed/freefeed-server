@@ -37,7 +37,7 @@ export function addModel(dbAdapter) {
                && this.postId.length > 0
 
     if (!valid) {
-      throw new Error("Invalid")
+      throw new Error("Comment text must not be empty")
     }
   }
 
