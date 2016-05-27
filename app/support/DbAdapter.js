@@ -275,6 +275,10 @@ export class DbAdapter {
   static initObject(classDef, attrs, id, params) {
     return new classDef({...attrs, ...{id}, ...params})
   }
+
+  disableSeqScan(){
+    return this.database.raw("SET enable_seqscan TO off")
+  }
   
   ///////////////////////////////////////////////////
   // User
@@ -1136,6 +1140,7 @@ export class DbAdapter {
   }
 
   async getFeedsPostsRange(timelineIds, offset, limit, params) {
+    await this.disableSeqScan()
     let responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [timelineIds])
     let postUids = responses.map((p)=>p.uid)
     let commentsCount = {}
