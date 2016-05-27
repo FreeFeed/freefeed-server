@@ -140,15 +140,12 @@ export function addModel(dbAdapter) {
     if (!valid)
       return []
 
-    let fromDate = new Date()
-    fromDate.setDate(fromDate.getDate() - offset - limit)
-
     let feedIds = [this.intId]
     if (customFeedIds){
       feedIds = customFeedIds
     }
 
-    return dbAdapter.getFeedsPostsRange(feedIds, offset, limit, fromDate.toISOString(), params)
+    return dbAdapter.getFeedsPostsRange(feedIds, offset, limit, params)
   }
 
   Timeline.prototype.getPosts = async function(offset, limit) {

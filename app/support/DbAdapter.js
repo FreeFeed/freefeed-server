@@ -1135,12 +1135,8 @@ export class DbAdapter {
     return postIds
   }
 
-  async getFeedsPostsRange(timelineIds, offset, limit, fromDate, params) {
-    let responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('updated_at > ? and feed_ids && ?', [fromDate, timelineIds])
-    if (responses.length < limit){
-      responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [timelineIds])
-    }
-
+  async getFeedsPostsRange(timelineIds, offset, limit, params) {
+    let responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [timelineIds])
     let postUids = responses.map((p)=>p.uid)
     let commentsCount = {}
     let likesCount = {}
