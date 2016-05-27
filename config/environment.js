@@ -10,6 +10,7 @@ import responseTime from 'response-time'
 import { init as originInit } from './initializers/origin'
 import { load as configLoader } from "./config"
 import { selectDatabase } from './database'
+import { configure as configurePostgres } from './postgres'
 import { init as passportInit } from './initializers/passport'
 
 
@@ -34,6 +35,7 @@ async function selectEnvironment(app) {
   app.set('port', process.env.PORT || config.port)
 
   await selectDatabase()
+  await configurePostgres()
 
   return app
 }
