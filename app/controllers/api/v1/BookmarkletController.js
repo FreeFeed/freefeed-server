@@ -74,7 +74,7 @@ export default class BookmarkletController {
         let feed = await dbAdapter.getFeedOwnerByUsername(username)
 
         if (null === feed) {
-          throw new NotFoundException(`Feed "${username}" is not found`)
+          return null
         }
 
         await feed.validateCanPost(req.user)
@@ -96,6 +96,11 @@ export default class BookmarkletController {
         ])
       })
       let timelineIds = _.flatten(await Promise.all(promises))
+      _.each(timelineIds, (id, i)=>{
+        if (null == id){
+          throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
+        }
+      })
 
       // Download image and create attachment
       let attachments = await getAttachments(req.user, req.body.image)
