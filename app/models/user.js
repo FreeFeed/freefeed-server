@@ -543,6 +543,11 @@ exports.addModel = function(dbAdapter) {
 
     let timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
 
+    if (!timeline){
+      console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
+      return null
+    }
+
     return timeline.id
   }
 
