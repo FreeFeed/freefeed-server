@@ -177,7 +177,7 @@ describe('Post', function() {
 
       post.create()
         .catch(function(e) {
-          e.message.should.eql("Invalid")
+          e.message.should.eql('Post text must not be empty')
           done()
         })
     })
