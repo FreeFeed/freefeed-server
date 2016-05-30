@@ -240,6 +240,23 @@ export function addModel(dbAdapter) {
           }
         }
       }
+
+      // Fix EXIF orientation for original image, if JPEG
+      if (this.mimeType === 'image/jpeg') {
+        // orientation() returns a string. Possible values are:
+        // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
+        // The first three options are fine, the rest should be fixed.
+        const orientation = await originalImage.orientationAsync()
+
+        if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
+          const img = originalImage
+            .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+            .autoOrient()
+            .quality(95)
+
+          await img.writeAsync(tmpAttachmentFile)
+        }
+      }
     } else if (supportedAudioTypes[this.mimeType]) {
       // Set media properties for 'audio' type
       this.mediaType = 'audio'
