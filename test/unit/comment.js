@@ -141,7 +141,7 @@ describe('Comment', function() {
 
       comment.create()
         .catch(function(e) {
-          e.message.should.eql("Invalid")
+          e.message.should.eql('Comment text must not be empty')
           done()
         })
     })
