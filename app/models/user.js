@@ -823,7 +823,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.calculateStatsValues = async function() {
     let res
     try {
-      res = await dbAdapter.getUserStats(this.id, this.subscribedFeedIds)
+      res = await dbAdapter.getUserStats(this.id)
     } catch (e) {
       res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
     }

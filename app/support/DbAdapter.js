@@ -71,6 +71,14 @@ const USER_FIELDS_MAPPING = {
   reset_password_expires_at:  (time)=>{ return time && time.getTime() }
 }
 
+const USER_STATS_FIELDS = {
+  posts_count:          "posts",
+  likes_count:          "likes",
+  comments_count:       "comments",
+  subscribers_count:    "subscribers",
+  subscriptions_count:  "subscriptions"
+}
+
 const ATTACHMENT_COLUMNS = {
   createdAt:              "created_at",
   updatedAt:              "updated_at",
@@ -300,7 +308,9 @@ export class DbAdapter {
   async createUser(payload) {
     let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
-    return res[0]
+    const uid = res[0]
+    await this.createUserStats(uid)
+    return uid
   }
 
   updateUser(userId, payload) {
@@ -505,8 +515,21 @@ export class DbAdapter {
     return feed
   }
 
+  ///////////////////////////////////////////////////
+  // User statistics
+  ///////////////////////////////////////////////////
 
-  async getUserStats(userId, readableFeedsIds){
+  async createUserStats(userId){
+    let res = await this.database('user_stats').insert({user_id: userId})
+    return res
+  }
+
+  async getUserStats(userId){
+    const res = await this.database('user_stats').where('user_id', userId)
+    return this._prepareModelPayload(res[0], USER_STATS_FIELDS, {})
+  }
+
+  async calculateUserStats(userId, readableFeedsIds){
     const userPostsFeed = await this.database('feeds').returning('uid').where({
       user_id: userId,
       name:    'Posts'
@@ -522,14 +545,14 @@ export class DbAdapter {
       readablePostFeeds
     ]
     let values = await Promise.all(promises)
-    let res = {
-      posts:         values[0],
-      likes:         values[1],
-      comments:      values[2],
-      subscribers:   (values[3]).length,
-      subscriptions: (readablePostFeeds).length
+    let payload = {
+      posts_count:         values[0],
+      likes_count:         values[1],
+      comments_count:      values[2],
+      subscribers_count:   values[3].length,
+      subscriptions_count: values[4].length
     }
-    return res
+    return this.database('user_stats').where('user_id', userId).update(payload)
   }
 
 
