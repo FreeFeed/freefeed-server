@@ -529,7 +529,10 @@ export class DbAdapter {
     return this._prepareModelPayload(res[0], USER_STATS_FIELDS, {})
   }
 
-  async calculateUserStats(userId, readableFeedsIds){
+  async calculateUserStats(userId){
+    const userFeeds = await this.database('users').select('subscribed_feed_ids').where('uid', userId)
+    const readableFeedsIds = userFeeds[0].subscribed_feed_ids
+
     const userPostsFeed = await this.database('feeds').returning('uid').where({
       user_id: userId,
       name:    'Posts'
