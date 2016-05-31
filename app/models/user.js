@@ -790,6 +790,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
     var timeline = await dbAdapter.getTimelineById(timelineId)
     var user = await dbAdapter.getFeedOwnerById(timeline.userId)
+    let wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
@@ -818,8 +819,10 @@ exports.addModel = function(dbAdapter) {
 
     await Promise.all(promises)
 
-    await dbAdapter.statsSubscriptionDeleted(this.id)
-    await dbAdapter.statsSubscriberRemoved(user.id)
+    if(wasSubscribed) {
+      await dbAdapter.statsSubscriptionDeleted(this.id)
+      await dbAdapter.statsSubscriberRemoved(user.id)
+    }
 
     monitor.increment('users.unsubscriptions')
 
