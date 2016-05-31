@@ -558,6 +558,76 @@ export class DbAdapter {
     return this.database('user_stats').where('user_id', userId).update(payload)
   }
 
+  statsCommentCreated(authorId){
+    return this.incrementStatsCounter(authorId, 'comments_count')
+  }
+
+  statsCommentDeleted(authorId){
+    return this.decrementStatsCounter(authorId, 'comments_count')
+  }
+
+  statsLikeCreated(authorId){
+    return this.incrementStatsCounter(authorId, 'likes_count')
+  }
+
+  statsLikeDeleted(authorId){
+    return this.decrementStatsCounter(authorId, 'likes_count')
+  }
+
+  statsPostCreated(authorId){
+    return this.incrementStatsCounter(authorId, 'posts_count')
+  }
+
+  async statsPostDeleted(authorId, postId){
+    let postLikers = await this.getPostLikersIdsWithoutBannedUsers(postId, null)
+    let promises = postLikers.map((id)=>{
+      return this.calculateUserStats(id)
+    })
+    await Promise.all(promises)
+
+    if (!_.includes(postLikers, authorId)){
+      return this.decrementStatsCounter(authorId, 'posts_count')
+    }
+    return null
+  }
+
+  statsSubscriptionCreated(userId){
+    return this.incrementStatsCounter(userId, 'subscriptions_count')
+  }
+
+  statsSubscriptionDeleted(userId){
+    return this.decrementStatsCounter(userId, 'subscriptions_count')
+  }
+
+  statsSubscriberAdded(userId){
+    return this.incrementStatsCounter(userId, 'subscribers_count')
+  }
+
+  statsSubscriberRemoved(userId){
+    return this.decrementStatsCounter(userId, 'subscribers_count')
+  }
+
+  async incrementStatsCounter(userId, counterName){
+    const res = await this.database('user_stats').where('user_id', userId)
+    let stats = res[0]
+    let val = parseInt(stats[counterName])
+    val += 1
+    stats[counterName] = val
+    return this.database('user_stats').where('user_id', userId).update(stats)
+  }
+
+  async decrementStatsCounter(userId, counterName){
+    const res = await this.database('user_stats').where('user_id', userId)
+    let stats = res[0]
+    let val = parseInt(stats[counterName])
+    val -= 1
+    if (val < 0){
+      console.log("Negative user stats", counterName)    // eslint-disable-line no-console
+      val = 0
+    }
+    stats[counterName] = val
+    return this.database('user_stats').where('user_id', userId).update(stats)
+  }
 
   ///////////////////////////////////////////////////
   // Subscription requests

@@ -95,6 +95,8 @@ export function addModel(dbAdapter) {
 
     await Timeline.publishPost(this)
 
+    await dbAdapter.statsPostCreated(this.userId)
+
     timer.stop()
     monitor.increment('posts.creates')
 
@@ -158,6 +160,8 @@ export function addModel(dbAdapter) {
     await dbAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
+
+    await dbAdapter.statsPostDeleted(this.userId)
 
     monitor.increment('posts.destroys')
   }

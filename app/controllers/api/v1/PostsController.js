@@ -167,6 +167,8 @@ export default class PostsController {
 
       let affectedTimelines = await post.addLike(req.user)
 
+      await dbAdapter.statsLikeCreated(req.user.id)
+
       res.status(200).send({})
 
       await pubSub.newLike(post, req.user.id, affectedTimelines)
@@ -203,6 +205,8 @@ export default class PostsController {
       }
 
       await post.removeLike(req.user.id)
+
+      await dbAdapter.statsLikeDeleted(req.user.id)
 
       res.status(200).send({})
     } catch(e) {

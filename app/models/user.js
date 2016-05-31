@@ -767,6 +767,9 @@ exports.addModel = function(dbAdapter) {
 
     this.subscribedFeedIds = subscribedFeedsIntIds
 
+    await dbAdapter.statsSubscriptionCreated(this.id)
+    await dbAdapter.statsSubscriberAdded(user.id)
+
     monitor.increment('users.subscriptions')
 
     return this
@@ -814,6 +817,9 @@ exports.addModel = function(dbAdapter) {
       promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()))
 
     await Promise.all(promises)
+
+    await dbAdapter.statsSubscriptionDeleted(this.id)
+    await dbAdapter.statsSubscriberRemoved(user.id)
 
     monitor.increment('users.unsubscriptions')
 
