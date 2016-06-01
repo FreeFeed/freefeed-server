@@ -7,19 +7,8 @@ export default class pubSub {
   }
 
   async newPost(postId) {
-    var post = await dbAdapter.getPostById(postId)
-    var timelines = await post.getTimelines()
-
-    var promises = timelines.map(async (timeline) => {
-      let isBanned = await post.isBannedFor(timeline.userId)
-
-      if (!isBanned) {
-        let payload = JSON.stringify({ postId, timelineId: timeline.id })
-        await this.publisher.postCreated(payload)
-      }
-    })
-
-    await Promise.all(promises)
+    let payload = JSON.stringify({ postId })
+    await this.publisher.postCreated(payload)
   }
 
   async destroyPost(postId, timelineIds) {

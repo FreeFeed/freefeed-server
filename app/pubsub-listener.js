@@ -151,12 +151,28 @@ export default class PubsubListener {
 
   onPostNew = async (sockets, data) => {
     let post = await dbAdapter.getPostById(data.postId)
+    let timelines = await post.getTimelines()
+
+    let feedIdsPromises = timelines.map(async (timeline) => {
+      let isBanned = await post.isBannedFor(timeline.userId)
+
+      if (!isBanned) {
+        return timeline.id
+      }
+      return null
+    })
+
+    let feedIds = await Promise.all(feedIdsPromises)
+    feedIds = _.compact(feedIds)
+
     let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:new'
-    let room = `timeline:${data.timelineId}`
-
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    let promises = feedIds.map((feedId)=>{
+      let room = `timeline:${feedId}`
+      return this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+    await Promise.all(promises)
   }
 
   onPostUpdate = async (sockets, data) => {
