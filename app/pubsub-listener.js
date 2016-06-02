@@ -284,14 +284,28 @@ export default class PubsubListener {
     let post = await dbAdapter.getPostById(data.postId)
     json.meta = { postId: data.postId }
 
+    let timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
+    let timelinePromises = timelines.map(async (timeline) => {
+      if (await post.isHiddenIn(timeline))
+        return null
+
+      return timeline.id
+    })
+
+    let actualTimelineIds = await Promise.all(timelinePromises)
+    actualTimelineIds = compact(actualTimelineIds)
+
     let type = 'like:new'
     let room
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
 
+    let promises = actualTimelineIds.map((timelineId)=>{
+      room = `timeline:${timelineId}`
+      return this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+
+    await Promise.all(promises)
+
+    room = `post:${data.postId}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
