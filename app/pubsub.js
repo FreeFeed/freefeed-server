@@ -42,18 +42,8 @@ export default class pubSub {
   }
 
   async newLike(post, userId, timelines) {
-    var promises = timelines.map(async (timeline) => {
-      // no need to notify users about updates to hidden posts
-      if (await post.isHiddenIn(timeline))
-        return
-
-      let payload = JSON.stringify({ timelineId: timeline.id, userId, postId: post.id })
-      await this.publisher.likeAdded(payload)
-    })
-
-    await Promise.all(promises)
-
-    let payload = JSON.stringify({ userId, postId: post.id })
+    let timelineIds = timelines.map((t)=>t.id)
+    let payload = JSON.stringify({ userId, postId: post.id, timelineIds })
     await this.publisher.likeAdded(payload)
   }
 
