@@ -29,7 +29,7 @@ export function getConfig() {
 
     logLevel: 'warn',
     logResponseTime: true,
-    disableRealtime: true,
+    //disableRealtime: true,
     onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false

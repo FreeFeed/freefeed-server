@@ -16,7 +16,7 @@ export function getConfig() {
     acceptHashedPasswordsOnly: false,
 
     logLevel: 'warn',
-    disableRealtime: true,
+    //disableRealtime: true,
     onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false
