@@ -60,7 +60,7 @@ export function addModel(dbAdapter) {
                && this.userId.length > 0
 
     if (!valid) {
-      throw new Error("Invalid")
+      throw new Error("Post text must not be empty")
     }
 
     const len = GraphemeBreaker.countBreaks(this.body)

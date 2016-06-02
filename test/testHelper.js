@@ -1,5 +1,4 @@
-require("babel/register")({
-  stage: 1,
+require("babel-register")({
   ignore: /node_modules/
 });
 
@@ -15,8 +14,8 @@ global.Promise.config({
   cancellation: true
 });
 
-GLOBAL.$redis = require('../config/database')
-  , GLOBAL.$database = $redis.connect()
-  , GLOBAL.$should = require('chai').should()
-  , GLOBAL.$postgres = require('../config/postgres')
-  , GLOBAL.$pg_database = $postgres.connect()
+global.$redis = require('../config/database')
+global.$database = global.$redis.connect()
+global.$should = require('chai').should()
+global.$postgres = require('../config/postgres')
+global.$pg_database = $postgres.connect()
