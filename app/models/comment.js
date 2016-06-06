@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import GraphemeBreaker from 'grapheme-breaker'
 
 import { PubSub as pubSub } from '../models'
 
@@ -37,7 +38,13 @@ export function addModel(dbAdapter) {
                && this.postId.length > 0
 
     if (!valid) {
-      throw new Error("Invalid")
+      throw new Error("Comment text must not be empty")
+    }
+
+    const len = GraphemeBreaker.countBreaks(this.body)
+
+    if (len > 1500) {
+      throw new Error("Maximum comment length is 1500 characters")
     }
   }
 
