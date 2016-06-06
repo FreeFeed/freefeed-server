@@ -1,9 +1,9 @@
-import { Serializer, UserSerializer } from '../../models'
+import { Serializer, UserSerializer, User } from '../../models'
 
 
 export function addSerializer() {
   return new Serializer("comments", {
-    select: ['id', 'body', 'createdAt', 'updatedAt', 'createdBy'],
-    createdBy: { through: UserSerializer, embed: true }
+    select: ['id', 'body', 'createdAt', 'updatedAt', 'userId'],
+    userId: { relation: true, model: User, serializeUsing: UserSerializer, customFieldName: 'createdBy' }
   })
 }

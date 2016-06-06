@@ -151,26 +151,45 @@ export default class PubsubListener {
 
   onPostNew = async (sockets, data) => {
     let post = await dbAdapter.getPostById(data.postId)
+    let timelines = await post.getTimelines()
+
+    let feedIdsPromises = timelines.map(async (timeline) => {
+      let isBanned = await post.isBannedFor(timeline.userId)
+
+      if (!isBanned) {
+        return timeline.id
+      }
+      return null
+    })
+
+    let feedIds = await Promise.all(feedIdsPromises)
+    feedIds = _.compact(feedIds)
+
     let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:new'
-    let room = `timeline:${data.timelineId}`
-
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    let promises = feedIds.map((feedId)=>{
+      let room = `timeline:${feedId}`
+      return this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+    await Promise.all(promises)
   }
 
   onPostUpdate = async (sockets, data) => {
     let post = await dbAdapter.getPostById(data.postId)
+    let timelineIds = await post.getTimelineIds()
     let json = await new PostSerializer(post).promiseToJSON()
 
     let type = 'post:update'
     let room
 
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
+    let promises = timelineIds.map(async (timelineId) => {
+      room = `timeline:${timelineId}`
+      return this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+    await Promise.all(promises)
+
+    room = `post:${data.postId}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
@@ -185,15 +204,28 @@ export default class PubsubListener {
     let post = await dbAdapter.getPostById(comment.postId)
     let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
+    let timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
+    let timelinePromises = timelines.map(async (timeline) => {
+      if (await post.isHiddenIn(timeline))
+        return null
+
+      return timeline.id
+    })
+
+    let actualTimelineIds = await Promise.all(timelinePromises)
+    actualTimelineIds = _.compact(actualTimelineIds)
+
     let type = 'comment:new'
     let room
 
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
+    let promises = actualTimelineIds.map((timelineId)=>{
+      room = `timeline:${timelineId}`
+      return this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
 
+    await Promise.all(promises)
+
+    room = `post:${post.id}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
@@ -203,15 +235,15 @@ export default class PubsubListener {
     let json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     let type = 'comment:update'
-    let room
-
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
-
+    let room = `post:${post.id}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
+
+    let timelineIds = await post.getTimelineIds()
+    let promises = timelineIds.map(async (timelineId) => {
+      room = `timeline:${timelineId}`
+      await this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+    await Promise.all(promises)
   }
 
   onCommentDestroy = async (sockets, data) => {
@@ -219,13 +251,16 @@ export default class PubsubListener {
     let post = await dbAdapter.getPostById(data.postId)
     
     let type = 'comment:destroy'
-    let room
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
+    let room = `post:${data.postId}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
+
+    let timelineIds = await post.getTimelineIds()
+    let promises = timelineIds.map(async (timelineId) => {
+      room = `timeline:${timelineId}`
+      await this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+
+    await Promise.all(promises)
   }
 
   onLikeNew = async (sockets, data) => {
@@ -234,14 +269,28 @@ export default class PubsubListener {
     let post = await dbAdapter.getPostById(data.postId)
     json.meta = { postId: data.postId }
 
+    let timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
+    let timelinePromises = timelines.map(async (timeline) => {
+      if (await post.isHiddenIn(timeline))
+        return null
+
+      return timeline.id
+    })
+
+    let actualTimelineIds = await Promise.all(timelinePromises)
+    actualTimelineIds = _.compact(actualTimelineIds)
+
     let type = 'like:new'
     let room
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
 
+    let promises = actualTimelineIds.map((timelineId)=>{
+      room = `timeline:${timelineId}`
+      return this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+
+    await Promise.all(promises)
+
+    room = `post:${data.postId}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
   }
 
@@ -250,15 +299,17 @@ export default class PubsubListener {
     let post = await dbAdapter.getPostById(data.postId)
 
     let type = 'like:remove'
-    let room
-
-    if (data.timelineId) {
-      room = `timeline:${data.timelineId}`
-    } else {
-      room = `post:${data.postId}`
-    }
+    let room = `post:${data.postId}`
 
     await this.validateAndEmitMessage(sockets, room, type, json, post)
+
+    let timelineIds = await post.getTimelineIds()
+    let promises = timelineIds.map(async (timelineId) => {
+      room = `timeline:${timelineId}`
+      await this.validateAndEmitMessage(sockets, room, type, json, post)
+    })
+
+    await Promise.all(promises)
   }
 
   onPostHide = async (sockets, data) => {

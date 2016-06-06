@@ -103,15 +103,12 @@ export function addModel(dbAdapter) {
       }
       this.id = await dbAdapter.createUser(payload)
 
-      let promises = []
-      promises.push(dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts']))
+      await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 
       if (ownerId) {
-        promises.push(this.addAdministrator(ownerId))
-        promises.push(this.subscribeOwner(ownerId))
+        await this.addAdministrator(ownerId)
+        await this.subscribeOwner(ownerId)
       }
-
-      await Promise.all(promises)
 
       return this
   }

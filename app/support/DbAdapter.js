@@ -71,6 +71,14 @@ const USER_FIELDS_MAPPING = {
   reset_password_expires_at:  (time)=>{ return time && time.getTime() }
 }
 
+const USER_STATS_FIELDS = {
+  posts_count:          "posts",
+  likes_count:          "likes",
+  comments_count:       "comments",
+  subscribers_count:    "subscribers",
+  subscriptions_count:  "subscriptions"
+}
+
 const ATTACHMENT_COLUMNS = {
   createdAt:              "created_at",
   updatedAt:              "updated_at",
@@ -254,7 +262,9 @@ const POST_FIELDS = {
   body:                   "body",
   comments_disabled:      "commentsDisabled",
   feed_ids:               "feedIntIds",
-  destination_feed_ids:   "destinationFeedIds"
+  destination_feed_ids:   "destinationFeedIds",
+  comments_count:         "commentsCount",
+  likes_count:            "likesCount"
 }
 
 const POST_FIELDS_MAPPING = {
@@ -272,6 +282,10 @@ export class DbAdapter {
 
   static initObject(classDef, attrs, id, params) {
     return new classDef({...attrs, ...{id}, ...params})
+  }
+
+  disableSeqScan(){
+    return this.database.raw("SET enable_seqscan TO off")
   }
   
   ///////////////////////////////////////////////////
@@ -294,7 +308,9 @@ export class DbAdapter {
   async createUser(payload) {
     let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
-    return res[0]
+    const uid = res[0]
+    await this.createUserStats(uid)
+    return uid
   }
 
   updateUser(userId, payload) {
@@ -499,8 +515,24 @@ export class DbAdapter {
     return feed
   }
 
+  ///////////////////////////////////////////////////
+  // User statistics
+  ///////////////////////////////////////////////////
 
-  async getUserStats(userId, readableFeedsIds){
+  async createUserStats(userId){
+    let res = await this.database('user_stats').insert({user_id: userId})
+    return res
+  }
+
+  async getUserStats(userId){
+    const res = await this.database('user_stats').where('user_id', userId)
+    return this._prepareModelPayload(res[0], USER_STATS_FIELDS, {})
+  }
+
+  async calculateUserStats(userId){
+    const userFeeds = await this.database('users').select('subscribed_feed_ids').where('uid', userId)
+    const readableFeedsIds = userFeeds[0].subscribed_feed_ids
+
     const userPostsFeed = await this.database('feeds').returning('uid').where({
       user_id: userId,
       name:    'Posts'
@@ -516,16 +548,86 @@ export class DbAdapter {
       readablePostFeeds
     ]
     let values = await Promise.all(promises)
-    let res = {
-      posts:         values[0],
-      likes:         values[1],
-      comments:      values[2],
-      subscribers:   (values[3]).length,
-      subscriptions: (readablePostFeeds).length
+    let payload = {
+      posts_count:         values[0],
+      likes_count:         values[1],
+      comments_count:      values[2],
+      subscribers_count:   values[3].length,
+      subscriptions_count: values[4].length
     }
-    return res
+    return this.database('user_stats').where('user_id', userId).update(payload)
   }
 
+  statsCommentCreated(authorId){
+    return this.incrementStatsCounter(authorId, 'comments_count')
+  }
+
+  statsCommentDeleted(authorId){
+    return this.decrementStatsCounter(authorId, 'comments_count')
+  }
+
+  statsLikeCreated(authorId){
+    return this.incrementStatsCounter(authorId, 'likes_count')
+  }
+
+  statsLikeDeleted(authorId){
+    return this.decrementStatsCounter(authorId, 'likes_count')
+  }
+
+  statsPostCreated(authorId){
+    return this.incrementStatsCounter(authorId, 'posts_count')
+  }
+
+  async statsPostDeleted(authorId, postId){
+    let postLikers = await this.getPostLikersIdsWithoutBannedUsers(postId, null)
+    let promises = postLikers.map((id)=>{
+      return this.calculateUserStats(id)
+    })
+    await Promise.all(promises)
+
+    if (!_.includes(postLikers, authorId)){
+      return this.decrementStatsCounter(authorId, 'posts_count')
+    }
+    return null
+  }
+
+  statsSubscriptionCreated(userId){
+    return this.incrementStatsCounter(userId, 'subscriptions_count')
+  }
+
+  statsSubscriptionDeleted(userId){
+    return this.decrementStatsCounter(userId, 'subscriptions_count')
+  }
+
+  statsSubscriberAdded(userId){
+    return this.incrementStatsCounter(userId, 'subscribers_count')
+  }
+
+  statsSubscriberRemoved(userId){
+    return this.decrementStatsCounter(userId, 'subscribers_count')
+  }
+
+  async incrementStatsCounter(userId, counterName){
+    const res = await this.database('user_stats').where('user_id', userId)
+    let stats = res[0]
+    let val = parseInt(stats[counterName])
+    val += 1
+    stats[counterName] = val
+    return this.database('user_stats').where('user_id', userId).update(stats)
+  }
+
+  async decrementStatsCounter(userId, counterName){
+    const res = await this.database('user_stats').where('user_id', userId)
+    let stats = res[0]
+    let val = parseInt(stats[counterName])
+    val -= 1
+    if (val < 0){
+      console.log("Negative user stats", counterName)    // eslint-disable-line no-console
+      val = 0
+    }
+    stats[counterName] = val
+    return this.database('user_stats').where('user_id', userId).update(stats)
+  }
 
   ///////////////////////////////////////////////////
   // Subscription requests
@@ -584,6 +686,14 @@ export class DbAdapter {
       return record.banned_user_id
     })
     return attrs
+  }
+
+  async getBannedUserIds(bannersUserIds) {
+    const res = await this.database('bans').select('banned_user_id').where('user_id', 'in', bannersUserIds)
+    const ids = res.map((record)=>{
+      return record.banned_user_id
+    })
+    return ids
   }
 
   createUserBan(currentUserId, bannedUserId) {
@@ -743,8 +853,10 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getPostLikedUsersIds(postId) {
+  async getPostLikersIdsWithoutBannedUsers(postId, viewerUserId) {
+    let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
+      .where('user_id', 'not in', subquery)
     let userIds = res.map((record)=>{
       return record.user_id
     })
@@ -831,8 +943,10 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getAllPostComments(postId){
+  async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId){
+    let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const responses = await this.database('comments').orderBy('created_at', 'asc').where('post_id', postId)
+      .where('user_id', 'not in', subquery)
     const objects = responses.map((attrs) => {
       if (attrs){
         attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
@@ -974,6 +1088,40 @@ export class DbAdapter {
     return uuids
   }
 
+  async getUserNamedFeed(userId, name, params){
+    const response = await this.database('feeds').returning('uid').where({
+      user_id: userId,
+      name:    name
+    })
+
+    let namedFeed = response[0]
+
+    if (!namedFeed) {
+      return null
+    }
+
+    namedFeed = this._prepareModelPayload(namedFeed, FEED_FIELDS, FEED_FIELDS_MAPPING)
+    return DbAdapter.initObject(Timeline, namedFeed, namedFeed.id, params)
+  }
+
+  async getUserNamedFeedsIntIds(userId, names){
+    const responses = await this.database('feeds').select('id').where('user_id', userId).where('name', 'in', names)
+
+    const ids = responses.map((record) => {
+      return record.id
+    })
+    return ids
+  }
+
+  async getUsersNamedFeedsIntIds(userIds, names){
+    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names)
+
+    const ids = responses.map((record) => {
+      return record.id
+    })
+    return ids
+  }
+
   ///////////////////////////////////////////////////
   // Post
   ///////////////////////////////////////////////////
@@ -1085,6 +1233,49 @@ export class DbAdapter {
       return record.uid
     })
     return postIds
+  }
+
+  async getFeedsPostsRange(timelineIds, offset, limit, params) {
+    await this.disableSeqScan()
+    let responses = await this.database('posts').select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [timelineIds])
+    let postUids = responses.map((p)=>p.uid)
+    let commentsCount = {}
+    let likesCount = {}
+
+    let groupedComments = await this.database('comments')
+      .select('post_id', this.database.raw('count(id) as comments_count'))
+      .where('post_id', 'in', postUids)
+      .groupBy('post_id')
+
+    for (let group of groupedComments) {
+      if(!commentsCount[group.post_id]){
+        commentsCount[group.post_id] = 0
+      }
+      commentsCount[group.post_id] += parseInt(group.comments_count)
+    }
+
+    let groupedLikes = await this.database('likes')
+      .select('post_id', this.database.raw('count(id) as likes_count'))
+      .where('post_id', 'in', postUids)
+      .groupBy('post_id')
+
+    for (let group of groupedLikes) {
+      if(!likesCount[group.post_id]){
+        likesCount[group.post_id] = 0
+      }
+      likesCount[group.post_id] += parseInt(group.likes_count)
+    }
+
+    const objects = responses.map((attrs) => {
+      if (attrs){
+        attrs.comments_count  = commentsCount[attrs.uid] || 0
+        attrs.likes_count     = likesCount[attrs.uid] || 0
+        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
+    })
+    return objects
   }
 
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {

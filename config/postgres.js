@@ -9,3 +9,7 @@ let knex = knexjs(config.postgres)
 export function connect() {
   return knex
 }
+
+export async function configure(){
+  return knex.raw("SET enable_seqscan TO off")
+}

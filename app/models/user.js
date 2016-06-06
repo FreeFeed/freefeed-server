@@ -13,7 +13,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
-import { Attachment, Comment, Post, Timeline } from '../models'
+import { Attachment, Comment, Post } from '../models'
 
 
 promisifyAll(bcrypt)
@@ -129,6 +129,10 @@ exports.addModel = function(dbAdapter) {
     }
 
     return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST)
+  }
+
+  User.getObjectsByIds = (objectIds) => {
+    return dbAdapter.getFeedOwnersByIds(objectIds)
   }
 
   User.prototype.isUser = function() {
@@ -527,34 +531,21 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineIntId(), this.getLikesTimelineIntId()])
-
     let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
-    await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
-
-    return dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
+    let feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
+    feed.posts = await feed.getPosts(feed.offset, feed.limit)
+    return feed
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
-    let timelineIds = await this.getTimelineIds()
+    params = params || {}
 
-    let timeline
+    let timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
 
-    if (timelineIds[name]) {
-      params = params || {}
-      timeline = await dbAdapter.getTimelineById(timelineIds[name], {
-        offset: params.offset,
-        limit: params.limit
-      })
-    } else {
-      // TODO: remove after postgres
-      timeline = new Timeline({
-        name: name,
-        userId: this.id
-      })
-
-      timeline = await timeline.create()
+    if (!timeline){
+      console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
+      return null
     }
 
     return timeline.id
@@ -687,6 +678,10 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
+  User.prototype.getPublicTimelinesIntIds = function() {
+    return dbAdapter.getUserNamedFeedsIntIds(this.id, ['Posts', 'Likes', 'Comments'])
+  }
+
   /**
    * @return {Timeline[]}
    */
@@ -772,6 +767,9 @@ exports.addModel = function(dbAdapter) {
 
     this.subscribedFeedIds = subscribedFeedsIntIds
 
+    await dbAdapter.statsSubscriptionCreated(this.id)
+    await dbAdapter.statsSubscriberAdded(user.id)
+
     monitor.increment('users.subscriptions')
 
     return this
@@ -792,6 +790,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
     var timeline = await dbAdapter.getTimelineById(timelineId)
     var user = await dbAdapter.getFeedOwnerById(timeline.userId)
+    let wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
@@ -820,6 +819,11 @@ exports.addModel = function(dbAdapter) {
 
     await Promise.all(promises)
 
+    if(wasSubscribed) {
+      await dbAdapter.statsSubscriptionDeleted(this.id)
+      await dbAdapter.statsSubscriberRemoved(user.id)
+    }
+
     monitor.increment('users.unsubscriptions')
 
     return this
@@ -828,7 +832,7 @@ exports.addModel = function(dbAdapter) {
   User.prototype.calculateStatsValues = async function() {
     let res
     try {
-      res = await dbAdapter.getUserStats(this.id, this.subscribedFeedIds)
+      res = await dbAdapter.getUserStats(this.id)
     } catch (e) {
       res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
     }

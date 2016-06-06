@@ -5,10 +5,12 @@ import methodOverride from 'method-override'
 import morgan from 'morgan'
 import passport from 'passport'
 import winston from 'winston'
+import responseTime from 'response-time'
 
 import { init as originInit } from './initializers/origin'
 import { load as configLoader } from "./config"
 import { selectDatabase } from './database'
+import { configure as configurePostgres } from './postgres'
 import { init as passportInit } from './initializers/passport'
 
 
@@ -33,6 +35,7 @@ async function selectEnvironment(app) {
   app.set('port', process.env.PORT || config.port)
 
   await selectDatabase()
+  await configurePostgres()
 
   return app
 }
@@ -53,6 +56,13 @@ exports.init = async function(app) {
 
   var accessLogStream = fs.createWriteStream(__dirname + '/../log/' + env + '.log', {flags: 'a'})
   app.use(morgan('combined', {stream: accessLogStream}))
-
+  if (config.logResponseTime) {
+    app.use(responseTime(function (req, res, time) {
+      let val = time.toFixed(3) + 'ms'
+      res.setHeader('X-Response-Time', val)
+      let resource = (req.method + req.url).toLowerCase()
+      app.logger.warn(resource, time)
+    }))
+  }
   return selectEnvironment(app)
 }

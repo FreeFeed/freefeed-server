@@ -29,7 +29,7 @@ export default class PostsController {
       let promises = feeds.map(async (username) => {
         let feed = await dbAdapter.getFeedOwnerByUsername(username)
         if (null === feed) {
-          throw new NotFoundException(`Feed "${username}" is not found`)
+          return null
         }
 
         await feed.validateCanPost(req.user)
@@ -51,6 +51,11 @@ export default class PostsController {
         ])
       })
       let timelineIds = _.flatten(await Promise.all(promises))
+      _.each(timelineIds, (id, i)=>{
+        if (null == id){
+          throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
+        }
+      })
 
       let newPost = await req.user.newPost({
         body: req.body.post.body,
@@ -162,6 +167,8 @@ export default class PostsController {
 
       let affectedTimelines = await post.addLike(req.user)
 
+      await dbAdapter.statsLikeCreated(req.user.id)
+
       res.status(200).send({})
 
       await pubSub.newLike(post, req.user.id, affectedTimelines)
@@ -198,6 +205,8 @@ export default class PostsController {
       }
 
       await post.removeLike(req.user.id)
+
+      await dbAdapter.statsLikeDeleted(req.user.id)
 
       res.status(200).send({})
     } catch(e) {
