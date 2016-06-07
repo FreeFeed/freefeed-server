@@ -54,7 +54,16 @@ export default class PubsubListener {
       socket.user = { id: null }
     }
 
-    socket.on('subscribe', function(data) {
+    socket.on('error', (e) => {
+      this.app.logger.error('socket.io socket error', e);
+    });
+
+    socket.on('subscribe', (data) => {
+      if (!data) {
+        this.app.logger.warn('socket.io got "subscribe" request without data');
+        return;
+      }
+
       for (let channel of Object.keys(data)) {
         if (data[channel]) {
           data[channel].forEach(function(id) {
@@ -68,7 +77,12 @@ export default class PubsubListener {
       }
     })
 
-    socket.on('unsubscribe', function(data) {
+    socket.on('unsubscribe', (data) => {
+      if (!data) {
+        this.app.logger.warn('socket.io got "unsubscribe" request without data');
+        return;
+      }
+
       for (let channel of Object.keys(data)) {
         if (data[channel]) {
           data[channel].forEach(function(id) {
