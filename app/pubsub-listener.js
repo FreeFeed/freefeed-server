@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import _ from 'lodash'
+import { extend, isArray, isPlainObject } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -18,7 +18,7 @@ export default class PubsubListener {
     const config = configLoader()
 
     var redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
-      , redisSub = createRedisClient(config.redis.port, config.redis.host, _.extend(config.redis.options, { detect_buffers: true }))
+      , redisSub = createRedisClient(config.redis.port, config.redis.host, extend(config.redis.options, { detect_buffers: true }))
 
     redisPub.on('error', function(err) { app.logger.error('redisPub error', err) })
     redisSub.on('error', function(err) { app.logger.error('redisSub error', err) })
@@ -55,44 +55,45 @@ export default class PubsubListener {
     }
 
     socket.on('error', (e) => {
-      this.app.logger.error('socket.io socket error', e);
+      logger.error('socket.io socket error', e);
     });
 
     socket.on('subscribe', (data) => {
-      if (!data) {
-        this.app.logger.warn('socket.io got "subscribe" request without data');
+      if (!isPlainObject(data)) {
+        logger.warn('socket.io got "subscribe" request without data');
         return;
       }
 
-      for (let channel of Object.keys(data)) {
-        if (data[channel]) {
-          data[channel].forEach(function(id) {
-            if (id) {
-              logger.info('User has subscribed to ' + id + ' ' + channel)
 
-              socket.join(channel + ':' + id)
-            }
-          })
+      for (let channel of Object.keys(data)) {
+        if (!isArray(data[channel])) {
+          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
+          continue;
         }
+
+        data[channel].filter(Boolean).forEach((id) => {
+          socket.join(channel + ':' + id)
+          logger.info(`User has subscribed to ${id} ${channel}`)
+        })
       }
     })
 
     socket.on('unsubscribe', (data) => {
-      if (!data) {
-        this.app.logger.warn('socket.io got "unsubscribe" request without data');
+      if (!isPlainObject(data)) {
+        logger.warn('socket.io got "unsubscribe" request without data');
         return;
       }
 
       for (let channel of Object.keys(data)) {
-        if (data[channel]) {
-          data[channel].forEach(function(id) {
-            if (id) {
-              logger.info('User has unsubscribed from ' + id + ' ' + channel)
-
-              socket.leave(channel + ':' + id)
-            }
-          })
+        if (!isArray(data[channel])) {
+          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
+          continue;
         }
+
+        data[channel].filter(Boolean).forEach((id) => {
+          socket.leave(channel + ':' + id)
+          logger.info(`User has unsubscribed from ${id} ${channel}`)
+        })
       }
     })
   }
