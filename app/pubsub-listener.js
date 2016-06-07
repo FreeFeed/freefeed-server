@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { extend, isArray, isPlainObject } from 'lodash'
+import { compact, extend, isArray, isPlainObject } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -178,7 +178,7 @@ export default class PubsubListener {
     })
 
     let feedIds = await Promise.all(feedIdsPromises)
-    feedIds = _.compact(feedIds)
+    feedIds = compact(feedIds)
 
     let json = await new PostSerializer(post).promiseToJSON()
 
@@ -228,7 +228,7 @@ export default class PubsubListener {
     })
 
     let actualTimelineIds = await Promise.all(timelinePromises)
-    actualTimelineIds = _.compact(actualTimelineIds)
+    actualTimelineIds = compact(actualTimelineIds)
 
     let type = 'comment:new'
     let room
@@ -293,7 +293,7 @@ export default class PubsubListener {
     })
 
     let actualTimelineIds = await Promise.all(timelinePromises)
-    actualTimelineIds = _.compact(actualTimelineIds)
+    actualTimelineIds = compact(actualTimelineIds)
 
     let type = 'like:new'
     let room
