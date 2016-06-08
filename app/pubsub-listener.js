@@ -143,10 +143,21 @@ export default class PubsubListener {
         return
       }
 
-      let valid = await post.canShow(user.id)
+      if (!(await post.canShow(user.id))) {
+        return;
+      }
 
-      if (valid)
-        socket.emit(type, json)
+      if (await post.isBannedFor(user.id)) {
+        return;
+      }
+
+      const authorBans = await dbAdapter.getUserBansIds(post.userId)
+
+      if (authorBans.indexOf(user.id) >= 0) {
+        return;
+      }
+
+      socket.emit(type, json)
     }))
   }
 
@@ -176,6 +187,7 @@ export default class PubsubListener {
       if (!isBanned) {
         return timeline.id
       }
+
       return null
     })
 
