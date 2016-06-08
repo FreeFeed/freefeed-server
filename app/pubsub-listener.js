@@ -121,21 +121,23 @@ export default class PubsubListener {
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
+    const logger = this.app.logger
+
     if (!(room in sockets.adapter.rooms)) {
       return
     }
 
-    let clientIds = Object.keys(sockets.adapter.rooms[room])
+    if (!post) {
+      logger.error('post is null in validateAndEmitMessage')
+      return
+    }
+
+    const clientIds = Object.keys(sockets.adapter.rooms[room])
 
     await Promise.all(clientIds.map(async (clientId) => {
-      let socket = sockets.connected[clientId]
-      let user = socket.user
-      let logger = this.app.logger
+      const socket = sockets.connected[clientId]
+      const user = socket.user
 
-      if (!post) {
-        logger.error('post is null in validateAndEmitMessage')
-        return
-      }
       if (!user) {
         logger.error('user is null in validateAndEmitMessage')
         return
