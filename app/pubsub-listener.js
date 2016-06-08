@@ -147,7 +147,9 @@ export default class PubsubListener {
         return;
       }
 
-      if (await post.isBannedFor(user.id)) {
+      const banIds = await user.getBanIds()
+
+      if (banIds.indexOf(post.userId) >= 0) {
         return;
       }
 
@@ -155,6 +157,22 @@ export default class PubsubListener {
 
       if (authorBans.indexOf(user.id) >= 0) {
         return;
+      }
+
+      if (type === 'comment:new' || type === 'comment:update') {
+        const uid = json.comments.createdBy;
+
+        if (banIds.indexOf(uid) >= 0) {
+          return;
+        }
+      }
+
+      if (type === 'like:new') {
+        const uid = json.users.id;
+
+        if (banIds.indexOf(uid) >= 0) {
+          return;
+        }
       }
 
       socket.emit(type, json)

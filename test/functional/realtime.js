@@ -131,6 +131,65 @@ describe('Realtime (Socket.io)', () => {
 
         await funcTestHelper.createRealtimeConnection(marsContext, callbacks);
       });
+
+      describe('Reactions', () => {
+        let venusContext = {};
+        let postId;
+
+        beforeEach(async () => {
+          venusContext = await funcTestHelper.createUserAsync('venus', 'pw')
+          const post = await funcTestHelper.createAndReturnPost(venusContext, 'test post');
+          postId = post.id;
+        });
+
+        it('Mars does not get notifications about her likes', async () => {
+          const user = await dbAdapter.getUserByUsername('venus')
+          const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
+
+          let timeoutId;
+
+          const callbacks = {
+            'connect': async (client) => {
+              client.emit('subscribe', { "timeline": [feedIds.Posts] });
+              await funcTestHelper.like(postId, lunaContext.authToken);
+
+              timeoutId = setTimeout(() => {
+                client.disconnect();
+              }, 600);
+            },
+            'like:new': async (data, client) => {
+              clearTimeout(timeoutId);
+              throw new Error('there should not be notification');
+            }
+          };
+
+          await funcTestHelper.createRealtimeConnection(marsContext, callbacks);
+        });
+
+        it('Mars does not get notifications about her comments', async () => {
+          const user = await dbAdapter.getUserByUsername('venus')
+          const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
+
+          let timeoutId;
+
+          const callbacks = {
+            'connect': async (client) => {
+              client.emit('subscribe', { "timeline": [feedIds.Posts] });
+              await funcTestHelper.createCommentAsync(lunaContext, postId, 'reply');
+
+              timeoutId = setTimeout(() => {
+                client.disconnect();
+              }, 600);
+            },
+            'comment:new': async (data, client) => {
+              clearTimeout(timeoutId);
+              throw new Error('there should not be notification');
+            }
+          };
+
+          await funcTestHelper.createRealtimeConnection(marsContext, callbacks);
+        });
+      });
     });
   });
 });
