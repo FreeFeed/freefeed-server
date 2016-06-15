@@ -165,7 +165,7 @@ export function addModel(dbAdapter) {
       return p.id
     })
 
-    if (reader) {
+    if (reader && this.name == 'RiverOfNews') {
       let oldestPostTime
       if (posts[posts.length - 1]) {
         oldestPostTime = posts[posts.length - 1].updatedAt
