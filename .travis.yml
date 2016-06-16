@@ -12,7 +12,7 @@ addons:
     packages:
       - g++-4.8
       - graphicsmagick
-before_script: mkdir /tmp/pepyatka-media/attachments; mkdir /tmp/pepyatka-media/attachments/thumbnails; mkdir /tmp/pepyatka-media/attachments/thumbnails2; mkdir /tmp/pepyatka-media/attachments/anotherTestSize
+before_script: mkdir -p /tmp/pepyatka-media/attachments; mkdir /tmp/pepyatka-media/attachments/thumbnails; mkdir /tmp/pepyatka-media/attachments/thumbnails2; mkdir /tmp/pepyatka-media/attachments/anotherTestSize
 notifications:
   slack:
     secure: Cu2y76KVIdl4+uYcv/J595jteBN2U1Q4HCKs90J1PZaIHjz86sWg2y+1EIWLd0UUtw+d15gbLy/xqrrCo+y1pR+5e6Df3duHktxYX1FkBD31sg/9M2RI18hdxPZWZ11M/uF3xMOzD6LepOwXPBXN/rwSjalLydzcjNB2DpCSgIQ=
