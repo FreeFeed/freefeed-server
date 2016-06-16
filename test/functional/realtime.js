@@ -49,6 +49,33 @@ describe('Realtime (Socket.io)', () => {
       await funcTestHelper.createRealtimeConnection(lunaContext, callbacks);
     });
 
+    it('Anonymous user gets notifications about public posts', async () => {
+      const user = await dbAdapter.getUserByUsername('mars')
+      const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
+
+      let postPromise;
+      let timeoutId;
+
+      const callbacks = {
+        'connect': async (client) => {
+          client.emit('subscribe', { "timeline": [feedIds.Posts] });
+          postPromise = funcTestHelper.createAndReturnPost(marsContext, 'test post');
+
+          timeoutId = setTimeout(() => {
+            throw new Error(`notification wasn't delivered`);
+          }, 2000);
+        },
+        'post:new': async (data, client) => {
+          clearTimeout(timeoutId);
+
+          data.posts.id.should.eql((await postPromise).id);
+          client.disconnect();
+        }
+      };
+
+      await funcTestHelper.createRealtimeConnection({ authToken: '' }, callbacks);
+    });
+
     describe('Mars is a private user', () => {
       beforeEach(async () => {
         return funcTestHelper.goPrivate(marsContext)
