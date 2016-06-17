@@ -56,7 +56,12 @@ describe('Attachment', function() {
         newAttachment.id + '.' + newAttachment.fileExtension)
 
       const stats = await fs.statAsync(newAttachment.getPath())
-      stats.size.should.be.equal(file.size)
+      if (file.size >= 0) {
+        stats.size.should.be.equal(file.size)
+      } else {
+        // Just checking for not-zero size
+        stats.size.should.be.above(0)
+      }
 
       return newAttachment
     }
@@ -86,6 +91,8 @@ describe('Attachment', function() {
         fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.1500x1000.png')));
       fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_4',
         fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.3000x2000.png')));
+      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_5',
+        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image-exif-rotated.900x300.jpg')));
 
       // FormData file objects
       files = {
@@ -112,6 +119,12 @@ describe('Attachment', function() {
           path: '/tmp/upload_12345678901234567890123456789012_4',
           name: 'test-image.3000x2000.png',
           type: 'image/png'
+        },
+        rotated: {
+          size: -1, // do not test
+          path: '/tmp/upload_12345678901234567890123456789012_5',
+          name: 'test-image-exif-rotated.900x300.jpg',
+          type: 'image/jpeg'
         }
       }
     })
@@ -212,6 +225,27 @@ describe('Attachment', function() {
           w: 1600,
           h: 1067,
           url: config.attachments.url + config.attachments.imageSizes.anotherTestSize.path + newAttachment.id + '.' + newAttachment.fileExtension
+        }
+      })
+    })
+
+    it('should create a medium attachment with exif rotation', async () => {
+      const newAttachment = await createAndCheckAttachment(files.rotated, post, user)
+
+      newAttachment.should.have.a.property('noThumbnail')
+      newAttachment.noThumbnail.should.be.equal('0')
+
+      newAttachment.should.have.property('imageSizes')
+      newAttachment.imageSizes.should.be.deep.equal({
+        o: {
+          w: 900,
+          h: 300,
+          url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
+        },
+        t: {
+          w: 525,
+          h: 175,
+          url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
     })
