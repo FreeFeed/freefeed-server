@@ -948,7 +948,7 @@ exports.addModel = function(dbAdapter) {
 
     image = image
       .resize(retinaSize, retinaSize)
-      .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+      .profile(__dirname + '/../../lib/assets/sRGB.icm')
       .autoOrient()
       .quality(95)
 
