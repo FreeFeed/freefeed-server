@@ -58,6 +58,7 @@
     "babel-eslint": "6.0.4",
     "babel-register": "6.9.0",
     "chai": "3.5.0",
+    "chai-fs": "^0.1.0",
     "eslint": "2.11.1",
     "istanbul": "0.4.3",
     "mkdirp": "0.5.1",

@@ -230,7 +230,7 @@ export function addModel(dbAdapter) {
 
         if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
           const img = originalImage
-            .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+            .profile(__dirname + '/../../lib/assets/sRGB.icm')
             .autoOrient()
             .quality(95)
 
@@ -301,7 +301,7 @@ export function addModel(dbAdapter) {
       // Resize image
       const img = originalImage
         .resize(sizeConfig.bounds.width, sizeConfig.bounds.height)
-        .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+        .profile(__dirname + '/../../lib/assets/sRGB.icm')
         .autoOrient()
         .quality(95)
 

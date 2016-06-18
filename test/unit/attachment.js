@@ -1,9 +1,15 @@
 import fs from 'fs'
 import path from 'path'
 import mkdirp from 'mkdirp'
+import gm from 'gm'
+import { promisifyAll } from 'bluebird'
+import chai from 'chai'
+import chaiFS from 'chai-fs'
 
 import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
+
+chai.use(chaiFS)
 
 const config = configLoader()
 
@@ -93,6 +99,8 @@ describe('Attachment', function() {
         fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.3000x2000.png')));
       fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_5',
         fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image-exif-rotated.900x300.jpg')));
+      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_6',
+        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image-sgrb.png')));
 
       // FormData file objects
       files = {
@@ -125,6 +133,12 @@ describe('Attachment', function() {
           path: '/tmp/upload_12345678901234567890123456789012_5',
           name: 'test-image-exif-rotated.900x300.jpg',
           type: 'image/jpeg'
+        },
+        colorprofiled: {
+          size: 16698,
+          path: '/tmp/upload_12345678901234567890123456789012_6',
+          name: 'test-image-sgrb.png',
+          type: 'image/png'
         }
       }
     })
@@ -248,6 +262,35 @@ describe('Attachment', function() {
           url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
+    })
+
+    it('should create a proper colored preview from non-sRGB original', async () => {
+      const newAttachment = await createAndCheckAttachment(files.colorprofiled, post, user)
+
+      // original colors
+      {
+        const original = promisifyAll(gm(newAttachment.getPath()))
+        const buffer = await original.resize(1, 1).toBufferAsync('RGB')
+
+        buffer.length.should.be.equal(3)
+        buffer[0].should.be.within(191, 193)
+        buffer[1].should.be.within(253, 255)
+        buffer[2].should.be.within(127, 129)
+      }
+
+      // thumbnail colors
+      {
+        const thumbnailFile = newAttachment.getResizedImagePath('t')
+        thumbnailFile.should.be.a.file().and.not.empty
+
+        const thumbnail = promisifyAll(gm(thumbnailFile))
+        const buffer = await thumbnail.resize(1, 1).toBufferAsync('RGB')
+
+        buffer.length.should.be.equal(3)
+        buffer[0].should.be.within(253, 255)
+        buffer[1].should.be.within(191, 193)
+        buffer[2].should.be.within(127, 129)
+      }
     })
  })
 })

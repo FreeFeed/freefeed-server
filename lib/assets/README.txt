@@ -1,1 +1,1 @@
-sRGB_v4_ICC_preference.icc is from http://www.color.org/srgbprofiles.xalter
+sRGB.icm is from ArgyllCMS (http://argyllcms.com/), see license in ArgyllCMS_LICENSE.txt  
