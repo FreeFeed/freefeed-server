@@ -402,8 +402,8 @@ exports.addModel = function(dbAdapter) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
-      // Deep-merge objects
-      _.merge(this.frontendPreferences, params.frontendPreferences)
+      // Shallow merge objects
+      _.assign(this.frontendPreferences, params.frontendPreferences)
 
       // Validate the merged object
       if (!User.frontendPreferencesIsValid(this.frontendPreferences)) {
