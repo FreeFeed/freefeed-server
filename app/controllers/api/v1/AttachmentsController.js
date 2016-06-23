@@ -32,9 +32,18 @@ export default class AttachmentsController {
 
           let errorDetails = { message: 'Corrupt image' }
           exceptions.reportError(res)(errorDetails)
-        } else {
-          exceptions.reportError(res)(e)
+          return;
         }
+
+        if (e.message && e.message.indexOf('LCMS encoding') > -1) {
+          this.app.logger.warn(`GraphicsMagick should be configured with --with-lcms2 option`)
+
+          const errorDetails = { status: 500, message: 'Internal server error' }
+          exceptions.reportError(res)(errorDetails)
+          return;
+        }
+
+        exceptions.reportError(res)(e)
       }
     })
 

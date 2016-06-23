@@ -6,6 +6,7 @@ import morgan from 'morgan'
 import passport from 'passport'
 import winston from 'winston'
 import responseTime from 'response-time'
+import { promisify } from 'bluebird';
 
 import { init as originInit } from './initializers/origin'
 import { load as configLoader } from "./config"
@@ -41,6 +42,38 @@ async function selectEnvironment(app) {
 }
 
 exports.init = async function(app) {
+  await selectEnvironment(app)
+
+  if (config.media.storage.type === 'fs') {
+    const access = promisify(fs.access);
+    let gotErrors = false;
+
+    const attachmentsDir = config.attachments.storage.rootDir + config.attachments.path;
+
+    try {
+      await access(attachmentsDir, fs.W_OK);
+    } catch (e) {
+      gotErrors = true;
+      app.logger.error(`Attachments dir does not exist: ${attachmentsDir}`)
+    }
+
+    for (const sizeId of Object.keys(config.attachments.imageSizes)) {
+      const sizeConfig = config.attachments.imageSizes[sizeId];
+      const thumbnailsDir = config.attachments.storage.rootDir + sizeConfig.path;
+
+      try {
+        await access(thumbnailsDir, fs.W_OK);
+      } catch (e) {
+        gotErrors = true;
+        app.logger.error(`Thumbnails dir does not exist: ${thumbnailsDir}`)
+      }
+    }
+
+    if (gotErrors) {
+      throw new Error(`some of required directories are missing`);
+    }
+  }
+
   app.use(bodyParser.json({limit: config.attachments.fileSizeLimit}))
   app.use(bodyParser.urlencoded({limit: config.attachments.fileSizeLimit, extended: true}))
   app.use(passport.initialize())
@@ -56,6 +89,7 @@ exports.init = async function(app) {
 
   var accessLogStream = fs.createWriteStream(__dirname + '/../log/' + env + '.log', {flags: 'a'})
   app.use(morgan('combined', {stream: accessLogStream}))
+
   if (config.logResponseTime) {
     app.use(responseTime(function (req, res, time) {
       let val = time.toFixed(3) + 'ms'
@@ -64,5 +98,6 @@ exports.init = async function(app) {
       app.logger.warn(resource, time)
     }))
   }
-  return selectEnvironment(app)
+
+  return app
 }
