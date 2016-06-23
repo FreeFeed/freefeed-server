@@ -33,6 +33,7 @@ describe('Realtime (Socket.io)', () => {
       const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
 
       let postPromise;
+      let postId;
       let timeoutId;
 
       const callbacks = {
@@ -44,10 +45,16 @@ describe('Realtime (Socket.io)', () => {
             throw new Error(`notification wasn't delivered`);
           }, 2000);
         },
-        'post:new': async (data, client) => {
-          clearTimeout(timeoutId);
+        'post:new': async (data) => {
+          postId = (await postPromise).id;
+          data.posts.id.should.eql(postId);
 
-          data.posts.id.should.eql((await postPromise).id);
+          postPromise = funcTestHelper.deletePostAsync(marsContext, postId);
+        },
+        'post:destroy': async (data, client) => {
+          clearTimeout(timeoutId);
+          data.meta.postId.should.eql(postId);
+
           client.disconnect();
         }
       };
@@ -60,6 +67,7 @@ describe('Realtime (Socket.io)', () => {
       const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
 
       let postPromise;
+      let postId;
       let timeoutId;
 
       const callbacks = {
@@ -71,10 +79,16 @@ describe('Realtime (Socket.io)', () => {
             throw new Error(`notification wasn't delivered`);
           }, 2000);
         },
-        'post:new': async (data, client) => {
-          clearTimeout(timeoutId);
+        'post:new': async (data) => {
+          postId = (await postPromise).id;
+          data.posts.id.should.eql(postId);
 
-          data.posts.id.should.eql((await postPromise).id);
+          postPromise = funcTestHelper.deletePostAsync(marsContext, postId);
+        },
+        'post:destroy': async (data, client) => {
+          clearTimeout(timeoutId);
+          data.meta.postId.should.eql(postId);
+
           client.disconnect();
         }
       };

@@ -127,11 +127,6 @@ export default class PubsubListener {
       return
     }
 
-    if (!post) {
-      logger.error('post is null in validateAndEmitMessage')
-      return
-    }
-
     const clientIds = Object.keys(sockets.adapter.rooms[room])
 
     await Promise.all(clientIds.map(async (clientId) => {
@@ -143,36 +138,38 @@ export default class PubsubListener {
         return
       }
 
-      if (!(await post.canShow(user.id))) {
-        return;
-      }
-
-      if (user.id) {  // otherwise, it is an anonymous user
-        const banIds = await user.getBanIds()
-
-        if (banIds.indexOf(post.userId) >= 0) {
+      if (post) {
+        if (!(await post.canShow(user.id))) {
           return;
         }
 
-        const authorBans = await dbAdapter.getUserBansIds(post.userId)
+        if (user.id) {  // otherwise, it is an anonymous user
+          const banIds = await user.getBanIds()
 
-        if (authorBans.indexOf(user.id) >= 0) {
-          return;
-        }
-
-        if (type === 'comment:new' || type === 'comment:update') {
-          const uid = json.comments.createdBy;
-
-          if (banIds.indexOf(uid) >= 0) {
+          if (banIds.indexOf(post.userId) >= 0) {
             return;
           }
-        }
 
-        if (type === 'like:new') {
-          const uid = json.users.id;
+          const authorBans = await dbAdapter.getUserBansIds(post.userId)
 
-          if (banIds.indexOf(uid) >= 0) {
+          if (authorBans.indexOf(user.id) >= 0) {
             return;
+          }
+
+          if (type === 'comment:new' || type === 'comment:update') {
+            const uid = json.comments.createdBy;
+
+            if (banIds.indexOf(uid) >= 0) {
+              return;
+            }
+          }
+
+          if (type === 'like:new') {
+            const uid = json.users.id;
+
+            if (banIds.indexOf(uid) >= 0) {
+              return;
+            }
           }
         }
       }
