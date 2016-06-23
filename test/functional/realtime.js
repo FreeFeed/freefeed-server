@@ -3,12 +3,18 @@
 import { getSingleton } from '../../app/app';
 import * as funcTestHelper from './functional_test_helper';
 import { dbAdapter } from '../../app/models';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter'
+import { PubSub } from '../../app/models'
 
 
 describe('Realtime (Socket.io)', () => {
   let app;
+
   before(async () => {
     app = await getSingleton();
+
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter)
   });
 
   beforeEach(async () => {

@@ -6,6 +6,8 @@ import mkdirp from 'mkdirp'
 import request from 'superagent'
 
 import { getSingleton } from '../../app/app'
+import { DummyPublisher } from '../../app/pubsub'
+import { PubSub } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 
@@ -15,8 +17,12 @@ const config = configLoader()
 describe("UsersController", function() {
   let app
 
-  beforeEach(async () => {
+  before(async () => {
     app = await getSingleton()
+    PubSub.setPublisher(new DummyPublisher())
+  })
+
+  beforeEach(async () => {
     await $database.flushdbAsync()
   })
 
