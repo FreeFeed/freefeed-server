@@ -369,8 +369,8 @@ exports.addModel = function(dbAdapter) {
 
       let preferences = this.frontendPreferences
 
-      // Deep-merge objects
-      _.merge(preferences, params.frontendPreferences)
+      // Shallow merge objects
+      _.assign(preferences, params.frontendPreferences)
 
       // Validate the merged object
       if (!User.frontendPreferencesIsValid(preferences)) {
@@ -907,7 +907,7 @@ exports.addModel = function(dbAdapter) {
 
     image = image
       .resize(retinaSize, retinaSize)
-      .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+      .profile(__dirname + '/../../lib/assets/sRGB.icm')
       .autoOrient()
       .quality(95)
 
