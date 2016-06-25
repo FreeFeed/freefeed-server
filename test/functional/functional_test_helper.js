@@ -532,6 +532,16 @@ export function updatePostAsync(context, post) {
   )
 }
 
+export function deletePostAsync(context, postId) {
+  return postJson(
+    `/v1/posts/${postId}`,
+    {
+      authToken: context.authToken,
+      '_method': 'delete'
+    }
+  )
+}
+
 export async function createGroupAsync(context, username, screenName) {
   let params = {
     group: {

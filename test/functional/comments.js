@@ -4,14 +4,20 @@ import request from 'superagent'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
+import { DummyPublisher } from '../../app/pubsub'
+import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
 describe("CommentsController", function() {
   let app
 
-  beforeEach(async () => {
+  before(async () => {
     app = await getSingleton()
+    PubSub.setPublisher(new DummyPublisher())
+  })
+
+  beforeEach(async () => {
     await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
