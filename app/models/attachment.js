@@ -219,9 +219,29 @@ export function addModel(dbAdapter) {
       this.fileExtension = supportedImageTypes[this.mimeType]
       this.noThumbnail = '1' // this may be overriden below
 
-      // Store original image size
       let originalImage = promisifyAll(gm(tmpAttachmentFile))
-      let originalSize = await originalImage.sizeAsync()
+
+      // Fix EXIF orientation for original image, if JPEG
+      if (this.mimeType === 'image/jpeg') {
+        // orientation() returns a string. Possible values are:
+        // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
+        // The first three options are fine, the rest should be fixed.
+        const orientation = await originalImage.orientationAsync()
+
+        if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
+          const img = originalImage
+            .profile(__dirname + '/../../lib/assets/sRGB.icm')
+            .autoOrient()
+            .quality(95)
+
+          await img.writeAsync(tmpAttachmentFile)
+
+          originalImage = promisifyAll(gm(tmpAttachmentFile))
+        }
+      }
+
+      // Store original image size
+      const originalSize = await originalImage.sizeAsync()
       this.imageSizes.o = {
         w: originalSize.width,
         h: originalSize.height,
@@ -241,22 +261,6 @@ export function addModel(dbAdapter) {
         }
       }
 
-      // Fix EXIF orientation for original image, if JPEG
-      if (this.mimeType === 'image/jpeg') {
-        // orientation() returns a string. Possible values are:
-        // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
-        // The first three options are fine, the rest should be fixed.
-        const orientation = await originalImage.orientationAsync()
-
-        if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
-          const img = originalImage
-            .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
-            .autoOrient()
-            .quality(95)
-
-          await img.writeAsync(tmpAttachmentFile)
-        }
-      }
     } else if (supportedAudioTypes[this.mimeType]) {
       // Set media properties for 'audio' type
       this.mediaType = 'audio'
@@ -297,7 +301,7 @@ export function addModel(dbAdapter) {
       // Resize image
       const img = originalImage
         .resize(sizeConfig.bounds.width, sizeConfig.bounds.height)
-        .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+        .profile(__dirname + '/../../lib/assets/sRGB.icm')
         .autoOrient()
         .quality(95)
 

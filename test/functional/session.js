@@ -4,6 +4,8 @@ import request from 'superagent'
 import fetch from 'node-fetch'
 
 import { getSingleton } from '../../app/app'
+import { DummyPublisher } from '../../app/pubsub'
+import { PubSub } from '../../app/models'
 import { User } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
@@ -11,8 +13,12 @@ import * as funcTestHelper from './functional_test_helper'
 describe("SessionController", () => {
   let app
 
-  beforeEach(async () => {
+  before(async () => {
     app = await getSingleton()
+    PubSub.setPublisher(new DummyPublisher())
+  })
+
+  beforeEach(async () => {
     await $database.flushdbAsync()
   })
 

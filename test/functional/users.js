@@ -6,6 +6,8 @@ import mkdirp from 'mkdirp'
 import request from 'superagent'
 
 import { getSingleton } from '../../app/app'
+import { DummyPublisher } from '../../app/pubsub'
+import { PubSub } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 
@@ -15,8 +17,12 @@ const config = configLoader()
 describe("UsersController", function() {
   let app
 
-  beforeEach(async () => {
+  before(async () => {
     app = await getSingleton()
+    PubSub.setPublisher(new DummyPublisher())
+  })
+
+  beforeEach(async () => {
     await $database.flushdbAsync()
   })
 
@@ -892,6 +898,14 @@ describe("UsersController", function() {
             }
           }
         }
+        let anotherPrefs = {
+          'another.client': {
+            'funnyProperty': 'withFunnyValue'
+          },
+          'custom.domain': {
+            'newProperty': 'withNewValue'
+          }
+        }
         let newDescription = 'The Moon is made of cheese.';
 
         // First, check the response on update
@@ -943,28 +957,24 @@ describe("UsersController", function() {
           data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
         }
 
-        // Fourth, only update some sub-objects (frontendPreferences should get deep-merged)
+        // Fourth, only update some sub-objects (frontendPreferences should get shallow-merged)
         {
-          await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: newPrefs })
+          await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: anotherPrefs })
 
           let response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
           let data = await response.json()
-          // another.client
-          data.should.have.deep.property('users.frontendPreferences.another\\.client')
-          data.users.frontendPreferences['another.client'].should.have.property('funnyProperty')
-          data.users.frontendPreferences['another.client'].funnyProperty.should.equal('withFunnyValue')
-          // net.freefeed
+          data.should.have.deep.property('users.frontendPreferences')
+          // net.freefeed should be unchanged
           data.users.frontendPreferences.should.have.property('net.freefeed')
-          data.users.frontendPreferences['net.freefeed'].should.have.deep.property('screenName.displayOption')
-          data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(2)
-          data.users.frontendPreferences['net.freefeed'].should.have.deep.property('screenName.useYou')
-          data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(false)
-          // custom domain
+          data.users.frontendPreferences['net.freefeed'].should.be.deep.equal(prefs['net.freefeed'])
+          // custom domain should be replaced
           data.users.frontendPreferences.should.have.property('custom.domain')
-          data.users.frontendPreferences['custom.domain'].should.have.property('customProperty')
-          data.users.frontendPreferences['custom.domain'].customProperty.should.equal('someWeirdValue')
+          data.users.frontendPreferences['custom.domain'].should.be.deep.equal(anotherPrefs['custom.domain'])
+          // another client should be created
+          data.users.frontendPreferences.should.have.property('another.client')
+          data.users.frontendPreferences['another.client'].should.be.deep.equal(anotherPrefs['another.client'])
         }
       })
 

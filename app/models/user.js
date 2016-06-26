@@ -402,8 +402,8 @@ exports.addModel = function(dbAdapter) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
-      // Deep-merge objects
-      _.merge(this.frontendPreferences, params.frontendPreferences)
+      // Shallow merge objects
+      _.assign(this.frontendPreferences, params.frontendPreferences)
 
       // Validate the merged object
       if (!User.frontendPreferencesIsValid(this.frontendPreferences)) {
@@ -948,7 +948,7 @@ exports.addModel = function(dbAdapter) {
 
     image = image
       .resize(retinaSize, retinaSize)
-      .profile(__dirname + '/../../lib/assets/sRGB_v4_ICC_preference.icc')
+      .profile(__dirname + '/../../lib/assets/sRGB.icm')
       .autoOrient()
       .quality(95)
 

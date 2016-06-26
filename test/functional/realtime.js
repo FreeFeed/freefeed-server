@@ -3,12 +3,18 @@
 import { getSingleton } from '../../app/app';
 import * as funcTestHelper from './functional_test_helper';
 import { dbAdapter } from '../../app/models';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter'
+import { PubSub } from '../../app/models'
 
 
 describe('Realtime (Socket.io)', () => {
   let app;
+
   before(async () => {
     app = await getSingleton();
+
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter)
   });
 
   beforeEach(async () => {
@@ -27,6 +33,7 @@ describe('Realtime (Socket.io)', () => {
       const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
 
       let postPromise;
+      let postId;
       let timeoutId;
 
       const callbacks = {
@@ -38,15 +45,55 @@ describe('Realtime (Socket.io)', () => {
             throw new Error(`notification wasn't delivered`);
           }, 2000);
         },
-        'post:new': async (data, client) => {
-          clearTimeout(timeoutId);
+        'post:new': async (data) => {
+          postId = (await postPromise).id;
+          data.posts.id.should.eql(postId);
 
-          data.posts.id.should.eql((await postPromise).id);
+          postPromise = funcTestHelper.deletePostAsync(marsContext, postId);
+        },
+        'post:destroy': async (data, client) => {
+          clearTimeout(timeoutId);
+          data.meta.postId.should.eql(postId);
+
           client.disconnect();
         }
       };
 
       await funcTestHelper.createRealtimeConnection(lunaContext, callbacks);
+    });
+
+    it('Anonymous user gets notifications about public posts', async () => {
+      const user = await dbAdapter.getUserByUsername('mars')
+      const feedIds = await dbAdapter.getUserTimelinesIds(user.id)
+
+      let postPromise;
+      let postId;
+      let timeoutId;
+
+      const callbacks = {
+        'connect': async (client) => {
+          client.emit('subscribe', { "timeline": [feedIds.Posts] });
+          postPromise = funcTestHelper.createAndReturnPost(marsContext, 'test post');
+
+          timeoutId = setTimeout(() => {
+            throw new Error(`notification wasn't delivered`);
+          }, 2000);
+        },
+        'post:new': async (data) => {
+          postId = (await postPromise).id;
+          data.posts.id.should.eql(postId);
+
+          postPromise = funcTestHelper.deletePostAsync(marsContext, postId);
+        },
+        'post:destroy': async (data, client) => {
+          clearTimeout(timeoutId);
+          data.meta.postId.should.eql(postId);
+
+          client.disconnect();
+        }
+      };
+
+      await funcTestHelper.createRealtimeConnection({ authToken: '' }, callbacks);
     });
 
     describe('Mars is a private user', () => {
