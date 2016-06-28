@@ -3,8 +3,10 @@ import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
 import uuid from 'uuid'
-import { dbAdapter } from '../../app/models'
+import SocketIO from 'socket.io-client';
 
+import { dbAdapter } from '../../app/models'
+import { mkKey } from '../../app/support/DbAdapter'
 import { getSingleton as initApp } from '../../app/app'
 
 
@@ -51,7 +53,7 @@ export function createUser(username, password, attributes, callback) {
 }
 
 export function createUserCtx(context, username, password, attrs) {
-  return exports.createUser(username, password, attrs, function(token, user) {
+  return createUser(username, password, attrs, function(token, user) {
     context.user      = user
     context.authToken = token
     context.username  = username.toLowerCase()
@@ -530,6 +532,16 @@ export function updatePostAsync(context, post) {
   )
 }
 
+export function deletePostAsync(context, postId) {
+  return postJson(
+    `/v1/posts/${postId}`,
+    {
+      authToken: context.authToken,
+      '_method': 'delete'
+    }
+  )
+}
+
 export async function createGroupAsync(context, username, screenName) {
   let params = {
     group: {
@@ -559,3 +571,65 @@ export function sendRequestToJoinGroup(subscriber, group) {
   return postJson(`/v1/groups/${group.username}/sendRequest`, {authToken: subscriber.authToken})
 }
 
+export function banUser(who, whom) {
+  return postJson(`/v1/users/${whom.username}/ban`, { authToken: who.authToken })
+}
+
+/**
+ * Async-friendly wrapper around Socket.IO client.
+ * Convenient for testing
+ */
+const PromisifiedIO = (host, options, events) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const client = SocketIO.connect(host, options)
+
+      client.on('error', reject);
+      client.on('connect_error', reject);
+
+      client.on('disconnect', () => {
+        if ('disconnect' in events) {
+          try {
+            events.disconnect();
+          } catch (e) {
+            // do nothing
+          }
+        }
+        resolve();
+      });
+
+      for (const k of Object.keys(events)) {
+        if (k === 'disconnect') {
+          continue;
+        }
+
+        client.on(k, (...args) => {
+          try {
+            args.push(client);
+            const result = events[k](...args);
+            if (result instanceof Promise) {
+              result.catch(e => { reject(e); })
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+export async function createRealtimeConnection(context, callbacks) {
+  const app = await initApp()
+
+  const port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'));
+  const options = {
+    transports: ['websocket'],
+    'force new connection': true,
+    query: `token=${context.authToken}`
+  };
+
+  return PromisifiedIO(`http://localhost:${port}/`, options, callbacks);
+}

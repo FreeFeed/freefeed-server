@@ -121,30 +121,60 @@ export default class PubsubListener {
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
+    const logger = this.app.logger
+
     if (!(room in sockets.adapter.rooms)) {
       return
     }
 
-    let clientIds = Object.keys(sockets.adapter.rooms[room])
+    const clientIds = Object.keys(sockets.adapter.rooms[room])
 
     await Promise.all(clientIds.map(async (clientId) => {
-      let socket = sockets.connected[clientId]
-      let user = socket.user
-      let logger = this.app.logger
+      const socket = sockets.connected[clientId]
+      const user = socket.user
 
-      if (!post) {
-        logger.error('post is null in validateAndEmitMessage')
-        return
-      }
       if (!user) {
         logger.error('user is null in validateAndEmitMessage')
         return
       }
 
-      let valid = await post.canShow(user.id)
+      if (post) {
+        if (!(await post.canShow(user.id))) {
+          return;
+        }
 
-      if (valid)
-        socket.emit(type, json)
+        if (user.id) {  // otherwise, it is an anonymous user
+          const banIds = await user.getBanIds()
+
+          if (banIds.indexOf(post.userId) >= 0) {
+            return;
+          }
+
+          const authorBans = await dbAdapter.getUserBansIds(post.userId)
+
+          if (authorBans.indexOf(user.id) >= 0) {
+            return;
+          }
+
+          if (type === 'comment:new' || type === 'comment:update') {
+            const uid = json.comments.createdBy;
+
+            if (banIds.indexOf(uid) >= 0) {
+              return;
+            }
+          }
+
+          if (type === 'like:new') {
+            const uid = json.users.id;
+
+            if (banIds.indexOf(uid) >= 0) {
+              return;
+            }
+          }
+        }
+      }
+
+      socket.emit(type, json)
     }))
   }
 
@@ -174,6 +204,7 @@ export default class PubsubListener {
       if (!isBanned) {
         return timeline.id
       }
+
       return null
     })
 

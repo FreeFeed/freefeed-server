@@ -26,6 +26,10 @@ before_script:
   - cp  knexfile.js.dist knexfile.js
   - psql -c 'create database freefeed_test;' -U postgres
   - knex migrate:latest --env test
+  - mkdir -p /tmp/pepyatka-media/attachments
+  - mkdir /tmp/pepyatka-media/attachments/thumbnails
+  - mkdir /tmp/pepyatka-media/attachments/thumbnails2
+  - mkdir /tmp/pepyatka-media/attachments/anotherTestSize
 addons:
   postgresql: "9.5"
   apt:

@@ -2,14 +2,20 @@
 /*global $database */
 import knexCleaner from 'knex-cleaner'
 import { getSingleton } from '../../app/app'
+import { DummyPublisher } from '../../app/pubsub'
+import { PubSub } from '../../app/models'
 import { createUserAsync, createPostViaBookmarklet, createGroupAsync } from './functional_test_helper'
 
 
 describe('BookmarkletController', () => {
   let app
 
-  beforeEach(async () => {
+  before(async () => {
     app = await getSingleton()
+    PubSub.setPublisher(new DummyPublisher())
+  })
+
+  beforeEach(async () => {
     await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })

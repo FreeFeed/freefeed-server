@@ -1,9 +1,26 @@
 import { dbAdapter } from './models'
 
 
+export class DummyPublisher {
+  postCreated() {}
+  postDestroyed() {}
+  postUpdated() {}
+  commentCreated() {}
+  commentDestroyed() {}
+  commentUpdated() {}
+  likeAdded() {}
+  likeRemoved() {}
+  postHidden() {}
+  postUnhidden() {}
+}
+
 export default class pubSub {
   constructor(publisher) {
     this.publisher = publisher
+  }
+
+  setPublisher(publisher) {
+    this.publisher = publisher;
   }
 
   async newPost(postId) {
@@ -21,7 +38,7 @@ export default class pubSub {
   }
 
   async updatePost(postId) {
-    let payload = JSON.stringify({ postId})
+    let payload = JSON.stringify({ postId })
     await this.publisher.postUpdated(payload)
   }
 
