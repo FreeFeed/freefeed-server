@@ -1,3 +1,4 @@
+import monitor from 'monitor-dog'
 import { dbAdapter, TimelineSerializer } from '../../../models'
 import exceptions, { NotFoundException } from '../../../support/exceptions'
 
@@ -8,6 +9,8 @@ export default class TimelineController {
       res.status(401).jsonp({ err: 'Not found', status: 'fail' })
       return
     }
+
+    let timer = monitor.timer('timelines.homefeed-time')
 
     try {
       var user = req.user
@@ -20,8 +23,12 @@ export default class TimelineController {
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('timelines.homefeed-requests')
     } catch (e) {
       exceptions.reportError(res)(e)
+    } finally {
+      timer.stop()
     }
   }
 
@@ -30,6 +37,8 @@ export default class TimelineController {
       res.status(401).jsonp({ err: 'Not found', status: 'fail' })
       return
     }
+
+    let timer = monitor.timer('timelines.directs_feed-time')
 
     try {
       const user = req.user
@@ -41,12 +50,18 @@ export default class TimelineController {
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('timelines.directs_feed-requests')
     } catch (e) {
       exceptions.reportError(res)(e)
+    } finally {
+      timer.stop()
     }
   }
 
   static async posts(req, res) {
+    let timer = monitor.timer('timelines.posts_feed-time')
+
     try {
       var username = req.params.username
 
@@ -65,12 +80,18 @@ export default class TimelineController {
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('timelines.posts_feed-requests')
     } catch(e) {
       exceptions.reportError(res)(e)
+    } finally {
+      timer.stop()
     }
   }
 
   static async likes(req, res) {
+    let timer = monitor.timer('timelines.likes_feed-time')
+
     try {
       var username = req.params.username
 
@@ -89,12 +110,18 @@ export default class TimelineController {
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('timelines.likes_feed-requests')
     } catch(e) {
       exceptions.reportError(res)(e)
+    } finally {
+      timer.stop()
     }
   }
 
   static async comments(req, res) {
+    let timer = monitor.timer('timelines.comments_feed-time')
+
     try {
       var username = req.params.username
 
@@ -113,8 +140,12 @@ export default class TimelineController {
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('timelines.comments_feed-requests')
     } catch(e) {
       exceptions.reportError(res)(e)
+    } finally {
+      timer.stop()
     }
   }
 
@@ -125,6 +156,7 @@ export default class TimelineController {
     }
 
     var user = req.user
+    let timer = monitor.timer('timelines.my_discussions_feed-time')
 
     try {
       let timeline = await user.getMyDiscussionsTimeline({
@@ -135,8 +167,12 @@ export default class TimelineController {
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('timelines.my_discussions_feed-requests')
     } catch (e) {
       exceptions.reportError(res)(e)
+    } finally {
+      timer.stop()
     }
   }
 }
