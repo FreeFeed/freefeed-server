@@ -1,5 +1,6 @@
 /*eslint-env node, mocha */
 /*global $database */
+import knexCleaner from 'knex-cleaner'
 import { getSingleton } from '../../app/app';
 import * as funcTestHelper from './functional_test_helper';
 import { dbAdapter } from '../../app/models';
@@ -19,6 +20,7 @@ describe('Realtime (Socket.io)', () => {
 
   beforeEach(async () => {
     await $database.flushdbAsync();
+    await knexCleaner.clean($pg_database)
   })
 
   let lunaContext = {};
