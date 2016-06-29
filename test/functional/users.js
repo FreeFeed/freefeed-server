@@ -1430,6 +1430,42 @@ describe("UsersController", function() {
         })
     })
 
+    // Zeus bans Mars and Mars should have access to Zeus's posts feed
+    it("banned user should have access to banner's posts feed", async function(done) {
+      let post = await funcTestHelper.createAndReturnPost(zeusContext, 'Test post')
+
+      await funcTestHelper.banUser(zeusContext, banUsername)
+
+      funcTestHelper.getTimeline('/v1/timelines/' + username, marsContext.authToken, function(err, res) {
+        res.status.should.eql(200)
+        res.body.should.have.property('posts')
+        res.body.posts.length.should.eql(1)
+        res.body.posts[0].id.should.eql(post.id)
+        done()
+      })
+    })
+
+    // Zeus bans Mars and it should allow Mars to like Zeus's post
+    it("should allow banned user to like banner's posts", async function(done) {
+      let post = await funcTestHelper.createAndReturnPost(zeusContext, 'Test post')
+
+      await funcTestHelper.banUser(zeusContext, banUsername)
+
+      let likeRes = await funcTestHelper.like(post.id, marsContext.authToken)
+      likeRes.status.should.eql(200)
+
+      let postRes = await funcTestHelper.readPostAsync(post.id, marsContext.authToken)
+      postRes.status.should.eql(200)
+
+      let postResBody = await postRes.json()
+      postResBody.should.have.property('posts')
+      postResBody.posts.should.have.property('likes')
+      postResBody.posts.likes.length.should.eql(1)
+      postResBody.posts.likes[0].should.eql(marsContext.user.id)
+
+      done()
+    })
+
     // Same fun inside groups
     describe('in groups', function() {
       var groupUserName = 'pepyatka-dev'
