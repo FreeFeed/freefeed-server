@@ -1430,6 +1430,21 @@ describe("UsersController", function() {
         })
     })
 
+    it("banned user should not see posts in banner's posts feed", async function(done) {
+      funcTestHelper.createPostForTest(zeusContext, 'Post body', function(err, res) {
+        request
+          .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+          .send({authToken: zeusContext.authToken})
+          .end(function (err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/' + username, marsContext.authToken, function (err, res) {
+              res.body.should.not.be.empty
+              res.body.should.not.have.property('posts')
+              done()
+            })
+          })
+      })
+    })
+
     // Same fun inside groups
     describe('in groups', function() {
       var groupUserName = 'pepyatka-dev'
