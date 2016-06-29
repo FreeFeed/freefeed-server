@@ -449,6 +449,10 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
   return data
 }
 
+export function getUserFeed(feedOwnerContext, readerContext) {
+  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}`, readerContext)
+}
+
 export function getRiverOfNews(userContext) {
   return getTimelineAsync('/v1/timelines/home', userContext)
 }

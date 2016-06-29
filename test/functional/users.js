@@ -3,6 +3,7 @@
 import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
+import fetch from 'node-fetch'
 import request from 'superagent'
 
 import { getSingleton } from '../../app/app'
@@ -1428,6 +1429,34 @@ describe("UsersController", function() {
               done()
             })
         })
+    })
+
+    it("banned user should not see posts in banner's posts feed", async () => {
+      await funcTestHelper.createAndReturnPost(zeusContext, 'Post body');
+      await funcTestHelper.banUser(zeusContext, marsContext);
+
+      const data = await funcTestHelper.getUserFeed(zeusContext, marsContext);
+
+      data.should.not.be.empty
+      data.should.not.have.property('posts')
+    })
+
+    it("each banned user should not see posts in banner's posts feed", async () => {
+      const plutoContext = await funcTestHelper.createUserAsync('pluto', 'password')
+
+      await funcTestHelper.subscribeToAsync(plutoContext, zeusContext.user)
+      await funcTestHelper.createAndReturnPost(zeusContext, 'Post body')
+
+      await funcTestHelper.banUser(zeusContext, marsContext);
+      await funcTestHelper.banUser(zeusContext, plutoContext);
+
+      const viewedByMars = await funcTestHelper.getUserFeed(zeusContext, marsContext);
+      viewedByMars.should.not.be.empty
+      viewedByMars.should.not.have.property('posts')
+
+      const viewedByPluto = await funcTestHelper.getUserFeed(zeusContext, plutoContext);
+      viewedByPluto.should.not.be.empty
+      viewedByPluto.should.not.have.property('posts')
     })
 
     // Same fun inside groups
