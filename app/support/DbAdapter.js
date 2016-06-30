@@ -688,12 +688,22 @@ export class DbAdapter {
     return attrs
   }
 
-  async getBannedUserIds(bannersUserIds) {
-    const res = await this.database('bans').select('banned_user_id').where('user_id', 'in', bannersUserIds)
-    const ids = res.map((record)=>{
-      return record.banned_user_id
+
+  async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId){
+    const res = await this.database('bans')
+      .where('banned_user_id', targetUserId)
+      .where('user_id', 'in', bannersUserIds)
+      .orderByRaw(`position(user_id::text in '${bannersUserIds.toString()}')`)
+
+    let matrix = bannersUserIds.map((id)=>{
+      let foundBan = _.find(res, (record)=>{
+        return record.user_id == id
+      })
+
+      return foundBan ? [id, true] : [id, false]
     })
-    return ids
+
+    return matrix
   }
 
   createUserBan(currentUserId, bannedUserId) {

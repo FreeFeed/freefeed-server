@@ -205,13 +205,14 @@ export function addModel(dbAdapter) {
 
     let uids = _.uniq(posts.map(post => post.userId))
     let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
-    let bans = await dbAdapter.getBannedUserIds(uids)
+    const readerUserId = this.currentUser
+    const banMatrix = await dbAdapter.getBanMatrixByUsersForPostReader(uids, readerUserId)
 
     let usersCache = {}
 
     for (let i = 0; i < users.length; i++) {
       let user = users[i];
-      usersCache[user.id] = [user, bans[i] || []];
+      usersCache[user.id] = [user, banMatrix[i][1]];
     }
 
     async function userById(id) {
@@ -223,8 +224,8 @@ export function addModel(dbAdapter) {
         }
 
         let bans = await user.getBanIds()
-
-        usersCache[id] = [user, bans]
+        const isReaderBanned = bans.indexOf(readerUserId) >= 0
+        usersCache[id] = [user, isReaderBanned]
       }
 
       return usersCache[id]
@@ -236,16 +237,15 @@ export function addModel(dbAdapter) {
         return post
       }
 
-      let author, reverseBanIds
+      let author, authorBannedReader
 
       try {
-        [author, reverseBanIds] = await userById(post.userId)
+        [author, authorBannedReader] = await userById(post.userId)
       } catch (e) {
         throw new Error(`did not find user-object of author of post with id=${post.id}\nPREVIOUS: ${e.message}`)
       }
 
       let readerBannedAuthor = (banIds.indexOf(post.userId) >= 0)
-      let authorBannedReader = (reverseBanIds.indexOf(this.currentUser) >= 0)
 
       if (readerBannedAuthor || authorBannedReader)
         return null
