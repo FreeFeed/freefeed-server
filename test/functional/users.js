@@ -3,6 +3,7 @@
 import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
+import fetch from 'node-fetch'
 import request from 'superagent'
 
 import { getSingleton } from '../../app/app'
@@ -1428,6 +1429,63 @@ describe("UsersController", function() {
               done()
             })
         })
+    })
+
+    it("banned user should not see posts in banner's posts feed", async function(done) {
+      funcTestHelper.createPostForTest(zeusContext, 'Post body', function(err, res) {
+        request
+          .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+          .send({authToken: zeusContext.authToken})
+          .end(function (err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/' + username, marsContext.authToken, function (err, res) {
+              res.body.should.not.be.empty
+              res.body.should.not.have.property('posts')
+              done()
+            })
+          })
+      })
+    })
+
+    it("each banned user should not see posts in banner's posts feed", async function(done) {
+      const plutoContext = await funcTestHelper.createUserAsync('pluto', 'password')
+      await funcTestHelper.subscribeToAsync(plutoContext, zeusContext.user)
+      const post = await funcTestHelper.createAndReturnPostToFeed(zeusContext.user, zeusContext, 'Post body')
+
+      await fetch(`${app.config.host}/v1/users/${banUsername}/ban`, {
+        method: 'POST',
+        headers: {
+          'X-Authentication-Token': zeusContext.authToken
+        }
+      })
+
+      await fetch(`${app.config.host}/v1/users/${plutoContext.user.username}/ban`, {
+        method: 'POST',
+        headers: {
+          'X-Authentication-Token': zeusContext.authToken
+        }
+      })
+
+      const zeusPostsFeedViewedByMars = await fetch(`${app.config.host}/v1/timelines/${username}`,{
+        headers: {
+          'X-Authentication-Token': marsContext.authToken
+        }
+      })
+
+      const viewedByMars = await zeusPostsFeedViewedByMars.json()
+      viewedByMars.should.not.be.empty
+      viewedByMars.should.not.have.property('posts')
+
+      const zeusPostsFeedViewedByPluto = await fetch(`${app.config.host}/v1/timelines/${username}`,{
+        headers: {
+          'X-Authentication-Token': plutoContext.authToken
+        }
+      })
+
+      const viewedByPluto = await zeusPostsFeedViewedByPluto.json()
+      viewedByPluto.should.not.be.empty
+      viewedByPluto.should.not.have.property('posts')
+
+      done()
     })
 
     // Same fun inside groups
