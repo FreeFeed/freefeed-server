@@ -266,6 +266,18 @@ export function getSubscribers(username, authToken, callback) {
   }(callback)
 }
 
+export async function getSubscribersAsync(username, userContext){
+  const relativeUrl = `/v1/users/${username}/subscribers`
+  let url = await apiUrl(relativeUrl)
+
+  if (!_.isUndefined(userContext)) {
+    let encodedToken = encodeURIComponent(userContext.authToken)
+    url = `${url}?authToken=${encodedToken}`
+  }
+
+  return fetch(url)
+}
+
 export function getSubscriptions(username, authToken, callback) {
   return function(done) {
     let sendParams = {};
@@ -451,6 +463,14 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
 
 export function getUserFeed(feedOwnerContext, readerContext) {
   return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}`, readerContext)
+}
+
+export function getUserLikesFeed(feedOwnerContext, readerContext) {
+  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}/likes`, readerContext)
+}
+
+export function getUserCommentsFeed(feedOwnerContext, readerContext) {
+  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}/comments`, readerContext)
 }
 
 export function getRiverOfNews(userContext) {
