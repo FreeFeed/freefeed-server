@@ -293,6 +293,21 @@ export function addModel(dbAdapter) {
     return this.subscribers
   }
 
+  Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer){
+    if(!feedOwner || feedOwner.id != this.userId){
+      throw new Error("Wrong feed owner")
+    }
+
+    const feedAccessible = await feedOwner.canBeAccessedByUser(viewer)
+    if(feedAccessible){
+      return
+    }
+
+    feedOwner.administrators = []
+    this.subscribers = []
+    this.user = feedOwner
+  }
+
   /**
    * Returns the list of the 'River of News' timelines of all subscribers to this
    * timeline.
