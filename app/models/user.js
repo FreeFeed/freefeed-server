@@ -13,7 +13,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from "../../config/config"
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
-import { Attachment, Comment, Post, Stats, Timeline } from '../models'
+import { Attachment, Comment, Post } from '../models'
 
 
 promisifyAll(bcrypt)
@@ -52,6 +52,7 @@ exports.addModel = function(dbAdapter) {
     this.type = "user"
 
     this.profilePictureUuid = params.profilePictureUuid || ''
+    this.subscribedFeedIds = params.subscribedFeedIds || []
 
     this.initPassword = async function() {
       if (!_.isNull(password)) {
@@ -130,6 +131,10 @@ exports.addModel = function(dbAdapter) {
     return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST)
   }
 
+  User.getObjectsByIds = (objectIds) => {
+    return dbAdapter.getFeedOwnersByIds(objectIds)
+  }
+
   User.prototype.isUser = function() {
     return this.type === "user"
   }
@@ -145,29 +150,16 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.updateResetPasswordToken = async function() {
     let now = new Date().getTime()
-    let oldToken = this.resetPasswordToken
-
-    this.resetPasswordToken = await this.generateResetPasswordToken()
+    let token = await this.generateResetPasswordToken()
 
     let payload = {
-      'resetPasswordToken': this.resetPasswordToken,
+      'resetPasswordToken': token,
       'resetPasswordSentAt': now
     }
 
-    let promises = [
-      dbAdapter.updateUser(this.id, payload),
-      dbAdapter.createUserResetPasswordToken(this.id, this.resetPasswordToken)
-    ]
+    await dbAdapter.updateUser(this.id, payload)
 
-    if (oldToken) {
-      promises.push(dbAdapter.deleteUserResetPasswordToken(oldToken))
-    }
-
-    await Promise.all(promises)
-
-    let expireAfter = 60*60*24 // 24 hours
-    await dbAdapter.setUserResetPasswordTokenExpireAfter(this.resetPasswordToken, expireAfter)
-
+    this.resetPasswordToken = token
     return this.resetPasswordToken
   }
 
@@ -194,9 +186,9 @@ exports.addModel = function(dbAdapter) {
       return false
     }
 
-    var uid = await dbAdapter.getUserIdByEmail(email)
+    let exists = await dbAdapter.existsUserEmail(email)
 
-    if (uid) {
+    if (exists) {
       // email is taken
       return false
     }
@@ -297,20 +289,6 @@ exports.addModel = function(dbAdapter) {
     await Promise.all(promises)
   }
 
-  //
-  // Create database index from email to uid
-  //
-  User.prototype.createEmailIndex = async function() {
-    // email is optional, so no need to index an empty key
-    if (this.email && this.email.length > 0) {
-      await dbAdapter.createUserEmailIndex(this.id, this.email)
-    }
-  }
-
-  User.prototype.dropIndexForEmail = function(email) {
-    return dbAdapter.dropUserEmailIndex(email)
-  }
-
   User.prototype.create = async function(skip_stoplist) {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
@@ -334,12 +312,7 @@ exports.addModel = function(dbAdapter) {
       'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
-
-    var stats = new Stats({
-      id: this.id
-    })
-
-    await stats.create()
+    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
     timer.stop() // @todo finally {}
     monitor.increment('users.creates')
 
@@ -347,17 +320,15 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.update = async function(params) {
-    var hasChanges = false
-      , emailChanged = false
-      , oldEmail = ""
+    let payload = {}
+      , changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
         throw new Error(`"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
       }
 
-      this.screenName = params.screenName
-      hasChanges = true
+      payload.screenName = params.screenName
     }
 
     if (params.hasOwnProperty('email') && params.email != this.email) {
@@ -365,11 +336,7 @@ exports.addModel = function(dbAdapter) {
         throw new Error("Invalid email")
       }
 
-      oldEmail = this.email
-      this.email = params.email
-
-      hasChanges = true
-      emailChanged = true
+      payload.email = params.email
     }
 
     if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
@@ -383,8 +350,7 @@ exports.addModel = function(dbAdapter) {
       else if (params.isPrivate === '0' && this.isPrivate === '1')
         await this.subscribeNonFriends()
 
-      this.isPrivate = params.isPrivate
-      hasChanges = true
+      payload.isPrivate = params.isPrivate
     }
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
@@ -392,8 +358,7 @@ exports.addModel = function(dbAdapter) {
         throw new Error("Description is too long")
       }
 
-      this.description = params.description
-      hasChanges = true
+      payload.description = params.description
     }
 
     if (params.hasOwnProperty('frontendPreferences')) {
@@ -402,43 +367,34 @@ exports.addModel = function(dbAdapter) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
+      let preferences = this.frontendPreferences
+
       // Shallow merge objects
-      _.assign(this.frontendPreferences, params.frontendPreferences)
+      _.assign(preferences, params.frontendPreferences)
 
       // Validate the merged object
-      if (!User.frontendPreferencesIsValid(this.frontendPreferences)) {
+      if (!User.frontendPreferencesIsValid(preferences)) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
-      hasChanges = true
+      payload.frontendPreferences = preferences
     }
 
-    if (hasChanges) {
-      this.updatedAt = new Date().getTime()
+    if (_.intersection(_.keys(payload), changeableKeys).length > 0) {
+      let preparedPayload = payload
+      payload.updatedAt = new Date().getTime()
 
-      var payload = {
-        'screenName': this.screenName,
-        'email': this.email,
-        'isPrivate': this.isPrivate,
-        'description': this.description,
-        'frontendPreferences': JSON.stringify(this.frontendPreferences),
-        'updatedAt': this.updatedAt.toString()
+      preparedPayload.updatedAt = payload.updatedAt.toString()
+
+      if (_.has(payload, 'frontendPreferences')){
+        preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences)
       }
 
-      var promises = [
-        dbAdapter.updateUser(this.id, payload)
-      ]
+      await dbAdapter.updateUser(this.id, preparedPayload)
 
-      if (emailChanged) {
-        if (oldEmail != "") {
-          promises.push(this.dropIndexForEmail(oldEmail))
-        }
-        if (this.email != "") {
-          promises.push(this.createEmailIndex())
-        }
+      for (let k in payload){
+        this[k] = payload[k]
       }
-
-      await Promise.all(promises)
     }
 
     return this
@@ -463,14 +419,10 @@ exports.addModel = function(dbAdapter) {
 
       for (let usersChunk of _.chunk(likes, 10)) {
         let promises = usersChunk.map(async (user) => {
-          let likesTimelineId = await user.getLikesTimelineId()
-          let time = await dbAdapter.getUserPostLikedTime(user.id, post.id)
-
-          actions.push(dbAdapter.addPostToTimeline(likesTimelineId, time, post.id))
-          actions.push(dbAdapter.createPostUsageInTimeline(post.id, likesTimelineId))
+          return user.getLikesTimelineIntId()
         })
-
-        await Promise.all(promises)
+        let likesFeedsIntIds = await Promise.all(promises)
+        actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
 
       let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
@@ -478,17 +430,11 @@ exports.addModel = function(dbAdapter) {
 
       for (let usersChunk of _.chunk(commenters, 10)) {
         let promises = usersChunk.map(async (user) => {
-          let commentsTimelineId = await user.getCommentsTimelineId()
-
-          // NOTE: I'm cheating with time when we supposed to add that
-          // post to comments timeline, but who notices this?
-          let time = post.updatedAt
-
-          actions.push(dbAdapter.addPostToTimeline(commentsTimelineId, time, post.id))
-          actions.push(dbAdapter.createPostUsageInTimeline(post.id, commentsTimelineId))
+          return user.getCommentsTimelineIntId()
         })
 
-        await Promise.all(promises)
+        let commentsFeedsIntIds = await Promise.all(promises)
+        actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
       }
 
       await Promise.all(actions)
@@ -499,7 +445,7 @@ exports.addModel = function(dbAdapter) {
     for (let usersChunk of _.chunk(fixedUsers, 10)) {
       let promises = usersChunk.map(async (user) => {
         let [riverId, commentsTimeline, likesTimeline] = await Promise.all([
-          user.getRiverOfNewsTimelineId(),
+          user.getRiverOfNewsTimelineIntId(),
           user.getCommentsTimeline(),
           user.getLikesTimeline()
         ])
@@ -553,7 +499,6 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.updatePassword = async function(password, passwordConfirmation) {
-    this.updatedAt = new Date().getTime()
     if (password.length === 0) {
       throw new Error('Password cannot be blank')
     } else if (password !== passwordConfirmation) {
@@ -561,10 +506,16 @@ exports.addModel = function(dbAdapter) {
     }
 
     try {
-      this.hashedPassword = await bcrypt.hashAsync(password, 10)
+      let updatedAt = new Date().getTime()
+      let payload = {
+        updatedAt:      updatedAt.toString(),
+        hashedPassword: await bcrypt.hashAsync(password, 10)
+      }
 
-      await dbAdapter.setUserPassword(this.id, this.updatedAt, this.hashedPassword)
+      await dbAdapter.updateUser(this.id, payload)
 
+      this.updatedAt = updatedAt
+      this.hashedPassword = payload.hashedPassword
       return this
     } catch(e) {
       throw e //? hmmm?
@@ -580,46 +531,32 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    const [commentsId, likesId] = await Promise.all([this.getCommentsTimelineId(), this.getLikesTimelineId()])
+    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
-    let myDiscussionsTimelineId = dbAdapter.getUserDiscussionsTimelineId(this.id)
-    let timelineExists = await dbAdapter.existsTimeline(myDiscussionsTimelineId)
-    if (!timelineExists){
-      let timeline = new Timeline({
-        name: "MyDiscussions",
-        userId: this.id
-      })
-
-      timeline = await timeline.createUserDiscussionsTimeline()
-      myDiscussionsTimelineId = timeline.id
-    }
-
-    await dbAdapter.createMergedPostsTimeline(myDiscussionsTimelineId, commentsId, likesId)
-
-    return dbAdapter.getTimelineById(myDiscussionsTimelineId, params)
+    let feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
+    feed.posts = await feed.getPosts(feed.offset, feed.limit)
+    return feed
   }
 
   User.prototype.getGenericTimelineId = async function(name, params) {
-    let timelineIds = await this.getTimelineIds()
+    params = params || {}
 
-    let timeline
+    let timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
 
-    if (timelineIds[name]) {
-      params = params || {}
-      timeline = await dbAdapter.getTimelineById(timelineIds[name], {
-        offset: params.offset,
-        limit: params.limit
-      })
-    } else {
-      timeline = new Timeline({
-        name: name,
-        userId: this.id
-      })
-
-      timeline = await timeline.create()
+    if (!timeline){
+      console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
+      return null
     }
 
     return timeline.id
+  }
+
+  User.prototype.getGenericTimelineIntId = async function(name) {
+    let timelineIds = await this.getTimelineIds()
+
+    let timeline = await dbAdapter.getTimelineById(timelineIds[name])
+
+    return timeline.intId
   }
 
   User.prototype.getGenericTimeline = async function(name, params) {
@@ -631,21 +568,29 @@ exports.addModel = function(dbAdapter) {
     return timeline
   }
 
+  User.prototype.getMyDiscussionsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('MyDiscussions')
+  }
+
   User.prototype.getHidesTimelineId = function(params) {
     return this.getGenericTimelineId('Hides', params)
-  },
+  }
 
-  User.prototype.getHidesTimeline = function(params) {
-    return this.getGenericTimeline('Hides', params)
+  User.prototype.getHidesTimelineIntId = function(params) {
+    return this.getGenericTimelineIntId('Hides', params)
   }
 
   User.prototype.getRiverOfNewsTimelineId = function(params) {
     return this.getGenericTimelineId('RiverOfNews', params)
   }
 
+  User.prototype.getRiverOfNewsTimelineIntId = function(params) {
+    return this.getGenericTimelineIntId('RiverOfNews', params)
+  }
+
   User.prototype.getRiverOfNewsTimeline = async function(params) {
     let timelineId = await this.getRiverOfNewsTimelineId(params)
-    let hidesTimelineId = await this.getHidesTimelineId(params)
+    let hidesTimelineIntId = await this.getHidesTimelineIntId(params)
 
     let riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
     let banIds = await this.getBanIds()
@@ -653,7 +598,7 @@ exports.addModel = function(dbAdapter) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(hidesTimelineId, post.id)
+      let postInTimeline = _.includes(post.feedIntIds, hidesTimelineIntId)
 
       if (postInTimeline) {
         post.isHidden = true
@@ -665,32 +610,44 @@ exports.addModel = function(dbAdapter) {
     return riverOfNewsTimeline
   }
 
-  User.prototype.getLikesTimelineId = function(params) {
-    return this.getGenericTimelineId('Likes', params)
+  User.prototype.getLikesTimelineId = function() {
+    return this.getGenericTimelineId('Likes')
+  }
+
+  User.prototype.getLikesTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Likes')
   }
 
   User.prototype.getLikesTimeline = function(params) {
     return this.getGenericTimeline('Likes', params)
   }
 
-  User.prototype.getPostsTimelineId = function(params) {
-    return this.getGenericTimelineId('Posts', params)
+  User.prototype.getPostsTimelineId = function() {
+    return this.getGenericTimelineId('Posts')
+  }
+
+  User.prototype.getPostsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Posts')
   }
 
   User.prototype.getPostsTimeline = function(params) {
     return this.getGenericTimeline('Posts', params)
   }
 
-  User.prototype.getCommentsTimelineId = function(params) {
-    return this.getGenericTimelineId('Comments', params)
+  User.prototype.getCommentsTimelineId = function() {
+    return this.getGenericTimelineId('Comments')
+  }
+
+  User.prototype.getCommentsTimelineIntId = function() {
+    return this.getGenericTimelineIntId('Comments')
   }
 
   User.prototype.getCommentsTimeline = function(params) {
     return this.getGenericTimeline('Comments', params)
   }
 
-  User.prototype.getDirectsTimelineId = function(params) {
-    return this.getGenericTimelineId('Directs', params)
+  User.prototype.getDirectsTimelineId = function() {
+    return this.getGenericTimelineId('Directs')
   }
 
   User.prototype.getDirectsTimeline = function(params) {
@@ -705,30 +662,31 @@ exports.addModel = function(dbAdapter) {
   User.prototype.getTimelines = async function(params) {
     const timelineIds = await this.getTimelineIds()
     const timelines = await dbAdapter.getTimelinesByIds(_.values(timelineIds), params)
+    const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
+    const sortedTimelines = _.sortBy(timelines, (tl)=>{
+      return _.indexOf(timelinesOrder, tl.name)
+    })
 
-    return timelines
+    return sortedTimelines
   }
 
-  User.prototype.getPublicTimelineIds = function(params) {
+  User.prototype.getPublicTimelineIds = function() {
     return Promise.all([
-      this.getCommentsTimelineId(params),
-      this.getLikesTimelineId(params),
-      this.getPostsTimelineId(params )
+      this.getCommentsTimelineId(),
+      this.getLikesTimelineId(),
+      this.getPostsTimelineId()
     ])
   }
 
-  User.prototype.getSubscriptionIds = async function() {
-    this.subscriptionsIds = await dbAdapter.getUserSubscriptionsIds(this.id)
-    return this.subscriptionsIds
+  User.prototype.getPublicTimelinesIntIds = function() {
+    return dbAdapter.getUserNamedFeedsIntIds(this.id, ['Posts', 'Likes', 'Comments'])
   }
 
   /**
    * @return {Timeline[]}
    */
   User.prototype.getSubscriptions = async function() {
-    var timelineIds = await this.getSubscriptionIds()
-    this.subscriptions = await dbAdapter.getTimelinesByIds(timelineIds)
-
+    this.subscriptions = await dbAdapter.getTimelinesByIntIds(this.subscribedFeedIds)
     return this.subscriptions
   }
 
@@ -745,7 +703,8 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.getSubscriberIds = async function() {
-    var timeline = await this.getPostsTimeline()
+    let postsFeedIntId = await this.getPostsTimelineIntId()
+    let timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
     this.subscriberIds = await timeline.getSubscriberIds()
 
     return this.subscriberIds
@@ -760,13 +719,6 @@ exports.addModel = function(dbAdapter) {
 
   User.prototype.getBanIds = function() {
     return dbAdapter.getUserBansIds(this.id)
-  }
-
-  User.prototype.getBans = async function() {
-    const userIds = await this.getBanIds()
-    const users = await dbAdapter.getUsersByIds(userIds)
-
-    return users
   }
 
   User.prototype.ban = async function(username) {
@@ -808,20 +760,15 @@ exports.addModel = function(dbAdapter) {
     if (user.username == this.username)
       throw new Error("Invalid")
 
-    let currentTime = new Date().getTime()
     let timelineIds = await user.getPublicTimelineIds()
+    let subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
-    let promises = _.flatten(timelineIds.map((timelineId) => [
-      dbAdapter.createUserSubscription(this.id, currentTime, timelineId),
-      dbAdapter.addTimelineSubscriber(timelineId, currentTime, this.id)
-    ]))
+    await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
 
-    promises.push(timeline.mergeTo(await this.getRiverOfNewsTimelineId()))
+    this.subscribedFeedIds = subscribedFeedsIntIds
 
-    promises.push((await dbAdapter.getStatsById(this.id)).addSubscription())
-    promises.push((await dbAdapter.getStatsById(user.id)).addSubscriber())
-
-    await Promise.all(promises)
+    await dbAdapter.statsSubscriptionCreated(this.id)
+    await dbAdapter.statsSubscriberAdded(user.id)
 
     monitor.increment('users.subscriptions')
 
@@ -837,13 +784,13 @@ exports.addModel = function(dbAdapter) {
     }
 
     var timelineId = await user.getPostsTimelineId()
-    await this.validateCanSubscribe(timelineId)
     return this.subscribeTo(timelineId)
   }
 
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
     var timeline = await dbAdapter.getTimelineById(timelineId)
     var user = await dbAdapter.getFeedOwnerById(timeline.userId)
+    let wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
@@ -855,38 +802,50 @@ exports.addModel = function(dbAdapter) {
       // remove timelines from user's subscriptions
       let timelineIds = await user.getPublicTimelineIds()
 
-      let unsubPromises = _.flatten(timelineIds.map((timelineId) => [
-        dbAdapter.deleteUserSubscription(this.id, timelineId),
-        dbAdapter.removeTimelineSubscriber(timelineId, this.id)
-      ]))
-
-      promises = promises.concat(unsubPromises)
+      let subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
+      this.subscribedFeedIds = subscribedFeedsIntIds
     }
 
     // remove all posts of The Timeline from user's River of News
-    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineId()))
+    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))
 
     // remove all posts of The Timeline from likes timeline of user
     if (options.likes)
-      promises.push(timeline.unmerge(await this.getLikesTimelineId()))
+      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()))
 
     // remove all post of The Timeline from comments timeline of user
     if (options.comments)
-      promises.push(timeline.unmerge(await this.getCommentsTimelineId()))
-
-    // update counters for subscriber and her friend
-    promises.push((await dbAdapter.getStatsById(this.id)).removeSubscription())
-    promises.push((await dbAdapter.getStatsById(user.id)).removeSubscriber())
+      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()))
 
     await Promise.all(promises)
+
+    if(wasSubscribed) {
+      await dbAdapter.statsSubscriptionDeleted(this.id)
+      await dbAdapter.statsSubscriberRemoved(user.id)
+    }
 
     monitor.increment('users.unsubscriptions')
 
     return this
   }
 
-  User.prototype.getStatistics = function() {
-    return dbAdapter.getStatsById(this.id)
+  User.prototype.calculateStatsValues = async function() {
+    let res
+    try {
+      res = await dbAdapter.getUserStats(this.id)
+    } catch (e) {
+      res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
+    }
+
+    return res
+  }
+
+
+  User.prototype.getStatistics = async function() {
+    if (!this.statsValues){
+      this.statsValues = await this.calculateStatsValues()
+    }
+    return this.statsValues
   }
 
   User.prototype.newComment = function(attrs) {
@@ -1019,102 +978,17 @@ exports.addModel = function(dbAdapter) {
   User.prototype.validateCanPost = async function(postingUser) {
     // NOTE: when user is subscribed to another user she in fact is
     // subscribed to her posts timeline
-    const [
-      timelineIdA, timelineIdB,
-      subscriptionIds, subscriberIds
-    ] =
-      await Promise.all([
-        postingUser.getPostsTimelineId(), this.getPostsTimelineId(),
-        postingUser.getSubscriptionIds(), this.getSubscriptionIds()
-      ])
+    const [ timelineIdA, timelineIdB ] =
+      await Promise.all([ postingUser.getPostsTimelineId(), this.getPostsTimelineId() ])
 
-    if ((subscriberIds.indexOf(timelineIdA) == -1 || subscriptionIds.indexOf(timelineIdB) == -1)
+    const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
+    const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
+
+    if ((!currentUserSubscribedToPostingUser || !postingUserSubscribedToCurrentUser)
         && postingUser.username != this.username
     ) {
       throw new ForbiddenException("You can't send private messages to friends that are not mutual")
     }
-  }
-
-  User.prototype.validateCanSubscribe = async function(timelineId) {
-    const timelineIds = await this.getSubscriptionIds()
-    if (_.includes(timelineIds, timelineId)) {
-      throw new ForbiddenException("You are already subscribed to that user")
-    }
-
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const banIds = await this.getBanIds()
-    if (banIds.indexOf(timeline.userId) >= 0) {
-      throw new ForbiddenException("You cannot subscribe to a banned user")
-    }
-
-    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
-    const theirBanIds = await user.getBanIds()
-    if (theirBanIds.indexOf(this.id) >= 0) {
-      throw new ForbiddenException("This user prevented your from subscribing to them")
-    }
-
-    if (user.isPrivate === '1')
-      throw new ForbiddenException("You cannot subscribe to private feed")
-  }
-
-  User.prototype.validateCanUnsubscribe = async function(timelineId) {
-    const timelineIds = await this.getSubscriptionIds()
-
-    if (!_.includes(timelineIds, timelineId)) {
-      throw new ForbiddenException("You are not subscribed to that user")
-    }
-
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const feedOwner = await dbAdapter.getFeedOwnerById(timeline.userId)
-
-    if ('group' !== feedOwner.type) {
-      return
-    }
-
-    const adminIds = await feedOwner.getAdministratorIds()
-
-    if (_.includes(adminIds, this.id)) {
-      throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
-    }
-  }
-
-  /* checks if user can like some post */
-  User.prototype.validateCanLikePost = function(post) {
-    return this.validateCanLikeOrUnlikePost('like', post)
-  }
-
-  User.prototype.validateCanUnLikePost = function(post) {
-    return this.validateCanLikeOrUnlikePost('unlike', post)
-  }
-
-  User.prototype.validateCanComment = async function(postId) {
-    const post = await dbAdapter.getPostById(postId)
-
-    if (!post)
-      throw new NotFoundException("Not found")
-
-    const valid = await post.canShow(this.id)
-
-    if (!valid)
-      throw new NotFoundException("Not found")
-
-    if (post.commentsDisabled === '1' && post.userId !== this.id)
-      throw new ForbiddenException("Comments disabled")
-  }
-
-  User.prototype.validateCanLikeOrUnlikePost = async function(action, post) {
-    const userLikedPost = await dbAdapter.hasUserLikedPost(this.id, post.id)
-
-    if (userLikedPost && action == 'like')
-      throw new ForbiddenException("You can't like post that you have already liked")
-
-    if (!userLikedPost && action == 'unlike')
-      throw new ForbiddenException("You can't un-like post that you haven't yet liked")
-
-    const valid = await post.canShow(this.id)
-
-    if (!valid)
-      throw new Error("Not found")
   }
 
   User.prototype.updateLastActivityAt = async function() {
@@ -1129,32 +1003,15 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.sendSubscriptionRequest = async function(userId) {
-    await this.validateCanSendSubscriptionRequest(userId)
-
-    var currentTime = new Date().getTime()
-    return await Promise.all([
-      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, userId),
-      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, userId)
-    ])
+    return await dbAdapter.createSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
-    await this.validateCanSendPrivateGroupSubscriptionRequest(groupId)
-
-    const currentTime = new Date().getTime()
-    return await Promise.all([
-      dbAdapter.createUserSubscriptionRequest(this.id, currentTime, groupId),
-      dbAdapter.createUserSubscriptionPendingRequest(this.id, currentTime, groupId)
-    ])
+    return await dbAdapter.createSubscriptionRequest(this.id, groupId)
   }
 
   User.prototype.acceptSubscriptionRequest = async function(userId) {
-    await this.validateCanManageSubscriptionRequests(userId)
-
-    await Promise.all([
-      dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
-      dbAdapter.deleteUserSubscriptionPendingRequest(this.id, userId)
-    ])
+    await dbAdapter.deleteSubscriptionRequest(this.id, userId)
 
     var timelineId = await this.getPostsTimelineId()
 
@@ -1163,12 +1020,7 @@ exports.addModel = function(dbAdapter) {
   }
 
   User.prototype.rejectSubscriptionRequest = async function(userId) {
-    await this.validateCanManageSubscriptionRequests(userId)
-
-    return await Promise.all([
-      dbAdapter.deleteUserSubscriptionRequest(this.id, userId),
-      dbAdapter.deleteUserSubscriptionPendingRequest(this.id, userId)
-    ])
+    return await dbAdapter.deleteSubscriptionRequest(this.id, userId)
   }
 
   User.prototype.getPendingSubscriptionRequestIds = async function() {
@@ -1188,66 +1040,6 @@ exports.addModel = function(dbAdapter) {
   User.prototype.getSubscriptionRequests = async function() {
     var subscriptionRequestIds = await this.getSubscriptionRequestIds()
     return await dbAdapter.getUsersByIds(subscriptionRequestIds)
-  }
-
-  User.prototype.validateCanSendSubscriptionRequest = async function(userId) {
-    var hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, userId)
-    var user = await dbAdapter.getUserById(userId)
-    var banIds = await user.getBanIds()
-
-    // user can send subscription request if and only if subscription
-    // is a private and this is first time user is subscribing to it
-    const valid = !hasRequest
-               && user.isPrivate === '1'
-               && banIds.indexOf(this.id) === -1
-
-    if (!valid)
-      throw new Error("Invalid")
-  }
-
-  User.prototype.validateCanSendPrivateGroupSubscriptionRequest = async function(groupId) {
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(this.id, groupId)
-    let hasSubscription = false
-    const followedGroups = await this.getFollowedGroups()
-    const followedGroupIds = followedGroups.map((group) => {
-      return group.id
-    })
-    hasSubscription  = _.includes(followedGroupIds, groupId)
-    const group = await dbAdapter.getGroupById(groupId)
-
-    if (hasRequest)
-      throw new ForbiddenException("Subscription request already sent")
-    if (hasSubscription)
-      throw new ForbiddenException("You are already subscribed to that group")
-    if (!!group && group.isPrivate !== '1')
-      throw new Error("Group is public")
-  }
-
-  User.prototype.validateCanManageSubscriptionRequests = async function(userId) {
-    var hasRequest = await dbAdapter.isSubscriptionRequestPresent(userId, this.id)
-
-    if (!hasRequest)
-      throw new Error("Invalid")
-  }
-
-  User.prototype.canBeAccessedByUser = async function(otherUser) {
-    if (this.isPrivate !== '1') {
-      return true
-    }
-
-    if (!otherUser) {
-      // no anonymous users allowed
-      return false
-    }
-
-    const subscriberIds = await this.getSubscriberIds()
-
-    if (otherUser.id !== this.id && subscriberIds.indexOf(otherUser.id) == -1) {
-      // not an owner and not a subscriber
-      return false
-    }
-
-    return true
   }
 
   User.prototype.getFollowedGroups = async function () {

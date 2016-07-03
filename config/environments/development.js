@@ -1,3 +1,5 @@
+import {development as postgresConfig} from '../../knexfile'
+
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
 process.env.MONITOR_PREFIX = 'development'
 
@@ -26,6 +28,8 @@ export function getConfig() {
     acceptHashedPasswordsOnly: false,
 
     logLevel: 'warn',
+    logResponseTime: true,
+    //disableRealtime: true,
     onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false
@@ -113,6 +117,8 @@ export function getConfig() {
     options: {
     }
   }
+
+  config.postgres = postgresConfig
 
   return config
 }

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import mkdirp from 'mkdirp'
+import knexCleaner from 'knex-cleaner'
 import gm from 'gm'
 import { promisifyAll } from 'bluebird'
 import chai from 'chai'
@@ -16,6 +17,7 @@ const config = configLoader()
 describe('Attachment', function() {
   before(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', function() {

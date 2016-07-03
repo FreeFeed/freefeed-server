@@ -5,6 +5,7 @@ import _ from 'lodash'
 import uuid from 'uuid'
 import SocketIO from 'socket.io-client';
 
+import { dbAdapter } from '../../app/models'
 import { mkKey } from '../../app/support/DbAdapter'
 import { getSingleton as initApp } from '../../app/app'
 
@@ -449,6 +450,10 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
   return data
 }
 
+export function getUserFeed(feedOwnerContext, readerContext) {
+  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}`, readerContext)
+}
+
 export function getRiverOfNews(userContext) {
   return getTimelineAsync('/v1/timelines/home', userContext)
 }
@@ -502,17 +507,17 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 }
 
 export async function createMockAttachmentAsync(context) {
-  const attachmentId  = uuid.v4()
+  let attachmentId
   const params = {
     fileName: 'lion.jpg',
     fileSize: 12345,
     userId: context.user.id,
     postId: '',
-    createdAt: (new Date()).toString(),
-    updatedAt: (new Date()).toString()
+    createdAt: (new Date()).getTime(),
+    updatedAt: (new Date()).getTime()
   }
 
-  await $database.hmsetAsync(mkKey(['attachment', attachmentId]), params)
+  attachmentId = await dbAdapter.createAttachment(params)
 
   return {
     id: attachmentId,

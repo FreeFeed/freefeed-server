@@ -2,6 +2,7 @@
 /*global $database */
 import request from 'superagent'
 import mkdirp from 'mkdirp'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -22,6 +23,7 @@ describe("GroupsController", function() {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#create()", function() {
@@ -164,18 +166,10 @@ describe("GroupsController", function() {
     var adminContext = {}
       , nonAdminContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
-
-    beforeEach(function(done) {
-      request
-          .post(app.config.host + '/v1/groups')
-          .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers'},
-            authToken: adminContext.authToken })
-          .end(function(err, res) {
-            done()
-          })
-
+    beforeEach(async ()=>{
+      adminContext = await funcTestHelper.createUserAsync('Luna', 'password')
+      nonAdminContext = await funcTestHelper.createUserAsync('yole', 'wordpass')
+      await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers')
     })
 
     it('should reject unauthenticated users', function(done) {
@@ -191,6 +185,7 @@ describe("GroupsController", function() {
     it('should reject nonexisting group', function(done) {
       request
           .post(app.config.host + '/v1/groups/foobar/subscribers/yole/admin')
+          .send({authToken: adminContext.authToken })
           .end(function(err, res) {
             err.should.not.be.empty
             err.status.should.eql(404)
@@ -212,18 +207,10 @@ describe("GroupsController", function() {
     var context = {}
       , group
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-
-    beforeEach(function(done) {
-      request
-        .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers'},
-                authToken: context.authToken
-              })
-        .end(function(err, res) {
-          group = res.body.groups
-          done()
-        })
+    beforeEach(async ()=>{
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+      let res = await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers')
+      group = res.group
     })
 
     it('should update group settings', function(done) {

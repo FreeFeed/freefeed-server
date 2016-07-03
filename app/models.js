@@ -1,13 +1,15 @@
 import { connect as redisConnection } from '../config/database'
+import { connect as postgresConnection } from '../config/postgres'
 import { DbAdapter } from './support/DbAdapter'
 import { PubSubAdapter } from './support/PubSubAdapter'
 import pubSub from './pubsub'
+import { load as configLoader } from "../config/config"
+import pubSubStub from './pubsub-stub'
 
 import { addModel as attachmentModel } from './models/attachment'
 import { addModel as commentModel } from './models/comment'
 import { addModel as groupModel } from './models/group'
 import { addModel as postModel } from './models/post'
-import { addModel as statsModel } from './models/stats'
 import { addModel as timelineModel } from './models/timeline'
 import { addModel as userModel } from './models/user'
 
@@ -28,13 +30,18 @@ import { addSerializer as userSerializer } from './serializers/v1/UserSerializer
 
 // Be careful: order of exports is important.
 export const database = redisConnection()
-export const dbAdapter = new DbAdapter(database)
+export const postgres = postgresConnection()
+export const dbAdapter = new DbAdapter(postgres)
 
 export { AbstractSerializer } from './serializers/abstract_serializer'
 export { Serializer }         from "./serializers/serializer"
 
 const pubsubAdapter = new PubSubAdapter(database)
-export const PubSub = new pubSub(pubsubAdapter)
+const config = configLoader()
+export let PubSub = new pubSub(pubsubAdapter)
+if (config.disableRealtime){
+  PubSub = new pubSubStub()
+}
 
 export const User          = userModel(dbAdapter)
 export const Group         = groupModel(dbAdapter)
@@ -42,7 +49,6 @@ export const Post          = postModel(dbAdapter)
 export const Timeline      = timelineModel(dbAdapter)
 export const Attachment    = attachmentModel(dbAdapter)
 export const Comment       = commentModel(dbAdapter)
-export const Stats         = statsModel(dbAdapter)
 
 export const AdminSerializer               = adminSerializer()
 export const UserSerializer                = userSerializer()

@@ -1,4 +1,5 @@
 import stubTransport from 'nodemailer-stub-transport'
+import {test as postgresConfig} from '../../knexfile'
 
 
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
@@ -15,6 +16,7 @@ export function getConfig() {
     acceptHashedPasswordsOnly: false,
 
     logLevel: 'warn',
+    //disableRealtime: true,
     onboardingUsername: 'welcome',
     recaptcha: {
       enabled: false
@@ -79,6 +81,8 @@ export function getConfig() {
     port: 6379,
     options: {}
   }
+
+  config.postgres = postgresConfig
 
   return config
 }

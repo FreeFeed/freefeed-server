@@ -3,6 +3,7 @@
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -20,6 +21,7 @@ describe("PostsController", function() {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', function() {

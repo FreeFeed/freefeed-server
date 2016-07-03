@@ -1,6 +1,7 @@
 /*eslint-env node, mocha */
 /*global $database */
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -18,6 +19,7 @@ describe("TimelinesController", function() {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#home()", function() {

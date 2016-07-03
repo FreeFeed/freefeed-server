@@ -3,7 +3,9 @@
 import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
+import fetch from 'node-fetch'
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -24,6 +26,7 @@ describe("UsersController", function() {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#create()", function() {
@@ -292,10 +295,6 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#subscribers()', function() {
-    xit('should return list of subscribers')
-  })
-
   describe('#subscribe()', function() {
     var lunaContext = {}
       , marsContext = {}
@@ -444,6 +443,16 @@ describe("UsersController", function() {
           res.body.subscribers.length.should.eql(1)
           res.body.subscribers[0].should.have.property('id')
           res.body.subscribers[0].username.should.eql(userB.username.toLowerCase())
+          done()
+        })
+    })
+
+    it('should return list of subscribers of public user without authorization', function(done) {
+      request
+        .get(app.config.host + '/v1/users/' + userA.username + '/subscribers')
+        .end(function(err, res) {
+          res.body.should.not.be.empty
+          res.body.should.have.property('subscribers')
           done()
         })
     })
@@ -665,6 +674,16 @@ describe("UsersController", function() {
             contains.should.eql(true)
             done()
           })
+        })
+    })
+
+    it('should return list of subscriptions of public user without authorization', function(done) {
+      request
+        .get(app.config.host + '/v1/users/' + userB.username + '/subscriptions')
+        .end(function(err, res) {
+          res.body.should.not.be.empty
+          res.body.should.have.property('subscriptions')
+          done()
         })
     })
   })
@@ -1428,6 +1447,34 @@ describe("UsersController", function() {
               done()
             })
         })
+    })
+
+    it("banned user should not see posts in banner's posts feed", async () => {
+      await funcTestHelper.createAndReturnPost(zeusContext, 'Post body');
+      await funcTestHelper.banUser(zeusContext, marsContext);
+
+      const data = await funcTestHelper.getUserFeed(zeusContext, marsContext);
+
+      data.should.not.be.empty
+      data.should.not.have.property('posts')
+    })
+
+    it("each banned user should not see posts in banner's posts feed", async () => {
+      const plutoContext = await funcTestHelper.createUserAsync('pluto', 'password')
+
+      await funcTestHelper.subscribeToAsync(plutoContext, zeusContext.user)
+      await funcTestHelper.createAndReturnPost(zeusContext, 'Post body')
+
+      await funcTestHelper.banUser(zeusContext, marsContext);
+      await funcTestHelper.banUser(zeusContext, plutoContext);
+
+      const viewedByMars = await funcTestHelper.getUserFeed(zeusContext, marsContext);
+      viewedByMars.should.not.be.empty
+      viewedByMars.should.not.have.property('posts')
+
+      const viewedByPluto = await funcTestHelper.getUserFeed(zeusContext, plutoContext);
+      viewedByPluto.should.not.be.empty
+      viewedByPluto.should.not.have.property('posts')
     })
 
     // Same fun inside groups

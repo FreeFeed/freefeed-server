@@ -28,9 +28,8 @@ export default class PostsController {
     try {
       let promises = feeds.map(async (username) => {
         let feed = await dbAdapter.getFeedOwnerByUsername(username)
-
         if (null === feed) {
-          throw new NotFoundException(`Feed "${username}" is not found`)
+          return null
         }
 
         await feed.validateCanPost(req.user)
@@ -52,6 +51,11 @@ export default class PostsController {
         ])
       })
       let timelineIds = _.flatten(await Promise.all(promises))
+      _.each(timelineIds, (id, i)=>{
+        if (null == id){
+          throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
+        }
+      })
 
       let newPost = await req.user.newPost({
         body: req.body.post.body,
@@ -151,10 +155,19 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      if (userLikedPost) {
+        throw new ForbiddenException("You can't like post that you have already liked")
+      }
+
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new Error("Not found")
+      }
+
       let affectedTimelines = await post.addLike(req.user)
 
-      let stats = await dbAdapter.getStatsById(req.user.id)
-      await stats.addLike()
+      await dbAdapter.statsLikeCreated(req.user.id)
 
       res.status(200).send({})
 
@@ -181,7 +194,19 @@ export default class PostsController {
         throw new ForbiddenException("You can't un-like your own post")
       }
 
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      if (!userLikedPost) {
+        throw new ForbiddenException("You can't un-like post that you haven't yet liked")
+      }
+
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new Error("Not found")
+      }
+
       await post.removeLike(req.user.id)
+
+      await dbAdapter.statsLikeDeleted(req.user.id)
 
       res.status(200).send({})
     } catch(e) {
