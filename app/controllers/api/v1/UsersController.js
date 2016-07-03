@@ -4,7 +4,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { load as configLoader } from "../../../../config/config"
 import recaptchaVerify from '../../../../lib/recaptcha'
 
@@ -104,6 +104,19 @@ export default class UsersController {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
       }
 
+      if (user.isPrivate !== '1') {
+        throw new Error("Invalid")
+      }
+
+      var hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
+      var banIds = await user.getBanIds()
+
+      const valid = !hasRequest && banIds.indexOf(req.user.id) === -1
+
+      if (!valid) {
+        throw new Error("Invalid")
+      }
+
       await req.user.sendSubscriptionRequest(user.id)
 
       res.jsonp({})
@@ -125,6 +138,10 @@ export default class UsersController {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
+      if (!hasRequest) {
+        throw new Error("Invalid")
+      }
       await req.user.acceptSubscriptionRequest(user.id)
 
       res.jsonp({})
@@ -146,6 +163,10 @@ export default class UsersController {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
+      if (!hasRequest) {
+        throw new Error("Invalid")
+      }
       await req.user.rejectSubscriptionRequest(user.id)
 
       res.jsonp({})
@@ -194,17 +215,17 @@ export default class UsersController {
       if (null === user) {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
       }
-    } catch (e) {
-      res.status(404).send({})
-      return
-    }
 
-    if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(403).jsonp({ err: 'User is private' })
-      return
-    }
+      if (user.isPrivate === '1') {
+        if (!req.user) {
+          throw new ForbiddenException('User is private')
+        }
+        const subscriberIds = await user.getSubscriberIds()
+        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+          throw new ForbiddenException('User is private')
+        }
+      }
 
-    try {
       var timeline = await user.getPostsTimeline()
       var subscribers = await timeline.getSubscribers()
       var jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
@@ -220,7 +241,7 @@ export default class UsersController {
 
       res.jsonp(await json)
     } catch (e) {
-      res.status(422).send({})
+      exceptions.reportError(res)(e)
     }
   }
 
@@ -234,17 +255,18 @@ export default class UsersController {
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
-    } catch (e) {
-      res.status(404).send({})
-      return
-    }
 
-    if (false === await user.canBeAccessedByUser(req.user)) {
-      res.status(403).jsonp({ err: 'User is private' })
-      return
-    }
+      if (user.isPrivate === '1') {
+        if (!req.user) {
+          throw new ForbiddenException('User is private')
+        }
 
-    try {
+        const subscriberIds = await user.getSubscriberIds()
+        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+          throw new ForbiddenException('User is private')
+        }
+      }
+
       var subscriptions = await user.getSubscriptions()
       var jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
 
@@ -265,7 +287,7 @@ export default class UsersController {
 
       res.jsonp(json)
     } catch (e) {
-      res.status(422).send({message: e.toString()})
+      exceptions.reportError(res)(e)
     }
   }
 
@@ -304,7 +326,34 @@ export default class UsersController {
     }
 
     try {
-      await req.user.subscribeToUsername(req.params.username)
+      const username = req.params.username
+      const user = await dbAdapter.getFeedOwnerByUsername(username)
+
+      if (null === user) {
+        throw new NotFoundException(`Feed "${username}" is not found`)
+      }
+
+      if (user.isPrivate === '1') {
+        throw new ForbiddenException("You cannot subscribe to private feed")
+      }
+
+      const timelineId = await user.getPostsTimelineId()
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      if (isSubscribed) {
+        throw new ForbiddenException("You are already subscribed to that user")
+      }
+
+      const banIds = await req.user.getBanIds()
+      if (banIds.indexOf(user.id) >= 0) {
+        throw new ForbiddenException("You cannot subscribe to a banned user")
+      }
+
+      const theirBanIds = await user.getBanIds()
+      if (theirBanIds.indexOf(req.user.id) >= 0) {
+        throw new ForbiddenException("This user prevented your from subscribing to them")
+      }
+
+      await req.user.subscribeToUsername(username)
 
       var json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
@@ -327,7 +376,12 @@ export default class UsersController {
       }
 
       var timelineId = await req.user.getPostsTimelineId()
-      await user.validateCanUnsubscribe(timelineId)
+
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+      if (!isSubscribed) {
+        throw new ForbiddenException("You are not subscribed to that user")
+      }
+
       await user.unsubscribeFrom(timelineId)
 
       var json = await new MyProfileSerializer(req.user).promiseToJSON()
@@ -353,7 +407,19 @@ export default class UsersController {
       }
 
       var timelineId = await user.getPostsTimelineId()
-      await req.user.validateCanUnsubscribe(timelineId)
+
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      if (!isSubscribed) {
+        throw new ForbiddenException("You are not subscribed to that user")
+      }
+
+      if ('group' === user.type) {
+        const adminIds = await user.getAdministratorIds()
+
+        if (_.includes(adminIds, req.user.id)) {
+          throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
+        }
+      }
       await req.user.unsubscribeFrom(timelineId)
 
       var json = await new MyProfileSerializer(req.user).promiseToJSON()

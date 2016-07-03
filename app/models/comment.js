@@ -67,8 +67,7 @@ export function addModel(dbAdapter) {
     let post = await dbAdapter.getPostById(this.postId)
     let timelines = await post.addComment(this)
 
-    let stats = await dbAdapter.getStatsById(this.userId)
-    await stats.addComment()
+    await dbAdapter.statsCommentCreated(this.userId)
 
     return timelines
   }
@@ -96,8 +95,8 @@ export function addModel(dbAdapter) {
 
   Comment.prototype.destroy = async function() {
     await pubSub.destroyComment(this.id, this.postId)
-    await dbAdapter.deleteComment(this.id)
-    await dbAdapter.removeCommentFromPost(this.postId, this.id)
+    await dbAdapter.deleteComment(this.id, this.postId)
+    await dbAdapter.statsCommentDeleted(this.userId)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
@@ -109,16 +108,9 @@ export function addModel(dbAdapter) {
     }
 
     let user = await dbAdapter.getUserById(this.userId)
-    let timelineId = await user.getCommentsTimelineId()
+    let timelineId = await user.getCommentsTimelineIntId()
 
-    await Promise.all([
-      dbAdapter.removePostFromTimeline(timelineId, this.postId),
-      dbAdapter.deletePostUsageInTimeline(this.postId, timelineId)
-    ])
-
-    let stats = await dbAdapter.getStatsById(this.userId)
-    let res = await stats.removeComment()
-    return res
+    return dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
   }
 
   Comment.prototype.getCreatedBy = function() {

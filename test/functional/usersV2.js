@@ -2,6 +2,7 @@
 /*global $database */
 import fetch from 'node-fetch'
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -19,6 +20,7 @@ describe("UsersControllerV2", function() {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe("#blockedByMe()", function() {

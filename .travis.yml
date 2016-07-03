@@ -1,3 +1,4 @@
+sudo: required
 language: node_js
 node_js:
   - 6.2
@@ -5,14 +6,38 @@ env:
   - CXX=g++-4.8
 services:
   - redis-server
+  - postgresql
+before_install:
+  - sudo /etc/init.d/postgresql stop
+  - sudo apt-get -y remove --purge postgresql-9.1
+  - sudo apt-get -y remove --purge postgresql-9.2
+  - sudo apt-get -y remove --purge postgresql-9.3
+  - sudo apt-get -y remove --purge postgresql-9.4
+  - sudo apt-get -y autoremove
+  - sudo apt-key adv --keyserver keys.gnupg.net --recv-keys 7FCC7D46ACCC4CF8
+  - sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main 9.5" >> /etc/apt/sources.list.d/postgresql.list'
+  - sudo apt-get update
+  - sudo apt-get -y install postgresql-9.5
+  - sudo sh -c 'echo "local all postgres trust" > /etc/postgresql/9.5/main/pg_hba.conf'
+  - sudo sh -c 'echo -n "host all all 127.0.0.1/32 trust" >> /etc/postgresql/9.5/main/pg_hba.conf'
+  - sudo /etc/init.d/postgresql restart
+  - psql --version
+before_script:
+  - cp  knexfile.js.dist knexfile.js
+  - psql -c 'create database freefeed_test;' -U postgres
+  - knex migrate:latest --env test
+  - mkdir -p /tmp/pepyatka-media/attachments
+  - mkdir /tmp/pepyatka-media/attachments/thumbnails
+  - mkdir /tmp/pepyatka-media/attachments/thumbnails2
+  - mkdir /tmp/pepyatka-media/attachments/anotherTestSize
 addons:
+  postgresql: "9.5"
   apt:
     sources:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.8
       - graphicsmagick
-before_script: mkdir -p /tmp/pepyatka-media/attachments; mkdir /tmp/pepyatka-media/attachments/thumbnails; mkdir /tmp/pepyatka-media/attachments/thumbnails2; mkdir /tmp/pepyatka-media/attachments/anotherTestSize
 notifications:
   slack:
     secure: Cu2y76KVIdl4+uYcv/J595jteBN2U1Q4HCKs90J1PZaIHjz86sWg2y+1EIWLd0UUtw+d15gbLy/xqrrCo+y1pR+5e6Df3duHktxYX1FkBD31sg/9M2RI18hdxPZWZ11M/uF3xMOzD6LepOwXPBXN/rwSjalLydzcjNB2DpCSgIQ=

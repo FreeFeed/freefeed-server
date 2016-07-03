@@ -1,13 +1,14 @@
 import async from 'async'
 import { expect } from 'chai'
+import knexCleaner from 'knex-cleaner'
 
 import { dbAdapter, Post, Timeline, User } from "../../app/models"
 
 
 describe('User', function() {
-  beforeEach(function(done) {
-    $database.flushdbAsync()
-      .then(function() { done() })
+  beforeEach(async ()=>{
+    await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#validPassword()', function() {
@@ -667,6 +668,8 @@ describe('User', function() {
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('MyDiscussions')
+          timeline.should.have.property('id')
+          timeline.id.should.eql(user.id)
         })
         .then(function() { done() })
     })
@@ -704,7 +707,7 @@ describe('User', function() {
   })
 
   describe('#getTimelines()', function() {
-    it('should return no timelines', function(done) {
+    it('should return user timelines after user creation', function(done) {
       var user = new User({
         username: 'Luna',
         password: 'password'
@@ -714,7 +717,7 @@ describe('User', function() {
         .then(function(user) { return user.getTimelines() })
         .then(function(timelines) {
           timelines.should.be.an.instanceOf(Array)
-          timelines.should.be.empty
+          timelines.length.should.be.eql(7)
         })
         .then(function() { done() })
     })
@@ -738,10 +741,22 @@ describe('User', function() {
         .then(function(timelines) {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
-          timelines.length.should.be.eql(5)
+          timelines.length.should.be.eql(7)
           var timeline = timelines[0]
           timeline.should.have.property('name')
           timeline.name.should.eql('RiverOfNews')
+          timelines[1].should.have.property('name')
+          timelines[1].name.should.eql('Hides')
+          timelines[2].should.have.property('name')
+          timelines[2].name.should.eql('Comments')
+          timelines[3].should.have.property('name')
+          timelines[3].name.should.eql('Likes')
+          timelines[4].should.have.property('name')
+          timelines[4].name.should.eql('Posts')
+          timelines[5].should.have.property('name')
+          timelines[5].name.should.eql('Directs')
+          timelines[6].should.have.property('name')
+          timelines[6].name.should.eql('MyDiscussions')
         })
         .then(function() { done() })
     })

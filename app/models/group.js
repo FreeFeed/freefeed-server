@@ -2,7 +2,7 @@ import { inherits } from "util"
 
 import _ from 'lodash'
 
-import { Stats, User } from '../models'
+import { User } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
@@ -103,18 +103,12 @@ export function addModel(dbAdapter) {
       }
       this.id = await dbAdapter.createUser(payload)
 
-      var stats = new Stats({
-        id: this.id
-      })
-
-      let promises = [stats.create()]
+      await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 
       if (ownerId) {
-        promises.push(this.addAdministrator(ownerId))
-        promises.push(this.subscribeOwner(ownerId))
+        await this.addAdministrator(ownerId)
+        await this.subscribeOwner(ownerId)
       }
-
-      await Promise.all(promises)
 
       return this
   }
@@ -226,30 +220,6 @@ export function addModel(dbAdapter) {
       if (!_.includes(adminIds, postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")
       }
-    }
-  }
-
-  /**
-   * Checks if the specified user can update the settings of this group
-   * (i.e. is an admin in the group).
-   */
-  Group.prototype.validateCanUpdate = async function(updatingUser) {
-    if (!updatingUser) {
-      throw new ForbiddenException("You need to log in before you can manage groups")
-    }
-
-    const adminIds = await this.getAdministratorIds()
-
-    if (!_.includes(adminIds, updatingUser.id)) {
-      throw new ForbiddenException("You aren't an administrator of this group")
-    }
-  }
-
-  Group.prototype.validateUserCanBeUnsubscribed = async function(unsubscribingUser) {
-    const adminIds = await this.getAdministratorIds()
-
-    if (_.includes(adminIds, unsubscribingUser.id)) {
-      throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
     }
   }
 

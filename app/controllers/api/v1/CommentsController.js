@@ -14,7 +14,19 @@ export default class CommentsController {
     var timer = monitor.timer('comments.create-time')
 
     try {
-      await req.user.validateCanComment(req.body.comment.postId)
+      const post = await dbAdapter.getPostById(req.body.comment.postId)
+      if (!post) {
+        throw new NotFoundException("Not found")
+      }
+
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new NotFoundException("Not found")
+      }
+
+      if (post.commentsDisabled === '1' && post.userId !== req.user.id) {
+        throw new ForbiddenException("Comments disabled")
+      }
 
       var newComment = req.user.newComment({
         body: req.body.comment.body,
@@ -23,11 +35,11 @@ export default class CommentsController {
 
       let timelines = await newComment.create()
 
-      let json = await new CommentSerializer(newComment).promiseToJSON()
-      res.jsonp(json)
-
       await PubSub.newComment(newComment, timelines)
       monitor.increment('comments.creates')
+
+      let json = await new CommentSerializer(newComment).promiseToJSON()
+      res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
     } finally {
@@ -59,10 +71,8 @@ export default class CommentsController {
       await comment.update({
         body: req.body.comment.body
       })
-
-      new CommentSerializer(comment).toJSON(function (err, json) {
-        res.jsonp(json)
-      })
+      let json = await new CommentSerializer(comment).promiseToJSON()
+      res.jsonp(json)
       monitor.increment('comments.updates')
     } catch (e) {
       exceptions.reportError(res)(e)

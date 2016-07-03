@@ -1,6 +1,7 @@
 /*eslint-env node, mocha */
 /*global $database */
 import request from 'superagent'
+import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -18,14 +19,16 @@ describe("CommentsController", function() {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', function() {
     var post
       , context = {}
-
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createPost(context, 'Post body'))
+    beforeEach(async()=>{
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+      context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
+    })
 
     describe('in a group', function() {
       var groupName = 'pepyatka-dev'

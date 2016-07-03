@@ -1,12 +1,12 @@
 import { isNull } from 'lodash'
-
+import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Comment, Post, User } from '../../app/models'
 
 
 describe('Comment', function() {
-  beforeEach(function(done) {
-    $database.flushdbAsync()
-      .then(function() { done() })
+  beforeEach(async ()=>{
+    await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#update()', function() {

@@ -1,5 +1,6 @@
 /*eslint-env node, mocha */
 /*global $database */
+import knexCleaner from 'knex-cleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
@@ -16,6 +17,7 @@ describe('BookmarkletController', () => {
 
   beforeEach(async () => {
     await $database.flushdbAsync()
+    await knexCleaner.clean($pg_database)
   })
 
   describe('#create()', () => {

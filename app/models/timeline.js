@@ -9,6 +9,7 @@ export function addModel(dbAdapter) {
    */
   var Timeline = function(params) {
     this.id = params.id
+    this.intId = params.intId
     this.name = params.name
     this.userId = params.userId
     if (parseInt(params.createdAt, 10))
@@ -36,6 +37,7 @@ export function addModel(dbAdapter) {
    * timeline of the posting user and the River of News timelines of all
    * subscribers of the feeds to which it is posted).
    */
+
   Timeline.publishPost = async function(post) {
     const currentTime = new Date().getTime()
 
@@ -48,21 +50,18 @@ export function addModel(dbAdapter) {
       const feed = await timeline.getUser()
       await feed.updateLastActivityAt()
 
-      const ids = await timeline.getSubscribedTimelineIds()
-      return ids
+      return timeline.getSubscribersRiversOfNewsIntIds()
     })
 
     const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
-    const allTimelines = _.uniq(_.union(post.timelineIds, allSubscribedTimelineIds))
-
-    promises = allTimelines.map(timelineId => [
-      dbAdapter.addPostToTimeline(timelineId, currentTime, post.id),
-      dbAdapter.setPostUpdatedAt(post.id, currentTime),
-      dbAdapter.createPostUsageInTimeline(post.id, timelineId)
-    ])
-
-    await Promise.all(_.flatten(promises))
+    const allTimelines = _.uniq(_.union(post.feedIntIds, allSubscribedTimelineIds))
+    await dbAdapter.setPostUpdatedAt(post.id, currentTime)
+    await dbAdapter.insertPostIntoFeeds(allTimelines, post.id)
     await pubSub.newPost(post.id)
+  }
+
+  Timeline.getObjectsByIds = async function (objectIds){
+    return dbAdapter.getTimelinesByIds(objectIds)
   }
 
   Timeline.prototype.validate = async function() {
@@ -76,14 +75,10 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.create = async function() {
-    return this._createTimeline(false)
+    return this._createTimeline()
   }
 
-  Timeline.prototype.createUserDiscussionsTimeline = function() {
-    return this._createTimeline(true)
-  }
-
-  Timeline.prototype._createTimeline = async function(userDiscussionsTimeline) {
+  Timeline.prototype._createTimeline = async function() {
     const currentTime = new Date().getTime()
 
     await this.validate()
@@ -95,11 +90,7 @@ export function addModel(dbAdapter) {
       'updatedAt': currentTime.toString()
     }
 
-    if (userDiscussionsTimeline){
-      this.id = await dbAdapter.createUserDiscussionsTimeline(this.userId, payload)
-    } else {
-      this.id = await dbAdapter.createTimeline(payload)
-    }
+    this.id = await dbAdapter.createTimeline(payload)
 
     this.createdAt = currentTime
     this.updatedAt = currentTime
@@ -126,57 +117,102 @@ export function addModel(dbAdapter) {
     if (!valid)
       return []
 
-    this.postIds = await dbAdapter.getTimelinePostsRange(this.id, offset, offset + limit - 1)
-
+    this.postIds = await dbAdapter.getTimelinePostsRange(this.intId, offset, limit)
     return this.postIds
   }
 
-  Timeline.prototype.getPostIdsByScore = async function(min, max) {
-    this.postIds = await dbAdapter.getTimelinePostsInTimeInterval(this.id, min, max)
-    return this.postIds
-  }
-
-  Timeline.prototype.getPosts = async function(offset, limit) {
+  Timeline.prototype.getFeedPosts = async function(offset, limit, params, customFeedIds) {
     if (_.isUndefined(offset))
       offset = this.offset
     else if (offset < 0)
       offset = 0
 
+    // -1 = special magic number, meaning “do not use limit defaults,
+    // do not use passed in value, use 0 instead". this is at the very least
+    // used in Timeline.mergeTo()
     if (_.isUndefined(limit))
       limit = this.limit
     else if (limit < 0)
       limit = 0
 
+    let valid = await this.canShow(this.currentUser)
+
+    if (!valid)
+      return []
+
+    let feedIds = [this.intId]
+    if (customFeedIds){
+      feedIds = customFeedIds
+    }
+
+    return dbAdapter.getFeedsPostsRange(feedIds, offset, limit, params)
+  }
+
+  Timeline.prototype.getPosts = async function(offset, limit) {
     let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
+    let readerOwnFeeds = reader ? (await reader.getPublicTimelinesIntIds()) : []
+    let feedOwner = await this.getUser()
 
-    let postIds = await this.getPostIds(offset, limit)
-    postIds = postIds.filter(id => {
-      if (!_.isString(id)) {
-        console.warn(`got weird id in timeline ${this.id}: ${id}`)  // eslint-disable-line no-console
-        return false
-      }
-      return true
+    let posts
+    if (this.name != 'MyDiscussions') {
+      posts = await this.getFeedPosts(offset, limit, {currentUser: this.currentUser})
+    } else {
+      const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()])
+      posts = await this.getFeedPosts(offset, limit, {currentUser: this.currentUser}, myDiscussionsFeedSourcesIds)
+    }
+    let postIds = posts.map((p)=>{
+      return p.id
     })
 
-    let posts = (await dbAdapter.getPostsByIds(postIds, { currentUser: this.currentUser })).filter(Boolean)
-    posts = posts.filter(post => {
-      if (!_.isString(post.userId)) {
-        console.warn(`got weird uid (author of post ${post.id}): ${post.userId}`)  // eslint-disable-line no-console
-        return false
+    if (reader && this.name == 'RiverOfNews') {
+      let oldestPostTime
+      if (posts[posts.length - 1]) {
+        oldestPostTime = posts[posts.length - 1].updatedAt
       }
-      return true
+
+      let localBumps = await dbAdapter.getUserLocalBumps(reader.id, oldestPostTime)
+      let localBumpedPostIds = localBumps.map((bump) => { return bump.postId })
+
+      let absentPostIds = _.difference(localBumpedPostIds, postIds)
+      if (absentPostIds.length > 0){
+        let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, {currentUser: this.currentUser})
+        localBumpedPosts = _.sortBy(localBumpedPosts, (post)=>{
+          return _.indexOf(absentPostIds, post.id)
+        })
+        posts = localBumpedPosts.concat(posts)
+      }
+
+      for (let p of posts){
+        if(_.includes(localBumpedPostIds, p.id)){
+          let bump = _.find(localBumps, (b)=>{ return b.postId === p.id })
+          p.bumpedAt = bump.bumpedAt
+        }
+      }
+    }
+
+    posts.sort((p1, p2)=>{
+      let t1 = p1.updatedAt
+      let t2 = p2.updatedAt
+      if (p1.bumpedAt){
+        t1 = p1.bumpedAt
+      }
+      if (p2.bumpedAt){
+        t2 = p2.bumpedAt
+      }
+      return t2 - t1
     })
 
     let uids = _.uniq(posts.map(post => post.userId))
     let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
-    let bans = await Promise.all(users.map(async (user) => user.getBanIds()))
+    const readerUserId = this.currentUser
+    const banMatrix = await dbAdapter.getBanMatrixByUsersForPostReader(uids, readerUserId)
 
     let usersCache = {}
 
     for (let i = 0; i < users.length; i++) {
       let user = users[i];
-      usersCache[user.id] = [user, bans[i]];
+      usersCache[user.id] = [user, banMatrix[i][1]];
     }
 
     async function userById(id) {
@@ -188,8 +224,8 @@ export function addModel(dbAdapter) {
         }
 
         let bans = await user.getBanIds()
-
-        usersCache[id] = [user, bans]
+        const isReaderBanned = bans.indexOf(readerUserId) >= 0
+        usersCache[id] = [user, isReaderBanned]
       }
 
       return usersCache[id]
@@ -201,21 +237,32 @@ export function addModel(dbAdapter) {
         return post
       }
 
-      let author, reverseBanIds
+      let author, authorBannedReader
 
       try {
-        [author, reverseBanIds] = await userById(post.userId)
+        [author, authorBannedReader] = await userById(post.userId)
       } catch (e) {
         throw new Error(`did not find user-object of author of post with id=${post.id}\nPREVIOUS: ${e.message}`)
       }
 
       let readerBannedAuthor = (banIds.indexOf(post.userId) >= 0)
-      let authorBannedReader = (reverseBanIds.indexOf(this.currentUser) >= 0)
 
       if (readerBannedAuthor || authorBannedReader)
         return null
 
       if (author.isPrivate) {
+        if (feedOwner.isPrivate !== '1' && (this.isPosts()) || this.isDirects()) {
+          return post
+        }
+
+        if (_.intersection(post.destinationFeedIds, readerOwnFeeds).length > 0) {
+          return post
+        }
+
+        if (reader && _.intersection(post.destinationFeedIds, reader.subscribedFeedIds).length > 0) {
+          return post
+        }
+
         let postTimelines = await post.getTimelines()
         let promises = postTimelines.map(async (timeline) => {
           if (!timeline.isPosts() && !timeline.isDirects()) {
@@ -245,23 +292,20 @@ export function addModel(dbAdapter) {
    * @param timelineId
    */
   Timeline.prototype.mergeTo = async function(timelineId) {
-    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.id)
+    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.intId)
 
-    let timeline = await dbAdapter.getTimelineById(timelineId)
+    let timeline = await dbAdapter.getTimelineByIntId(timelineId)
     let postIds = await timeline.getPostIds(0, -1)
 
-    let promises = postIds.map(postId => dbAdapter.createPostUsageInTimeline(postId, timelineId))
-
-    await Promise.all(promises)
+    await dbAdapter.createPostsUsagesInTimeline(postIds, [timelineId])
   }
 
-  Timeline.prototype.unmerge = async function(timelineId) {
-    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.id, timelineId)
+  Timeline.prototype.unmerge = async function(feedIntId) {
+    let postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.intId, feedIntId)
 
-    await Promise.all(_.flatten(postIds.map((postId) => [
-      dbAdapter.deletePostUsageInTimeline(postId, timelineId),
-      dbAdapter.removePostFromTimeline(timelineId, postId)
-    ])))
+    await Promise.all(_.flatten(postIds.map((postId) =>
+      dbAdapter.withdrawPostFromFeeds([feedIntId], postId)
+    )))
 
     return
   }
@@ -274,7 +318,7 @@ export function addModel(dbAdapter) {
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
   Timeline.prototype.getSubscriberIds = async function(includeSelf) {
-    let userIds = await dbAdapter.getTimelineSubscribers(this.id)
+    let userIds = await dbAdapter.getTimelineSubscribersIds(this.id)
 
     // A user is always subscribed to their own posts timeline.
     if (includeSelf && (this.isPosts() || this.isDirects())) {
@@ -287,8 +331,14 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getSubscribers = async function(includeSelf) {
-    var userIds = await this.getSubscriberIds(includeSelf)
-    this.subscribers = await dbAdapter.getUsersByIds(userIds)
+    let users = await dbAdapter.getTimelineSubscribers(this.intId)
+
+    if (includeSelf && (this.isPosts() || this.isDirects())) {
+      let currentUser = await dbAdapter.getUserById(this.userId)
+      users = users.concat(currentUser)
+    }
+
+    this.subscribers = users
 
     return this.subscribers
   }
@@ -300,6 +350,11 @@ export function addModel(dbAdapter) {
   Timeline.prototype.getSubscribedTimelineIds = async function() {
     var subscribers = await this.getSubscribers(true);
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()))
+  }
+
+  Timeline.prototype.getSubscribersRiversOfNewsIntIds = async function() {
+    var subscribers = await this.getSubscribers(true);
+    return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()))
   }
 
   Timeline.prototype.isRiverOfNews = function() {
@@ -328,7 +383,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.updatePost = async function(postId, action) {
     if (action === "like") {
-      let postInTimeline = await dbAdapter.isPostPresentInTimeline(this.id, postId)
+      let postInTimeline = await dbAdapter.isPostPresentInTimeline(this.intId, postId)
 
       if (postInTimeline) {
         // For the time being, like does not bump post if it is already present in timeline
@@ -338,11 +393,17 @@ export function addModel(dbAdapter) {
 
     var currentTime = new Date().getTime()
 
-    await Promise.all([
-      dbAdapter.addPostToTimeline(this.id, currentTime, postId),
-      dbAdapter.createPostUsageInTimeline(postId, this.id),
-      dbAdapter.setPostUpdatedAt(postId, currentTime)
-    ])
+    if (action === "like") {
+      await dbAdapter.insertPostIntoFeeds([this.intId], postId)
+      if(this.isRiverOfNews()) {
+        await dbAdapter.createLocalBump(postId, this.userId)
+      }
+    } else {
+      await Promise.all([
+        dbAdapter.insertPostIntoFeeds([this.intId], postId),
+        dbAdapter.setPostUpdatedAt(postId, currentTime)
+      ])
+    }
 
     // does not update lastActivity on like
     if (action === 'like') {
@@ -351,14 +412,6 @@ export function addModel(dbAdapter) {
 
     const feed = await this.getUser()
     await feed.updateLastActivityAt()
-  }
-
-  Timeline.prototype.turnIntoPrivate = function() {
-    this.posts = []
-    this.postIds = []
-    this.limit = 0
-
-    return this
   }
 
   Timeline.prototype.canShow = async function(userId) {
