@@ -1,7 +1,7 @@
 import bluebird from 'bluebird'
 import knexjs from 'knex'
 import { public_posts as mysql_config } from './knexfile'
-import { postgres, dbAdapter } from './app/models'
+import { postgres, dbAdapter, Timeline } from './app/models'
 
 global.Promise = bluebird
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
@@ -131,6 +131,13 @@ async function createPostAttachments(postUUID, payload){
   }
 }
 
+async function publishPost(postUUID){
+  let post = await dbAdapter.getPostById(postUUID)
+  //console.log(post)
+
+  return Timeline._republishPost(post)
+}
+
 
 async function processPost(savedPostData, currentPost, postsCount){
   const postUUID = savedPostData.uuid
@@ -145,6 +152,8 @@ async function processPost(savedPostData, currentPost, postsCount){
     const apiPostResponse = await getPostApiResponse(postUUID)
 
     await createPost(savedPostData, apiPostResponse.posts)
+
+    await publishPost(postUUID)
 
     await createPostComments(postUUID, apiPostResponse)
 

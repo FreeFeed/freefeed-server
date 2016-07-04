@@ -60,6 +60,18 @@ export function addModel(dbAdapter) {
     await pubSub.newPost(post.id)
   }
 
+  Timeline._republishPost = async function(post) {
+    const timelines = await dbAdapter.getTimelinesByIntIds(post.destinationFeedIds)
+
+    let promises = timelines.map((timeline) => {
+      return timeline.getSubscribersRiversOfNewsIntIds()
+    })
+
+    const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
+    const allTimelines = _.uniq(_.union(post.feedIntIds, allSubscribedTimelineIds))
+    return dbAdapter.insertPostIntoFeeds(allTimelines, post.id)
+  }
+
   Timeline.getObjectsByIds = async function (objectIds){
     return dbAdapter.getTimelinesByIds(objectIds)
   }
