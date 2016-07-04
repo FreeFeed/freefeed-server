@@ -204,6 +204,11 @@ async function processPost(savedPostData, currentPost, postsCount){
 
     const apiPostResponse = await getPostApiResponse(postUUID)
 
+    if(!apiPostResponse || apiPostResponse.err){
+      console.log('No response for post', postUUID)
+      return
+    }
+
     await createPost(savedPostData, apiPostResponse.posts)
 
     await publishPost(postUUID)
