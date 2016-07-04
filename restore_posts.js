@@ -94,6 +94,7 @@ async function createPostLikes(postUUID, payload){
   //console.log(likes)
   for (let userUUID of likes){
     await createLike(postUUID, postCreatedAt, userUUID)
+    await publishPostAfterLike(postUUID, userUUID)
   }
 }
 
@@ -165,6 +166,31 @@ async function publishPostAfterComment(postUUID, commenterUserId){
   }
 }
 
+async function publishPostAfterLike(postUUID, likerUserId){
+  let post = await dbAdapter.getPostById(postUUID)
+  let user = await dbAdapter.getUserById(likerUserId)
+
+  let timelineIntIds = post.destinationFeedIds.slice()
+
+  let moreTimelineIntIds = await post.getLikesFriendOfFriendTimelineIntIds(user)
+  timelineIntIds.push(...moreTimelineIntIds)
+
+  timelineIntIds = _.uniq(timelineIntIds)
+
+  let timelines = await dbAdapter.getTimelinesByIntIds(timelineIntIds)
+
+  // no need to post updates to rivers of banned users
+  let bannedIds = await user.getBanIds()
+  timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
+
+  let feedsIntIds = timelines.map((t)=> t.intId)
+  let insertIntoFeedIds = _.difference(feedsIntIds, post.feedIntIds)
+
+  if (insertIntoFeedIds.length > 0) {
+    await dbAdapter.insertPostIntoFeeds(insertIntoFeedIds, post.id)
+  }
+}
+
 
 async function processPost(savedPostData, currentPost, postsCount){
   const postUUID = savedPostData.uuid
@@ -207,8 +233,6 @@ async function main(){
     currentPost += 1
   }
 }
-
-//TODO:republish post
 
 main().then(()=> {
   console.log("Finished")
