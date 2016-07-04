@@ -1,5 +1,6 @@
 import bluebird from 'bluebird'
 import knexjs from 'knex'
+import _ from 'lodash'
 import { public_posts as mysql_config } from './knexfile'
 import { postgres, dbAdapter, Timeline } from './app/models'
 
@@ -68,6 +69,7 @@ async function createPostComments(postUUID, payload){
   //console.log(commentsDescr)
   for (let comment of commentsDescr){
     await createComment(postUUID, comment)
+    await publishPostAfterComment(postUUID, comment.createdBy)
   }
 }
 
@@ -136,6 +138,31 @@ async function publishPost(postUUID){
   //console.log(post)
 
   return Timeline._republishPost(post)
+}
+
+
+async function publishPostAfterComment(postUUID, commenterUserId){
+  let post = await dbAdapter.getPostById(postUUID)
+  let user = await dbAdapter.getUserById(commenterUserId)
+
+  let timelineIntIds = post.destinationFeedIds.slice()
+
+  let moreTimelineIntIds = await post.getCommentsFriendOfFriendTimelineIntIds(user)
+  timelineIntIds.push(...moreTimelineIntIds)
+
+  timelineIntIds = _.uniq(timelineIntIds)
+
+  let timelines = await dbAdapter.getTimelinesByIntIds(timelineIntIds)
+
+  let bannedIds = await user.getBanIds()
+  timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
+
+  let feedsIntIds = timelines.map((t)=> t.intId)
+  let insertIntoFeedIds = _.difference(feedsIntIds, post.feedIntIds)
+
+  if (insertIntoFeedIds.length > 0) {
+    await dbAdapter.insertPostIntoFeeds(insertIntoFeedIds, postUUID)
+  }
 }
 
 
