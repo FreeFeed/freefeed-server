@@ -99,13 +99,13 @@ async function createPostLikes(postUUID, payload){
 }
 
 async function createAttachment(postUUID, attachmentJson){
-  const fileName = attachmentJson.fileName
-  let fileExt = fileName.substr(fileName.lastIndexOf('.') + 1);
+  const url = attachmentJson.url
+  let fileExt = url.substr(url.lastIndexOf('.') + 1)
   let attachment = {
     uid:            attachmentJson.id,
     created_at:     timestampToDateStr(attachmentJson.createdAt),
     updated_at:     timestampToDateStr(attachmentJson.updatedAt),
-    file_name:      fileName,
+    file_name:      attachmentJson.fileName,
     file_size:      attachmentJson.fileSize,
     mime_type:      "",
     media_type:     attachmentJson.mediaType,
