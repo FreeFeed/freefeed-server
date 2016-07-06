@@ -21,6 +21,18 @@ describe('PostBubbling', function() {
     homeFeedContent.should.eql(expectedContent.join(','))
   }
 
+  let homeFeedPageEqualTo = async (user, expectedContent, feedReaderId, limit, offset)=>{
+    let homeFeed = await user.getRiverOfNewsTimeline({currentUser: feedReaderId})
+    let posts = await homeFeed.getPosts(offset, limit)
+
+    posts.should.not.be.empty
+    posts.length.should.eql(expectedContent.length)
+    let homeFeedContent = posts.map((p)=>{
+      return p.body
+    }).join(',')
+    homeFeedContent.should.eql(expectedContent.join(','))
+  }
+
   let addCommentToPost = (commenter, post, content)=>{
     let commentAttrs = {
       body: content,
@@ -950,6 +962,86 @@ describe('PostBubbling', function() {
           })
         })
       })
+    })
+  })
+
+  describe('feed pagination and local bumps', () => {
+    const lunaPostsContent = ['A', 'B', 'C']
+      , marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
+      , plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta']
+    let luna
+      , mars
+      , pluto
+      , lunaPosts
+      , marsPosts
+      , plutoPosts
+
+    beforeEach(async () => {
+      lunaPosts = []
+      marsPosts = []
+      plutoPosts = []
+      luna = new User({ username: 'Luna', password: 'password' })
+      mars = new User({ username: 'Mars', password: 'password' })
+      pluto = new User({ username: 'Pluto', password: 'password' })
+
+      await luna.create()
+      await mars.create()
+      await pluto.create()
+
+      for(let body of lunaPostsContent){
+        let post = await luna.newPost({ body: body })
+        lunaPosts.push(await post.create())
+      }
+      for(let body of marsPostsContent){
+        let post = await mars.newPost({ body: body })
+        marsPosts.push(await post.create())
+      }
+      for(let body of plutoPostsContent){
+        let post = await pluto.newPost({ body: body })
+        plutoPosts.push(await post.create())
+      }
+
+      let marsTimelineId  = await mars.getPostsTimelineId()
+      let lunaTimelineId  = await luna.getPostsTimelineId()
+      let plutoTimelineId = await pluto.getPostsTimelineId()
+
+      await luna.subscribeTo(marsTimelineId)
+      await mars.subscribeTo(lunaTimelineId)
+      await mars.subscribeTo(plutoTimelineId)
+      await pluto.subscribeTo(marsTimelineId)
+
+    })
+
+    it('home feed pages should consists of requested number of posts', async ()=> {
+      let expectedContent = ['Delta', 'Gamma', 'Beta']
+      await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 0)
+
+      expectedContent = ['Alpha', 'Dog', 'Charlie']
+      await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 3)
+
+      expectedContent = ['Baker', 'Able']
+      await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 6)
+    })
+
+    it('like should bring post to the top of home feed first page', async ()=>{
+      await lunaPosts[0].addLike(mars)
+
+      const expectedContent = ['A', 'Delta', 'Gamma']
+      await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 0)
+    })
+
+    it('like should not bring post to home feed second page', async ()=>{
+      await lunaPosts[0].addLike(mars)
+
+      const expectedContent = ['Beta', 'Alpha', 'Dog']
+      await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 3)
+    })
+
+    it('like should not bring post to home feed other pages', async ()=>{
+      await lunaPosts[0].addLike(mars)
+
+      const expectedContent = ['Charlie', 'Baker', 'Able']
+      await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 6)
     })
   })
 })
