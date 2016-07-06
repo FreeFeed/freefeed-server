@@ -12,7 +12,8 @@
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node --ignore node_modules data_transfer",
     "count_stats": "babel-node --ignore node_modules count_stats",
-    "restore_posts": "babel-node --ignore node_modules restore_posts"
+    "restore_posts": "babel-node --ignore node_modules restore_posts",
+    "fix_attachment_exts": "babel-node --ignore node_modules fix_attachment_exts"
   },
   "repository": {
     "type": "git",
