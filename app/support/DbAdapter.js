@@ -63,8 +63,8 @@ const USER_FIELDS = {
 }
 
 const USER_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
+  created_at:                 (time)=>{ return time.getTime().toString() },
+  updated_at:                 (time)=>{ return time.getTime().toString() },
   is_private:                 (is_private)=>{return is_private ? '1' : '0' },
   is_restricted:              (is_restricted)=>{return is_restricted ? '1' : '0' },
   reset_password_sent_at:     (time)=>{ return time && time.getTime() },
@@ -142,8 +142,8 @@ const ATTACHMENT_FIELDS = {
 }
 
 const ATTACHMENT_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
+  created_at:                 (time)=>{ return time.getTime().toString() },
+  updated_at:                 (time)=>{ return time.getTime().toString() },
   no_thumbnail:               (no_thumbnail)=>{return no_thumbnail ? '1' : '0' },
   file_size:                  (file_size)=>{return file_size && file_size.toString()},
   post_id:                    (post_id)=> {return post_id ? post_id : ''},
@@ -183,8 +183,8 @@ const COMMENT_FIELDS = {
 }
 
 const COMMENT_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
+  created_at:                 (time)=>{ return time.getTime().toString() },
+  updated_at:                 (time)=>{ return time.getTime().toString() },
   post_id:                    (post_id)=> {return post_id ? post_id : ''},
   user_id:                    (user_id)=> {return user_id ? user_id : ''}
 }
@@ -220,8 +220,8 @@ const FEED_FIELDS = {
 }
 
 const FEED_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
+  created_at:                 (time)=>{ return time.getTime().toString() },
+  updated_at:                 (time)=>{ return time.getTime().toString() },
   user_id:                    (user_id)=> {return user_id ? user_id : ''}
 }
 
@@ -268,8 +268,8 @@ const POST_FIELDS = {
 }
 
 const POST_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime() },
-  updated_at:                 (time)=>{ return time.getTime() },
+  created_at:                 (time)=>{ return time.getTime().toString() },
+  updated_at:                 (time)=>{ return time.getTime().toString() },
   comments_disabled:          (comments_disabled)=>{return comments_disabled ? '1' : '0' },
   user_id:                    (user_id)=> {return user_id ? user_id : ''}
 }
