@@ -256,7 +256,7 @@ export function addModel(dbAdapter) {
         for (const sizeId in config.attachments.imageSizes) {
           if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
             const sizeConfig = config.attachments.imageSizes[sizeId]
-            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)
+            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)  // eslint-disable-line babel/no-await-in-loop
           }
         }
       }
