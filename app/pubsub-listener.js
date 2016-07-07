@@ -295,7 +295,7 @@ export default class PubsubListener {
   onCommentDestroy = async (sockets, data) => {
     let json = { postId: data.postId, commentId: data.commentId }
     let post = await dbAdapter.getPostById(data.postId)
-    
+
     let type = 'comment:destroy'
     let room = `post:${data.postId}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
