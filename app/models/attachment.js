@@ -260,7 +260,6 @@ export function addModel(dbAdapter) {
           }
         }
       }
-
     } else if (supportedAudioTypes[this.mimeType]) {
       // Set media properties for 'audio' type
       this.mediaType = 'audio'

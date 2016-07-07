@@ -368,7 +368,6 @@ export function addModel(dbAdapter) {
     let visibleCommentsIds = commentsIds
     let visibleComments = comments
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
-
       let firstNCommentIds = commentsIds.slice(0, this.maxComments - 1)
       let firstNComments   = comments.slice(0, this.maxComments - 1)
       let lastCommentId = _.last(commentsIds)
