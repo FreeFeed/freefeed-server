@@ -74,6 +74,11 @@ describe("MutualFriends", function() {
               .send({ authToken: lunaContext.authToken })
               .end(function(err, res) {
                 funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/likes', lunaContext.authToken, function(err, res) {
+                  if (err) {
+                    done(err);
+                    return;
+                  }
+
                   try {
                     res.body.should.have.property('timelines')
                     res.body.timelines.should.have.property('name')
@@ -97,11 +102,15 @@ describe("MutualFriends", function() {
             var post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, function(err, res) {
               funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
-                res.body.should.have.property('timelines')
-                res.body.timelines.should.have.property('name')
-                res.body.timelines.name.should.eql('RiverOfNews')
-                res.body.should.not.have.property('posts')
-                done()
+                try {
+                  res.body.should.have.property('timelines')
+                  res.body.timelines.should.have.property('name')
+                  res.body.timelines.name.should.eql('RiverOfNews')
+                  res.body.should.not.have.property('posts')
+                  done()
+                } catch (e) {
+                  done(e)
+                }
               })
             })
           })
@@ -116,11 +125,20 @@ describe("MutualFriends", function() {
             var post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, function(err, res) {
               funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/comments', lunaContext.authToken, function(err, res) {
-                res.body.should.have.property('timelines')
-                res.body.timelines.should.have.property('name')
-                res.body.timelines.name.should.eql('Comments')
-                res.body.should.not.have.property('posts')
-                done()
+                if (err) {
+                  done(err);
+                  return;
+                }
+
+                try {
+                  res.body.should.have.property('timelines')
+                  res.body.timelines.should.have.property('name')
+                  res.body.timelines.name.should.eql('Comments')
+                  res.body.should.not.have.property('posts')
+                  done()
+                } catch (e) {
+                  done(e)
+                }
               })
             })
           })
@@ -134,10 +152,14 @@ describe("MutualFriends", function() {
           .end(function(err, res) {
             var post = res.body.posts
             funcTestHelper.createComment(body, post.id, zeusContext.authToken, function(err, res) {
-              res.body.should.not.be.empty
-              res.body.should.have.property('err')
-              res.body.err.should.eql('Not found')
-              done()
+              try {
+                res.body.should.not.be.empty
+                res.body.should.have.property('err')
+                res.body.err.should.eql('Not found')
+                done()
+              } catch (e) {
+                done(e)
+              }
             })
           })
       })
@@ -153,10 +175,14 @@ describe("MutualFriends", function() {
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: zeusContext.authToken })
               .end(function(err, res) {
-                res.body.should.not.be.empty
-                res.body.should.have.property('err')
-                res.body.err.should.eql('Not found')
-                done()
+                try {
+                  res.body.should.not.be.empty
+                  res.body.should.have.property('err')
+                  res.body.err.should.eql('Not found')
+                  done()
+                } catch (e) {
+                  done(e)
+                }
               })
           })
       })
