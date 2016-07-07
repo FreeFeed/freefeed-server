@@ -1201,7 +1201,7 @@ export class DbAdapter {
 
   async createPostsUsagesInTimeline(postIds, feedIntIds) {
     let preparedPostIds = postIds.map((el)=>{ return "'" + el + "'"; })
-    if ( !feedIntIds || feedIntIds.length == 0 || preparedPostIds.length == 0 ) {
+    if (!feedIntIds || feedIntIds.length == 0 || preparedPostIds.length == 0) {
       return null
     }
     return this.database

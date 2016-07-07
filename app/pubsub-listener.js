@@ -117,7 +117,7 @@ export default class PubsubListener {
     messageRoutes[channel](
       this.io.sockets,
       JSON.parse(msg)
-    ).catch(e => { this.app.logger.error('onRedisMessage error', e )})
+    ).catch(e => { this.app.logger.error('onRedisMessage error', e)})
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {

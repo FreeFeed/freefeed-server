@@ -1070,7 +1070,7 @@ exports.addModel = function (dbAdapter) {
     const followedGroups = await this.getFollowedGroups()
     const currentUserId  = this.id
 
-    let promises = followedGroups.map( async (group)=>{
+    let promises = followedGroups.map(async (group)=>{
       const adminIds = await group.getAdministratorIds()
       if (adminIds.indexOf(currentUserId) !== -1) {
         return group

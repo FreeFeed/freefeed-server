@@ -199,7 +199,7 @@ export default class GroupsController {
         return group.id
       })
 
-      if ( _.includes(followedGroupIds, group.id) ) {
+      if (_.includes(followedGroupIds, group.id)) {
         throw new ForbiddenException("You are already subscribed to that group")
       }
 
