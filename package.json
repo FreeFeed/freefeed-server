@@ -11,7 +11,9 @@
     "console": "babel-node --ignore node_modules bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node --ignore node_modules data_transfer",
-    "count_stats": "babel-node --ignore node_modules count_stats"
+    "count_stats": "babel-node --ignore node_modules count_stats",
+    "restore_posts": "babel-node --ignore node_modules restore_posts",
+    "fix_attachment_exts": "babel-node --ignore node_modules fix_attachment_exts"
   },
   "repository": {
     "type": "git",
@@ -43,6 +45,7 @@
     "monitor-dog": "1.5.0",
     "morgan": "1.7.0",
     "musicmetadata": "2.0.4",
+    "mysql": "^2.11.1",
     "nodemailer": "1.11.0",
     "nodemailer-smtp-transport": "1.1.0",
     "nodemailer-stub-transport": "1.0.0",
