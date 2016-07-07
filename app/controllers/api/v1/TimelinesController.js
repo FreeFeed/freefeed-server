@@ -73,9 +73,9 @@ export default class TimelineController {
 
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getPostsTimeline({
-        offset:      req.query.offset,
-        limit:       req.query.limit,
-        currentUser: currentUser
+        offset: req.query.offset,
+        limit:  req.query.limit,
+        currentUser
       })
 
       await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
@@ -105,9 +105,9 @@ export default class TimelineController {
 
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getLikesTimeline({
-        offset:      req.query.offset,
-        limit:       req.query.limit,
-        currentUser: currentUser
+        offset: req.query.offset,
+        limit:  req.query.limit,
+        currentUser
       })
 
       await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
@@ -137,9 +137,9 @@ export default class TimelineController {
 
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getCommentsTimeline({
-        offset:      req.query.offset,
-        limit:       req.query.limit,
-        currentUser: currentUser
+        offset: req.query.offset,
+        limit:  req.query.limit,
+        currentUser
       })
 
       await timeline.loadVisibleSubscribersAndAdmins(user, req.user)

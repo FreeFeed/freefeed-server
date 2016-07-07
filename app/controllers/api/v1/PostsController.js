@@ -58,10 +58,10 @@ export default class PostsController {
       })
 
       let newPost = await req.user.newPost({
-        body:             req.body.post.body,
-        attachments:      req.body.post.attachments,
-        timelineIds:      timelineIds,
-        commentsDisabled: commentsDisabled
+        body:        req.body.post.body,
+        attachments: req.body.post.attachments,
+        timelineIds,
+        commentsDisabled
       })
 
       await newPost.create()

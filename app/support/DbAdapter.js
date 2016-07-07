@@ -987,7 +987,7 @@ export class DbAdapter {
     let promises = timelineNames.map((n) => {
       const payload = {
         'name':      n,
-        'userId':    userId,
+        userId,
         'createdAt': currentTime.toString(),
         'updatedAt': currentTime.toString()
       }
@@ -1097,7 +1097,7 @@ export class DbAdapter {
   async getUserNamedFeed(userId, name, params){
     const response = await this.database('feeds').returning('uid').where({
       user_id: userId,
-      name:    name
+      name
     })
 
     let namedFeed = response[0]

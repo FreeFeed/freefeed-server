@@ -29,7 +29,7 @@ export default class SessionController {
       var authToken = jwt.sign({ userId: user.id }, secret)
 
       let json = await new UserSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken: authToken }))
+      res.jsonp(_.extend(json, { authToken }))
     })(req, res)
   }
 }

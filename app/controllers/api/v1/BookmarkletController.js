@@ -107,9 +107,9 @@ export default class BookmarkletController {
 
       // Create post
       let newPost = await req.user.newPost({
-        body:        req.body.title,
-        attachments: attachments,
-        timelineIds: timelineIds
+        body: req.body.title,
+        attachments,
+        timelineIds
       })
       await newPost.create()
 

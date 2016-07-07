@@ -48,7 +48,7 @@ export default class UsersController {
       var authToken = jwt.sign({ userId: user.id }, secret)
 
       var json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken: authToken }))
+      res.jsonp(_.extend(json, { authToken }))
     } catch (e) {
       exceptions.reportError(res)(e)
     }
@@ -85,7 +85,7 @@ export default class UsersController {
       var authToken = jwt.sign({ userId: user.id }, secret)
 
       var json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken: authToken }))
+      res.jsonp(_.extend(json, { authToken }))
     } catch (e) {
       exceptions.reportError(res)(e)
     }
@@ -299,7 +299,7 @@ export default class UsersController {
 
     try {
       var status = await req.user.ban(req.params.username)
-      res.jsonp({ status: status })
+      res.jsonp({ status })
     } catch (e) {
       exceptions.reportError(res)(e)
     }
@@ -313,7 +313,7 @@ export default class UsersController {
 
     try {
       var status = await req.user.unban(req.params.username)
-      res.jsonp({ status: status })
+      res.jsonp({ status })
     } catch (e) {
       exceptions.reportError(res)(e)
     }

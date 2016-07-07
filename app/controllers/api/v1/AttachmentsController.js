@@ -21,7 +21,7 @@ export default class AttachmentsController {
 
     form.on('file', async (inputName, file) => {
       try {
-        const newAttachment = await req.user.newAttachment({ file: file })
+        const newAttachment = await req.user.newAttachment({ file })
         await newAttachment.create()
 
         let json = await new AttachmentSerializer(newAttachment).promiseToJSON()

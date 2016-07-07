@@ -22,6 +22,7 @@
     "no-native-reassign": 2,
     "no-trailing-spaces": 2,
     "object-curly-spacing": [2, "always"],
+    "object-shorthand": [2, "properties"],
     "strict": [2, "never"]
   }
 }
