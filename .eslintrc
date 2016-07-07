@@ -13,6 +13,7 @@
     "modules": true
   },
   "rules": {
+    "array-bracket-spacing": [2, "never"],
     "consistent-return": 2,
     "indent": [2, 2, {"SwitchCase": 1}],
     "keyword-spacing": 2,

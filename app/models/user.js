@@ -978,8 +978,8 @@ exports.addModel = function(dbAdapter) {
   User.prototype.validateCanPost = async function(postingUser) {
     // NOTE: when user is subscribed to another user she in fact is
     // subscribed to her posts timeline
-    const [ timelineIdA, timelineIdB ] =
-      await Promise.all([ postingUser.getPostsTimelineId(), this.getPostsTimelineId() ])
+    const [timelineIdA, timelineIdB] =
+      await Promise.all([postingUser.getPostsTimelineId(), this.getPostsTimelineId()])
 
     const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
     const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
