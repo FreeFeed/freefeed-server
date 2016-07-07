@@ -2,6 +2,7 @@
   "extends": "eslint:recommended",
   "parser": "babel-eslint",
   "plugins": [
+    "babel"
   ],
   "env": {
     "node": true,
@@ -14,6 +15,7 @@
   },
   "rules": {
     "array-bracket-spacing": [2, "never"],
+    "babel/arrow-parens": 2,
     "consistent-return": 2,
     "indent": [2, 2, {"SwitchCase": 1}],
     "key-spacing": [2, { "align": "value" }],

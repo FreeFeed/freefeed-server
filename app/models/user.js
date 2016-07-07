@@ -425,7 +425,7 @@ exports.addModel = function (dbAdapter) {
         actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
 
-      const uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
+      const uniqueCommenterUids = _.uniq(comments.map((comment) => comment.userId))
       const commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
 
       for (const usersChunk of _.chunk(commenters, 10)) {
@@ -480,7 +480,7 @@ exports.addModel = function (dbAdapter) {
 
     for (const post of posts) {
       const timelines = await post.getTimelines()
-      const userPromises = timelines.map(timeline => timeline.getUser())
+      const userPromises = timelines.map((timeline) => timeline.getUser())
       const users = await Promise.all(userPromises)
 
       allUsers = _.uniq(allUsers.concat(users), 'id')
@@ -489,11 +489,11 @@ exports.addModel = function (dbAdapter) {
     // and remove all private posts from all strangers timelines
     const users = _.filter(
       allUsers,
-      user => (subscriberIds.indexOf(user.id) === -1 && user.id != this.id)
+      (user) => (subscriberIds.indexOf(user.id) === -1 && user.id != this.id)
     )
 
     for (const chunk of _.chunk(users, 10)) {
-      const actions = chunk.map(user => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
+      const actions = chunk.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
       await Promise.all(actions)
     }
   }
@@ -878,7 +878,7 @@ exports.addModel = function (dbAdapter) {
       User.PROFILE_PICTURE_SIZE_MEDIUM
     ]
 
-    const promises = sizes.map(size => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
+    const promises = sizes.map((size) => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
     await Promise.all(promises)
 
     this.updatedAt = new Date().getTime()

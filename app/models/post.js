@@ -112,8 +112,8 @@ export function addModel(dbAdapter) {
     // Calculate changes in attachments
     const oldAttachments = await this.getAttachmentIds() || []
     const newAttachments = params.attachments || []
-    const addedAttachments = newAttachments.filter(i => oldAttachments.indexOf(i) < 0)
-    const removedAttachments = oldAttachments.filter(i => newAttachments.indexOf(i) < 0)
+    const addedAttachments = newAttachments.filter((i) => oldAttachments.indexOf(i) < 0)
+    const removedAttachments = oldAttachments.filter((i) => newAttachments.indexOf(i) < 0)
 
     // Update post body in DB
     const payload = {
@@ -153,7 +153,7 @@ export function addModel(dbAdapter) {
   Post.prototype.destroy = async function() {
     // remove all comments
     const comments = await this.getComments()
-    await Promise.all(comments.map(comment => comment.destroy()))
+    await Promise.all(comments.map((comment) => comment.destroy()))
 
     const timelineIds = await this.getTimelineIds()
     await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id)
@@ -226,7 +226,7 @@ export function addModel(dbAdapter) {
     timelineIntIds.push(userTimelineIntId)
 
     const timelines = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
-    const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelines.map(tl => tl.userId))
+    const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelines.map((tl) => tl.userId))
 
     // Adds the specified post to River of News if and only if
     // that post has been published to user's Post timeline,

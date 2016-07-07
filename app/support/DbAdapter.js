@@ -355,7 +355,7 @@ export class DbAdapter {
   async getUsersByIds(userIds) {
     const users = await this.getFeedOwnersByIds(userIds)
 
-    _.each(users, user => {
+    _.each(users, (user) => {
       if (!(user instanceof User)) {
         throw new Error(`Expected User, got ${user.constructor.name}`)
       }

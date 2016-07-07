@@ -207,7 +207,7 @@ export function addModel(dbAdapter) {
 
     posts = posts.slice(offset, offset + limit)
 
-    const uids = _.uniq(posts.map(post => post.userId))
+    const uids = _.uniq(posts.map((post) => post.userId))
     const users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
     const readerUserId = this.currentUser
     const banMatrix = await dbAdapter.getBanMatrixByUsersForPostReader(uids, readerUserId)
