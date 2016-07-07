@@ -20,8 +20,8 @@ export default class PubsubListener {
     var redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
       , redisSub = createRedisClient(config.redis.port, config.redis.host, extend(config.redis.options, { detect_buffers: true }))
 
-    redisPub.on('error', function(err) { app.logger.error('redisPub error', err) })
-    redisSub.on('error', function(err) { app.logger.error('redisSub error', err) })
+    redisPub.on('error', function (err) { app.logger.error('redisPub error', err) })
+    redisSub.on('error', function (err) { app.logger.error('redisSub error', err) })
 
     this.io = IoServer(server)
     this.io.adapter(redis_adapter({
@@ -29,11 +29,11 @@ export default class PubsubListener {
       subClient: redisSub
     }))
 
-    this.io.sockets.on('error', function(err) { app.logger.error('socket.io error', err) })
+    this.io.sockets.on('error', function (err) { app.logger.error('socket.io error', err) })
     this.io.sockets.on('connection', this.onConnect)
 
     var redisClient = createRedisClient(config.redis.port, config.redis.host, {})
-    redisClient.on('error', function(err) { app.logger.error('redis error', err) })
+    redisClient.on('error', function (err) { app.logger.error('redis error', err) })
     redisClient.subscribe('post:new', 'post:destroy', 'post:update',
       'comment:new', 'comment:destroy', 'comment:update',
       'like:new', 'like:remove', 'post:hide', 'post:unhide')

@@ -9,7 +9,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Post = function(params) {
+  var Post = function (params) {
     this.id               = params.id
     this.body             = params.body
     this.attachments      = params.attachments
@@ -47,8 +47,8 @@ export function addModel(dbAdapter) {
   Post.namespace = "post"
 
   Object.defineProperty(Post.prototype, 'body', {
-    get: function() { return this.body_ },
-    set: function(newValue) {
+    get: function () { return this.body_ },
+    set: function (newValue) {
       newValue ? this.body_ = newValue.trim() : this.body_ = ''
     }
   })
@@ -166,7 +166,7 @@ export function addModel(dbAdapter) {
     monitor.increment('posts.destroys')
   }
 
-  Post.prototype.getCreatedBy = function() {
+  Post.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
   }
 
@@ -255,11 +255,11 @@ export function addModel(dbAdapter) {
     return timelineIntIds
   }
 
-  Post.prototype.getLikesFriendOfFriendTimelineIntIds = function(user) {
+  Post.prototype.getLikesFriendOfFriendTimelineIntIds = function (user) {
     return this.getGenericFriendOfFriendTimelineIntIds(user, 'Likes')
   }
 
-  Post.prototype.getCommentsFriendOfFriendTimelineIntIds = function(user) {
+  Post.prototype.getCommentsFriendOfFriendTimelineIntIds = function (user) {
     return this.getGenericFriendOfFriendTimelineIntIds(user, 'Comments')
   }
 
@@ -601,7 +601,7 @@ export function addModel(dbAdapter) {
       return userIds.indexOf(userId) >= 0
     }))
 
-    return _.reduce(arr, function(acc, x) { return acc || x }, false)
+    return _.reduce(arr, function (acc, x) { return acc || x }, false)
   }
 
   return Post

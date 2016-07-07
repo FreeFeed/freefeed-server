@@ -7,7 +7,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Timeline = function(params) {
+  var Timeline = function (params) {
     this.id = params.id
     this.intId = params.intId
     this.name = params.name
@@ -25,8 +25,8 @@ export function addModel(dbAdapter) {
   Timeline.namespace = "timeline"
 
   Object.defineProperty(Timeline.prototype, 'name', {
-    get: function() { return this.name_ },
-    set: function(newValue) {
+    get: function () { return this.name_ },
+    set: function (newValue) {
       newValue ? this.name_ = newValue.trim() : this.name_ = ''
     }
   })
@@ -314,7 +314,7 @@ export function addModel(dbAdapter) {
     return
   }
 
-  Timeline.prototype.getUser = function() {
+  Timeline.prototype.getUser = function () {
     return dbAdapter.getFeedOwnerById(this.userId)
   }
 
@@ -381,27 +381,27 @@ export function addModel(dbAdapter) {
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()))
   }
 
-  Timeline.prototype.isRiverOfNews = function() {
+  Timeline.prototype.isRiverOfNews = function () {
     return this.name === "RiverOfNews"
   }
 
-  Timeline.prototype.isPosts = function() {
+  Timeline.prototype.isPosts = function () {
     return this.name === "Posts"
   }
 
-  Timeline.prototype.isLikes = function() {
+  Timeline.prototype.isLikes = function () {
     return this.name === "Likes"
   }
 
-  Timeline.prototype.isComments = function() {
+  Timeline.prototype.isComments = function () {
     return this.name === "Comments"
   }
 
-  Timeline.prototype.isDirects = function() {
+  Timeline.prototype.isDirects = function () {
     return this.name === "Directs"
   }
 
-  Timeline.prototype.isHides = function() {
+  Timeline.prototype.isHides = function () {
     return this.name === "Hides"
   }
 

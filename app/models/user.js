@@ -22,11 +22,11 @@ promisifyAll(gm)
 
 let config = configLoader()
 
-exports.addModel = function(dbAdapter) {
+exports.addModel = function (dbAdapter) {
   /**
    * @constructor
    */
-  var User = function(params) {
+  var User = function (params) {
     var password = null
 
     this.id = params.id
@@ -74,47 +74,47 @@ exports.addModel = function(dbAdapter) {
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
 
   Object.defineProperty(User.prototype, 'username', {
-    get: function() { return this.username_ },
-    set: function(newValue) {
+    get: function () { return this.username_ },
+    set: function (newValue) {
       if (newValue)
         this.username_ = newValue.trim().toLowerCase()
     }
   })
 
   Object.defineProperty(User.prototype, 'screenName', {
-    get: function() { return this.screenName_ },
-    set: function(newValue) {
+    get: function () { return this.screenName_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.screenName_ = newValue.trim()
     }
   })
 
   Object.defineProperty(User.prototype, 'email', {
-    get: function() { return _.isUndefined(this.email_) ? "" : this.email_ },
-    set: function(newValue) {
+    get: function () { return _.isUndefined(this.email_) ? "" : this.email_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.email_ = newValue.trim()
     }
   })
 
   Object.defineProperty(User.prototype, 'isPrivate', {
-    get: function() { return this.isPrivate_ },
-    set: function(newValue) {
+    get: function () { return this.isPrivate_ },
+    set: function (newValue) {
       this.isPrivate_ = newValue || '0'
     }
   })
 
   Object.defineProperty(User.prototype, 'description', {
-    get: function() { return this.description_ },
-    set: function(newValue) {
+    get: function () { return this.description_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
     }
   })
 
   Object.defineProperty(User.prototype, 'frontendPreferences', {
-    get: function() { return this.frontendPreferences_ },
-    set: function(newValue) {
+    get: function () { return this.frontendPreferences_ },
+    set: function (newValue) {
       if (_.isString(newValue)) {
         newValue = JSON.parse(newValue)
       }
@@ -135,7 +135,7 @@ exports.addModel = function(dbAdapter) {
     return dbAdapter.getFeedOwnersByIds(objectIds)
   }
 
-  User.prototype.isUser = function() {
+  User.prototype.isUser = function () {
     return this.type === "user"
   }
 
@@ -168,7 +168,7 @@ exports.addModel = function(dbAdapter) {
     return buf.toString('hex')
   }
 
-  User.prototype.validPassword = function(clearPassword) {
+  User.prototype.validPassword = function (clearPassword) {
     return bcrypt.compareAsync(clearPassword, this.hashedPassword)
   }
 
@@ -196,7 +196,7 @@ exports.addModel = function(dbAdapter) {
     return true
   }
 
-  User.prototype.isValidUsername = function(skip_stoplist) {
+  User.prototype.isValidUsername = function (skip_stoplist) {
     var valid = this.username
         && this.username.length >= 3   // per the spec
         && this.username.length <= 25  // per the spec
@@ -206,11 +206,11 @@ exports.addModel = function(dbAdapter) {
     return valid
   }
 
-  User.prototype.isValidScreenName = function() {
+  User.prototype.isValidScreenName = function () {
     return this.screenNameIsValid(this.screenName)
   }
 
-  User.prototype.screenNameIsValid = function(screenName) {
+  User.prototype.screenNameIsValid = function (screenName) {
     if (!screenName) {
       return false
     }
@@ -224,16 +224,16 @@ exports.addModel = function(dbAdapter) {
     return true
   }
 
-  User.prototype.isValidDescription = function() {
+  User.prototype.isValidDescription = function () {
     return User.descriptionIsValid(this.description)
   }
 
-  User.descriptionIsValid = function(description) {
+  User.descriptionIsValid = function (description) {
     var len = GraphemeBreaker.countBreaks(description)
     return (len <= 1500)
   }
 
-  User.frontendPreferencesIsValid = function(frontendPreferences) {
+  User.frontendPreferencesIsValid = function (frontendPreferences) {
     // Check size
     const prefString = JSON.stringify(frontendPreferences)
     const len = GraphemeBreaker.countBreaks(prefString)
@@ -568,23 +568,23 @@ exports.addModel = function(dbAdapter) {
     return timeline
   }
 
-  User.prototype.getMyDiscussionsTimelineIntId = function() {
+  User.prototype.getMyDiscussionsTimelineIntId = function () {
     return this.getGenericTimelineIntId('MyDiscussions')
   }
 
-  User.prototype.getHidesTimelineId = function(params) {
+  User.prototype.getHidesTimelineId = function (params) {
     return this.getGenericTimelineId('Hides', params)
   }
 
-  User.prototype.getHidesTimelineIntId = function(params) {
+  User.prototype.getHidesTimelineIntId = function (params) {
     return this.getGenericTimelineIntId('Hides', params)
   }
 
-  User.prototype.getRiverOfNewsTimelineId = function(params) {
+  User.prototype.getRiverOfNewsTimelineId = function (params) {
     return this.getGenericTimelineId('RiverOfNews', params)
   }
 
-  User.prototype.getRiverOfNewsTimelineIntId = function(params) {
+  User.prototype.getRiverOfNewsTimelineIntId = function (params) {
     return this.getGenericTimelineIntId('RiverOfNews', params)
   }
 
@@ -610,47 +610,47 @@ exports.addModel = function(dbAdapter) {
     return riverOfNewsTimeline
   }
 
-  User.prototype.getLikesTimelineId = function() {
+  User.prototype.getLikesTimelineId = function () {
     return this.getGenericTimelineId('Likes')
   }
 
-  User.prototype.getLikesTimelineIntId = function() {
+  User.prototype.getLikesTimelineIntId = function () {
     return this.getGenericTimelineIntId('Likes')
   }
 
-  User.prototype.getLikesTimeline = function(params) {
+  User.prototype.getLikesTimeline = function (params) {
     return this.getGenericTimeline('Likes', params)
   }
 
-  User.prototype.getPostsTimelineId = function() {
+  User.prototype.getPostsTimelineId = function () {
     return this.getGenericTimelineId('Posts')
   }
 
-  User.prototype.getPostsTimelineIntId = function() {
+  User.prototype.getPostsTimelineIntId = function () {
     return this.getGenericTimelineIntId('Posts')
   }
 
-  User.prototype.getPostsTimeline = function(params) {
+  User.prototype.getPostsTimeline = function (params) {
     return this.getGenericTimeline('Posts', params)
   }
 
-  User.prototype.getCommentsTimelineId = function() {
+  User.prototype.getCommentsTimelineId = function () {
     return this.getGenericTimelineId('Comments')
   }
 
-  User.prototype.getCommentsTimelineIntId = function() {
+  User.prototype.getCommentsTimelineIntId = function () {
     return this.getGenericTimelineIntId('Comments')
   }
 
-  User.prototype.getCommentsTimeline = function(params) {
+  User.prototype.getCommentsTimeline = function (params) {
     return this.getGenericTimeline('Comments', params)
   }
 
-  User.prototype.getDirectsTimelineId = function() {
+  User.prototype.getDirectsTimelineId = function () {
     return this.getGenericTimelineId('Directs')
   }
 
-  User.prototype.getDirectsTimeline = function(params) {
+  User.prototype.getDirectsTimeline = function (params) {
     return this.getGenericTimeline('Directs', params)
   }
 
@@ -670,7 +670,7 @@ exports.addModel = function(dbAdapter) {
     return sortedTimelines
   }
 
-  User.prototype.getPublicTimelineIds = function() {
+  User.prototype.getPublicTimelineIds = function () {
     return Promise.all([
       this.getCommentsTimelineId(),
       this.getLikesTimelineId(),
@@ -678,7 +678,7 @@ exports.addModel = function(dbAdapter) {
     ])
   }
 
-  User.prototype.getPublicTimelinesIntIds = function() {
+  User.prototype.getPublicTimelinesIntIds = function () {
     return dbAdapter.getUserNamedFeedsIntIds(this.id, ['Posts', 'Likes', 'Comments'])
   }
 
@@ -717,7 +717,7 @@ exports.addModel = function(dbAdapter) {
     return this.subscribers
   }
 
-  User.prototype.getBanIds = function() {
+  User.prototype.getBanIds = function () {
     return dbAdapter.getUserBansIds(this.id)
   }
 
@@ -848,7 +848,7 @@ exports.addModel = function(dbAdapter) {
     return this.statsValues
   }
 
-  User.prototype.newComment = function(attrs) {
+  User.prototype.newComment = function (attrs) {
     attrs.userId = this.id
     monitor.increment('users.comments')
     return new Comment(attrs)
@@ -942,11 +942,11 @@ exports.addModel = function(dbAdapter) {
     })
   }
 
-  User.prototype.getProfilePicturePath = function(uuid, size) {
+  User.prototype.getProfilePicturePath = function (uuid, size) {
     return config.profilePictures.storage.rootDir + config.profilePictures.path + this.getProfilePictureFilename(uuid, size)
   }
 
-  User.prototype.getProfilePictureFilename = function(uuid, size) {
+  User.prototype.getProfilePictureFilename = function (uuid, size) {
     return uuid + "_" + size + ".jpg"
   }
 

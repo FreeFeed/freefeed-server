@@ -2,7 +2,7 @@ import _ from 'lodash'
 import s from 'underscore.string'
 
 
-export const AbstractSerializer = function(object, strategy) {
+export const AbstractSerializer = function (object, strategy) {
   this.object   = object
   this.strategy = strategy
 }
@@ -32,7 +32,7 @@ AbstractSerializer.prototype = {
     return this.object[field]
   },
 
-  decideNode: function(field) {
+  decideNode: function (field) {
     if (!this.strategy[field]) {
       return this.END_POINT
     }
@@ -72,7 +72,7 @@ AbstractSerializer.prototype = {
     let node = serializer ? new serializer(objects[0]).name : field
 
     for (let object of objects) {
-      let inArray = _.any(root[node], function(item) {
+      let inArray = _.any(root[node], function (item) {
         return item.id == object.id
       })
 
@@ -111,8 +111,8 @@ AbstractSerializer.prototype = {
     let serializer = this
 
     let processWithRoot = async function(_objects, one) {
-      let objects = _.filter(_objects, function(object) { return _.has(object, 'id') })
-      let objectIds = objects.map(function(e) { return e.id })
+      let objects = _.filter(_objects, function (object) { return _.has(object, 'id') })
+      let objectIds = objects.map(function (e) { return e.id })
       let strategy = serializer.strategy[field]
 
       await serializer.processMultiObjectsWithRoot(strategy.model || field,

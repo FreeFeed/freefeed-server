@@ -11,7 +11,7 @@ export function addModel(dbAdapter) {
    * @constructor
    * @extends User
    */
-  var Group = function(params) {
+  var Group = function (params) {
     this.id = params.id
     this.username = params.username
     this.screenName = params.screenName
@@ -30,37 +30,37 @@ export function addModel(dbAdapter) {
   Group.namespace = "user"
 
   Object.defineProperty(Group.prototype, 'username', {
-    get: function() { return this.username_ },
-    set: function(newValue) {
+    get: function () { return this.username_ },
+    set: function (newValue) {
       if (newValue)
         this.username_ = newValue.trim().toLowerCase()
     }
   })
 
   Object.defineProperty(Group.prototype, 'screenName', {
-    get: function() { return this.screenName_ },
-    set: function(newValue) {
+    get: function () { return this.screenName_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.screenName_ = newValue.trim()
     }
   })
 
   Object.defineProperty(Group.prototype, 'description', {
-    get: function() { return this.description_ },
-    set: function(newValue) {
+    get: function () { return this.description_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
     }
   })
 
   Object.defineProperty(Group.prototype, 'isRestricted', {
-    get: function() { return this.isRestricted_ },
-    set: function(newValue) {
+    get: function () { return this.isRestricted_ },
+    set: function (newValue) {
       this.isRestricted_ = newValue || '0'
     }
   })
 
-  Group.prototype.isValidUsername = function(skip_stoplist) {
+  Group.prototype.isValidUsername = function (skip_stoplist) {
     var valid = this.username
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
@@ -174,7 +174,7 @@ export function addModel(dbAdapter) {
     return res
   }
 
-  Group.prototype.addAdministrator = function(feedId) {
+  Group.prototype.addAdministrator = function (feedId) {
     return dbAdapter.addAdministratorToGroup(this.id, feedId)
   }
 

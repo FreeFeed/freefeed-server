@@ -437,7 +437,7 @@ export default class UsersController {
       return
     }
 
-    var attrs = _.reduce(['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences'], function(acc, key) {
+    var attrs = _.reduce(['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences'], function (acc, key) {
       if (key in req.body.user)
         acc[key] = req.body.user[key]
       return acc

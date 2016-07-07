@@ -8,7 +8,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Comment = function(params) {
+  var Comment = function (params) {
     this.id = params.id
     this.body = params.body
     this.userId = params.userId
@@ -23,8 +23,8 @@ export function addModel(dbAdapter) {
   Comment.namespace = "comment"
 
   Object.defineProperty(Comment.prototype, 'body', {
-    get: function() { return this.body_ },
-    set: function(newValue) {
+    get: function () { return this.body_ },
+    set: function (newValue) {
       newValue ? this.body_ = newValue.trim() : this.body_ = ''
     }
   })
@@ -89,7 +89,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Comment.prototype.getPost = function() {
+  Comment.prototype.getPost = function () {
     return dbAdapter.getPostById(this.postId)
   }
 
@@ -113,7 +113,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
   }
 
-  Comment.prototype.getCreatedBy = function() {
+  Comment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
   }
 

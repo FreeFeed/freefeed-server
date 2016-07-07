@@ -22,7 +22,7 @@ import UsersRouteV2 from './routes/api/v2/UsersRoute'
 const config = configLoader()
 promisifyAll(jwt)
 
-export default function(app) {
+export default function (app) {
   const findUser = async (req, res, next) => {
     var authToken = req.headers['x-authentication-token']
       || req.body.authToken

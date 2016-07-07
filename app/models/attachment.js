@@ -37,7 +37,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Attachment = function(params) {
+  var Attachment = function (params) {
     this.id = params.id
     this.file = params.file // FormData File object
     this.fileName = params.fileName // original file name, e.g. 'cute-little-kitten.jpg'
@@ -65,8 +65,8 @@ export function addModel(dbAdapter) {
   Attachment.namespace = 'attachment'
 
   Object.defineProperty(Attachment.prototype, 'imageSizes', {
-    get: function() { return this.imageSizes_ },
-    set: function(newValue) {
+    get: function () { return this.imageSizes_ },
+    set: function (newValue) {
       if (_.isString(newValue)) {
         newValue = JSON.parse(newValue)
       }
@@ -143,7 +143,7 @@ export function addModel(dbAdapter) {
   }
 
   // Get user who created the attachment (via Promise, for serializer)
-  Attachment.prototype.getCreatedBy = function() {
+  Attachment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
   }
 
@@ -162,22 +162,22 @@ export function addModel(dbAdapter) {
   }
 
   // Get public URL of resized image attachment
-  Attachment.prototype.getResizedImageUrl = function(sizeId) {
+  Attachment.prototype.getResizedImageUrl = function (sizeId) {
     return config.attachments.url + config.attachments.imageSizes[sizeId].path + this.getFilename()
   }
 
   // Get local filesystem path for original file
-  Attachment.prototype.getPath = function() {
+  Attachment.prototype.getPath = function () {
     return config.attachments.storage.rootDir + config.attachments.path + this.getFilename()
   }
 
   // Get local filesystem path for resized image file
-  Attachment.prototype.getResizedImagePath = function(sizeId) {
+  Attachment.prototype.getResizedImagePath = function (sizeId) {
     return config.attachments.storage.rootDir + config.attachments.imageSizes[sizeId].path + this.getFilename()
   }
 
   // Get file name
-  Attachment.prototype.getFilename = function() {
+  Attachment.prototype.getFilename = function () {
     if (this.fileExtension) {
       return this.id + '.' + this.fileExtension
     }
@@ -345,7 +345,7 @@ export function addModel(dbAdapter) {
   }
 
   // Get cross-browser Content-Disposition header for attachment
-  Attachment.prototype.getContentDisposition = function() {
+  Attachment.prototype.getContentDisposition = function () {
     // Old browsers (IE8) need ASCII-only fallback filenames
     let fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
 
