@@ -20,10 +20,10 @@ export default class GroupsController {
     const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
-      var group = new Group(params)
+      const group = new Group(params)
       await group.create(req.user.id, false)
 
-      var json = await new GroupSerializer(group).promiseToJSON()
+      const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -86,7 +86,7 @@ export default class GroupsController {
 
       await group.update(attrs)
 
-      var json = await new GroupSerializer(group).promiseToJSON()
+      const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -154,7 +154,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      var form = new formidable.IncomingForm()
+      const form = new formidable.IncomingForm()
 
       form.on('file', async (inputName, file) => {
         try {

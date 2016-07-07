@@ -11,7 +11,7 @@ export default class CommentsController {
       return
     }
 
-    var timer = monitor.timer('comments.create-time')
+    const timer = monitor.timer('comments.create-time')
 
     try {
       const post = await dbAdapter.getPostById(req.body.comment.postId)
@@ -28,7 +28,7 @@ export default class CommentsController {
         throw new ForbiddenException("Comments disabled")
       }
 
-      var newComment = req.user.newComment({
+      const newComment = req.user.newComment({
         body:   req.body.comment.body,
         postId: req.body.comment.postId
       })
@@ -53,7 +53,7 @@ export default class CommentsController {
       return
     }
 
-    var timer = monitor.timer('comments.update-time')
+    const timer = monitor.timer('comments.update-time')
 
     try {
       const comment = await dbAdapter.getCommentById(req.params.commentId)
@@ -87,7 +87,7 @@ export default class CommentsController {
       return
     }
 
-    var timer = monitor.timer('comments.destroy-time')
+    const timer = monitor.timer('comments.destroy-time')
 
     try {
       const comment = await dbAdapter.getCommentById(req.params.commentId)

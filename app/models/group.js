@@ -11,7 +11,7 @@ export function addModel(dbAdapter) {
    * @constructor
    * @extends User
    */
-  var Group = function (params) {
+  const Group = function (params) {
     this.id = params.id
     this.username = params.username
     this.screenName = params.screenName
@@ -61,7 +61,7 @@ export function addModel(dbAdapter) {
   })
 
   Group.prototype.isValidUsername = function (skip_stoplist) {
-    var valid = this.username
+    const valid = this.username
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
@@ -114,7 +114,7 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.update = async function(params) {
-    var hasChanges = false
+    let hasChanges = false
 
     if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -147,7 +147,7 @@ export function addModel(dbAdapter) {
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
-      var payload = {
+      const payload = {
         'screenName':   this.screenName,
         'description':  this.description,
         'updatedAt':    this.updatedAt.toString(),
@@ -198,7 +198,7 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.getAdministrators = async function() {
-    var adminIds = await this.getAdministratorIds()
+    const adminIds = await this.getAdministratorIds()
     this.administrators = await dbAdapter.getUsersByIds(adminIds)
 
     return this.administrators

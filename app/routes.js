@@ -24,7 +24,7 @@ promisifyAll(jwt)
 
 export default function (app) {
   const findUser = async (req, res, next) => {
-    var authToken = req.headers['x-authentication-token']
+    const authToken = req.headers['x-authentication-token']
       || req.body.authToken
       || req.query.authToken
 

@@ -100,7 +100,7 @@ export default class PostsController {
 
   static async show(req, res) {
     try {
-      var userId = req.user ? req.user.id : null
+      const userId = req.user ? req.user.id : null
       const post = await dbAdapter.getPostById(req.params.postId, {
         maxComments: req.query.maxComments,
         maxLikes:    req.query.maxLikes,
@@ -111,7 +111,7 @@ export default class PostsController {
         throw new NotFoundException("Can't find post");
       }
 
-      var valid = await post.canShow(userId)
+      const valid = await post.canShow(userId)
 
       // this is a private post
       if (!valid)
@@ -130,8 +130,7 @@ export default class PostsController {
           throw new ForbiddenException("You have blocked this user and do not want to see their posts")
       }
 
-      var json = new PostSerializer(post).promiseToJSON()
-
+      const json = new PostSerializer(post).promiseToJSON()
       res.jsonp(await json)
     } catch (e) {
       exceptions.reportError(res)(e)

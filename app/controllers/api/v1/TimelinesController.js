@@ -13,7 +13,7 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.homefeed-time')
 
     try {
-      var user = req.user
+      const user = req.user
 
       const timeline = await user.getRiverOfNewsTimeline({
         offset:      req.query.offset,
@@ -63,16 +63,15 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.posts_feed-time')
 
     try {
-      var username = req.params.username
-
+      const username = req.params.username
       const user = await dbAdapter.getFeedOwnerByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`Feed "${username}" is not found`)
       }
 
-      var currentUser = req.user ? req.user.id : null
-      var timeline = await user.getPostsTimeline({
+      const currentUser = req.user ? req.user.id : null
+      const timeline = await user.getPostsTimeline({
         offset: req.query.offset,
         limit:  req.query.limit,
         currentUser
@@ -95,16 +94,15 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.likes_feed-time')
 
     try {
-      var username = req.params.username
-
+      const username = req.params.username
       const user = await dbAdapter.getUserByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      var currentUser = req.user ? req.user.id : null
-      var timeline = await user.getLikesTimeline({
+      const currentUser = req.user ? req.user.id : null
+      const timeline = await user.getLikesTimeline({
         offset: req.query.offset,
         limit:  req.query.limit,
         currentUser
@@ -127,16 +125,15 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.comments_feed-time')
 
     try {
-      var username = req.params.username
-
+      const username = req.params.username
       const user = await dbAdapter.getUserByUsername(username)
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
-      var currentUser = req.user ? req.user.id : null
-      var timeline = await user.getCommentsTimeline({
+      const currentUser = req.user ? req.user.id : null
+      const timeline = await user.getCommentsTimeline({
         offset: req.query.offset,
         limit:  req.query.limit,
         currentUser
@@ -161,14 +158,14 @@ export default class TimelineController {
       return
     }
 
-    var user = req.user
+    const user = req.user
     const timer = monitor.timer('timelines.my_discussions_feed-time')
 
     try {
       const timeline = await user.getMyDiscussionsTimeline({
         offset:      req.query.offset,
         limit:       req.query.limit,
-        currentUser: req.user ? req.user.id : null
+        currentUser: user.id
       })
 
       const json = await new TimelineSerializer(timeline).promiseToJSON()

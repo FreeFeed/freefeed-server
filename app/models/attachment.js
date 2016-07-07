@@ -37,7 +37,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Attachment = function (params) {
+  const Attachment = function (params) {
     this.id = params.id
     this.file = params.file // FormData File object
     this.fileName = params.fileName // original file name, e.g. 'cute-little-kitten.jpg'
@@ -187,7 +187,7 @@ export function addModel(dbAdapter) {
 
   // Store the file and process its thumbnail, if necessary
   Attachment.prototype.handleMedia = async function() {
-    var tmpAttachmentFile = this.file.path
+    const tmpAttachmentFile = this.file.path
 
     const supportedImageTypes = {
       'image/jpeg':    'jpg',

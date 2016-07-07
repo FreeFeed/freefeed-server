@@ -26,8 +26,8 @@ exports.addModel = function (dbAdapter) {
   /**
    * @constructor
    */
-  var User = function (params) {
-    var password = null
+  const User = function (params) {
+    let password = null
 
     this.id = params.id
     this.username = params.username
@@ -197,7 +197,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.isValidUsername = function (skip_stoplist) {
-    var valid = this.username
+    const valid = this.username
         && this.username.length >= 3   // per the spec
         && this.username.length <= 25  // per the spec
         && this.username.match(/^[A-Za-z0-9]+$/)
@@ -215,7 +215,7 @@ exports.addModel = function (dbAdapter) {
       return false
     }
 
-    var len = GraphemeBreaker.countBreaks(screenName)
+    const len = GraphemeBreaker.countBreaks(screenName)
 
     if (len < 3 || len > 25) {
       return false
@@ -229,7 +229,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.descriptionIsValid = function (description) {
-    var len = GraphemeBreaker.countBreaks(description)
+    const len = GraphemeBreaker.countBreaks(description)
     return (len <= 1500)
   }
 
@@ -281,7 +281,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {
-    var promises = [
+    const promises = [
       this.validate(skip_stoplist),
       this.validateUsernameUniqueness()
     ];
@@ -296,7 +296,7 @@ exports.addModel = function (dbAdapter) {
 
     await this.validateOnCreate(skip_stoplist)
 
-    var timer = monitor.timer('users.create-time')
+    const timer = monitor.timer('users.create-time')
     await this.initPassword()
 
     const payload = {
@@ -459,8 +459,8 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.unsubscribeNonFriends = async function() {
-    var subscriberIds = await this.getSubscriberIds()
-    var timeline = await this.getPostsTimeline()
+    const subscriberIds = await this.getSubscriberIds()
+    const timeline = await this.getPostsTimeline()
 
     // users that I'm not following are ex-followers now
     // var subscribers = await this.getSubscribers()
@@ -691,14 +691,14 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getFriendIds = async function() {
-    var timelines = await this.getSubscriptions()
-    timelines = _.filter(timelines, _.method('isPosts'))
+    const timelines = await this.getSubscriptions()
+    const postTimelines = _.filter(timelines, _.method('isPosts'))
 
-    return timelines.map((timeline) => timeline.userId)
+    return postTimelines.map((timeline) => timeline.userId)
   }
 
   User.prototype.getFriends = async function() {
-    var userIds = await this.getFriendIds()
+    const userIds = await this.getFriendIds()
     return await dbAdapter.getUsersByIds(userIds)
   }
 
@@ -711,7 +711,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getSubscribers = async function() {
-    var subscriberIds = await this.getSubscriberIds()
+    const subscriberIds = await this.getSubscriberIds()
     this.subscribers = await dbAdapter.getUsersByIds(subscriberIds)
 
     return this.subscribers
@@ -728,13 +728,13 @@ exports.addModel = function (dbAdapter) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
-    var promises = [
+    const promises = [
       user.unsubscribeFrom(await this.getPostsTimelineId()),
       dbAdapter.createUserBan(this.id, user.id),
       monitor.increment('users.bans')
     ]
     // reject if and only if there is a pending request
-    var requestIds = await this.getSubscriptionRequestIds()
+    const requestIds = await this.getSubscriptionRequestIds()
     if (requestIds.indexOf(user.id) >= 0)
       promises.push(this.rejectSubscriptionRequest(user.id))
     await Promise.all(promises)
@@ -783,13 +783,13 @@ exports.addModel = function (dbAdapter) {
       throw new NotFoundException(`Feed "${username}" is not found`)
     }
 
-    var timelineId = await user.getPostsTimelineId()
+    const timelineId = await user.getPostsTimelineId()
     return this.subscribeTo(timelineId)
   }
 
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
-    var timeline = await dbAdapter.getTimelineById(timelineId)
-    var user = await dbAdapter.getFeedOwnerById(timeline.userId)
+    const timeline = await dbAdapter.getTimelineById(timelineId)
+    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
     const wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
 
     // a user cannot unsubscribe from herself
@@ -892,16 +892,17 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.saveProfilePictureWithSize = async function(path, uuid, originalSize, size) {
-    var image = promisifyAll(gm(path))
-    var origWidth = originalSize.width
-    var origHeight = originalSize.height
-    var retinaSize = size * 2
+    const origWidth = originalSize.width
+    const origHeight = originalSize.height
+    const retinaSize = size * 2
+
+    let image = promisifyAll(gm(path))
 
     if (origWidth > origHeight) {
-      var dx = origWidth - origHeight
+      const dx = origWidth - origHeight
       image = image.crop(origHeight, origHeight, dx / 2, 0)
     } else if (origHeight > origWidth) {
-      var dy = origHeight - origWidth
+      const dy = origHeight - origWidth
       image = image.crop(origWidth, origWidth, 0, dy / 2)
     }
 
@@ -921,7 +922,7 @@ exports.addModel = function (dbAdapter) {
       return fs.unlinkAsync(tmpPictureFile)
     }
 
-    var destPath = this.getProfilePicturePath(uuid, size)
+    const destPath = this.getProfilePicturePath(uuid, size)
     return image.writeAsync(destPath)
   }
 
@@ -994,7 +995,7 @@ exports.addModel = function (dbAdapter) {
   User.prototype.updateLastActivityAt = async function() {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers
-      var updatedAt = new Date().getTime()
+      const updatedAt = new Date().getTime()
       const payload = {
         'updatedAt': updatedAt.toString()
       }
@@ -1013,9 +1014,9 @@ exports.addModel = function (dbAdapter) {
   User.prototype.acceptSubscriptionRequest = async function(userId) {
     await dbAdapter.deleteSubscriptionRequest(this.id, userId)
 
-    var timelineId = await this.getPostsTimelineId()
+    const timelineId = await this.getPostsTimelineId()
 
-    var user = await dbAdapter.getUserById(userId)
+    const user = await dbAdapter.getUserById(userId)
     return user.subscribeTo(timelineId)
   }
 
@@ -1029,7 +1030,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getPendingSubscriptionRequests = async function() {
-    var pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
+    const pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
     return await dbAdapter.getUsersByIds(pendingSubscriptionRequestIds)
   }
 
@@ -1038,7 +1039,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getSubscriptionRequests = async function() {
-    var subscriptionRequestIds = await this.getSubscriptionRequestIds()
+    const subscriptionRequestIds = await this.getSubscriptionRequestIds()
     return await dbAdapter.getUsersByIds(subscriptionRequestIds)
   }
 

@@ -115,7 +115,7 @@ export default class BookmarkletController {
 
       // Create comment
       if (req.body.comment) {
-        var newComment = await req.user.newComment({
+        const newComment = await req.user.newComment({
           body:   req.body.comment,
           postId: newPost.id
         })

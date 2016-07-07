@@ -8,7 +8,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Comment = function (params) {
+  const Comment = function (params) {
     this.id = params.id
     this.body = params.body
     this.userId = params.userId

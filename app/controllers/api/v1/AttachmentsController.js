@@ -17,7 +17,7 @@ export default class AttachmentsController {
       return
     }
 
-    var form = new formidable.IncomingForm()
+    const form = new formidable.IncomingForm()
 
     form.on('file', async (inputName, file) => {
       try {

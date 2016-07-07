@@ -3,7 +3,7 @@ import { inherits } from 'util'
 
 
 export function Serializer(name, strategy) {
-  var SpecializedSerializer = function (object) {
+  const SpecializedSerializer = function (object) {
     this.object = object
     this.strategy = strategy
     this.name = name

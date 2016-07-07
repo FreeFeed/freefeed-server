@@ -25,8 +25,8 @@ export default class SessionController {
         return
       }
 
-      var secret = config.secret
-      var authToken = jwt.sign({ userId: user.id }, secret)
+      const secret = config.secret
+      const authToken = jwt.sign({ userId: user.id }, secret)
 
       const json = await new UserSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken }))

@@ -29,7 +29,7 @@ export default class pubSub {
   }
 
   async destroyPost(postId, timelineIds) {
-    var promises = timelineIds.map(async (timelineId) => {
+    const promises = timelineIds.map(async (timelineId) => {
       const jsonedPost = JSON.stringify({ postId, timelineId })
       await this.publisher.postDestroyed(jsonedPost)
     })
@@ -70,18 +70,18 @@ export default class pubSub {
   }
 
   async hidePost(userId, postId) {
-    var user = await dbAdapter.getUserById(userId)
-    var timelineId = await user.getRiverOfNewsTimelineId()
+    const user = await dbAdapter.getUserById(userId)
+    const timelineId = await user.getRiverOfNewsTimelineId()
 
-    var payload = JSON.stringify({ timelineId, postId })
+    const payload = JSON.stringify({ timelineId, postId })
     await this.publisher.postHidden(payload)
   }
 
   async unhidePost(userId, postId) {
-    var user = await dbAdapter.getUserById(userId)
-    var timelineId = await user.getRiverOfNewsTimelineId()
+    const user = await dbAdapter.getUserById(userId)
+    const timelineId = await user.getRiverOfNewsTimelineId()
 
-    var payload = JSON.stringify({ timelineId, postId })
+    const payload = JSON.stringify({ timelineId, postId })
     await this.publisher.postUnhidden(payload)
   }
 }

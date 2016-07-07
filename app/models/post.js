@@ -9,7 +9,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Post = function (params) {
+  const Post = function (params) {
     this.id               = params.id
     this.body             = params.body
     this.attachments      = params.attachments
@@ -76,7 +76,7 @@ export function addModel(dbAdapter) {
 
     await this.validate()
 
-    var timer = monitor.timer('posts.create-time')
+    const timer = monitor.timer('posts.create-time')
 
     const payload = {
       'body':             this.body,
@@ -188,14 +188,14 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getSubscribedTimelines = async function() {
-    var timelineIds = await this.getSubscribedTimelineIds()
+    const timelineIds = await this.getSubscribedTimelineIds()
     this.subscribedTimelines = await dbAdapter.getTimelinesByIds(timelineIds)
 
     return this.subscribedTimelines
   }
 
   Post.prototype.getTimelineIds = async function() {
-    var timelineIds = await dbAdapter.getPostUsagesInTimelines(this.id)
+    const timelineIds = await dbAdapter.getPostUsagesInTimelines(this.id)
     this.timelineIds = timelineIds || []
     return this.timelineIds
   }
@@ -485,9 +485,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.isPrivate = async function() {
-    var timelines = await this.getPostedTo()
+    const timelines = await this.getPostedTo()
 
-    var arr = timelines.map(async (timeline) => {
+    const arr = timelines.map(async (timeline) => {
       if (timeline.isDirects())
         return true
 
@@ -513,7 +513,7 @@ export function addModel(dbAdapter) {
     this.feedIntIds = relevantPostState.feedIntIds
     this.destinationFeedIds = relevantPostState.destinationFeedIds
 
-    var timer = monitor.timer('posts.likes.time')
+    const timer = monitor.timer('posts.likes.time')
     let timelineIntIds = this.destinationFeedIds.slice()
 
     // only subscribers are allowed to read direct posts
@@ -543,7 +543,7 @@ export function addModel(dbAdapter) {
 
   Post.prototype.removeLike = async function(userId) {
     const user = await dbAdapter.getUserById(userId)
-    var timer = monitor.timer('posts.unlikes.time')
+    const timer = monitor.timer('posts.unlikes.time')
     const timelineId = await user.getLikesTimelineIntId()
     const promises = [
       dbAdapter.removeUserPostLike(this.id, userId),
@@ -579,9 +579,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.canShow = async function(userId) {
-    var timelines = await this.getPostedTo()
+    const timelines = await this.getPostedTo()
 
-    var arr = await Promise.all(timelines.map(async function(timeline) {
+    const arr = await Promise.all(timelines.map(async function(timeline) {
       // owner can read her posts
       if (timeline.userId === userId)
         return true
@@ -592,12 +592,12 @@ export function addModel(dbAdapter) {
 
       // this is a public feed, anyone can read public posts, this is
       // a free country
-      var user = await timeline.getUser()
+      const user = await timeline.getUser()
       if (user.isPrivate !== '1')
         return true
 
       // otherwise user can view post if and only if she is subscriber
-      var userIds = await timeline.getSubscriberIds()
+      const userIds = await timeline.getSubscriberIds()
       return userIds.indexOf(userId) >= 0
     }))
 

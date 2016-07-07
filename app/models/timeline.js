@@ -7,7 +7,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Timeline = function (params) {
+  const Timeline = function (params) {
     this.id = params.id
     this.intId = params.intId
     this.name = params.name
@@ -372,12 +372,12 @@ export function addModel(dbAdapter) {
    * timeline.
    */
   Timeline.prototype.getSubscribedTimelineIds = async function() {
-    var subscribers = await this.getSubscribers(true);
+    const subscribers = await this.getSubscribers(true);
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()))
   }
 
   Timeline.prototype.getSubscribersRiversOfNewsIntIds = async function() {
-    var subscribers = await this.getSubscribers(true);
+    const subscribers = await this.getSubscribers(true);
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()))
   }
 
@@ -415,7 +415,7 @@ export function addModel(dbAdapter) {
       }
     }
 
-    var currentTime = new Date().getTime()
+    const currentTime = new Date().getTime()
 
     if (action === "like") {
       await dbAdapter.insertPostIntoFeeds([this.intId], postId)
@@ -449,12 +449,12 @@ export function addModel(dbAdapter) {
 
     // this is a public feed, anyone can read public posts, this is
     // a free country
-    var user = await this.getUser()
+    const user = await this.getUser()
     if (user && user.isPrivate !== '1')
       return true
 
     // otherwise user can view post if and only if she is subscriber
-    var userIds = await this.getSubscriberIds()
+    const userIds = await this.getSubscriberIds()
     return userIds.indexOf(userId) >= 0
   }
 

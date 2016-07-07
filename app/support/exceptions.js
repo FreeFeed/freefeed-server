@@ -1,10 +1,12 @@
 exports.reportError = function (res) {
   return function (err) {
-    var status = err.status || 422
-    var result = {}
+    const status = err.status || 422
+    const result = {}
+
     if ('message' in err) {
       result.err = err.message
     }
+
     res.status(status).jsonp(result)
   }
 }
