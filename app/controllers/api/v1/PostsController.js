@@ -51,7 +51,7 @@ export default class PostsController {
         ])
       })
       const timelineIds = _.flatten(await Promise.all(promises))
-      _.each(timelineIds, (id, i)=>{
+      _.each(timelineIds, (id, i) => {
         if (null == id) {
           throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
         }

@@ -163,7 +163,7 @@ export function addModel(dbAdapter) {
       const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()])
       posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser }, myDiscussionsFeedSourcesIds)
     }
-    const postIds = posts.map((p)=>{
+    const postIds = posts.map((p) => {
       return p.id
     })
 
@@ -179,7 +179,7 @@ export function addModel(dbAdapter) {
       const absentPostIds = _.difference(localBumpedPostIds, postIds)
       if (absentPostIds.length > 0) {
         let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, { currentUser: this.currentUser })
-        localBumpedPosts = _.sortBy(localBumpedPosts, (post)=>{
+        localBumpedPosts = _.sortBy(localBumpedPosts, (post) => {
           return _.indexOf(absentPostIds, post.id)
         })
         posts = localBumpedPosts.concat(posts)
@@ -187,13 +187,13 @@ export function addModel(dbAdapter) {
 
       for (const p of posts) {
         if (_.includes(localBumpedPostIds, p.id)) {
-          const bump = _.find(localBumps, (b)=>{ return b.postId === p.id })
+          const bump = _.find(localBumps, (b) => { return b.postId === p.id })
           p.bumpedAt = bump.bumpedAt
         }
       }
     }
 
-    posts.sort((p1, p2)=>{
+    posts.sort((p1, p2) => {
       let t1 = p1.updatedAt
       let t2 = p2.updatedAt
       if (p1.bumpedAt) {

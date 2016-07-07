@@ -154,7 +154,7 @@ AbstractSerializer.prototype = {
     const serializer = new this.strategy[field].serializeUsing(null)
     const modelName = serializer.name
     const tempIdsStorageName = `__${modelName}_ids`
-    const storeTempModelIds = (modelIds)=>{
+    const storeTempModelIds = (modelIds) => {
       if (!root[this.RELATIONS_STORAGE]) {
         root[this.RELATIONS_STORAGE] = {}
       }
@@ -217,7 +217,7 @@ AbstractSerializer.prototype = {
     root = root || {}
     level = level || 0
 
-    const nodeProcessor = async (fieldName)=>{
+    const nodeProcessor = async (fieldName) => {
       const res = await this.processNode(root, fieldName, level + 1)
       if (res != null) {
         const currentStrategy = this.strategy[fieldName]
@@ -253,7 +253,7 @@ AbstractSerializer.prototype = {
       return null
     }
 
-    const relationsDescr = _.map(relations, (descr, k)=>{
+    const relationsDescr = _.map(relations, (descr, k) => {
       descr.relKey = k
 
       let relatedObjectsIds = _.uniq(root[descr.objectIdsKey])
@@ -261,7 +261,7 @@ AbstractSerializer.prototype = {
 
       const existingObjects = root[descr.relKey]
       if (Array.isArray(existingObjects) && existingObjects.length > 0) {
-        existingObjectsIds = existingObjects.map((obj)=>obj.id)
+        existingObjectsIds = existingObjects.map((obj) => obj.id)
         relatedObjectsIds = _.difference(relatedObjectsIds, existingObjectsIds)
       }
 
@@ -272,7 +272,7 @@ AbstractSerializer.prototype = {
 
     delete root[this.RELATIONS_STORAGE]
 
-    const promises = relationsDescr.map(async (rel)=>{
+    const promises = relationsDescr.map(async (rel) => {
       let relatedObjects = await this.serializeRelation(root, rel.objectIds, rel.model, rel.serializeUsing, level)
       const existingObjects = root[rel.relKey] || []
       relatedObjects = relatedObjects || []
@@ -282,9 +282,9 @@ AbstractSerializer.prototype = {
     return Promise.all(promises)
   },
 
-  serializeRelation: async (root, objectIds, model, serializer, level)=>{
+  serializeRelation: async (root, objectIds, model, serializer, level) => {
     const objects = await model.getObjectsByIds(objectIds)
-    const promises = objects.map((object)=>{
+    const promises = objects.map((object) => {
       return new serializer(object).promiseToJSON(root, level + 1)
     })
     return Promise.all(promises)

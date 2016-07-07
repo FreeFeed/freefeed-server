@@ -43,7 +43,7 @@ export default class pubSub {
   }
 
   async newComment(comment, timelines) {
-    const timelineIds = timelines.map((t)=>t.id)
+    const timelineIds = timelines.map((t) => t.id)
     const payload = JSON.stringify({ commentId: comment.id, timelineIds })
     await this.publisher.commentCreated(payload)
   }
@@ -59,7 +59,7 @@ export default class pubSub {
   }
 
   async newLike(post, userId, timelines) {
-    const timelineIds = timelines.map((t)=>t.id)
+    const timelineIds = timelines.map((t) => t.id)
     const payload = JSON.stringify({ userId, postId: post.id, timelineIds })
     await this.publisher.likeAdded(payload)
   }

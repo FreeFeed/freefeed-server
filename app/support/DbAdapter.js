@@ -22,20 +22,20 @@ const USER_COLUMNS = {
 }
 
 const USER_COLUMNS_MAPPING = {
-  username:  (username)=>{return username.toLowerCase()},
-  createdAt: (timestamp)=>{
+  username:  (username) => {return username.toLowerCase()},
+  createdAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt: (timestamp)=>{
+  updatedAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  isPrivate:           (is_private)=>{return is_private === '1'},
-  isRestricted:        (is_restricted)=>{return is_restricted === '1'},
-  resetPasswordSentAt: (timestamp)=>{
+  isPrivate:           (is_private) => {return is_private === '1'},
+  isRestricted:        (is_restricted) => {return is_restricted === '1'},
+  resetPasswordSentAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -63,12 +63,12 @@ const USER_FIELDS = {
 }
 
 const USER_FIELDS_MAPPING = {
-  created_at:                (time)=>{ return time.getTime().toString() },
-  updated_at:                (time)=>{ return time.getTime().toString() },
-  is_private:                (is_private)=>{return is_private ? '1' : '0' },
-  is_restricted:             (is_restricted)=>{return is_restricted ? '1' : '0' },
-  reset_password_sent_at:    (time)=>{ return time && time.getTime() },
-  reset_password_expires_at: (time)=>{ return time && time.getTime() }
+  created_at:                (time) => { return time.getTime().toString() },
+  updated_at:                (time) => { return time.getTime().toString() },
+  is_private:                (is_private) => {return is_private ? '1' : '0' },
+  is_restricted:             (is_restricted) => {return is_restricted ? '1' : '0' },
+  reset_password_sent_at:    (time) => { return time && time.getTime() },
+  reset_password_expires_at: (time) => { return time && time.getTime() }
 }
 
 const USER_STATS_FIELDS = {
@@ -96,27 +96,27 @@ const ATTACHMENT_COLUMNS = {
 }
 
 const ATTACHMENT_COLUMNS_MAPPING = {
-  createdAt: (timestamp)=>{
+  createdAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt: (timestamp)=>{
+  updatedAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  noThumbnail: (no_thumbnail)=>{return no_thumbnail === '1'},
-  fileSize:    (file_size)=>{
+  noThumbnail: (no_thumbnail) => {return no_thumbnail === '1'},
+  fileSize:    (file_size) => {
     return parseInt(file_size, 10)
   },
-  postId: (post_id)=> {
+  postId: (post_id) => {
     if (validator.isUUID(post_id, 4)) {
       return post_id
     }
     return null
   },
-  userId: (user_id)=> {
+  userId: (user_id) => {
     if (validator.isUUID(user_id, 4)) {
       return user_id
     }
@@ -142,12 +142,12 @@ const ATTACHMENT_FIELDS = {
 }
 
 const ATTACHMENT_FIELDS_MAPPING = {
-  created_at:   (time)=>{ return time.getTime().toString() },
-  updated_at:   (time)=>{ return time.getTime().toString() },
-  no_thumbnail: (no_thumbnail)=>{return no_thumbnail ? '1' : '0' },
-  file_size:    (file_size)=>{return file_size && file_size.toString()},
-  post_id:      (post_id)=> {return post_id ? post_id : ''},
-  user_id:      (user_id)=> {return user_id ? user_id : ''}
+  created_at:   (time) => { return time.getTime().toString() },
+  updated_at:   (time) => { return time.getTime().toString() },
+  no_thumbnail: (no_thumbnail) => {return no_thumbnail ? '1' : '0' },
+  file_size:    (file_size) => {return file_size && file_size.toString()},
+  post_id:      (post_id) => {return post_id ? post_id : ''},
+  user_id:      (user_id) => {return user_id ? user_id : ''}
 }
 
 
@@ -161,12 +161,12 @@ const COMMENT_COLUMNS = {
 }
 
 const COMMENT_COLUMNS_MAPPING = {
-  createdAt: (timestamp)=>{
+  createdAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt: (timestamp)=>{
+  updatedAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -183,10 +183,10 @@ const COMMENT_FIELDS = {
 }
 
 const COMMENT_FIELDS_MAPPING = {
-  created_at: (time)=>{ return time.getTime().toString() },
-  updated_at: (time)=>{ return time.getTime().toString() },
-  post_id:    (post_id)=> {return post_id ? post_id : ''},
-  user_id:    (user_id)=> {return user_id ? user_id : ''}
+  created_at: (time) => { return time.getTime().toString() },
+  updated_at: (time) => { return time.getTime().toString() },
+  post_id:    (post_id) => {return post_id ? post_id : ''},
+  user_id:    (user_id) => {return user_id ? user_id : ''}
 }
 
 
@@ -198,12 +198,12 @@ const FEED_COLUMNS = {
 }
 
 const FEED_COLUMNS_MAPPING = {
-  createdAt: (timestamp)=>{
+  createdAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt: (timestamp)=>{
+  updatedAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -220,9 +220,9 @@ const FEED_FIELDS = {
 }
 
 const FEED_FIELDS_MAPPING = {
-  created_at: (time)=>{ return time.getTime().toString() },
-  updated_at: (time)=>{ return time.getTime().toString() },
-  user_id:    (user_id)=> {return user_id ? user_id : ''}
+  created_at: (time) => { return time.getTime().toString() },
+  updated_at: (time) => { return time.getTime().toString() },
+  user_id:    (user_id) => {return user_id ? user_id : ''}
 }
 
 
@@ -235,18 +235,18 @@ const POST_COLUMNS = {
 }
 
 const POST_COLUMNS_MAPPING = {
-  createdAt: (timestamp)=>{
+  createdAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt: (timestamp)=>{
+  updatedAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  commentsDisabled: (comments_disabled)=>{return comments_disabled === '1'},
-  userId:           (user_id)=> {
+  commentsDisabled: (comments_disabled) => {return comments_disabled === '1'},
+  userId:           (user_id) => {
     if (validator.isUUID(user_id, 4)) {
       return user_id
     }
@@ -268,10 +268,10 @@ const POST_FIELDS = {
 }
 
 const POST_FIELDS_MAPPING = {
-  created_at:        (time)=>{ return time.getTime().toString() },
-  updated_at:        (time)=>{ return time.getTime().toString() },
-  comments_disabled: (comments_disabled)=>{return comments_disabled ? '1' : '0' },
-  user_id:           (user_id)=> {return user_id ? user_id : ''}
+  created_at:        (time) => { return time.getTime().toString() },
+  updated_at:        (time) => { return time.getTime().toString() },
+  comments_disabled: (comments_disabled) => {return comments_disabled ? '1' : '0' },
+  user_id:           (user_id) => {return user_id ? user_id : ''}
 }
 
 
@@ -576,7 +576,7 @@ export class DbAdapter {
 
   async statsPostDeleted(authorId, postId) {
     const postLikers = await this.getPostLikersIdsWithoutBannedUsers(postId, null)
-    const promises = postLikers.map((id)=>{
+    const promises = postLikers.map((id) => {
       return this.calculateUserStats(id)
     })
     await Promise.all(promises)
@@ -650,7 +650,7 @@ export class DbAdapter {
 
   async getUserSubscriptionRequestsIds(toUserId) {
     const res = await this.database('subscription_requests').select('from_user_id').orderBy('created_at', 'desc').where('to_user_id', toUserId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.from_user_id
     })
     return attrs
@@ -666,7 +666,7 @@ export class DbAdapter {
 
   async getUserSubscriptionPendingRequestsIds(fromUserId) {
     const res = await this.database('subscription_requests').select('to_user_id').orderBy('created_at', 'desc').where('from_user_id', fromUserId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.to_user_id
     })
     return attrs
@@ -678,7 +678,7 @@ export class DbAdapter {
 
   async getUserBansIds(userId) {
     const res = await this.database('bans').select('banned_user_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.banned_user_id
     })
     return attrs
@@ -691,8 +691,8 @@ export class DbAdapter {
       .where('user_id', 'in', bannersUserIds)
       .orderByRaw(`position(user_id::text in '${bannersUserIds.toString()}')`)
 
-    const matrix = bannersUserIds.map((id)=>{
-      const foundBan = _.find(res, (record)=>{
+    const matrix = bannersUserIds.map((id) => {
+      const foundBan = _.find(res, (record) => {
         return record.user_id == id
       })
 
@@ -727,7 +727,7 @@ export class DbAdapter {
 
   async getGroupAdministratorsIds(groupId) {
     const res = await this.database('group_admins').select('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.user_id
     })
     return attrs
@@ -814,7 +814,7 @@ export class DbAdapter {
 
   async getPostAttachments(postId) {
     const res = await this.database('attachments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.uid
     })
     return attrs
@@ -863,7 +863,7 @@ export class DbAdapter {
     const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
       .where('user_id', 'not in', subquery)
-    const userIds = res.map((record)=>{
+    const userIds = res.map((record) => {
       return record.user_id
     })
     return userIds
@@ -1200,7 +1200,7 @@ export class DbAdapter {
   }
 
   async createPostsUsagesInTimeline(postIds, feedIntIds) {
-    const preparedPostIds = postIds.map((el)=>{ return `'${el}'`; })
+    const preparedPostIds = postIds.map((el) => { return `'${el}'`; })
     if (!feedIntIds || feedIntIds.length == 0 || preparedPostIds.length == 0) {
       return null
     }
@@ -1235,7 +1235,7 @@ export class DbAdapter {
 
   async getTimelinePostsRange(timelineId, offset, limit) {
     const res = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[timelineId]])
-    const postIds = res.map((record)=>{
+    const postIds = res.map((record) => {
       return record.uid
     })
     return postIds
@@ -1248,7 +1248,7 @@ export class DbAdapter {
         .offset(offset).limit(limit)
         .whereRaw('feed_ids && ?', [timelineIds]);
 
-    const postUids = responses.map((p)=>p.uid)
+    const postUids = responses.map((p) => p.uid)
     const commentsCount = {}
     const likesCount = {}
 
@@ -1295,12 +1295,12 @@ export class DbAdapter {
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
     const res1 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
-    const postIds1 = res1.map((record)=>{
+    const postIds1 = res1.map((record) => {
       return record.uid
     })
 
     const res2 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId2]])
-    const postIds2 = res2.map((record)=>{
+    const postIds2 = res2.map((record) => {
       return record.uid
     })
 
@@ -1313,7 +1313,7 @@ export class DbAdapter {
 
   async getUserSubscriptionsIds(userId) {
     const res = await this.database('subscriptions').select('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.feed_id
     })
     return attrs
@@ -1329,7 +1329,7 @@ export class DbAdapter {
 
   async getTimelineSubscribersIds(timelineId) {
     const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
-    const attrs = res.map((record)=>{
+    const attrs = res.map((record) => {
       return record.user_id
     })
     return attrs
@@ -1353,7 +1353,7 @@ export class DbAdapter {
   }
 
   async subscribeUserToTimelines(timelineIds, currentUserId) {
-    const subsPromises = timelineIds.map((id)=>{
+    const subsPromises = timelineIds.map((id) => {
       const currentTime = new Date().toISOString()
 
       const payload = {
@@ -1374,7 +1374,7 @@ export class DbAdapter {
   }
 
   async unsubscribeUserFromTimelines(timelineIds, currentUserId) {
-    const unsubsPromises = timelineIds.map((id)=> {
+    const unsubsPromises = timelineIds.map((id) => {
       return this.database('subscriptions').where({
         feed_id: id,
         user_id: currentUserId
@@ -1417,7 +1417,7 @@ export class DbAdapter {
     }
 
     const res = await this.database('local_bumps').orderBy('created_at', 'desc').where('user_id', userId).where('created_at', '>', time.toISOString())
-    const bumps = res.map((record)=>{
+    const bumps = res.map((record) => {
       return {
         postId:   record.post_id,
         bumpedAt: record.created_at.getTime()

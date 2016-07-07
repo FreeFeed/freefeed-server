@@ -667,7 +667,7 @@ exports.addModel = function (dbAdapter) {
     const timelineIds = await this.getTimelineIds()
     const timelines = await dbAdapter.getTimelinesByIds(_.values(timelineIds), params)
     const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
-    const sortedTimelines = _.sortBy(timelines, (tl)=>{
+    const sortedTimelines = _.sortBy(timelines, (tl) => {
       return _.indexOf(timelinesOrder, tl.name)
     })
 
@@ -1075,7 +1075,7 @@ exports.addModel = function (dbAdapter) {
     const followedGroups = await this.getFollowedGroups()
     const currentUserId  = this.id
 
-    const promises = followedGroups.map(async (group)=>{
+    const promises = followedGroups.map(async (group) => {
       const adminIds = await group.getAdministratorIds()
       if (adminIds.indexOf(currentUserId) !== -1) {
         return group
@@ -1090,7 +1090,7 @@ exports.addModel = function (dbAdapter) {
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
     const managedGroups = await this.getManagedGroups()
 
-    const promises = managedGroups.map(async (group)=>{
+    const promises = managedGroups.map(async (group) => {
       const unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
       return unconfirmedFollowerIds.length > 0
     })

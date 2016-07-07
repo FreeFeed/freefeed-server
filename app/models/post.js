@@ -306,10 +306,10 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.publishChangesToFeeds = async function(timelines, isLikeAction = false) {
-    const feedsIntIds = timelines.map((t)=> t.intId)
+    const feedsIntIds = timelines.map((t) => t.intId)
     const insertIntoFeedIds = _.difference(feedsIntIds, this.feedIntIds)
-    const timelineOwnersIds = timelines.map((t)=> t.userId)
-    let riversOfNewsOwners = timelines.map((t)=> {
+    const timelineOwnersIds = timelines.map((t) => t.userId)
+    let riversOfNewsOwners = timelines.map((t) => {
       if (t.isRiverOfNews() && _.includes(insertIntoFeedIds, t.intId)) {
         return t.userId
       }
@@ -328,7 +328,7 @@ export function addModel(dbAdapter) {
         return
       }
 
-      const promises = riversOfNewsOwners.map((ownerId)=> dbAdapter.createLocalBump(this.id, ownerId))
+      const promises = riversOfNewsOwners.map((ownerId) => dbAdapter.createLocalBump(this.id, ownerId))
       await Promise.all(promises)
 
       return
@@ -337,7 +337,7 @@ export function addModel(dbAdapter) {
     const currentTime = new Date().getTime()
     await dbAdapter.setPostUpdatedAt(this.id, currentTime)
 
-    const promises = timelineOwnersIds.map(async (ownerId)=> {
+    const promises = timelineOwnersIds.map(async (ownerId) => {
       const feedOwner = await dbAdapter.getFeedOwnerById(ownerId)
       return feedOwner.updateLastActivityAt()
     })
@@ -360,7 +360,7 @@ export function addModel(dbAdapter) {
 
   Post.prototype.getPostComments = async function() {
     const comments = await dbAdapter.getAllPostCommentsWithoutBannedUsers(this.id, this.currentUser)
-    const commentsIds = comments.map((cmt)=>{
+    const commentsIds = comments.map((cmt) => {
       return cmt.id
     })
 

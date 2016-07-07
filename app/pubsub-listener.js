@@ -214,7 +214,7 @@ export default class PubsubListener {
     const json = await new PostSerializer(post).promiseToJSON()
 
     const type = 'post:new'
-    const promises = feedIds.map((feedId)=>{
+    const promises = feedIds.map((feedId) => {
       const room = `timeline:${feedId}`
       return this.validateAndEmitMessage(sockets, room, type, json, post)
     })
@@ -264,7 +264,7 @@ export default class PubsubListener {
     const type = 'comment:new'
     let room
 
-    const promises = actualTimelineIds.map((timelineId)=>{
+    const promises = actualTimelineIds.map((timelineId) => {
       room = `timeline:${timelineId}`
       return this.validateAndEmitMessage(sockets, room, type, json, post)
     })
@@ -329,7 +329,7 @@ export default class PubsubListener {
     const type = 'like:new'
     let room
 
-    const promises = actualTimelineIds.map((timelineId)=>{
+    const promises = actualTimelineIds.map((timelineId) => {
       room = `timeline:${timelineId}`
       return this.validateAndEmitMessage(sockets, room, type, json, post)
     })
