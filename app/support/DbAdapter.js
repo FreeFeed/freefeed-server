@@ -311,7 +311,7 @@ export class DbAdapter {
 
   updateUser(userId, payload) {
     let tokenExpirationTime = new Date(Date.now())
-    const expireAfter = 60*60*24 // 24 hours
+    const expireAfter = 60 * 60 * 24 // 24 hours
 
     let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
 
