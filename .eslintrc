@@ -28,6 +28,7 @@
     "no-var": 2,
     "object-curly-spacing": [2, "always"],
     "object-shorthand": [2, "properties"],
+    "object-curly-newline": [2, { "multiline": true }],
     "padded-blocks": [2, "never"],
     "prefer-const": 2,
     "prefer-template": 2,

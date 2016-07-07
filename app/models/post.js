@@ -139,9 +139,7 @@ export function addModel(dbAdapter) {
     this.commentsDisabled = newValue
 
     // Update post body in DB
-    const payload = {
-      'commentsDisabled': this.commentsDisabled
-    }
+    const payload = { 'commentsDisabled': this.commentsDisabled }
     await dbAdapter.updatePost(this.id, payload)
 
     // Finally, publish changes

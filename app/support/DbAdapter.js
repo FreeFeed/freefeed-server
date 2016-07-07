@@ -799,16 +799,12 @@ export class DbAdapter {
 
 
   linkAttachmentToPost(attachmentId, postId) {
-    const payload = {
-      post_id: postId
-    }
+    const payload = { post_id: postId }
     return this.database('attachments').where('uid', attachmentId).update(payload)
   }
 
   unlinkAttachmentFromPost(attachmentId, postId) {
-    const payload = {
-      post_id: null
-    }
+    const payload = { post_id: null }
     return this.database('attachments').where('uid', attachmentId).where('post_id', postId).update(payload)
   }
 
@@ -1180,16 +1176,12 @@ export class DbAdapter {
   setPostUpdatedAt(postId, time) {
     const d = new Date()
     d.setTime(time)
-    const payload = {
-      updated_at: d.toISOString()
-    }
+    const payload = { updated_at: d.toISOString() }
     return this.database('posts').where('uid', postId).update(payload)
   }
 
   async deletePost(postId) {
-    await this.database('posts').where({
-      uid: postId
-    }).delete()
+    await this.database('posts').where({ uid: postId }).delete()
 
 
     //TODO: delete post local bumps

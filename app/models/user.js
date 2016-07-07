@@ -1000,9 +1000,7 @@ exports.addModel = function (dbAdapter) {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers
       const updatedAt = new Date().getTime()
-      const payload = {
-        'updatedAt': updatedAt.toString()
-      }
+      const payload = { 'updatedAt': updatedAt.toString() }
       await dbAdapter.updateUser(this.id, payload)
     }
   }
