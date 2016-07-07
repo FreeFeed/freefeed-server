@@ -352,8 +352,13 @@ export function addModel(dbAdapter) {
       throw new Error("Wrong feed owner")
     }
 
-    const feedAccessible = await feedOwner.canBeAccessedByUser(viewer)
-    if(feedAccessible){
+    const feedOwnerSubscriberIds = await feedOwner.getSubscriberIds()
+
+    if (feedOwner.isPrivate !== '1') {
+      return
+    }
+
+    if (viewer && (viewer.id == this.id || feedOwnerSubscriberIds.indexOf(viewer.id) !== -1)) {
       return
     }
 
