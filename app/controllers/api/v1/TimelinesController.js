@@ -78,6 +78,8 @@ export default class TimelineController {
         currentUser: currentUser
       })
 
+      await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
+
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
@@ -108,6 +110,8 @@ export default class TimelineController {
         currentUser: currentUser
       })
 
+      await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
+
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
@@ -137,6 +141,8 @@ export default class TimelineController {
         limit: req.query.limit,
         currentUser: currentUser
       })
+
+      await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
 
       let json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
