@@ -90,7 +90,9 @@ export function addModel(dbAdapter) {
       'updatedAt': currentTime.toString()
     }
 
-    this.id = await dbAdapter.createTimeline(payload)
+    const ids = await dbAdapter.createTimeline(payload);
+    this.id = ids.id;
+    this.intId = ids.intId;
 
     this.createdAt = currentTime
     this.updatedAt = currentTime
@@ -122,19 +124,6 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getFeedPosts = async function(offset, limit, params, customFeedIds) {
-    if (_.isUndefined(offset))
-      offset = this.offset
-    else if (offset < 0)
-      offset = 0
-
-    // -1 = special magic number, meaning “do not use limit defaults,
-    // do not use passed in value, use 0 instead". this is at the very least
-    // used in Timeline.mergeTo()
-    if (_.isUndefined(limit))
-      limit = this.limit
-    else if (limit < 0)
-      limit = 0
-
     let valid = await this.canShow(this.currentUser)
 
     if (!valid)
@@ -149,6 +138,19 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getPosts = async function(offset, limit) {
+    if (_.isUndefined(offset))
+      offset = this.offset
+    else if (offset < 0)
+      offset = 0
+
+    // -1 = special magic number, meaning “do not use limit defaults,
+    // do not use passed in value, use 0 instead". this is at the very least
+    // used in Timeline.mergeTo()
+    if (_.isUndefined(limit))
+      limit = this.limit
+    else if (limit < 0)
+      limit = 0
+
     let reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     let banIds = reader ? (await reader.getBanIds()) : []
     let readerOwnFeeds = reader ? (await reader.getPublicTimelinesIntIds()) : []
@@ -156,10 +158,10 @@ export function addModel(dbAdapter) {
 
     let posts
     if (this.name != 'MyDiscussions') {
-      posts = await this.getFeedPosts(offset, limit, {currentUser: this.currentUser})
+      posts = await this.getFeedPosts(0, offset + limit, {currentUser: this.currentUser})
     } else {
       const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()])
-      posts = await this.getFeedPosts(offset, limit, {currentUser: this.currentUser}, myDiscussionsFeedSourcesIds)
+      posts = await this.getFeedPosts(0, offset + limit, {currentUser: this.currentUser}, myDiscussionsFeedSourcesIds)
     }
     let postIds = posts.map((p)=>{
       return p.id
@@ -202,6 +204,8 @@ export function addModel(dbAdapter) {
       }
       return t2 - t1
     })
+
+    posts = posts.slice(offset, offset + limit)
 
     let uids = _.uniq(posts.map(post => post.userId))
     let users = (await dbAdapter.getUsersByIds(uids)).filter(Boolean)
@@ -341,6 +345,21 @@ export function addModel(dbAdapter) {
     this.subscribers = users
 
     return this.subscribers
+  }
+
+  Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer){
+    if(!feedOwner || feedOwner.id != this.userId){
+      throw new Error("Wrong feed owner")
+    }
+
+    const feedAccessible = await feedOwner.canBeAccessedByUser(viewer)
+    if(feedAccessible){
+      return
+    }
+
+    feedOwner.administrators = []
+    this.subscribers = []
+    this.user = feedOwner
   }
 
   /**
