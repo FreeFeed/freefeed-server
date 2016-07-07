@@ -358,7 +358,7 @@ export function addModel(dbAdapter) {
       return
     }
 
-    if (viewer && (viewer.id == this.id || feedOwnerSubscriberIds.indexOf(viewer.id) !== -1)) {
+    if (viewer && (viewer.id == feedOwner.id || feedOwnerSubscriberIds.indexOf(viewer.id) !== -1)) {
       return
     }
 
