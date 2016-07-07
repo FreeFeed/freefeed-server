@@ -22,7 +22,7 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.className = Timeline
-  Timeline.namespace = "timeline"
+  Timeline.namespace = 'timeline'
 
   Object.defineProperty(Timeline.prototype, 'name', {
     get: function () { return this.name_ },
@@ -349,7 +349,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer) {
     if (!feedOwner || feedOwner.id != this.userId) {
-      throw new Error("Wrong feed owner")
+      throw new Error('Wrong feed owner')
     }
 
     const feedOwnerSubscriberIds = await feedOwner.getSubscriberIds()
@@ -382,31 +382,31 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.isRiverOfNews = function () {
-    return this.name === "RiverOfNews"
+    return this.name === 'RiverOfNews'
   }
 
   Timeline.prototype.isPosts = function () {
-    return this.name === "Posts"
+    return this.name === 'Posts'
   }
 
   Timeline.prototype.isLikes = function () {
-    return this.name === "Likes"
+    return this.name === 'Likes'
   }
 
   Timeline.prototype.isComments = function () {
-    return this.name === "Comments"
+    return this.name === 'Comments'
   }
 
   Timeline.prototype.isDirects = function () {
-    return this.name === "Directs"
+    return this.name === 'Directs'
   }
 
   Timeline.prototype.isHides = function () {
-    return this.name === "Hides"
+    return this.name === 'Hides'
   }
 
   Timeline.prototype.updatePost = async function(postId, action) {
-    if (action === "like") {
+    if (action === 'like') {
       const postInTimeline = await dbAdapter.isPostPresentInTimeline(this.intId, postId)
 
       if (postInTimeline) {
@@ -417,7 +417,7 @@ export function addModel(dbAdapter) {
 
     const currentTime = new Date().getTime()
 
-    if (action === "like") {
+    if (action === 'like') {
       await dbAdapter.insertPostIntoFeeds([this.intId], postId)
       if (this.isRiverOfNews()) {
         await dbAdapter.createLocalBump(postId, this.userId)

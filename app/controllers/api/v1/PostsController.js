@@ -115,19 +115,19 @@ export default class PostsController {
 
       // this is a private post
       if (!valid)
-        throw new ForbiddenException("Not found")
+        throw new ForbiddenException('Not found')
 
       if (req.user) {
         const author = await dbAdapter.getUserById(post.userId)
         const banIds = await author.getBanIds()
 
         if (banIds.indexOf(req.user.id) >= 0)
-          throw new ForbiddenException("This user has prevented you from seeing their posts")
+          throw new ForbiddenException('This user has prevented you from seeing their posts')
 
         const yourBanIds = await req.user.getBanIds()
 
         if (yourBanIds.indexOf(author.id) >= 0)
-          throw new ForbiddenException("You have blocked this user and do not want to see their posts")
+          throw new ForbiddenException('You have blocked this user and do not want to see their posts')
       }
 
       const json = new PostSerializer(post).promiseToJSON()
@@ -161,7 +161,7 @@ export default class PostsController {
 
       const valid = await post.canShow(req.user.id)
       if (!valid) {
-        throw new Error("Not found")
+        throw new Error('Not found')
       }
 
       const affectedTimelines = await post.addLike(req.user)
@@ -200,7 +200,7 @@ export default class PostsController {
 
       const valid = await post.canShow(req.user.id)
       if (!valid) {
-        throw new Error("Not found")
+        throw new Error('Not found')
       }
 
       await post.removeLike(req.user.id)

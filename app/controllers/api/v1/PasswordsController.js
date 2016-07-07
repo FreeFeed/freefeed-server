@@ -8,7 +8,7 @@ export default class PasswordsController {
     const email = req.body.email
 
     if (email == null || email.length == 0) {
-      res.jsonp({ err: "Email cannot be blank" })
+      res.jsonp({ err: 'Email cannot be blank' })
       return
     }
 
@@ -33,7 +33,7 @@ export default class PasswordsController {
     const token = req.params.resetPasswordToken
 
     if (token == null || token.length == 0) {
-      res.jsonp({ err: "Token cannot be blank" })
+      res.jsonp({ err: 'Token cannot be blank' })
       return
     }
 

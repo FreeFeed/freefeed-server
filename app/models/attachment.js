@@ -7,7 +7,7 @@ import meta from 'musicmetadata'
 import mmm from 'mmmagic'
 import _ from 'lodash'
 
-import { load as configLoader } from "../../config/config"
+import { load as configLoader } from '../../config/config'
 
 
 const config = configLoader()

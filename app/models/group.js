@@ -1,4 +1,4 @@
-import { inherits } from "util"
+import { inherits } from 'util'
 
 import _ from 'lodash'
 
@@ -20,14 +20,14 @@ export function addModel(dbAdapter) {
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
     this.isRestricted = params.isRestricted
-    this.type = "group"
+    this.type = 'group'
     this.profilePictureUuid = params.profilePictureUuid || ''
   }
 
   inherits(Group, User)
 
   Group.className = Group
-  Group.namespace = "user"
+  Group.namespace = 'user'
 
   Object.defineProperty(Group.prototype, 'username', {
     get: function () { return this.username_ },
@@ -127,7 +127,7 @@ export function addModel(dbAdapter) {
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
       if (!User.descriptionIsValid(params.description)) {
-        throw new Error("Description is too long")
+        throw new Error('Description is too long')
       }
 
       this.description = params.description
@@ -182,11 +182,11 @@ export function addModel(dbAdapter) {
     const adminIds = await this.getAdministratorIds()
 
     if (adminIds.indexOf(feedId) == -1) {
-      throw new Error("Not an administrator")
+      throw new Error('Not an administrator')
     }
 
     if (adminIds.length == 1) {
-      throw new Error("Cannot remove last administrator")
+      throw new Error('Cannot remove last administrator')
     }
 
     return dbAdapter.removeAdministratorFromGroup(this.id, feedId)

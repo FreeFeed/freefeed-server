@@ -5,7 +5,7 @@ import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
 import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
-import { load as configLoader } from "../../../../config/config"
+import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 
 
@@ -105,7 +105,7 @@ export default class UsersController {
       }
 
       if (user.isPrivate !== '1') {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
@@ -114,7 +114,7 @@ export default class UsersController {
       const valid = !hasRequest && banIds.indexOf(req.user.id) === -1
 
       if (!valid) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
 
       await req.user.sendSubscriptionRequest(user.id)
@@ -140,7 +140,7 @@ export default class UsersController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
       if (!hasRequest) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
       await req.user.acceptSubscriptionRequest(user.id)
 
@@ -165,7 +165,7 @@ export default class UsersController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
       if (!hasRequest) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
       await req.user.rejectSubscriptionRequest(user.id)
 
@@ -330,23 +330,23 @@ export default class UsersController {
       }
 
       if (user.isPrivate === '1') {
-        throw new ForbiddenException("You cannot subscribe to private feed")
+        throw new ForbiddenException('You cannot subscribe to private feed')
       }
 
       const timelineId = await user.getPostsTimelineId()
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
       if (isSubscribed) {
-        throw new ForbiddenException("You are already subscribed to that user")
+        throw new ForbiddenException('You are already subscribed to that user')
       }
 
       const banIds = await req.user.getBanIds()
       if (banIds.indexOf(user.id) >= 0) {
-        throw new ForbiddenException("You cannot subscribe to a banned user")
+        throw new ForbiddenException('You cannot subscribe to a banned user')
       }
 
       const theirBanIds = await user.getBanIds()
       if (theirBanIds.indexOf(req.user.id) >= 0) {
-        throw new ForbiddenException("This user prevented your from subscribing to them")
+        throw new ForbiddenException('This user prevented your from subscribing to them')
       }
 
       await req.user.subscribeToUsername(username)
@@ -375,7 +375,7 @@ export default class UsersController {
 
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
-        throw new ForbiddenException("You are not subscribed to that user")
+        throw new ForbiddenException('You are not subscribed to that user')
       }
 
       await user.unsubscribeFrom(timelineId)
@@ -406,14 +406,14 @@ export default class UsersController {
 
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
       if (!isSubscribed) {
-        throw new ForbiddenException("You are not subscribed to that user")
+        throw new ForbiddenException('You are not subscribed to that user')
       }
 
       if ('group' === user.type) {
         const adminIds = await user.getAdministratorIds()
 
         if (_.includes(adminIds, req.user.id)) {
-          throw new ForbiddenException("Group administrators cannot unsubscribe from own groups")
+          throw new ForbiddenException('Group administrators cannot unsubscribe from own groups')
         }
       }
       await req.user.unsubscribeFrom(timelineId)

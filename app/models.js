@@ -3,7 +3,7 @@ import { connect as postgresConnection } from '../config/postgres'
 import { DbAdapter } from './support/DbAdapter'
 import { PubSubAdapter } from './support/PubSubAdapter'
 import pubSub from './pubsub'
-import { load as configLoader } from "../config/config"
+import { load as configLoader } from '../config/config'
 import pubSubStub from './pubsub-stub'
 
 import { addModel as attachmentModel } from './models/attachment'
@@ -34,7 +34,7 @@ export const postgres = postgresConnection()
 export const dbAdapter = new DbAdapter(postgres)
 
 export { AbstractSerializer } from './serializers/abstract_serializer'
-export { Serializer }         from "./serializers/serializer"
+export { Serializer }         from './serializers/serializer'
 
 const pubsubAdapter = new PubSubAdapter(database)
 const config = configLoader()

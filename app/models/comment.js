@@ -20,7 +20,7 @@ export function addModel(dbAdapter) {
   }
 
   Comment.className = Comment
-  Comment.namespace = "comment"
+  Comment.namespace = 'comment'
 
   Object.defineProperty(Comment.prototype, 'body', {
     get: function () { return this.body_ },
@@ -38,13 +38,13 @@ export function addModel(dbAdapter) {
                && this.postId.length > 0
 
     if (!valid) {
-      throw new Error("Comment text must not be empty")
+      throw new Error('Comment text must not be empty')
     }
 
     const len = GraphemeBreaker.countBreaks(this.body)
 
     if (len > 1500) {
-      throw new Error("Maximum comment length is 1500 characters")
+      throw new Error('Maximum comment length is 1500 characters')
     }
   }
 

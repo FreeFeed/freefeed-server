@@ -11,7 +11,7 @@ import monitor from 'monitor-dog'
 import validator from 'validator'
 import uuid from 'uuid'
 
-import { load as configLoader } from "../../config/config"
+import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
 
@@ -49,7 +49,7 @@ exports.addModel = function (dbAdapter) {
       this.createdAt = params.createdAt
     if (parseInt(params.updatedAt, 10))
       this.updatedAt = params.updatedAt
-    this.type = "user"
+    this.type = 'user'
 
     this.profilePictureUuid = params.profilePictureUuid || ''
     this.subscribedFeedIds = params.subscribedFeedIds || []
@@ -68,7 +68,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.className = User
-  User.namespace = "user"
+  User.namespace = 'user'
 
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
@@ -90,7 +90,7 @@ exports.addModel = function (dbAdapter) {
   })
 
   Object.defineProperty(User.prototype, 'email', {
-    get: function () { return _.isUndefined(this.email_) ? "" : this.email_ },
+    get: function () { return _.isUndefined(this.email_) ? '' : this.email_ },
     set: function (newValue) {
       if (_.isString(newValue))
         this.email_ = newValue.trim()
@@ -136,7 +136,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.isUser = function () {
-    return this.type === "user"
+    return this.type === 'user'
   }
 
   User.prototype.newPost = async function(attrs) {
@@ -277,7 +277,7 @@ exports.addModel = function (dbAdapter) {
     const res = await dbAdapter.existsUsername(this.username)
 
     if (res !== 0)
-      throw new Error("Already exists")
+      throw new Error('Already exists')
   }
 
   User.prototype.validateOnCreate = async function(skip_stoplist) {
@@ -333,7 +333,7 @@ exports.addModel = function (dbAdapter) {
 
     if (params.hasOwnProperty('email') && params.email != this.email) {
       if (!(await User.emailIsValid(params.email))) {
-        throw new Error("Invalid email")
+        throw new Error('Invalid email')
       }
 
       payload.email = params.email
@@ -342,7 +342,7 @@ exports.addModel = function (dbAdapter) {
     if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
       if (params.isPrivate != '0' && params.isPrivate != '1') {
         // ???
-        throw new Error("bad input")
+        throw new Error('bad input')
       }
 
       if (params.isPrivate === '1' && this.isPrivate === '0')
@@ -355,7 +355,7 @@ exports.addModel = function (dbAdapter) {
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
       if (!User.descriptionIsValid(params.description)) {
-        throw new Error("Description is too long")
+        throw new Error('Description is too long')
       }
 
       payload.description = params.description
@@ -506,7 +506,7 @@ exports.addModel = function (dbAdapter) {
     if (password.length === 0) {
       throw new Error('Password cannot be blank')
     } else if (password !== passwordConfirmation) {
-      throw new Error("Passwords do not match")
+      throw new Error('Passwords do not match')
     }
 
     try {
@@ -762,7 +762,7 @@ exports.addModel = function (dbAdapter) {
     const user = await dbAdapter.getFeedOwnerById(timeline.userId)
 
     if (user.username == this.username)
-      throw new Error("Invalid")
+      throw new Error('Invalid')
 
     const timelineIds = await user.getPublicTimelineIds()
     const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
@@ -798,7 +798,7 @@ exports.addModel = function (dbAdapter) {
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
-      throw new Error("Invalid")
+      throw new Error('Invalid')
 
     const promises = []
 
@@ -872,7 +872,7 @@ exports.addModel = function (dbAdapter) {
     try {
       originalSize  = await image.sizeAsync()
     } catch (err) {
-      throw new BadRequestException("Not an image file")
+      throw new BadRequestException('Not an image file')
     }
 
     this.profilePictureUuid = uuid.v4()

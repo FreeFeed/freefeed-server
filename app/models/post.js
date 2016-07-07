@@ -44,7 +44,7 @@ export function addModel(dbAdapter) {
   }
 
   Post.className = Post
-  Post.namespace = "post"
+  Post.namespace = 'post'
 
   Object.defineProperty(Post.prototype, 'body', {
     get: function () { return this.body_ },
@@ -60,13 +60,13 @@ export function addModel(dbAdapter) {
                && this.userId.length > 0
 
     if (!valid) {
-      throw new Error("Post text must not be empty")
+      throw new Error('Post text must not be empty')
     }
 
     const len = GraphemeBreaker.countBreaks(this.body)
 
     if (len > 1500) {
-      throw new Error("Maximum post-length is 1500 graphemes")
+      throw new Error('Maximum post-length is 1500 graphemes')
     }
   }
 

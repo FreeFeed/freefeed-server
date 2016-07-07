@@ -4,21 +4,21 @@ import validator from 'validator'
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
 
 const USER_COLUMNS = {
-  username:               "username",
-  screenName:             "screen_name",
-  email:                  "email",
-  description:            "description",
-  type:                   "type",
-  profilePictureUuid:     "profile_picture_uuid",
-  createdAt:              "created_at",
-  updatedAt:              "updated_at",
-  isPrivate:              "is_private",
-  isRestricted:           "is_restricted",
-  hashedPassword:         "hashed_password",
-  resetPasswordToken:     "reset_password_token",
-  resetPasswordSentAt:    "reset_password_sent_at",
-  resetPasswordExpiresAt: "reset_password_expires_at",
-  frontendPreferences:    "frontend_preferences"
+  username:               'username',
+  screenName:             'screen_name',
+  email:                  'email',
+  description:            'description',
+  type:                   'type',
+  profilePictureUuid:     'profile_picture_uuid',
+  createdAt:              'created_at',
+  updatedAt:              'updated_at',
+  isPrivate:              'is_private',
+  isRestricted:           'is_restricted',
+  hashedPassword:         'hashed_password',
+  resetPasswordToken:     'reset_password_token',
+  resetPasswordSentAt:    'reset_password_sent_at',
+  resetPasswordExpiresAt: 'reset_password_expires_at',
+  frontendPreferences:    'frontend_preferences'
 }
 
 const USER_COLUMNS_MAPPING = {
@@ -43,23 +43,23 @@ const USER_COLUMNS_MAPPING = {
 }
 
 const USER_FIELDS = {
-  uid:                       "id",
-  username:                  "username",
-  screen_name:               "screenName",
-  email:                     "email",
-  description:               "description",
-  type:                      "type",
-  profile_picture_uuid:      "profilePictureUuid",
-  created_at:                "createdAt",
-  updated_at:                "updatedAt",
-  is_private:                "isPrivate",
-  is_restricted:             "isRestricted",
-  hashed_password:           "hashedPassword",
-  reset_password_token:      "resetPasswordToken",
-  reset_password_sent_at:    "resetPasswordSentAt",
-  reset_password_expires_at: "resetPasswordExpiresAt",
-  frontend_preferences:      "frontendPreferences",
-  subscribed_feed_ids:       "subscribedFeedIds"
+  uid:                       'id',
+  username:                  'username',
+  screen_name:               'screenName',
+  email:                     'email',
+  description:               'description',
+  type:                      'type',
+  profile_picture_uuid:      'profilePictureUuid',
+  created_at:                'createdAt',
+  updated_at:                'updatedAt',
+  is_private:                'isPrivate',
+  is_restricted:             'isRestricted',
+  hashed_password:           'hashedPassword',
+  reset_password_token:      'resetPasswordToken',
+  reset_password_sent_at:    'resetPasswordSentAt',
+  reset_password_expires_at: 'resetPasswordExpiresAt',
+  frontend_preferences:      'frontendPreferences',
+  subscribed_feed_ids:       'subscribedFeedIds'
 }
 
 const USER_FIELDS_MAPPING = {
@@ -72,27 +72,27 @@ const USER_FIELDS_MAPPING = {
 }
 
 const USER_STATS_FIELDS = {
-  posts_count:         "posts",
-  likes_count:         "likes",
-  comments_count:      "comments",
-  subscribers_count:   "subscribers",
-  subscriptions_count: "subscriptions"
+  posts_count:         'posts',
+  likes_count:         'likes',
+  comments_count:      'comments',
+  subscribers_count:   'subscribers',
+  subscriptions_count: 'subscriptions'
 }
 
 const ATTACHMENT_COLUMNS = {
-  createdAt:     "created_at",
-  updatedAt:     "updated_at",
-  fileName:      "file_name",
-  fileSize:      "file_size",
-  mimeType:      "mime_type",
-  mediaType:     "media_type",
-  fileExtension: "file_extension",
-  noThumbnail:   "no_thumbnail",
-  imageSizes:    "image_sizes",
-  artist:        "artist",
-  title:         "title",
-  userId:        "user_id",
-  postId:        "post_id"
+  createdAt:     'created_at',
+  updatedAt:     'updated_at',
+  fileName:      'file_name',
+  fileSize:      'file_size',
+  mimeType:      'mime_type',
+  mediaType:     'media_type',
+  fileExtension: 'file_extension',
+  noThumbnail:   'no_thumbnail',
+  imageSizes:    'image_sizes',
+  artist:        'artist',
+  title:         'title',
+  userId:        'user_id',
+  postId:        'post_id'
 }
 
 const ATTACHMENT_COLUMNS_MAPPING = {
@@ -125,20 +125,20 @@ const ATTACHMENT_COLUMNS_MAPPING = {
 }
 
 const ATTACHMENT_FIELDS = {
-  uid:            "id",
-  created_at:     "createdAt",
-  updated_at:     "updatedAt",
-  file_name:      "fileName",
-  file_size:      "fileSize",
-  mime_type:      "mimeType",
-  media_type:     "mediaType",
-  file_extension: "fileExtension",
-  no_thumbnail:   "noThumbnail",
-  image_sizes:    "imageSizes",
-  artist:         "artist",
-  title:          "title",
-  user_id:        "userId",
-  post_id:        "postId"
+  uid:            'id',
+  created_at:     'createdAt',
+  updated_at:     'updatedAt',
+  file_name:      'fileName',
+  file_size:      'fileSize',
+  mime_type:      'mimeType',
+  media_type:     'mediaType',
+  file_extension: 'fileExtension',
+  no_thumbnail:   'noThumbnail',
+  image_sizes:    'imageSizes',
+  artist:         'artist',
+  title:          'title',
+  user_id:        'userId',
+  post_id:        'postId'
 }
 
 const ATTACHMENT_FIELDS_MAPPING = {
@@ -153,11 +153,11 @@ const ATTACHMENT_FIELDS_MAPPING = {
 
 
 const COMMENT_COLUMNS = {
-  createdAt: "created_at",
-  updatedAt: "updated_at",
-  body:      "body",
-  postId:    "post_id",
-  userId:    "user_id"
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  body:      'body',
+  postId:    'post_id',
+  userId:    'user_id'
 }
 
 const COMMENT_COLUMNS_MAPPING = {
@@ -174,12 +174,12 @@ const COMMENT_COLUMNS_MAPPING = {
 }
 
 const COMMENT_FIELDS = {
-  uid:        "id",
-  created_at: "createdAt",
-  updated_at: "updatedAt",
-  body:       "body",
-  user_id:    "userId",
-  post_id:    "postId"
+  uid:        'id',
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+  body:       'body',
+  user_id:    'userId',
+  post_id:    'postId'
 }
 
 const COMMENT_FIELDS_MAPPING = {
@@ -191,10 +191,10 @@ const COMMENT_FIELDS_MAPPING = {
 
 
 const FEED_COLUMNS = {
-  createdAt: "created_at",
-  updatedAt: "updated_at",
-  name:      "name",
-  userId:    "user_id"
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  name:      'name',
+  userId:    'user_id'
 }
 
 const FEED_COLUMNS_MAPPING = {
@@ -211,12 +211,12 @@ const FEED_COLUMNS_MAPPING = {
 }
 
 const FEED_FIELDS = {
-  id:         "intId",
-  uid:        "id",
-  created_at: "createdAt",
-  updated_at: "updatedAt",
-  name:       "name",
-  user_id:    "userId"
+  id:         'intId',
+  uid:        'id',
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+  name:       'name',
+  user_id:    'userId'
 }
 
 const FEED_FIELDS_MAPPING = {
@@ -227,11 +227,11 @@ const FEED_FIELDS_MAPPING = {
 
 
 const POST_COLUMNS = {
-  createdAt:        "created_at",
-  updatedAt:        "updated_at",
-  userId:           "user_id",
-  body:             "body",
-  commentsDisabled: "comments_disabled"
+  createdAt:        'created_at',
+  updatedAt:        'updated_at',
+  userId:           'user_id',
+  body:             'body',
+  commentsDisabled: 'comments_disabled'
 }
 
 const POST_COLUMNS_MAPPING = {
@@ -255,16 +255,16 @@ const POST_COLUMNS_MAPPING = {
 }
 
 const POST_FIELDS = {
-  uid:                  "id",
-  created_at:           "createdAt",
-  updated_at:           "updatedAt",
-  user_id:              "userId",
-  body:                 "body",
-  comments_disabled:    "commentsDisabled",
-  feed_ids:             "feedIntIds",
-  destination_feed_ids: "destinationFeedIds",
-  comments_count:       "commentsCount",
-  likes_count:          "likesCount"
+  uid:                  'id',
+  created_at:           'createdAt',
+  updated_at:           'updatedAt',
+  user_id:              'userId',
+  body:                 'body',
+  comments_disabled:    'commentsDisabled',
+  feed_ids:             'feedIntIds',
+  destination_feed_ids: 'destinationFeedIds',
+  comments_count:       'commentsCount',
+  likes_count:          'likesCount'
 }
 
 const POST_FIELDS_MAPPING = {
@@ -334,7 +334,7 @@ export class DbAdapter {
   }
 
   async existsUserEmail(email) {
-    const res = await this.database('users').whereRaw("LOWER(email)=LOWER(?)", email).count()
+    const res = await this.database('users').whereRaw('LOWER(email)=LOWER(?)', email).count()
     return parseInt(res[0].count)
   }
 
@@ -401,7 +401,7 @@ export class DbAdapter {
   }
 
   async getUserByEmail(email) {
-    const res = await this.database('users').whereRaw("LOWER(email)=LOWER(?)", email)
+    const res = await this.database('users').whereRaw('LOWER(email)=LOWER(?)', email)
     let attrs = res[0]
 
     if (!attrs) {
@@ -618,7 +618,7 @@ export class DbAdapter {
     let val = parseInt(stats[counterName])
     val -= 1
     if (val < 0) {
-      console.log("Negative user stats", counterName)    // eslint-disable-line no-console
+      console.log('Negative user stats', counterName)    // eslint-disable-line no-console
       val = 0
     }
     stats[counterName] = val
@@ -971,7 +971,7 @@ export class DbAdapter {
 
   async createTimeline(payload) {
     const preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
-    if (preparedPayload.name == "MyDiscussions") {
+    if (preparedPayload.name == 'MyDiscussions') {
       preparedPayload.uid = preparedPayload.user_id
     }
     const res = await this.database('feeds').returning(['id', 'uid']).insert(preparedPayload)

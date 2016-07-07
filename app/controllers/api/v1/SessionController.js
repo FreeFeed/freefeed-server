@@ -1,9 +1,9 @@
-import passport from "passport"
-import jwt from "jsonwebtoken"
-import _ from "lodash"
+import passport from 'passport'
+import jwt from 'jsonwebtoken'
+import _ from 'lodash'
 
-import { load as configLoader } from "../../../../config/config"
-import { UserSerializer } from "../../../models"
+import { load as configLoader } from '../../../../config/config'
+import { UserSerializer } from '../../../models'
 
 
 const config = configLoader()

@@ -186,12 +186,12 @@ export default class GroupsController {
       }
 
       if (group.isPrivate !== '1') {
-        throw new Error("Group is public")
+        throw new Error('Group is public')
       }
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
       if (hasRequest) {
-        throw new ForbiddenException("Subscription request already sent")
+        throw new ForbiddenException('Subscription request already sent')
       }
 
       const followedGroups = await req.user.getFollowedGroups()
@@ -200,7 +200,7 @@ export default class GroupsController {
       })
 
       if (_.includes(followedGroupIds, group.id)) {
-        throw new ForbiddenException("You are already subscribed to that group")
+        throw new ForbiddenException('You are already subscribed to that group')
       }
 
       await req.user.sendPrivateGroupSubscriptionRequest(group.id)
@@ -238,7 +238,7 @@ export default class GroupsController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
 
       await group.acceptSubscriptionRequest(user.id)
@@ -276,7 +276,7 @@ export default class GroupsController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
 
       await group.rejectSubscriptionRequest(user.id)
@@ -313,12 +313,12 @@ export default class GroupsController {
       }
       const timelineId = await group.getPostsTimelineId()
       if (_.includes(adminIds, user.id)) {
-        throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
+        throw new ForbiddenException('Group administrators cannot be unsubscribed from own groups')
       }
 
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
-        throw new ForbiddenException("You are not subscribed to that user")
+        throw new ForbiddenException('You are not subscribed to that user')
       }
 
       await user.unsubscribeFrom(timelineId)

@@ -15,7 +15,7 @@ exports.reportError = function (res) {
  * @constructor
  */
 exports.BadRequestException = function (message) {
-  this.message = message || "Bad Request"
+  this.message = message || 'Bad Request'
   this.status = 400
 }
 
@@ -23,7 +23,7 @@ exports.BadRequestException = function (message) {
  * @constructor
  */
 exports.ForbiddenException = function (message) {
-  this.message = message || "Forbidden"
+  this.message = message || 'Forbidden'
   this.status = 403
 }
 
@@ -31,7 +31,7 @@ exports.ForbiddenException = function (message) {
  * @constructor
  */
 exports.NotFoundException = function (message) {
-  this.message = message || "Not found"
+  this.message = message || 'Not found'
   this.status = 404
 }
 
@@ -39,6 +39,6 @@ exports.NotFoundException = function (message) {
  * @constructor
  */
 exports.ValidationException = function (message) {
-  this.message = message || "Invalid"
+  this.message = message || 'Invalid'
   this.status = 422
 }
