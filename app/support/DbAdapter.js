@@ -22,20 +22,20 @@ const USER_COLUMNS = {
 }
 
 const USER_COLUMNS_MAPPING = {
-  username:               (username)=>{return username.toLowerCase()},
-  createdAt:              (timestamp)=>{
+  username:  (username)=>{return username.toLowerCase()},
+  createdAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt:              (timestamp)=>{
+  updatedAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  isPrivate:              (is_private)=>{return is_private === '1'},
-  isRestricted:           (is_restricted)=>{return is_restricted === '1'},
-  resetPasswordSentAt:    (timestamp)=>{
+  isPrivate:           (is_private)=>{return is_private === '1'},
+  isRestricted:        (is_restricted)=>{return is_restricted === '1'},
+  resetPasswordSentAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -43,80 +43,80 @@ const USER_COLUMNS_MAPPING = {
 }
 
 const USER_FIELDS = {
-  uid:                        "id",
-  username:                   "username",
-  screen_name:                "screenName",
-  email:                      "email",
-  description:                "description",
-  type:                       "type",
-  profile_picture_uuid:       "profilePictureUuid",
-  created_at:                 "createdAt",
-  updated_at:                 "updatedAt",
-  is_private:                 "isPrivate",
-  is_restricted:              "isRestricted",
-  hashed_password:            "hashedPassword",
-  reset_password_token:       "resetPasswordToken",
-  reset_password_sent_at:     "resetPasswordSentAt",
-  reset_password_expires_at:  "resetPasswordExpiresAt",
-  frontend_preferences:       "frontendPreferences",
-  subscribed_feed_ids:        "subscribedFeedIds"
+  uid:                       "id",
+  username:                  "username",
+  screen_name:               "screenName",
+  email:                     "email",
+  description:               "description",
+  type:                      "type",
+  profile_picture_uuid:      "profilePictureUuid",
+  created_at:                "createdAt",
+  updated_at:                "updatedAt",
+  is_private:                "isPrivate",
+  is_restricted:             "isRestricted",
+  hashed_password:           "hashedPassword",
+  reset_password_token:      "resetPasswordToken",
+  reset_password_sent_at:    "resetPasswordSentAt",
+  reset_password_expires_at: "resetPasswordExpiresAt",
+  frontend_preferences:      "frontendPreferences",
+  subscribed_feed_ids:       "subscribedFeedIds"
 }
 
 const USER_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime().toString() },
-  updated_at:                 (time)=>{ return time.getTime().toString() },
-  is_private:                 (is_private)=>{return is_private ? '1' : '0' },
-  is_restricted:              (is_restricted)=>{return is_restricted ? '1' : '0' },
-  reset_password_sent_at:     (time)=>{ return time && time.getTime() },
-  reset_password_expires_at:  (time)=>{ return time && time.getTime() }
+  created_at:                (time)=>{ return time.getTime().toString() },
+  updated_at:                (time)=>{ return time.getTime().toString() },
+  is_private:                (is_private)=>{return is_private ? '1' : '0' },
+  is_restricted:             (is_restricted)=>{return is_restricted ? '1' : '0' },
+  reset_password_sent_at:    (time)=>{ return time && time.getTime() },
+  reset_password_expires_at: (time)=>{ return time && time.getTime() }
 }
 
 const USER_STATS_FIELDS = {
-  posts_count:          "posts",
-  likes_count:          "likes",
-  comments_count:       "comments",
-  subscribers_count:    "subscribers",
-  subscriptions_count:  "subscriptions"
+  posts_count:         "posts",
+  likes_count:         "likes",
+  comments_count:      "comments",
+  subscribers_count:   "subscribers",
+  subscriptions_count: "subscriptions"
 }
 
 const ATTACHMENT_COLUMNS = {
-  createdAt:              "created_at",
-  updatedAt:              "updated_at",
-  fileName:               "file_name",
-  fileSize:               "file_size",
-  mimeType:               "mime_type",
-  mediaType:              "media_type",
-  fileExtension:          "file_extension",
-  noThumbnail:            "no_thumbnail",
-  imageSizes:             "image_sizes",
-  artist:                 "artist",
-  title:                  "title",
-  userId:                 "user_id",
-  postId:                 "post_id"
+  createdAt:     "created_at",
+  updatedAt:     "updated_at",
+  fileName:      "file_name",
+  fileSize:      "file_size",
+  mimeType:      "mime_type",
+  mediaType:     "media_type",
+  fileExtension: "file_extension",
+  noThumbnail:   "no_thumbnail",
+  imageSizes:    "image_sizes",
+  artist:        "artist",
+  title:         "title",
+  userId:        "user_id",
+  postId:        "post_id"
 }
 
 const ATTACHMENT_COLUMNS_MAPPING = {
-  createdAt:              (timestamp)=>{
+  createdAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt:              (timestamp)=>{
+  updatedAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  noThumbnail:            (no_thumbnail)=>{return no_thumbnail === '1'},
-  fileSize:               (file_size)=>{
+  noThumbnail: (no_thumbnail)=>{return no_thumbnail === '1'},
+  fileSize:    (file_size)=>{
     return parseInt(file_size, 10)
   },
-  postId:                 (post_id)=> {
+  postId: (post_id)=> {
     if (validator.isUUID(post_id, 4)) {
       return post_id
     }
     return null
   },
-  userId:                 (user_id)=> {
+  userId: (user_id)=> {
     if (validator.isUUID(user_id, 4)) {
       return user_id
     }
@@ -125,48 +125,48 @@ const ATTACHMENT_COLUMNS_MAPPING = {
 }
 
 const ATTACHMENT_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  file_name:              "fileName",
-  file_size:              "fileSize",
-  mime_type:              "mimeType",
-  media_type:             "mediaType",
-  file_extension:         "fileExtension",
-  no_thumbnail:           "noThumbnail",
-  image_sizes:            "imageSizes",
-  artist:                 "artist",
-  title:                  "title",
-  user_id:                "userId",
-  post_id:                "postId"
+  uid:            "id",
+  created_at:     "createdAt",
+  updated_at:     "updatedAt",
+  file_name:      "fileName",
+  file_size:      "fileSize",
+  mime_type:      "mimeType",
+  media_type:     "mediaType",
+  file_extension: "fileExtension",
+  no_thumbnail:   "noThumbnail",
+  image_sizes:    "imageSizes",
+  artist:         "artist",
+  title:          "title",
+  user_id:        "userId",
+  post_id:        "postId"
 }
 
 const ATTACHMENT_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime().toString() },
-  updated_at:                 (time)=>{ return time.getTime().toString() },
-  no_thumbnail:               (no_thumbnail)=>{return no_thumbnail ? '1' : '0' },
-  file_size:                  (file_size)=>{return file_size && file_size.toString()},
-  post_id:                    (post_id)=> {return post_id ? post_id : ''},
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
+  created_at:   (time)=>{ return time.getTime().toString() },
+  updated_at:   (time)=>{ return time.getTime().toString() },
+  no_thumbnail: (no_thumbnail)=>{return no_thumbnail ? '1' : '0' },
+  file_size:    (file_size)=>{return file_size && file_size.toString()},
+  post_id:      (post_id)=> {return post_id ? post_id : ''},
+  user_id:      (user_id)=> {return user_id ? user_id : ''}
 }
 
 
 
 const COMMENT_COLUMNS = {
-  createdAt:              "created_at",
-  updatedAt:              "updated_at",
-  body:                   "body",
-  postId:                 "post_id",
-  userId:                 "user_id"
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+  body:      "body",
+  postId:    "post_id",
+  userId:    "user_id"
 }
 
 const COMMENT_COLUMNS_MAPPING = {
-  createdAt:              (timestamp)=>{
+  createdAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt:              (timestamp)=>{
+  updatedAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -174,36 +174,36 @@ const COMMENT_COLUMNS_MAPPING = {
 }
 
 const COMMENT_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  body:                   "body",
-  user_id:                "userId",
-  post_id:                "postId"
+  uid:        "id",
+  created_at: "createdAt",
+  updated_at: "updatedAt",
+  body:       "body",
+  user_id:    "userId",
+  post_id:    "postId"
 }
 
 const COMMENT_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime().toString() },
-  updated_at:                 (time)=>{ return time.getTime().toString() },
-  post_id:                    (post_id)=> {return post_id ? post_id : ''},
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
+  created_at: (time)=>{ return time.getTime().toString() },
+  updated_at: (time)=>{ return time.getTime().toString() },
+  post_id:    (post_id)=> {return post_id ? post_id : ''},
+  user_id:    (user_id)=> {return user_id ? user_id : ''}
 }
 
 
 const FEED_COLUMNS = {
-  createdAt:              "created_at",
-  updatedAt:              "updated_at",
-  name:                   "name",
-  userId:                 "user_id"
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+  name:      "name",
+  userId:    "user_id"
 }
 
 const FEED_COLUMNS_MAPPING = {
-  createdAt:              (timestamp)=>{
+  createdAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt:              (timestamp)=>{
+  updatedAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -211,42 +211,42 @@ const FEED_COLUMNS_MAPPING = {
 }
 
 const FEED_FIELDS = {
-  id:                     "intId",
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  name:                   "name",
-  user_id:                "userId"
+  id:         "intId",
+  uid:        "id",
+  created_at: "createdAt",
+  updated_at: "updatedAt",
+  name:       "name",
+  user_id:    "userId"
 }
 
 const FEED_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime().toString() },
-  updated_at:                 (time)=>{ return time.getTime().toString() },
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
+  created_at: (time)=>{ return time.getTime().toString() },
+  updated_at: (time)=>{ return time.getTime().toString() },
+  user_id:    (user_id)=> {return user_id ? user_id : ''}
 }
 
 
 const POST_COLUMNS = {
-  createdAt:              "created_at",
-  updatedAt:              "updated_at",
-  userId:                 "user_id",
-  body:                   "body",
-  commentsDisabled:       "comments_disabled"
+  createdAt:        "created_at",
+  updatedAt:        "updated_at",
+  userId:           "user_id",
+  body:             "body",
+  commentsDisabled: "comments_disabled"
 }
 
 const POST_COLUMNS_MAPPING = {
-  createdAt:              (timestamp)=>{
+  createdAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  updatedAt:              (timestamp)=>{
+  updatedAt: (timestamp)=>{
     let d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
-  commentsDisabled:       (comments_disabled)=>{return comments_disabled === '1'},
-  userId:                 (user_id)=> {
+  commentsDisabled: (comments_disabled)=>{return comments_disabled === '1'},
+  userId:           (user_id)=> {
     if (validator.isUUID(user_id, 4)) {
       return user_id
     }
@@ -255,23 +255,23 @@ const POST_COLUMNS_MAPPING = {
 }
 
 const POST_FIELDS = {
-  uid:                    "id",
-  created_at:             "createdAt",
-  updated_at:             "updatedAt",
-  user_id:                "userId",
-  body:                   "body",
-  comments_disabled:      "commentsDisabled",
-  feed_ids:               "feedIntIds",
-  destination_feed_ids:   "destinationFeedIds",
-  comments_count:         "commentsCount",
-  likes_count:            "likesCount"
+  uid:                  "id",
+  created_at:           "createdAt",
+  updated_at:           "updatedAt",
+  user_id:              "userId",
+  body:                 "body",
+  comments_disabled:    "commentsDisabled",
+  feed_ids:             "feedIntIds",
+  destination_feed_ids: "destinationFeedIds",
+  comments_count:       "commentsCount",
+  likes_count:          "likesCount"
 }
 
 const POST_FIELDS_MAPPING = {
-  created_at:                 (time)=>{ return time.getTime().toString() },
-  updated_at:                 (time)=>{ return time.getTime().toString() },
-  comments_disabled:          (comments_disabled)=>{return comments_disabled ? '1' : '0' },
-  user_id:                    (user_id)=> {return user_id ? user_id : ''}
+  created_at:        (time)=>{ return time.getTime().toString() },
+  updated_at:        (time)=>{ return time.getTime().toString() },
+  comments_disabled: (comments_disabled)=>{return comments_disabled ? '1' : '0' },
+  user_id:           (user_id)=> {return user_id ? user_id : ''}
 }
 
 
@@ -634,8 +634,8 @@ export class DbAdapter {
 
     const payload = {
       from_user_id: fromUserId,
-      to_user_id: toUserId,
-      created_at: currentTime
+      to_user_id:   toUserId,
+      created_at:   currentTime
     }
 
     return this.database('subscription_requests').returning('id').insert(payload)
@@ -644,7 +644,7 @@ export class DbAdapter {
   deleteSubscriptionRequest(toUserId, fromUserId){
     return this.database('subscription_requests').where({
       from_user_id: fromUserId,
-      to_user_id: toUserId
+      to_user_id:   toUserId
     }).delete()
   }
 
@@ -659,7 +659,7 @@ export class DbAdapter {
   async isSubscriptionRequestPresent(fromUserId, toUserId) {
     const res = await this.database('subscription_requests').where({
       from_user_id: fromUserId,
-      to_user_id: toUserId
+      to_user_id:   toUserId
     }).count()
     return parseInt(res[0].count) != 0
   }
@@ -706,9 +706,9 @@ export class DbAdapter {
     const currentTime = new Date().toISOString()
 
     const payload = {
-      user_id: currentUserId,
+      user_id:        currentUserId,
       banned_user_id: bannedUserId,
-      created_at: currentTime
+      created_at:     currentTime
     }
 
     return this.database('bans').returning('id').insert(payload)
@@ -716,7 +716,7 @@ export class DbAdapter {
 
   deleteUserBan(currentUserId, bannedUserId) {
     return this.database('bans').where({
-      user_id: currentUserId,
+      user_id:        currentUserId,
       banned_user_id: bannedUserId
     }).delete()
   }
@@ -737,8 +737,8 @@ export class DbAdapter {
     const currentTime = new Date().toISOString()
 
     const payload = {
-      user_id: adminId,
-      group_id: groupId,
+      user_id:    adminId,
+      group_id:   groupId,
       created_at: currentTime
     }
 
@@ -747,7 +747,7 @@ export class DbAdapter {
 
   removeAdministratorFromGroup(groupId, adminId) {
     return this.database('group_admins').where({
-      user_id: adminId,
+      user_id:  adminId,
       group_id: groupId
     }).delete()
   }
@@ -841,8 +841,8 @@ export class DbAdapter {
     const currentTime = new Date().toISOString()
 
     const payload = {
-      post_id: postId,
-      user_id: userId,
+      post_id:    postId,
+      user_id:    userId,
       created_at: currentTime
     }
 
@@ -934,7 +934,7 @@ export class DbAdapter {
 
   deleteComment(commentId, postId) {
     return this.database('comments').where({
-      uid: commentId,
+      uid:     commentId,
       post_id: postId
     }).delete()
   }
@@ -1007,11 +1007,11 @@ export class DbAdapter {
     const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'})
 
     let timelines =  {
-      'RiverOfNews':   riverOfNews[0] && riverOfNews[0].uid,
-      'Hides':         hides[0] && hides[0].uid,
-      'Comments':      comments[0] && comments[0].uid,
-      'Likes':         likes[0] && likes[0].uid,
-      'Posts':         posts[0] && posts[0].uid
+      'RiverOfNews': riverOfNews[0] && riverOfNews[0].uid,
+      'Hides':       hides[0] && hides[0].uid,
+      'Comments':    comments[0] && comments[0].uid,
+      'Likes':       likes[0] && likes[0].uid,
+      'Posts':       posts[0] && posts[0].uid
     }
 
     if (directs[0]) {
@@ -1357,8 +1357,8 @@ export class DbAdapter {
       const currentTime = new Date().toISOString()
 
       const payload = {
-        feed_id: id,
-        user_id: currentUserId,
+        feed_id:    id,
+        user_id:    currentUserId,
         created_at: currentTime
       }
       return this.database('subscriptions').returning('id').insert(payload)
@@ -1419,7 +1419,7 @@ export class DbAdapter {
     const res = await this.database('local_bumps').orderBy('created_at', 'desc').where('user_id', userId).where('created_at', '>', time.toISOString())
     let bumps = res.map((record)=>{
       return {
-        postId: record.post_id,
+        postId:   record.post_id,
         bumpedAt: record.created_at.getTime()
       }
     })

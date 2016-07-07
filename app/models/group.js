@@ -92,13 +92,13 @@ export function addModel(dbAdapter) {
     await this.validateOnCreate(skip_stoplist)
 
     let payload = {
-      'username': this.username,
-      'screenName': this.screenName,
-      'description': this.description,
-      'type': this.type,
-      'createdAt': this.createdAt.toString(),
-      'updatedAt': this.updatedAt.toString(),
-      'isPrivate': this.isPrivate,
+      'username':     this.username,
+      'screenName':   this.screenName,
+      'description':  this.description,
+      'type':         this.type,
+      'createdAt':    this.createdAt.toString(),
+      'updatedAt':    this.updatedAt.toString(),
+      'isPrivate':    this.isPrivate,
       'isRestricted': this.isRestricted
     }
     this.id = await dbAdapter.createUser(payload)
@@ -148,10 +148,10 @@ export function addModel(dbAdapter) {
       this.updatedAt = new Date().getTime()
 
       var payload = {
-        'screenName': this.screenName,
-        'description': this.description,
-        'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate,
+        'screenName':   this.screenName,
+        'description':  this.description,
+        'updatedAt':    this.updatedAt.toString(),
+        'isPrivate':    this.isPrivate,
         'isRestricted': this.isRestricted
       }
 

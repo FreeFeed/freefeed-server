@@ -8,10 +8,10 @@ export const AbstractSerializer = function(object, strategy) {
 }
 
 AbstractSerializer.prototype = {
-  END_POINT: 1,
+  END_POINT:       1,
   NESTED_STRATEGY: 2,
-  THROUGH_POINT: 3,
-  RELATION_POINT: 4,
+  THROUGH_POINT:   3,
+  RELATION_POINT:  4,
 
   RELATIONS_STORAGE: '__relations',
 

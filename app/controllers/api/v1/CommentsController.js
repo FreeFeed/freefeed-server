@@ -29,7 +29,7 @@ export default class CommentsController {
       }
 
       var newComment = req.user.newComment({
-        body: req.body.comment.body,
+        body:   req.body.comment.body,
         postId: req.body.comment.postId
       })
 

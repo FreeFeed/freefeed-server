@@ -119,17 +119,17 @@ export function addModel(dbAdapter) {
 
     // Save record to DB
     const params = {
-      fileName: this.fileName,
-      fileSize: this.fileSize,
-      mimeType: this.mimeType,
-      mediaType: this.mediaType,
+      fileName:      this.fileName,
+      fileSize:      this.fileSize,
+      mimeType:      this.mimeType,
+      mediaType:     this.mediaType,
       fileExtension: this.fileExtension,
-      noThumbnail: this.noThumbnail,
-      imageSizes: JSON.stringify(this.imageSizes),
-      userId: this.userId,
-      postId: this.postId,
-      createdAt: this.createdAt.toString(),
-      updatedAt: this.updatedAt.toString()
+      noThumbnail:   this.noThumbnail,
+      imageSizes:    JSON.stringify(this.imageSizes),
+      userId:        this.userId,
+      postId:        this.postId,
+      createdAt:     this.createdAt.toString(),
+      updatedAt:     this.updatedAt.toString()
     }
 
     if (this.mediaType === 'audio') {
@@ -190,16 +190,16 @@ export function addModel(dbAdapter) {
     var tmpAttachmentFile = this.file.path
 
     const supportedImageTypes = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/gif': 'gif',
+      'image/jpeg':    'jpg',
+      'image/png':     'png',
+      'image/gif':     'gif',
       'image/svg+xml': 'svg'
     }
     const supportedAudioTypes = {
-      'audio/mpeg': 'mp3',
+      'audio/mpeg':  'mp3',
       'audio/x-m4a': 'm4a',
-      'audio/mp4': 'm4a',
-      'audio/ogg': 'ogg',
+      'audio/mp4':   'm4a',
+      'audio/ogg':   'ogg',
       'audio/x-wav': 'wav'
     }
 
@@ -243,8 +243,8 @@ export function addModel(dbAdapter) {
       // Store original image size
       const originalSize = await originalImage.sizeAsync()
       this.imageSizes.o = {
-        w: originalSize.width,
-        h: originalSize.height,
+        w:   originalSize.width,
+        h:   originalSize.height,
         url: await this.getUrl()
       }
 
@@ -312,8 +312,8 @@ export function addModel(dbAdapter) {
       const resizedImage = promisifyAll(gm(tmpImageFile))
       const resizedImageSize = await resizedImage.sizeAsync()
       this.imageSizes[sizeId] = {
-        w: resizedImageSize.width,
-        h: resizedImageSize.height,
+        w:   resizedImageSize.width,
+        h:   resizedImageSize.height,
         url: this.getResizedImageUrl(sizeId)
       }
       this.noThumbnail = '0'
@@ -331,16 +331,16 @@ export function addModel(dbAdapter) {
   // Upload original attachment or its thumbnail to the S3 bucket
   Attachment.prototype.uploadToS3 = async function(sourceFile, destPath) {
     let s3 = new aws.S3({
-      'accessKeyId': config.attachments.storage.accessKeyId || null,
+      'accessKeyId':     config.attachments.storage.accessKeyId || null,
       'secretAccessKey': config.attachments.storage.secretAccessKey || null
     })
     let putObject = promisify(s3.putObject, {context: s3})
     await putObject({
-      ACL: 'public-read',
-      Bucket: config.attachments.storage.bucket,
-      Key: destPath + this.getFilename(),
-      Body: fs.createReadStream(sourceFile),
-      ContentType: this.mimeType,
+      ACL:                'public-read',
+      Bucket:             config.attachments.storage.bucket,
+      Key:                destPath + this.getFilename(),
+      Body:               fs.createReadStream(sourceFile),
+      ContentType:        this.mimeType,
       ContentDisposition: this.getContentDisposition()
     })
   }

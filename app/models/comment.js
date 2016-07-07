@@ -55,9 +55,9 @@ export function addModel(dbAdapter) {
     await this.validate()
 
     let payload = {
-      'body': this.body,
-      'userId': this.userId,
-      'postId': this.postId,
+      'body':      this.body,
+      'userId':    this.userId,
+      'postId':    this.postId,
       'createdAt': this.createdAt.toString(),
       'updatedAt': this.updatedAt.toString()
     }

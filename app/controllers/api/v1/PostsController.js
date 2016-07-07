@@ -58,9 +58,9 @@ export default class PostsController {
       })
 
       let newPost = await req.user.newPost({
-        body: req.body.post.body,
-        attachments: req.body.post.attachments,
-        timelineIds: timelineIds,
+        body:             req.body.post.body,
+        attachments:      req.body.post.attachments,
+        timelineIds:      timelineIds,
         commentsDisabled: commentsDisabled
       })
 
@@ -87,7 +87,7 @@ export default class PostsController {
       }
 
       await post.update({
-        body: req.body.post.body,
+        body:        req.body.post.body,
         attachments: req.body.post.attachments
       })
 
@@ -103,7 +103,7 @@ export default class PostsController {
       var userId = req.user ? req.user.id : null
       const post = await dbAdapter.getPostById(req.params.postId, {
         maxComments: req.query.maxComments,
-        maxLikes: req.query.maxLikes,
+        maxLikes:    req.query.maxLikes,
         currentUser: userId
       })
 

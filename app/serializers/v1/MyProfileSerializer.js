@@ -8,10 +8,10 @@ export function addSerializer() {
              'banIds', 'subscribers', 'isPrivate', 'pendingSubscriptionRequests',
              'subscriptionRequests', 'description', 'frontendPreferences',
              'administrators', 'pendingGroupRequests'],
-    subscriptions: { through: SubscriptionSerializer, embed: true },
-    subscribers: { through: SubscriberSerializer },
+    subscriptions:               { through: SubscriptionSerializer, embed: true },
+    subscribers:                 { through: SubscriberSerializer },
     pendingSubscriptionRequests: { through: SubscriptionRequestSerializer, embed: true },
-    subscriptionRequests: { through: SubscriptionRequestSerializer, embed: true },
-    administrators: { through: AdminSerializer, embed: true }
+    subscriptionRequests:        { through: SubscriptionRequestSerializer, embed: true },
+    administrators:              { through: AdminSerializer, embed: true }
   })
 }

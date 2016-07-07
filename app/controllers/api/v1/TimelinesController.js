@@ -16,8 +16,8 @@ export default class TimelineController {
       var user = req.user
 
       let timeline = await user.getRiverOfNewsTimeline({
-        offset: req.query.offset,
-        limit: req.query.limit,
+        offset:      req.query.offset,
+        limit:       req.query.limit,
         currentUser: user.id
       })
 
@@ -43,8 +43,8 @@ export default class TimelineController {
     try {
       const user = req.user
       const timeline = await user.getDirectsTimeline({
-        offset: req.query.offset,
-        limit: req.query.limit,
+        offset:      req.query.offset,
+        limit:       req.query.limit,
         currentUser: user.id
       })
 
@@ -73,8 +73,8 @@ export default class TimelineController {
 
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getPostsTimeline({
-        offset: req.query.offset,
-        limit: req.query.limit,
+        offset:      req.query.offset,
+        limit:       req.query.limit,
         currentUser: currentUser
       })
 
@@ -105,8 +105,8 @@ export default class TimelineController {
 
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getLikesTimeline({
-        offset: req.query.offset,
-        limit: req.query.limit,
+        offset:      req.query.offset,
+        limit:       req.query.limit,
         currentUser: currentUser
       })
 
@@ -137,8 +137,8 @@ export default class TimelineController {
 
       var currentUser = req.user ? req.user.id : null
       var timeline = await user.getCommentsTimeline({
-        offset: req.query.offset,
-        limit: req.query.limit,
+        offset:      req.query.offset,
+        limit:       req.query.limit,
         currentUser: currentUser
       })
 
@@ -166,8 +166,8 @@ export default class TimelineController {
 
     try {
       let timeline = await user.getMyDiscussionsTimeline({
-        offset: req.query.offset,
-        limit: req.query.limit,
+        offset:      req.query.offset,
+        limit:       req.query.limit,
         currentUser: req.user ? req.user.id : null
       })
 

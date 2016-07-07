@@ -7,7 +7,7 @@ export function addSerializer() {
              'profilePictureLargeUrl', 'profilePictureMediumUrl',
              'updatedAt', 'isPrivate', 'isRestricted', 'description',
              'timelines', 'administrators'],
-    timelines: { through: SubscriptionSerializer, embed: true },
+    timelines:      { through: SubscriptionSerializer, embed: true },
     administrators: { through: AdminSerializer, embed: true }
   })
 }

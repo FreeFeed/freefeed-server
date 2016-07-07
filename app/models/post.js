@@ -79,10 +79,10 @@ export function addModel(dbAdapter) {
     var timer = monitor.timer('posts.create-time')
 
     let payload = {
-      'body': this.body,
-      'userId': this.userId,
-      'createdAt': this.createdAt.toString(),
-      'updatedAt': this.updatedAt.toString(),
+      'body':             this.body,
+      'userId':           this.userId,
+      'createdAt':        this.createdAt.toString(),
+      'updatedAt':        this.updatedAt.toString(),
       'commentsDisabled': this.commentsDisabled
     }
     this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)

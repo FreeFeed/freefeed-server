@@ -153,7 +153,7 @@ exports.addModel = function(dbAdapter) {
     let token = await this.generateResetPasswordToken()
 
     let payload = {
-      'resetPasswordToken': token,
+      'resetPasswordToken':  token,
       'resetPasswordSentAt': now
     }
 
@@ -300,15 +300,15 @@ exports.addModel = function(dbAdapter) {
     await this.initPassword()
 
     let payload = {
-      'username':       this.username,
-      'screenName':     this.screenName,
-      'email':          this.email,
-      'type':           this.type,
-      'isPrivate':      '0',
-      'description':    '',
-      'createdAt':      this.createdAt.toString(),
-      'updatedAt':      this.updatedAt.toString(),
-      'hashedPassword': this.hashedPassword,
+      'username':            this.username,
+      'screenName':          this.screenName,
+      'email':               this.email,
+      'type':                this.type,
+      'isPrivate':           '0',
+      'description':         '',
+      'createdAt':           this.createdAt.toString(),
+      'updatedAt':           this.updatedAt.toString(),
+      'hashedPassword':      this.hashedPassword,
       'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
@@ -885,7 +885,7 @@ exports.addModel = function(dbAdapter) {
 
     let payload = {
       'profilePictureUuid': this.profilePictureUuid,
-      'updatedAt': this.updatedAt.toString()
+      'updatedAt':          this.updatedAt.toString()
     }
 
     return dbAdapter.updateUser(this.id, payload)
@@ -928,16 +928,16 @@ exports.addModel = function(dbAdapter) {
   // Upload profile picture to the S3 bucket
   User.prototype.uploadToS3 = async function(sourceFile, destFile, subConfig) {
     const s3 = new aws.S3({
-      'accessKeyId': subConfig.storage.accessKeyId || null,
+      'accessKeyId':     subConfig.storage.accessKeyId || null,
       'secretAccessKey': subConfig.storage.secretAccessKey || null
     })
     const putObject = promisify(s3.putObject, {context: s3})
     await putObject({
-      ACL: 'public-read',
-      Bucket: subConfig.storage.bucket,
-      Key: subConfig.path + destFile,
-      Body: fs.createReadStream(sourceFile),
-      ContentType: 'image/jpeg',
+      ACL:                'public-read',
+      Bucket:             subConfig.storage.bucket,
+      Key:                subConfig.path + destFile,
+      Body:               fs.createReadStream(sourceFile),
+      ContentType:        'image/jpeg',
       ContentDisposition: 'inline'
     })
   }

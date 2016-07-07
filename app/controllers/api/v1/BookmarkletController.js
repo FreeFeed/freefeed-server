@@ -107,7 +107,7 @@ export default class BookmarkletController {
 
       // Create post
       let newPost = await req.user.newPost({
-        body: req.body.title,
+        body:        req.body.title,
         attachments: attachments,
         timelineIds: timelineIds
       })
@@ -116,7 +116,7 @@ export default class BookmarkletController {
       // Create comment
       if (req.body.comment) {
         var newComment = await req.user.newComment({
-          body: req.body.comment,
+          body:   req.body.comment,
           postId: newPost.id
         })
 

@@ -15,7 +15,7 @@ export default class UsersController {
   static async create(req, res) {
     var params = {
       username: req.body.username,
-      email: req.body.email
+      email:    req.body.email
     }
 
     params.hashedPassword = req.body.password_hash
@@ -57,7 +57,7 @@ export default class UsersController {
   static async sudoCreate(req, res) {
     var params = {
       username: req.body.username,
-      email: req.body.email
+      email:    req.body.email
     }
 
     params.hashedPassword = req.body.password_hash

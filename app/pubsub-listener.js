@@ -100,18 +100,18 @@ export default class PubsubListener {
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
-      'post:new':         this.onPostNew,
-      'post:update':      this.onPostUpdate,
-      'post:destroy':     this.onPostDestroy,
-      'post:hide':        this.onPostHide,
-      'post:unhide':      this.onPostUnhide,
+      'post:new':     this.onPostNew,
+      'post:update':  this.onPostUpdate,
+      'post:destroy': this.onPostDestroy,
+      'post:hide':    this.onPostHide,
+      'post:unhide':  this.onPostUnhide,
 
-      'comment:new':      this.onCommentNew,
-      'comment:update':   this.onCommentUpdate,
-      'comment:destroy':  this.onCommentDestroy,
+      'comment:new':     this.onCommentNew,
+      'comment:update':  this.onCommentUpdate,
+      'comment:destroy': this.onCommentDestroy,
 
-      'like:new':         this.onLikeNew,
-      'like:remove':      this.onLikeRemove
+      'like:new':    this.onLikeNew,
+      'like:remove': this.onLikeRemove
     }
 
     messageRoutes[channel](
