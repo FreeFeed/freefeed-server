@@ -72,9 +72,7 @@ AbstractSerializer.prototype = {
     const node = serializer ? new serializer(objects[0]).name : field
 
     for (const object of objects) {
-      const inArray = _.any(root[node], function (item) {
-        return item.id == object.id
-      })
+      const inArray = _.any(root[node], (item) => (item.id == object.id))
 
       let selectedSerializer
       if (!inArray) {
@@ -111,8 +109,8 @@ AbstractSerializer.prototype = {
     const serializer = this
 
     const processWithRoot = async function(_objects, one) {
-      const objects = _.filter(_objects, function (object) { return _.has(object, 'id') })
-      let objectIds = objects.map(function (e) { return e.id })
+      const objects = _.filter(_objects, (object) => _.has(object, 'id'))
+      const objectIds = objects.map((e) => e.id)
       const strategy = serializer.strategy[field]
 
       await serializer.processMultiObjectsWithRoot(strategy.model || field,
@@ -122,10 +120,7 @@ AbstractSerializer.prototype = {
                                              root,
                                              level)
 
-      if (one)
-        objectIds = objectIds[0]
-
-      return objectIds
+      return one ? objectIds[0] : objectIds;
     }
 
     const fieldValue = await this.getField(field)

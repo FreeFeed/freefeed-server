@@ -599,7 +599,7 @@ export function addModel(dbAdapter) {
       return userIds.indexOf(userId) >= 0
     }))
 
-    return _.reduce(arr, function (acc, x) { return acc || x }, false)
+    return _.reduce(arr, (acc, x) => { return acc || x }, false)
   }
 
   return Post

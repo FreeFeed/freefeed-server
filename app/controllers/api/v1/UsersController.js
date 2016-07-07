@@ -433,11 +433,15 @@ export default class UsersController {
       return
     }
 
-    const attrs = _.reduce(['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences'], function (acc, key) {
-      if (key in req.body.user)
-        acc[key] = req.body.user[key]
-      return acc
-    }, {})
+    const attrs = _.reduce(
+      ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences'],
+      (acc, key) => {
+        if (key in req.body.user)
+          acc[key] = req.body.user[key]
+        return acc
+      },
+      {}
+    )
 
     try {
       const user = await req.user.update(attrs)
