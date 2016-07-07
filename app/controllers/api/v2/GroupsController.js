@@ -12,16 +12,16 @@ export default class GroupsController {
     }
 
     try {
-      let managedGroups = await req.user.getManagedGroups()
+      const managedGroups = await req.user.getManagedGroups()
       let groupsJson = []
 
-      let promises = managedGroups.map(async (group)=>{
-        let groupDescr = _.pick(group, ['id', 'username', 'screenName', 'isPrivate', 'isRestricted'])
+      const promises = managedGroups.map(async (group)=>{
+        const groupDescr = _.pick(group, ['id', 'username', 'screenName', 'isPrivate', 'isRestricted'])
 
-        let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
-        let unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
-        let requests = unconfirmedFollowers.map(async (user)=>{
-          let request = _.pick(user, ['id', 'username', 'screenName'])
+        const unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
+        const unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds)
+        const requests = unconfirmedFollowers.map(async (user)=>{
+          const request = _.pick(user, ['id', 'username', 'screenName'])
           request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()
           request.profilePictureMediumUrl = await user.getProfilePictureMediumUrl()
           return request

@@ -91,7 +91,7 @@ export function addModel(dbAdapter) {
 
     await this.validateOnCreate(skip_stoplist)
 
-    let payload = {
+    const payload = {
       'username':     this.username,
       'screenName':   this.screenName,
       'description':  this.description,
@@ -162,14 +162,14 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.subscribeOwner = async function(ownerId) {
-    let owner = await dbAdapter.getUserById(ownerId)
+    const owner = await dbAdapter.getUserById(ownerId)
 
     if (!owner) {
       return null
     }
 
-    let timelineId = await this.getPostsTimelineId()
-    let res = await owner.subscribeTo(timelineId)
+    const timelineId = await this.getPostsTimelineId()
+    const res = await owner.subscribeTo(timelineId)
 
     return res
   }
@@ -179,7 +179,7 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.removeAdministrator = async function(feedId) {
-    let adminIds = await this.getAdministratorIds()
+    const adminIds = await this.getAdministratorIds()
 
     if (adminIds.indexOf(feedId) == -1) {
       throw new Error("Not an administrator")
@@ -216,7 +216,7 @@ export function addModel(dbAdapter) {
     }
 
     if (this.isRestricted === '1') {
-      let adminIds = await this.getAdministratorIds()
+      const adminIds = await this.getAdministratorIds()
       if (!_.includes(adminIds, postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")
       }

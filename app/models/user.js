@@ -20,7 +20,7 @@ promisifyAll(bcrypt)
 promisifyAll(crypto)
 promisifyAll(gm)
 
-let config = configLoader()
+const config = configLoader()
 
 exports.addModel = function (dbAdapter) {
   /**
@@ -142,17 +142,17 @@ exports.addModel = function (dbAdapter) {
   User.prototype.newPost = async function(attrs) {
     attrs.userId = this.id
     if (!attrs.timelineIds || !attrs.timelineIds[0]) {
-      let timelineId = await this.getPostsTimelineId()
+      const timelineId = await this.getPostsTimelineId()
       attrs.timelineIds = [timelineId]
     }
     return new Post(attrs)
   }
 
   User.prototype.updateResetPasswordToken = async function() {
-    let now = new Date().getTime()
-    let token = await this.generateResetPasswordToken()
+    const now = new Date().getTime()
+    const token = await this.generateResetPasswordToken()
 
-    let payload = {
+    const payload = {
       'resetPasswordToken':  token,
       'resetPasswordSentAt': now
     }
@@ -164,7 +164,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.generateResetPasswordToken = async function() {
-    let buf = await crypto.randomBytesAsync(48)
+    const buf = await crypto.randomBytesAsync(48)
     return buf.toString('hex')
   }
 
@@ -186,7 +186,7 @@ exports.addModel = function (dbAdapter) {
       return false
     }
 
-    let exists = await dbAdapter.existsUserEmail(email)
+    const exists = await dbAdapter.existsUserEmail(email)
 
     if (exists) {
       // email is taken
@@ -246,7 +246,7 @@ exports.addModel = function (dbAdapter) {
     if (!_.isPlainObject(frontendPreferences)) {
       return false
     }
-    for (let prop in frontendPreferences) {
+    for (const prop in frontendPreferences) {
       if (!frontendPreferences[prop] || typeof frontendPreferences[prop] !== 'object') {
         return false
       }
@@ -274,7 +274,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.validateUsernameUniqueness = async function() {
-    let res = await dbAdapter.existsUsername(this.username)
+    const res = await dbAdapter.existsUsername(this.username)
 
     if (res !== 0)
       throw new Error("Already exists")
@@ -299,7 +299,7 @@ exports.addModel = function (dbAdapter) {
     var timer = monitor.timer('users.create-time')
     await this.initPassword()
 
-    let payload = {
+    const payload = {
       'username':            this.username,
       'screenName':          this.screenName,
       'email':               this.email,
@@ -320,8 +320,8 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.update = async function(params) {
-    let payload = {}
-      , changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
+    const payload = {}
+    const changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -367,7 +367,7 @@ exports.addModel = function (dbAdapter) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
-      let preferences = this.frontendPreferences
+      const preferences = this.frontendPreferences
 
       // Shallow merge objects
       _.assign(preferences, params.frontendPreferences)
@@ -381,7 +381,7 @@ exports.addModel = function (dbAdapter) {
     }
 
     if (_.intersection(_.keys(payload), changeableKeys).length > 0) {
-      let preparedPayload = payload
+      const preparedPayload = payload
       payload.updatedAt = new Date().getTime()
 
       preparedPayload.updatedAt = payload.updatedAt.toString()
@@ -392,7 +392,7 @@ exports.addModel = function (dbAdapter) {
 
       await dbAdapter.updateUser(this.id, preparedPayload)
 
-      for (let k in payload) {
+      for (const k in payload) {
         this[k] = payload[k]
       }
     }
@@ -406,34 +406,34 @@ exports.addModel = function (dbAdapter) {
     // efficient when introduce Entries table with meta column (post to
     // timelines many-to-many over Entries)
 
-    let timeline = await this.getPostsTimeline({ currentUser: this.id })
-    let posts = await timeline.getPosts(0, -1)
+    const timeline = await this.getPostsTimeline({ currentUser: this.id })
+    const posts = await timeline.getPosts(0, -1)
 
     let fixedUsers = []
 
     // first of all, let's revive likes
-    for (let post of posts) {
-      let actions = []
+    for (const post of posts) {
+      const actions = []
 
-      let [likes, comments] = await Promise.all([post.getLikes(), post.getComments()]);
+      const [likes, comments] = await Promise.all([post.getLikes(), post.getComments()]);
 
-      for (let usersChunk of _.chunk(likes, 10)) {
-        let promises = usersChunk.map(async (user) => {
+      for (const usersChunk of _.chunk(likes, 10)) {
+        const promises = usersChunk.map(async (user) => {
           return user.getLikesTimelineIntId()
         })
-        let likesFeedsIntIds = await Promise.all(promises)
+        const likesFeedsIntIds = await Promise.all(promises)
         actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
 
-      let uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
-      let commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
+      const uniqueCommenterUids = _.uniq(comments.map(comment => comment.userId))
+      const commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
 
-      for (let usersChunk of _.chunk(commenters, 10)) {
-        let promises = usersChunk.map(async (user) => {
+      for (const usersChunk of _.chunk(commenters, 10)) {
+        const promises = usersChunk.map(async (user) => {
           return user.getCommentsTimelineIntId()
         })
 
-        let commentsFeedsIntIds = await Promise.all(promises)
+        const commentsFeedsIntIds = await Promise.all(promises)
         actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
       }
 
@@ -442,9 +442,9 @@ exports.addModel = function (dbAdapter) {
       fixedUsers = _.uniq(fixedUsers.concat(likes).concat(commenters), 'id')
     }
 
-    for (let usersChunk of _.chunk(fixedUsers, 10)) {
-      let promises = usersChunk.map(async (user) => {
-        let [riverId, commentsTimeline, likesTimeline] = await Promise.all([
+    for (const usersChunk of _.chunk(fixedUsers, 10)) {
+      const promises = usersChunk.map(async (user) => {
+        const [riverId, commentsTimeline, likesTimeline] = await Promise.all([
           user.getRiverOfNewsTimelineIntId(),
           user.getCommentsTimeline(),
           user.getLikesTimeline()
@@ -474,26 +474,26 @@ exports.addModel = function (dbAdapter) {
     // we need to review post by post as some strangers that are not
     // followers and friends could commented on or like my posts
     // let's find strangers first
-    let posts = await timeline.getPosts(0, -1)
+    const posts = await timeline.getPosts(0, -1)
 
     let allUsers = []
 
-    for (let post of posts) {
-      let timelines = await post.getTimelines()
-      let userPromises = timelines.map(timeline => timeline.getUser())
-      let users = await Promise.all(userPromises)
+    for (const post of posts) {
+      const timelines = await post.getTimelines()
+      const userPromises = timelines.map(timeline => timeline.getUser())
+      const users = await Promise.all(userPromises)
 
       allUsers = _.uniq(allUsers.concat(users), 'id')
     }
 
     // and remove all private posts from all strangers timelines
-    let users = _.filter(
+    const users = _.filter(
       allUsers,
       user => (subscriberIds.indexOf(user.id) === -1 && user.id != this.id)
     )
 
-    for (let chunk of _.chunk(users, 10)) {
-      let actions = chunk.map(user => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
+    for (const chunk of _.chunk(users, 10)) {
+      const actions = chunk.map(user => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
       await Promise.all(actions)
     }
   }
@@ -506,8 +506,8 @@ exports.addModel = function (dbAdapter) {
     }
 
     try {
-      let updatedAt = new Date().getTime()
-      let payload = {
+      const updatedAt = new Date().getTime()
+      const payload = {
         updatedAt:      updatedAt.toString(),
         hashedPassword: await bcrypt.hashAsync(password, 10)
       }
@@ -531,9 +531,9 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getMyDiscussionsTimeline = async function(params) {
-    let myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
+    const myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
-    let feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
+    const feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
     feed.posts = await feed.getPosts(feed.offset, feed.limit)
     return feed
   }
@@ -541,7 +541,7 @@ exports.addModel = function (dbAdapter) {
   User.prototype.getGenericTimelineId = async function(name, params) {
     params = params || {}
 
-    let timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
+    const timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
 
     if (!timeline) {
       console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
@@ -552,17 +552,17 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getGenericTimelineIntId = async function(name) {
-    let timelineIds = await this.getTimelineIds()
+    const timelineIds = await this.getTimelineIds()
 
-    let timeline = await dbAdapter.getTimelineById(timelineIds[name])
+    const timeline = await dbAdapter.getTimelineById(timelineIds[name])
 
     return timeline.intId
   }
 
   User.prototype.getGenericTimeline = async function(name, params) {
-    let timelineId = await this[`get${name}TimelineId`](params)
+    const timelineId = await this[`get${name}TimelineId`](params)
 
-    let timeline = await dbAdapter.getTimelineById(timelineId, params)
+    const timeline = await dbAdapter.getTimelineById(timelineId, params)
     timeline.posts = await timeline.getPosts(timeline.offset, timeline.limit)
 
     return timeline
@@ -589,16 +589,16 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getRiverOfNewsTimeline = async function(params) {
-    let timelineId = await this.getRiverOfNewsTimelineId(params)
-    let hidesTimelineIntId = await this.getHidesTimelineIntId(params)
+    const timelineId = await this.getRiverOfNewsTimelineId(params)
+    const hidesTimelineIntId = await this.getHidesTimelineIntId(params)
 
-    let riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
-    let banIds = await this.getBanIds()
-    let posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
+    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
+    const banIds = await this.getBanIds()
+    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      let postInTimeline = _.includes(post.feedIntIds, hidesTimelineIntId)
+      const postInTimeline = _.includes(post.feedIntIds, hidesTimelineIntId)
 
       if (postInTimeline) {
         post.isHidden = true
@@ -655,7 +655,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getTimelineIds = async function() {
-    let timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
+    const timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
     return timelineIds || {}
   }
 
@@ -703,8 +703,8 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getSubscriberIds = async function() {
-    let postsFeedIntId = await this.getPostsTimelineIntId()
-    let timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
+    const postsFeedIntId = await this.getPostsTimelineIntId()
+    const timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
     this.subscriberIds = await timeline.getSubscriberIds()
 
     return this.subscriberIds
@@ -754,14 +754,14 @@ exports.addModel = function (dbAdapter) {
 
   // Subscribe to user-owner of a given `timelineId`
   User.prototype.subscribeTo = async function(timelineId) {
-    let timeline = await dbAdapter.getTimelineById(timelineId)
-    let user = await dbAdapter.getFeedOwnerById(timeline.userId)
+    const timeline = await dbAdapter.getTimelineById(timelineId)
+    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
 
     if (user.username == this.username)
       throw new Error("Invalid")
 
-    let timelineIds = await user.getPublicTimelineIds()
-    let subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
+    const timelineIds = await user.getPublicTimelineIds()
+    const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
     await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
 
@@ -790,19 +790,19 @@ exports.addModel = function (dbAdapter) {
   User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
     var timeline = await dbAdapter.getTimelineById(timelineId)
     var user = await dbAdapter.getFeedOwnerById(timeline.userId)
-    let wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
+    const wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
 
     // a user cannot unsubscribe from herself
     if (user.username == this.username)
       throw new Error("Invalid")
 
-    let promises = []
+    const promises = []
 
     if (_.isUndefined(options.skip)) {
       // remove timelines from user's subscriptions
-      let timelineIds = await user.getPublicTimelineIds()
+      const timelineIds = await user.getPublicTimelineIds()
 
-      let subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
+      const subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
       this.subscribedFeedIds = subscribedFeedsIntIds
     }
 
@@ -861,7 +861,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.updateProfilePicture = async function(file) {
-    let image = promisifyAll(gm(file.path))
+    const image = promisifyAll(gm(file.path))
 
     let originalSize
 
@@ -873,17 +873,17 @@ exports.addModel = function (dbAdapter) {
 
     this.profilePictureUuid = uuid.v4()
 
-    let sizes = [
+    const sizes = [
       User.PROFILE_PICTURE_SIZE_LARGE,
       User.PROFILE_PICTURE_SIZE_MEDIUM
     ]
 
-    let promises = sizes.map(size => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
+    const promises = sizes.map(size => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
     await Promise.all(promises)
 
     this.updatedAt = new Date().getTime()
 
-    let payload = {
+    const payload = {
       'profilePictureUuid': this.profilePictureUuid,
       'updatedAt':          this.updatedAt.toString()
     }
@@ -995,7 +995,7 @@ exports.addModel = function (dbAdapter) {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers
       var updatedAt = new Date().getTime()
-      let payload = {
+      const payload = {
         'updatedAt': updatedAt.toString()
       }
       await dbAdapter.updateUser(this.id, payload)
@@ -1059,7 +1059,7 @@ exports.addModel = function (dbAdapter) {
     if (timelineOwners.length === 0)
       return []
 
-    let followedGroups = timelineOwners.filter((owner) => {
+    const followedGroups = timelineOwners.filter((owner) => {
       return 'group' === owner.type
     })
 
@@ -1070,7 +1070,7 @@ exports.addModel = function (dbAdapter) {
     const followedGroups = await this.getFollowedGroups()
     const currentUserId  = this.id
 
-    let promises = followedGroups.map(async (group)=>{
+    const promises = followedGroups.map(async (group)=>{
       const adminIds = await group.getAdministratorIds()
       if (adminIds.indexOf(currentUserId) !== -1) {
         return group
@@ -1078,15 +1078,15 @@ exports.addModel = function (dbAdapter) {
       return null
     })
 
-    let managedGroups = await Promise.all(promises)
+    const managedGroups = await Promise.all(promises)
     return _.compact(managedGroups)
   }
 
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
     const managedGroups = await this.getManagedGroups()
 
-    let promises = managedGroups.map(async (group)=>{
-      let unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
+    const promises = managedGroups.map(async (group)=>{
+      const unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
       return unconfirmedFollowerIds.length > 0
     })
 

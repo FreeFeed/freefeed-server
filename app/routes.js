@@ -30,8 +30,8 @@ export default function (app) {
 
     if (authToken) {
       try {
-        let decoded = await jwt.verifyAsync(authToken, config.secret)
-        let user = await dbAdapter.getUserById(decoded.userId)
+        const decoded = await jwt.verifyAsync(authToken, config.secret)
+        const user = await dbAdapter.getUserById(decoded.userId)
 
         if (user) {
           req.user = user

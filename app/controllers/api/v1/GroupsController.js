@@ -17,7 +17,7 @@ export default class GroupsController {
       return
     }
 
-    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
+    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
       var group = new Group(params)
@@ -31,27 +31,27 @@ export default class GroupsController {
   }
 
   static async sudoCreate(req, res) {
-    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isRestricted'])
+    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isRestricted'])
 
     try {
       if (!_.isArray(req.body.admins)) {
         throw new exceptions.BadRequestException('"admins" should be an array of strings')
       }
 
-      let adminPromises = req.body.admins.map(async (username) => {
+      const adminPromises = req.body.admins.map(async (username) => {
         const admin = await dbAdapter.getUserByUsername(username)
         return (null === admin) ? false : admin;
       })
       let admins = await Promise.all(adminPromises)
       admins = admins.filter(Boolean)
 
-      let group = new Group(params)
+      const group = new Group(params)
       await group.create(admins[0].id, true)
 
       // starting iteration from the second admin
-      let promises = [];
+      const promises = [];
       for (let i = 1; i < admins.length; i++) {
-        let adminId = admins[i].id;
+        const adminId = admins[i].id;
 
         promises.push(group.addAdministrator(adminId))
         promises.push(group.subscribeOwner(adminId))
@@ -59,7 +59,7 @@ export default class GroupsController {
 
       await Promise.all(promises)
 
-      let json = await new GroupSerializer(group).promiseToJSON()
+      const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -71,7 +71,7 @@ export default class GroupsController {
       res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
-    let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
+    const attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
       const group = await dbAdapter.getGroupById(req.params.userId)
@@ -220,7 +220,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -258,7 +258,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -296,7 +296,7 @@ export default class GroupsController {
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -307,11 +307,11 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      let user = await dbAdapter.getUserByUsername(userName)
+      const user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
-      let timelineId = await group.getPostsTimelineId()
+      const timelineId = await group.getPostsTimelineId()
       if (_.includes(adminIds, user.id)) {
         throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
       }

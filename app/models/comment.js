@@ -54,7 +54,7 @@ export function addModel(dbAdapter) {
 
     await this.validate()
 
-    let payload = {
+    const payload = {
       'body':      this.body,
       'userId':    this.userId,
       'postId':    this.postId,
@@ -64,8 +64,8 @@ export function addModel(dbAdapter) {
 
     this.id = await dbAdapter.createComment(payload)
 
-    let post = await dbAdapter.getPostById(this.postId)
-    let timelines = await post.addComment(this)
+    const post = await dbAdapter.getPostById(this.postId)
+    const timelines = await post.addComment(this)
 
     await dbAdapter.statsCommentCreated(this.userId)
 
@@ -78,7 +78,7 @@ export function addModel(dbAdapter) {
 
     await this.validate()
 
-    let payload = {
+    const payload = {
       'body':      this.body,
       'updatedAt': this.updatedAt.toString()
     }
@@ -100,15 +100,15 @@ export function addModel(dbAdapter) {
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
-    let post = await dbAdapter.getPostById(this.postId)
-    let comments = await post.getComments()
+    const post = await dbAdapter.getPostById(this.postId)
+    const comments = await post.getComments()
 
     if (_.any(comments, 'userId', this.userId)) {
       return true
     }
 
-    let user = await dbAdapter.getUserById(this.userId)
-    let timelineId = await user.getCommentsTimelineIntId()
+    const user = await dbAdapter.getUserById(this.userId)
+    const timelineId = await user.getCommentsTimelineIntId()
 
     return dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
   }

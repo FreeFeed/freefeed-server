@@ -13,7 +13,7 @@ export default class UsersController {
       const banIds = await req.user.getBanIds()
       const bannedUsers = await dbAdapter.getUsersByIds(banIds)
       const profilePicsPromises = bannedUsers.map(async (user) => {
-        let request = _.pick(user, ['id', 'username', 'screenName'])
+        const request = _.pick(user, ['id', 'username', 'screenName'])
         request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()
         request.profilePictureMediumUrl = await user.getProfilePictureMediumUrl()
         return request

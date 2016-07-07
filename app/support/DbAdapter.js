@@ -24,19 +24,19 @@ const USER_COLUMNS = {
 const USER_COLUMNS_MAPPING = {
   username:  (username)=>{return username.toLowerCase()},
   createdAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
   updatedAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
   isPrivate:           (is_private)=>{return is_private === '1'},
   isRestricted:        (is_restricted)=>{return is_restricted === '1'},
   resetPasswordSentAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   }
@@ -97,12 +97,12 @@ const ATTACHMENT_COLUMNS = {
 
 const ATTACHMENT_COLUMNS_MAPPING = {
   createdAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
   updatedAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
@@ -162,12 +162,12 @@ const COMMENT_COLUMNS = {
 
 const COMMENT_COLUMNS_MAPPING = {
   createdAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
   updatedAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   }
@@ -199,12 +199,12 @@ const FEED_COLUMNS = {
 
 const FEED_COLUMNS_MAPPING = {
   createdAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
   updatedAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   }
@@ -236,12 +236,12 @@ const POST_COLUMNS = {
 
 const POST_COLUMNS_MAPPING = {
   createdAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
   updatedAt: (timestamp)=>{
-    let d = new Date()
+    const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
   },
@@ -294,7 +294,7 @@ export class DbAdapter {
       if (valuesMapping[key]) {
         mappedVal = valuesMapping[key](val)
       }
-      let mappedKey = namesMapping[key]
+      const mappedKey = namesMapping[key]
       if (mappedKey) {
         result[mappedKey] = mappedVal
       }
@@ -302,7 +302,7 @@ export class DbAdapter {
   }
 
   async createUser(payload) {
-    let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
     const uid = res[0]
     await this.createUserStats(uid)
@@ -310,10 +310,10 @@ export class DbAdapter {
   }
 
   updateUser(userId, payload) {
-    let tokenExpirationTime = new Date(Date.now())
+    const tokenExpirationTime = new Date(Date.now())
     const expireAfter = 60 * 60 * 24 // 24 hours
 
-    let preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
 
     if (_.has(preparedPayload, 'reset_password_token')) {
       tokenExpirationTime.setHours(tokenExpirationTime.getHours() + expireAfter)
@@ -516,7 +516,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createUserStats(userId) {
-    let res = await this.database('user_stats').insert({ user_id: userId })
+    const res = await this.database('user_stats').insert({ user_id: userId })
     return res
   }
 
@@ -536,15 +536,15 @@ export class DbAdapter {
     const userPostsFeedId = userPostsFeed[0].uid
     const readablePostFeeds = this.database('feeds').whereIn('id', readableFeedsIds).where('name', 'Posts')
 
-    let promises = [
+    const promises = [
       this.getUserPostsCount(userId),
       this.getUserLikesCount(userId),
       this.getUserCommentsCount(userId),
       this.getTimelineSubscribersIds(userPostsFeedId),
       readablePostFeeds
     ]
-    let values = await Promise.all(promises)
-    let payload = {
+    const values = await Promise.all(promises)
+    const payload = {
       posts_count:         values[0],
       likes_count:         values[1],
       comments_count:      values[2],
@@ -575,8 +575,8 @@ export class DbAdapter {
   }
 
   async statsPostDeleted(authorId, postId) {
-    let postLikers = await this.getPostLikersIdsWithoutBannedUsers(postId, null)
-    let promises = postLikers.map((id)=>{
+    const postLikers = await this.getPostLikersIdsWithoutBannedUsers(postId, null)
+    const promises = postLikers.map((id)=>{
       return this.calculateUserStats(id)
     })
     await Promise.all(promises)
@@ -605,7 +605,7 @@ export class DbAdapter {
 
   async incrementStatsCounter(userId, counterName) {
     const res = await this.database('user_stats').where('user_id', userId)
-    let stats = res[0]
+    const stats = res[0]
     let val = parseInt(stats[counterName])
     val += 1
     stats[counterName] = val
@@ -614,7 +614,7 @@ export class DbAdapter {
 
   async decrementStatsCounter(userId, counterName) {
     const res = await this.database('user_stats').where('user_id', userId)
-    let stats = res[0]
+    const stats = res[0]
     let val = parseInt(stats[counterName])
     val -= 1
     if (val < 0) {
@@ -691,8 +691,8 @@ export class DbAdapter {
       .where('user_id', 'in', bannersUserIds)
       .orderByRaw(`position(user_id::text in '${bannersUserIds.toString()}')`)
 
-    let matrix = bannersUserIds.map((id)=>{
-      let foundBan = _.find(res, (record)=>{
+    const matrix = bannersUserIds.map((id)=>{
+      const foundBan = _.find(res, (record)=>{
         return record.user_id == id
       })
 
@@ -757,7 +757,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createAttachment(payload) {
-    let preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
     const res = await this.database('attachments').returning('uid').insert(preparedPayload)
     return res[0]
   }
@@ -792,21 +792,21 @@ export class DbAdapter {
   }
 
   updateAttachment(attachmentId, payload) {
-    let preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
 
     return this.database('attachments').where('uid', attachmentId).update(preparedPayload)
   }
 
 
   linkAttachmentToPost(attachmentId, postId) {
-    let payload = {
+    const payload = {
       post_id: postId
     }
     return this.database('attachments').where('uid', attachmentId).update(payload)
   }
 
   unlinkAttachmentFromPost(attachmentId, postId) {
-    let payload = {
+    const payload = {
       post_id: null
     }
     return this.database('attachments').where('uid', attachmentId).where('post_id', postId).update(payload)
@@ -860,10 +860,10 @@ export class DbAdapter {
   }
 
   async getPostLikersIdsWithoutBannedUsers(postId, viewerUserId) {
-    let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
+    const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
       .where('user_id', 'not in', subquery)
-    let userIds = res.map((record)=>{
+    const userIds = res.map((record)=>{
       return record.user_id
     })
     return userIds
@@ -906,7 +906,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createComment(payload) {
-    let preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
     const res = await this.database('comments').returning('uid').insert(preparedPayload)
     return res[0]
   }
@@ -927,7 +927,7 @@ export class DbAdapter {
   }
 
   updateComment(commentId, payload) {
-    let preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
 
     return this.database('comments').where('uid', commentId).update(preparedPayload)
   }
@@ -950,7 +950,7 @@ export class DbAdapter {
   }
 
   async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
-    let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
+    const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const responses = await this.database('comments').orderBy('created_at', 'asc').where('post_id', postId)
       .where('user_id', 'not in', subquery)
     const objects = responses.map((attrs) => {
@@ -974,7 +974,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createTimeline(payload) {
-    let preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
     if (preparedPayload.name == "MyDiscussions") {
       preparedPayload.uid = preparedPayload.user_id
     }
@@ -984,7 +984,7 @@ export class DbAdapter {
 
   createUserTimelines(userId, timelineNames) {
     const currentTime = new Date().getTime()
-    let promises = timelineNames.map((n) => {
+    const promises = timelineNames.map((n) => {
       const payload = {
         'name':      n,
         userId,
@@ -1006,7 +1006,7 @@ export class DbAdapter {
     const directs       = _.filter(res, (record) => { return record.name == 'Directs'})
     const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'})
 
-    let timelines =  {
+    const timelines =  {
       'RiverOfNews': riverOfNews[0] && riverOfNews[0].uid,
       'Hides':       hides[0] && hides[0].uid,
       'Comments':    comments[0] && comments[0].uid,
@@ -1133,14 +1133,14 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createPost(payload, destinationsIntIds) {
-    let preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
   }
 
   updatePost(postId, payload) {
-    let preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
+    const preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     return this.database('posts').where('uid', postId).update(preparedPayload)
   }
 
@@ -1178,9 +1178,9 @@ export class DbAdapter {
   }
 
   setPostUpdatedAt(postId, time) {
-    let d = new Date()
+    const d = new Date()
     d.setTime(time)
-    let payload = {
+    const payload = {
       updated_at: d.toISOString()
     }
     return this.database('posts').where('uid', postId).update(payload)
@@ -1200,7 +1200,7 @@ export class DbAdapter {
   }
 
   async createPostsUsagesInTimeline(postIds, feedIntIds) {
-    let preparedPostIds = postIds.map((el)=>{ return `'${el}'`; })
+    const preparedPostIds = postIds.map((el)=>{ return `'${el}'`; })
     if (!feedIntIds || feedIntIds.length == 0 || preparedPostIds.length == 0) {
       return null
     }
@@ -1210,7 +1210,7 @@ export class DbAdapter {
 
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
-    let attrs = res[0]
+    const attrs = res[0]
     if (!attrs) {
       return []
     }
@@ -1229,13 +1229,13 @@ export class DbAdapter {
 
   async isPostPresentInTimeline(timelineId, postId) {
     const res = await this.database('posts').where('uid', postId)
-    let postData = res[0]
+    const postData = res[0]
     return _.includes(postData.feed_ids, timelineId)
   }
 
   async getTimelinePostsRange(timelineId, offset, limit) {
-    let res = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[timelineId]])
-    let postIds = res.map((record)=>{
+    const res = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[timelineId]])
+    const postIds = res.map((record)=>{
       return record.uid
     })
     return postIds
@@ -1248,28 +1248,28 @@ export class DbAdapter {
         .offset(offset).limit(limit)
         .whereRaw('feed_ids && ?', [timelineIds]);
 
-    let postUids = responses.map((p)=>p.uid)
-    let commentsCount = {}
-    let likesCount = {}
+    const postUids = responses.map((p)=>p.uid)
+    const commentsCount = {}
+    const likesCount = {}
 
-    let groupedComments = await this.database('comments')
+    const groupedComments = await this.database('comments')
       .select('post_id', this.database.raw('count(id) as comments_count'))
       .where('post_id', 'in', postUids)
       .groupBy('post_id')
 
-    for (let group of groupedComments) {
+    for (const group of groupedComments) {
       if (!commentsCount[group.post_id]) {
         commentsCount[group.post_id] = 0
       }
       commentsCount[group.post_id] += parseInt(group.comments_count)
     }
 
-    let groupedLikes = await this.database('likes')
+    const groupedLikes = await this.database('likes')
       .select('post_id', this.database.raw('count(id) as likes_count'))
       .where('post_id', 'in', postUids)
       .groupBy('post_id')
 
-    for (let group of groupedLikes) {
+    for (const group of groupedLikes) {
       if (!likesCount[group.post_id]) {
         likesCount[group.post_id] = 0
       }
@@ -1294,13 +1294,13 @@ export class DbAdapter {
   }
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
-    let res1 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
-    let postIds1 = res1.map((record)=>{
+    const res1 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
+    const postIds1 = res1.map((record)=>{
       return record.uid
     })
 
-    let res2 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId2]])
-    let postIds2 = res2.map((record)=>{
+    const res2 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId2]])
+    const postIds2 = res2.map((record)=>{
       return record.uid
     })
 
@@ -1353,7 +1353,7 @@ export class DbAdapter {
   }
 
   async subscribeUserToTimelines(timelineIds, currentUserId) {
-    let subsPromises = timelineIds.map((id)=>{
+    const subsPromises = timelineIds.map((id)=>{
       const currentTime = new Date().toISOString()
 
       const payload = {
@@ -1365,16 +1365,16 @@ export class DbAdapter {
     })
     await Promise.all(subsPromises)
 
-    let feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
+    const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
-    let res = await this.database
+    const res = await this.database
       .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ? RETURNING subscribed_feed_ids', [feedIntIds, currentUserId])
 
     return res.rows[0].subscribed_feed_ids
   }
 
   async unsubscribeUserFromTimelines(timelineIds, currentUserId) {
-    let unsubsPromises = timelineIds.map((id)=> {
+    const unsubsPromises = timelineIds.map((id)=> {
       return this.database('subscriptions').where({
         feed_id: id,
         user_id: currentUserId
@@ -1382,9 +1382,9 @@ export class DbAdapter {
     })
     await Promise.all(unsubsPromises)
 
-    let feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
+    const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
-    let res = await this.database
+    const res = await this.database
       .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids', [feedIntIds, currentUserId])
     return res.rows[0].subscribed_feed_ids
   }
@@ -1411,13 +1411,13 @@ export class DbAdapter {
   }
 
   async getUserLocalBumps(userId, newerThan) {
-    let time = new Date()
+    const time = new Date()
     if (newerThan) {
       time.setTime(newerThan)
     }
 
     const res = await this.database('local_bumps').orderBy('created_at', 'desc').where('user_id', userId).where('created_at', '>', time.toISOString())
-    let bumps = res.map((record)=>{
+    const bumps = res.map((record)=>{
       return {
         postId:   record.post_id,
         bumpedAt: record.created_at.getTime()

@@ -26,8 +26,8 @@ export default class PostsController {
     const commentsDisabled = (req.body.meta.commentsDisabled ? '1' : '0')
 
     try {
-      let promises = feeds.map(async (username) => {
-        let feed = await dbAdapter.getFeedOwnerByUsername(username)
+      const promises = feeds.map(async (username) => {
+        const feed = await dbAdapter.getFeedOwnerByUsername(username)
         if (null === feed) {
           return null
         }
@@ -50,14 +50,14 @@ export default class PostsController {
           req.user.getDirectsTimelineId()
         ])
       })
-      let timelineIds = _.flatten(await Promise.all(promises))
+      const timelineIds = _.flatten(await Promise.all(promises))
       _.each(timelineIds, (id, i)=>{
         if (null == id) {
           throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
         }
       })
 
-      let newPost = await req.user.newPost({
+      const newPost = await req.user.newPost({
         body:        req.body.post.body,
         attachments: req.body.post.attachments,
         timelineIds,
@@ -66,7 +66,7 @@ export default class PostsController {
 
       await newPost.create()
 
-      let json = await new PostSerializer(newPost).promiseToJSON()
+      const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -91,7 +91,7 @@ export default class PostsController {
         attachments: req.body.post.attachments
       })
 
-      let json = await new PostSerializer(post).promiseToJSON()
+      const json = await new PostSerializer(post).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -118,8 +118,8 @@ export default class PostsController {
         throw new ForbiddenException("Not found")
 
       if (req.user) {
-        let author = await dbAdapter.getUserById(post.userId)
-        let banIds = await author.getBanIds()
+        const author = await dbAdapter.getUserById(post.userId)
+        const banIds = await author.getBanIds()
 
         if (banIds.indexOf(req.user.id) >= 0)
           throw new ForbiddenException("This user has prevented you from seeing their posts")
@@ -145,7 +145,7 @@ export default class PostsController {
     }
 
     try {
-      let post = await dbAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -165,7 +165,7 @@ export default class PostsController {
         throw new Error("Not found")
       }
 
-      let affectedTimelines = await post.addLike(req.user)
+      const affectedTimelines = await post.addLike(req.user)
 
       await dbAdapter.statsLikeCreated(req.user.id)
 
@@ -184,7 +184,7 @@ export default class PostsController {
     }
 
     try {
-      let post = await dbAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(req.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");

@@ -70,8 +70,8 @@ export default class BookmarkletController {
         feeds = [req.user.username]
       }
 
-      let promises = feeds.map(async (username) => {
-        let feed = await dbAdapter.getFeedOwnerByUsername(username)
+      const promises = feeds.map(async (username) => {
+        const feed = await dbAdapter.getFeedOwnerByUsername(username)
 
         if (null === feed) {
           return null
@@ -95,7 +95,7 @@ export default class BookmarkletController {
           req.user.getDirectsTimelineId()
         ])
       })
-      let timelineIds = _.flatten(await Promise.all(promises))
+      const timelineIds = _.flatten(await Promise.all(promises))
       _.each(timelineIds, (id, i)=>{
         if (null == id) {
           throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
@@ -103,10 +103,10 @@ export default class BookmarkletController {
       })
 
       // Download image and create attachment
-      let attachments = await getAttachments(req.user, req.body.image)
+      const attachments = await getAttachments(req.user, req.body.image)
 
       // Create post
-      let newPost = await req.user.newPost({
+      const newPost = await req.user.newPost({
         body: req.body.title,
         attachments,
         timelineIds
@@ -124,7 +124,7 @@ export default class BookmarkletController {
       }
 
       // Send response with the created post
-      let json = await new PostSerializer(newPost).promiseToJSON()
+      const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)

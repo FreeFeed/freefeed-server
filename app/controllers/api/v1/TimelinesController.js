@@ -10,18 +10,18 @@ export default class TimelineController {
       return
     }
 
-    let timer = monitor.timer('timelines.homefeed-time')
+    const timer = monitor.timer('timelines.homefeed-time')
 
     try {
       var user = req.user
 
-      let timeline = await user.getRiverOfNewsTimeline({
+      const timeline = await user.getRiverOfNewsTimeline({
         offset:      req.query.offset,
         limit:       req.query.limit,
         currentUser: user.id
       })
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      const json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
       monitor.increment('timelines.homefeed-requests')
@@ -38,7 +38,7 @@ export default class TimelineController {
       return
     }
 
-    let timer = monitor.timer('timelines.directs_feed-time')
+    const timer = monitor.timer('timelines.directs_feed-time')
 
     try {
       const user = req.user
@@ -48,7 +48,7 @@ export default class TimelineController {
         currentUser: user.id
       })
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      const json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
       monitor.increment('timelines.directs_feed-requests')
@@ -60,7 +60,7 @@ export default class TimelineController {
   }
 
   static async posts(req, res) {
-    let timer = monitor.timer('timelines.posts_feed-time')
+    const timer = monitor.timer('timelines.posts_feed-time')
 
     try {
       var username = req.params.username
@@ -80,7 +80,7 @@ export default class TimelineController {
 
       await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      const json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
       monitor.increment('timelines.posts_feed-requests')
@@ -92,7 +92,7 @@ export default class TimelineController {
   }
 
   static async likes(req, res) {
-    let timer = monitor.timer('timelines.likes_feed-time')
+    const timer = monitor.timer('timelines.likes_feed-time')
 
     try {
       var username = req.params.username
@@ -112,7 +112,7 @@ export default class TimelineController {
 
       await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      const json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
       monitor.increment('timelines.likes_feed-requests')
@@ -124,7 +124,7 @@ export default class TimelineController {
   }
 
   static async comments(req, res) {
-    let timer = monitor.timer('timelines.comments_feed-time')
+    const timer = monitor.timer('timelines.comments_feed-time')
 
     try {
       var username = req.params.username
@@ -144,7 +144,7 @@ export default class TimelineController {
 
       await timeline.loadVisibleSubscribersAndAdmins(user, req.user)
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      const json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
       monitor.increment('timelines.comments_feed-requests')
@@ -162,16 +162,16 @@ export default class TimelineController {
     }
 
     var user = req.user
-    let timer = monitor.timer('timelines.my_discussions_feed-time')
+    const timer = monitor.timer('timelines.my_discussions_feed-time')
 
     try {
-      let timeline = await user.getMyDiscussionsTimeline({
+      const timeline = await user.getMyDiscussionsTimeline({
         offset:      req.query.offset,
         limit:       req.query.limit,
         currentUser: req.user ? req.user.id : null
       })
 
-      let json = await new TimelineSerializer(timeline).promiseToJSON()
+      const json = await new TimelineSerializer(timeline).promiseToJSON()
       res.jsonp(json)
 
       monitor.increment('timelines.my_discussions_feed-requests')

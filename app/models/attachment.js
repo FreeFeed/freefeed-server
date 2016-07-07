@@ -10,7 +10,7 @@ import _ from 'lodash'
 import { load as configLoader } from "../../config/config"
 
 
-let config = configLoader()
+const config = configLoader()
 promisifyAll(fs)
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
@@ -253,7 +253,7 @@ export function addModel(dbAdapter) {
       if (this.mimeType !== 'image/svg+xml') {
         // Iterate over image sizes old-fashioned (and very synchronous) way
         // because gm is acting up weirdly when writing files in parallel mode
-        for (let sizeId in config.attachments.imageSizes) {
+        for (const sizeId in config.attachments.imageSizes) {
           if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
             const sizeConfig = config.attachments.imageSizes[sizeId]
             await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)
@@ -267,9 +267,9 @@ export function addModel(dbAdapter) {
       this.noThumbnail = '1'
 
       // Analyze metadata to get Artist & Title
-      let readStream = fs.createReadStream(tmpAttachmentFile)
-      let asyncMeta = promisify(meta)
-      let metadata = await asyncMeta(readStream)
+      const readStream = fs.createReadStream(tmpAttachmentFile)
+      const asyncMeta = promisify(meta)
+      const metadata = await asyncMeta(readStream)
 
       this.title = metadata.title
 
@@ -329,11 +329,11 @@ export function addModel(dbAdapter) {
 
   // Upload original attachment or its thumbnail to the S3 bucket
   Attachment.prototype.uploadToS3 = async function(sourceFile, destPath) {
-    let s3 = new aws.S3({
+    const s3 = new aws.S3({
       'accessKeyId':     config.attachments.storage.accessKeyId || null,
       'secretAccessKey': config.attachments.storage.secretAccessKey || null
     })
-    let putObject = promisify(s3.putObject, { context: s3 })
+    const putObject = promisify(s3.putObject, { context: s3 })
     await putObject({
       ACL:                'public-read',
       Bucket:             config.attachments.storage.bucket,
@@ -347,10 +347,10 @@ export function addModel(dbAdapter) {
   // Get cross-browser Content-Disposition header for attachment
   Attachment.prototype.getContentDisposition = function () {
     // Old browsers (IE8) need ASCII-only fallback filenames
-    let fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
+    const fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
 
     // Modern browsers support UTF-8 filenames
-    let fileNameUtf8 = encodeURIComponent(this.fileName)
+    const fileNameUtf8 = encodeURIComponent(this.fileName)
 
     // Inline version of 'attfnboth' method (http://greenbytes.de/tech/tc2231/#attfnboth)
     return `inline; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`

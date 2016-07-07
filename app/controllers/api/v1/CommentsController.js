@@ -33,12 +33,12 @@ export default class CommentsController {
         postId: req.body.comment.postId
       })
 
-      let timelines = await newComment.create()
+      const timelines = await newComment.create()
 
       await PubSub.newComment(newComment, timelines)
       monitor.increment('comments.creates')
 
-      let json = await new CommentSerializer(newComment).promiseToJSON()
+      const json = await new CommentSerializer(newComment).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -71,7 +71,7 @@ export default class CommentsController {
       await comment.update({
         body: req.body.comment.body
       })
-      let json = await new CommentSerializer(comment).promiseToJSON()
+      const json = await new CommentSerializer(comment).promiseToJSON()
       res.jsonp(json)
       monitor.increment('comments.updates')
     } catch (e) {

@@ -9,7 +9,7 @@ import { load as configLoader } from "../../../../config/config"
 import recaptchaVerify from '../../../../lib/recaptcha'
 
 
-let config = configLoader()
+const config = configLoader()
 
 export default class UsersController {
   static async create(req, res) {
@@ -25,7 +25,7 @@ export default class UsersController {
 
     try {
       if (config.recaptcha.enabled) {
-        let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
         await recaptchaVerify(req.body.captcha, ip)
       }
 

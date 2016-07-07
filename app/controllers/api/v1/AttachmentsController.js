@@ -24,13 +24,13 @@ export default class AttachmentsController {
         const newAttachment = await req.user.newAttachment({ file })
         await newAttachment.create()
 
-        let json = await new AttachmentSerializer(newAttachment).promiseToJSON()
+        const json = await new AttachmentSerializer(newAttachment).promiseToJSON()
         res.jsonp(json)
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
           this.app.logger.warn(e.message)
 
-          let errorDetails = { message: 'Corrupt image' }
+          const errorDetails = { message: 'Corrupt image' }
           exceptions.reportError(res)(errorDetails)
           return;
         }

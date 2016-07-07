@@ -6,7 +6,7 @@ import { load as configLoader } from "../../../../config/config"
 import { UserSerializer } from "../../../models"
 
 
-let config = configLoader()
+const config = configLoader()
 
 export default class SessionController {
   static create(req, res) {
@@ -28,7 +28,7 @@ export default class SessionController {
       var secret = config.secret
       var authToken = jwt.sign({ userId: user.id }, secret)
 
-      let json = await new UserSerializer(user).promiseToJSON()
+      const json = await new UserSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken }))
     })(req, res)
   }
