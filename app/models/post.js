@@ -221,7 +221,7 @@ export function addModel(dbAdapter) {
   Post.prototype.getGenericFriendOfFriendTimelineIntIds = async function(user, type) {
     let timelineIntIds = []
 
-    let userTimelineIntId = await user['get' + type + 'TimelineIntId']()
+    let userTimelineIntId = await user[`get${type}TimelineIntId`]()
     let timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId)
     timelineIntIds.push(userTimelineIntId)
 

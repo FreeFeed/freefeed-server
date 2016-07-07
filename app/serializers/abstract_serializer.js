@@ -20,7 +20,8 @@ AbstractSerializer.prototype = {
       return null
     }
     if (!this.object[field]) {
-      let name = "get" + s(field).capitalize().value()
+      const fieldName = s(field).capitalize().value();
+      let name = `get${fieldName}`
       let method = this.object[name]
 
       if (method) {

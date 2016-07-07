@@ -907,12 +907,12 @@ exports.addModel = function (dbAdapter) {
 
     image = image
       .resize(retinaSize, retinaSize)
-      .profile(__dirname + '/../../lib/assets/sRGB.icm')
+      .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
       .autoOrient()
       .quality(95)
 
     if (config.profilePictures.storage.type === 's3') {
-      const tmpPictureFile = path + '.resized.' + size
+      const tmpPictureFile = `${path}.resized.${size}`
       const destPictureFile = this.getProfilePictureFilename(uuid, size)
 
       await image.writeAsync(tmpPictureFile)
@@ -947,7 +947,7 @@ exports.addModel = function (dbAdapter) {
   }
 
   User.prototype.getProfilePictureFilename = function (uuid, size) {
-    return uuid + "_" + size + ".jpg"
+    return `${uuid}_${size}.jpg`
   }
 
   // used by serializer

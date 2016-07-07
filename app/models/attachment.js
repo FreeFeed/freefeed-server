@@ -179,7 +179,7 @@ export function addModel(dbAdapter) {
   // Get file name
   Attachment.prototype.getFilename = function () {
     if (this.fileExtension) {
-      return this.id + '.' + this.fileExtension
+      return `${this.id}.${this.fileExtension}`
     }
 
     return this.id
@@ -230,7 +230,7 @@ export function addModel(dbAdapter) {
 
         if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
           const img = originalImage
-            .profile(__dirname + '/../../lib/assets/sRGB.icm')
+            .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
             .autoOrient()
             .quality(95)
 
@@ -295,12 +295,12 @@ export function addModel(dbAdapter) {
 
   Attachment.prototype.resizeAndSaveImage = async function(originalImage, originalSize, sizeConfig, sizeId) {
     if (originalSize.width > sizeConfig.bounds.width || originalSize.height > sizeConfig.bounds.height) {
-      const tmpImageFile = this.file.path + '.resized.' + sizeId
+      const tmpImageFile = `${this.file.path}.resized.${sizeId}`
 
       // Resize image
       const img = originalImage
         .resize(sizeConfig.bounds.width, sizeConfig.bounds.height)
-        .profile(__dirname + '/../../lib/assets/sRGB.icm')
+        .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
         .autoOrient()
         .quality(95)
 

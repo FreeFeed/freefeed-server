@@ -72,7 +72,7 @@ export default class PubsubListener {
         }
 
         data[channel].filter(Boolean).forEach((id) => {
-          socket.join(channel + ':' + id)
+          socket.join(`${channel}:${id}`)
           logger.info(`User has subscribed to ${id} ${channel}`)
         })
       }
@@ -91,7 +91,7 @@ export default class PubsubListener {
         }
 
         data[channel].filter(Boolean).forEach((id) => {
-          socket.leave(channel + ':' + id)
+          socket.leave(`${channel}:${id}`)
           logger.info(`User has unsubscribed from ${id} ${channel}`)
         })
       }
@@ -183,8 +183,8 @@ export default class PubsubListener {
     let post = await dbAdapter.getPostById(data.postId)
     let json = { meta: { postId: data.postId } }
 
-    sockets.in('timeline:' + data.timelineId).emit('post:destroy', json)
-    sockets.in('post:' + data.postId).emit('post:destroy', json)
+    sockets.in(`timeline:${data.timelineId}`).emit('post:destroy', json)
+    sockets.in(`post:${data.postId}`).emit('post:destroy', json)
 
     let type = 'post:destroy'
     let room = `timeline:${data.timelineId}`
@@ -362,13 +362,13 @@ export default class PubsubListener {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     let json = { meta: { postId: data.postId } }
-    sockets.in('timeline:' + data.timelineId).emit('post:hide', json)
+    sockets.in(`timeline:${data.timelineId}`).emit('post:hide', json)
   }
 
   onPostUnhide = async (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     let json = { meta: { postId: data.postId } }
-    sockets.in('timeline:' + data.timelineId).emit('post:unhide', json)
+    sockets.in(`timeline:${data.timelineId}`).emit('post:unhide', json)
   }
 }
