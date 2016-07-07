@@ -429,7 +429,7 @@ export default class UsersController {
     } finally {
       timer.stop()
     }
- }
+  }
 
   static async update(req, res) {
     if (!req.user || req.user.id != req.params.userId) {

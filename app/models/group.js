@@ -85,32 +85,32 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.create = async function(ownerId, skip_stoplist) {
-      this.createdAt = new Date().getTime()
-      this.updatedAt = new Date().getTime()
-      this.screenName = this.screenName || this.username
+    this.createdAt = new Date().getTime()
+    this.updatedAt = new Date().getTime()
+    this.screenName = this.screenName || this.username
 
-      await this.validateOnCreate(skip_stoplist)
+    await this.validateOnCreate(skip_stoplist)
 
-      let payload = {
-        'username': this.username,
-        'screenName': this.screenName,
-        'description': this.description,
-        'type': this.type,
-        'createdAt': this.createdAt.toString(),
-        'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate,
-        'isRestricted': this.isRestricted
-      }
-      this.id = await dbAdapter.createUser(payload)
+    let payload = {
+      'username': this.username,
+      'screenName': this.screenName,
+      'description': this.description,
+      'type': this.type,
+      'createdAt': this.createdAt.toString(),
+      'updatedAt': this.updatedAt.toString(),
+      'isPrivate': this.isPrivate,
+      'isRestricted': this.isRestricted
+    }
+    this.id = await dbAdapter.createUser(payload)
 
-      await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
+    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 
-      if (ownerId) {
-        await this.addAdministrator(ownerId)
-        await this.subscribeOwner(ownerId)
-      }
+    if (ownerId) {
+      await this.addAdministrator(ownerId)
+      await this.subscribeOwner(ownerId)
+    }
 
-      return this
+    return this
   }
 
   Group.prototype.update = async function(params) {
