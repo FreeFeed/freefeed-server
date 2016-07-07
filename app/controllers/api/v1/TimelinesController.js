@@ -157,7 +157,7 @@ export default class TimelineController {
 
   static async myDiscussions (req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found', status: 'fail'})
+      res.status(401).jsonp({ err: 'Not found', status: 'fail' })
       return
     }
 

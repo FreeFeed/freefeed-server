@@ -8,12 +8,12 @@ import exceptions, { NotFoundException, ForbiddenException }  from '../../../sup
 export default class GroupsController {
   static async create(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
     if (!req.body.group) {
-      res.status(400).jsonp({ err: 'Malformed request', status: 'fail'})
+      res.status(400).jsonp({ err: 'Malformed request', status: 'fail' })
       return
     }
 
@@ -68,7 +68,7 @@ export default class GroupsController {
 
   static async update(req, res) {
     if (!req.user) {
-      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
     let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
@@ -95,7 +95,7 @@ export default class GroupsController {
 
   static async changeAdminStatus(req, res, newStatus) {
     if (!req.user) {
-      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
 
@@ -139,7 +139,7 @@ export default class GroupsController {
 
   static async updateProfilePicture(req, res) {
     if (!req.user) {
-      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
     try {
@@ -173,7 +173,7 @@ export default class GroupsController {
 
   static async sendRequest(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
@@ -213,7 +213,7 @@ export default class GroupsController {
 
   static async acceptRequest(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
@@ -251,7 +251,7 @@ export default class GroupsController {
 
   static async rejectRequest(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
@@ -289,7 +289,7 @@ export default class GroupsController {
 
   static async unsubscribeFromGroup(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 

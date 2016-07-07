@@ -158,10 +158,10 @@ export function addModel(dbAdapter) {
 
     let posts
     if (this.name != 'MyDiscussions') {
-      posts = await this.getFeedPosts(0, offset + limit, {currentUser: this.currentUser})
+      posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser })
     } else {
       const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()])
-      posts = await this.getFeedPosts(0, offset + limit, {currentUser: this.currentUser}, myDiscussionsFeedSourcesIds)
+      posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser }, myDiscussionsFeedSourcesIds)
     }
     let postIds = posts.map((p)=>{
       return p.id
@@ -178,7 +178,7 @@ export function addModel(dbAdapter) {
 
       let absentPostIds = _.difference(localBumpedPostIds, postIds)
       if (absentPostIds.length > 0){
-        let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, {currentUser: this.currentUser})
+        let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, { currentUser: this.currentUser })
         localBumpedPosts = _.sortBy(localBumpedPosts, (post)=>{
           return _.indexOf(absentPostIds, post.id)
         })

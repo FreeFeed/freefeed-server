@@ -281,7 +281,7 @@ export class DbAdapter {
   }
 
   static initObject(classDef, attrs, id, params) {
-    return new classDef({...attrs, ...{id}, ...params})
+    return new classDef({ ...attrs, ...{ id }, ...params })
   }
 
   ///////////////////////////////////////////////////
@@ -516,7 +516,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createUserStats(userId){
-    let res = await this.database('user_stats').insert({user_id: userId})
+    let res = await this.database('user_stats').insert({ user_id: userId })
     return res
   }
 

@@ -21,6 +21,7 @@
     "no-else-return": 2,
     "no-native-reassign": 2,
     "no-trailing-spaces": 2,
+    "object-curly-spacing": [2, "always"],
     "strict": [2, "never"]
   }
 }

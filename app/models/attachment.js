@@ -14,10 +14,10 @@ let config = configLoader()
 promisifyAll(fs)
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
-const detectMime = promisify(mimeMagic.detectFile, {context: mimeMagic})
+const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 
 const magic = new mmm.Magic()
-const detectFile = promisify(magic.detectFile, {context: magic})
+const detectFile = promisify(magic.detectFile, { context: magic })
 
 async function detectMimetype(filename) {
   const mimeType = await detectMime(filename)
@@ -334,7 +334,7 @@ export function addModel(dbAdapter) {
       'accessKeyId':     config.attachments.storage.accessKeyId || null,
       'secretAccessKey': config.attachments.storage.secretAccessKey || null
     })
-    let putObject = promisify(s3.putObject, {context: s3})
+    let putObject = promisify(s3.putObject, { context: s3 })
     await putObject({
       ACL:                'public-read',
       Bucket:             config.attachments.storage.bucket,

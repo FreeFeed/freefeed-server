@@ -406,7 +406,7 @@ exports.addModel = function(dbAdapter) {
     // efficient when introduce Entries table with meta column (post to
     // timelines many-to-many over Entries)
 
-    let timeline = await this.getPostsTimeline({currentUser: this.id})
+    let timeline = await this.getPostsTimeline({ currentUser: this.id })
     let posts = await timeline.getPosts(0, -1)
 
     let fixedUsers = []
@@ -931,7 +931,7 @@ exports.addModel = function(dbAdapter) {
       'accessKeyId':     subConfig.storage.accessKeyId || null,
       'secretAccessKey': subConfig.storage.secretAccessKey || null
     })
-    const putObject = promisify(s3.putObject, {context: s3})
+    const putObject = promisify(s3.putObject, { context: s3 })
     await putObject({
       ACL:                'public-read',
       Bucket:             subConfig.storage.bucket,

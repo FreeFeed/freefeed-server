@@ -33,7 +33,7 @@ const getAttachments = async function(author, imageUrl) {
   const response = await fetch(imageUrl)
 
   const fileType = response.headers.get('content-type')
-  const stream = fs.createWriteStream(filePath, {flags: 'w'})
+  const stream = fs.createWriteStream(filePath, { flags: 'w' })
 
   await waitForStream(response.body.pipe(stream))
   const stats = await fs.statAsync(filePath)
@@ -55,7 +55,7 @@ export default class BookmarkletController {
   static async create(req, res) {
     try {
       if (!req.user) {
-        res.status(401).jsonp({err: 'Not found'})
+        res.status(401).jsonp({ err: 'Not found' })
         return
       }
 

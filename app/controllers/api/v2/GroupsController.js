@@ -7,7 +7,7 @@ import exceptions from '../../../support/exceptions'
 export default class GroupsController {
   static async managedGroups(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
