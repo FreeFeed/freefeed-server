@@ -90,7 +90,9 @@ export function addModel(dbAdapter) {
       'updatedAt': currentTime.toString()
     }
 
-    this.id = await dbAdapter.createTimeline(payload)
+    const ids = await dbAdapter.createTimeline(payload);
+    this.id = ids.id;
+    this.intId = ids.intId;
 
     this.createdAt = currentTime
     this.updatedAt = currentTime

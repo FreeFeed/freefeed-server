@@ -982,8 +982,8 @@ export class DbAdapter {
     if (preparedPayload.name == "MyDiscussions"){
       preparedPayload.uid = preparedPayload.user_id
     }
-    const res = await this.database('feeds').returning('uid').insert(preparedPayload)
-    return res[0]
+    const res = await this.database('feeds').returning(['id', 'uid']).insert(preparedPayload)
+    return { intId: res[0].id, id: res[0].uid }
   }
 
   createUserTimelines(userId, timelineNames) {
