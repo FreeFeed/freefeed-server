@@ -11,5 +11,4 @@ export function connect() {
 }
 
 export async function configure(){
-  return knex.raw("SET enable_seqscan TO off")
 }
