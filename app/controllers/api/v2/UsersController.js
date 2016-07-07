@@ -20,7 +20,7 @@ export default class UsersController {
       })
       const result = await Promise.all(profilePicsPromises)
       res.jsonp(result)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

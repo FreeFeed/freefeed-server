@@ -126,7 +126,7 @@ export default class BookmarkletController {
       // Send response with the created post
       let json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

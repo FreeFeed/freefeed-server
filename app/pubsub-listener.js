@@ -50,7 +50,7 @@ export default class PubsubListener {
     try {
       let decoded = await jwt.verifyAsync(authToken, secret)
       socket.user = await dbAdapter.getUserById(decoded.userId)
-    } catch(e) {
+    } catch (e) {
       socket.user = { id: null }
     }
 

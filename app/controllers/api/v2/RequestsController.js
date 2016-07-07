@@ -23,7 +23,7 @@ export default class RequestsController {
 
       await followedFeedOwner.rejectSubscriptionRequest(req.user.id)
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

@@ -33,7 +33,7 @@ export default class GroupsController {
       groupsJson = await Promise.all(promises)
 
       res.jsonp(groupsJson)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

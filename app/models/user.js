@@ -517,7 +517,7 @@ exports.addModel = function(dbAdapter) {
       this.updatedAt = updatedAt
       this.hashedPassword = payload.hashedPassword
       return this
-    } catch(e) {
+    } catch (e) {
       throw e //? hmmm?
     }
   }
@@ -819,7 +819,7 @@ exports.addModel = function(dbAdapter) {
 
     await Promise.all(promises)
 
-    if(wasSubscribed) {
+    if (wasSubscribed) {
       await dbAdapter.statsSubscriptionDeleted(this.id)
       await dbAdapter.statsSubscriberRemoved(user.id)
     }

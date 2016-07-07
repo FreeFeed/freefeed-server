@@ -84,7 +84,7 @@ export default class TimelineController {
       res.jsonp(json)
 
       monitor.increment('timelines.posts_feed-requests')
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     } finally {
       timer.stop()
@@ -116,7 +116,7 @@ export default class TimelineController {
       res.jsonp(json)
 
       monitor.increment('timelines.likes_feed-requests')
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     } finally {
       timer.stop()
@@ -148,7 +148,7 @@ export default class TimelineController {
       res.jsonp(json)
 
       monitor.increment('timelines.comments_feed-requests')
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     } finally {
       timer.stop()

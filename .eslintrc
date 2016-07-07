@@ -15,6 +15,7 @@
   "rules": {
     "consistent-return": 2,
     "indent": [2, 2, {"SwitchCase": 1}],
+    "keyword-spacing": 2,
     "no-else-return": 2,
     "no-native-reassign": 2,
     "strict": [2, "never"]

@@ -1014,11 +1014,11 @@ export class DbAdapter {
       'Posts':         posts[0] && posts[0].uid
     }
 
-    if(directs[0]){
+    if (directs[0]) {
       timelines['Directs'] = directs[0].uid
     }
 
-    if(myDiscussions[0]){
+    if (myDiscussions[0]) {
       timelines['MyDiscussions'] = myDiscussions[0].uid
     }
 
@@ -1258,7 +1258,7 @@ export class DbAdapter {
       .groupBy('post_id')
 
     for (let group of groupedComments) {
-      if(!commentsCount[group.post_id]){
+      if (!commentsCount[group.post_id]) {
         commentsCount[group.post_id] = 0
       }
       commentsCount[group.post_id] += parseInt(group.comments_count)
@@ -1270,7 +1270,7 @@ export class DbAdapter {
       .groupBy('post_id')
 
     for (let group of groupedLikes) {
-      if(!likesCount[group.post_id]){
+      if (!likesCount[group.post_id]) {
         likesCount[group.post_id] = 0
       }
       likesCount[group.post_id] += parseInt(group.likes_count)

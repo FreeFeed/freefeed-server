@@ -206,7 +206,7 @@ export function addModel(dbAdapter) {
     // Check a mime type
     try {
       this.mimeType = await detectMimetype(tmpAttachmentFile)
-    } catch(e) {
+    } catch (e) {
       if (_.isEmpty(this.mimeType)) {
         throw e
       }

@@ -36,7 +36,7 @@ export default function(app) {
         if (user) {
           req.user = user
         }
-      } catch(e) {
+      } catch (e) {
         app.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`)
       }
     }

@@ -49,7 +49,7 @@ export default class UsersController {
 
       var json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken: authToken }))
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -86,7 +86,7 @@ export default class UsersController {
 
       var json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken: authToken }))
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -120,7 +120,7 @@ export default class UsersController {
       await req.user.sendSubscriptionRequest(user.id)
 
       res.jsonp({})
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -145,7 +145,7 @@ export default class UsersController {
       await req.user.acceptSubscriptionRequest(user.id)
 
       res.jsonp({})
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -170,7 +170,7 @@ export default class UsersController {
       await req.user.rejectSubscriptionRequest(user.id)
 
       res.jsonp({})
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -300,7 +300,7 @@ export default class UsersController {
     try {
       var status = await req.user.ban(req.params.username)
       res.jsonp({ status: status })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -314,7 +314,7 @@ export default class UsersController {
     try {
       var status = await req.user.unban(req.params.username)
       res.jsonp({ status: status })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -357,7 +357,7 @@ export default class UsersController {
 
       var json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -386,7 +386,7 @@ export default class UsersController {
 
       var json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -424,7 +424,7 @@ export default class UsersController {
 
       var json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     } finally {
       timer.stop()
@@ -447,7 +447,7 @@ export default class UsersController {
       var user = await req.user.update(attrs)
       var json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -466,7 +466,7 @@ export default class UsersController {
       await req.user.updatePassword(req.body.password, req.body.passwordConfirmation)
 
       res.jsonp({ message: 'Your password has been changed' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

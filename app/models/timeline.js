@@ -186,7 +186,7 @@ export function addModel(dbAdapter) {
       }
 
       for (let p of posts){
-        if(_.includes(localBumpedPostIds, p.id)){
+        if (_.includes(localBumpedPostIds, p.id)) {
           let bump = _.find(localBumps, (b)=>{ return b.postId === p.id })
           p.bumpedAt = bump.bumpedAt
         }
@@ -348,7 +348,7 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer){
-    if(!feedOwner || feedOwner.id != this.userId){
+    if (!feedOwner || feedOwner.id != this.userId) {
       throw new Error("Wrong feed owner")
     }
 
@@ -419,7 +419,7 @@ export function addModel(dbAdapter) {
 
     if (action === "like") {
       await dbAdapter.insertPostIntoFeeds([this.intId], postId)
-      if(this.isRiverOfNews()) {
+      if (this.isRiverOfNews()) {
         await dbAdapter.createLocalBump(postId, this.userId)
       }
     } else {

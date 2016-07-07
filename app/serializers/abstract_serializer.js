@@ -170,7 +170,7 @@ AbstractSerializer.prototype = {
 
     let fieldValue = await this.getField(field)
     if (!Array.isArray(fieldValue)){
-      if(fieldValue){
+      if (fieldValue) {
         storeTempModelIds([fieldValue])
         return fieldValue
       }
@@ -258,7 +258,7 @@ AbstractSerializer.prototype = {
       let relatedObjectsIds = _.uniq(root[descr.objectIdsKey])
       let existingObjects = root[descr.relKey]
         , existingObjectsIds = []
-      if(Array.isArray(existingObjects) && existingObjects.length > 0 ){
+      if (Array.isArray(existingObjects) && existingObjects.length > 0) {
         existingObjectsIds = existingObjects.map((obj)=>obj.id)
         relatedObjectsIds = _.difference(relatedObjectsIds, existingObjectsIds)
       }

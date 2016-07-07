@@ -133,7 +133,7 @@ export default class PostsController {
       var json = new PostSerializer(post).promiseToJSON()
 
       res.jsonp(await json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -172,7 +172,7 @@ export default class PostsController {
       res.status(200).send({})
 
       await pubSub.newLike(post, req.user.id, affectedTimelines)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -209,7 +209,7 @@ export default class PostsController {
       await dbAdapter.statsLikeDeleted(req.user.id)
 
       res.status(200).send({})
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

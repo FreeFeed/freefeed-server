@@ -25,7 +25,7 @@ export default class GroupsController {
 
       var json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -61,7 +61,7 @@ export default class GroupsController {
 
       let json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -88,7 +88,7 @@ export default class GroupsController {
 
       var json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -124,7 +124,7 @@ export default class GroupsController {
       }
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -206,7 +206,7 @@ export default class GroupsController {
       await req.user.sendPrivateGroupSubscriptionRequest(group.id)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -244,7 +244,7 @@ export default class GroupsController {
       await group.acceptSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -282,7 +282,7 @@ export default class GroupsController {
       await group.rejectSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -324,7 +324,7 @@ export default class GroupsController {
       await user.unsubscribeFrom(timelineId)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
