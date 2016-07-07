@@ -74,11 +74,15 @@ describe("MutualFriends", function() {
               .send({ authToken: lunaContext.authToken })
               .end(function(err, res) {
                 funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/likes', lunaContext.authToken, function(err, res) {
-                  res.body.should.have.property('timelines')
-                  res.body.timelines.should.have.property('name')
-                  res.body.timelines.name.should.eql('Likes')
-                  res.body.should.not.have.property('posts')
-                  done()
+                  try {
+                    res.body.should.have.property('timelines')
+                    res.body.timelines.should.have.property('name')
+                    res.body.timelines.name.should.eql('Likes')
+                    res.body.should.not.have.property('posts')
+                    done()
+                  } catch (e) {
+                    done(e)
+                  }
                 })
               })
           })

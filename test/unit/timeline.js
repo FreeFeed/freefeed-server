@@ -33,6 +33,7 @@ describe('Timeline', function() {
           newTimeline.id.should.eql(timeline.id)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should ignore whitespaces in name', function(done) {
@@ -54,6 +55,7 @@ describe('Timeline', function() {
           newTimeline.name.should.eql(name.trim())
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not create with empty name', function(done) {
@@ -89,6 +91,7 @@ describe('Timeline', function() {
           newTimeline.id.should.eql(timeline.id)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not find timeline with an invalid id', function(done) {
@@ -99,6 +102,7 @@ describe('Timeline', function() {
           $should.not.exist(timeline)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -122,6 +126,7 @@ describe('Timeline', function() {
           posts.should.be.empty
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -143,6 +148,7 @@ describe('Timeline', function() {
       userA.create()
         .then(function(user) { return userB.create() })
         .then(function(user) { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should subscribe to timeline', function(done) {
@@ -168,6 +174,7 @@ describe('Timeline', function() {
           user.id.should.eql(userA.id)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 })
