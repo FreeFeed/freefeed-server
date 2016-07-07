@@ -60,7 +60,7 @@ export function addModel(dbAdapter) {
     await pubSub.newPost(post.id)
   }
 
-  Timeline.getObjectsByIds = async function (objectIds){
+  Timeline.getObjectsByIds = async function (objectIds) {
     return dbAdapter.getTimelinesByIds(objectIds)
   }
 
@@ -130,7 +130,7 @@ export function addModel(dbAdapter) {
       return []
 
     let feedIds = [this.intId]
-    if (customFeedIds){
+    if (customFeedIds) {
       feedIds = customFeedIds
     }
 
@@ -177,7 +177,7 @@ export function addModel(dbAdapter) {
       let localBumpedPostIds = localBumps.map((bump) => { return bump.postId })
 
       let absentPostIds = _.difference(localBumpedPostIds, postIds)
-      if (absentPostIds.length > 0){
+      if (absentPostIds.length > 0) {
         let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, { currentUser: this.currentUser })
         localBumpedPosts = _.sortBy(localBumpedPosts, (post)=>{
           return _.indexOf(absentPostIds, post.id)
@@ -185,7 +185,7 @@ export function addModel(dbAdapter) {
         posts = localBumpedPosts.concat(posts)
       }
 
-      for (let p of posts){
+      for (let p of posts) {
         if (_.includes(localBumpedPostIds, p.id)) {
           let bump = _.find(localBumps, (b)=>{ return b.postId === p.id })
           p.bumpedAt = bump.bumpedAt
@@ -196,10 +196,10 @@ export function addModel(dbAdapter) {
     posts.sort((p1, p2)=>{
       let t1 = p1.updatedAt
       let t2 = p2.updatedAt
-      if (p1.bumpedAt){
+      if (p1.bumpedAt) {
         t1 = p1.bumpedAt
       }
-      if (p2.bumpedAt){
+      if (p2.bumpedAt) {
         t2 = p2.bumpedAt
       }
       return t2 - t1
@@ -347,7 +347,7 @@ export function addModel(dbAdapter) {
     return this.subscribers
   }
 
-  Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer){
+  Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer) {
     if (!feedOwner || feedOwner.id != this.userId) {
       throw new Error("Wrong feed owner")
     }

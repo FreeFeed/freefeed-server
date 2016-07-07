@@ -329,7 +329,7 @@ export default class GroupsController {
     }
   }
 
-  static _filteredParams(modelDescr, allowedParams){
+  static _filteredParams(modelDescr, allowedParams) {
     return _.pick(modelDescr, allowedParams)
   }
 }

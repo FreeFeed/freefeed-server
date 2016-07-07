@@ -4,7 +4,7 @@ import { load as configLoader } from '../../config/config'
 
 let config = configLoader()
 
-export default class UserMailer{
+export default class UserMailer {
   static async resetPassword(user, locals) {
     var subject = config.mailer.resetPasswordMailSubject
 

@@ -17,7 +17,7 @@ export default class RequestsController {
       }
 
       const subscriptionRequestFound = await dbAdapter.isSubscriptionRequestPresent(req.user.id, followedFeedOwner.id)
-      if (!subscriptionRequestFound){
+      if (!subscriptionRequestFound) {
         throw new NotFoundException(`Subscription request to "${followedFeedOwnerName}" is not found`)
       }
 

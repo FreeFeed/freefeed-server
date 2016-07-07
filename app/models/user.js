@@ -386,13 +386,13 @@ exports.addModel = function(dbAdapter) {
 
       preparedPayload.updatedAt = payload.updatedAt.toString()
 
-      if (_.has(payload, 'frontendPreferences')){
+      if (_.has(payload, 'frontendPreferences')) {
         preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences)
       }
 
       await dbAdapter.updateUser(this.id, preparedPayload)
 
-      for (let k in payload){
+      for (let k in payload) {
         this[k] = payload[k]
       }
     }
@@ -543,7 +543,7 @@ exports.addModel = function(dbAdapter) {
 
     let timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
 
-    if (!timeline){
+    if (!timeline) {
       console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
       return null
     }
@@ -842,7 +842,7 @@ exports.addModel = function(dbAdapter) {
 
 
   User.prototype.getStatistics = async function() {
-    if (!this.statsValues){
+    if (!this.statsValues) {
       this.statsValues = await this.calculateStatsValues()
     }
     return this.statsValues

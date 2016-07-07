@@ -305,12 +305,12 @@ export function addModel(dbAdapter) {
     return timelines
   }
 
-  Post.prototype.publishChangesToFeeds = async function(timelines, isLikeAction = false){
+  Post.prototype.publishChangesToFeeds = async function(timelines, isLikeAction = false) {
     let feedsIntIds = timelines.map((t)=> t.intId)
     let insertIntoFeedIds = _.difference(feedsIntIds, this.feedIntIds)
     let timelineOwnersIds = timelines.map((t)=> t.userId)
     let riversOfNewsOwners = timelines.map((t)=> {
-      if (t.isRiverOfNews() && _.includes(insertIntoFeedIds, t.intId)){
+      if (t.isRiverOfNews() && _.includes(insertIntoFeedIds, t.intId)) {
         return t.userId
       }
       return null
@@ -458,7 +458,7 @@ export function addModel(dbAdapter) {
 
   Post.prototype.getOmittedLikes = async function() {
     let length = this.likesCount
-    if (length == null){
+    if (length == null) {
       length = await dbAdapter.getPostLikesCount(this.id)
     }
 

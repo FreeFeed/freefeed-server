@@ -215,7 +215,7 @@ export function addModel(dbAdapter) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
 
-    if (this.isRestricted === '1'){
+    if (this.isRestricted === '1') {
       let adminIds = await this.getAdministratorIds()
       if (!_.includes(adminIds, postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")

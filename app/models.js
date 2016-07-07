@@ -39,7 +39,7 @@ export { Serializer }         from "./serializers/serializer"
 const pubsubAdapter = new PubSubAdapter(database)
 const config = configLoader()
 export let PubSub = new pubSub(pubsubAdapter)
-if (config.disableRealtime){
+if (config.disableRealtime) {
   PubSub = new pubSubStub()
 }
 

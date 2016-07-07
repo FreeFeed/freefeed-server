@@ -288,14 +288,14 @@ export class DbAdapter {
   // User
   ///////////////////////////////////////////////////
 
-  _prepareModelPayload(payload, namesMapping, valuesMapping){
+  _prepareModelPayload(payload, namesMapping, valuesMapping) {
     return _.transform(payload, (result, val, key) => {
       let mappedVal = val
-      if (valuesMapping[key]){
+      if (valuesMapping[key]) {
         mappedVal = valuesMapping[key](val)
       }
       let mappedKey = namesMapping[key]
-      if (mappedKey){
+      if (mappedKey) {
         result[mappedKey] = mappedVal
       }
     })
@@ -391,7 +391,7 @@ export class DbAdapter {
     }
 
     const now = new Date().getTime()
-    if (attrs.reset_password_expires_at < now){
+    if (attrs.reset_password_expires_at < now) {
       return null
     }
 
@@ -425,7 +425,7 @@ export class DbAdapter {
 
 
   async getFeedOwnerById(id) {
-    if (!validator.isUUID(id,4)){
+    if (!validator.isUUID(id,4)) {
       return null
     }
     const res = await this.database('users').where('uid', id)
@@ -448,7 +448,7 @@ export class DbAdapter {
     const responses = await this.database('users').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
       }
 
@@ -515,17 +515,17 @@ export class DbAdapter {
   // User statistics
   ///////////////////////////////////////////////////
 
-  async createUserStats(userId){
+  async createUserStats(userId) {
     let res = await this.database('user_stats').insert({ user_id: userId })
     return res
   }
 
-  async getUserStats(userId){
+  async getUserStats(userId) {
     const res = await this.database('user_stats').where('user_id', userId)
     return this._prepareModelPayload(res[0], USER_STATS_FIELDS, {})
   }
 
-  async calculateUserStats(userId){
+  async calculateUserStats(userId) {
     const userFeeds = await this.database('users').select('subscribed_feed_ids').where('uid', userId)
     const readableFeedsIds = userFeeds[0].subscribed_feed_ids
 
@@ -554,56 +554,56 @@ export class DbAdapter {
     return this.database('user_stats').where('user_id', userId).update(payload)
   }
 
-  statsCommentCreated(authorId){
+  statsCommentCreated(authorId) {
     return this.incrementStatsCounter(authorId, 'comments_count')
   }
 
-  statsCommentDeleted(authorId){
+  statsCommentDeleted(authorId) {
     return this.decrementStatsCounter(authorId, 'comments_count')
   }
 
-  statsLikeCreated(authorId){
+  statsLikeCreated(authorId) {
     return this.incrementStatsCounter(authorId, 'likes_count')
   }
 
-  statsLikeDeleted(authorId){
+  statsLikeDeleted(authorId) {
     return this.decrementStatsCounter(authorId, 'likes_count')
   }
 
-  statsPostCreated(authorId){
+  statsPostCreated(authorId) {
     return this.incrementStatsCounter(authorId, 'posts_count')
   }
 
-  async statsPostDeleted(authorId, postId){
+  async statsPostDeleted(authorId, postId) {
     let postLikers = await this.getPostLikersIdsWithoutBannedUsers(postId, null)
     let promises = postLikers.map((id)=>{
       return this.calculateUserStats(id)
     })
     await Promise.all(promises)
 
-    if (!_.includes(postLikers, authorId)){
+    if (!_.includes(postLikers, authorId)) {
       return this.decrementStatsCounter(authorId, 'posts_count')
     }
     return null
   }
 
-  statsSubscriptionCreated(userId){
+  statsSubscriptionCreated(userId) {
     return this.incrementStatsCounter(userId, 'subscriptions_count')
   }
 
-  statsSubscriptionDeleted(userId){
+  statsSubscriptionDeleted(userId) {
     return this.decrementStatsCounter(userId, 'subscriptions_count')
   }
 
-  statsSubscriberAdded(userId){
+  statsSubscriberAdded(userId) {
     return this.incrementStatsCounter(userId, 'subscribers_count')
   }
 
-  statsSubscriberRemoved(userId){
+  statsSubscriberRemoved(userId) {
     return this.decrementStatsCounter(userId, 'subscribers_count')
   }
 
-  async incrementStatsCounter(userId, counterName){
+  async incrementStatsCounter(userId, counterName) {
     const res = await this.database('user_stats').where('user_id', userId)
     let stats = res[0]
     let val = parseInt(stats[counterName])
@@ -612,12 +612,12 @@ export class DbAdapter {
     return this.database('user_stats').where('user_id', userId).update(stats)
   }
 
-  async decrementStatsCounter(userId, counterName){
+  async decrementStatsCounter(userId, counterName) {
     const res = await this.database('user_stats').where('user_id', userId)
     let stats = res[0]
     let val = parseInt(stats[counterName])
     val -= 1
-    if (val < 0){
+    if (val < 0) {
       console.log("Negative user stats", counterName)    // eslint-disable-line no-console
       val = 0
     }
@@ -629,7 +629,7 @@ export class DbAdapter {
   // Subscription requests
   ///////////////////////////////////////////////////
 
-  createSubscriptionRequest(fromUserId, toUserId){
+  createSubscriptionRequest(fromUserId, toUserId) {
     const currentTime = new Date().toISOString()
 
     const payload = {
@@ -641,7 +641,7 @@ export class DbAdapter {
     return this.database('subscription_requests').returning('id').insert(payload)
   }
 
-  deleteSubscriptionRequest(toUserId, fromUserId){
+  deleteSubscriptionRequest(toUserId, fromUserId) {
     return this.database('subscription_requests').where({
       from_user_id: fromUserId,
       to_user_id:   toUserId
@@ -685,7 +685,7 @@ export class DbAdapter {
   }
 
 
-  async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId){
+  async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId) {
     const res = await this.database('bans')
       .where('banned_user_id', targetUserId)
       .where('user_id', 'in', bannersUserIds)
@@ -763,7 +763,7 @@ export class DbAdapter {
   }
 
   async getAttachmentById(id) {
-    if (!validator.isUUID(id,4)){
+    if (!validator.isUUID(id,4)) {
       return null
     }
     const res = await this.database('attachments').where('uid', id)
@@ -781,7 +781,7 @@ export class DbAdapter {
     const responses = await this.database('attachments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
       }
 
@@ -798,14 +798,14 @@ export class DbAdapter {
   }
 
 
-  linkAttachmentToPost(attachmentId, postId){
+  linkAttachmentToPost(attachmentId, postId) {
     let payload = {
       post_id: postId
     }
     return this.database('attachments').where('uid', attachmentId).update(payload)
   }
 
-  unlinkAttachmentFromPost(attachmentId, postId){
+  unlinkAttachmentFromPost(attachmentId, postId) {
     let payload = {
       post_id: null
     }
@@ -823,7 +823,7 @@ export class DbAdapter {
   async getAttachmentsOfPost(postId) {
     const responses = await this.database('attachments').orderBy('created_at', 'asc').where('post_id', postId)
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
       }
 
@@ -854,7 +854,7 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getUserLikesCount(userId){
+  async getUserLikesCount(userId) {
     const res = await this.database('likes').where({ user_id: userId }).count()
     return parseInt(res[0].count)
   }
@@ -884,7 +884,7 @@ export class DbAdapter {
     })
     const record = res[0]
 
-    if (!record){
+    if (!record) {
       return null
     }
     return record.created_at.getTime()
@@ -912,7 +912,7 @@ export class DbAdapter {
   }
 
   async getCommentById(id) {
-    if (!validator.isUUID(id,4)){
+    if (!validator.isUUID(id,4)) {
       return null
     }
     const res = await this.database('comments').where('uid', id)
@@ -944,17 +944,17 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  async getUserCommentsCount(userId){
+  async getUserCommentsCount(userId) {
     const res = await this.database('comments').where({ user_id: userId }).count()
     return parseInt(res[0].count)
   }
 
-  async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId){
+  async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
     let subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
     const responses = await this.database('comments').orderBy('created_at', 'asc').where('post_id', postId)
       .where('user_id', 'not in', subquery)
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
       }
 
@@ -975,7 +975,7 @@ export class DbAdapter {
 
   async createTimeline(payload) {
     let preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
-    if (preparedPayload.name == "MyDiscussions"){
+    if (preparedPayload.name == "MyDiscussions") {
       preparedPayload.uid = preparedPayload.user_id
     }
     const res = await this.database('feeds').returning(['id', 'uid']).insert(preparedPayload)
@@ -1026,7 +1026,7 @@ export class DbAdapter {
   }
 
   async getTimelineById(id, params) {
-    if (!validator.isUUID(id,4)){
+    if (!validator.isUUID(id,4)) {
       return null
     }
     const res = await this.database('feeds').where('uid', id)
@@ -1056,7 +1056,7 @@ export class DbAdapter {
     const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
 
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
       }
       return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
@@ -1068,7 +1068,7 @@ export class DbAdapter {
     const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`)
 
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
       }
       return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
@@ -1094,7 +1094,7 @@ export class DbAdapter {
     return uuids
   }
 
-  async getUserNamedFeed(userId, name, params){
+  async getUserNamedFeed(userId, name, params) {
     const response = await this.database('feeds').returning('uid').where({
       user_id: userId,
       name
@@ -1110,7 +1110,7 @@ export class DbAdapter {
     return DbAdapter.initObject(Timeline, namedFeed, namedFeed.id, params)
   }
 
-  async getUserNamedFeedsIntIds(userId, names){
+  async getUserNamedFeedsIntIds(userId, names) {
     const responses = await this.database('feeds').select('id').where('user_id', userId).where('name', 'in', names)
 
     const ids = responses.map((record) => {
@@ -1119,7 +1119,7 @@ export class DbAdapter {
     return ids
   }
 
-  async getUsersNamedFeedsIntIds(userIds, names){
+  async getUsersNamedFeedsIntIds(userIds, names) {
     const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names)
 
     const ids = responses.map((record) => {
@@ -1145,7 +1145,7 @@ export class DbAdapter {
   }
 
   async getPostById(id, params) {
-    if (!validator.isUUID(id,4)){
+    if (!validator.isUUID(id,4)) {
       return null
     }
     const res = await this.database('posts').where('uid', id)
@@ -1163,7 +1163,7 @@ export class DbAdapter {
     const responses = await this.database('posts').orderBy('updated_at', 'desc').whereIn('uid', ids)
 
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
       }
 
@@ -1172,7 +1172,7 @@ export class DbAdapter {
     return objects
   }
 
-  async getUserPostsCount(userId){
+  async getUserPostsCount(userId) {
     const res = await this.database('posts').where({ user_id: userId }).count()
     return parseInt(res[0].count)
   }
@@ -1211,18 +1211,18 @@ export class DbAdapter {
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
     let attrs = res[0]
-    if (!attrs){
+    if (!attrs) {
       return []
     }
 
     return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
   }
 
-  insertPostIntoFeeds(feedIntIds, postId){
+  insertPostIntoFeeds(feedIntIds, postId) {
     return this.createPostsUsagesInTimeline([postId], feedIntIds)
   }
 
-  withdrawPostFromFeeds(feedIntIds, postUUID){
+  withdrawPostFromFeeds(feedIntIds, postUUID) {
     return this.database
       .raw('UPDATE posts SET feed_ids = uniq(feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID])
   }
@@ -1277,7 +1277,7 @@ export class DbAdapter {
     }
 
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs.comments_count  = commentsCount[attrs.uid] || 0
         attrs.likes_count     = likesCount[attrs.uid] || 0
         attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
@@ -1319,7 +1319,7 @@ export class DbAdapter {
     return attrs
   }
 
-  async isUserSubscribedToTimeline(currentUserId, timelineId){
+  async isUserSubscribedToTimeline(currentUserId, timelineId) {
     const res = await this.database('subscriptions').where({
       feed_id: timelineId,
       user_id: currentUserId
@@ -1338,7 +1338,7 @@ export class DbAdapter {
   async getTimelineSubscribers(timelineIntId) {
     const responses = this.database('users').whereRaw('subscribed_feed_ids && ?', [[timelineIntId]])
     const objects = responses.map((attrs) => {
-      if (attrs){
+      if (attrs) {
         attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
       }
 
@@ -1352,7 +1352,7 @@ export class DbAdapter {
     return objects
   }
 
-  async subscribeUserToTimelines(timelineIds, currentUserId){
+  async subscribeUserToTimelines(timelineIds, currentUserId) {
     let subsPromises = timelineIds.map((id)=>{
       const currentTime = new Date().toISOString()
 
@@ -1373,7 +1373,7 @@ export class DbAdapter {
     return res.rows[0].subscribed_feed_ids
   }
 
-  async unsubscribeUserFromTimelines(timelineIds, currentUserId){
+  async unsubscribeUserFromTimelines(timelineIds, currentUserId) {
     let unsubsPromises = timelineIds.map((id)=> {
       return this.database('subscriptions').where({
         feed_id: id,
@@ -1398,7 +1398,7 @@ export class DbAdapter {
       post_id: postId,
       user_id: userId
     }).count()
-    if (parseInt(existingPostLocalBumps[0].count) > 0){
+    if (parseInt(existingPostLocalBumps[0].count) > 0) {
       return true
     }
 
@@ -1412,7 +1412,7 @@ export class DbAdapter {
 
   async getUserLocalBumps(userId, newerThan) {
     let time = new Date()
-    if (newerThan){
+    if (newerThan) {
       time.setTime(newerThan)
     }
 
