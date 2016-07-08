@@ -1,5 +1,7 @@
 import _ from 'lodash'
 import validator from 'validator'
+import NodeCache from 'node-cache'
+import { promisifyAll } from 'bluebird'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
 
@@ -278,6 +280,7 @@ const POST_FIELDS_MAPPING = {
 export class DbAdapter {
   constructor(database) {
     this.database = database
+    this.statsCache = promisifyAll(new NodeCache({ stdTTL: 300 }))
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -521,8 +524,22 @@ export class DbAdapter {
   }
 
   async getUserStats(userId) {
-    const res = await this.database('user_stats').where('user_id', userId)
-    return this._prepareModelPayload(res[0], USER_STATS_FIELDS, {})
+    let userStats
+
+    // Check the cache first
+    const cachedUserStats = await this.statsCache.getAsync(userId)
+
+    if (typeof cachedUserStats != 'undefined') {
+      // Cache hit
+      userStats = cachedUserStats
+    } else {
+      // Cache miss, read from the database
+      const res = await this.database('user_stats').where('user_id', userId)
+      userStats = res[0]
+      await this.statsCache.setAsync(userId, userStats)
+    }
+
+    return this._prepareModelPayload(userStats, USER_STATS_FIELDS, {})
   }
 
   async calculateUserStats(userId) {
@@ -551,7 +568,11 @@ export class DbAdapter {
       subscribers_count:   values[3].length,
       subscriptions_count: values[4].length
     }
-    return this.database('user_stats').where('user_id', userId).update(payload)
+
+    await this.database('user_stats').where('user_id', userId).update(payload)
+
+    // Invalidate cache
+    await this.statsCache.delAsync(userId)
   }
 
   statsCommentCreated(authorId) {
@@ -609,7 +630,11 @@ export class DbAdapter {
     let val = parseInt(stats[counterName])
     val += 1
     stats[counterName] = val
-    return this.database('user_stats').where('user_id', userId).update(stats)
+
+    await this.database('user_stats').where('user_id', userId).update(stats)
+
+    // Invalidate cache
+    await this.statsCache.delAsync(userId)
   }
 
   async decrementStatsCounter(userId, counterName) {
@@ -622,7 +647,11 @@ export class DbAdapter {
       val = 0
     }
     stats[counterName] = val
-    return this.database('user_stats').where('user_id', userId).update(stats)
+
+    await this.database('user_stats').where('user_id', userId).update(stats)
+
+    // Invalidate cache
+    await this.statsCache.delAsync(userId)
   }
 
   ///////////////////////////////////////////////////
