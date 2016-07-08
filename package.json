@@ -43,7 +43,6 @@
     "monitor-dog": "1.5.0",
     "morgan": "1.7.0",
     "musicmetadata": "2.0.4",
-    "node-cache": "3.2.1",
     "nodemailer": "1.11.0",
     "nodemailer-smtp-transport": "1.1.0",
     "nodemailer-stub-transport": "1.0.0",

@@ -1,6 +1,5 @@
 import _ from 'lodash'
 import validator from 'validator'
-import NodeCache from 'node-cache'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
 
@@ -279,7 +278,6 @@ const POST_FIELDS_MAPPING = {
 export class DbAdapter {
   constructor(database) {
     this.database = database
-    this.statsCache = new NodeCache({ stdTTL: 300 });
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -523,27 +521,11 @@ export class DbAdapter {
   }
 
   async getUserStats(userId) {
-    let userStats
-
-    // Check the cache first
-    const cachedUserStats = this.statsCache.get(userId)
-
-    if (typeof cachedUserStats != 'undefined') {
-      // Cache hit
-      userStats = cachedUserStats
-    } else {
-      // Cache miss, read from the database
-      const res = await this.database('user_stats').where('user_id', userId)
-      userStats = res[0]
-      this.statsCache.set(userId, userStats)
-    }
-    return this._prepareModelPayload(userStats, USER_STATS_FIELDS, {})
+    const res = await this.database('user_stats').where('user_id', userId)
+    return this._prepareModelPayload(res[0], USER_STATS_FIELDS, {})
   }
 
   async calculateUserStats(userId) {
-    // Invalidate cache
-    this.statsCache.del(userId)
-
     const userFeeds = await this.database('users').select('subscribed_feed_ids').where('uid', userId)
     const readableFeedsIds = userFeeds[0].subscribed_feed_ids
 
@@ -622,9 +604,6 @@ export class DbAdapter {
   }
 
   async incrementStatsCounter(userId, counterName) {
-    // Invalidate cache
-    this.statsCache.del(userId)
-
     const res = await this.database('user_stats').where('user_id', userId)
     const stats = res[0]
     let val = parseInt(stats[counterName])
@@ -634,9 +613,6 @@ export class DbAdapter {
   }
 
   async decrementStatsCounter(userId, counterName) {
-    // Invalidate cache
-    this.statsCache.del(userId)
-
     const res = await this.database('user_stats').where('user_id', userId)
     const stats = res[0]
     let val = parseInt(stats[counterName])
