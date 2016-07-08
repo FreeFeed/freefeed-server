@@ -72,7 +72,7 @@ AbstractSerializer.prototype = {
     const node = serializer ? new serializer(objects[0]).name : field
 
     for (const object of objects) {
-      const inArray = _.any(root[node], (item) => (item.id == object.id))
+      const inArray = _.some(root[node], (item) => (item.id == object.id))
 
       let selectedSerializer
       if (!inArray) {

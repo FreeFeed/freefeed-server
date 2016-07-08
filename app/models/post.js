@@ -231,7 +231,7 @@ export function addModel(dbAdapter) {
     // otherwise this post will stay in group(s) timelines
     let groupOnly = true
 
-    if (_.any(timelineOwners.map((owner) => owner.isUser()))) {
+    if (_.some(timelineOwners.map((owner) => owner.isUser()))) {
       groupOnly = false
 
       const subscribersIds = await timeline.getSubscriberIds()

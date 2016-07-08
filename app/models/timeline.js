@@ -276,7 +276,7 @@ export function addModel(dbAdapter) {
           return timeline.canShow(this.currentUser)
         })
 
-        const wasPostedToReadableFeed = _.any(await Promise.all(promises))
+        const wasPostedToReadableFeed = _.some(await Promise.all(promises))
 
         if (!wasPostedToReadableFeed) {
           return null
