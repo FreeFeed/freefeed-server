@@ -12,7 +12,7 @@ export default class FeedFactoriesController {
         throw new NotFoundException(`Feed ${req.params.userId} is not found`)
       }
 
-      var controller = feed.isUser() ? UsersController : GroupsController
+      const controller = feed.isUser() ? UsersController : GroupsController
       controller.update(req, res)
     } catch (e) {
       exceptions.reportError(res)(e)

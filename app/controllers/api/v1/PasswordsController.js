@@ -5,10 +5,10 @@ import exceptions, { NotFoundException } from '../../../support/exceptions'
 
 export default class PasswordsController {
   static async create(req, res) {
-    var email = req.body.email
+    const email = req.body.email
 
     if (email == null || email.length == 0) {
-      res.jsonp({ err: "Email cannot be blank" })
+      res.jsonp({ err: 'Email cannot be blank' })
       return
     }
 
@@ -30,10 +30,10 @@ export default class PasswordsController {
   }
 
   static async update(req, res) {
-    var token = req.params.resetPasswordToken
+    const token = req.params.resetPasswordToken
 
     if (token == null || token.length == 0) {
-      res.jsonp({ err: "Token cannot be blank" })
+      res.jsonp({ err: 'Token cannot be blank' })
       return
     }
 

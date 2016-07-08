@@ -22,21 +22,21 @@ import UsersRouteV2 from './routes/api/v2/UsersRoute'
 const config = configLoader()
 promisifyAll(jwt)
 
-export default function(app) {
+export default function (app) {
   const findUser = async (req, res, next) => {
-    var authToken = req.headers['x-authentication-token']
+    const authToken = req.headers['x-authentication-token']
       || req.body.authToken
       || req.query.authToken
 
     if (authToken) {
       try {
-        let decoded = await jwt.verifyAsync(authToken, config.secret)
-        let user = await dbAdapter.getUserById(decoded.userId)
+        const decoded = await jwt.verifyAsync(authToken, config.secret)
+        const user = await dbAdapter.getUserById(decoded.userId)
 
         if (user) {
           req.user = user
         }
-      } catch(e) {
+      } catch (e) {
         app.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`)
       }
     }

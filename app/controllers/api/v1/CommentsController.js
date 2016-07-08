@@ -11,34 +11,34 @@ export default class CommentsController {
       return
     }
 
-    var timer = monitor.timer('comments.create-time')
+    const timer = monitor.timer('comments.create-time')
 
     try {
       const post = await dbAdapter.getPostById(req.body.comment.postId)
       if (!post) {
-        throw new NotFoundException("Not found")
+        throw new NotFoundException('Not found')
       }
 
       const valid = await post.canShow(req.user.id)
       if (!valid) {
-        throw new NotFoundException("Not found")
+        throw new NotFoundException('Not found')
       }
 
       if (post.commentsDisabled === '1' && post.userId !== req.user.id) {
-        throw new ForbiddenException("Comments disabled")
+        throw new ForbiddenException('Comments disabled')
       }
 
-      var newComment = req.user.newComment({
-        body: req.body.comment.body,
+      const newComment = req.user.newComment({
+        body:   req.body.comment.body,
         postId: req.body.comment.postId
       })
 
-      let timelines = await newComment.create()
+      const timelines = await newComment.create()
 
       await PubSub.newComment(newComment, timelines)
       monitor.increment('comments.creates')
 
-      let json = await new CommentSerializer(newComment).promiseToJSON()
+      const json = await new CommentSerializer(newComment).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
       exceptions.reportError(res)(e)
@@ -53,7 +53,7 @@ export default class CommentsController {
       return
     }
 
-    var timer = monitor.timer('comments.update-time')
+    const timer = monitor.timer('comments.update-time')
 
     try {
       const comment = await dbAdapter.getCommentById(req.params.commentId)
@@ -68,10 +68,8 @@ export default class CommentsController {
         )
       }
 
-      await comment.update({
-        body: req.body.comment.body
-      })
-      let json = await new CommentSerializer(comment).promiseToJSON()
+      await comment.update({ body: req.body.comment.body })
+      const json = await new CommentSerializer(comment).promiseToJSON()
       res.jsonp(json)
       monitor.increment('comments.updates')
     } catch (e) {
@@ -87,7 +85,7 @@ export default class CommentsController {
       return
     }
 
-    var timer = monitor.timer('comments.destroy-time')
+    const timer = monitor.timer('comments.destroy-time')
 
     try {
       const comment = await dbAdapter.getCommentById(req.params.commentId)

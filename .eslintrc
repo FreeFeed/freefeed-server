@@ -2,6 +2,7 @@
   "extends": "eslint:recommended",
   "parser": "babel-eslint",
   "plugins": [
+    "babel"
   ],
   "env": {
     "node": true,
@@ -13,9 +14,49 @@
     "modules": true
   },
   "rules": {
+    "babel/array-bracket-spacing": [2, "never"],
+    "babel/arrow-parens": 2,
+    "arrow-spacing": 2,
+    "brace-style": [2, "1tbs", { "allowSingleLine": true }],
     "consistent-return": 2,
+    "eol-last": 2,
+    "indent": [2, 2, {"SwitchCase": 1}],
+    "key-spacing": [2, { "align": "value" }],
+    "keyword-spacing": 2,
+    "linebreak-style": 2,
+    "babel/no-await-in-loop": 2,
+    "no-duplicate-imports": 2,
     "no-else-return": 2,
+    "no-lonely-if": 2,
     "no-native-reassign": 2,
-    "strict": [2, "never"]
+    "no-nested-ternary": 2,
+    "no-spaced-func": 2,
+    "no-trailing-spaces": 2,
+    "no-undef": 2,
+    "no-unneeded-ternary": 2,
+    "no-useless-computed-key": 2,
+    "no-var": 2,
+    "no-warning-comments": 1,
+    "object-curly-newline": [2, { "multiline": true }],
+    "babel/object-curly-spacing": [2, "always"],
+    "babel/object-shorthand": [2, "properties"],
+    "padded-blocks": [2, "never"],
+    "prefer-arrow-callback": [2, { "allowNamedFunctions": true }],
+    "prefer-const": 2,
+    "prefer-reflect": 1,
+    "prefer-rest-params": 2,
+    "prefer-spread": 2,
+    "prefer-template": 2,
+    "quotes": [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
+    "require-yield": 0,
+    "rest-spread-spacing": 2,
+    "space-before-blocks": 2,
+    "space-before-function-paren": [2, { "anonymous": "always", "named": "never" }],
+    "space-in-parens": [2, "never"],
+    "space-infix-ops": 2,
+    "space-unary-ops": [2, { "words": true, "nonwords": false }],
+    "strict": [2, "never"],
+    "template-curly-spacing": 2,
+    "unicode-bom": 2
   }
 }

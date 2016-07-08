@@ -35,7 +35,7 @@ export async function getSingleton() {
     const port = (process.env.PEPYATKA_SERVER_PORT || _app.get('port'))
     await server.listenAsync(port)
 
-    const mode = process.env.NODE_ENV || "development"
+    const mode = process.env.NODE_ENV || 'development'
 
     _app.logger.info(`Express server is listening on port ${port}`);
     _app.logger.info(`Server is running in ${mode} mode`)
