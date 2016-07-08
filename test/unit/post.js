@@ -741,7 +741,7 @@ describe('Post', function() {
         .catch((e) => { done(e) })
     })
 
-    it('should create without error', function(done) {
+    it('should destroy without error', function(done) {
       var post = new Post({
         body: 'Post body',
         userId: user.id ,
