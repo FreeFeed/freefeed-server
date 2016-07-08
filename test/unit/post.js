@@ -27,6 +27,7 @@ describe('Post', function() {
           post = newPost
           done()
         })
+        .catch((e) => { done(e) })
     })
 
     it('should update without error', function(done) {
@@ -43,6 +44,7 @@ describe('Post', function() {
           newPost.body.should.eql(post.body)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -64,6 +66,7 @@ describe('Post', function() {
           timelineId = postsTimelineId
           done()
         })
+        .catch((e) => { done(e) })
     })
 
     it('should create without error', function(done) {
@@ -96,6 +99,7 @@ describe('Post', function() {
           newPost.commentsDisabled.should.eql('0')
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should ignore whitespaces in body', function(done) {
@@ -117,6 +121,7 @@ describe('Post', function() {
           newPost.body.should.eql(body.trim())
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should save valid post to users timeline', function(done) {
@@ -134,6 +139,7 @@ describe('Post', function() {
           timelines.length.should.eql(2)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should return no posts from blank timeline', function(done) {
@@ -143,6 +149,7 @@ describe('Post', function() {
           posts.should.be.empty
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should return valid post from users timeline', function(done) {
@@ -166,6 +173,7 @@ describe('Post', function() {
           newPost.body.should.eql(post.body)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not create with empty body', function(done) {
@@ -230,6 +238,7 @@ describe('Post', function() {
         .then(function() {
           done()
         })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -251,6 +260,7 @@ describe('Post', function() {
           timelineId = postsTimelineId
           done()
         })
+        .catch((e) => { done(e) })
     })
 
     it('should find post with a valid id', function(done) {
@@ -270,6 +280,7 @@ describe('Post', function() {
           newPost.id.should.eql(post.id)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not find post with an invalid id', function(done) {
@@ -280,6 +291,7 @@ describe('Post', function() {
           $should.not.exist(post)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -313,6 +325,7 @@ describe('Post', function() {
         })
         .then(function(timelineId) { return userA.subscribeTo(timelineId) })
         .then(function(res) { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should copy post to subscribed River of News', function(done) {
@@ -322,6 +335,7 @@ describe('Post', function() {
           timelineIds.length.should.eql(3)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -560,6 +574,7 @@ describe('Post', function() {
         .then(function(res) { return userA.getPostsTimelineId() })
         .then(function(timelineId) { return userC.subscribeTo(timelineId) })
         .then(function(res) { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should remove like from friend of friend timelines', function(done) {
@@ -570,7 +585,7 @@ describe('Post', function() {
           users.should.be.empty
         })
         .then(function() { done() })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
 
     it('should add user to likes', function(done) {
@@ -584,7 +599,7 @@ describe('Post', function() {
           user.id.should.eql(userA.id)
         })
         .then(function() { done() })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -625,6 +640,7 @@ describe('Post', function() {
         .then(function(res) { return userA.getPostsTimelineId() })
         .then(function(timelineId) { return userC.subscribeTo(timelineId) })
         .then(function(res) { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should add comment to friend of friend timelines', function(done) {
@@ -646,6 +662,7 @@ describe('Post', function() {
           newPost.id.should.eql(post.id)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -721,6 +738,7 @@ describe('Post', function() {
           timelineId = postsTimelineId
           done()
         })
+        .catch((e) => { done(e) })
     })
 
     it('should create without error', function(done) {
@@ -748,6 +766,7 @@ describe('Post', function() {
           (post === null).should.be.true
           done()
         })
+        .catch((e) => { done(e) })
     })
   })
 })
