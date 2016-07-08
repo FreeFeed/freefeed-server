@@ -8,7 +8,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Comment = function(params) {
+  const Comment = function (params) {
     this.id = params.id
     this.body = params.body
     this.userId = params.userId
@@ -20,11 +20,11 @@ export function addModel(dbAdapter) {
   }
 
   Comment.className = Comment
-  Comment.namespace = "comment"
+  Comment.namespace = 'comment'
 
   Object.defineProperty(Comment.prototype, 'body', {
-    get: function() { return this.body_ },
-    set: function(newValue) {
+    get: function () { return this.body_ },
+    set: function (newValue) {
       newValue ? this.body_ = newValue.trim() : this.body_ = ''
     }
   })
@@ -38,13 +38,13 @@ export function addModel(dbAdapter) {
                && this.postId.length > 0
 
     if (!valid) {
-      throw new Error("Comment text must not be empty")
+      throw new Error('Comment text must not be empty')
     }
 
     const len = GraphemeBreaker.countBreaks(this.body)
 
     if (len > 1500) {
-      throw new Error("Maximum comment length is 1500 characters")
+      throw new Error('Maximum comment length is 1500 characters')
     }
   }
 
@@ -54,18 +54,18 @@ export function addModel(dbAdapter) {
 
     await this.validate()
 
-    let payload = {
-      'body': this.body,
-      'userId': this.userId,
-      'postId': this.postId,
+    const payload = {
+      'body':      this.body,
+      'userId':    this.userId,
+      'postId':    this.postId,
       'createdAt': this.createdAt.toString(),
       'updatedAt': this.updatedAt.toString()
     }
 
     this.id = await dbAdapter.createComment(payload)
 
-    let post = await dbAdapter.getPostById(this.postId)
-    let timelines = await post.addComment(this)
+    const post = await dbAdapter.getPostById(this.postId)
+    const timelines = await post.addComment(this)
 
     await dbAdapter.statsCommentCreated(this.userId)
 
@@ -78,7 +78,7 @@ export function addModel(dbAdapter) {
 
     await this.validate()
 
-    let payload = {
+    const payload = {
       'body':      this.body,
       'updatedAt': this.updatedAt.toString()
     }
@@ -89,7 +89,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Comment.prototype.getPost = function() {
+  Comment.prototype.getPost = function () {
     return dbAdapter.getPostById(this.postId)
   }
 
@@ -100,20 +100,20 @@ export function addModel(dbAdapter) {
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
-    let post = await dbAdapter.getPostById(this.postId)
-    let comments = await post.getComments()
+    const post = await dbAdapter.getPostById(this.postId)
+    const comments = await post.getComments()
 
     if (_.any(comments, 'userId', this.userId)) {
       return true
     }
 
-    let user = await dbAdapter.getUserById(this.userId)
-    let timelineId = await user.getCommentsTimelineIntId()
+    const user = await dbAdapter.getUserById(this.userId)
+    const timelineId = await user.getCommentsTimelineIntId()
 
     return dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
   }
 
-  Comment.prototype.getCreatedBy = function() {
+  Comment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
   }
 

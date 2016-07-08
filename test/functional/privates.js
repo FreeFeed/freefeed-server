@@ -345,25 +345,71 @@ describe("Privates", function() {
         })
       })
 
-      it('should protect subscribers of private user', function(done) {
-        funcTestHelper.getSubscribers(lunaContext.username, null, function(err, res) {
-          _.isObject(err).should.be.true  // anonymous doesn't have access
-          err.status.should.equal(403)
+      it('should protect subscribers of private user', async function(done) {
+        const lunaSubscribersViewedByAnonymous = await funcTestHelper.getSubscribersAsync(lunaContext.username)
+        lunaSubscribersViewedByAnonymous.status.should.equal(403)
+        let viewedByAnonymous = await lunaSubscribersViewedByAnonymous.json()
+        viewedByAnonymous.should.have.property('err')  // anonymous doesn't have access
 
-          funcTestHelper.getSubscribers(lunaContext.username, herculesContext.authToken, function(err, res) {
-            _.isObject(err).should.be.true  // hercules doesn't have access
-            err.status.should.equal(403)
+        const lunaSubscribersViewedByHercules = await funcTestHelper.getSubscribersAsync(lunaContext.username, herculesContext)
+        lunaSubscribersViewedByHercules.status.should.equal(403)
+        const viewedByHercules = await lunaSubscribersViewedByHercules.json()
+        viewedByHercules.should.have.property('err')  // hercules doesn't have access
 
-            funcTestHelper.getSubscribers(lunaContext.username, marsContext.authToken, function(err, res) {
-              _.isObject(err).should.be.false  // mars has access
+        const lunaSubscribersViewedByMars = await funcTestHelper.getSubscribersAsync(lunaContext.username, marsContext)
+        const viewedByMars = await lunaSubscribersViewedByMars.json()
+        viewedByMars.should.not.have.property('err')  // mars has access
 
-              funcTestHelper.getSubscribers(lunaContext.username, lunaContext.authToken, function (err, res) {
-                _.isObject(err).should.be.false  // luna is an owner
-                done()
-              })
-            })
-          })
-        })
+        const lunaSubscribersViewedByLuna = await funcTestHelper.getSubscribersAsync(lunaContext.username, lunaContext)
+        const viewedByLuna = await lunaSubscribersViewedByLuna.json()
+        viewedByLuna.should.not.have.property('err')  // luna is an owner
+
+        const lunaFeedViewedByAnonymous = await funcTestHelper.getUserFeed(lunaContext)
+        lunaFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
+        lunaFeedViewedByAnonymous.should.not.have.property('subscribers')
+        lunaFeedViewedByAnonymous.should.not.have.property('admins')
+
+        const lunaFeedViewedByHercules = await funcTestHelper.getUserFeed(lunaContext, herculesContext)
+        lunaFeedViewedByHercules.timelines.should.not.have.property('subscribers')
+        lunaFeedViewedByHercules.should.not.have.property('subscribers')
+        lunaFeedViewedByHercules.should.not.have.property('admins')
+
+        const lunaFeedViewedByMars = await funcTestHelper.getUserFeed(lunaContext, marsContext)
+        lunaFeedViewedByMars.timelines.should.have.property('subscribers')
+        lunaFeedViewedByMars.should.have.property('subscribers')
+        lunaFeedViewedByMars.should.have.property('admins')
+
+        const lunaLikesFeedViewedByAnonymous = await funcTestHelper.getUserLikesFeed(lunaContext)
+        lunaLikesFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
+        lunaLikesFeedViewedByAnonymous.should.not.have.property('subscribers')
+        lunaLikesFeedViewedByAnonymous.should.not.have.property('admins')
+
+        const lunaLikesFeedViewedByHercules = await funcTestHelper.getUserLikesFeed(lunaContext, herculesContext)
+        lunaLikesFeedViewedByHercules.timelines.should.not.have.property('subscribers')
+        lunaLikesFeedViewedByHercules.should.not.have.property('subscribers')
+        lunaLikesFeedViewedByHercules.should.not.have.property('admins')
+
+        const lunaLikesFeedViewedByMars = await funcTestHelper.getUserLikesFeed(lunaContext, marsContext)
+        lunaLikesFeedViewedByMars.timelines.should.have.property('subscribers')
+        lunaLikesFeedViewedByMars.should.have.property('subscribers')
+        lunaLikesFeedViewedByMars.should.have.property('admins')
+
+        const lunaCommentsFeedViewedByAnonymous = await funcTestHelper.getUserCommentsFeed(lunaContext)
+        lunaCommentsFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
+        lunaCommentsFeedViewedByAnonymous.should.not.have.property('subscribers')
+        lunaCommentsFeedViewedByAnonymous.should.not.have.property('admins')
+
+        const lunaCommentsFeedViewedByHercules = await funcTestHelper.getUserCommentsFeed(lunaContext, herculesContext)
+        lunaCommentsFeedViewedByHercules.timelines.should.not.have.property('subscribers')
+        lunaCommentsFeedViewedByHercules.should.not.have.property('subscribers')
+        lunaCommentsFeedViewedByHercules.should.not.have.property('admins')
+
+        const lunaCommentsFeedViewedByMars = await funcTestHelper.getUserCommentsFeed(lunaContext, marsContext)
+        lunaCommentsFeedViewedByMars.timelines.should.have.property('subscribers')
+        lunaCommentsFeedViewedByMars.should.have.property('subscribers')
+        lunaCommentsFeedViewedByMars.should.have.property('admins')
+
+        done()
       })
 
       it('should protect subscriptions of private user', function(done) {

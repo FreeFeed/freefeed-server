@@ -1,4 +1,4 @@
-import { inherits } from "util"
+import { inherits } from 'util'
 
 import _ from 'lodash'
 
@@ -11,7 +11,7 @@ export function addModel(dbAdapter) {
    * @constructor
    * @extends User
    */
-  var Group = function(params) {
+  const Group = function (params) {
     this.id = params.id
     this.username = params.username
     this.screenName = params.screenName
@@ -20,48 +20,48 @@ export function addModel(dbAdapter) {
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
     this.isRestricted = params.isRestricted
-    this.type = "group"
+    this.type = 'group'
     this.profilePictureUuid = params.profilePictureUuid || ''
   }
 
   inherits(Group, User)
 
   Group.className = Group
-  Group.namespace = "user"
+  Group.namespace = 'user'
 
   Object.defineProperty(Group.prototype, 'username', {
-    get: function() { return this.username_ },
-    set: function(newValue) {
+    get: function () { return this.username_ },
+    set: function (newValue) {
       if (newValue)
         this.username_ = newValue.trim().toLowerCase()
     }
   })
 
   Object.defineProperty(Group.prototype, 'screenName', {
-    get: function() { return this.screenName_ },
-    set: function(newValue) {
+    get: function () { return this.screenName_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.screenName_ = newValue.trim()
     }
   })
 
   Object.defineProperty(Group.prototype, 'description', {
-    get: function() { return this.description_ },
-    set: function(newValue) {
+    get: function () { return this.description_ },
+    set: function (newValue) {
       if (_.isString(newValue))
         this.description_ = newValue.trim()
     }
   })
 
   Object.defineProperty(Group.prototype, 'isRestricted', {
-    get: function() { return this.isRestricted_ },
-    set: function(newValue) {
+    get: function () { return this.isRestricted_ },
+    set: function (newValue) {
       this.isRestricted_ = newValue || '0'
     }
   })
 
-  Group.prototype.isValidUsername = function(skip_stoplist) {
-    var valid = this.username
+  Group.prototype.isValidUsername = function (skip_stoplist) {
+    const valid = this.username
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
@@ -85,36 +85,36 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.create = async function(ownerId, skip_stoplist) {
-      this.createdAt = new Date().getTime()
-      this.updatedAt = new Date().getTime()
-      this.screenName = this.screenName || this.username
+    this.createdAt = new Date().getTime()
+    this.updatedAt = new Date().getTime()
+    this.screenName = this.screenName || this.username
 
-      await this.validateOnCreate(skip_stoplist)
+    await this.validateOnCreate(skip_stoplist)
 
-      let payload = {
-        'username': this.username,
-        'screenName': this.screenName,
-        'description': this.description,
-        'type': this.type,
-        'createdAt': this.createdAt.toString(),
-        'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate,
-        'isRestricted': this.isRestricted
-      }
-      this.id = await dbAdapter.createUser(payload)
+    const payload = {
+      'username':     this.username,
+      'screenName':   this.screenName,
+      'description':  this.description,
+      'type':         this.type,
+      'createdAt':    this.createdAt.toString(),
+      'updatedAt':    this.updatedAt.toString(),
+      'isPrivate':    this.isPrivate,
+      'isRestricted': this.isRestricted
+    }
+    this.id = await dbAdapter.createUser(payload)
 
-      await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
+    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 
-      if (ownerId) {
-        await this.addAdministrator(ownerId)
-        await this.subscribeOwner(ownerId)
-      }
+    if (ownerId) {
+      await this.addAdministrator(ownerId)
+      await this.subscribeOwner(ownerId)
+    }
 
-      return this
+    return this
   }
 
   Group.prototype.update = async function(params) {
-    var hasChanges = false
+    let hasChanges = false
 
     if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -127,7 +127,7 @@ export function addModel(dbAdapter) {
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
       if (!User.descriptionIsValid(params.description)) {
-        throw new Error("Description is too long")
+        throw new Error('Description is too long')
       }
 
       this.description = params.description
@@ -147,11 +147,11 @@ export function addModel(dbAdapter) {
     if (hasChanges) {
       this.updatedAt = new Date().getTime()
 
-      var payload = {
-        'screenName': this.screenName,
-        'description': this.description,
-        'updatedAt': this.updatedAt.toString(),
-        'isPrivate': this.isPrivate,
+      const payload = {
+        'screenName':   this.screenName,
+        'description':  this.description,
+        'updatedAt':    this.updatedAt.toString(),
+        'isPrivate':    this.isPrivate,
         'isRestricted': this.isRestricted
       }
 
@@ -162,31 +162,31 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.subscribeOwner = async function(ownerId) {
-    let owner = await dbAdapter.getUserById(ownerId)
+    const owner = await dbAdapter.getUserById(ownerId)
 
     if (!owner) {
       return null
     }
 
-    let timelineId = await this.getPostsTimelineId()
-    let res = await owner.subscribeTo(timelineId)
+    const timelineId = await this.getPostsTimelineId()
+    const res = await owner.subscribeTo(timelineId)
 
     return res
   }
 
-  Group.prototype.addAdministrator = function(feedId) {
+  Group.prototype.addAdministrator = function (feedId) {
     return dbAdapter.addAdministratorToGroup(this.id, feedId)
   }
 
   Group.prototype.removeAdministrator = async function(feedId) {
-    let adminIds = await this.getAdministratorIds()
+    const adminIds = await this.getAdministratorIds()
 
     if (adminIds.indexOf(feedId) == -1) {
-      throw new Error("Not an administrator")
+      throw new Error('Not an administrator')
     }
 
     if (adminIds.length == 1) {
-      throw new Error("Cannot remove last administrator")
+      throw new Error('Cannot remove last administrator')
     }
 
     return dbAdapter.removeAdministratorFromGroup(this.id, feedId)
@@ -198,7 +198,7 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.getAdministrators = async function() {
-    var adminIds = await this.getAdministratorIds()
+    const adminIds = await this.getAdministratorIds()
     this.administrators = await dbAdapter.getUsersByIds(adminIds)
 
     return this.administrators
@@ -215,8 +215,8 @@ export function addModel(dbAdapter) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
 
-    if (this.isRestricted === '1'){
-      let adminIds = await this.getAdministratorIds()
+    if (this.isRestricted === '1') {
+      const adminIds = await this.getAdministratorIds()
       if (!_.includes(adminIds, postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")
       }

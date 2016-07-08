@@ -33,7 +33,7 @@ const getAttachments = async function(author, imageUrl) {
   const response = await fetch(imageUrl)
 
   const fileType = response.headers.get('content-type')
-  const stream = fs.createWriteStream(filePath, {flags: 'w'})
+  const stream = fs.createWriteStream(filePath, { flags: 'w' })
 
   await waitForStream(response.body.pipe(stream))
   const stats = await fs.statAsync(filePath)
@@ -55,7 +55,7 @@ export default class BookmarkletController {
   static async create(req, res) {
     try {
       if (!req.user) {
-        res.status(401).jsonp({err: 'Not found'})
+        res.status(401).jsonp({ err: 'Not found' })
         return
       }
 
@@ -70,8 +70,8 @@ export default class BookmarkletController {
         feeds = [req.user.username]
       }
 
-      let promises = feeds.map(async (username) => {
-        let feed = await dbAdapter.getFeedOwnerByUsername(username)
+      const promises = feeds.map(async (username) => {
+        const feed = await dbAdapter.getFeedOwnerByUsername(username)
 
         if (null === feed) {
           return null
@@ -95,28 +95,28 @@ export default class BookmarkletController {
           req.user.getDirectsTimelineId()
         ])
       })
-      let timelineIds = _.flatten(await Promise.all(promises))
-      _.each(timelineIds, (id, i)=>{
-        if (null == id){
+      const timelineIds = _.flatten(await Promise.all(promises))
+      _.each(timelineIds, (id, i) => {
+        if (null == id) {
           throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
         }
       })
 
       // Download image and create attachment
-      let attachments = await getAttachments(req.user, req.body.image)
+      const attachments = await getAttachments(req.user, req.body.image)
 
       // Create post
-      let newPost = await req.user.newPost({
+      const newPost = await req.user.newPost({
         body: req.body.title,
-        attachments: attachments,
-        timelineIds: timelineIds
+        attachments,
+        timelineIds
       })
       await newPost.create()
 
       // Create comment
       if (req.body.comment) {
-        var newComment = await req.user.newComment({
-          body: req.body.comment,
+        const newComment = await req.user.newComment({
+          body:   req.body.comment,
           postId: newPost.id
         })
 
@@ -124,9 +124,9 @@ export default class BookmarkletController {
       }
 
       // Send response with the created post
-      let json = await new PostSerializer(newPost).promiseToJSON()
+      const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }

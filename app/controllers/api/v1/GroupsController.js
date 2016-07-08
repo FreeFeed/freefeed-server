@@ -8,50 +8,50 @@ import exceptions, { NotFoundException, ForbiddenException }  from '../../../sup
 export default class GroupsController {
   static async create(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
     if (!req.body.group) {
-      res.status(400).jsonp({ err: 'Malformed request', status: 'fail'})
+      res.status(400).jsonp({ err: 'Malformed request', status: 'fail' })
       return
     }
 
-    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
+    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
-      var group = new Group(params)
+      const group = new Group(params)
       await group.create(req.user.id, false)
 
-      var json = await new GroupSerializer(group).promiseToJSON()
+      const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async sudoCreate(req, res) {
-    let params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isRestricted'])
+    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isRestricted'])
 
     try {
       if (!_.isArray(req.body.admins)) {
         throw new exceptions.BadRequestException('"admins" should be an array of strings')
       }
 
-      let adminPromises = req.body.admins.map(async (username) => {
+      const adminPromises = req.body.admins.map(async (username) => {
         const admin = await dbAdapter.getUserByUsername(username)
         return (null === admin) ? false : admin;
       })
       let admins = await Promise.all(adminPromises)
       admins = admins.filter(Boolean)
 
-      let group = new Group(params)
+      const group = new Group(params)
       await group.create(admins[0].id, true)
 
       // starting iteration from the second admin
-      let promises = [];
+      const promises = [];
       for (let i = 1; i < admins.length; i++) {
-        let adminId = admins[i].id;
+        const adminId = admins[i].id;
 
         promises.push(group.addAdministrator(adminId))
         promises.push(group.subscribeOwner(adminId))
@@ -59,19 +59,19 @@ export default class GroupsController {
 
       await Promise.all(promises)
 
-      let json = await new GroupSerializer(group).promiseToJSON()
+      const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async update(req, res) {
     if (!req.user) {
-      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
-    let attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
+    const attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
 
     try {
       const group = await dbAdapter.getGroupById(req.params.userId)
@@ -86,16 +86,16 @@ export default class GroupsController {
 
       await group.update(attrs)
 
-      var json = await new GroupSerializer(group).promiseToJSON()
+      const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async changeAdminStatus(req, res, newStatus) {
     if (!req.user) {
-      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
 
@@ -124,7 +124,7 @@ export default class GroupsController {
       }
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
@@ -139,7 +139,7 @@ export default class GroupsController {
 
   static async updateProfilePicture(req, res) {
     if (!req.user) {
-      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail'})
+      res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
     try {
@@ -154,7 +154,7 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      var form = new formidable.IncomingForm()
+      const form = new formidable.IncomingForm()
 
       form.on('file', async (inputName, file) => {
         try {
@@ -173,7 +173,7 @@ export default class GroupsController {
 
   static async sendRequest(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
@@ -186,12 +186,12 @@ export default class GroupsController {
       }
 
       if (group.isPrivate !== '1') {
-        throw new Error("Group is public")
+        throw new Error('Group is public')
       }
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, group.id)
       if (hasRequest) {
-        throw new ForbiddenException("Subscription request already sent")
+        throw new ForbiddenException('Subscription request already sent')
       }
 
       const followedGroups = await req.user.getFollowedGroups()
@@ -199,28 +199,28 @@ export default class GroupsController {
         return group.id
       })
 
-      if ( _.includes(followedGroupIds, group.id) ) {
-        throw new ForbiddenException("You are already subscribed to that group")
+      if (_.includes(followedGroupIds, group.id)) {
+        throw new ForbiddenException('You are already subscribed to that group')
       }
 
       await req.user.sendPrivateGroupSubscriptionRequest(group.id)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async acceptRequest(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -238,27 +238,27 @@ export default class GroupsController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
 
       await group.acceptSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async rejectRequest(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -276,27 +276,27 @@ export default class GroupsController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
-        throw new Error("Invalid")
+        throw new Error('Invalid')
       }
 
       await group.rejectSubscriptionRequest(user.id)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
   static async unsubscribeFromGroup(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail'})
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
       return
     }
 
     const groupName = req.params.groupName
     const userName = req.params.userName
     try {
-      let group = await dbAdapter.getGroupByUsername(groupName)
+      const group = await dbAdapter.getGroupByUsername(groupName)
 
       if (null === group) {
         throw new NotFoundException(`Group "${groupName}" is not found`)
@@ -307,29 +307,29 @@ export default class GroupsController {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
-      let user = await dbAdapter.getUserByUsername(userName)
+      const user = await dbAdapter.getUserByUsername(userName)
       if (null === user) {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
-      let timelineId = await group.getPostsTimelineId()
+      const timelineId = await group.getPostsTimelineId()
       if (_.includes(adminIds, user.id)) {
-        throw new ForbiddenException("Group administrators cannot be unsubscribed from own groups")
+        throw new ForbiddenException('Group administrators cannot be unsubscribed from own groups')
       }
 
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
       if (!isSubscribed) {
-        throw new ForbiddenException("You are not subscribed to that user")
+        throw new ForbiddenException('You are not subscribed to that user')
       }
 
       await user.unsubscribeFrom(timelineId)
 
       res.jsonp({ err: null, status: 'success' })
-    } catch(e) {
+    } catch (e) {
       exceptions.reportError(res)(e)
     }
   }
 
-  static _filteredParams(modelDescr, allowedParams){
+  static _filteredParams(modelDescr, allowedParams) {
     return _.pick(modelDescr, allowedParams)
   }
 }

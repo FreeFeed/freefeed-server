@@ -1,10 +1,12 @@
-exports.reportError = function(res) {
-  return function(err) {
-    var status = err.status || 422
-    var result = {}
+exports.reportError = function (res) {
+  return function (err) {
+    const status = err.status || 422
+    const result = {}
+
     if ('message' in err) {
       result.err = err.message
     }
+
     res.status(status).jsonp(result)
   }
 }
@@ -12,31 +14,31 @@ exports.reportError = function(res) {
 /**
  * @constructor
  */
-exports.BadRequestException = function(message) {
-  this.message = message || "Bad Request"
+exports.BadRequestException = function (message) {
+  this.message = message || 'Bad Request'
   this.status = 400
 }
 
 /**
  * @constructor
  */
-exports.ForbiddenException = function(message) {
-  this.message = message || "Forbidden"
+exports.ForbiddenException = function (message) {
+  this.message = message || 'Forbidden'
   this.status = 403
 }
 
 /**
  * @constructor
  */
-exports.NotFoundException = function(message) {
-  this.message = message || "Not found"
+exports.NotFoundException = function (message) {
+  this.message = message || 'Not found'
   this.status = 404
 }
 
 /**
  * @constructor
  */
-exports.ValidationException = function(message) {
-  this.message = message || "Invalid"
+exports.ValidationException = function (message) {
+  this.message = message || 'Invalid'
   this.status = 422
 }

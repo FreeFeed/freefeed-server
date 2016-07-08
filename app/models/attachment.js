@@ -7,17 +7,17 @@ import meta from 'musicmetadata'
 import mmm from 'mmmagic'
 import _ from 'lodash'
 
-import { load as configLoader } from "../../config/config"
+import { load as configLoader } from '../../config/config'
 
 
-let config = configLoader()
+const config = configLoader()
 promisifyAll(fs)
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
-const detectMime = promisify(mimeMagic.detectFile, {context: mimeMagic})
+const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 
 const magic = new mmm.Magic()
-const detectFile = promisify(magic.detectFile, {context: magic})
+const detectFile = promisify(magic.detectFile, { context: magic })
 
 async function detectMimetype(filename) {
   const mimeType = await detectMime(filename)
@@ -37,7 +37,7 @@ export function addModel(dbAdapter) {
   /**
    * @constructor
    */
-  var Attachment = function(params) {
+  const Attachment = function (params) {
     this.id = params.id
     this.file = params.file // FormData File object
     this.fileName = params.fileName // original file name, e.g. 'cute-little-kitten.jpg'
@@ -65,8 +65,8 @@ export function addModel(dbAdapter) {
   Attachment.namespace = 'attachment'
 
   Object.defineProperty(Attachment.prototype, 'imageSizes', {
-    get: function() { return this.imageSizes_ },
-    set: function(newValue) {
+    get: function () { return this.imageSizes_ },
+    set: function (newValue) {
       if (_.isString(newValue)) {
         newValue = JSON.parse(newValue)
       }
@@ -119,17 +119,17 @@ export function addModel(dbAdapter) {
 
     // Save record to DB
     const params = {
-      fileName: this.fileName,
-      fileSize: this.fileSize,
-      mimeType: this.mimeType,
-      mediaType: this.mediaType,
+      fileName:      this.fileName,
+      fileSize:      this.fileSize,
+      mimeType:      this.mimeType,
+      mediaType:     this.mediaType,
       fileExtension: this.fileExtension,
-      noThumbnail: this.noThumbnail,
-      imageSizes: JSON.stringify(this.imageSizes),
-      userId: this.userId,
-      postId: this.postId,
-      createdAt: this.createdAt.toString(),
-      updatedAt: this.updatedAt.toString()
+      noThumbnail:   this.noThumbnail,
+      imageSizes:    JSON.stringify(this.imageSizes),
+      userId:        this.userId,
+      postId:        this.postId,
+      createdAt:     this.createdAt.toString(),
+      updatedAt:     this.updatedAt.toString()
     }
 
     if (this.mediaType === 'audio') {
@@ -143,7 +143,7 @@ export function addModel(dbAdapter) {
   }
 
   // Get user who created the attachment (via Promise, for serializer)
-  Attachment.prototype.getCreatedBy = function() {
+  Attachment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
   }
 
@@ -162,24 +162,24 @@ export function addModel(dbAdapter) {
   }
 
   // Get public URL of resized image attachment
-  Attachment.prototype.getResizedImageUrl = function(sizeId) {
+  Attachment.prototype.getResizedImageUrl = function (sizeId) {
     return config.attachments.url + config.attachments.imageSizes[sizeId].path + this.getFilename()
   }
 
   // Get local filesystem path for original file
-  Attachment.prototype.getPath = function() {
+  Attachment.prototype.getPath = function () {
     return config.attachments.storage.rootDir + config.attachments.path + this.getFilename()
   }
 
   // Get local filesystem path for resized image file
-  Attachment.prototype.getResizedImagePath = function(sizeId) {
+  Attachment.prototype.getResizedImagePath = function (sizeId) {
     return config.attachments.storage.rootDir + config.attachments.imageSizes[sizeId].path + this.getFilename()
   }
 
   // Get file name
-  Attachment.prototype.getFilename = function() {
+  Attachment.prototype.getFilename = function () {
     if (this.fileExtension) {
-      return this.id + '.' + this.fileExtension
+      return `${this.id}.${this.fileExtension}`
     }
 
     return this.id
@@ -187,26 +187,26 @@ export function addModel(dbAdapter) {
 
   // Store the file and process its thumbnail, if necessary
   Attachment.prototype.handleMedia = async function() {
-    var tmpAttachmentFile = this.file.path
+    const tmpAttachmentFile = this.file.path
 
     const supportedImageTypes = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/gif': 'gif',
+      'image/jpeg':    'jpg',
+      'image/png':     'png',
+      'image/gif':     'gif',
       'image/svg+xml': 'svg'
     }
     const supportedAudioTypes = {
-      'audio/mpeg': 'mp3',
+      'audio/mpeg':  'mp3',
       'audio/x-m4a': 'm4a',
-      'audio/mp4': 'm4a',
-      'audio/ogg': 'ogg',
+      'audio/mp4':   'm4a',
+      'audio/ogg':   'ogg',
       'audio/x-wav': 'wav'
     }
 
     // Check a mime type
     try {
       this.mimeType = await detectMimetype(tmpAttachmentFile)
-    } catch(e) {
+    } catch (e) {
       if (_.isEmpty(this.mimeType)) {
         throw e
       }
@@ -230,7 +230,7 @@ export function addModel(dbAdapter) {
 
         if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
           const img = originalImage
-            .profile(__dirname + '/../../lib/assets/sRGB.icm')
+            .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
             .autoOrient()
             .quality(95)
 
@@ -243,8 +243,8 @@ export function addModel(dbAdapter) {
       // Store original image size
       const originalSize = await originalImage.sizeAsync()
       this.imageSizes.o = {
-        w: originalSize.width,
-        h: originalSize.height,
+        w:   originalSize.width,
+        h:   originalSize.height,
         url: await this.getUrl()
       }
 
@@ -253,14 +253,13 @@ export function addModel(dbAdapter) {
       if (this.mimeType !== 'image/svg+xml') {
         // Iterate over image sizes old-fashioned (and very synchronous) way
         // because gm is acting up weirdly when writing files in parallel mode
-        for (let sizeId in config.attachments.imageSizes) {
+        for (const sizeId in config.attachments.imageSizes) {
           if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
             const sizeConfig = config.attachments.imageSizes[sizeId]
-            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)
+            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)  // eslint-disable-line babel/no-await-in-loop
           }
         }
       }
-
     } else if (supportedAudioTypes[this.mimeType]) {
       // Set media properties for 'audio' type
       this.mediaType = 'audio'
@@ -268,9 +267,9 @@ export function addModel(dbAdapter) {
       this.noThumbnail = '1'
 
       // Analyze metadata to get Artist & Title
-      let readStream = fs.createReadStream(tmpAttachmentFile)
-      let asyncMeta = promisify(meta)
-      let metadata = await asyncMeta(readStream)
+      const readStream = fs.createReadStream(tmpAttachmentFile)
+      const asyncMeta = promisify(meta)
+      const metadata = await asyncMeta(readStream)
 
       this.title = metadata.title
 
@@ -296,12 +295,12 @@ export function addModel(dbAdapter) {
 
   Attachment.prototype.resizeAndSaveImage = async function(originalImage, originalSize, sizeConfig, sizeId) {
     if (originalSize.width > sizeConfig.bounds.width || originalSize.height > sizeConfig.bounds.height) {
-      const tmpImageFile = this.file.path + '.resized.' + sizeId
+      const tmpImageFile = `${this.file.path}.resized.${sizeId}`
 
       // Resize image
       const img = originalImage
         .resize(sizeConfig.bounds.width, sizeConfig.bounds.height)
-        .profile(__dirname + '/../../lib/assets/sRGB.icm')
+        .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
         .autoOrient()
         .quality(95)
 
@@ -312,8 +311,8 @@ export function addModel(dbAdapter) {
       const resizedImage = promisifyAll(gm(tmpImageFile))
       const resizedImageSize = await resizedImage.sizeAsync()
       this.imageSizes[sizeId] = {
-        w: resizedImageSize.width,
-        h: resizedImageSize.height,
+        w:   resizedImageSize.width,
+        h:   resizedImageSize.height,
         url: this.getResizedImageUrl(sizeId)
       }
       this.noThumbnail = '0'
@@ -330,28 +329,28 @@ export function addModel(dbAdapter) {
 
   // Upload original attachment or its thumbnail to the S3 bucket
   Attachment.prototype.uploadToS3 = async function(sourceFile, destPath) {
-    let s3 = new aws.S3({
-      'accessKeyId': config.attachments.storage.accessKeyId || null,
+    const s3 = new aws.S3({
+      'accessKeyId':     config.attachments.storage.accessKeyId || null,
       'secretAccessKey': config.attachments.storage.secretAccessKey || null
     })
-    let putObject = promisify(s3.putObject, {context: s3})
+    const putObject = promisify(s3.putObject, { context: s3 })
     await putObject({
-      ACL: 'public-read',
-      Bucket: config.attachments.storage.bucket,
-      Key: destPath + this.getFilename(),
-      Body: fs.createReadStream(sourceFile),
-      ContentType: this.mimeType,
+      ACL:                'public-read',
+      Bucket:             config.attachments.storage.bucket,
+      Key:                destPath + this.getFilename(),
+      Body:               fs.createReadStream(sourceFile),
+      ContentType:        this.mimeType,
       ContentDisposition: this.getContentDisposition()
     })
   }
 
   // Get cross-browser Content-Disposition header for attachment
-  Attachment.prototype.getContentDisposition = function() {
+  Attachment.prototype.getContentDisposition = function () {
     // Old browsers (IE8) need ASCII-only fallback filenames
-    let fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
+    const fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
 
     // Modern browsers support UTF-8 filenames
-    let fileNameUtf8 = encodeURIComponent(this.fileName)
+    const fileNameUtf8 = encodeURIComponent(this.fileName)
 
     // Inline version of 'attfnboth' method (http://greenbytes.de/tech/tc2231/#attfnboth)
     return `inline; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`

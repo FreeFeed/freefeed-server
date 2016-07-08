@@ -1,12 +1,12 @@
-import passport from "passport"
-import jwt from "jsonwebtoken"
-import _ from "lodash"
+import passport from 'passport'
+import jwt from 'jsonwebtoken'
+import _ from 'lodash'
 
-import { load as configLoader } from "../../../../config/config"
-import { UserSerializer } from "../../../models"
+import { load as configLoader } from '../../../../config/config'
+import { UserSerializer } from '../../../models'
 
 
-let config = configLoader()
+const config = configLoader()
 
 export default class SessionController {
   static create(req, res) {
@@ -25,11 +25,11 @@ export default class SessionController {
         return
       }
 
-      var secret = config.secret
-      var authToken = jwt.sign({ userId: user.id }, secret)
+      const secret = config.secret
+      const authToken = jwt.sign({ userId: user.id }, secret)
 
-      let json = await new UserSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken: authToken }))
+      const json = await new UserSerializer(user).promiseToJSON()
+      res.jsonp(_.extend(json, { authToken }))
     })(req, res)
   }
 }
