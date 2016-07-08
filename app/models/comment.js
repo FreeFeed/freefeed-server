@@ -102,7 +102,7 @@ export function addModel(dbAdapter) {
     const comments = await post.getComments()
 
     if (_.some(comments, 'userId', this.userId)) {
-      return true
+      return
     }
 
     const user = await dbAdapter.getUserById(this.userId)
