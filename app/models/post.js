@@ -149,7 +149,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.destroy = async function() {
-    // remove all comments
+    await dbAdapter.statsPostDeleted(this.userId, this.id)  // needs data in DB
+
+// remove all comments
     const comments = await this.getComments()
     await Promise.all(comments.map((comment) => comment.destroy()))
 
@@ -158,8 +160,6 @@ export function addModel(dbAdapter) {
     await dbAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
-
-    await dbAdapter.statsPostDeleted(this.userId)
 
     monitor.increment('posts.destroys')
   }
