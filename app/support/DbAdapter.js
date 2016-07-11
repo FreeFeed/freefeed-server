@@ -715,10 +715,14 @@ export class DbAdapter {
 
 
   async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId) {
-    const res = await this.database('bans')
-      .where('banned_user_id', targetUserId)
-      .where('user_id', 'in', bannersUserIds)
-      .orderByRaw(`position(user_id::text in '${bannersUserIds.toString()}')`)
+    let res = [];
+
+    if (targetUserId) {
+      res = await this.database('bans')
+        .where('banned_user_id', targetUserId)
+        .where('user_id', 'in', bannersUserIds)
+        .orderByRaw(`position(user_id::text in '${bannersUserIds.toString()}')`)
+    }
 
     const matrix = bannersUserIds.map((id) => {
       const foundBan = _.find(res, (record) => {
@@ -885,12 +889,16 @@ export class DbAdapter {
   }
 
   async getPostLikersIdsWithoutBannedUsers(postId, viewerUserId) {
-    const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
-    const res = await this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId)
-      .where('user_id', 'not in', subquery)
-    const userIds = res.map((record) => {
-      return record.user_id
-    })
+    let query = this.database('likes').select('user_id').orderBy('created_at', 'desc').where('post_id', postId);
+
+    if (viewerUserId) {
+      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
+      query = query.where('user_id', 'not in', subquery)
+    }
+
+    const res = await query;
+
+    const userIds = res.map((record) => record.user_id)
     return userIds
   }
 
@@ -975,9 +983,15 @@ export class DbAdapter {
   }
 
   async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
-    const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId)
-    const responses = await this.database('comments').orderBy('created_at', 'asc').where('post_id', postId)
-      .where('user_id', 'not in', subquery)
+    let query = this.database('comments').orderBy('created_at', 'asc').where('post_id', postId);
+
+    if (viewerUserId) {
+      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId);
+      query = query.where('user_id', 'not in', subquery) ;
+    }
+
+    const responses = await query
+
     const objects = responses.map((attrs) => {
       if (attrs) {
         attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)

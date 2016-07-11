@@ -38,7 +38,7 @@ describe('Comment', function() {
           return comment.create()
         })
         .then(function(res) { done() })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
 
     it('should update without error', function(done) {
@@ -55,7 +55,7 @@ describe('Comment', function() {
           newComment.body.should.eql(comment.body)
         })
         .then(function() { done() })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -83,7 +83,7 @@ describe('Comment', function() {
           return post.create()
         })
         .then(function() { done() })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
 
     it('should create without error', function(done) {
@@ -109,7 +109,7 @@ describe('Comment', function() {
           newComment.id.should.eql(comment.id)
         })
         .then(function() { done() })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
 
     it('should ignore whitespaces in body', function(done) {
@@ -130,6 +130,7 @@ describe('Comment', function() {
           newComment.body.should.eql(body.trim())
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not create with empty body', function(done) {
@@ -171,6 +172,7 @@ describe('Comment', function() {
           return post.create()
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should find comment with a valid id', function(done) {
@@ -189,6 +191,7 @@ describe('Comment', function() {
           newComment.id.should.eql(comment.id)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not find comment with invalid id', function(done) {
@@ -199,6 +202,7 @@ describe('Comment', function() {
           $should.not.exist(comment)
         })
         .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -231,6 +235,7 @@ describe('Comment', function() {
           return comment.create()
         })
         .then(function(res) { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should destroy comment', async () => {
