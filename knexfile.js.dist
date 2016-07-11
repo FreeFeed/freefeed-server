@@ -22,7 +22,8 @@ module.exports = {
     },
     migrations: {
       tableName: 'knex_migrations'
-    }
+    },
+    textSearchConfigName: 'pg_catalog.russian'
   },
 
   test: {
@@ -38,7 +39,8 @@ module.exports = {
     },
     migrations: {
       tableName: 'knex_migrations'
-    }
+    },
+    textSearchConfigName: 'pg_catalog.russian'
   },
 
   staging: {
@@ -54,7 +56,8 @@ module.exports = {
     },
     migrations: {
       tableName: 'knex_migrations'
-    }
+    },
+    textSearchConfigName: 'pg_catalog.russian'
   },
 
   production: {
@@ -70,7 +73,8 @@ module.exports = {
     },
     migrations: {
       tableName: 'knex_migrations'
-    }
+    },
+    textSearchConfigName: 'pg_catalog.russian'
   }
 
 };
