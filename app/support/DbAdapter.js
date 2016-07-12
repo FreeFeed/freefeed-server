@@ -941,6 +941,7 @@ export class DbAdapter {
   async createComment(payload) {
     const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
     const res = await this.database('comments').returning('uid').insert(preparedPayload)
+    await this.updatePostTsDocument(payload.postId)
     return res[0]
   }
 
@@ -959,17 +960,23 @@ export class DbAdapter {
     return DbAdapter.initObject(Comment, attrs, id)
   }
 
-  updateComment(commentId, payload) {
+  async updateComment(commentId, payload) {
     const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
-
-    return this.database('comments').where('uid', commentId).update(preparedPayload)
+    await this.database('comments').where('uid', commentId).update(preparedPayload)
+    return this.updatePostTsDocument(payload.postId)
   }
 
-  deleteComment(commentId, postId) {
-    return this.database('comments').where({
+  async deleteComment(commentId, postId) {
+    await this.database('comments').where({
       uid:     commentId,
       post_id: postId
     }).delete()
+    return this.updatePostTsDocument(postId)
+  }
+
+  async getPostCommentsBodies(postId) {
+    const res = await this.database('comments').select('body').where({ post_id: postId })
+    return res.map((r) => r.body)
   }
 
   async getPostCommentsCount(postId) {
@@ -1174,13 +1181,32 @@ export class DbAdapter {
   async createPost(payload, destinationsIntIds) {
     const preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
+    preparedPayload.ts_document = payload.body
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
   }
 
-  updatePost(postId, payload) {
+  async updatePost(postId, payload) {
     const preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
+    if (_.has(preparedPayload, 'body')) {
+      const comments = await this.getPostCommentsBodies(postId)
+      preparedPayload.ts_document = `${preparedPayload.body} ${comments.join(' ')}`
+    }
     return this.database('posts').where('uid', postId).update(preparedPayload)
+  }
+
+  async updatePostTsDocument(postId) {
+    const res = await this.database('posts').where('uid', postId)
+    const attrs = res[0]
+
+    if (!attrs) {
+      return
+    }
+
+    const postBody = attrs.body
+    const comments = await this.getPostCommentsBodies(postId)
+    const payload = { ts_document: `${postBody} ${comments.join(' ')}` }
+    await this.database('posts').where('uid', postId).update(payload)
   }
 
   async getPostById(id, params) {
