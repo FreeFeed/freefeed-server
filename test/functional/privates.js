@@ -379,6 +379,11 @@ describe("Privates", function() {
         lunaFeedViewedByMars.should.have.property('subscribers')
         lunaFeedViewedByMars.should.have.property('admins')
 
+        const lunaFeedViewedByLuna = await funcTestHelper.getUserFeed(lunaContext, lunaContext)
+        lunaFeedViewedByLuna.timelines.should.have.property('subscribers')
+        lunaFeedViewedByLuna.should.have.property('subscribers')
+        lunaFeedViewedByLuna.should.have.property('admins')
+
         const lunaLikesFeedViewedByAnonymous = await funcTestHelper.getUserLikesFeed(lunaContext)
         lunaLikesFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
         lunaLikesFeedViewedByAnonymous.should.not.have.property('subscribers')
@@ -394,6 +399,11 @@ describe("Privates", function() {
         lunaLikesFeedViewedByMars.should.have.property('subscribers')
         lunaLikesFeedViewedByMars.should.have.property('admins')
 
+        const lunaLikesFeedViewedByLuna = await funcTestHelper.getUserLikesFeed(lunaContext, lunaContext)
+        lunaLikesFeedViewedByLuna.timelines.should.have.property('subscribers')
+        lunaLikesFeedViewedByLuna.should.have.property('subscribers')
+        lunaLikesFeedViewedByLuna.should.have.property('admins')
+
         const lunaCommentsFeedViewedByAnonymous = await funcTestHelper.getUserCommentsFeed(lunaContext)
         lunaCommentsFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
         lunaCommentsFeedViewedByAnonymous.should.not.have.property('subscribers')
@@ -408,6 +418,11 @@ describe("Privates", function() {
         lunaCommentsFeedViewedByMars.timelines.should.have.property('subscribers')
         lunaCommentsFeedViewedByMars.should.have.property('subscribers')
         lunaCommentsFeedViewedByMars.should.have.property('admins')
+
+        const lunaCommentsFeedViewedByLuna = await funcTestHelper.getUserCommentsFeed(lunaContext, lunaContext)
+        lunaCommentsFeedViewedByLuna.timelines.should.have.property('subscribers')
+        lunaCommentsFeedViewedByLuna.should.have.property('subscribers')
+        lunaCommentsFeedViewedByLuna.should.have.property('admins')
 
         done()
       })
