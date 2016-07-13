@@ -8,6 +8,7 @@
   "scripts": {
     "start": "babel-node --ignore node_modules index",
     "test": "eslint app && NODE_ENV=test mocha",
+    "lint": "eslint app",
     "console": "babel-node --ignore node_modules bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node --ignore node_modules data_transfer",
@@ -62,7 +63,7 @@
     "winston": "1.1.2"
   },
   "devDependencies": {
-    "babel-eslint": "6.1.1",
+    "babel-eslint": "6.1.2",
     "babel-register": "6.9.0",
     "chai": "3.5.0",
     "chai-fs": "^0.1.0",
