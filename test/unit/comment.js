@@ -1,3 +1,5 @@
+/*eslint-env node, mocha */
+/*global $pg_database */
 import { isNull } from 'lodash'
 import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Comment, Post, User } from '../../app/models'
@@ -5,7 +7,6 @@ import { dbAdapter, Comment, Post, User } from '../../app/models'
 
 describe('Comment', function() {
   beforeEach(async ()=>{
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 

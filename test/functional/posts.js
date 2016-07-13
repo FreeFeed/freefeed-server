@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
@@ -20,7 +20,6 @@ describe("PostsController", function() {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 

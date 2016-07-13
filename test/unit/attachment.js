@@ -1,3 +1,5 @@
+/*eslint-env node, mocha */
+/*global $pg_database */
 import fs from 'fs'
 import path from 'path'
 import mkdirp from 'mkdirp'
@@ -16,7 +18,6 @@ const config = configLoader()
 
 describe('Attachment', function() {
   before(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 

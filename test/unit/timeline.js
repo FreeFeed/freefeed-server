@@ -1,3 +1,5 @@
+/*eslint-env node, mocha */
+/*global $pg_database */
 import uuid from 'uuid'
 import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Timeline, User } from '../../app/models'
@@ -5,7 +7,6 @@ import { dbAdapter, Timeline, User } from '../../app/models'
 
 describe('Timeline', function() {
   beforeEach(async ()=>{
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 

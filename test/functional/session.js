@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $pg_database */
 import request from 'superagent'
 import fetch from 'node-fetch'
 import knexCleaner from 'knex-cleaner'
@@ -20,7 +20,6 @@ describe("SessionController", () => {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 

@@ -1,21 +1,19 @@
-require("babel-register")({
-  ignore: /node_modules/
-});
+require('babel-register')({ ignore: /node_modules/ });
 
 global.Promise = require('bluebird')
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
 global.Promise.config({
   // Enable warnings.
-  warnings: false,
+  warnings:        false,
   // Enable long stack traces.
   longStackTraces: true,
   // Enable cancellation.
-  cancellation: true
+  cancellation:    true
 });
 
-global.$redis = require('../config/database')
-global.$database = global.$redis.connect()
+global.$database = require('../config/database').default;  // used by realtime-tests
+
 global.$should = require('chai').should()
 global.$postgres = require('../config/postgres')
-global.$pg_database = $postgres.connect()
+global.$pg_database = global.$postgres.connect()

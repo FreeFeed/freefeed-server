@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $pg_database */
 import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
@@ -25,7 +25,6 @@ describe("UsersController", function() {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 

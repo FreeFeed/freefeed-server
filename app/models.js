@@ -29,18 +29,23 @@ import { addSerializer as userSerializer } from './serializers/v1/UserSerializer
 
 
 // Be careful: order of exports is important.
-export const database = redisConnection()
 export const postgres = postgresConnection()
 export const dbAdapter = new DbAdapter(postgres)
 
 export { AbstractSerializer } from './serializers/abstract_serializer'
 export { Serializer }         from './serializers/serializer'
 
-const pubsubAdapter = new PubSubAdapter(database)
 const config = configLoader()
-export let PubSub = new pubSub(pubsubAdapter)
+
+export let PubSub;
+
 if (config.disableRealtime) {
   PubSub = new pubSubStub()
+} else {
+  const database = redisConnection()
+  const pubsubAdapter = new PubSubAdapter(database)
+
+  PubSub = new pubSub(pubsubAdapter)
 }
 
 export const User          = userModel(dbAdapter)

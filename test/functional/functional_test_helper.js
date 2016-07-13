@@ -1,4 +1,3 @@
-/*global $database */
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
@@ -13,10 +12,6 @@ import { getSingleton as initApp } from '../../app/app'
 const apiUrl = async (relativeUrl) => {
   const app = await initApp()
   return `${app.config.host}${relativeUrl}`
-}
-
-export function flushDb() {
-  return () => $database.flushdbAsync()
 }
 
 export function createUser(username, password, attributes, callback) {

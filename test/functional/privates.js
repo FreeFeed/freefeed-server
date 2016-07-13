@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
@@ -19,7 +19,6 @@ describe("Privates", function() {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 
