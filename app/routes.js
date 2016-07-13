@@ -18,6 +18,7 @@ import PasswordsRoute from './routes/api/v1/PasswordsRoute'
 import GroupsRouteV2 from './routes/api/v2/GroupsRoute'
 import RequestsRouteV2 from './routes/api/v2/RequestsRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
+import SearchRoute from './routes/api/v2/SearchRoute'
 
 const config = configLoader()
 promisifyAll(jwt)
@@ -66,4 +67,5 @@ export default function (app) {
   GroupsRouteV2(app)
   RequestsRouteV2(app)
   UsersRouteV2(app)
+  SearchRoute(app)
 }
