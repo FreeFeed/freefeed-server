@@ -1,0 +1,100 @@
+import _ from 'lodash'
+import { dbAdapter, PostSerializer } from '../../../models'
+import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { SearchQueryParser, SEARCH_TYPES } from '../../../support/SearchQueryParser'
+
+export default class SearchController {
+  static async search(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
+      return
+    }
+
+    try {
+      const preparedQuery = SearchQueryParser.parse(req.query.qs)
+
+      let foundPosts = []
+        , isSubscribed = false
+        , targetUser
+        , targetGroup
+
+      switch (preparedQuery.type) {
+        case SEARCH_TYPES.DEFAULT:
+          {
+            foundPosts = await dbAdapter.searchPosts(preparedQuery.query, req.user.id, req.user.subscribedFeedIds)
+            break
+          }
+
+        case SEARCH_TYPES.USER_POSTS:
+          {
+            targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
+            if (!targetUser) {
+              throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
+            }
+
+            const userPostsFeedId = await targetUser.getPostsTimelineId()
+            isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(req.user.id, userPostsFeedId)
+            if (!isSubscribed && targetUser.isPrivate) {
+              throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
+            }
+
+            foundPosts = await dbAdapter.searchUserPosts(preparedQuery.query, targetUser.id, req.user.subscribedFeedIds)
+
+            break
+          }
+        case SEARCH_TYPES.GROUP_POSTS:
+          {
+            targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group)
+            if (!targetGroup) {
+              throw new NotFoundException(`Group "${preparedQuery.group}" is not found`)
+            }
+
+            const groupPostsFeedId = await targetGroup.getPostsTimelineId()
+            isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(req.user.id, groupPostsFeedId)
+            if (!isSubscribed && targetGroup.isPrivate) {
+              throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
+            }
+
+            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery.query, groupPostsFeedId, req.user.subscribedFeedIds)
+
+            break
+          }
+      }
+
+      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: req.user.id })
+
+      const postsCollectionJson = await SearchController._serializePostsCollection(postsObjects)
+
+      res.jsonp(postsCollectionJson)
+    } catch (e) {
+      exceptions.reportError(res)(e)
+    }
+  }
+
+  static async _serializePostsCollection(postsObjects) {
+    const postsCollection = await Promise.all(postsObjects.map((post) => new PostSerializer(post).promiseToJSON()))
+    const postsCollectionJson = {
+      posts:         [],
+      comments:      [],
+      attachments:   [],
+      subscriptions: [],
+      admins:        [],
+      users:         [],
+      subscribers:   []
+    }
+
+    _.reduce(postsCollection, (result, val) => {
+      result.posts.push(val.posts)
+      result.comments       = _.uniq(result.comments.concat(val.comments || []), 'id')
+      result.attachments    = _.uniq(result.attachments.concat(val.attachments || []), 'id')
+      result.subscriptions  = _.uniq(result.subscriptions.concat(val.subscriptions || []), 'id')
+      result.admins         = _.uniq(result.admins.concat(val.admins || []), 'id')
+      result.users          = _.uniq(result.users.concat(val.users || []), 'id')
+      result.subscribers    = _.uniq(result.subscribers.concat(val.subscribers || []), 'id')
+
+      return result
+    }, postsCollectionJson)
+
+    return postsCollectionJson
+  }
+}

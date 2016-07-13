@@ -1460,4 +1460,84 @@ export class DbAdapter {
     })
     return bumps
   }
+
+
+  ///////////////////////////////////////////////////
+  // Search
+  ///////////////////////////////////////////////////
+
+  async searchPosts(query, currentUserId, visibleFeedIds) {
+    const textSearchConfigName = this.database.client.config.textSearchConfigName
+
+    const res = await this.database.raw(
+      'select * from (' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `where "posts"."user_id" = '${currentUserId}' and to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds})` +
+      ') as found_posts ' +
+      'order by found_posts.updated_at desc'
+    )
+    return res.rows
+  }
+
+  async searchUserPosts(query, targetUserId, visibleFeedIds) {
+    const textSearchConfigName = this.database.client.config.textSearchConfigName
+
+    const res = await this.database.raw(
+      'select * from (' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds})` +
+      ') as found_posts ' +
+      `where found_posts.user_id='${targetUserId}' ` +
+      'order by found_posts.updated_at desc'
+    )
+    return res.rows
+  }
+
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds) {
+    const textSearchConfigName = this.database.client.config.textSearchConfigName
+
+    const res = await this.database.raw(
+      'select * from (' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds})` +
+      ') as found_posts ' +
+      'order by found_posts.updated_at desc'
+    )
+    return res.rows
+  }
+
+  initRawPosts(rawPosts, params) {
+    const objects = rawPosts.map((attrs) => {
+      if (attrs) {
+        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
+    })
+    return objects
+  }
 }
