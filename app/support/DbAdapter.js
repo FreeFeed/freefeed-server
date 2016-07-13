@@ -1529,4 +1529,15 @@ export class DbAdapter {
     )
     return res.rows
   }
+
+  initRawPosts(rawPosts, params) {
+    const objects = rawPosts.map((attrs) => {
+      if (attrs) {
+        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
+    })
+    return objects
+  }
 }
