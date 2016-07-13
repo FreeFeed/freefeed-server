@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 import { dbAdapter } from '../../../models'
-import exceptions from '../../../support/exceptions'
+import { reportError } from '../../../support/exceptions'
 
 
 export default class GroupsController {
@@ -34,7 +34,7 @@ export default class GroupsController {
 
       res.jsonp(groupsJson)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

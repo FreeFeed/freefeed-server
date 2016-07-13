@@ -1,6 +1,6 @@
 import monitor from 'monitor-dog'
 import { dbAdapter, TimelineSerializer } from '../../../models'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import { reportError, NotFoundException } from '../../../support/exceptions'
 
 
 export default class TimelineController {
@@ -26,7 +26,7 @@ export default class TimelineController {
 
       monitor.increment('timelines.homefeed-requests')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -53,7 +53,7 @@ export default class TimelineController {
 
       monitor.increment('timelines.directs_feed-requests')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -84,7 +84,7 @@ export default class TimelineController {
 
       monitor.increment('timelines.posts_feed-requests')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -115,7 +115,7 @@ export default class TimelineController {
 
       monitor.increment('timelines.likes_feed-requests')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -146,7 +146,7 @@ export default class TimelineController {
 
       monitor.increment('timelines.comments_feed-requests')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -173,7 +173,7 @@ export default class TimelineController {
 
       monitor.increment('timelines.my_discussions_feed-requests')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }

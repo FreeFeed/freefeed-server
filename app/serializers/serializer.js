@@ -1,5 +1,6 @@
-import { AbstractSerializer } from '../models'
 import { inherits } from 'util'
+
+import { AbstractSerializer } from '../models'
 
 
 export function Serializer(name, strategy) {

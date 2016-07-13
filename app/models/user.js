@@ -1,9 +1,9 @@
 import crypto from 'crypto'
+import fs from 'fs'
 
 import bcrypt from 'bcrypt'
 import { promisify, promisifyAll } from 'bluebird'
 import aws from 'aws-sdk'
-import fs from 'fs'
 import gm from 'gm'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
@@ -22,7 +22,7 @@ promisifyAll(gm)
 
 const config = configLoader()
 
-exports.addModel = function (dbAdapter) {
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */

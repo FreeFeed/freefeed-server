@@ -1,7 +1,7 @@
 import monitor from 'monitor-dog'
 
 import { dbAdapter, CommentSerializer, PubSub } from '../../../models'
-import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class CommentsController {
@@ -41,7 +41,7 @@ export default class CommentsController {
       const json = await new CommentSerializer(newComment).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -73,7 +73,7 @@ export default class CommentsController {
       res.jsonp(json)
       monitor.increment('comments.updates')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -113,7 +113,7 @@ export default class CommentsController {
       res.jsonp({})
       monitor.increment('comments.destroys')
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }

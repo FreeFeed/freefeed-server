@@ -5,8 +5,8 @@ import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
 import { load as configLoader } from '../config/config'
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
 
 
 promisifyAll(jwt)

@@ -4,7 +4,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
-import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { reportError, NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 
@@ -50,7 +50,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken }))
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -87,7 +87,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken }))
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -121,7 +121,7 @@ export default class UsersController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -146,7 +146,7 @@ export default class UsersController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -171,7 +171,7 @@ export default class UsersController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -201,7 +201,7 @@ export default class UsersController {
       const json = await new serializer(feed).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -239,7 +239,7 @@ export default class UsersController {
 
       res.jsonp(await json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -283,7 +283,7 @@ export default class UsersController {
 
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -297,7 +297,7 @@ export default class UsersController {
       const status = await req.user.ban(req.params.username)
       res.jsonp({ status })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -311,7 +311,7 @@ export default class UsersController {
       const status = await req.user.unban(req.params.username)
       res.jsonp({ status })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -354,7 +354,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -383,7 +383,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -421,7 +421,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -448,7 +448,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -467,7 +467,7 @@ export default class UsersController {
 
       res.jsonp({ message: 'Your password has been changed' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -484,7 +484,7 @@ export default class UsersController {
         await req.user.updateProfilePicture(file)
         res.jsonp({ message: 'Your profile picture has been updated' })
       } catch (e) {
-        exceptions.reportError(res)(e)
+        reportError(res)(e)
       }
     })
 

@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
-import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class PostsController {
@@ -69,7 +69,7 @@ export default class PostsController {
       const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -94,7 +94,7 @@ export default class PostsController {
       const json = await new PostSerializer(post).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -133,7 +133,7 @@ export default class PostsController {
       const json = new PostSerializer(post).promiseToJSON()
       res.jsonp(await json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -172,7 +172,7 @@ export default class PostsController {
 
       await pubSub.newLike(post, req.user.id, affectedTimelines)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -209,7 +209,7 @@ export default class PostsController {
 
       res.status(200).send({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -233,7 +233,7 @@ export default class PostsController {
       await post.destroy()
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -253,7 +253,7 @@ export default class PostsController {
       await post.hide(req.user.id)
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -273,7 +273,7 @@ export default class PostsController {
       await post.unhide(req.user.id)
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -298,7 +298,7 @@ export default class PostsController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -323,7 +323,7 @@ export default class PostsController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

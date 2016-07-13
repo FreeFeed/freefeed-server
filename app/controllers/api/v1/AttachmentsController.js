@@ -1,7 +1,7 @@
 import formidable from 'formidable'
 
 import { AttachmentSerializer } from '../../../models'
-import exceptions from '../../../support/exceptions'
+import { reportError } from '../../../support/exceptions'
 
 
 export default class AttachmentsController {
@@ -31,7 +31,7 @@ export default class AttachmentsController {
           this.app.logger.warn(e.message)
 
           const errorDetails = { message: 'Corrupt image' }
-          exceptions.reportError(res)(errorDetails)
+          reportError(res)(errorDetails)
           return;
         }
 
@@ -39,11 +39,11 @@ export default class AttachmentsController {
           this.app.logger.warn(`GraphicsMagick should be configured with --with-lcms2 option`)
 
           const errorDetails = { status: 500, message: 'Internal server error' }
-          exceptions.reportError(res)(errorDetails)
+          reportError(res)(errorDetails)
           return;
         }
 
-        exceptions.reportError(res)(e)
+        reportError(res)(e)
       }
     })
 
