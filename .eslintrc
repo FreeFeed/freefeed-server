@@ -3,7 +3,8 @@
   "parser": "babel-eslint",
   "plugins": [
     "babel",
-    "import"
+    "import",
+    "lodash"
   ],
   "env": {
     "node": true,
@@ -35,6 +36,15 @@
     "keyword-spacing": 2,
     "linebreak-style": 2,
     "babel/no-await-in-loop": 2,
+    "lodash/callback-binding": 2,
+    "lodash/collection-method-value": 2,
+    "lodash/collection-return": 2,
+    "lodash/no-double-unwrap": 2,
+    "lodash/no-extra-args": 2,
+    "lodash/prefer-compact": 2,
+    "lodash/prefer-filter": 2,
+    "lodash/prefer-map": 2,
+    "lodash/unwrap": 2,
     "no-duplicate-imports": 2,
     "no-else-return": 2,
     "no-lonely-if": 2,

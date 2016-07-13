@@ -440,7 +440,7 @@ export function addModel(dbAdapter) {
 
       await Promise.all(actions)
 
-      fixedUsers = _.uniq(fixedUsers.concat(likes).concat(commenters), 'id')
+      fixedUsers = _.uniqBy(fixedUsers.concat(likes).concat(commenters), 'id')
     }
 
     for (const usersChunk of _.chunk(fixedUsers, 10)) {
@@ -486,7 +486,7 @@ export function addModel(dbAdapter) {
       const userPromises = timelines.map((timeline) => timeline.getUser())
       const users = await Promise.all(userPromises)
 
-      allUsers = _.uniq(allUsers.concat(users), 'id')
+      allUsers = _.uniqBy(allUsers.concat(users), 'id')
     }
 
     // and remove all private posts from all strangers timelines
