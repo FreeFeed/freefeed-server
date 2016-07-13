@@ -1,6 +1,6 @@
 import { dbAdapter } from '../../../models'
 import { UsersController, GroupsController } from '../../../controllers'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import { reportError, NotFoundException } from '../../../support/exceptions'
 
 
 export default class FeedFactoriesController {
@@ -15,7 +15,7 @@ export default class FeedFactoriesController {
       const controller = feed.isUser() ? UsersController : GroupsController
       controller.update(req, res)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

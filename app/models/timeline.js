@@ -228,7 +228,7 @@ export function addModel(dbAdapter) {
         }
 
         const bans = await user.getBanIds()
-        const isReaderBanned = bans.indexOf(readerUserId) >= 0
+        const isReaderBanned = bans.includes(readerUserId)
         usersCache[id] = [user, isReaderBanned]
       }
 
@@ -249,7 +249,7 @@ export function addModel(dbAdapter) {
         throw new Error(`did not find user-object of author of post with id=${post.id}\nPREVIOUS: ${e.message}`)
       }
 
-      const readerBannedAuthor = (banIds.indexOf(post.userId) >= 0)
+      const readerBannedAuthor = banIds.includes(post.userId)
 
       if (readerBannedAuthor || authorBannedReader)
         return null
@@ -358,7 +358,7 @@ export function addModel(dbAdapter) {
       return
     }
 
-    if (viewer && (viewer.id == feedOwner.id || feedOwnerSubscriberIds.indexOf(viewer.id) !== -1)) {
+    if (viewer && (viewer.id == feedOwner.id || feedOwnerSubscriberIds.includes(viewer.id))) {
       return
     }
 
@@ -455,7 +455,7 @@ export function addModel(dbAdapter) {
 
     // otherwise user can view post if and only if she is subscriber
     const userIds = await this.getSubscriberIds()
-    return userIds.indexOf(userId) >= 0
+    return userIds.includes(userId)
   }
 
   return Timeline

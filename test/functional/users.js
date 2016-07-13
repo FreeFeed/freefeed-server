@@ -97,7 +97,7 @@ describe("UsersController", function() {
                 res.body.should.have.property('subscriptions')
                 var types = ['Comments', 'Likes', 'Posts']
                 async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
-                  callback(null, memo && (types.indexOf(user.name) >= 0) && (user.user == onboardCtx.user.id))
+                  callback(null, memo && types.includes(user.name) && (user.user == onboardCtx.user.id))
                 }, function(err, contains) {
                   contains.should.eql(true)
                   done()
@@ -668,7 +668,7 @@ describe("UsersController", function() {
           res.body.should.have.property('subscriptions')
           var types = ['Comments', 'Likes', 'Posts']
           async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
-            callback(null, memo && (types.indexOf(user.name) >= 0))
+            callback(null, memo && types.includes(user.name))
           }, function(err, contains) {
             contains.should.eql(true)
             done()
@@ -1264,7 +1264,7 @@ describe("UsersController", function() {
           res.body.should.have.property('subscriptions')
           var types = ['Comments', 'Likes', 'Posts']
           async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
-            callback(null, memo && (types.indexOf(user.name) >= 0))
+            callback(null, memo && types.includes(user.name))
           }, function(err, contains) {
             contains.should.eql(true)
           })

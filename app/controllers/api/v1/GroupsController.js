@@ -2,7 +2,7 @@ import formidable from 'formidable'
 import _ from 'lodash'
 
 import { dbAdapter, Group, GroupSerializer } from '../../../models'
-import exceptions, { NotFoundException, ForbiddenException }  from '../../../support/exceptions'
+import { reportError, BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
 export default class GroupsController {
@@ -26,7 +26,7 @@ export default class GroupsController {
       const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -35,7 +35,7 @@ export default class GroupsController {
 
     try {
       if (!_.isArray(req.body.admins)) {
-        throw new exceptions.BadRequestException('"admins" should be an array of strings')
+        throw new BadRequestException('"admins" should be an array of strings')
       }
 
       const adminPromises = req.body.admins.map(async (username) => {
@@ -62,7 +62,7 @@ export default class GroupsController {
       const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -89,7 +89,7 @@ export default class GroupsController {
       const json = await new GroupSerializer(group).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -125,7 +125,7 @@ export default class GroupsController {
 
       res.jsonp({ err: null, status: 'success' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -161,13 +161,13 @@ export default class GroupsController {
           await group.updateProfilePicture(file)
           res.jsonp({ message: 'The profile picture of the group has been updated' })
         } catch (e) {
-          exceptions.reportError(res)(e)
+          reportError(res)(e)
         }
       })
 
       form.parse(req)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -207,7 +207,7 @@ export default class GroupsController {
 
       res.jsonp({ err: null, status: 'success' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -245,7 +245,7 @@ export default class GroupsController {
 
       res.jsonp({ err: null, status: 'success' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -283,7 +283,7 @@ export default class GroupsController {
 
       res.jsonp({ err: null, status: 'success' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -325,7 +325,7 @@ export default class GroupsController {
 
       res.jsonp({ err: null, status: 'success' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 

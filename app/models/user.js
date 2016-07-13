@@ -1,9 +1,9 @@
 import crypto from 'crypto'
+import fs from 'fs'
 
 import bcrypt from 'bcrypt'
 import { promisify, promisifyAll } from 'bluebird'
 import aws from 'aws-sdk'
-import fs from 'fs'
 import gm from 'gm'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
@@ -22,7 +22,7 @@ promisifyAll(gm)
 
 const config = configLoader()
 
-exports.addModel = function (dbAdapter) {
+export function addModel(dbAdapter) {
   /**
    * @constructor
    */
@@ -201,7 +201,7 @@ exports.addModel = function (dbAdapter) {
         && this.username.length >= 3   // per the spec
         && this.username.length <= 25  // per the spec
         && this.username.match(/^[A-Za-z0-9]+$/)
-        && User.stopList(skip_stoplist).indexOf(this.username) == -1
+        && !User.stopList(skip_stoplist).includes(this.username)
 
     return valid
   }
@@ -440,7 +440,7 @@ exports.addModel = function (dbAdapter) {
 
       await Promise.all(actions)
 
-      fixedUsers = _.uniq(fixedUsers.concat(likes).concat(commenters), 'id')
+      fixedUsers = _.uniqBy(fixedUsers.concat(likes).concat(commenters), 'id')
     }
 
     for (const usersChunk of _.chunk(fixedUsers, 10)) {
@@ -469,7 +469,7 @@ exports.addModel = function (dbAdapter) {
     // var subscribers = await this.getSubscribers()
     // await Promise.all(subscribers.map(function(user) {
     //   // this is not friend, let's unsubscribe her before going to private
-    //   if (subscriptionIds.indexOf(user.id) === -1) {
+    //   if (!subscriptionIds.includes(user.id)) {
     //     return user.unsubscribeFrom(timeline.id, { likes: true, comments: true })
     //   }
     // }))
@@ -486,13 +486,13 @@ exports.addModel = function (dbAdapter) {
       const userPromises = timelines.map((timeline) => timeline.getUser())
       const users = await Promise.all(userPromises)
 
-      allUsers = _.uniq(allUsers.concat(users), 'id')
+      allUsers = _.uniqBy(allUsers.concat(users), 'id')
     }
 
     // and remove all private posts from all strangers timelines
     const users = _.filter(
       allUsers,
-      (user) => (subscriberIds.indexOf(user.id) === -1 && user.id != this.id)
+      (user) => (!subscriberIds.includes(user.id) && user.id != this.id)
     )
 
     for (const chunk of _.chunk(users, 10)) {
@@ -608,7 +608,7 @@ exports.addModel = function (dbAdapter) {
         post.isHidden = true
       }
 
-      return banIds.indexOf(post.userId) >= 0 ? null : post
+      return banIds.includes(post.userId) ? null : post
     }))
 
     return riverOfNewsTimeline
@@ -739,7 +739,7 @@ exports.addModel = function (dbAdapter) {
     ]
     // reject if and only if there is a pending request
     const requestIds = await this.getSubscriptionRequestIds()
-    if (requestIds.indexOf(user.id) >= 0)
+    if (requestIds.includes(user.id))
       promises.push(this.rejectSubscriptionRequest(user.id))
     await Promise.all(promises)
     return 1
@@ -1075,7 +1075,7 @@ exports.addModel = function (dbAdapter) {
 
     const promises = followedGroups.map(async (group) => {
       const adminIds = await group.getAdministratorIds()
-      if (adminIds.indexOf(currentUserId) !== -1) {
+      if (adminIds.includes(currentUserId)) {
         return group
       }
       return null
