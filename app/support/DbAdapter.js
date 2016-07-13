@@ -1466,10 +1466,10 @@ export class DbAdapter {
   // Search
   ///////////////////////////////////////////////////
 
-  async searchPosts(query, currentUserId, visibleFeedIds){
+  async searchPosts(query, currentUserId, visibleFeedIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
 
-    let res = await this.database.raw(
+    const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
@@ -1489,10 +1489,10 @@ export class DbAdapter {
     return res.rows
   }
 
-  async searchUserPosts(query, targetUserId, visibleFeedIds){
+  async searchUserPosts(query, targetUserId, visibleFeedIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
 
-    let res = await this.database.raw(
+    const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
@@ -1510,10 +1510,10 @@ export class DbAdapter {
     return res.rows
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds){
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
 
-    let res = await this.database.raw(
+    const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
@@ -1528,5 +1528,16 @@ export class DbAdapter {
       'order by found_posts.updated_at desc'
     )
     return res.rows
+  }
+
+  initRawPosts(rawPosts, params) {
+    const objects = rawPosts.map((attrs) => {
+      if (attrs) {
+        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
+    })
+    return objects
   }
 }
