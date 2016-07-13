@@ -121,12 +121,12 @@ export default class PostsController {
         const author = await dbAdapter.getUserById(post.userId)
         const banIds = await author.getBanIds()
 
-        if (banIds.indexOf(req.user.id) >= 0)
+        if (banIds.includes(req.user.id))
           throw new ForbiddenException('This user has prevented you from seeing their posts')
 
         const yourBanIds = await req.user.getBanIds()
 
-        if (yourBanIds.indexOf(author.id) >= 0)
+        if (yourBanIds.includes(author.id))
           throw new ForbiddenException('You have blocked this user and do not want to see their posts')
       }
 

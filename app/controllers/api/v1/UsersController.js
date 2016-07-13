@@ -111,7 +111,7 @@ export default class UsersController {
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
       const banIds = await user.getBanIds()
 
-      const valid = !hasRequest && banIds.indexOf(req.user.id) === -1
+      const valid = !hasRequest && !banIds.includes(req.user.id)
 
       if (!valid) {
         throw new Error('Invalid')
@@ -219,7 +219,7 @@ export default class UsersController {
           throw new ForbiddenException('User is private')
         }
         const subscriberIds = await user.getSubscriberIds()
-        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+        if (req.user.id !== user.id && !subscriberIds.includes(req.user.id)) {
           throw new ForbiddenException('User is private')
         }
       }
@@ -258,7 +258,7 @@ export default class UsersController {
         }
 
         const subscriberIds = await user.getSubscriberIds()
-        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+        if (req.user.id !== user.id && !subscriberIds.includes(req.user.id)) {
           throw new ForbiddenException('User is private')
         }
       }
@@ -340,12 +340,12 @@ export default class UsersController {
       }
 
       const banIds = await req.user.getBanIds()
-      if (banIds.indexOf(user.id) >= 0) {
+      if (banIds.includes(user.id)) {
         throw new ForbiddenException('You cannot subscribe to a banned user')
       }
 
       const theirBanIds = await user.getBanIds()
-      if (theirBanIds.indexOf(req.user.id) >= 0) {
+      if (theirBanIds.includes(req.user.id)) {
         throw new ForbiddenException('This user prevented your from subscribing to them')
       }
 

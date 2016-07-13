@@ -112,8 +112,8 @@ export function addModel(dbAdapter) {
     // Calculate changes in attachments
     const oldAttachments = await this.getAttachmentIds() || []
     const newAttachments = params.attachments || []
-    const addedAttachments = newAttachments.filter((i) => oldAttachments.indexOf(i) < 0)
-    const removedAttachments = oldAttachments.filter((i) => newAttachments.indexOf(i) < 0)
+    const addedAttachments = newAttachments.filter((i) => !oldAttachments.includes(i))
+    const removedAttachments = oldAttachments.filter((i) => !newAttachments.includes(i))
 
     // Update post body in DB
     const payload = {
@@ -397,7 +397,7 @@ export function addModel(dbAdapter) {
       if (this.attachments) {
         const pos = this.attachments.indexOf(attachment.id)
 
-        if (pos < 0) {
+        if (pos === -1) {
           this.attachments.push(attachment)
         } else {
           this.attachments[pos] = attachment
@@ -561,8 +561,7 @@ export function addModel(dbAdapter) {
     const user = await dbAdapter.getUserById(userId)
     const banIds = await user.getBanIds()
 
-    const index = banIds.indexOf(this.userId)
-    return index >= 0
+    return banIds.includes(this.userId)
   }
 
   Post.prototype.isHiddenIn = async function(timeline) {
@@ -596,7 +595,7 @@ export function addModel(dbAdapter) {
 
       // otherwise user can view post if and only if she is subscriber
       const userIds = await timeline.getSubscriberIds()
-      return userIds.indexOf(userId) >= 0
+      return userIds.includes(userId)
     }))
 
     return _.reduce(arr, (acc, x) => { return acc || x }, false)

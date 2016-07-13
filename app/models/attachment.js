@@ -228,7 +228,7 @@ export function addModel(dbAdapter) {
         // The first three options are fine, the rest should be fixed.
         const orientation = await originalImage.orientationAsync()
 
-        if (['unknown', 'Unknown', 'TopLeft'].indexOf(orientation) === -1) {
+        if (!['unknown', 'Unknown', 'TopLeft'].includes(orientation)) {
           const img = originalImage
             .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
             .autoOrient()

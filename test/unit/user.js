@@ -1015,7 +1015,7 @@ describe('User', function() {
           users.length.should.eql(3)
           var types = ['Comments', 'Likes', 'Posts']
           async.reduce(users, true, function(memo, user, callback) {
-            callback(null, memo && (types.indexOf(user.name) >= 0))
+            callback(null, memo && types.includes(user.name))
           }, function(err, contains) {
             contains.should.eql(true)
             done()

@@ -65,7 +65,7 @@ export function addModel(dbAdapter) {
         && this.username.length >= 3   // per spec
         && this.username.length <= 35  // per evidence and consensus
         && this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/)
-        && User.stopList(skip_stoplist).indexOf(this.username) == -1
+        && !User.stopList(skip_stoplist).includes(this.username)
 
     return valid
   }
@@ -181,7 +181,7 @@ export function addModel(dbAdapter) {
   Group.prototype.removeAdministrator = async function(feedId) {
     const adminIds = await this.getAdministratorIds()
 
-    if (adminIds.indexOf(feedId) == -1) {
+    if (!adminIds.includes(feedId)) {
       throw new Error('Not an administrator')
     }
 
