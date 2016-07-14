@@ -1196,17 +1196,14 @@ export class DbAdapter {
   }
 
   async updatePostTsDocument(postId) {
-    const res = await this.database('posts').where('uid', postId)
-    const attrs = res[0]
-
-    if (!attrs) {
-      return
-    }
-
-    const postBody = attrs.body
-    const comments = await this.getPostCommentsBodies(postId)
-    const payload = { ts_document: `${postBody} ${comments.join(' ')}` }
-    await this.database('posts').where('uid', postId).update(payload)
+    await this.database.raw(
+      'UPDATE posts ' +
+      'SET ts_document=(' +
+        "SELECT posts.body || ' ' || string_agg(c.body,' ') " +
+        'FROM comments AS c ' +
+        'WHERE c.post_id=posts.uid' +
+      ') ' +
+      `WHERE posts.uid='${postId}'`)
   }
 
   async getPostById(id, params) {
