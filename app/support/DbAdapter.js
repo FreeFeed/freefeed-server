@@ -4,6 +4,7 @@ import NodeCache from 'node-cache'
 import { promisifyAll } from 'bluebird'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
+import { SEARCH_TYPES } from './SearchConstants'
 
 const USER_COLUMNS = {
   username:               'username',
@@ -1489,26 +1490,24 @@ export class DbAdapter {
   // Search
   ///////////////////////////////////////////////////
 
-  async searchPosts(query, currentUserId, visibleFeedIds) {
+  async searchPosts(query, currentUserId, visibleFeedIds, searchType) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName, searchType)
 
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        'where ' +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') ` +
+        `where ${searchCondition}` +
       'union ' +
         'select "posts".* from "posts" ' +
-        `where "posts"."user_id" = '${currentUserId}' and ` +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') ` +
+        `where "posts"."user_id" = '${currentUserId}' and ${searchCondition}` +
       'union ' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        'where ' +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') ` +
+        `where ${searchCondition}` +
         `and "feeds"."id" in (${visibleFeedIds})` +
       ') as found_posts ' +
       'order by found_posts.updated_at desc'
@@ -1516,22 +1515,21 @@ export class DbAdapter {
     return res.rows
   }
 
-  async searchUserPosts(query, targetUserId, visibleFeedIds) {
+  async searchUserPosts(query, targetUserId, visibleFeedIds, searchType) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName, searchType)
 
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        'where ' +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') ` +
+        `where ${searchCondition}` +
       'union ' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        'where ' +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') ` +
+        `where ${searchCondition}` +
         `and "feeds"."id" in (${visibleFeedIds})` +
       ') as found_posts ' +
       `where found_posts.user_id='${targetUserId}' ` +
@@ -1540,22 +1538,21 @@ export class DbAdapter {
     return res.rows
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds) {
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds, searchType) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName, searchType)
 
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        'where ' +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}')` +
+        `where ${searchCondition}` +
       'union ' +
         'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        'where ' +
-        `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') ` +
+        `where ${searchCondition}` +
         `and "feeds"."id" in (${visibleFeedIds})` +
       ') as found_posts ' +
       'order by found_posts.updated_at desc'
@@ -1572,5 +1569,16 @@ export class DbAdapter {
       return DbAdapter.initObject(Post, attrs, attrs.id, params)
     })
     return objects
+  }
+
+  _getTextSearchCondition(query, textSearchConfigName, searchType) {
+    let searchCondition = ''
+    if (searchType == SEARCH_TYPES.FULL_TEXT) {
+      searchCondition = `to_tsvector('${textSearchConfigName}', posts.ts_document) @@ to_tsquery('${query}') `
+    } else if (searchType == SEARCH_TYPES.QUOTE) {
+      searchCondition = `posts.ts_document ~ '${query}' `
+    }
+
+    return searchCondition
   }
 }

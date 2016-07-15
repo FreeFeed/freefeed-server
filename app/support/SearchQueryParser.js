@@ -5,11 +5,13 @@ const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
 const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
 const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
+const QUOTE_PATTERN                     = '\"(.{3,})\"'
 
 const fromUsernameRegex            = new RegExp(FROM_USERNAME_PATTERN, 'i');
 const inGroupRegex                 = new RegExp(IN_GROUP_PATTERN, 'i');
 const fromUsernameReplacementRegex = new RegExp(FROM_USERNAME_REPLACEMENT_PATTERN, 'ig');
 const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'ig');
+const quotedQueryRegex             = new RegExp(QUOTE_PATTERN, 'i')
 
 export class SearchQueryParser {
   static parse(query) {
@@ -20,7 +22,8 @@ export class SearchQueryParser {
       query,
       username: '',
       group:    '',
-      type:     SEARCH_TYPES.FULL_TEXT
+      type:     SEARCH_TYPES.FULL_TEXT,
+      quote:    ''
     }
 
     this.parseQueryScope(parseResult)
@@ -47,12 +50,21 @@ export class SearchQueryParser {
 
   static parseQueryType(queryObject) {
     queryObject.type = SEARCH_TYPES.FULL_TEXT
+
+    queryObject.quote = this.parseQuotedQuery(queryObject.query)
+    if (queryObject.quote) {
+      queryObject.type = SEARCH_TYPES.QUOTE
+    }
   }
 
   static processQueryText(queryObject) {
     if (queryObject.type == SEARCH_TYPES.FULL_TEXT) {
       const transformFullTextQuery = flow(this.removeUserAndGroup, this.cleanupQuery, this.prepareQuery);
       queryObject.query = transformFullTextQuery(queryObject.query);
+      return
+    }
+    if (queryObject.type == SEARCH_TYPES.QUOTE) {
+      queryObject.query = queryObject.quote
     }
   }
 
@@ -64,6 +76,11 @@ export class SearchQueryParser {
   static parseTargetGroupname(query) {
     const inGroupSubquery = inGroupRegex.exec(query)
     return inGroupSubquery ? inGroupSubquery[1] : null
+  }
+
+  static parseQuotedQuery(query) {
+    const quotedQuery = quotedQueryRegex.exec(query)
+    return quotedQuery ? quotedQuery[1] : null
   }
 
   static removeUserAndGroup(query) {
