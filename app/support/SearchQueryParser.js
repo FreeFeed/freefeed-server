@@ -1,5 +1,5 @@
 import { flow } from 'lodash';
-import { SEARCH_SCOPES } from './SearchConstants'
+import { SEARCH_SCOPES, SEARCH_TYPES } from './SearchConstants'
 
 const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
@@ -15,28 +15,45 @@ export class SearchQueryParser {
   static parse(query) {
     query = decodeURIComponent(query)
 
-    const parsedQuery = {
+    const parseResult = {
       scope:    SEARCH_SCOPES.ALL_VISIBLE_POSTS,
       query,
       username: '',
-      group:    ''
+      group:    '',
+      type:     SEARCH_TYPES.FULL_TEXT
     }
 
-    const targetUsername  = this.parseTargetUsername(query)
-    const targetGroupname = this.parseTargetGroupname(query)
+    this.parseQueryScope(parseResult)
+    this.parseQueryType(parseResult)
+    this.processQueryText(parseResult)
+
+    return parseResult
+  }
+
+  static parseQueryScope(queryObject) {
+    const targetUsername  = this.parseTargetUsername(queryObject.query)
+    const targetGroupname = this.parseTargetGroupname(queryObject.query)
 
     if (targetUsername) {
-      parsedQuery.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS
-      parsedQuery.username = targetUsername
-    } else if (targetGroupname) {
-      parsedQuery.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS
-      parsedQuery.group = targetGroupname
+      queryObject.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS
+      queryObject.username = targetUsername
+      return
     }
+    if (targetGroupname) {
+      queryObject.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS
+      queryObject.group = targetGroupname
+    }
+  }
 
-    const transformQuery = flow(this.removeUserAndGroup, this.cleanupQuery, this.prepareQuery);
-    parsedQuery.query = transformQuery(query);
+  static parseQueryType(queryObject) {
+    queryObject.type = SEARCH_TYPES.FULL_TEXT
+  }
 
-    return parsedQuery
+  static processQueryText(queryObject) {
+    if (queryObject.type == SEARCH_TYPES.FULL_TEXT) {
+      const transformFullTextQuery = flow(this.removeUserAndGroup, this.cleanupQuery, this.prepareQuery);
+      queryObject.query = transformFullTextQuery(queryObject.query);
+    }
   }
 
   static parseTargetUsername(query) {
