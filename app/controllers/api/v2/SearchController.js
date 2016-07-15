@@ -1,7 +1,8 @@
 import _ from 'lodash'
 import { dbAdapter, PostSerializer } from '../../../models'
 import { reportError, NotFoundException, ForbiddenException } from '../../../support/exceptions'
-import { SearchQueryParser, SEARCH_TYPES } from '../../../support/SearchQueryParser'
+import { SearchQueryParser } from '../../../support/SearchQueryParser'
+import { SEARCH_SCOPES } from '../../../support/SearchConstants'
 
 export default class SearchController {
   static async search(req, res) {
@@ -18,14 +19,14 @@ export default class SearchController {
         , targetUser
         , targetGroup
 
-      switch (preparedQuery.type) {
-        case SEARCH_TYPES.DEFAULT:
+      switch (preparedQuery.scope) {
+        case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
           {
             foundPosts = await dbAdapter.searchPosts(preparedQuery.query, req.user.id, req.user.subscribedFeedIds)
             break
           }
 
-        case SEARCH_TYPES.USER_POSTS:
+        case SEARCH_SCOPES.VISIBLE_USER_POSTS:
           {
             targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
             if (!targetUser) {
@@ -42,7 +43,7 @@ export default class SearchController {
 
             break
           }
-        case SEARCH_TYPES.GROUP_POSTS:
+        case SEARCH_SCOPES.VISIBLE_GROUP_POSTS:
           {
             targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group)
             if (!targetGroup) {
