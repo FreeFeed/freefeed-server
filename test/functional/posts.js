@@ -651,6 +651,22 @@ describe("PostsController", function() {
       }
     })
 
+    it('should like post with a valid user not more than 1 time (parallel requests)', async () => {
+      const responsesPromise = Promise.all([
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+      ]);
+
+      const responses = await responsesPromise;
+      const errorsCount = responses.filter((r) => r.status == 403).length;
+
+      errorsCount.should.equal(5);
+    });
+
     it('should not like post with an invalid user', function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
