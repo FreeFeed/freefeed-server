@@ -22,9 +22,9 @@ describe('RequestRevocation', () => {
   })
 
   describe('user Luna, private users Mars, Zeus and private group pepyatka-dev', () => {
-    let lunaContext = {}
-    let marsContext = {}
-    let zeusContext = {}
+    const lunaContext = {}
+    const marsContext = {}
+    const zeusContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))

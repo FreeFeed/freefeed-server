@@ -24,12 +24,12 @@ describe('PostsController', function () {
   })
 
   describe('#create()', function () {
-    var ctx = {}
+    const ctx = {}
 
     beforeEach(funcTestHelper.createUserCtx(ctx, 'Luna', 'password'))
 
     it('should create a post with a valid user', function (done) {
-      var body = 'Post body'
+      const body = 'Post body'
 
       funcTestHelper.createPost(ctx, body)(function (req, res) {
         res.body.should.not.be.empty
@@ -43,7 +43,7 @@ describe('PostsController', function () {
     })
 
     it('should not create a post with an invalid user', function (done) {
-      var body = 'Post body'
+      const body = 'Post body'
 
       ctx.authToken = 'token'
       funcTestHelper.createPost(ctx, body)(function (err) {
@@ -55,13 +55,13 @@ describe('PostsController', function () {
     })
 
     it('should create a post with comments disabled', async () => {
-      let body = 'Post body'
-      let commentsDisabled = true
+      const body = 'Post body'
+      const commentsDisabled = true
 
-      let response = await funcTestHelper.createPostWithCommentsDisabled(ctx, body, commentsDisabled)
+      const response = await funcTestHelper.createPostWithCommentsDisabled(ctx, body, commentsDisabled)
       response.status.should.eql(200)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.not.be.empty
       data.should.have.property('posts')
       data.posts.should.have.property('body')
@@ -70,13 +70,13 @@ describe('PostsController', function () {
     })
 
     it('should create a post with comments enabled', async () => {
-      let body = 'Post body'
-      let commentsDisabled = false
+      const body = 'Post body'
+      const commentsDisabled = false
 
-      let response = await funcTestHelper.createPostWithCommentsDisabled(ctx, body, commentsDisabled)
+      const response = await funcTestHelper.createPostWithCommentsDisabled(ctx, body, commentsDisabled)
       response.status.should.eql(200)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.not.be.empty
       data.should.have.property('posts')
       data.posts.should.have.property('body')
@@ -85,7 +85,7 @@ describe('PostsController', function () {
     })
 
     describe('private messages', function () {
-      var authTokenB
+      let authTokenB
         , usernameB
 
       beforeEach(funcTestHelper.createUser('mars', 'password', function (token, user) {
@@ -94,14 +94,14 @@ describe('PostsController', function () {
       }))
 
       it('should create public post that is visible to another user', function (done) {
-        var body = 'body'
+        const body = 'body'
 
         funcTestHelper.createPost(ctx, body)(function (err, res) {
           res.body.should.not.be.empty
           res.body.should.have.property('posts')
           res.body.posts.should.have.property('body')
           res.body.posts.body.should.eql(body)
-          var post = res.body.posts
+          const post = res.body.posts
           request
             .get(app.config.host + '/v1/posts/' + post.id)
             .query({ authToken: authTokenB })
@@ -116,7 +116,7 @@ describe('PostsController', function () {
       })
 
       it('should not be able to send private message if friends are not mutual', function (done) {
-        var body = 'body'
+        const body = 'body'
 
         request
           .post(app.config.host + '/v1/posts')
@@ -146,7 +146,7 @@ describe('PostsController', function () {
         })
 
         describe('are protected', function () {
-          var authTokenC
+          let authTokenC
             , usernameC
             , post
 
@@ -156,7 +156,7 @@ describe('PostsController', function () {
           }))
 
           beforeEach(function (done) {
-            var body = 'body'
+            const body = 'body'
 
             request
               .post(app.config.host + '/v1/posts')
@@ -179,7 +179,7 @@ describe('PostsController', function () {
                 try {
                   err.should.not.be.empty
                   err.status.should.eql(404)
-                  var error = JSON.parse(err.response.error.text)
+                  const error = JSON.parse(err.response.error.text)
                   error.err.should.eql(`Can't find post`)
                 } catch (e) {
                   done(e);
@@ -198,11 +198,11 @@ describe('PostsController', function () {
           })
 
           it('should not be commented by person that is not in recipients', function (done) {
-            var body = 'comment'
+            const body = 'comment'
             funcTestHelper.createComment(body, post.id, authTokenC, function (err) {
               err.should.not.be.empty
               err.status.should.eql(404)
-              var error = JSON.parse(err.response.error.text)
+              const error = JSON.parse(err.response.error.text)
               error.err.should.eql('Not found')
 
               funcTestHelper.getTimeline('/v1/timelines/' + usernameC + '/comments', authTokenC, function (err, res) {
@@ -214,7 +214,7 @@ describe('PostsController', function () {
         })
 
         it('should be able to send private message', function (done) {
-          var body = 'body'
+          const body = 'body'
 
           request
             .post(app.config.host + '/v1/posts')
@@ -229,7 +229,7 @@ describe('PostsController', function () {
         })
 
         it('should publish private message to home feed', function (done) {
-          var body = 'body'
+          const body = 'body'
 
           request
             .post(app.config.host + '/v1/posts')
@@ -257,16 +257,15 @@ describe('PostsController', function () {
         })
 
         it('should send private message that cannot be read by anyone else', function (done) {
-          var body = 'body'
-            , post
+          const body = 'body'
 
           request
             .post(app.config.host + '/v1/posts')
             .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function (err, res) {
-              post = res.body.posts
+              const post = res.body.posts
 
-              var authTokenC
+              let authTokenC
 
               request
                 .post(app.config.host + '/v1/users')
@@ -283,7 +282,7 @@ describe('PostsController', function () {
                     .end(function (err) {
                       err.should.not.be.empty
                       err.status.should.eql(403)
-                      var error = JSON.parse(err.response.error.text)
+                      const error = JSON.parse(err.response.error.text)
                       error.err.should.eql('Not found')
                       done()
                     })
@@ -292,14 +291,13 @@ describe('PostsController', function () {
         })
 
         it('should send private message that can be read by recipients', function (done) {
-          var body = 'body'
-            , post
+          const body = 'body'
 
           request
             .post(app.config.host + '/v1/posts')
             .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function (err, res) {
-              post = res.body.posts
+              const post = res.body.posts
 
               request
                 .get(app.config.host + '/v1/posts/' + post.id)
@@ -313,7 +311,7 @@ describe('PostsController', function () {
         })
 
         it('should send private message to private feed for both users', function (done) {
-          var body = 'body'
+          const body = 'body'
 
           request
             .post(app.config.host + '/v1/posts')
@@ -338,12 +336,12 @@ describe('PostsController', function () {
     })
 
     describe('in a group', function () {
-      var groupName = 'pepyatka-dev'
-      var otherUserName = 'yole'
-      var otherUserAuthToken
+      const groupName = 'pepyatka-dev'
+      const otherUserName = 'yole'
+      let otherUserAuthToken
 
       beforeEach(function (done) {
-        var screenName = 'Pepyatka Developers';
+        const screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -360,7 +358,7 @@ describe('PostsController', function () {
       }))
 
       it('should allow subscribed user to post to group', function (done) {
-        var body = 'Post body'
+        const body = 'Post body'
 
         request
           .post(app.config.host + '/v1/posts')
@@ -398,7 +396,7 @@ describe('PostsController', function () {
       })
 
       it("should cross-post between a group and a user's feed", function (done) {
-        var body = 'Post body'
+        const body = 'Post body'
 
         request
           .post(app.config.host + '/v1/posts')
@@ -432,20 +430,20 @@ describe('PostsController', function () {
       })
 
       it("should update group's last activity", function (done) {
-        var body = 'Post body'
+        const body = 'Post body'
 
         funcTestHelper.getTimeline('/v1/users/' + groupName, ctx.authToken, function (err, res) {
-          var oldGroupTimestamp = res.body.users.updatedAt;
+          const oldGroupTimestamp = res.body.users.updatedAt;
 
           request
             .post(app.config.host + '/v1/posts')
             .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
             .end(function (err, res) {
-              var postTimestamp = res.body.posts.createdAt
+              const postTimestamp = res.body.posts.createdAt
               res.status.should.eql(200)
 
               funcTestHelper.getTimeline('/v1/users/' + groupName, ctx.authToken, function (err, res) {
-                var groupTimestamp = res.body.users.updatedAt;
+                const groupTimestamp = res.body.users.updatedAt;
 
                 groupTimestamp.should.be.gt(oldGroupTimestamp)
                 groupTimestamp.should.be.gte(postTimestamp)
@@ -462,7 +460,7 @@ describe('PostsController', function () {
           .send({ authToken: otherUserAuthToken })
           .end(function (err, res) {
             res.status.should.eql(200)
-            var body = 'Post body'
+            const body = 'Post body'
 
             request
               .post(app.config.host + '/v1/posts')
@@ -485,7 +483,7 @@ describe('PostsController', function () {
           .send({ authToken: otherUserAuthToken })
           .end(function (err, res) {
             res.status.should.eql(200)
-            var body = 'Post body'
+            const body = 'Post body'
 
             request
               .post(app.config.host + '/v1/posts')
@@ -506,14 +504,14 @@ describe('PostsController', function () {
           .send({ authToken: otherUserAuthToken })
           .end(function (err, res) {
             res.status.should.eql(200)
-            var body = 'Post body'
+            const body = 'Post body'
 
             request
               .post(app.config.host + '/v1/posts')
               .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end(function (err, res) {
                 res.status.should.eql(200)
-                var post = res.body.posts
+                const post = res.body.posts
                 request
                   .post(app.config.host + '/v1/posts/' + post.id + '/like')
                   .send({ authToken: ctx.authToken })
@@ -528,14 +526,14 @@ describe('PostsController', function () {
       })
 
       it('should not show liked post to group in the user posts', function (done) {
-        var body = 'Post body'
+        const body = 'Post body'
 
         request
           .post(app.config.host + '/v1/posts')
           .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
           .end(function (err, res) {
             res.status.should.eql(200)
-            var post = res.body.posts
+            const post = res.body.posts
             request
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: ctx.authToken })
@@ -580,8 +578,8 @@ describe('PostsController', function () {
   })
 
   describe('#like()', function () {
-    var context = {}
-    var otherUserAuthToken
+    const context = {}
+    let otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
@@ -591,10 +589,10 @@ describe('PostsController', function () {
     }))
 
     describe('in a group', function () {
-      var groupName = 'pepyatka-dev'
+      const groupName = 'pepyatka-dev'
 
       beforeEach(function (done) {
-        var screenName = 'Pepyatka Developers';
+        const screenName = 'Pepyatka Developers';
         request
             .post(app.config.host + '/v1/groups')
             .send({
@@ -607,7 +605,7 @@ describe('PostsController', function () {
       })
 
       it("should not update group's last activity", function (done) {
-        var body = 'Post body'
+        const body = 'Post body'
 
         request
           .post(app.config.host + '/v1/posts')
@@ -616,7 +614,7 @@ describe('PostsController', function () {
             res.status.should.eql(200)
             funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function (err, res) {
               res.status.should.eql(200)
-              var lastUpdatedAt = res.body.users.updatedAt
+              const lastUpdatedAt = res.body.users.updatedAt
 
               request
                 .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
@@ -639,15 +637,15 @@ describe('PostsController', function () {
 
     it('should like post with a valid user not more than 1 time', async () => {
       {
-        let response = await funcTestHelper.like(context.post.id, otherUserAuthToken)
+        const response = await funcTestHelper.like(context.post.id, otherUserAuthToken)
         response.status.should.eql(200)
       }
 
       {
-        let response = await funcTestHelper.like(context.post.id, otherUserAuthToken)
+        const response = await funcTestHelper.like(context.post.id, otherUserAuthToken)
         response.status.should.eql(403)
 
-        let data = await response.json()
+        const data = await response.json()
         data.should.have.property('err')
         data.err.should.eql("You can't like post that you have already liked")
       }
@@ -691,18 +689,18 @@ describe('PostsController', function () {
     })
 
     it("should not like user's own post", async () => {
-      let response = await funcTestHelper.like(context.post.id, context.authToken)
+      const response = await funcTestHelper.like(context.post.id, context.authToken)
       response.status.should.eql(403)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql("You can't like your own post")
     })
   })
 
   describe('#unlike()', function () {
-    var context = {}
-    var otherUserAuthToken
+    const context = {}
+    let otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
@@ -763,23 +761,23 @@ describe('PostsController', function () {
     })
 
     it("should not un-like user's own post", async () => {
-      let response = await funcTestHelper.unlike(context.post.id, context.authToken)
+      const response = await funcTestHelper.unlike(context.post.id, context.authToken)
       response.status.should.eql(403)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql("You can't un-like your own post")
     })
   })
 
   describe('#disableComments()', function () {
-    var context = {}
-    var otherUserAuthToken
+    const context = {}
+    let otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'luna', 'password'))
     beforeEach(async () => {
-      let response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', false)
-      let data = await response.json()
+      const response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', false)
+      const data = await response.json()
       context.post = data.posts
     })
     beforeEach(funcTestHelper.createUser('mars', 'password2', function (token) {
@@ -788,47 +786,47 @@ describe('PostsController', function () {
 
     it('should disable comments for own post', async () => {
       {
-        let response = await funcTestHelper.disableComments(context.post.id, context.authToken)
+        const response = await funcTestHelper.disableComments(context.post.id, context.authToken)
         response.status.should.eql(200)
       }
 
       {
-        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        const response = await funcTestHelper.readPostAsync(context.post.id, context)
         response.status.should.eql(200)
 
-        let data = await response.json()
+        const data = await response.json()
         data.posts.commentsDisabled.should.eql('1')
       }
     })
 
     it("should not disable comments for another user's post", async () => {
       {
-        let response = await funcTestHelper.disableComments(context.post.id, otherUserAuthToken)
+        const response = await funcTestHelper.disableComments(context.post.id, otherUserAuthToken)
         response.status.should.eql(403)
 
-        let data = await response.json()
+        const data = await response.json()
         data.should.have.property('err')
         data.err.should.eql("You can't disable comments for another user's post")
       }
 
       {
-        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        const response = await funcTestHelper.readPostAsync(context.post.id, context)
         response.status.should.eql(200)
 
-        let data = await response.json()
+        const data = await response.json()
         data.posts.commentsDisabled.should.eql('0')
       }
     })
   })
 
   describe('#enableComments()', function () {
-    var context = {}
-    var otherUserAuthToken
+    const context = {}
+    let otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'luna', 'password'))
     beforeEach(async () => {
-      let response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
-      let data = await response.json()
+      const response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      const data = await response.json()
       context.post = data.posts
     })
     beforeEach(funcTestHelper.createUser('mars', 'password2', function (token) {
@@ -837,42 +835,42 @@ describe('PostsController', function () {
 
     it('should enable comments for own post', async () => {
       {
-        let response = await funcTestHelper.enableComments(context.post.id, context.authToken)
+        const response = await funcTestHelper.enableComments(context.post.id, context.authToken)
         response.status.should.eql(200)
       }
 
       {
-        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        const response = await funcTestHelper.readPostAsync(context.post.id, context)
         response.status.should.eql(200)
 
-        let data = await response.json()
+        const data = await response.json()
         data.posts.commentsDisabled.should.eql('0')
       }
     })
 
     it("should not enable comments for another user's post", async () => {
       {
-        let response = await funcTestHelper.enableComments(context.post.id, otherUserAuthToken)
+        const response = await funcTestHelper.enableComments(context.post.id, otherUserAuthToken)
         response.status.should.eql(403)
 
-        let data = await response.json()
+        const data = await response.json()
         data.should.have.property('err')
         data.err.should.eql("You can't enable comments for another user's post")
       }
 
       {
-        let response = await funcTestHelper.readPostAsync(context.post.id, context)
+        const response = await funcTestHelper.readPostAsync(context.post.id, context)
         response.status.should.eql(200)
 
-        let data = await response.json()
+        const data = await response.json()
         data.posts.commentsDisabled.should.eql('1')
       }
     })
   })
 
   describe('#update()', function () {
-    var context = {}
-    var otherUserAuthToken
+    const context = {}
+    let otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(funcTestHelper.createPost(context, 'Post body'))
@@ -881,7 +879,7 @@ describe('PostsController', function () {
     }))
 
     it('should update post with a valid user', function (done) {
-      var newBody = 'New body'
+      const newBody = 'New body'
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
         .send({
@@ -900,7 +898,7 @@ describe('PostsController', function () {
     })
 
     it('should not update post with a invalid user', function (done) {
-      var newBody = 'New body'
+      const newBody = 'New body'
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
         .send({
@@ -916,7 +914,7 @@ describe('PostsController', function () {
     })
 
     it("should not update another user's post", function (done) {
-      var newBody = 'New body'
+      const newBody = 'New body'
       request
           .post(app.config.host + '/v1/posts/' + context.post.id)
           .send({
@@ -982,7 +980,7 @@ describe('PostsController', function () {
   })
 
   describe('#show()', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(funcTestHelper.createPost(context, 'Post body'))
@@ -1002,10 +1000,10 @@ describe('PostsController', function () {
     })
 
     it('should show a post to anonymous user', async () => {
-      let response = await fetch(`${app.config.host}/v1/posts/${context.post.id}`)
+      const response = await fetch(`${app.config.host}/v1/posts/${context.post.id}`)
       response.status.should.eql(200, `anonymous user couldn't read post`)
 
-      let data = await response.json()
+      const data = await response.json()
       data.posts.body.should.eql(context.post.body)
     })
 
@@ -1025,29 +1023,29 @@ describe('PostsController', function () {
       let users
 
       beforeEach(async () => {
-        let promises = [];
+        const promises = [];
         for (let i = 0; i < 10; i++) {
           promises.push(funcTestHelper.createUserAsync(`lunokhod${i}`, 'password'))
         }
         users = await Promise.all(promises)
 
-        for (let u of users) {
+        for (const u of users) {
           await funcTestHelper.subscribeToAsync(u, context)
           await funcTestHelper.subscribeToAsync(context, u)
         }
 
         await funcTestHelper.goPrivate(context)
 
-        for (let u of users) {
+        for (const u of users) {
           await funcTestHelper.like(context.post.id, u.authToken)
         }
       })
 
       it('should show all likes', async () => {
-        let response = await funcTestHelper.readPostAsync(context.post.id, users[5])
+        const response = await funcTestHelper.readPostAsync(context.post.id, users[5])
         response.status.should.eql(200, `user couldn't read post`)
 
-        let data = await response.json()
+        const data = await response.json()
         data.posts.likes.length.should.eql(3)
         data.posts.omittedLikes.should.eql(7)
       })
@@ -1055,8 +1053,8 @@ describe('PostsController', function () {
   })
 
   describe('#hide()', function () {
-    var username = 'Luna'
-    var context = {}
+    const username = 'Luna'
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, username, 'password'))
     beforeEach(funcTestHelper.createPost(context, 'Post body'))
@@ -1075,7 +1073,7 @@ describe('PostsController', function () {
             res.body.timelines.should.have.property('posts')
             res.body.should.have.property('posts')
             res.body.posts.length.should.eql(1)
-            var post = res.body.posts[0]
+            const post = res.body.posts[0]
             post.should.have.property('isHidden')
             post.isHidden.should.eql(true)
 
@@ -1092,7 +1090,7 @@ describe('PostsController', function () {
                   res.body.timelines.should.have.property('posts')
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
-                  var post = res.body.posts[0]
+                  const post = res.body.posts[0]
                   post.should.not.have.property('isHidden')
                   done()
                 })
@@ -1103,9 +1101,9 @@ describe('PostsController', function () {
   })
 
   describe('#destroy()', function () {
-    var username = 'Luna'
-    var context = {}
-    var otherUserAuthToken
+    const username = 'Luna'
+    const context = {}
+    let otherUserAuthToken
 
     beforeEach(funcTestHelper.createUserCtx(context, username, 'password'))
     beforeEach(funcTestHelper.createPost(context, 'Post body'))

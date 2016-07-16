@@ -21,8 +21,8 @@ describe('Group', function () {
     })
 
     it('should create without error', function (done) {
-      var group = new Group({ username: 'FriendFeed' })
-      var ownerId = groupAdmin.id
+      const group = new Group({ username: 'FriendFeed' })
+      const ownerId = groupAdmin.id
 
       group.create(ownerId)
         .then(function (group) {
@@ -55,7 +55,7 @@ describe('Group', function () {
     })
 
     it('should create with null screenName', function (done) {
-      var group = new Group({
+      const group = new Group({
         username:   'username',
         screenName: null
       })
@@ -75,7 +75,7 @@ describe('Group', function () {
     })
 
     it('should not create with tiny screenName', async () => {
-      var group = new Group({
+      const group = new Group({
         username:   'FriendFeed',
         screenName: 'a'
       })
@@ -91,12 +91,12 @@ describe('Group', function () {
     })
 
     it('should not create with username that already exists', function (done) {
-      var groupA = new Group({
+      const groupA = new Group({
         username:   'FriendFeedA',
         screenName: 'FriendFeedA'
       })
 
-      var groupB = new Group({
+      const groupB = new Group({
         username:   'FriendFeedA',
         screenName: 'FriendFeedB'
       })
@@ -112,8 +112,8 @@ describe('Group', function () {
 
   describe('#update()', function () {
     it('should update without error', async () => {
-      var screenName = 'Pepyatka'
-      var group = new Group({ username: 'FriendFeed' })
+      const screenName = 'Pepyatka'
+      const group = new Group({ username: 'FriendFeed' })
 
       await group.create()
 
@@ -135,8 +135,8 @@ describe('Group', function () {
     })
 
     it('should update without screenName', function (done) {
-      var screenName = 'Luna'
-      var group = new Group({
+      const screenName = 'Luna'
+      const group = new Group({
         username: 'Luna',
         screenName
       })
@@ -156,14 +156,14 @@ describe('Group', function () {
   })
 
   describe('#isValidUsername()', function () {
-    var valid = [
+    const valid = [
       'luna', 'lun', '12345', 'hello1234', 'save-our-snobs',
       ' group', 'group ',  // automatically trims
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 35 chars is ok
     ]
     valid.forEach(function (username) {
       it('should allow username ' + username, async () => {
-        var group = new Group({
+        const group = new Group({
           username,
           screenName: 'test'
         })
@@ -173,13 +173,13 @@ describe('Group', function () {
       })
     })
 
-    var invalid = [
+    const invalid = [
       'lu', '-12345', 'luna-', 'hel--lo', 'абизьян', 'gr oup',
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 36 chars is 1 char too much
     ]
     invalid.forEach(function (username) {
       it('should not allow invalid username ' + username, async () => {
-        var group = new Group({
+        const group = new Group({
           username,
           screenName: 'test'
         })

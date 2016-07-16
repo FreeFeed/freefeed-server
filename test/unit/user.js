@@ -14,7 +14,7 @@ describe('User', function () {
 
   describe('#validPassword()', function () {
     it('should validate valid password', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -28,7 +28,7 @@ describe('User', function () {
     })
 
     it('should not validate invalid password', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -43,16 +43,16 @@ describe('User', function () {
   })
 
   describe('#isValidUsername()', function () {
-    var valid = [
+    const valid = [
       'luna', 'lun', '12345', 'hello1234',
       ' group', 'group ',  // automatically trims
       'aaaaaaaaaaaaaaaaaaaaaaaaa'  // 25 chars is ok
     ]
 
-    var i = 1
+    let i = 1
     valid.forEach(function (username) {
       it(`should allow username '${username}'`, function (done) {
-        var user = new User({
+        const user = new User({
           username,
           screenName: 'test',
           password:   'password',
@@ -64,14 +64,14 @@ describe('User', function () {
       })
     })
 
-    var invalid = [
+    const invalid = [
       'lu', '-12345', 'luna-', 'hel--lo', 'save-our-snobs', 'абизьян',
       'gr oup', '',
       'aaaaaaaaaaaaaaaaaaaaaaaaaa'  // 26 chars is 1 char too much
     ]
     invalid.forEach(function (username) {
       it('should not allow invalid username ' + username, async () => {
-        var user = new User({
+        const user = new User({
           username,
           screenName: 'test',
           password:   'password',
@@ -91,7 +91,7 @@ describe('User', function () {
   })
 
   describe('#isValidDescription()', function () {
-    var valid = [
+    const valid = [
       '',
       "Earth's only natural satellite",
       "window.alert('Ha-ha-ha!')",
@@ -99,10 +99,10 @@ describe('User', function () {
       '!'.repeat(1500) // 1500 characters is OK
     ]
 
-    var i = 1
+    let i = 1
     valid.forEach(function (description) {
       it(`should allow description ${i++}`, async () => {
-        var user = new User({
+        const user = new User({
           username:   `username${i}`,
           screenName: 'test',
           password:   'password',
@@ -120,13 +120,13 @@ describe('User', function () {
       })
     })
 
-    var invalid = [
+    const invalid = [
       '!'.repeat(1501) // 1501 characters is NOT OK
     ]
 
     invalid.forEach(function (description) {
       it('should not allow too long description', async () => {
-        var user = new User({
+        const user = new User({
           username:   `username`,
           screenName: 'test',
           password:   'password',
@@ -150,7 +150,7 @@ describe('User', function () {
   describe('#validEmail()', function () {
     // @todo Provide fixtures to validate various email formats
     it('should validate syntactically correct email', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password',
         email:    'user@example.com'
@@ -161,7 +161,7 @@ describe('User', function () {
     })
 
     it('should validate without email', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -171,7 +171,7 @@ describe('User', function () {
     })
 
     it('should not validate syntactically incorrect email', function () {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password',
         email:    'user2@.example..com'
@@ -184,13 +184,13 @@ describe('User', function () {
     })
 
     it('should not allow 2 users with same email', async () => {
-      var user1 = new User({
+      const user1 = new User({
         username: 'Luna1',
         password: 'password',
         email:    'email@example.com'
       })
 
-      var user2 = new User({
+      const user2 = new User({
         username: 'Luna2',
         password: 'password',
         email:    'email@example.com'
@@ -211,10 +211,10 @@ describe('User', function () {
 
   describe('#update()', function () {
     it('should update without error', function (done) {
-      var screenName = 'Mars'
-      var description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
+      const screenName = 'Mars'
+      const description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
 
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -237,7 +237,7 @@ describe('User', function () {
     })
 
     it('should update without email', function (done) {
-      var user = new User({
+      const user = new User({
         username:   'Luna',
         screenName: 'luna',
         password:   'password',
@@ -257,8 +257,8 @@ describe('User', function () {
     })
 
     it('should update without screenName', function (done) {
-      var screenName = 'Luna'
-      var user = new User({
+      const screenName = 'Luna'
+      const user = new User({
         username: 'Luna',
         screenName,
         password: 'password'
@@ -278,7 +278,7 @@ describe('User', function () {
     })
 
     it('should not update with blank screenName', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -296,7 +296,7 @@ describe('User', function () {
 
   describe('#create()', function () {
     it('should create without error', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -322,7 +322,7 @@ describe('User', function () {
     })
 
     it('should create with an email address', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         email:    'luna@example.com',
         password: 'password'
@@ -351,11 +351,11 @@ describe('User', function () {
     })
 
     it('should ignore whitespaces in username', function (done) {
-      var username = ' Luna  '
-        , user = new User({
-          username,
-          password: 'password'
-        })
+      const username = ' Luna  '
+      const user = new User({
+        username,
+        password: 'password'
+      })
 
       user.create()
         .then(function (user) {
@@ -377,7 +377,7 @@ describe('User', function () {
     })
 
     it('should not create with empty password', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: ''
       })
@@ -390,15 +390,12 @@ describe('User', function () {
     })
 
     it('should not create two users with the same username', function (done) {
-      var userA
-        , userB
-
-      userA = new User({
+      const userA = new User({
         username: 'Luna',
         password: 'password'
       })
 
-      userB = new User({
+      const userB = new User({
         username: 'luna',
         password: 'password'
       })
@@ -412,7 +409,7 @@ describe('User', function () {
     })
 
     it('should not create user from stop-list', async () => {
-      var user = new User({
+      const user = new User({
         username: 'Public',
         password: 'password'
       })
@@ -430,8 +427,8 @@ describe('User', function () {
 
   describe('#findByEmail()', function () {
     it('should find a user by email', function (done) {
-      let asyncFunc = async function() {
-        var user = new User({
+      const asyncFunc = async function() {
+        const user = new User({
           username: 'Luna',
           password: 'password',
           email:    'luna@example.com'
@@ -440,7 +437,7 @@ describe('User', function () {
         await user.create()
         await user.update({ email: user.email })
 
-        var newUser = await dbAdapter.getUserByEmail(user.email)
+        const newUser = await dbAdapter.getUserByEmail(user.email)
 
         newUser.should.be.an.instanceOf(User)
         newUser.should.not.be.empty
@@ -452,7 +449,7 @@ describe('User', function () {
     })
 
     it('should not find a user by invalid email', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password',
         email:    'luna@example.com'
@@ -470,7 +467,7 @@ describe('User', function () {
 
   describe('#findByResetToken()', function () {
     it('should find a user by reset token', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -488,7 +485,7 @@ describe('User', function () {
     })
 
     it('should not find a user by invalid reset token', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -505,7 +502,7 @@ describe('User', function () {
 
   describe('#findById()', function () {
     it('should not find user with an invalid id', function (done) {
-      var identifier = 'user:identifier'
+      const identifier = 'user:identifier'
 
       dbAdapter.getUserById(identifier)
         .then(function (user) {
@@ -515,7 +512,7 @@ describe('User', function () {
     })
 
     it('should find user with a valid id', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -535,7 +532,7 @@ describe('User', function () {
 
   describe('#findByUsername()', function () {
     it('should find user with a valid username', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -554,7 +551,7 @@ describe('User', function () {
 
   describe('#getRiverOfNews()', function () {
     it('should get river of news', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -575,7 +572,7 @@ describe('User', function () {
 
   describe('#getLikesTimeline()', function () {
     it('should get likes timeline', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -596,7 +593,7 @@ describe('User', function () {
 
   describe('#getPostsTimeline()', function () {
     it('should get posts timeline', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -617,7 +614,7 @@ describe('User', function () {
 
   describe('#getCommentsTimeline()', function () {
     it('should get comments timeline', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -637,7 +634,7 @@ describe('User', function () {
   })
 
   describe('#getMyDiscussionsTimeline()', function () {
-    var user
+    let user
 
     beforeEach(function (done) {
       user = new User({
@@ -663,8 +660,8 @@ describe('User', function () {
     })
 
     it('should include post to my discussions timeline', function (done) {
-      var post
-      var attrs = { body: 'Post body' }
+      let post
+      const attrs = { body: 'Post body' }
       user.newPost(attrs)
         .then(function (newPost) {
           post = newPost
@@ -683,7 +680,7 @@ describe('User', function () {
         .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()
@@ -694,7 +691,7 @@ describe('User', function () {
 
   describe('#getTimelines()', function () {
     it('should return user timelines after user creation', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -709,7 +706,7 @@ describe('User', function () {
     })
 
     it('should return timelines', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -728,7 +725,7 @@ describe('User', function () {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
           timelines.length.should.be.eql(7)
-          var timeline = timelines[0]
+          const timeline = timelines[0]
           timeline.should.have.property('name')
           timeline.name.should.eql('RiverOfNews')
           timelines[1].should.have.property('name')
@@ -749,7 +746,7 @@ describe('User', function () {
   })
 
   describe('#newPost()', function () {
-    var user
+    let user
 
     beforeEach(function (done) {
       user = new User({
@@ -762,8 +759,8 @@ describe('User', function () {
     })
 
     it('should create a new post', function (done) {
-      var post
-      var attrs = { body: 'Post body' }
+      let post
+      const attrs = { body: 'Post body' }
 
       user.newPost(attrs)
         .then(function (newPost) {
@@ -781,8 +778,8 @@ describe('User', function () {
     })
 
     it('should create a new post to a timeline', function (done) {
-      var post
-      var attrs = { body: 'Post body' }
+      let post
+      const attrs = { body: 'Post body' }
 
       user.getPostsTimelineId()
         .then(function (timelineId) {
@@ -806,7 +803,7 @@ describe('User', function () {
         .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
@@ -818,7 +815,7 @@ describe('User', function () {
 
   describe('#getPublicTimelineIds()', function () {
     it('should return all public timesline ids', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
@@ -834,7 +831,7 @@ describe('User', function () {
   })
 
   describe('#subscribeTo()', function () {
-    var userA
+    let userA
       , userB
 
     beforeEach(function (done) {
@@ -854,17 +851,17 @@ describe('User', function () {
     })
 
     it('should subscribe to timeline', async function() {
-      var attrs = { body: 'Post body' }
-      var post = await userB.newPost(attrs)
+      const attrs = { body: 'Post body' }
+      const post = await userB.newPost(attrs)
       await post.create()
-      let timelineId = await userB.getPostsTimelineId()
+      const timelineId = await userB.getPostsTimelineId()
       await userA.subscribeTo(timelineId)
-      let timeline = await userA.getRiverOfNewsTimeline()
-      let posts = await timeline.getPosts()
+      const timeline = await userA.getRiverOfNewsTimeline()
+      const posts = await timeline.getPosts()
 
       posts.should.not.be.empty
       posts.length.should.eql(1)
-      var newPost = posts[0]
+      const newPost = posts[0]
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)
@@ -872,7 +869,7 @@ describe('User', function () {
   })
 
   describe('#subscribeToUsername()', function () {
-    var userA
+    let userA
       , userB
 
     beforeEach(function (done) {
@@ -892,16 +889,16 @@ describe('User', function () {
     })
 
     it('should subscribe to username', async function(done) {
-      var attrs = { body: 'Post body' }
-      var post = await userB.newPost(attrs)
+      const attrs = { body: 'Post body' }
+      const post = await userB.newPost(attrs)
       await post.create()
       await userA.subscribeToUsername(userB.username)
-      let timeline = await userA.getRiverOfNewsTimeline()
-      let posts = await timeline.getPosts()
+      const timeline = await userA.getRiverOfNewsTimeline()
+      const posts = await timeline.getPosts()
 
       posts.should.not.be.empty
       posts.length.should.eql(1)
-      var newPost = posts[0]
+      const newPost = posts[0]
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)
@@ -911,7 +908,7 @@ describe('User', function () {
   })
 
   describe('#unsubscribeFrom()', function () {
-    var userA
+    let userA
       , userB
 
     beforeEach(function (done) {
@@ -931,8 +928,8 @@ describe('User', function () {
     })
 
     it('should unsubscribe from timeline', function (done) {
-      var attrs = { body: 'Post body' }
-      var identifier
+      const attrs = { body: 'Post body' }
+      let identifier
 
       userB.newPost(attrs)
         .then(function (newPost) { return newPost.create() })
@@ -952,7 +949,7 @@ describe('User', function () {
   })
 
   describe('#getSubscriptions()', function () {
-    var userA
+    let userA
       , userB
 
     beforeEach(function (done) {
@@ -972,7 +969,7 @@ describe('User', function () {
     })
 
     it('should list subscriptions', function (done) {
-      var attrs = { body: 'Post body' }
+      const attrs = { body: 'Post body' }
 
       userB.newPost(attrs)
         .then(function (newPost) {
@@ -984,7 +981,7 @@ describe('User', function () {
         .then(function (users) {
           users.should.not.be.empty
           users.length.should.eql(3)
-          var types = ['Comments', 'Likes', 'Posts']
+          const types = ['Comments', 'Likes', 'Posts']
           async.reduce(users, true, function (memo, user, callback) {
             callback(null, memo && types.includes(user.name))
           }, function (err, contains) {

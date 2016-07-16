@@ -12,8 +12,8 @@ describe('Timeline', function () {
 
   describe('#create()', function () {
     it('should create without error', function (done) {
-      var userId = uuid.v4()
-      var timeline = new Timeline({
+      const userId = uuid.v4()
+      const timeline = new Timeline({
         name: 'name',
         userId
       })
@@ -38,9 +38,9 @@ describe('Timeline', function () {
     })
 
     it('should ignore whitespaces in name', function (done) {
-      var userId = uuid.v4()
-      var name = '   name    '
-      var timeline = new Timeline({ name, userId })
+      const userId = uuid.v4()
+      const name = '   name    '
+      const timeline = new Timeline({ name, userId })
 
       timeline.create()
         .then(function (timeline) { return timeline })
@@ -57,8 +57,8 @@ describe('Timeline', function () {
     })
 
     it('should not create with empty name', function (done) {
-      var userId = uuid.v4()
-      var timeline = new Timeline({
+      const userId = uuid.v4()
+      const timeline = new Timeline({
         name: '',
         userId
       })
@@ -73,8 +73,8 @@ describe('Timeline', function () {
 
   describe('#findById()', function () {
     it('should find timeline with a valid id', function (done) {
-      var userId = uuid.v4()
-      var timeline = new Timeline({
+      const userId = uuid.v4()
+      const timeline = new Timeline({
         name: 'name',
         userId
       })
@@ -93,7 +93,7 @@ describe('Timeline', function () {
     })
 
     it('should not find timeline with an invalid id', function (done) {
-      var identifier = 'timeline:identifier'
+      const identifier = 'timeline:identifier'
 
       dbAdapter.getTimelineById(identifier)
         .then(function (timeline) {
@@ -106,14 +106,14 @@ describe('Timeline', function () {
 
   describe('#getPosts()', function () {
     it('should return an empty list for an empty timeline', function (done) {
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
         .then(function (_user) {
-          var timeline = new Timeline({
+          const timeline = new Timeline({
             name:   'name',
             userId: _user.id
           })
@@ -129,7 +129,7 @@ describe('Timeline', function () {
   })
 
   describe('#getSubscribers()', function () {
-    var userA
+    let userA
       , userB
 
     beforeEach(function (done) {
@@ -150,7 +150,7 @@ describe('Timeline', function () {
     })
 
     it('should subscribe to timeline', function (done) {
-      var attrs = { body: 'Post body' }
+      const attrs = { body: 'Post body' }
 
       userB.newPost(attrs)
         .then(function (newPost) {
@@ -163,7 +163,7 @@ describe('Timeline', function () {
         .then(function (users) {
           users.should.not.be.empty
           users.length.should.eql(1)
-          var user = users[0]
+          const user = users[0]
           user.should.have.property('id')
           user.id.should.eql(userA.id)
         })

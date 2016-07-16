@@ -26,7 +26,7 @@ describe('GroupsController', function () {
   })
 
   describe('#create()', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
@@ -41,8 +41,8 @@ describe('GroupsController', function () {
     })
 
     it('should create a group', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -61,8 +61,8 @@ describe('GroupsController', function () {
     })
 
     it('should create a private group', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
         .send({
@@ -78,8 +78,8 @@ describe('GroupsController', function () {
     })
 
     it('should not create a group if a user with that name already exists', function (done) {
-      var userName = 'Luna';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'Luna';
+      const screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -94,8 +94,8 @@ describe('GroupsController', function () {
     })
 
     it('should not create a group with slash in its name', function (done) {
-      var userName = 'Lu/na';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'Lu/na';
+      const screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -112,8 +112,8 @@ describe('GroupsController', function () {
     })
 
     it('should not create a group with an empty username', function (done) {
-      var userName = '';
-      var screenName = '';
+      const userName = '';
+      const screenName = '';
       request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -130,8 +130,8 @@ describe('GroupsController', function () {
     })
 
     it('should add the creating user as the administrator', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -145,8 +145,8 @@ describe('GroupsController', function () {
     })
 
     it('should subscribe the creating user', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -154,7 +154,7 @@ describe('GroupsController', function () {
             authToken: context.authToken
           })
           .end(function (err, res) {
-            var newGroupId = res.body.groups.id
+            const newGroupId = res.body.groups.id
             request
                 .get(app.config.host + '/v1/users/Luna/subscriptions')
                 .query({ authToken: context.authToken })
@@ -164,9 +164,9 @@ describe('GroupsController', function () {
                   res.body.should.not.be.empty
                   res.body.should.have.property('subscribers')
                   res.body.should.have.property('subscriptions')
-                  var subIds = res.body.subscriptions.map(function (sub) { return sub.user })
+                  const subIds = res.body.subscriptions.map(function (sub) { return sub.user })
                   subIds.should.contain(newGroupId)
-                  var users = res.body.subscribers
+                  const users = res.body.subscribers
                   users.length.should.eql(1)
                   users[0].type.should.eql('group')
                   done()
@@ -176,7 +176,7 @@ describe('GroupsController', function () {
   })
 
   describe('#admin', function () {
-    var adminContext = {}
+    let adminContext = {}
       , nonAdminContext = {}
 
     beforeEach(async () => {
@@ -217,18 +217,18 @@ describe('GroupsController', function () {
   })
 
   describe('#update', function () {
-    var context = {}
+    let context = {}
       , group
 
     beforeEach(async () => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
-      let res = await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers')
+      const res = await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers')
       group = res.group
     })
 
     it('should update group settings', function (done) {
-      var screenName = 'mokum-dev'
-      var description = 'Mokum Developers'
+      const screenName = 'mokum-dev'
+      const description = 'Mokum Developers'
 
       request
         .post(app.config.host + '/v1/users/' + group.id)
@@ -251,9 +251,9 @@ describe('GroupsController', function () {
     })
 
     it("should not reset description if it's not provided", async () => {
-      var oldScreenName = group.screenName
-      var newScreenName = 'vanilla-dev'
-      var newDescription = 'Vanilla Developer(s)'
+      const oldScreenName = group.screenName
+      const newScreenName = 'vanilla-dev'
+      const newDescription = 'Vanilla Developer(s)'
 
       // First, check screenName and description (should be the old ones)
       {
@@ -308,8 +308,8 @@ describe('GroupsController', function () {
   })
 
   describe('#unadmin', function () {
-    var adminContext = {}
-      , nonAdminContext = {}
+    const adminContext = {}
+    const nonAdminContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
@@ -347,7 +347,7 @@ describe('GroupsController', function () {
   })
 
   describe('#updateProfilePicture', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
@@ -389,9 +389,9 @@ describe('GroupsController', function () {
   })
 
   describe('#unsubscribeFromGroup', function () {
-    var adminContext = {}
-      , secondAdminContext = {}
-      , groupMemberContext = {}
+    const adminContext = {}
+    const secondAdminContext = {}
+    const groupMemberContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))

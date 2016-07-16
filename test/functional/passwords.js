@@ -19,62 +19,62 @@ describe('PasswordsController', function () {
   })
 
   describe('#create()', function () {
-    var context = {}
-      , oldEmail = 'test@example.com'
+    const context = {}
+    const oldEmail = 'test@example.com'
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password', { 'email': oldEmail }))
 
     it('should require email', async () => {
-      let response = await funcTestHelper.sendResetPassword('')
+      const response = await funcTestHelper.sendResetPassword('')
       response.status.should.equal(200)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql('Email cannot be blank')
     })
 
     it('should generate resetToken by original email of user', async () => {
-      let response = await funcTestHelper.sendResetPassword(oldEmail)
+      const response = await funcTestHelper.sendResetPassword(oldEmail)
       response.status.should.equal(200)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('message')
       data.message.should.eql('Password reset link has been sent to ' + oldEmail)
     })
 
     it('should generate resetToken by new email of user', async () => {
-      let email = 'luna@example.com'
+      const email = 'luna@example.com'
 
       await funcTestHelper.updateUserAsync(context, { email })
 
-      let errResponse = await funcTestHelper.sendResetPassword(oldEmail)
+      const errResponse = await funcTestHelper.sendResetPassword(oldEmail)
       errResponse.status.should.equal(404)
 
-      let response = await funcTestHelper.sendResetPassword(email)
+      const response = await funcTestHelper.sendResetPassword(email)
       response.status.should.equal(200, `failed to reset password for ${email} email`)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('message')
       data.message.should.eql('Password reset link has been sent to ' + email)
     })
 
     it('should generate resetToken by email with capital letters', async () => {
-      let email = 'Luna@example.com'
+      const email = 'Luna@example.com'
 
       await funcTestHelper.updateUserAsync(context, { email })
 
-      let response = await funcTestHelper.sendResetPassword(email)
+      const response = await funcTestHelper.sendResetPassword(email)
       response.status.should.equal(200, `failed to reset password for ${email} email`)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('message')
       data.message.should.eql('Password reset link has been sent to ' + email)
     })
   })
 
   describe('#update()', function () {
-    var context = {}
-      , email = 'luna@example.com'
+    const context = {}
+    const email = 'luna@example.com'
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.updateUserCtx(context, { email })(done) })

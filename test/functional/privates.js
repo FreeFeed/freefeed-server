@@ -23,16 +23,16 @@ describe('Privates', function () {
   })
 
   describe('user Luna and user Mars', function () {
-    var lunaContext = {}
-      , marsContext = {}
-      , zeusContext = {}
+    const lunaContext = {}
+    const marsContext = {}
+    const zeusContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
     beforeEach(funcTestHelper.createUserCtx(zeusContext, 'zeus', 'pw'))
 
     describe('publish private post to public feed', function () {
-      var group = 'group'
+      const group = 'group'
 
       beforeEach(function (done) { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
       beforeEach(function (done) { funcTestHelper.subscribeToCtx(lunaContext, marsContext.username)(done) })
@@ -50,7 +50,7 @@ describe('Privates', function () {
       beforeEach(function (done) { funcTestHelper.subscribeToCtx(zeusContext, group)(done) })
 
       it('should send private post to public feed', function (done) {
-        var post = 'post'
+        const post = 'post'
         request
           .post(app.config.host + '/v1/posts')
           .send({ post: { body: post }, meta: { feeds: [group, lunaContext.user.username] }, authToken: lunaContext.authToken })
@@ -65,7 +65,7 @@ describe('Privates', function () {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              var _post = res.body.posts[0]
+              const _post = res.body.posts[0]
               _post.body.should.eql(post)
               request
                 .post(app.config.host + '/v1/posts/' + _post.id + '/like')
@@ -81,7 +81,7 @@ describe('Privates', function () {
                     res.body.timelines.posts.length.should.eql(1)
                     res.body.should.have.property('posts')
                     res.body.posts.length.should.eql(1)
-                    var _post = res.body.posts[0]
+                    const _post = res.body.posts[0]
                     _post.body.should.eql(post)
                     request
                       .get(app.config.host + '/v1/posts/' + _post.id)
@@ -100,7 +100,7 @@ describe('Privates', function () {
     })
 
     describe('can protect private posts', function () {
-      var herculesContext = {}
+      const herculesContext = {}
 
       beforeEach(function (done) { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
       beforeEach(function (done) { funcTestHelper.subscribeToCtx(lunaContext, marsContext.username)(done) })
@@ -276,7 +276,7 @@ describe('Privates', function () {
                         res.body.timelines.posts.length.should.eql(1)
                         res.body.should.have.property('posts')
                         res.body.posts.length.should.eql(1)
-                        var post = res.body.posts[0]
+                        const post = res.body.posts[0]
                         post.body.should.eql(lunaContext.post.body)
                         done()
                       })
@@ -365,7 +365,7 @@ describe('Privates', function () {
       it('should protect subscribers of private user', async function(done) {
         const lunaSubscribersViewedByAnonymous = await funcTestHelper.getSubscribersAsync(lunaContext.username)
         lunaSubscribersViewedByAnonymous.status.should.equal(403)
-        let viewedByAnonymous = await lunaSubscribersViewedByAnonymous.json()
+        const viewedByAnonymous = await lunaSubscribersViewedByAnonymous.json()
         viewedByAnonymous.should.have.property('err')  // anonymous doesn't have access
 
         const lunaSubscribersViewedByHercules = await funcTestHelper.getSubscribersAsync(lunaContext.username, herculesContext)
@@ -558,7 +558,7 @@ describe('Privates', function () {
         funcTestHelper.subscribeToCtx(herculesContext, lunaContext.username)(function (err) {
           err.should.not.be.empty
           err.status.should.eql(403)
-          var error = JSON.parse(err.response.error.text)
+          const error = JSON.parse(err.response.error.text)
           error.err.should.eql('You cannot subscribe to private feed')
           funcTestHelper.getTimeline('/v1/timelines/home', herculesContext.authToken, function (err, res) {
             res.should.not.be.empty
@@ -628,7 +628,7 @@ describe('Privates', function () {
           res.body.timelines.posts.length.should.eql(1)
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
-          var post = res.body.posts[0]
+          const post = res.body.posts[0]
           post.body.should.eql(lunaContext.post.body)
           // post should be visible to owner
           request
@@ -678,7 +678,7 @@ describe('Privates', function () {
           .end(function (err) {
             err.should.not.be.empty
             err.status.should.eql(403)
-            var error = JSON.parse(err.response.error.text)
+            const error = JSON.parse(err.response.error.text)
             error.err.should.eql('Not found')
             done()
           })
@@ -985,9 +985,9 @@ describe('Privates', function () {
   })
 
   describe('Checking, that private posts are correctly propagated', () => {
-    let lunaContext = {}
-      , marsContext = {}
-      , zeusContext = {}
+    const lunaContext = {}
+    const marsContext = {}
+    const zeusContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
@@ -1004,18 +1004,18 @@ describe('Privates', function () {
       it('should bump posts correctly, if someone comments them', async () => {
         await funcTestHelper.createCommentAsync(marsContext, post1.id, 'comment1')
 
-        let marsRiver = await funcTestHelper.getRiverOfNews(marsContext);
+        const marsRiver = await funcTestHelper.getRiverOfNews(marsContext);
         marsRiver.timelines.posts[0].should.equal(post1.id, 'order of posts in incorrect')
         marsRiver.timelines.posts[1].should.equal(post2.id, 'order of posts in incorrect')
 
-        let zeusRiver = await funcTestHelper.getRiverOfNews(zeusContext);
+        const zeusRiver = await funcTestHelper.getRiverOfNews(zeusContext);
         zeusRiver.timelines.posts[0].should.equal(post1.id, 'order of posts in incorrect')
       })
 
       it('should add post to "my discussions" after comment', async () => {
         await funcTestHelper.createCommentAsync(marsContext, post1.id, 'comment1')
 
-        let marsDiscussions = await funcTestHelper.getMyDiscussions(marsContext);
+        const marsDiscussions = await funcTestHelper.getMyDiscussions(marsContext);
         marsDiscussions.timelines.should.have.property('posts')
         marsDiscussions.timelines.posts.should.include(post1.id, 'commented post is not in "my discussions"')
         marsDiscussions.timelines.posts[0].should.equal(post1.id, 'order of posts in incorrect')
@@ -1024,7 +1024,7 @@ describe('Privates', function () {
       it('should add post to "my discussions" after like', async () => {
         await funcTestHelper.like(post1.id, marsContext.authToken)
 
-        let marsDiscussions = await funcTestHelper.getMyDiscussions(marsContext);
+        const marsDiscussions = await funcTestHelper.getMyDiscussions(marsContext);
         marsDiscussions.timelines.should.have.property('posts')
         marsDiscussions.timelines.posts.should.include(post1.id, 'liked post is not in "my discussions"')
         marsDiscussions.timelines.posts[0].should.equal(post1.id, 'order of posts in incorrect')

@@ -22,13 +22,13 @@ describe('PrivateGroups', function () {
   })
 
   describe('#create()', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
     it('should create a public not-restricted group by default', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
         .send({
@@ -49,8 +49,8 @@ describe('PrivateGroups', function () {
     })
 
     it('should create a private group', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
         .send({
@@ -67,8 +67,8 @@ describe('PrivateGroups', function () {
     })
 
     it('should create a public restricted group', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
         .send({
@@ -85,8 +85,8 @@ describe('PrivateGroups', function () {
     })
 
     it('should create a private restricted group', function (done) {
-      var userName = 'pepyatka-dev';
-      var screenName = 'Pepyatka Developers';
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
         .send({
@@ -104,8 +104,8 @@ describe('PrivateGroups', function () {
   })
 
   describe('#admin', function () {
-    var adminContext = {}
-      , nonAdminContext = {}
+    const adminContext = {}
+    const nonAdminContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
@@ -134,8 +134,8 @@ describe('PrivateGroups', function () {
   })
 
   describe('#update', function () {
-    var context = {}
-      , group
+    const context = {}
+    let group
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
@@ -153,8 +153,8 @@ describe('PrivateGroups', function () {
     })
 
     it('should update private group settings', function (done) {
-      var screenName = 'mokum-dev'
-      var description = 'Mokum Developers'
+      const screenName = 'mokum-dev'
+      const description = 'Mokum Developers'
 
       request
         .post(app.config.host + '/v1/users/' + group.id)
@@ -224,8 +224,8 @@ describe('PrivateGroups', function () {
   })
 
   describe('#unadmin', function () {
-    var adminContext = {}
-      , nonAdminContext = {}
+    const adminContext = {}
+    const nonAdminContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
@@ -263,9 +263,9 @@ describe('PrivateGroups', function () {
   })
 
   describe('#sendRequest', function () {
-    var adminContext = {}
-      , nonAdminContext = {}
-      , group
+    const adminContext = {}
+    const nonAdminContext = {}
+    let group
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
@@ -384,11 +384,11 @@ describe('PrivateGroups', function () {
   })
 
   describe('subscription requests and membership management', function () {
-    var adminContext = {}
-      , secondAdminContext = {}
-      , nonAdminContext = {}
-      , groupMemberContext = {}
-      , group
+    const adminContext = {}
+    const secondAdminContext = {}
+    const nonAdminContext = {}
+    const groupMemberContext = {}
+    let group
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))
@@ -487,7 +487,7 @@ describe('PrivateGroups', function () {
                   res.body.timelines.posts.length.should.eql(1)
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
-                  var post = res.body.posts[0]
+                  const post = res.body.posts[0]
                   post.body.should.eql('Post body')
                   done()
                 })
@@ -938,10 +938,10 @@ describe('PrivateGroups', function () {
   })
 
   describe('subscribers', function () {
-    let adminContext = {}
-      , plutoContext = {}
-      , marsContext = {}
-      , group
+    const adminContext = {}
+    const plutoContext = {}
+    const marsContext = {}
+    let group
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'Mars', 'wordpass'))
@@ -1017,9 +1017,9 @@ describe('PrivateGroups', function () {
   })
 
   describe('Posting to restricted group', function () {
-    var adminContext = {}
-      , nonAdminContext = {}
-      , nonMemberContext = {}
+    const adminContext = {}
+    const nonAdminContext = {}
+    const nonMemberContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))

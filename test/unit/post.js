@@ -10,7 +10,7 @@ describe('Post', function () {
   })
 
   describe('#update()', function () {
-    var userA
+    let userA
       , post
 
     beforeEach(function (done) {
@@ -19,7 +19,7 @@ describe('Post', function () {
         password: 'password'
       })
 
-      var postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' }
 
       userA.create()
         .then(function () { return userA.newPost(postAttrs) })
@@ -32,8 +32,8 @@ describe('Post', function () {
     })
 
     it('should update without error', function (done) {
-      var body = 'Body'
-      var attrs = { body }
+      const body = 'Body'
+      const attrs = { body }
 
       post.update(attrs)
         .then(function (newPost) {
@@ -48,7 +48,7 @@ describe('Post', function () {
   })
 
   describe('#create()', function () {
-    var user,
+    let user,
       timelineId
 
     beforeEach(function (done) {
@@ -69,7 +69,7 @@ describe('Post', function () {
     })
 
     it('should create without error', function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             'Post body',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -102,8 +102,8 @@ describe('Post', function () {
     })
 
     it('should ignore whitespaces in body', function (done) {
-      var body = '   Post body    '
-      var post = new Post({
+      const body = '   Post body    '
+      const post = new Post({
         body,
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -124,7 +124,7 @@ describe('Post', function () {
     })
 
     it('should save valid post to users timeline', function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             'Post',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -152,7 +152,7 @@ describe('Post', function () {
     })
 
     it('should return valid post from users timeline', function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             'Post',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -165,7 +165,7 @@ describe('Post', function () {
         .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
@@ -176,7 +176,7 @@ describe('Post', function () {
     })
 
     it('should not create with empty body', function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             '',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -191,7 +191,7 @@ describe('Post', function () {
     })
 
     it('should not create with too-long body', function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est. Vivamus fermentum semper porta. Nunc diam velit, adipiscing ut tristique vitae, sagittis vel odio. Maecenas convallis ullamcorper ultricies. Curabitur ornare, ligula semper consectetur sagittis, nisi diam iaculis velit, id fringilla sem nunc vel mi. Nam dictum, odio nec pretium volutpat, arcu ante placerat erat, non tristique elit urna et turpis. Quisque mi metus, ornare sit amet fermentum et, tincidunt et orci. Fusce eget orci a orci congue vestibulum. Ut dolor diam, elementum et vestibulum eu, porttitor vel elit. Curabitur venenatis pulvinar tellus gravida ornare.',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -207,7 +207,7 @@ describe('Post', function () {
     })
 
     it("should create with commentsDisabled='1'", function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             'Post body',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -242,7 +242,7 @@ describe('Post', function () {
   })
 
   describe('#findById()', function () {
-    var user,
+    let user,
       timelineId
 
     beforeEach(function (done) {
@@ -263,7 +263,7 @@ describe('Post', function () {
     })
 
     it('should find post with a valid id', function (done) {
-      var post = new Post({
+      const post = new Post({
         body:             'Post body',
         userId:           user.id,
         timelineIds:      [timelineId],
@@ -283,7 +283,7 @@ describe('Post', function () {
     })
 
     it('should not find post with an invalid id', function (done) {
-      var identifier = 'post:identifier'
+      const identifier = 'post:identifier'
 
       dbAdapter.getPostById(identifier)
         .then(function (post) {
@@ -295,7 +295,7 @@ describe('Post', function () {
   })
 
   describe('#getTimelineIds()', function () {
-    var userA
+    let userA
       , userB
       , post
 
@@ -310,7 +310,7 @@ describe('Post', function () {
         password: 'password'
       })
 
-      var attrs = { body: 'Post body' }
+      const attrs = { body: 'Post body' }
 
       userA.create()
         .then(function () { return userB.create() })
@@ -337,7 +337,7 @@ describe('Post', function () {
   })
 
   describe('#setCommentsDisabled()', function () {
-    var user
+    let user
       , post
 
     beforeEach(async () => {
@@ -355,7 +355,7 @@ describe('Post', function () {
   })
 
   describe('#addLike()', function () {
-    var userA
+    let userA
       , userB
       , userC
       , users
@@ -373,15 +373,15 @@ describe('Post', function () {
       post = await userB.newPost({ body: 'Post body' })
       await post.create()
 
-      let bTimelineId = await userB.getPostsTimelineId()
+      const bTimelineId = await userB.getPostsTimelineId()
       await userA.subscribeTo(bTimelineId)
 
-      let aTimelineId = await userA.getPostsTimelineId()
+      const aTimelineId = await userA.getPostsTimelineId()
       await userC.subscribeTo(aTimelineId)
 
-      let promises = [];
+      const promises = [];
       for (let i = 0; i < 10; i++) {
-        let user = new User({ username: `lunokhod${i}`, password: 'password' })
+        const user = new User({ username: `lunokhod${i}`, password: 'password' })
         promises.push(user.create())
       }
       users = await Promise.all(promises)
@@ -394,7 +394,7 @@ describe('Post', function () {
         .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
         })
@@ -403,17 +403,17 @@ describe('Post', function () {
     })
 
     it('should not add liked posts to friends posts timelines', async function(done) {
-      let post2 = await userA.newPost({ body: 'Post body 2' })
+      const post2 = await userA.newPost({ body: 'Post body 2' })
       await post2.create()
 
       await post.addLike(userA)
 
-      let postsFeedA = await userA.getPostsTimeline({ currentUser: userC.id })
-      let postsA = postsFeedA.posts
+      const postsFeedA = await userA.getPostsTimeline({ currentUser: userC.id })
+      const postsA = postsFeedA.posts
 
       postsA.should.not.be.empty
       postsA.length.should.eql(1)
-      let newPost = postsA[0]
+      const newPost = postsA[0]
       newPost.should.have.property('id')
       newPost.id.should.eql(post2.id)
       done()
@@ -421,12 +421,12 @@ describe('Post', function () {
 
     it('should add user to likes', async () => {
       await post.addLike(userA)
-      let users = await post.getLikes()
+      const users = await post.getLikes()
 
       users.should.not.be.empty
       users.length.should.eql(1)
 
-      var user = users[0]
+      const user = users[0]
       user.should.have.property('id')
       user.id.should.eql(userA.id)
     })
@@ -439,7 +439,7 @@ describe('Post', function () {
       post.maxLikes = 'all'
       post.currentUser = users[5].id
 
-      let likes = await post.getLikes()
+      const likes = await post.getLikes()
       likes.length.should.eql(10)
       likes[0].id.should.eql(users[5].id)
       likes[1].id.should.eql(users[9].id)
@@ -458,7 +458,7 @@ describe('Post', function () {
       post.currentUser = users[5].id
 
       {
-        let likes = await post.getLikes()
+        const likes = await post.getLikes()
         likes.length.should.eql(3)
         likes[0].id.should.eql(users[5].id)
         likes[1].id.should.eql(users[9].id)
@@ -478,7 +478,7 @@ describe('Post', function () {
       }
 
       {
-        let likes = await post.getLikes()
+        const likes = await post.getLikes()
         likes.length.should.eql(2)
         likes[0].id.should.eql(users[0].id)
         likes[1].id.should.eql(users[1].id)
@@ -488,7 +488,7 @@ describe('Post', function () {
       await post.addLike(users[i++])
 
       {
-        let likes = await post.getLikes()
+        const likes = await post.getLikes()
         likes.length.should.eql(3)
         likes[0].id.should.eql(users[0].id)
         likes[1].id.should.eql(users[2].id)
@@ -499,7 +499,7 @@ describe('Post', function () {
       await post.addLike(users[i++])
 
       {
-        let likes = await post.getLikes()
+        const likes = await post.getLikes()
         likes.length.should.eql(4)
         likes[0].id.should.eql(users[0].id)
         likes[1].id.should.eql(users[3].id)
@@ -511,7 +511,7 @@ describe('Post', function () {
       await post.addLike(users[i++])
 
       {
-        let likes = await post.getLikes()
+        const likes = await post.getLikes()
         likes.length.should.eql(3)
         likes[0].id.should.eql(users[0].id)
         likes[1].id.should.eql(users[4].id)
@@ -522,7 +522,7 @@ describe('Post', function () {
       await post.addLike(users[i++])
 
       {
-        let likes = await post.getLikes()
+        const likes = await post.getLikes()
         likes.length.should.eql(3)
         likes[0].id.should.eql(users[0].id)
         likes[1].id.should.eql(users[5].id)
@@ -532,7 +532,7 @@ describe('Post', function () {
   })
 
   describe('#removeLike()', function () {
-    var userA
+    let userA
       , userB
       , userC
       , post
@@ -553,7 +553,7 @@ describe('Post', function () {
         password: 'password'
       })
 
-      var attrs = { body: 'Post body' }
+      const attrs = { body: 'Post body' }
 
       userA.create()
         .then(function () { return userC.create() })
@@ -588,7 +588,7 @@ describe('Post', function () {
         .then(function (users) {
           users.should.not.be.empty
           users.length.should.eql(1)
-          var user = users[0]
+          const user = users[0]
           user.should.have.property('id')
           user.id.should.eql(userA.id)
         })
@@ -598,7 +598,7 @@ describe('Post', function () {
   })
 
   describe('#addComment()', function () {
-    var userA
+    let userA
       , userB
       , userC
       , post
@@ -619,7 +619,7 @@ describe('Post', function () {
         password: 'password'
       })
 
-      var postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' }
 
       userA.create()
         .then(function () { return userC.create() })
@@ -638,12 +638,12 @@ describe('Post', function () {
     })
 
     it('should add comment to friend of friend timelines', function (done) {
-      var commentAttrs = {
+      const commentAttrs = {
         body:   'Comment body',
         postId: post.id
       }
 
-      let comment = userA.newComment(commentAttrs)
+      const comment = userA.newComment(commentAttrs)
 
       comment.create()
         .then(function () { return userC.getRiverOfNewsTimeline() })
@@ -651,7 +651,7 @@ describe('Post', function () {
         .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
         })
@@ -663,7 +663,7 @@ describe('Post', function () {
   describe('#getComments()', function () {
     let userA
       , post
-      , comments = []
+    const comments = []
 
     beforeEach(async () => {
       const userAttrs = {
@@ -690,7 +690,7 @@ describe('Post', function () {
     it('should get all comments', async () => {
       post.maxComments = 'all'
 
-      let fetchedComments = await post.getComments()
+      const fetchedComments = await post.getComments()
       fetchedComments.should.not.be.empty
       fetchedComments.length.should.eql(10)
 
@@ -703,7 +703,7 @@ describe('Post', function () {
     it('should get first and last comments', async () => {
       post.maxComments = 4
 
-      let fetchedComments = await post.getComments()
+      const fetchedComments = await post.getComments()
       fetchedComments.should.not.be.empty
       fetchedComments.length.should.eql(4)
 
@@ -715,7 +715,7 @@ describe('Post', function () {
   })
 
   describe('#destroy()', function () {
-    var user
+    let user
       , timelineId
 
     beforeEach(function (done) {
@@ -736,7 +736,7 @@ describe('Post', function () {
     })
 
     it('should destroy without error', function (done) {
-      var post = new Post({
+      let post = new Post({
         body:             'Post body',
         userId:           user.id ,
         timelineIds:      [timelineId],
@@ -745,7 +745,7 @@ describe('Post', function () {
 
       post.create()
         .then(function (newPost) {
-          var commentAttrs = {
+          const commentAttrs = {
             body:   'Comment body',
             postId: post.id
           }

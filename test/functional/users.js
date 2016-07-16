@@ -29,7 +29,7 @@ describe('UsersController', function () {
 
   describe('#create()', function () {
     it('should create a valid user', function (done) {
-      var user = {
+      const user = {
         username: 'Luna',
         password: 'password'
       }
@@ -49,7 +49,7 @@ describe('UsersController', function () {
     })
 
     it('should create a valid user with email', function (done) {
-      var user = {
+      const user = {
         username: 'Luna',
         password: 'password',
         email:    'user@example.com'
@@ -72,11 +72,11 @@ describe('UsersController', function () {
     })
 
     describe('onboarding', function () {
-      var onboardCtx = {}
+      const onboardCtx = {}
       beforeEach(funcTestHelper.createUserCtx(onboardCtx, 'welcome', 'pw'))
 
       it('should subscribe created user to onboarding account', function (done) {
-        var user = {
+        const user = {
           username: 'Luna',
           password: 'password'
         }
@@ -86,7 +86,7 @@ describe('UsersController', function () {
           .send({ username: user.username, password: user.password })
           .end(function (err, res) {
             res.body.should.have.property('authToken')
-            let authToken = res.body.authToken
+            const authToken = res.body.authToken
 
             request
               .get(app.config.host + '/v1/users/' + user.username + '/subscriptions')
@@ -94,7 +94,7 @@ describe('UsersController', function () {
               .end(function (err, res) {
                 res.body.should.not.be.empty
                 res.body.should.have.property('subscriptions')
-                var types = ['Comments', 'Likes', 'Posts']
+                const types = ['Comments', 'Likes', 'Posts']
                 async.reduce(res.body.subscriptions, true, function (memo, user, callback) {
                   callback(null, memo && types.includes(user.name) && (user.user == onboardCtx.user.id))
                 }, function (err, contains) {
@@ -107,7 +107,7 @@ describe('UsersController', function () {
     })
 
     it('should not create an invalid user', function (done) {
-      var user = {
+      const user = {
         username: 'Luna',
         password: ''
       }
@@ -123,7 +123,7 @@ describe('UsersController', function () {
     })
 
     it('should not create user with slash in her username', function (done) {
-      var user = {
+      const user = {
         username: 'Lu/na',
         password: 'password'
       }
@@ -140,7 +140,7 @@ describe('UsersController', function () {
     })
 
     it('should not create user without password', function (done) {
-      var user = { username: 'Luna' }
+      const user = { username: 'Luna' }
 
       request
         .post(app.config.host + '/v1/users')
@@ -154,7 +154,7 @@ describe('UsersController', function () {
     })
 
     it('should not create user with invalid email', function (done) {
-      var user = {
+      const user = {
         username: 'Luna',
         password: 'password',
         email:    'user2.example.com'
@@ -173,7 +173,7 @@ describe('UsersController', function () {
     })
 
     it('should not create user with empty password', function (done) {
-      var user = {
+      const user = {
         username: 'Luna',
         password: '',
       }
@@ -191,7 +191,7 @@ describe('UsersController', function () {
     })
 
     it('should not create a user with a duplicate name', function (done) {
-      var user = {
+      const user = {
         username: 'Luna',
         password: 'password'
       }
@@ -223,7 +223,7 @@ describe('UsersController', function () {
       const response = await funcTestHelper.createUserAsyncPost(user)
       response.status.should.equal(422)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql('Invalid username')
     })
@@ -238,15 +238,15 @@ describe('UsersController', function () {
       const response = await funcTestHelper.createUserAsyncPost(user)
       response.status.should.equal(422)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql('Invalid username')
     })
   })
 
   describe('#whoami()', function () {
-    var authToken
-    var user = {
+    let authToken
+    const user = {
       username: 'Luna',
       password: 'password'
     }
@@ -292,15 +292,15 @@ describe('UsersController', function () {
   })
 
   describe('#subscribe()', function () {
-    var lunaContext = {}
-      , marsContext = {}
+    const lunaContext = {}
+    const marsContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'Mars', 'password'))
     beforeEach(function (done) { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
 
     it('should submit a post to friends river of news', function (done) {
-      var body = 'Post body'
+      const body = 'Post body'
 
       request
         .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
@@ -383,7 +383,7 @@ describe('UsersController', function () {
   })
 
   describe('#subscribers()', function () {
-    var userA
+    let userA
       , userB
       , authTokenA
       , authTokenB
@@ -411,7 +411,7 @@ describe('UsersController', function () {
             .end(function (err, res) {
               authTokenB = res.body.authToken
 
-              var body = 'Post body'
+              const body = 'Post body'
 
               request
                 .post(app.config.host + '/v1/posts')
@@ -455,7 +455,7 @@ describe('UsersController', function () {
   })
 
   describe('#unsubscribe()', function () {
-    var userA
+    let userA
       , userB
       , authTokenA
       , authTokenB
@@ -483,7 +483,7 @@ describe('UsersController', function () {
             .end(function (err, res) {
               authTokenB = res.body.authToken
 
-              var body = 'Post body'
+              const body = 'Post body'
 
               request
                 .post(app.config.host + '/v1/posts')
@@ -551,9 +551,9 @@ describe('UsersController', function () {
   })
 
   describe('#unsubscribe() from group', function () {
-    var adminContext = {}
-      , secondAdminContext = {}
-      , groupMemberContext = {}
+    const adminContext = {}
+    const secondAdminContext = {}
+    const groupMemberContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))
@@ -618,7 +618,7 @@ describe('UsersController', function () {
   })
 
   describe('#subscriptions()', function () {
-    var userA
+    let userA
       , userB
       , authTokenB
 
@@ -660,7 +660,7 @@ describe('UsersController', function () {
         .end(function (err, res) {
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
-          var types = ['Comments', 'Likes', 'Posts']
+          const types = ['Comments', 'Likes', 'Posts']
           async.reduce(res.body.subscriptions, true, function (memo, user, callback) {
             callback(null, memo && types.includes(user.name))
           }, function (err, contains) {
@@ -683,7 +683,7 @@ describe('UsersController', function () {
 
   describe('#update()', function () {
     describe('single-user tests', function () {
-      var authToken
+      let authToken
         , user
 
       beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
@@ -692,8 +692,8 @@ describe('UsersController', function () {
       }))
 
       it('should update current user', function (done) {
-        var screenName = 'Mars'
-        var description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
+        const screenName = 'Mars'
+        const description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
 
         request
           .post(app.config.host + '/v1/users/' + user.id)
@@ -716,9 +716,9 @@ describe('UsersController', function () {
       })
 
       it("should not reset description if it's not provided", async () => {
-        var oldScreenName = user.screenName
-        var newScreenName = 'Ceres'
-        var newDescription = 'The largest object in the asteroid belt that lies between the orbits of Mars and Jupiter.'
+        const oldScreenName = user.screenName
+        const newScreenName = 'Ceres'
+        const newDescription = 'The largest object in the asteroid belt that lies between the orbits of Mars and Jupiter.'
 
         // First, check screenName and description (should be the old ones)
         {
@@ -783,7 +783,7 @@ describe('UsersController', function () {
       })
 
       it('should require signed in user', function (done) {
-        var screenName = 'Mars'
+        const screenName = 'Mars'
 
         request
           .post(app.config.host + '/v1/users/' + user.id)
@@ -799,7 +799,7 @@ describe('UsersController', function () {
           })
       })
 
-      var invalid = [
+      const invalid = [
         '', 'a', 'aa', 'aaaaaaaaaaaaaaaaaaaaaaaaaa',
         '\u4E9C\u4E9C',  // 2 han ideographs
         '\u0928\u093F\u0928\u093F'  // Devanagari syllable "ni" (repeated 2 times)
@@ -822,7 +822,7 @@ describe('UsersController', function () {
         })
       })
 
-      var valid = [
+      const valid = [
         'aaa', 'aaaaaaaaaaaaaaaaaaaaaaaaa',
         '\u4E9C\u4E9C\u4E9C',
         '\u0928\u093F\u0928\u093F\u0928\u093F',
@@ -854,8 +854,8 @@ describe('UsersController', function () {
     })
 
     describe('double-user tests', function () {
-      var lunaContext = {}
-      var marsContext = {}
+      const lunaContext = {}
+      const marsContext = {}
 
       beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', { email: 'luna@example.org' }))
       beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', { email: 'mars@example.org' }))
@@ -883,7 +883,7 @@ describe('UsersController', function () {
     })
 
     describe('frontendPreferences tests', function () {
-      var authToken
+      let authToken
         , user
 
       beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
@@ -892,7 +892,7 @@ describe('UsersController', function () {
       }))
 
       it('should store frontendPreferences in DB and return it in whoami', async () => {
-        let prefs = {
+        const prefs = {
           'net.freefeed': {
             'screenName': {
               'displayOption': 1,
@@ -901,18 +901,18 @@ describe('UsersController', function () {
           },
           'custom.domain': { 'customProperty': 'someWeirdValue' }
         }
-        let anotherPrefs = {
+        const anotherPrefs = {
           'another.client': { 'funnyProperty': 'withFunnyValue' },
           'custom.domain':  { 'newProperty': 'withNewValue' }
         }
-        let newDescription = 'The Moon is made of cheese.';
+        const newDescription = 'The Moon is made of cheese.';
 
         // First, check the response on update
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: prefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: prefs })
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
@@ -924,10 +924,10 @@ describe('UsersController', function () {
 
         // Second, check whoami response
         {
-          let response = await funcTestHelper.whoami(authToken)
+          const response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
@@ -941,10 +941,10 @@ describe('UsersController', function () {
         {
           await funcTestHelper.updateUserAsync({ user, authToken }, { description: newDescription })
 
-          let response = await funcTestHelper.whoami(authToken)
+          const response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.description')
           data.users.description.should.equal(newDescription)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
@@ -960,10 +960,10 @@ describe('UsersController', function () {
         {
           await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: anotherPrefs })
 
-          let response = await funcTestHelper.whoami(authToken)
+          const response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.frontendPreferences')
           // net.freefeed should be unchanged
           data.users.frontendPreferences.should.have.property('net.freefeed')
@@ -978,36 +978,36 @@ describe('UsersController', function () {
       })
 
       it('should validate frontendPreferences structure', async () => {
-        let validPrefs = { 'net.freefeed': { 'userProperty': 'value' } }
-        let invalidPrefs = { 'userProperty': 'value' }
+        const validPrefs = { 'net.freefeed': { 'userProperty': 'value' } }
+        const invalidPrefs = { 'userProperty': 'value' }
 
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
           response.status.should.eql(200)
         }
 
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
           response.status.should.eql(422)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.property('err')
           data.err.should.eql('Invalid frontendPreferences')
         }
       })
 
       it('should validate frontendPreferences size', async () => {
-        let validPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100) } }
-        let invalidPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1) } }
+        const validPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100) } }
+        const invalidPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1) } }
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
           response.status.should.eql(200)
         }
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
           response.status.should.eql(422)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.property('err')
           data.err.should.eql('Invalid frontendPreferences')
         }
@@ -1016,7 +1016,7 @@ describe('UsersController', function () {
   })
 
   describe('#updatePassword()', function () {
-    var authToken
+    let authToken
       , user
 
     beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
@@ -1025,7 +1025,7 @@ describe('UsersController', function () {
     }))
 
     it('should update current user password', function (done) {
-      var password = 'drowssap'
+      const password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1054,7 +1054,7 @@ describe('UsersController', function () {
     })
 
     it('should not sign in with old password', function (done) {
-      var password = 'drowssap'
+      const password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1080,7 +1080,7 @@ describe('UsersController', function () {
     })
 
     it('should not update password that does not match', function (done) {
-      var password = 'drowssap'
+      const password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1101,7 +1101,7 @@ describe('UsersController', function () {
     })
 
     it('should not update with blank password', function (done) {
-      var password = ''
+      const password = ''
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1122,7 +1122,7 @@ describe('UsersController', function () {
     })
 
     it('should not update with invalid password', function (done) {
-      var password = 'drowssap'
+      const password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1143,7 +1143,7 @@ describe('UsersController', function () {
     })
 
     it('should require signed in user', function (done) {
-      var screenName = 'Mars'
+      const screenName = 'Mars'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1161,7 +1161,7 @@ describe('UsersController', function () {
   })
 
   describe('#updateProfilePicture', function () {
-    var authToken
+    let authToken
 
     beforeEach(funcTestHelper.createUser('Luna', 'password', function (token) {
       authToken = token
@@ -1206,10 +1206,10 @@ describe('UsersController', function () {
 
   describe('#ban()', function () {
     // Zeus bans Mars, as usual
-    var marsContext = {}
-    var zeusContext = {}
-    var username = 'zeus'
-    var banUsername = 'mars'
+    const marsContext = {}
+    const zeusContext = {}
+    const username = 'zeus'
+    const banUsername = 'mars'
 
     beforeEach(funcTestHelper.createUserCtx(marsContext, banUsername, 'pw'))
     beforeEach(funcTestHelper.createUserCtx(zeusContext, username, 'pw'))
@@ -1233,7 +1233,7 @@ describe('UsersController', function () {
         .end(function (err, res) { // Mars has subcriptions to Zeus
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
-          var types = ['Comments', 'Likes', 'Posts']
+          const types = ['Comments', 'Likes', 'Posts']
           async.reduce(res.body.subscriptions, true, function (memo, user, callback) {
             callback(null, memo && types.includes(user.name))
           }, function (err, contains) {
@@ -1259,10 +1259,10 @@ describe('UsersController', function () {
 
     // Zeus writes a post, Mars comments, Zeus bans Mars and should see no comments
     it('should ban user comments', function (done) {
-      var body = 'Post'
+      const body = 'Post'
       funcTestHelper.createPost(zeusContext, body)(function (err, res) {
         res.body.should.not.be.empty
-        var postId = res.body.posts.id
+        const postId = res.body.posts.id
         funcTestHelper.createComment(body, postId, marsContext.authToken, function (err, res) {
           res.body.should.not.be.empty
 
@@ -1276,7 +1276,7 @@ describe('UsersController', function () {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
-                var post = res.body.posts[0]
+                const post = res.body.posts[0]
                 post.should.not.have.property('comments')
 
                 // Zeus should not see comments in single-post view either
@@ -1314,7 +1314,7 @@ describe('UsersController', function () {
                     res.body.should.not.be.empty
                     res.body.should.have.property('posts')
                     res.body.posts.length.should.eql(1)
-                    var post = res.body.posts[0]
+                    const post = res.body.posts[0]
                     post.should.not.have.property('likes')
 
                     // Zeus should not see likes in single-post view either
@@ -1449,7 +1449,7 @@ describe('UsersController', function () {
 
     // Same fun inside groups
     describe('in groups', function () {
-      var groupUserName = 'pepyatka-dev'
+      const groupUserName = 'pepyatka-dev'
 
       // Mars creates a group, Mars posts to it...
       beforeEach(function (done) {

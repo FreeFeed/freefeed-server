@@ -22,17 +22,17 @@ describe('CommentsController', function () {
   })
 
   describe('#create()', function () {
-    var context = {}
+    let context = {}
     beforeEach(async() => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
       context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
     })
 
     describe('in a group', function () {
-      var groupName = 'pepyatka-dev'
+      const groupName = 'pepyatka-dev'
 
       beforeEach(function (done) {
-        var screenName = 'Pepyatka Developers';
+        const screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
           .send({
@@ -45,17 +45,17 @@ describe('CommentsController', function () {
       })
 
       it("should not update group's last activity", function (done) {
-        var body = 'Post body'
+        const body = 'Post body'
 
         request
           .post(app.config.host + '/v1/posts')
           .send({ post: { body }, meta: { feeds: [groupName] }, authToken: context.authToken })
           .end(function (err, res) {
             res.status.should.eql(200)
-            var postB = res.body.posts
+            const postB = res.body.posts
             funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function (err, res) {
               res.status.should.eql(200)
-              var lastUpdatedAt = res.body.users.updatedAt
+              const lastUpdatedAt = res.body.users.updatedAt
 
               funcTestHelper.createComment(body, postB.id, context.authToken, function (err, res) {
                 res.status.should.eql(200)
@@ -74,7 +74,7 @@ describe('CommentsController', function () {
     })
 
     it('should create a comment with a valid user', function (done) {
-      var body = 'Comment'
+      const body = 'Comment'
 
       funcTestHelper.createCommentCtx(context, body)(function (err, res) {
         res.body.should.not.be.empty
@@ -87,7 +87,7 @@ describe('CommentsController', function () {
     })
 
     it('should not create a comment for an invalid user', function (done) {
-      var body = 'Comment'
+      const body = 'Comment'
 
       context.authToken = 'token'
       funcTestHelper.createCommentCtx(context, body)(function (err) {
@@ -99,7 +99,7 @@ describe('CommentsController', function () {
     })
 
     it('should not create a comment for an invalid post', function (done) {
-      var body = 'Comment'
+      const body = 'Comment'
 
       context.post.id = 'id'
       funcTestHelper.createCommentCtx(context, body)(function (err) {
@@ -111,33 +111,33 @@ describe('CommentsController', function () {
     })
 
     it('should create a comment to own post even when comments disabled', async () => {
-      let postResponse = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
-      let data = await postResponse.json()
-      let post = data.posts
+      const postResponse = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      const data = await postResponse.json()
+      const post = data.posts
 
-      let response = await funcTestHelper.createCommentAsync(context, post.id, 'Comment')
+      const response = await funcTestHelper.createCommentAsync(context, post.id, 'Comment')
       response.status.should.eql(200)
     })
 
     it("should not create a comment to another user's post when comments disabled", async () => {
-      let postResponse = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
-      let postData = await postResponse.json()
-      let post = postData.posts
+      const postResponse = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      const postData = await postResponse.json()
+      const post = postData.posts
 
-      let marsContext = await funcTestHelper.createUserAsync('mars', 'password2')
+      const marsContext = await funcTestHelper.createUserAsync('mars', 'password2')
 
-      let response = await funcTestHelper.createCommentAsync(marsContext, post.id, 'Comment')
+      const response = await funcTestHelper.createCommentAsync(marsContext, post.id, 'Comment')
       response.status.should.eql(403)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql('Comments disabled')
     })
   })
 
   describe('#update()', function () {
-    var lunaContext = {}
-      , yoleContext = {}
+    const lunaContext = {}
+    const yoleContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(yoleContext, 'yole', 'pw'))
@@ -146,7 +146,7 @@ describe('CommentsController', function () {
     beforeEach(function (done) { funcTestHelper.createCommentCtx(lunaContext, 'comment')(done) })
 
     it('should update a comment with a valid user', function (done) {
-      var newBody = 'New body'
+      const newBody = 'New body'
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
         .send({
@@ -165,7 +165,7 @@ describe('CommentsController', function () {
     })
 
     it('should not update a comment with a invalid user', function (done) {
-      var newBody = 'New body'
+      const newBody = 'New body'
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
         .send({
@@ -181,7 +181,7 @@ describe('CommentsController', function () {
     })
 
     it("should not update another user's comment", function (done) {
-      var newBody = 'New body'
+      const newBody = 'New body'
       request
           .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
           .send({
@@ -197,10 +197,10 @@ describe('CommentsController', function () {
   })
 
   describe('#destroy()', function () {
-    let lunaContext = {},
+    const lunaContext = {},
       marsContext = {},
-      ceresContext = {},
-      lunaPostLunaComment,
+      ceresContext = {};
+    let lunaPostLunaComment,
       lunaPostMarsComment,
       marsPostMarsComment,
       marsPostLunaComment,
@@ -236,40 +236,40 @@ describe('CommentsController', function () {
     })
 
     it('should remove comment (your own comment in your own post)', async () => {
-      let response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostLunaComment)
+      const response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostLunaComment)
       response.status.should.eql(200)
     })
 
     it("should remove comment (other's comment in your own post)", async () => {
-      let response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostMarsComment)
+      const response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostMarsComment)
       response.status.should.eql(200)
     })
 
     it("should remove comment (your own comment in other's post)", async () => {
-      let response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostLunaComment)
+      const response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostLunaComment)
       response.status.should.eql(200)
     })
 
     it("should not remove comment (other's comment in other's post)", async () => {
-      let response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostMarsComment)
+      const response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostMarsComment)
       response.status.should.eql(403)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql("You don't have permission to delete this comment")
     })
 
     it("should not remove comment (other's comment in other's post, again)", async () => {
-      let response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostCeresComment)
+      const response = await funcTestHelper.removeCommentAsync(lunaContext, marsPostCeresComment)
       response.status.should.eql(403)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql("You don't have permission to delete this comment")
     })
 
     it('should not remove comment if anonymous', async () => {
-      let response = await funcTestHelper.removeCommentAsync({}, lunaPostLunaComment)
+      const response = await funcTestHelper.removeCommentAsync({}, lunaPostLunaComment)
       response.status.should.eql(401)
     })
   })

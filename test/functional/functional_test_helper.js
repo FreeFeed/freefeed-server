@@ -22,7 +22,7 @@ export function createUser(username, password, attributes, callback) {
     if (typeof attributes === 'undefined')
       attributes = {}
 
-    var user = {
+    const user = {
       username,
       password
     }
@@ -35,7 +35,7 @@ export function createUser(username, password, attributes, callback) {
         .send(user)
         .end(function (err, res) {
           if (callback) {
-            var luna = res.body.users
+            const luna = res.body.users
             luna.password = user.password
             callback(res.body.authToken, luna)
           }
@@ -138,7 +138,7 @@ export function createPostForTest(context, body, callback) {
 export function createComment(body, postId, authToken, callback) {
   return function (done) {
     apiUrl('/v1/comments').then((url) => {
-      var comment = {
+      const comment = {
         body,
         postId
       }
@@ -156,7 +156,7 @@ export function createComment(body, postId, authToken, callback) {
 export function createCommentCtx(context, body) {
   return function (done) {
     apiUrl('/v1/comments').then((url) => {
-      var comment = {
+      const comment = {
         body,
         postId: context.post.id
       }
@@ -201,7 +201,7 @@ export function removeCommentAsync(context, commentId) {
 export function getTimeline(timelinePath, authToken, callback) {
   return function (done) {
     apiUrl(timelinePath).then((url) => {
-      var sendParams = {};
+      const sendParams = {};
 
       if (authToken) {
         sendParams.authToken = authToken
@@ -220,7 +220,7 @@ export function getTimeline(timelinePath, authToken, callback) {
 export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
   return function (done) {
     apiUrl(timelinePath).then((url) => {
-      var sendParams = {};
+      const sendParams = {};
 
       if (!_.isUndefined(authToken)) {
         sendParams.authToken = authToken
@@ -246,7 +246,7 @@ export function getTimelinePaged(timelinePath, authToken, offset, limit, callbac
 
 export function getSubscribers(username, authToken, callback) {
   return function (done) {
-    let sendParams = {};
+    const sendParams = {};
     if (authToken) {
       sendParams.authToken = authToken
     }
@@ -267,7 +267,7 @@ export async function getSubscribersAsync(username, userContext) {
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
-    let encodedToken = encodeURIComponent(userContext.authToken)
+    const encodedToken = encodeURIComponent(userContext.authToken)
     url = `${url}?authToken=${encodedToken}`
   }
 
@@ -276,7 +276,7 @@ export async function getSubscribersAsync(username, userContext) {
 
 export function getSubscriptions(username, authToken, callback) {
   return function (done) {
-    let sendParams = {};
+    const sendParams = {};
     if (authToken) {
       sendParams.authToken = authToken
     }
@@ -312,7 +312,7 @@ export async function createUserAsync(username, password, attributes) {
     attributes = {}
   }
 
-  let user = {
+  const user = {
     username,
     password
   }
@@ -321,10 +321,10 @@ export async function createUserAsync(username, password, attributes) {
     user.email = attributes.email
   }
 
-  let response = await createUserAsyncPost(user)
-  let data = await response.json()
+  const response = await createUserAsyncPost(user)
+  const data = await response.json()
 
-  let userData = data.users
+  const userData = data.users
   userData.password = password
 
   return {
@@ -403,10 +403,10 @@ export function subscribeToAsync(subscriber, victim) {
 }
 
 export async function mutualSubscriptions(userContexts) {
-  let promises = []
+  const promises = []
 
-  for (let ctx1 of userContexts) {
-    for (let ctx2 of userContexts) {
+  for (const ctx1 of userContexts) {
+    for (const ctx2 of userContexts) {
       if (ctx1.username == ctx2.username) {
         continue
       }
@@ -419,7 +419,7 @@ export async function mutualSubscriptions(userContexts) {
 }
 
 export async function createAndReturnPostToFeed(feed, userContext, body) {
-  let response = await postJson(
+  const response = await postJson(
     '/v1/posts',
     {
       post:      { body },
@@ -428,7 +428,7 @@ export async function createAndReturnPostToFeed(feed, userContext, body) {
     }
   )
 
-  let data = await response.json()
+  const data = await response.json()
 
   return data.posts
 }
@@ -445,12 +445,12 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
-    let encodedToken = encodeURIComponent(userContext.authToken)
+    const encodedToken = encodeURIComponent(userContext.authToken)
     url = `${url}?authToken=${encodedToken}`
   }
 
-  let response = await fetch(url)
-  let data = await response.json()
+  const response = await fetch(url)
+  const data = await response.json()
 
   return data
 }
@@ -480,11 +480,11 @@ export function sendResetPassword(email) {
 }
 
 export async function readPostAsync(postId, userContext) {
-  let relativeUrl = `/v1/posts/${postId}?maxComments=all`
+  const relativeUrl = `/v1/posts/${postId}?maxComments=all`
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
-    let encodedToken = encodeURIComponent(userContext.authToken)
+    const encodedToken = encodeURIComponent(userContext.authToken)
     url = `${url}&authToken=${encodedToken}`
   }
 
@@ -520,7 +520,6 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 }
 
 export async function createMockAttachmentAsync(context) {
-  let attachmentId
   const params = {
     fileName:  'lion.jpg',
     fileSize:  12345,
@@ -530,10 +529,10 @@ export async function createMockAttachmentAsync(context) {
     updatedAt: (new Date()).getTime()
   }
 
-  attachmentId = await dbAdapter.createAttachment(params)
+  const id = await dbAdapter.createAttachment(params)
 
   return {
-    id: attachmentId,
+    id,
     ...params
   }
 }
@@ -560,7 +559,7 @@ export function deletePostAsync(context, postId) {
 }
 
 export async function createGroupAsync(context, username, screenName) {
-  let params = {
+  const params = {
     group: {
       username,
       screenName: screenName || username
@@ -568,8 +567,8 @@ export async function createGroupAsync(context, username, screenName) {
     authToken: context.authToken
   }
 
-  let response = await postJson(`/v1/groups`, params)
-  let data = await response.json()
+  const response = await postJson(`/v1/groups`, params)
+  const data = await response.json()
 
   return {
     group: data.groups,

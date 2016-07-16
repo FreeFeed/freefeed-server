@@ -85,7 +85,7 @@ describe('Attachment', function () {
 
       // Create directories for attachments
       mkdirp.sync(config.attachments.storage.rootDir + config.attachments.path)
-      for (let sizeId in config.attachments.imageSizes) {
+      for (const sizeId in config.attachments.imageSizes) {
         if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
           mkdirp.sync(config.attachments.storage.rootDir + config.attachments.imageSizes[sizeId].path)
         }

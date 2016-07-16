@@ -21,8 +21,8 @@ describe('Realtime (Socket.io)', () => {
     await knexCleaner.clean($pg_database)
   })
 
-  let lunaContext = {};
-  let marsContext = {};
+  const lunaContext = {};
+  const marsContext = {};
 
   beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
   beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))

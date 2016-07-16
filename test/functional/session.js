@@ -22,7 +22,7 @@ describe('SessionController', () => {
   })
 
   describe('#create()', () => {
-    var user, userData;
+    let user, userData;
 
     beforeEach(async () => {
       userData = {
@@ -75,8 +75,8 @@ describe('SessionController', () => {
     })
 
     it('should not sign in with missing username', async () => {
-      let result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
-      let data = await result.json()
+      const result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
+      const data = await result.json()
 
       data.should.not.have.property('authToken')
       data.should.have.property('err')

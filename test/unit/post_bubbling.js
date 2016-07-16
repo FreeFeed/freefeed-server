@@ -9,37 +9,37 @@ describe('PostBubbling', function () {
     await knexCleaner.clean($pg_database)
   })
 
-  let homeFeedEqualTo = async (user, expectedContent, feedReaderId) => {
-    let homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
-    let posts = await homeFeed.getPosts()
+  const homeFeedEqualTo = async (user, expectedContent, feedReaderId) => {
+    const homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
+    const posts = await homeFeed.getPosts()
 
     posts.should.not.be.empty
     posts.length.should.eql(expectedContent.length)
-    let homeFeedContent = posts.map((p) => {
+    const homeFeedContent = posts.map((p) => {
       return p.body
     }).join(',')
     homeFeedContent.should.eql(expectedContent.join(','))
   }
 
-  let homeFeedPageEqualTo = async (user, expectedContent, feedReaderId, limit, offset) => {
-    let homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
-    let posts = await homeFeed.getPosts(offset, limit)
+  const homeFeedPageEqualTo = async (user, expectedContent, feedReaderId, limit, offset) => {
+    const homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
+    const posts = await homeFeed.getPosts(offset, limit)
 
     posts.should.not.be.empty
     posts.length.should.eql(expectedContent.length)
-    let homeFeedContent = posts.map((p) => {
+    const homeFeedContent = posts.map((p) => {
       return p.body
     }).join(',')
     homeFeedContent.should.eql(expectedContent.join(','))
   }
 
-  let addCommentToPost = (commenter, post, content) => {
-    let commentAttrs = {
+  const addCommentToPost = (commenter, post, content) => {
+    const commentAttrs = {
       body:   content,
       postId: post.id
     }
 
-    let comment = commenter.newComment(commentAttrs)
+    const comment = commenter.newComment(commentAttrs)
     return comment.create()
   }
 
@@ -65,32 +65,32 @@ describe('PostBubbling', function () {
       await mars.create()
       await jupiter.create()
 
-      for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body })
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
-      for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body })
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
     })
 
     describe('Luna and Mars are not friends', function () {
       it('Home feed of Luna contains posts in reverse chronological order', async () => {
-        let expectedContent = [...lunaPostsContent].reverse()
+        const expectedContent = [...lunaPostsContent].reverse()
         await homeFeedEqualTo(luna, expectedContent, luna.id)
       })
 
       describe('Luna likes Mars post', () => {
         it("brings post to the top of Luna's home feed", async () => {
           await marsPosts[0].addLike(luna)
-          let expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
+          const expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
         it("not changes posts order in Mars's home feed", async () => {
           await marsPosts[0].addLike(luna)
-          let expectedContent = [...marsPostsContent].reverse()
+          const expectedContent = [...marsPostsContent].reverse()
           await homeFeedEqualTo(mars, expectedContent, mars.id)
         })
       })
@@ -98,13 +98,13 @@ describe('PostBubbling', function () {
       describe('Luna comments Mars post', () => {
         it("brings post to the top of Luna's home feed", async () => {
           await addCommentToPost(luna, marsPosts[0], 'Victor')
-          let expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
+          const expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
         it("brings post to the top of Mars's home feed", async () => {
           await addCommentToPost(luna, marsPosts[0], 'Uncle')
-          let expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
+          const expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
           await homeFeedEqualTo(mars, expectedContent, mars.id)
         })
       })
@@ -112,13 +112,13 @@ describe('PostBubbling', function () {
       describe('Luna comments own post', () => {
         it("brings post to the top of Luna's home feed", async () => {
           await addCommentToPost(luna, lunaPosts[0], 'Sail')
-          let expectedContent = ['A', 'C', 'B']
+          const expectedContent = ['A', 'C', 'B']
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
         it('not changes posts order in Mars home feed', async () => {
           await addCommentToPost(luna, lunaPosts[0], 'Sugar')
-          let expectedContent = [...marsPostsContent].reverse()
+          const expectedContent = [...marsPostsContent].reverse()
           await homeFeedEqualTo(mars, expectedContent, mars.id)
         })
       })
@@ -126,7 +126,7 @@ describe('PostBubbling', function () {
       describe('Jupiter likes Mars post', () => {
         it("not changes posts order in Luna's home feed", async () => {
           await marsPosts[0].addLike(jupiter)
-          let expectedContent = [...lunaPostsContent].reverse()
+          const expectedContent = [...lunaPostsContent].reverse()
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
       })
@@ -134,7 +134,7 @@ describe('PostBubbling', function () {
       describe('Jupiter comments Mars post', () => {
         it("not changes posts order in Luna's home feed", async () => {
           await addCommentToPost(jupiter, marsPosts[0], 'Tare')
-          let expectedContent = [...lunaPostsContent].reverse()
+          const expectedContent = [...lunaPostsContent].reverse()
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
       })
@@ -186,12 +186,12 @@ describe('PostBubbling', function () {
           })
 
           it('not changes posts order in Luna home feed', async () => {
-            let expectedContent = ['C', 'B', 'A']
+            const expectedContent = ['C', 'B', 'A']
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
 
           it("not changes posts order in Mars's home feed", async () => {
-            let expectedContent = [...marsPostsContent].reverse()
+            const expectedContent = [...marsPostsContent].reverse()
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
         })
@@ -202,12 +202,12 @@ describe('PostBubbling', function () {
           })
 
           it('not brings post to Luna home feed', async () => {
-            let expectedContent = ['C', 'B', 'A']
+            const expectedContent = ['C', 'B', 'A']
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
 
           it("brings post to the top of Mars's home feed", async () => {
-            let expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
+            const expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
         })
@@ -218,12 +218,12 @@ describe('PostBubbling', function () {
           })
 
           it('not brings post to Mars home feed', async () => {
-            let expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
 
           it('not changes posts order in Luna home feed', async () => {
-            let expectedContent = ['C', 'B', 'A']
+            const expectedContent = ['C', 'B', 'A']
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
         })
@@ -234,12 +234,12 @@ describe('PostBubbling', function () {
           })
 
           it('not brings post to Mars home feed', async () => {
-            let expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
 
           it('brings post to the top of Luna home feed', async () => {
-            let expectedContent = ['A', 'C', 'B']
+            const expectedContent = ['A', 'C', 'B']
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
         })
@@ -248,17 +248,17 @@ describe('PostBubbling', function () {
 
     describe('Luna and Mars are friends', () => {
       beforeEach(async () => {
-        let marsTimelineId = await mars.getPostsTimelineId()
+        const marsTimelineId = await mars.getPostsTimelineId()
         await luna.subscribeTo(marsTimelineId)
 
-        let lunaTimelineId = await luna.getPostsTimelineId()
+        const lunaTimelineId = await luna.getPostsTimelineId()
         await mars.subscribeTo(lunaTimelineId)
       })
 
       describe("post is already included into Luna's home feed", () => {
         it('likes not changes posts order', async () => {
           await marsPosts[0].addLike(luna)
-          let expectedContent = [...marsPostsContent].reverse().concat([...lunaPostsContent].reverse())
+          const expectedContent = [...marsPostsContent].reverse().concat([...lunaPostsContent].reverse())
           await homeFeedEqualTo(luna, expectedContent, luna.id)
 
           await marsPosts[0].addLike(jupiter)
@@ -296,14 +296,14 @@ describe('PostBubbling', function () {
 
           describe("Luna's posts", () => {
             it('disappears from Mars home feed', async () => {
-              let expectedContent = [...marsPostsContent].reverse()
+              const expectedContent = [...marsPostsContent].reverse()
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
           })
 
           describe("Mars's posts", () => {
             it('disappears from Luna home feed', async () => {
-              let expectedContent = [...lunaPostsContent].reverse()
+              const expectedContent = [...lunaPostsContent].reverse()
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
           })
@@ -314,12 +314,12 @@ describe('PostBubbling', function () {
             })
 
             it('likes not changes posts order in Luna home feed', async () => {
-              let expectedContent = [...lunaPostsContent].reverse()
+              const expectedContent = [...lunaPostsContent].reverse()
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
 
             it("not brings post to Mars's home feed", async () => {
-              let expectedContent = [...marsPostsContent].reverse()
+              const expectedContent = [...marsPostsContent].reverse()
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
           })
@@ -330,12 +330,12 @@ describe('PostBubbling', function () {
             })
 
             it("not brings post to Luna's home feed", async () => {
-              let expectedContent = ['C', 'B', 'A']
+              const expectedContent = ['C', 'B', 'A']
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
 
             it("brings post to the top of Mars's home feed", async () => {
-              let expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
+              const expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
           })
@@ -346,12 +346,12 @@ describe('PostBubbling', function () {
             })
 
             it('not brings post to Mars home feed', async () => {
-              let expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
+              const expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
 
             it('not changes posts order in Luna home feed', async () => {
-              let expectedContent = ['C', 'B', 'A']
+              const expectedContent = ['C', 'B', 'A']
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
           })
@@ -362,12 +362,12 @@ describe('PostBubbling', function () {
             })
 
             it('not brings post to Mars home feed', async () => {
-              let expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
+              const expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
 
             it('brings post to the top of Luna home feed', async () => {
-              let expectedContent = ['A', 'C', 'B']
+              const expectedContent = ['A', 'C', 'B']
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
           })
@@ -402,25 +402,25 @@ describe('PostBubbling', function () {
       await pluto.create()
       await jupiter.create()
 
-      for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body })
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
-      for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body })
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
-      for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({ body })
+      for (const body of plutoPostsContent) {
+        const post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
     })
 
     describe('isFriends(Luna, Mars) && isFriends(Mars, Pluto)', () => {
       beforeEach(async () => {
-        let marsTimelineId  = await mars.getPostsTimelineId()
-        let lunaTimelineId  = await luna.getPostsTimelineId()
-        let plutoTimelineId = await pluto.getPostsTimelineId()
+        const marsTimelineId  = await mars.getPostsTimelineId()
+        const lunaTimelineId  = await luna.getPostsTimelineId()
+        const plutoTimelineId = await pluto.getPostsTimelineId()
         await luna.subscribeTo(marsTimelineId)
         await mars.subscribeTo(lunaTimelineId)
         await mars.subscribeTo(plutoTimelineId)
@@ -428,13 +428,13 @@ describe('PostBubbling', function () {
       })
 
       it("Pluto home feed consists of Pluto's and Mars's posts", async () => {
-        let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+        const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
       it("friend's likes brings friend of friend's posts to Pluto home feed", async () => {
         await lunaPosts[0].addLike(mars)
-        let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+        const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
@@ -442,58 +442,58 @@ describe('PostBubbling', function () {
         await lunaPosts[0].addLike(mars)
         await addCommentToPost(mars, marsPosts[0], 'Whiskey')
         await lunaPosts[0].addLike(pluto)
-        let expectedContent = ['Able', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker']
+        const expectedContent = ['Able', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
       it("friend's comments brings friend of friend's posts to Pluto home feed", async () => {
         await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
-        let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+        const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
       it("friend's comments bumps posts in Pluto home feed", async () => {
         await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
         await addCommentToPost(luna, marsPosts[0], 'Oboe')
-        let expectedContent = ['Able', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker']
+        const expectedContent = ['Able', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
       it("stranger's likes does not bring friend of friend's posts to Pluto home feed", async () => {
         await lunaPosts[0].addLike(jupiter)
-        let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+        const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
       it("stranger's comments does not bring friend of friend's posts to Pluto home feed", async () => {
         await addCommentToPost(jupiter, lunaPosts[0], 'Nan')
-        let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+        const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
         await homeFeedEqualTo(pluto, expectedContent, pluto.id)
       })
 
       describe('second-level friends communication', () => {
         beforeEach(async () => {
           const jupiterPostsContent = ['Affirm', 'Clear', 'Negative']
-          let marsTimelineId  = await mars.getPostsTimelineId()
-          let jupiterTimelineId  = await jupiter.getPostsTimelineId()
+          const marsTimelineId  = await mars.getPostsTimelineId()
+          const jupiterTimelineId  = await jupiter.getPostsTimelineId()
           await mars.subscribeTo(jupiterTimelineId)
           await jupiter.subscribeTo(marsTimelineId)
-          let jupiterPosts = []
-          for (let body of jupiterPostsContent) {
-            let post = await jupiter.newPost({ body })
+          const jupiterPosts = []
+          for (const body of jupiterPostsContent) {
+            const post = await jupiter.newPost({ body })
             jupiterPosts.push(await post.create())
           }
         })
 
         it("likes does not bring friend of friend's posts to Pluto home feed", async () => {
           await lunaPosts[0].addLike(jupiter)
-          let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+          const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
           await homeFeedEqualTo(pluto, expectedContent, pluto.id)
         })
 
         it("stranger's comments does not bring friend of friend's posts to Pluto home feed", async () => {
           await addCommentToPost(jupiter, lunaPosts[0], 'Nan')
-          let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+          const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
           await homeFeedEqualTo(pluto, expectedContent, pluto.id)
         })
       })
@@ -507,13 +507,13 @@ describe('PostBubbling', function () {
 
           it("friend's likes not brings banner's posts to Pluto home feed", async () => {
             await lunaPosts[0].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("friend's comments not brings banner's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -525,19 +525,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed to Pluto home feed by friend's comment disappears", async () => {
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's comments not brings banner's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Mike')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's likes not brings banner's posts to Pluto home feed", async () => {
             await lunaPosts[0].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -549,19 +549,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed to Pluto home feed by friend's likes disappears", async () => {
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's comments not brings banner's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Mike')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's likes not brings banner's posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -575,13 +575,13 @@ describe('PostBubbling', function () {
 
           it("friend's likes brings banner's posts to Pluto home feed", async () => {
             await lunaPosts[0].addLike(mars)
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("friend's comments brings banner's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -593,19 +593,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed into Pluto home feed by friend's comment doesn't disappear", async () => {
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's comments brings banner's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[1], 'Mike')
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's likes brings banner's posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -617,19 +617,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed into Pluto home feed by friend's likes doesn't disappear", async () => {
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's comments brings banner's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[1], 'Mike')
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's likes brings banner's posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -643,13 +643,13 @@ describe('PostBubbling', function () {
 
           it("friend's likes not brings banned user's posts to Pluto home feed", async () => {
             await lunaPosts[0].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("friend's comments not brings banned user's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -661,19 +661,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed to Pluto home feed by friend's comment disappears", async () => {
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's comments not brings banned user's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[1], 'Mike')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's likes not brings banned user's posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -685,19 +685,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed to Pluto home feed by friend's likes disappears", async () => {
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's comments not brings banned user's posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[1], 'Mike')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then friend's likes not brings banned user's posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -711,13 +711,13 @@ describe('PostBubbling', function () {
 
           it("banned user's likes brings posts to Pluto home feed", async () => {
             await lunaPosts[0].addLike(mars)
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("banned user's comments brings posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -729,19 +729,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed to Pluto home feed by banned user's comment doesn't disappear", async () => {
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then banned user's comments brings posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[1], 'Mike')
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then banned user's likes brings posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -753,19 +753,19 @@ describe('PostBubbling', function () {
           })
 
           it("posts bringed to Pluto home feed by banned user's likes doesn't disappear", async () => {
-            let expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then banned user's comments brings posts to Pluto home feed", async () => {
             await addCommentToPost(mars, lunaPosts[1], 'Mike')
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it("and then banned user's likes brings posts to Pluto home feed", async () => {
             await lunaPosts[1].addLike(mars)
-            let expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
+            const expectedContent = ['B', 'A', 'Delta', 'Gamma', 'Beta', 'Alpha']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -797,25 +797,25 @@ describe('PostBubbling', function () {
       await mars.create()
       await pluto.create()
 
-      for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body })
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
-      for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body })
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
-      for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({ body })
+      for (const body of plutoPostsContent) {
+        const post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
     })
 
     describe('isFriends(Luna, Mars) && isFriends(Mars, Pluto)', () => {
       beforeEach(async () => {
-        let marsTimelineId  = await mars.getPostsTimelineId()
-        let lunaTimelineId  = await luna.getPostsTimelineId()
-        let plutoTimelineId = await pluto.getPostsTimelineId()
+        const marsTimelineId  = await mars.getPostsTimelineId()
+        const lunaTimelineId  = await luna.getPostsTimelineId()
+        const plutoTimelineId = await pluto.getPostsTimelineId()
         await luna.subscribeTo(marsTimelineId)
         await mars.subscribeTo(lunaTimelineId)
         await mars.subscribeTo(plutoTimelineId)
@@ -825,13 +825,13 @@ describe('PostBubbling', function () {
       describe("private user's posts are not bringed to Pluto home feed", () => {
         it('by friend likes', async () => {
           await lunaPosts[0].addLike(mars)
-          let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+          const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
           await homeFeedEqualTo(pluto, expectedContent, pluto.id)
         })
 
         it('by friend comments', async () => {
           await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
-          let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+          const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
           await homeFeedEqualTo(pluto, expectedContent, pluto.id)
         })
       })
@@ -870,29 +870,29 @@ describe('PostBubbling', function () {
 
       easyfoxTimelineId = await easyfox.getPostsTimelineId()
 
-      for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body })
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
-      for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body })
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
-      for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({ body })
+      for (const body of plutoPostsContent) {
+        const post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
-      for (let body of easyfoxPostsContent) {
-        let post = await easyfox.newPost({ body, timelineIds: [easyfoxTimelineId] })
+      for (const body of easyfoxPostsContent) {
+        const post = await easyfox.newPost({ body, timelineIds: [easyfoxTimelineId] })
         easyfoxPosts.push(await post.create())
       }
     })
 
     describe('isFriends(Luna, Mars) && isFriends(Mars, Pluto) && easyFox.isGroupMember(Mars)', () => {
       beforeEach(async () => {
-        let marsTimelineId  = await mars.getPostsTimelineId()
-        let lunaTimelineId  = await luna.getPostsTimelineId()
-        let plutoTimelineId = await pluto.getPostsTimelineId()
+        const marsTimelineId  = await mars.getPostsTimelineId()
+        const lunaTimelineId  = await luna.getPostsTimelineId()
+        const plutoTimelineId = await pluto.getPostsTimelineId()
         await luna.subscribeTo(marsTimelineId)
         await mars.subscribeTo(lunaTimelineId)
         await mars.subscribeTo(plutoTimelineId)
@@ -901,14 +901,14 @@ describe('PostBubbling', function () {
 
       describe('EasyFox posts feed consists of', () => {
         it('group posts', async () => {
-          let expectedContent = ['Jig', 'Item', 'How']
+          const expectedContent = ['Jig', 'Item', 'How']
 
-          let postsFeed = await easyfox.getPostsTimeline({ currentUser: luna.id })
-          let posts = await postsFeed.getPosts()
+          const postsFeed = await easyfox.getPostsTimeline({ currentUser: luna.id })
+          const posts = await postsFeed.getPosts()
 
           posts.should.not.be.empty
           posts.length.should.eql(expectedContent.length)
-          let postsFeedContent = posts.map((p) => {
+          const postsFeedContent = posts.map((p) => {
             return p.body
           }).join(',')
           postsFeedContent.should.eql(expectedContent.join(','))
@@ -923,13 +923,13 @@ describe('PostBubbling', function () {
         describe('private group posts are not bringed to Pluto home feed', () => {
           it('by friend likes', async () => {
             await easyfoxPosts[0].addLike(mars)
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
           it('by friend comments', async () => {
             await addCommentToPost(mars, easyfoxPosts[0], 'Whiskey')
-            let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
+            const expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
         })
@@ -937,7 +937,7 @@ describe('PostBubbling', function () {
         describe("private group posts are not bringed to the top of subscriber's home feed", () => {
           it('by friend likes', async () => {
             await easyfoxPosts[0].addLike(luna)
-            let expectedContent = ['Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
+            const expectedContent = ['Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
         })
@@ -945,17 +945,17 @@ describe('PostBubbling', function () {
         describe("private group posts are bringed to the top of subscriber's home feed", () => {
           it('by friend comments', async () => {
             await addCommentToPost(luna, easyfoxPosts[0], 'Whiskey')
-            let expectedContent = ['How', 'Jig', 'Item', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
+            const expectedContent = ['How', 'Jig', 'Item', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
         })
 
         describe("new private group posts are bringed to subscriber's home feed", () => {
           it('after post creation', async () => {
-            let post = await easyfox.newPost({ body: 'King NaN', timelineIds: [easyfoxTimelineId] })
+            const post = await easyfox.newPost({ body: 'King NaN', timelineIds: [easyfoxTimelineId] })
             easyfoxPosts.push(await post.create())
 
-            let expectedContent = ['King NaN', 'Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
+            const expectedContent = ['King NaN', 'Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
         })
@@ -986,22 +986,22 @@ describe('PostBubbling', function () {
       await mars.create()
       await pluto.create()
 
-      for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body })
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
-      for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body })
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
-      for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({ body })
+      for (const body of plutoPostsContent) {
+        const post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
 
-      let marsTimelineId  = await mars.getPostsTimelineId()
-      let lunaTimelineId  = await luna.getPostsTimelineId()
-      let plutoTimelineId = await pluto.getPostsTimelineId()
+      const marsTimelineId  = await mars.getPostsTimelineId()
+      const lunaTimelineId  = await luna.getPostsTimelineId()
+      const plutoTimelineId = await pluto.getPostsTimelineId()
 
       await luna.subscribeTo(marsTimelineId)
       await mars.subscribeTo(lunaTimelineId)

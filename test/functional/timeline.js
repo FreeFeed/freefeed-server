@@ -22,7 +22,7 @@ describe('TimelinesController', function () {
   })
 
   describe('#home()', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
@@ -48,7 +48,7 @@ describe('TimelinesController', function () {
     })
 
     it('should return River of News with one post', function (done) {
-      var body = 'Post body'
+      const body = 'Post body'
 
       funcTestHelper.createPost(context, body)(function (err, res) {
         res.body.should.not.be.empty
@@ -74,7 +74,7 @@ describe('TimelinesController', function () {
   })
 
   describe('#posts()', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
@@ -97,7 +97,7 @@ describe('TimelinesController', function () {
   })
 
   describe('#pagination', function () {
-    var context = {}
+    const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post one')(done) })
@@ -138,8 +138,8 @@ describe('TimelinesController', function () {
   })
 
   describe('#likes()', function () {
-    var context = {}
-    var marsContext = {}
+    const context = {}
+    const marsContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
@@ -189,15 +189,15 @@ describe('TimelinesController', function () {
   })
 
   describe('#comments()', function () {
-    var context = {}
-      , comment
-      , comment2
+    const context = {}
+    let comment
+    let comment2
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
     beforeEach(function (done) {
-      var body = 'Comment'
+      const body = 'Comment'
 
       funcTestHelper.createComment(body, context.post.id, context.authToken, function (err, res) {
         comment = res.body.comments

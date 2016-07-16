@@ -11,7 +11,7 @@ describe('Comment', function () {
   })
 
   describe('#update()', function () {
-    var userA
+    let userA
       , comment
       , post
 
@@ -21,14 +21,14 @@ describe('Comment', function () {
         password: 'password'
       })
 
-      var postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' }
 
       userA.create()
         .then(function () { return userA.newPost(postAttrs) })
         .then(function (newPost) { return newPost.create() })
         .then(function (newPost) {
           post = newPost
-          var commentAttrs = {
+          const commentAttrs = {
             body:   'Comment body',
             postId: post.id
           }
@@ -43,8 +43,8 @@ describe('Comment', function () {
     })
 
     it('should update without error', function (done) {
-      var body = 'Body'
-      var attrs = { body }
+      const body = 'Body'
+      const attrs = { body }
 
       comment.update(attrs)
         .then(function (newComment) {
@@ -59,7 +59,7 @@ describe('Comment', function () {
   })
 
   describe('#create()', function () {
-    var user
+    let user
       , post
 
     beforeEach(function (done) {
@@ -86,7 +86,7 @@ describe('Comment', function () {
     })
 
     it('should create without error', function (done) {
-      var comment = new Comment({
+      const comment = new Comment({
         body:   'Comment body',
         userId: user.id,
         postId: post.id
@@ -112,8 +112,8 @@ describe('Comment', function () {
     })
 
     it('should ignore whitespaces in body', function (done) {
-      var body = '   Comment body    '
-      var comment = new Comment({
+      const body = '   Comment body    '
+      const comment = new Comment({
         body,
         userId: user.id,
         postId: post.id
@@ -133,7 +133,7 @@ describe('Comment', function () {
     })
 
     it('should not create with empty body', function (done) {
-      var comment = new Comment({
+      const comment = new Comment({
         body:   '',
         userId: user.id,
         postId: post.id
@@ -148,7 +148,7 @@ describe('Comment', function () {
   })
 
   describe('#findById()', function () {
-    var user
+    let user
       , post
 
     beforeEach(function (done) {
@@ -175,7 +175,7 @@ describe('Comment', function () {
     })
 
     it('should find comment with a valid id', function (done) {
-      var comment = new Comment({
+      const comment = new Comment({
         body:   'Comment body',
         userId: user.id,
         postId: post.id
@@ -194,7 +194,7 @@ describe('Comment', function () {
     })
 
     it('should not find comment with invalid id', function (done) {
-      var identifier = 'comment:identifier'
+      const identifier = 'comment:identifier'
 
       dbAdapter.getCommentById(identifier)
         .then(function (comment) {
@@ -206,7 +206,7 @@ describe('Comment', function () {
   })
 
   describe('#destroy()', function () {
-    var userA
+    let userA
       , post
 
     beforeEach(function (done) {
@@ -215,7 +215,7 @@ describe('Comment', function () {
         password: 'password'
       })
 
-      var postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' }
       let comment
 
       userA.create()
@@ -223,7 +223,7 @@ describe('Comment', function () {
         .then(function (newPost) { return newPost.create() })
         .then(function (newPost) {
           post = newPost
-          var commentAttrs = {
+          const commentAttrs = {
             body:   'Comment body',
             postId: post.id
           }
@@ -240,10 +240,10 @@ describe('Comment', function () {
     it('should destroy comment', async () => {
       let comments = await post.getComments()
 
-      let comment = comments[0]
+      const comment = comments[0]
       await comment.destroy()
 
-      let oldComment = await dbAdapter.getCommentById(comment.id)
+      const oldComment = await dbAdapter.getCommentById(comment.id)
       isNull(oldComment).should.be.true
 
       comments = await post.getComments()
