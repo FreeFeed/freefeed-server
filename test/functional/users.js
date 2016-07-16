@@ -683,8 +683,6 @@ describe("UsersController", function () {
 
   describe("#update()", function () {
     describe('single-user tests', function () {
-      "use strict";
-
       var authToken
         , user
 
@@ -856,8 +854,6 @@ describe("UsersController", function () {
     })
 
     describe('double-user tests', function () {
-      "use strict";
-
       var lunaContext = {}
       var marsContext = {}
 
