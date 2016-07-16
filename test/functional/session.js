@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database */
 import request from 'superagent'
 import fetch from 'node-fetch'
 import knexCleaner from 'knex-cleaner'

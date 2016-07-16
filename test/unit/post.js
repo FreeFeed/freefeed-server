@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $pg_database, $should */
+/* eslint-env node, mocha */
+/* global $pg_database, $should */
 import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Post, User } from '../../app/models'
 

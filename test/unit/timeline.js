@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $pg_database, $should */
+/* eslint-env node, mocha */
+/* global $pg_database, $should */
 import uuid from 'uuid'
 import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Timeline, User } from '../../app/models'

@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $pg_database, $should */
+/* eslint-env node, mocha */
+/* global $pg_database, $should */
 import async from 'async'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'

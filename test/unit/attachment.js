@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database */
 import fs from 'fs'
 import path from 'path'
 import mkdirp from 'mkdirp'

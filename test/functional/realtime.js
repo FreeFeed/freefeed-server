@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $database, $pg_database */
+/* eslint-env node, mocha */
+/* global $database, $pg_database */
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app';
