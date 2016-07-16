@@ -120,7 +120,7 @@ describe("PostsController", function() {
 
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+          .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
           .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(403)
@@ -160,7 +160,7 @@ describe("PostsController", function() {
 
             request
               .post(app.config.host + '/v1/posts')
-              .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+              .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
               .end(function(err, res) {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')
@@ -218,7 +218,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function(err, res) {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
@@ -233,7 +233,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function(err, res) {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
@@ -262,7 +262,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function(err, res) {
               post = res.body.posts
 
@@ -297,7 +297,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function(err, res) {
               post = res.body.posts
 
@@ -317,7 +317,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
             .end(function() {
               funcTestHelper.getTimeline('/v1/timelines/filter/directs', ctx.authToken, function(err, res) {
                 res.body.should.have.property('posts')
@@ -346,7 +346,7 @@ describe("PostsController", function() {
         var screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: groupName, screenName: screenName },
+          .send({ group: { username: groupName, screenName },
                   authToken: ctx.authToken })
           .end(function() {
             done()
@@ -362,7 +362,7 @@ describe("PostsController", function() {
 
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
+          .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
           .end(function(err, res) {
             res.body.should.not.be.empty
             res.body.should.have.property('posts')
@@ -400,7 +400,7 @@ describe("PostsController", function() {
 
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [groupName, ctx.username] }, authToken: ctx.authToken })
+          .send({ post: { body }, meta: { feeds: [groupName, ctx.username] }, authToken: ctx.authToken })
           .end(function(err, res) {
             _.isUndefined(res).should.be.false
             res.body.should.not.be.empty
@@ -437,7 +437,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
             .end(function (err, res) {
               var postTimestamp = res.body.posts.createdAt
               res.status.should.eql(200)
@@ -464,7 +464,7 @@ describe("PostsController", function() {
 
             request
               .post(app.config.host + '/v1/posts')
-              .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
+              .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end(function(err, res) {
                 res.status.should.eql(200)
                 funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, function(err, res) {
@@ -487,7 +487,7 @@ describe("PostsController", function() {
 
             request
               .post(app.config.host + '/v1/posts')
-              .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
+              .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end(function(err, res) {
                 res.status.should.eql(200)
                 funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, function(err, res) {
@@ -508,7 +508,7 @@ describe("PostsController", function() {
 
             request
               .post(app.config.host + '/v1/posts')
-              .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
+              .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end(function(err, res) {
                 res.status.should.eql(200)
                 var post = res.body.posts
@@ -530,7 +530,7 @@ describe("PostsController", function() {
 
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
+          .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
             var post = res.body.posts
@@ -595,7 +595,7 @@ describe("PostsController", function() {
         var screenName = 'Pepyatka Developers';
         request
             .post(app.config.host + '/v1/groups')
-            .send({ group: { username: groupName, screenName: screenName },
+            .send({ group: { username: groupName, screenName },
               authToken: context.authToken })
             .end(function() {
               done()
@@ -607,7 +607,7 @@ describe("PostsController", function() {
 
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: context.authToken })
+          .send({ post: { body }, meta: { feeds: [groupName] }, authToken: context.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
             funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function(err, res) {

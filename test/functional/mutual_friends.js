@@ -42,7 +42,7 @@ describe("MutualFriends", function() {
         var body = 'body'
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
             request
@@ -64,7 +64,7 @@ describe("MutualFriends", function() {
         var body = 'body'
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
             request
@@ -95,7 +95,7 @@ describe("MutualFriends", function() {
         var body = 'body'
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, function() {
@@ -118,7 +118,7 @@ describe("MutualFriends", function() {
         var body = 'body'
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, function() {
@@ -146,7 +146,7 @@ describe("MutualFriends", function() {
         var body = 'body'
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
             funcTestHelper.createComment(body, post.id, zeusContext.authToken, function(err, res) {
@@ -166,7 +166,7 @@ describe("MutualFriends", function() {
         var body = 'body'
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
             request

@@ -31,7 +31,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: userName, screenName: screenName },
+        .send({ group: { username: userName, screenName },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -51,7 +51,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: userName, screenName: screenName, isPrivate: '1' },
+        .send({ group: { username: userName, screenName, isPrivate: '1' },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -67,7 +67,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: userName, screenName: screenName, isRestricted: '1' },
+        .send({ group: { username: userName, screenName, isRestricted: '1' },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -83,7 +83,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: userName, screenName: screenName, isPrivate: '1', isRestricted: '1' },
+        .send({ group: { username: userName, screenName, isPrivate: '1', isRestricted: '1' },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -149,7 +149,7 @@ describe("PrivateGroups", function() {
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: context.authToken,
-                user: { screenName: screenName, description: description, },
+                user: { screenName, description },
                 '_method': 'put' })
         .end(function(err, res) {
           res.should.not.be.empty

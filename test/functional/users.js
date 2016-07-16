@@ -269,7 +269,7 @@ describe("UsersController", function() {
     it('should return current user for a valid user', function(done) {
       request
         .get(app.config.host + '/v1/users/whoami')
-        .query({ authToken: authToken })
+        .query({ authToken })
         .end(function(err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
@@ -417,7 +417,7 @@ describe("UsersController", function() {
 
               request
                 .post(app.config.host + '/v1/posts')
-                .send({ post: { body: body }, authToken: authTokenA })
+                .send({ post: { body }, authToken: authTokenA })
                 .end(function() {
                   request
                     .post(app.config.host + '/v1/users/' + userA.username + '/subscribe')
@@ -489,7 +489,7 @@ describe("UsersController", function() {
 
               request
                 .post(app.config.host + '/v1/posts')
-                .send({ post: { body: body }, authToken: authTokenA })
+                .send({ post: { body }, authToken: authTokenA })
                 .end(function() {
                   request
                     .post(app.config.host + '/v1/users/' + userA.username + '/subscribe')
@@ -699,8 +699,8 @@ describe("UsersController", function() {
 
         request
           .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken: authToken,
-            user: { screenName: screenName, description: description },
+          .send({ authToken,
+            user: { screenName, description },
             '_method': 'put' })
           .end(function(err, res) {
             res.should.not.be.empty
@@ -766,7 +766,7 @@ describe("UsersController", function() {
       it('should update privacy settings', function(done) {
         request
           .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken: authToken,
+          .send({ authToken,
                   user: { isPrivate: '1' },
                   '_method': 'put' })
           .end(function(err, res) {
@@ -786,7 +786,7 @@ describe("UsersController", function() {
         request
           .post(app.config.host + '/v1/users/' + user.id)
           .send({ authToken: 'abc',
-            user: { screenName: screenName },
+            user: { screenName },
             '_method': 'put' })
           .end(function(err) {
             err.should.not.be.empty
@@ -805,8 +805,8 @@ describe("UsersController", function() {
         it('should not allow invalid screen-name: ' + screenName, function(done) {
           request
             .post(app.config.host + '/v1/users/' + user.id)
-            .send({ authToken: authToken,
-              user: { screenName: screenName },
+            .send({ authToken,
+              user: { screenName },
               '_method': 'put' })
             .end(function(err) {
               err.should.not.be.empty
@@ -829,8 +829,8 @@ describe("UsersController", function() {
         it('should allow valid screen-name: ' + screenName, function(done) {
           request
             .post(app.config.host + '/v1/users/' + user.id)
-            .send({ authToken: authToken,
-              user: { screenName: screenName },
+            .send({ authToken,
+              user: { screenName },
               '_method': 'put' })
             .end(function(err, res) {
               res.should.not.be.empty
@@ -1044,9 +1044,9 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
+        .send({ authToken,
                 currentPassword: user.password,
-                password: password,
+                password,
                 passwordConfirmation: password,
                 '_method': 'put' })
         .end(function(err) {
@@ -1054,7 +1054,7 @@ describe("UsersController", function() {
 
           request
             .post(app.config.host + '/v1/session')
-            .send({ username: user.username, password: password })
+            .send({ username: user.username, password })
             .end(function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
@@ -1071,9 +1071,9 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
+        .send({ authToken,
                 currentPassword: user.password,
-                password: password,
+                password,
                 passwordConfirmation: password,
                 '_method': 'put' })
         .end(function(err) {
@@ -1095,9 +1095,9 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
+        .send({ authToken,
                 currentPassword: user.password,
-                password: password,
+                password,
                 passwordConfirmation: "abc",
                 '_method': 'put' })
         .end(function(err) {
@@ -1114,9 +1114,9 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
+        .send({ authToken,
                 currentPassword: user.password,
-                password: password,
+                password,
                 passwordConfirmation: password,
                 '_method': 'put' })
         .end(function(err) {
@@ -1133,9 +1133,9 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
+        .send({ authToken,
                 currentPassword: "abc",
-                password: password,
+                password,
                 passwordConfirmation: password,
                 '_method': 'put' })
         .end(function(err) {
@@ -1153,7 +1153,7 @@ describe("UsersController", function() {
       request
         .post(app.config.host + '/v1/users/updatePassword')
         .send({ authToken: 'abc',
-                user: { screenName: screenName },
+                user: { screenName },
                 '_method': 'put' })
         .end(function(err) {
           err.should.not.be.empty
@@ -1185,7 +1185,7 @@ describe("UsersController", function() {
           res.body.should.not.be.empty
           request
             .get(app.config.host + '/v1/users/whoami')
-            .query({ authToken: authToken })
+            .query({ authToken })
             .end(function(err, res) {
               res.should.not.be.empty
               res.body.users.profilePictureLargeUrl.should.not.be.empty

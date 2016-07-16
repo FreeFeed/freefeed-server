@@ -23,8 +23,8 @@ export function createUser(username, password, attributes, callback) {
       attributes = {}
 
     var user = {
-      username: username,
-      password: password
+      username,
+      password
     }
     if (attributes.email)
       user.email = attributes.email
@@ -101,7 +101,7 @@ export function createPost(context, body, callback) {
     apiUrl('/v1/posts').then((url) => {
       request
         .post(url)
-        .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
+        .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
         .end(function(err, res) {
           context.post = res.body.posts
           if (typeof callback !== 'undefined')
@@ -115,8 +115,8 @@ export function createPost(context, body, callback) {
 
 export function createPostWithCommentsDisabled(context, body, commentsDisabled) {
   return postJson('/v1/posts', {
-    post: { body: body },
-    meta: { feeds: context.username, commentsDisabled: commentsDisabled },
+    post: { body },
+    meta: { feeds: context.username, commentsDisabled },
     authToken: context.authToken
   })
 }
@@ -125,7 +125,7 @@ export function createPostForTest(context, body, callback) {
   apiUrl('/v1/posts').then((url) => {
     request
       .post(url)
-      .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
+      .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
       .end(function(err, res) {
         context.post = res.body.posts
         callback(err, res)
@@ -137,13 +137,13 @@ export function createComment(body, postId, authToken, callback) {
   return function(done) {
     apiUrl('/v1/comments').then((url) => {
       var comment = {
-        body: body,
-        postId: postId
+        body,
+        postId
       }
 
       request
         .post(url)
-        .send({ comment: comment, authToken: authToken })
+        .send({ comment, authToken })
         .end(function(err, res) {
           done(err, res)
         })
@@ -155,13 +155,13 @@ export function createCommentCtx(context, body) {
   return function(done) {
     apiUrl('/v1/comments').then((url) => {
       var comment = {
-        body: body,
+        body,
         postId: context.post.id
       }
 
       request
         .post(url)
-        .send({ comment: comment, authToken: context.authToken })
+        .send({ comment, authToken: context.authToken })
         .end(function (err, res) {
           context.comment = res.body.comments
           done(err, res)
@@ -176,7 +176,7 @@ export function removeComment(commentId, authToken, callback) {
       request
         .post(url)
         .send({
-          authToken: authToken,
+          authToken,
           '_method': 'delete'
         })
         .end(function(err, res) {
@@ -340,7 +340,7 @@ export function whoami(authToken) {
   return postJson(
     '/v1/users/whoami',
     {
-      authToken: authToken,
+      authToken,
       '_method': 'get'
     }
   )
@@ -562,7 +562,7 @@ export function deletePostAsync(context, postId) {
 export async function createGroupAsync(context, username, screenName) {
   let params = {
     group: {
-      username: username,
+      username,
       screenName: screenName || username
     },
     authToken: context.authToken
@@ -573,7 +573,7 @@ export async function createGroupAsync(context, username, screenName) {
 
   return {
     group: data.groups,
-    username: username
+    username
   }
 }
 

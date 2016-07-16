@@ -77,7 +77,7 @@ describe("PasswordsController", function() {
       , email = "luna@example.com"
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(function(done) { funcTestHelper.updateUserCtx(context, { email: email })(done) })
+    beforeEach(function(done) { funcTestHelper.updateUserCtx(context, { email })(done) })
     beforeEach(async () => { await funcTestHelper.sendResetPassword(email) })
 
     it('should not reset password by invalid resetToken', function(done) {

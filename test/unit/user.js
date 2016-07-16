@@ -54,7 +54,7 @@ describe('User', function() {
       it(`should allow username '${username}'`, function(done) {
 
         var user = new User({
-          username: username,
+          username,
           screenName: 'test',
           password: 'password',
           email: `user+${i++}@example.com`
@@ -74,7 +74,7 @@ describe('User', function() {
       it('should not allow invalid username ' + username, async () => {
 
         var user = new User({
-          username: username,
+          username,
           screenName: 'test',
           password: 'password',
           email: 'user@example.com'
@@ -115,7 +115,7 @@ describe('User', function() {
         await user.create()
 
         const updatedUser = await user.update({
-          description: description
+          description
         })
 
         updatedUser.should.be.an.instanceOf(User)
@@ -143,7 +143,7 @@ describe('User', function() {
 
         try {
           await user.update({
-            description: description
+            description
           })
         } catch (e) {
           e.message.should.eql('Description is too long')
@@ -230,8 +230,8 @@ describe('User', function() {
       user.create()
         .then(function(user) {
           return user.update({
-            screenName: screenName,
-            description: description
+            screenName,
+            description
           })
         })
         .then(function(newUser) {
@@ -270,7 +270,7 @@ describe('User', function() {
       var screenName = 'Luna'
       var user = new User({
         username: 'Luna',
-        screenName: screenName,
+        screenName,
         password: 'password'
       })
 
@@ -366,7 +366,7 @@ describe('User', function() {
     it('should ignore whitespaces in username', function(done) {
       var username = ' Luna  '
         , user = new User({
-          username: username,
+          username,
           password: 'password'
         })
 

@@ -34,7 +34,7 @@ describe('Post', function() {
     it('should update without error', function(done) {
       var body = 'Body'
       var attrs = {
-        body: body
+        body
       }
 
       post.update(attrs)
@@ -106,7 +106,7 @@ describe('Post', function() {
     it('should ignore whitespaces in body', function(done) {
       var body = '   Post body    '
       var post = new Post({
-        body: body,
+        body,
         userId: user.id,
         timelineIds: [timelineId],
         commentsDisabled: '0'

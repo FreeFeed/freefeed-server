@@ -66,11 +66,11 @@ describe('PostBubbling', function() {
       await jupiter.create()
 
       for(let body of lunaPostsContent){
-        let post = await luna.newPost({ body: body })
+        let post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
       for(let body of marsPostsContent){
-        let post = await mars.newPost({ body: body })
+        let post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
     })
@@ -403,15 +403,15 @@ describe('PostBubbling', function() {
       await jupiter.create()
 
       for(let body of lunaPostsContent){
-        let post = await luna.newPost({ body: body })
+        let post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
       for(let body of marsPostsContent){
-        let post = await mars.newPost({ body: body })
+        let post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
       for(let body of plutoPostsContent){
-        let post = await pluto.newPost({ body: body })
+        let post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
     })
@@ -480,7 +480,7 @@ describe('PostBubbling', function() {
           await jupiter.subscribeTo(marsTimelineId)
           let jupiterPosts = []
           for(let body of jupiterPostsContent){
-            let post = await jupiter.newPost({ body: body })
+            let post = await jupiter.newPost({ body })
             jupiterPosts.push(await post.create())
           }
         })
@@ -800,15 +800,15 @@ describe('PostBubbling', function() {
       await pluto.create()
 
       for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body: body })
+        let post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
       for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body: body })
+        let post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
       for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({ body: body })
+        let post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
     })
@@ -873,19 +873,19 @@ describe('PostBubbling', function() {
       easyfoxTimelineId = await easyfox.getPostsTimelineId()
 
       for (let body of lunaPostsContent) {
-        let post = await luna.newPost({ body: body })
+        let post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
       for (let body of marsPostsContent) {
-        let post = await mars.newPost({ body: body })
+        let post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
       for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({ body: body })
+        let post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
       for (let body of easyfoxPostsContent) {
-        let post = await easyfox.newPost({ body: body, timelineIds: [easyfoxTimelineId] })
+        let post = await easyfox.newPost({ body, timelineIds: [easyfoxTimelineId] })
         easyfoxPosts.push(await post.create())
       }
     })
@@ -989,15 +989,15 @@ describe('PostBubbling', function() {
       await pluto.create()
 
       for(let body of lunaPostsContent){
-        let post = await luna.newPost({ body: body })
+        let post = await luna.newPost({ body })
         lunaPosts.push(await post.create())
       }
       for(let body of marsPostsContent){
-        let post = await mars.newPost({ body: body })
+        let post = await mars.newPost({ body })
         marsPosts.push(await post.create())
       }
       for(let body of plutoPostsContent){
-        let post = await pluto.newPost({ body: body })
+        let post = await pluto.newPost({ body })
         plutoPosts.push(await post.create())
       }
 

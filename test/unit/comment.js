@@ -45,7 +45,7 @@ describe('Comment', function() {
     it('should update without error', function(done) {
       var body = 'Body'
       var attrs = {
-        body: body
+        body
       }
 
       comment.update(attrs)
@@ -116,7 +116,7 @@ describe('Comment', function() {
     it('should ignore whitespaces in body', function(done) {
       var body = '   Comment body    '
       var comment = new Comment({
-          body: body,
+          body,
           userId: user.id,
           postId: post.id
         })

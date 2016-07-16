@@ -28,7 +28,7 @@ describe('Attachment', function() {
 
     const createAndCheckAttachment = async (file, post, user) => {
       const attachment = new Attachment({
-        file: file,
+        file,
         postId: post.id,
         userId: user.id
       })

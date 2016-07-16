@@ -15,7 +15,7 @@ describe('Timeline', function() {
       var userId = uuid.v4()
       var timeline = new Timeline({
         name: 'name',
-        userId: userId
+        userId
       })
 
       timeline.create()
@@ -40,10 +40,7 @@ describe('Timeline', function() {
     it('should ignore whitespaces in name', function(done) {
       var userId = uuid.v4()
       var name = '   name    '
-      var timeline = new Timeline({
-        name: name,
-        userId: userId
-      })
+      var timeline = new Timeline({ name, userId })
 
       timeline.create()
         .then(function(timeline) { return timeline })
@@ -63,7 +60,7 @@ describe('Timeline', function() {
       var userId = uuid.v4()
       var timeline = new Timeline({
         name: '',
-        userId: userId
+        userId
       })
 
       timeline.create()
@@ -79,7 +76,7 @@ describe('Timeline', function() {
       var userId = uuid.v4()
       var timeline = new Timeline({
         name: 'name',
-        userId: userId
+        userId
       })
 
       timeline.create()

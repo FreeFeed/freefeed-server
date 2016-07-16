@@ -35,7 +35,7 @@ describe("CommentsController", function() {
         var screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: groupName, screenName: screenName },
+          .send({ group: { username: groupName, screenName },
                   authToken: context.authToken })
           .end(function() {
             done()
@@ -47,7 +47,7 @@ describe("CommentsController", function() {
 
         request
           .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: context.authToken })
+          .send({ post: { body }, meta: { feeds: [groupName] }, authToken: context.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
             var postB = res.body.posts

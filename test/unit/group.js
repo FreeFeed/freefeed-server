@@ -127,7 +127,7 @@ describe('Group', function() {
       group.should.have.property('screenName')
 
       await group.update({
-        screenName: screenName
+        screenName
       })
 
       group.should.be.an.instanceOf(Group)
@@ -144,7 +144,7 @@ describe('Group', function() {
       var screenName = 'Luna'
       var group = new Group({
         username: 'Luna',
-        screenName: screenName
+        screenName
       })
 
       group.create()
@@ -171,7 +171,7 @@ describe('Group', function() {
       it('should allow username ' + username, async () => {
 
         var group = new Group({
-          username: username,
+          username,
           screenName: 'test'
         })
 
@@ -188,7 +188,7 @@ describe('Group', function() {
       it('should not allow invalid username ' + username, async () => {
 
         var group = new Group({
-          username: username,
+          username,
           screenName: 'test'
         })
 
