@@ -972,7 +972,7 @@ describe("PostsController", function() {
         data.should.have.property('attachments')
         data.posts.attachments.should.eql(anotherPost.attachments)
       }
-   })
+    })
   })
 
   describe('#show()', function() {

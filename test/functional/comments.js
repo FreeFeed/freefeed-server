@@ -193,13 +193,13 @@ describe("CommentsController", function() {
 
   describe('#destroy()', function() {
     let lunaContext = {},
-        marsContext = {},
-        ceresContext = {},
-        lunaPostLunaComment,
-        lunaPostMarsComment,
-        marsPostMarsComment,
-        marsPostLunaComment,
-        marsPostCeresComment
+      marsContext = {},
+      ceresContext = {},
+      lunaPostLunaComment,
+      lunaPostMarsComment,
+      marsPostMarsComment,
+      marsPostLunaComment,
+      marsPostCeresComment
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))

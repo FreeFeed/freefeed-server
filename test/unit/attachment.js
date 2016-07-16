@@ -295,5 +295,5 @@ describe('Attachment', function() {
         buffer[2].should.be.within(127, 129)
       }
     })
- })
+  })
 })

@@ -1301,9 +1301,9 @@ describe("UsersController", function() {
     // Zeus writes a post, Mars likes it, Zeus bans Mars and should not see like
     it('should ban user likes', function(done) {
       funcTestHelper.createPostForTest(zeusContext, 'Post body', function(err, res) {
-          res.body.should.not.be.empty
+        res.body.should.not.be.empty
 
-          request
+        request
             .post(app.config.host + '/v1/posts/' + zeusContext.post.id + '/like')
             .send({ authToken: marsContext.authToken })
             .end(function(err) {
@@ -1333,7 +1333,7 @@ describe("UsersController", function() {
                   })
                 })
             })
-        })
+      })
     })
 
     // Mars writes a post, Zeus likes post, Zeus bans Mars and should not see the post any more
@@ -1361,7 +1361,7 @@ describe("UsersController", function() {
                   })
                 })
             })
-        })
+          })
       })
     })
 

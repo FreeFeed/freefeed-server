@@ -116,10 +116,10 @@ describe('Comment', function() {
     it('should ignore whitespaces in body', function(done) {
       var body = '   Comment body    '
       var comment = new Comment({
-          body,
-          userId: user.id,
-          postId: post.id
-        })
+        body,
+        userId: user.id,
+        postId: post.id
+      })
 
       comment.create()
         .then(function() { return dbAdapter.getCommentById(comment.id) })
