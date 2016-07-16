@@ -6,8 +6,7 @@ import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
-import { User } from '../../app/models'
+import { PubSub, User } from '../../app/models'
 
 
 describe("SessionController", () => {

@@ -1,11 +1,12 @@
 /*eslint-env node, mocha */
 /*global $database, $pg_database */
 import knexCleaner from 'knex-cleaner'
+
 import { getSingleton } from '../../app/app';
-import * as funcTestHelper from './functional_test_helper';
-import { dbAdapter } from '../../app/models';
+import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
-import { PubSub } from '../../app/models'
+
+import * as funcTestHelper from './functional_test_helper';
 
 
 describe('Realtime (Socket.io)', () => {
