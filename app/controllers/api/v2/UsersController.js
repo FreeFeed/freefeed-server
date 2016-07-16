@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { dbAdapter } from '../../../models'
-import exceptions from '../../../support/exceptions'
+import { reportError } from '../../../support/exceptions'
 
 export default class UsersController {
   static async blockedByMe(req, res) {
@@ -21,7 +21,7 @@ export default class UsersController {
       const result = await Promise.all(profilePicsPromises)
       res.jsonp(result)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
@@ -19,7 +19,6 @@ describe("MutualFriends", function() {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 
@@ -178,7 +177,7 @@ describe("MutualFriends", function() {
                 try {
                   res.body.should.not.be.empty
                   res.body.should.have.property('err')
-                  res.body.err.should.eql('Not found')
+                  res.body.err.should.eql(`Can't find post`)
                   done()
                 } catch (e) {
                   done(e)

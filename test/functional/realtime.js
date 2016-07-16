@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $database, $pg_database */
 import knexCleaner from 'knex-cleaner'
 import { getSingleton } from '../../app/app';
 import * as funcTestHelper from './functional_test_helper';
@@ -19,7 +19,6 @@ describe('Realtime (Socket.io)', () => {
   });
 
   beforeEach(async () => {
-    await $database.flushdbAsync();
     await knexCleaner.clean($pg_database)
   })
 

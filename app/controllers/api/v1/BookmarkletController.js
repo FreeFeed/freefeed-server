@@ -9,7 +9,7 @@ import fetch from 'node-fetch'
 import { wait as waitForStream } from 'promise-streams'
 
 import { dbAdapter, PostSerializer } from '../../../models'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import { reportError, NotFoundException } from '../../../support/exceptions'
 
 
 promisifyAll(fs)
@@ -127,7 +127,7 @@ export default class BookmarkletController {
       const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

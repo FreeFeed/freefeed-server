@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $database */
+/*global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
@@ -20,7 +20,6 @@ describe("PostsController", function() {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 
@@ -177,14 +176,23 @@ describe("PostsController", function() {
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: authTokenC })
               .end(function(err, res) {
-                err.should.not.be.empty
-                err.status.should.eql(422)
-                var error = JSON.parse(err.response.error.text)
-                error.err.should.eql('Not found')
+                try {
+                  err.should.not.be.empty
+                  err.status.should.eql(404)
+                  var error = JSON.parse(err.response.error.text)
+                  error.err.should.eql(`Can't find post`)
+                } catch (e) {
+                  done(e);
+                  return;
+                }
 
                 funcTestHelper.getTimeline('/v1/timelines/' + usernameC + '/likes', authTokenC, function(err, res) {
-                  res.body.should.not.have.property('posts')
-                  done()
+                  try {
+                    res.body.should.not.have.property('posts')
+                    done()
+                  } catch (e) {
+                    done(e);
+                  }
                 })
               })
           })
@@ -642,6 +650,22 @@ describe("PostsController", function() {
         data.err.should.eql("You can't like post that you have already liked")
       }
     })
+
+    it('should like post with a valid user not more than 1 time (parallel requests)', async () => {
+      const responsesPromise = Promise.all([
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+        funcTestHelper.like(context.post.id, otherUserAuthToken),
+      ]);
+
+      const responses = await responsesPromise;
+      const errorsCount = responses.filter((r) => r.status == 403).length;
+
+      errorsCount.should.equal(5);
+    });
 
     it('should not like post with an invalid user', function(done) {
       request

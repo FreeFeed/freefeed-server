@@ -1,5 +1,5 @@
 import { dbAdapter } from '../../../models'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import { reportError, NotFoundException } from '../../../support/exceptions'
 
 export default class RequestsController {
   static async revokeRequest(req, res) {
@@ -24,7 +24,7 @@ export default class RequestsController {
       await followedFeedOwner.rejectSubscriptionRequest(req.user.id)
       res.jsonp({ err: null, status: 'success' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }
