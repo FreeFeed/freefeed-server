@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $pg_database */
+/*global $pg_database, $should */
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'

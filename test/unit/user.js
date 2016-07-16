@@ -1,5 +1,5 @@
 /*eslint-env node, mocha */
-/*global $pg_database */
+/*global $pg_database, $should */
 import async from 'async'
 import { expect } from 'chai'
 import knexCleaner from 'knex-cleaner'
