@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("CommentsController", function() {
+describe("CommentsController", function () {
   let app
 
   before(async () => {
@@ -21,17 +21,17 @@ describe("CommentsController", function() {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', function() {
+  describe('#create()', function () {
     var context = {}
     beforeEach(async() => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
       context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
     })
 
-    describe('in a group', function() {
+    describe('in a group', function () {
       var groupName = 'pepyatka-dev'
 
-      beforeEach(function(done) {
+      beforeEach(function (done) {
         var screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
@@ -39,27 +39,27 @@ describe("CommentsController", function() {
             group: { username: groupName, screenName },
             authToken: context.authToken
           })
-          .end(function() {
+          .end(function () {
             done()
           })
       })
 
-      it("should not update group's last activity", function(done) {
+      it("should not update group's last activity", function (done) {
         var body = 'Post body'
 
         request
           .post(app.config.host + '/v1/posts')
           .send({ post: { body }, meta: { feeds: [groupName] }, authToken: context.authToken })
-          .end(function(err, res) {
+          .end(function (err, res) {
             res.status.should.eql(200)
             var postB = res.body.posts
-            funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function(err, res) {
+            funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function (err, res) {
               res.status.should.eql(200)
               var lastUpdatedAt = res.body.users.updatedAt
 
-              funcTestHelper.createComment(body, postB.id, context.authToken, function(err, res) {
+              funcTestHelper.createComment(body, postB.id, context.authToken, function (err, res) {
                 res.status.should.eql(200)
-                funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function(err, res) {
+                funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function (err, res) {
                   res.status.should.eql(200)
                   res.body.should.have.property('users')
                   res.body.users.should.have.property('updatedAt')
@@ -73,10 +73,10 @@ describe("CommentsController", function() {
       })
     })
 
-    it('should create a comment with a valid user', function(done) {
+    it('should create a comment with a valid user', function (done) {
       var body = 'Comment'
 
-      funcTestHelper.createCommentCtx(context, body)(function(err, res) {
+      funcTestHelper.createCommentCtx(context, body)(function (err, res) {
         res.body.should.not.be.empty
         res.body.should.have.property('comments')
         res.body.comments.should.have.property('body')
@@ -86,11 +86,11 @@ describe("CommentsController", function() {
       })
     })
 
-    it('should not create a comment for an invalid user', function(done) {
+    it('should not create a comment for an invalid user', function (done) {
       var body = "Comment"
 
       context.authToken = 'token'
-      funcTestHelper.createCommentCtx(context, body)(function(err) {
+      funcTestHelper.createCommentCtx(context, body)(function (err) {
         err.should.not.be.empty
         err.status.should.eql(401)
 
@@ -98,11 +98,11 @@ describe("CommentsController", function() {
       })
     })
 
-    it('should not create a comment for an invalid post', function(done) {
+    it('should not create a comment for an invalid post', function (done) {
       var body = "Comment"
 
       context.post.id = 'id'
-      funcTestHelper.createCommentCtx(context, body)(function(err) {
+      funcTestHelper.createCommentCtx(context, body)(function (err) {
         err.should.not.be.empty
         err.status.should.eql(404)
 
@@ -135,17 +135,17 @@ describe("CommentsController", function() {
     })
   })
 
-  describe('#update()', function() {
+  describe('#update()', function () {
     var lunaContext = {}
       , yoleContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(yoleContext, 'yole', 'pw'))
 
-    beforeEach(function(done) { funcTestHelper.createPost(lunaContext, 'post body')(done) })
-    beforeEach(function(done) { funcTestHelper.createCommentCtx(lunaContext, 'comment')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(lunaContext, 'post body')(done) })
+    beforeEach(function (done) { funcTestHelper.createCommentCtx(lunaContext, 'comment')(done) })
 
-    it('should update a comment with a valid user', function(done) {
+    it('should update a comment with a valid user', function (done) {
       var newBody = "New body"
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
@@ -154,7 +154,7 @@ describe("CommentsController", function() {
           authToken: lunaContext.authToken,
           '_method': 'put'
         })
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.body.should.not.be.empty
           res.body.should.have.property('comments')
           res.body.comments.should.have.property('body')
@@ -164,7 +164,7 @@ describe("CommentsController", function() {
         })
     })
 
-    it('should not update a comment with a invalid user', function(done) {
+    it('should not update a comment with a invalid user', function (done) {
       var newBody = "New body"
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
@@ -172,7 +172,7 @@ describe("CommentsController", function() {
           comment: { body: newBody },
           '_method': 'put'
         })
-        .end(function(err) {
+        .end(function (err) {
           err.should.not.be.empty
           err.status.should.eql(401)
 
@@ -180,7 +180,7 @@ describe("CommentsController", function() {
         })
     })
 
-    it("should not update another user's comment", function(done) {
+    it("should not update another user's comment", function (done) {
       var newBody = "New body"
       request
           .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
@@ -189,14 +189,14 @@ describe("CommentsController", function() {
             authToken: yoleContext.authToken,
             '_method': 'put'
           })
-          .end(function(err) {
+          .end(function (err) {
             err.status.should.eql(403)
             done()
           })
     })
   })
 
-  describe('#destroy()', function() {
+  describe('#destroy()', function () {
     let lunaContext = {},
       marsContext = {},
       ceresContext = {},
@@ -210,8 +210,8 @@ describe("CommentsController", function() {
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
     beforeEach(funcTestHelper.createUserCtx(ceresContext, 'ceres', 'password3'))
 
-    beforeEach(function(done) { funcTestHelper.createPost(lunaContext, 'Post body 1')(done) })
-    beforeEach(function(done) { funcTestHelper.createPost(marsContext, 'Post body 2')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(lunaContext, 'Post body 1')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(marsContext, 'Post body 2')(done) })
 
     beforeEach(async () => {
       let response = await funcTestHelper.createCommentAsync(lunaContext, lunaContext.post.id, 'Comment 1-1')

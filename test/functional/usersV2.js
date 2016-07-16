@@ -10,7 +10,7 @@ import { PubSub } from '../../app/models'
 import { createUserAsync } from '../functional/functional_test_helper'
 
 
-describe("UsersControllerV2", function() {
+describe("UsersControllerV2", function () {
   let app
 
   before(async () => {
@@ -22,7 +22,7 @@ describe("UsersControllerV2", function() {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#blockedByMe()", function() {
+  describe("#blockedByMe()", function () {
 
     it('should reject unauthenticated users', async (done) => {
       request

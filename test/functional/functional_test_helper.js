@@ -13,7 +13,7 @@ const apiUrl = async (relativeUrl) => {
 }
 
 export function createUser(username, password, attributes, callback) {
-  return function(done) {
+  return function (done) {
     if (typeof attributes === 'function') {
       callback = attributes
       attributes = {}
@@ -33,7 +33,7 @@ export function createUser(username, password, attributes, callback) {
       request
         .post(url)
         .send(user)
-        .end(function(err, res) {
+        .end(function (err, res) {
           if (callback) {
             var luna = res.body.users
             luna.password = user.password
@@ -46,7 +46,7 @@ export function createUser(username, password, attributes, callback) {
 }
 
 export function createUserCtx(context, username, password, attrs) {
-  return createUser(username, password, attrs, function(token, user) {
+  return createUser(username, password, attrs, function (token, user) {
     context.user      = user
     context.authToken = token
     context.username  = username.toLowerCase()
@@ -56,12 +56,12 @@ export function createUserCtx(context, username, password, attrs) {
 }
 
 export function subscribeToCtx(context, username) {
-  return function(done) {
+  return function (done) {
     apiUrl(`/v1/users/${username}/subscribe`).then((url) => {
       request
         .post(url)
         .send({ authToken: context.authToken })
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -69,7 +69,7 @@ export function subscribeToCtx(context, username) {
 }
 
 export function updateUserCtx(context, attrs) {
-  return function(done) {
+  return function (done) {
     apiUrl(`/v1/users/${context.user.id}`).then((url) => {
       request
         .post(url)
@@ -78,7 +78,7 @@ export function updateUserCtx(context, attrs) {
           user: { email: attrs.email },
           '_method': 'put'
         })
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -86,12 +86,12 @@ export function updateUserCtx(context, attrs) {
 }
 
 export function resetPassword(token) {
-  return function(done) {
+  return function (done) {
     apiUrl(`/v1/passwords/${token}`).then((url) => {
       request
         .post(url)
         .send({ '_method': 'put' })
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -99,12 +99,12 @@ export function resetPassword(token) {
 }
 
 export function createPost(context, body, callback) {
-  return function(done) {
+  return function (done) {
     apiUrl('/v1/posts').then((url) => {
       request
         .post(url)
         .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
-        .end(function(err, res) {
+        .end(function (err, res) {
           context.post = res.body.posts
           if (typeof callback !== 'undefined')
             callback(context.post)
@@ -128,7 +128,7 @@ export function createPostForTest(context, body, callback) {
     request
       .post(url)
       .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
-      .end(function(err, res) {
+      .end(function (err, res) {
         context.post = res.body.posts
         callback(err, res)
       })
@@ -136,7 +136,7 @@ export function createPostForTest(context, body, callback) {
 }
 
 export function createComment(body, postId, authToken, callback) {
-  return function(done) {
+  return function (done) {
     apiUrl('/v1/comments').then((url) => {
       var comment = {
         body,
@@ -146,7 +146,7 @@ export function createComment(body, postId, authToken, callback) {
       request
         .post(url)
         .send({ comment, authToken })
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -154,7 +154,7 @@ export function createComment(body, postId, authToken, callback) {
 }
 
 export function createCommentCtx(context, body) {
-  return function(done) {
+  return function (done) {
     apiUrl('/v1/comments').then((url) => {
       var comment = {
         body,
@@ -173,7 +173,7 @@ export function createCommentCtx(context, body) {
 }
 
 export function removeComment(commentId, authToken, callback) {
-  return function(done) {
+  return function (done) {
     apiUrl(`/v1/comments/${commentId}`).then((url) => {
       request
         .post(url)
@@ -181,7 +181,7 @@ export function removeComment(commentId, authToken, callback) {
           authToken,
           '_method': 'delete'
         })
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -199,7 +199,7 @@ export function removeCommentAsync(context, commentId) {
 }
 
 export function getTimeline(timelinePath, authToken, callback) {
-  return function(done) {
+  return function (done) {
     apiUrl(timelinePath).then((url) => {
       var sendParams = {};
 
@@ -210,7 +210,7 @@ export function getTimeline(timelinePath, authToken, callback) {
       request
         .get(url)
         .query(sendParams)
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -218,7 +218,7 @@ export function getTimeline(timelinePath, authToken, callback) {
 }
 
 export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
-  return function(done) {
+  return function (done) {
     apiUrl(timelinePath).then((url) => {
       var sendParams = {};
 
@@ -237,7 +237,7 @@ export function getTimelinePaged(timelinePath, authToken, offset, limit, callbac
       request
         .get(url)
         .query(sendParams)
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -245,7 +245,7 @@ export function getTimelinePaged(timelinePath, authToken, offset, limit, callbac
 }
 
 export function getSubscribers(username, authToken, callback) {
-  return function(done) {
+  return function (done) {
     let sendParams = {};
     if (authToken) {
       sendParams.authToken = authToken
@@ -255,14 +255,14 @@ export function getSubscribers(username, authToken, callback) {
       request
         .get(url)
         .query(sendParams)
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
   }(callback)
 }
 
-export async function getSubscribersAsync(username, userContext){
+export async function getSubscribersAsync(username, userContext) {
   const relativeUrl = `/v1/users/${username}/subscribers`
   let url = await apiUrl(relativeUrl)
 
@@ -275,7 +275,7 @@ export async function getSubscribersAsync(username, userContext){
 }
 
 export function getSubscriptions(username, authToken, callback) {
-  return function(done) {
+  return function (done) {
     let sendParams = {};
     if (authToken) {
       sendParams.authToken = authToken
@@ -285,7 +285,7 @@ export function getSubscriptions(username, authToken, callback) {
       request
         .get(url)
         .query(sendParams)
-        .end(function(err, res) {
+        .end(function (err, res) {
           done(err, res)
         })
     })
@@ -437,7 +437,7 @@ export function createAndReturnPost(userContext, body) {
   return createAndReturnPostToFeed(userContext, userContext, body)
 }
 
-export function createCommentAsync (userContext, postId, body) {
+export function createCommentAsync(userContext, postId, body) {
   return postJson('/v1/comments', { comment: { body, postId }, authToken: userContext.authToken })
 }
 

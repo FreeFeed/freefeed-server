@@ -16,12 +16,12 @@ chai.use(chaiFS)
 
 const config = configLoader()
 
-describe('Attachment', function() {
+describe('Attachment', function () {
   before(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', function() {
+  describe('#create()', function () {
     let user
     let post
     let files

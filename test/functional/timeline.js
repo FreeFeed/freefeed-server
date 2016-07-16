@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("TimelinesController", function() {
+describe("TimelinesController", function () {
   let app
 
   before(async () => {
@@ -21,13 +21,13 @@ describe("TimelinesController", function() {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#home()", function() {
+  describe("#home()", function () {
     var context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
-    it('should return empty River Of News', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function(err, res) {
+    it('should return empty River Of News', function (done) {
+      funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -39,24 +39,24 @@ describe("TimelinesController", function() {
       })
     })
 
-    it('should not return River Of News for unauthenticated user', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/home', null, function(err) {
+    it('should not return River Of News for unauthenticated user', function (done) {
+      funcTestHelper.getTimeline('/v1/timelines/home', null, function (err) {
         err.should.not.be.empty
         err.status.should.eql(401)
         done()
       })
     })
 
-    it('should return River of News with one post', function(done) {
+    it('should return River of News with one post', function (done) {
       var body = 'Post body'
 
-      funcTestHelper.createPost(context, body)(function(err, res) {
+      funcTestHelper.createPost(context, body)(function (err, res) {
         res.body.should.not.be.empty
         res.body.should.have.property('posts')
         res.body.posts.should.have.property('body')
         res.body.posts.body.should.eql(body)
 
-        funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function(err, res) {
+        funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function (err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -73,14 +73,14 @@ describe("TimelinesController", function() {
     })
   })
 
-  describe('#posts()', function() {
+  describe('#posts()', function () {
     var context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(function(done) { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
 
-    it('should return posts timeline', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + context.username, context.authToken, function(err, res) {
+    it('should return posts timeline', function (done) {
+      funcTestHelper.getTimeline('/v1/timelines/' + context.username, context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -96,16 +96,16 @@ describe("TimelinesController", function() {
     })
   })
 
-  describe('#pagination', function() {
+  describe('#pagination', function () {
     var context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(function(done) { funcTestHelper.createPost(context, 'Post one')(done) })
-    beforeEach(function(done) { funcTestHelper.createPost(context, 'Post two')(done) })
-    beforeEach(function(done) { funcTestHelper.createPost(context, 'Post three')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(context, 'Post one')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(context, 'Post two')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(context, 'Post three')(done) })
 
-    it('should respect explicit pagination limits', function(done) {
-      funcTestHelper.getTimelinePaged('/v1/timelines/' + context.username, context.authToken, 0, 1, function(err, res) {
+    it('should respect explicit pagination limits', function (done) {
+      funcTestHelper.getTimelinePaged('/v1/timelines/' + context.username, context.authToken, 0, 1, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -120,8 +120,8 @@ describe("TimelinesController", function() {
       })
     })
 
-    it('should respect pagination offset', function(done) {
-      funcTestHelper.getTimelinePaged('/v1/timelines/' + context.username, context.authToken, 1, 1, function(err, res) {
+    it('should respect pagination offset', function (done) {
+      funcTestHelper.getTimelinePaged('/v1/timelines/' + context.username, context.authToken, 1, 1, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -138,24 +138,24 @@ describe("TimelinesController", function() {
 
   })
 
-  describe('#likes()', function() {
+  describe('#likes()', function () {
     var context = {}
     var marsContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(function(done) { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
         .send({ authToken: marsContext.authToken })
-        .end(function() {
+        .end(function () {
           done()
         })
     })
 
-    it('should return likes timeline', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + marsContext.username + '/likes', context.authToken, function(err, res) {
+    it('should return likes timeline', function (done) {
+      funcTestHelper.getTimeline('/v1/timelines/' + marsContext.username + '/likes', context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -170,12 +170,12 @@ describe("TimelinesController", function() {
       })
     })
 
-    it('should return empty likes timeline after un-like', function(done) {
+    it('should return empty likes timeline after un-like', function (done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
         .send({ authToken: context.authToken })
-        .end(function() {
-          funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/likes', context.authToken, function(err, res) {
+        .end(function () {
+          funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/likes', context.authToken, function (err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -190,21 +190,21 @@ describe("TimelinesController", function() {
 
   })
 
-  describe('#comments()', function() {
+  describe('#comments()', function () {
     var context = {}
       , comment
       , comment2
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
-    beforeEach(function(done) { funcTestHelper.createPost(context, 'Post body')(done) })
-    beforeEach(function(done) {
+    beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(function (done) {
       var body = "Comment"
 
-      funcTestHelper.createComment(body, context.post.id, context.authToken, function(err, res) {
+      funcTestHelper.createComment(body, context.post.id, context.authToken, function (err, res) {
         comment = res.body.comments
 
-        funcTestHelper.createComment(body, context.post.id, context.authToken, function(err, res) {
+        funcTestHelper.createComment(body, context.post.id, context.authToken, function (err, res) {
           comment2 = res.body.comments
 
           done()
@@ -212,8 +212,8 @@ describe("TimelinesController", function() {
       })
     })
 
-    it('should return comments timeline', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function(err, res) {
+    it('should return comments timeline', function (done) {
+      funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -229,13 +229,13 @@ describe("TimelinesController", function() {
     })
 
 
-    it('should clear comments timeline only after all comments are deleted', function(done) {
+    it('should clear comments timeline only after all comments are deleted', function (done) {
 
-      funcTestHelper.removeComment(comment.id, context.authToken, function(err, res) {
+      funcTestHelper.removeComment(comment.id, context.authToken, function (err, res) {
         res.body.should.be.empty
         res.status.should.eql(200)
 
-        funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function(err, res) {
+        funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function (err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -248,11 +248,11 @@ describe("TimelinesController", function() {
           res.body.posts[0].body.should.eql(context.post.body)
 
           // now remove 2nd comment
-          funcTestHelper.removeComment(comment2.id, context.authToken, function(err, res) {
+          funcTestHelper.removeComment(comment2.id, context.authToken, function (err, res) {
             res.body.should.be.empty
             res.status.should.eql(200)
 
-            funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function(err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function (err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')

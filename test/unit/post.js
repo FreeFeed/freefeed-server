@@ -4,16 +4,16 @@ import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Post, User } from "../../app/models"
 
 
-describe('Post', function() {
+describe('Post', function () {
   beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#update()', function() {
+  describe('#update()', function () {
     var userA
       , post
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -22,53 +22,53 @@ describe('Post', function() {
       var postAttrs = { body: 'Post body' }
 
       userA.create()
-        .then(function() { return userA.newPost(postAttrs) })
-        .then(function(newPost) { return newPost.create() })
-        .then(function(newPost) {
+        .then(function () { return userA.newPost(postAttrs) })
+        .then(function (newPost) { return newPost.create() })
+        .then(function (newPost) {
           post = newPost
           done()
         })
         .catch((e) => { done(e) })
     })
 
-    it('should update without error', function(done) {
+    it('should update without error', function (done) {
       var body = 'Body'
       var attrs = { body }
 
       post.update(attrs)
-        .then(function(newPost) {
+        .then(function (newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
           newPost.body.should.eql(post.body)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#create()', function() {
+  describe('#create()', function () {
     var user,
       timelineId
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
+        .then(function (user) {
           return user.getPostsTimelineId()
         })
-        .then(function(postsTimelineId) {
+        .then(function (postsTimelineId) {
           timelineId = postsTimelineId
           done()
         })
         .catch((e) => { done(e) })
     })
 
-    it('should create without error', function(done) {
+    it('should create without error', function (done) {
       var post = new Post({
         body: 'Post body',
         userId: user.id,
@@ -77,7 +77,7 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) {
+        .then(function (post) {
           post.should.be.an.instanceOf(Post)
           post.should.not.be.empty
           post.should.have.property('id')
@@ -86,8 +86,8 @@ describe('Post', function() {
 
           return post
         })
-        .then(function(post) { return dbAdapter.getPostById(post.id) })
-        .then(function(newPost) {
+        .then(function (post) { return dbAdapter.getPostById(post.id) })
+        .then(function (newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('id')
@@ -97,11 +97,11 @@ describe('Post', function() {
           newPost.should.have.property('commentsDisabled')
           newPost.commentsDisabled.should.eql('0')
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should ignore whitespaces in body', function(done) {
+    it('should ignore whitespaces in body', function (done) {
       var body = '   Post body    '
       var post = new Post({
         body,
@@ -111,19 +111,19 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) { return dbAdapter.getPostById(post.id) })
-        .then(function(newPost) {
+        .then(function (post) { return dbAdapter.getPostById(post.id) })
+        .then(function (newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           newPost.body.should.eql(body.trim())
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should save valid post to users timeline', function(done) {
+    it('should save valid post to users timeline', function (done) {
       var post = new Post({
         body: 'Post',
         userId: user.id,
@@ -132,26 +132,26 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) { return post.getSubscribedTimelineIds() })
-        .then(function(timelines) {
+        .then(function (post) { return post.getSubscribedTimelineIds() })
+        .then(function (timelines) {
           timelines.should.not.be.empty
           timelines.length.should.eql(2)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should return no posts from blank timeline', function(done) {
+    it('should return no posts from blank timeline', function (done) {
       user.getRiverOfNewsTimeline()
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then(function (timeline) { return timeline.getPosts() })
+        .then(function (posts) {
           posts.should.be.empty
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should return valid post from users timeline', function(done) {
+    it('should return valid post from users timeline', function (done) {
       var post = new Post({
         body: 'Post',
         userId: user.id,
@@ -160,9 +160,9 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function() { return user.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then(function () { return user.getRiverOfNewsTimeline() })
+        .then(function (timeline) { return timeline.getPosts() })
+        .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
           var newPost = posts[0]
@@ -171,11 +171,11 @@ describe('Post', function() {
           newPost.should.have.property('body')
           newPost.body.should.eql(post.body)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should not create with empty body', function(done) {
+    it('should not create with empty body', function (done) {
       var post = new Post({
         body: '',
         userId: user.id,
@@ -184,13 +184,13 @@ describe('Post', function() {
       })
 
       post.create()
-        .catch(function(e) {
+        .catch(function (e) {
           e.message.should.eql('Post text must not be empty')
           done()
         })
     })
 
-    it('should not create with too-long body', function(done) {
+    it('should not create with too-long body', function (done) {
       var post = new Post({
         body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est. Vivamus fermentum semper porta. Nunc diam velit, adipiscing ut tristique vitae, sagittis vel odio. Maecenas convallis ullamcorper ultricies. Curabitur ornare, ligula semper consectetur sagittis, nisi diam iaculis velit, id fringilla sem nunc vel mi. Nam dictum, odio nec pretium volutpat, arcu ante placerat erat, non tristique elit urna et turpis. Quisque mi metus, ornare sit amet fermentum et, tincidunt et orci. Fusce eget orci a orci congue vestibulum. Ut dolor diam, elementum et vestibulum eu, porttitor vel elit. Curabitur venenatis pulvinar tellus gravida ornare.',
         userId: user.id,
@@ -199,14 +199,14 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function() { done(new Error("FAIL")) })
-        .catch(function(e) {
+        .then(function () { done(new Error("FAIL")) })
+        .catch(function (e) {
           e.message.should.eql("Maximum post-length is 1500 graphemes")
           done()
         })
     })
 
-    it("should create with commentsDisabled='1'", function(done) {
+    it("should create with commentsDisabled='1'", function (done) {
       var post = new Post({
         body: 'Post body',
         userId: user.id,
@@ -215,7 +215,7 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) {
+        .then(function (post) {
           post.should.be.an.instanceOf(Post)
           post.should.not.be.empty
           post.should.have.property('id')
@@ -223,10 +223,10 @@ describe('Post', function() {
           post.commentsDisabled.should.eql('1')
           return post
         })
-        .then(function(post) {
+        .then(function (post) {
           return dbAdapter.getPostById(post.id)
         })
-        .then(function(newPost) {
+        .then(function (newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('id')
@@ -234,35 +234,35 @@ describe('Post', function() {
           newPost.should.have.property('commentsDisabled')
           newPost.commentsDisabled.should.eql('1')
         })
-        .then(function() {
+        .then(function () {
           done()
         })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#findById()', function() {
+  describe('#findById()', function () {
     var user,
       timelineId
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function() {
+        .then(function () {
           return user.getPostsTimelineId()
         })
-        .then(function(postsTimelineId) {
+        .then(function (postsTimelineId) {
           timelineId = postsTimelineId
           done()
         })
         .catch((e) => { done(e) })
     })
 
-    it('should find post with a valid id', function(done) {
+    it('should find post with a valid id', function (done) {
       var post = new Post({
         body: 'Post body',
         userId: user.id,
@@ -271,35 +271,35 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) { return dbAdapter.getPostById(post.id) })
-        .then(function(newPost) {
+        .then(function (post) { return dbAdapter.getPostById(post.id) })
+        .then(function (newPost) {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should not find post with an invalid id', function(done) {
+    it('should not find post with an invalid id', function (done) {
       var identifier = "post:identifier"
 
       dbAdapter.getPostById(identifier)
-        .then(function(post) {
+        .then(function (post) {
           $should.not.exist(post)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#getTimelineIds()', function() {
+  describe('#getTimelineIds()', function () {
     var userA
       , userB
       , post
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -313,30 +313,30 @@ describe('Post', function() {
       var attrs = { body: 'Post body' }
 
       userA.create()
-        .then(function() { return userB.create() })
-        .then(function() { return userB.newPost(attrs) })
-        .then(function(newPost) { return newPost.create() })
-        .then(function(newPost) {
+        .then(function () { return userB.create() })
+        .then(function () { return userB.newPost(attrs) })
+        .then(function (newPost) { return newPost.create() })
+        .then(function (newPost) {
           post = newPost
           return userB.getPostsTimelineId()
         })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function() { done() })
+        .then(function (timelineId) { return userA.subscribeTo(timelineId) })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should copy post to subscribed River of News', function(done) {
+    it('should copy post to subscribed River of News', function (done) {
       post.getTimelineIds()
-        .then(function(timelineIds) {
+        .then(function (timelineIds) {
           timelineIds.should.not.be.empty
           timelineIds.length.should.eql(3)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#setCommentsDisabled()', function() {
+  describe('#setCommentsDisabled()', function () {
     var user
       , post
 
@@ -354,7 +354,7 @@ describe('Post', function() {
     })
   })
 
-  describe('#addLike()', function() {
+  describe('#addLike()', function () {
     var userA
       , userB
       , userC
@@ -380,26 +380,26 @@ describe('Post', function() {
       await userC.subscribeTo(aTimelineId)
 
       let promises = [];
-      for (let i=0; i<10; i++) {
+      for (let i = 0; i < 10; i++) {
         let user = new User({ username: `lunokhod${i}`, password: 'password' })
         promises.push(user.create())
       }
       users = await Promise.all(promises)
     })
 
-    it('should add like to friend of friend timelines', function(done) {
+    it('should add like to friend of friend timelines', function (done) {
       post.addLike(userA)
-        .then(function() { return userC.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then(function () { return userC.getRiverOfNewsTimeline() })
+        .then(function (timeline) { return timeline.getPosts() })
+        .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
           var newPost = posts[0]
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
         })
-        .then(function() { done() })
-        .catch(function(e) { done(e) })
+        .then(function () { done() })
+        .catch(function (e) { done(e) })
     })
 
     it('should not add liked posts to friends posts timelines', async function(done) {
@@ -432,7 +432,7 @@ describe('Post', function() {
     })
 
     it('should be possible to get all likes', async () => {
-      for (let i=0; i<10; i++) {
+      for (let i = 0; i < 10; i++) {
         await post.addLike(users[i])
       }
 
@@ -451,7 +451,7 @@ describe('Post', function() {
     })
 
     it('should be possible to get some likes (properly sorted)', async () => {
-      for (let i=0; i<10; i++) {
+      for (let i = 0; i < 10; i++) {
         await post.addLike(users[i])
       }
 
@@ -474,7 +474,7 @@ describe('Post', function() {
       post.currentUser = users[0].id
 
       // 2 likes -> 2 open
-      for (i=0; i<2; i++) {
+      for (i = 0; i < 2; i++) {
         await post.addLike(users[i])
       }
 
@@ -532,13 +532,13 @@ describe('Post', function() {
     })
   })
 
-  describe('#removeLike()', function() {
+  describe('#removeLike()', function () {
     var userA
       , userB
       , userC
       , post
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -557,54 +557,54 @@ describe('Post', function() {
       var attrs = { body: 'Post body' }
 
       userA.create()
-        .then(function() { return userC.create() })
-        .then(function() { return userB.create() })
-        .then(function() { return userB.newPost(attrs) })
-        .then(function(newPost) { return newPost.create() })
-        .then(function(newPost) {
+        .then(function () { return userC.create() })
+        .then(function () { return userB.create() })
+        .then(function () { return userB.newPost(attrs) })
+        .then(function (newPost) { return newPost.create() })
+        .then(function (newPost) {
           post = newPost
           return userB.getPostsTimelineId()
         })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function() { return userA.getPostsTimelineId() })
-        .then(function(timelineId) { return userC.subscribeTo(timelineId) })
-        .then(function() { done() })
+        .then(function (timelineId) { return userA.subscribeTo(timelineId) })
+        .then(function () { return userA.getPostsTimelineId() })
+        .then(function (timelineId) { return userC.subscribeTo(timelineId) })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should remove like from friend of friend timelines', function(done) {
+    it('should remove like from friend of friend timelines', function (done) {
       post.addLike(userA)
-        .then(function() { return post.removeLike(userA.id) })
-        .then(function() { return post.getLikes() })
-        .then(function(users) {
+        .then(function () { return post.removeLike(userA.id) })
+        .then(function () { return post.getLikes() })
+        .then(function (users) {
           users.should.be.empty
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should add user to likes', function(done) {
+    it('should add user to likes', function (done) {
       post.addLike(userA)
-        .then(function() { return post.getLikes() })
-        .then(function(users) {
+        .then(function () { return post.getLikes() })
+        .then(function (users) {
           users.should.not.be.empty
           users.length.should.eql(1)
           var user = users[0]
           user.should.have.property('id')
           user.id.should.eql(userA.id)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#addComment()', function() {
+  describe('#addComment()', function () {
     var userA
       , userB
       , userC
       , post
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -623,22 +623,22 @@ describe('Post', function() {
       var postAttrs = { body: 'Post body' }
 
       userA.create()
-        .then(function() { return userC.create() })
-        .then(function() { return userB.create() })
-        .then(function() { return userB.newPost(postAttrs) })
-        .then(function(newPost) { return newPost.create() })
-        .then(function(newPost) {
+        .then(function () { return userC.create() })
+        .then(function () { return userB.create() })
+        .then(function () { return userB.newPost(postAttrs) })
+        .then(function (newPost) { return newPost.create() })
+        .then(function (newPost) {
           post = newPost
           return userB.getPostsTimelineId()
         })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function() { return userA.getPostsTimelineId() })
-        .then(function(timelineId) { return userC.subscribeTo(timelineId) })
-        .then(function() { done() })
+        .then(function (timelineId) { return userA.subscribeTo(timelineId) })
+        .then(function () { return userA.getPostsTimelineId() })
+        .then(function (timelineId) { return userC.subscribeTo(timelineId) })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should add comment to friend of friend timelines', function(done) {
+    it('should add comment to friend of friend timelines', function (done) {
       var commentAttrs = {
         body: 'Comment body',
         postId: post.id
@@ -647,21 +647,21 @@ describe('Post', function() {
       let comment = userA.newComment(commentAttrs)
 
       comment.create()
-        .then(function() { return userC.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then(function () { return userC.getRiverOfNewsTimeline() })
+        .then(function (timeline) { return timeline.getPosts() })
+        .then(function (posts) {
           posts.should.not.be.empty
           posts.length.should.eql(1)
           var newPost = posts[0]
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
         })
-        .then(function() { done() })
+        .then(function () { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#getComments()', function() {
+  describe('#getComments()', function () {
     let userA
       , post
       , comments = []
@@ -678,7 +678,7 @@ describe('Post', function() {
       post = await userA.newPost(postAttrs)
       await post.create()
 
-      for (let i=0; i<10; i++) {
+      for (let i = 0; i < 10; i++) {
         const commentAttrs = {
           body: 'Comment body',
           postId: post.id
@@ -695,7 +695,7 @@ describe('Post', function() {
       fetchedComments.should.not.be.empty
       fetchedComments.length.should.eql(10)
 
-      for (let i=0; i<10; i++) {
+      for (let i = 0; i < 10; i++) {
         fetchedComments[i].should.have.property('id')
         fetchedComments[i].id.should.eql(comments[i].id)
       }
@@ -715,28 +715,28 @@ describe('Post', function() {
     })
   })
 
-  describe('#destroy()', function() {
+  describe('#destroy()', function () {
     var user
       , timelineId
 
-    beforeEach(function(done) {
+    beforeEach(function (done) {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function() {
+        .then(function () {
           return user.getPostsTimelineId()
         })
-        .then(function(postsTimelineId) {
+        .then(function (postsTimelineId) {
           timelineId = postsTimelineId
           done()
         })
         .catch((e) => { done(e) })
     })
 
-    it('should destroy without error', function(done) {
+    it('should destroy without error', function (done) {
       var post = new Post({
         body: 'Post body',
         userId: user.id ,
@@ -745,7 +745,7 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(newPost) {
+        .then(function (newPost) {
           var commentAttrs = {
             body: 'Comment body',
             postId: post.id
@@ -754,10 +754,10 @@ describe('Post', function() {
           post = newPost
           return user.newComment(commentAttrs)
         })
-        .then(function(comment) { return comment.create() })
-        .then(function() { return post.destroy() })
-        .then(function() { return dbAdapter.getPostById(post.id) })
-        .then(function(post) {
+        .then(function (comment) { return comment.create() })
+        .then(function () { return post.destroy() })
+        .then(function () { return dbAdapter.getPostById(post.id) })
+        .then(function (post) {
           (post === null).should.be.true
           done()
         })

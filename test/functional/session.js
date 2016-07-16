@@ -34,11 +34,11 @@ describe("SessionController", () => {
       await user.create()
     })
 
-    it("should sign in with a valid user", function(done) {
+    it("should sign in with a valid user", function (done) {
       request
         .post(app.config.host + '/v1/session')
         .send({ username: userData.username, password: userData.password })
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
@@ -48,11 +48,11 @@ describe("SessionController", () => {
         })
     })
 
-    it("should not sign in with an invalid user", function(done) {
+    it("should not sign in with an invalid user", function (done) {
       request
         .post(app.config.host + '/v1/session')
         .send({ username: 'username', password: userData.password })
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           res.body.should.have.property('err')
@@ -61,11 +61,11 @@ describe("SessionController", () => {
         })
     })
 
-    it("should not sign in with an invalid password", function(done) {
+    it("should not sign in with an invalid password", function (done) {
       request
         .post(app.config.host + '/v1/session')
         .send({ username: userData.username, password: 'wrong' })
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           res.body.should.have.property('err')
