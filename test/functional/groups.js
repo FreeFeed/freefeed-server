@@ -46,7 +46,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: userName, screenName },
+            group:     { username: userName, screenName },
             authToken: context.authToken
           })
           .end(function (err, res) {
@@ -66,7 +66,7 @@ describe('GroupsController', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: userName, screenName, isPrivate: '1' },
+          group:     { username: userName, screenName, isPrivate: '1' },
           authToken: context.authToken
         })
         .end(function (err, res) {
@@ -83,7 +83,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: userName, screenName },
+            group:     { username: userName, screenName },
             authToken: context.authToken
           })
           .end(function (err) {
@@ -99,7 +99,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: userName, screenName },
+            group:     { username: userName, screenName },
             authToken: context.authToken
           })
           .end(function (err) {
@@ -117,7 +117,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: userName, screenName },
+            group:     { username: userName, screenName },
             authToken: context.authToken
           })
           .end(function (err) {
@@ -135,7 +135,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: userName, screenName },
+            group:     { username: userName, screenName },
             authToken: context.authToken
           })
           .end(function () {
@@ -150,7 +150,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: userName, screenName },
+            group:     { username: userName, screenName },
             authToken: context.authToken
           })
           .end(function (err, res) {
@@ -234,7 +234,7 @@ describe('GroupsController', function () {
         .post(app.config.host + '/v1/users/' + group.id)
         .send({
           authToken: context.authToken,
-          user: { screenName, description },
+          user:      { screenName, description },
           '_method': 'put'
         })
         .end(function (err, res) {
@@ -270,7 +270,7 @@ describe('GroupsController', function () {
       // Second, only update description (screenName shouldn't change)
       {
         const userContext = {
-          user: group,
+          user:      group,
           authToken: context.authToken
         }
         await funcTestHelper.updateUserAsync(userContext, { description: newDescription })
@@ -289,7 +289,7 @@ describe('GroupsController', function () {
       // Third, only update screenName (description shouldn't change)
       {
         const userContext = {
-          user: group,
+          user:      group,
           authToken: context.authToken
         }
         await funcTestHelper.updateUserAsync(userContext, { screenName: newScreenName })
@@ -318,7 +318,7 @@ describe('GroupsController', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
+            group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
             authToken: adminContext.authToken
           })
           .end(function () {
@@ -360,7 +360,7 @@ describe('GroupsController', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
+          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
           authToken: context.authToken
         })
         .end(function () {
@@ -401,7 +401,7 @@ describe('GroupsController', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
+          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
           authToken: adminContext.authToken
         })
         .end(function () {

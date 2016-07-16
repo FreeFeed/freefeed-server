@@ -114,7 +114,7 @@ describe('Timeline', function () {
       user.create()
         .then(function (_user) {
           var timeline = new Timeline({
-            name: 'name',
+            name:   'name',
             userId: _user.id
           })
           return timeline.create()

@@ -56,7 +56,7 @@ describe('Group', function () {
 
     it('should create with null screenName', function (done) {
       var group = new Group({
-        username: 'username',
+        username:   'username',
         screenName: null
       })
 
@@ -76,7 +76,7 @@ describe('Group', function () {
 
     it('should not create with tiny screenName', async () => {
       var group = new Group({
-        username: 'FriendFeed',
+        username:   'FriendFeed',
         screenName: 'a'
       })
 
@@ -92,12 +92,12 @@ describe('Group', function () {
 
     it('should not create with username that already exists', function (done) {
       var groupA = new Group({
-        username: 'FriendFeedA',
+        username:   'FriendFeedA',
         screenName: 'FriendFeedA'
       })
 
       var groupB = new Group({
-        username: 'FriendFeedA',
+        username:   'FriendFeedA',
         screenName: 'FriendFeedB'
       })
 
@@ -208,7 +208,7 @@ describe('Group', function () {
       await groupAdmin.create()
 
       group = new Group({
-        username: 'Luna',
+        username:   'Luna',
         screenName: 'Moon'
       })
       await group.create()
@@ -246,7 +246,7 @@ describe('Group', function () {
       await secondGroupAdmin.create()
 
       group = new Group({
-        username: 'Luna',
+        username:   'Luna',
         screenName: 'Moon'
       })
       await group.create(groupAdmin.id)

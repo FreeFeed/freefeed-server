@@ -36,7 +36,7 @@ describe('CommentsController', function () {
         request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: groupName, screenName },
+            group:     { username: groupName, screenName },
             authToken: context.authToken
           })
           .end(function () {
@@ -150,7 +150,7 @@ describe('CommentsController', function () {
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
         .send({
-          comment: { body: newBody },
+          comment:   { body: newBody },
           authToken: lunaContext.authToken,
           '_method': 'put'
         })
@@ -169,7 +169,7 @@ describe('CommentsController', function () {
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
         .send({
-          comment: { body: newBody },
+          comment:   { body: newBody },
           '_method': 'put'
         })
         .end(function (err) {
@@ -185,7 +185,7 @@ describe('CommentsController', function () {
       request
           .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
           .send({
-            comment: { body: newBody },
+            comment:   { body: newBody },
             authToken: yoleContext.authToken,
             '_method': 'put'
           })

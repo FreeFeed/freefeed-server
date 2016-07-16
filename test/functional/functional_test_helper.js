@@ -75,7 +75,7 @@ export function updateUserCtx(context, attrs) {
         .post(url)
         .send({
           authToken: context.authToken,
-          user: { email: attrs.email },
+          user:      { email: attrs.email },
           '_method': 'put'
         })
         .end(function (err, res) {
@@ -117,8 +117,8 @@ export function createPost(context, body, callback) {
 
 export function createPostWithCommentsDisabled(context, body, commentsDisabled) {
   return postJson('/v1/posts', {
-    post: { body },
-    meta: { feeds: context.username, commentsDisabled },
+    post:      { body },
+    meta:      { feeds: context.username, commentsDisabled },
     authToken: context.authToken
   })
 }
@@ -296,9 +296,9 @@ async function postJson(relativeUrl, data) {
   return fetch(
     await apiUrl(relativeUrl),
     {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body:    JSON.stringify(data)
     }
   )
 }
@@ -329,8 +329,8 @@ export async function createUserAsync(username, password, attributes) {
 
   return {
     authToken: data.authToken,
-    user: userData,
-    username: username.toLowerCase(),
+    user:      userData,
+    username:  username.toLowerCase(),
     password,
     attributes
   }
@@ -370,7 +370,7 @@ export function updateGroupAsync(group, adminContext, groupData) {
     `/v1/users/${group.id}`,
     {
       authToken: adminContext.authToken,
-      user: groupData,
+      user:      groupData,
       '_method': 'put'
     }
   )
@@ -422,8 +422,8 @@ export async function createAndReturnPostToFeed(feed, userContext, body) {
   let response = await postJson(
     '/v1/posts',
     {
-      post: { body },
-      meta: { feeds: feed.username },
+      post:      { body },
+      meta:      { feeds: feed.username },
       authToken: userContext.authToken
     }
   )
@@ -503,8 +503,8 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
   const parameters = {
     authToken: userContext.authToken,
     title,
-    comment: comment ? comment : '',
-    image: ''
+    comment:   comment ? comment : '',
+    image:     ''
   }
 
   if (image) {
@@ -522,10 +522,10 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 export async function createMockAttachmentAsync(context) {
   let attachmentId
   const params = {
-    fileName: 'lion.jpg',
-    fileSize: 12345,
-    userId: context.user.id,
-    postId: '',
+    fileName:  'lion.jpg',
+    fileSize:  12345,
+    userId:    context.user.id,
+    postId:    '',
     createdAt: (new Date()).getTime(),
     updatedAt: (new Date()).getTime()
   }
@@ -643,9 +643,9 @@ export async function createRealtimeConnection(context, callbacks) {
 
   const port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'));
   const options = {
-    transports: ['websocket'],
+    transports:             ['websocket'],
     'force new connection': true,
-    query: `token=${context.authToken}`
+    query:                  `token=${context.authToken}`
   };
 
   return PromisifiedIO(`http://localhost:${port}/`, options, callbacks);

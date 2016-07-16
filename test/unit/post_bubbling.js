@@ -35,7 +35,7 @@ describe('PostBubbling', function () {
 
   let addCommentToPost = (commenter, post, content) => {
     let commentAttrs = {
-      body: content,
+      body:   content,
       postId: post.id
     }
 

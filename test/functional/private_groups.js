@@ -32,7 +32,7 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: userName, screenName },
+          group:     { username: userName, screenName },
           authToken: context.authToken
         })
         .end(function (err, res) {
@@ -54,7 +54,7 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: userName, screenName, isPrivate: '1' },
+          group:     { username: userName, screenName, isPrivate: '1' },
           authToken: context.authToken
         })
         .end(function (err, res) {
@@ -72,7 +72,7 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: userName, screenName, isRestricted: '1' },
+          group:     { username: userName, screenName, isRestricted: '1' },
           authToken: context.authToken
         })
         .end(function (err, res) {
@@ -90,7 +90,7 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: userName, screenName, isPrivate: '1', isRestricted: '1' },
+          group:     { username: userName, screenName, isPrivate: '1', isRestricted: '1' },
           authToken: context.authToken
         })
         .end(function (err, res) {
@@ -114,7 +114,7 @@ describe('PrivateGroups', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+            group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
             authToken: adminContext.authToken
           })
           .end(function () {
@@ -143,7 +143,7 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
           authToken: context.authToken
         })
         .end(function (err, res) {
@@ -160,7 +160,7 @@ describe('PrivateGroups', function () {
         .post(app.config.host + '/v1/users/' + group.id)
         .send({
           authToken: context.authToken,
-          user: { screenName, description },
+          user:      { screenName, description },
           '_method': 'put'
         })
         .end(function (err, res) {
@@ -185,7 +185,7 @@ describe('PrivateGroups', function () {
         .post(app.config.host + '/v1/users/' + group.id)
         .send({
           authToken: context.authToken,
-          user: { isRestricted: '1' },
+          user:      { isRestricted: '1' },
           '_method': 'put'
         })
         .end(function (err, res) {
@@ -206,7 +206,7 @@ describe('PrivateGroups', function () {
         .post(app.config.host + '/v1/users/' + group.id)
         .send({
           authToken: context.authToken,
-          user: { isPrivate: '0' },
+          user:      { isPrivate: '0' },
           '_method': 'put'
         })
         .end(function (err, res) {
@@ -234,7 +234,7 @@ describe('PrivateGroups', function () {
       request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+            group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
             authToken: adminContext.authToken
           })
           .end(function () {
@@ -274,7 +274,7 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
           authToken: adminContext.authToken
         })
         .end(function (err, res) {
@@ -345,7 +345,7 @@ describe('PrivateGroups', function () {
         .post(app.config.host + '/v1/users/' + group.id)
         .send({
           authToken: adminContext.authToken,
-          user: { isPrivate: '0' },
+          user:      { isPrivate: '0' },
           '_method': 'put'
         })
         .end(function () {
@@ -831,7 +831,7 @@ describe('PrivateGroups', function () {
         request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1' },
+            group:     { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1' },
             authToken: adminContext.authToken
           })
           .end(function (err, res) {
@@ -851,7 +851,7 @@ describe('PrivateGroups', function () {
                 request
                   .post(app.config.host + '/v1/groups')
                   .send({
-                    group: { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '1' },
+                    group:     { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '1' },
                     authToken: nonAdminContext.authToken
                   })
                   .end(function (err, res) {
@@ -1029,21 +1029,21 @@ describe('PrivateGroups', function () {
       request
         .post(app.config.host + '/v1/groups')
         .send({
-          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1', isRestricted: '1' },
+          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1', isRestricted: '1' },
           authToken: adminContext.authToken
         })
         .end(function () {
           request
             .post(app.config.host + '/v1/groups')
             .send({
-              group: { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1', isRestricted: '0' },
+              group:     { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1', isRestricted: '0' },
               authToken: adminContext.authToken
             })
             .end(function () {
               request
                 .post(app.config.host + '/v1/groups')
                 .send({
-                  group: { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '0', isRestricted: '1' },
+                  group:     { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '0', isRestricted: '1' },
                   authToken: adminContext.authToken
                 })
                 .end(function () {

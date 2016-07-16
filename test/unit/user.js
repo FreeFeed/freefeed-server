@@ -55,8 +55,8 @@ describe('User', function () {
         var user = new User({
           username,
           screenName: 'test',
-          password: 'password',
-          email: `user+${i++}@example.com`
+          password:   'password',
+          email:      `user+${i++}@example.com`
         })
 
         user.create()
@@ -74,8 +74,8 @@ describe('User', function () {
         var user = new User({
           username,
           screenName: 'test',
-          password: 'password',
-          email: 'user@example.com'
+          password:   'password',
+          email:      'user@example.com'
         })
 
         try {
@@ -103,10 +103,10 @@ describe('User', function () {
     valid.forEach(function (description) {
       it(`should allow description ${i++}`, async () => {
         var user = new User({
-          username: `username${i}`,
+          username:   `username${i}`,
           screenName: 'test',
-          password: 'password',
-          email: `user+${i++}@example.com`
+          password:   'password',
+          email:      `user+${i++}@example.com`
         })
 
         await user.create()
@@ -127,10 +127,10 @@ describe('User', function () {
     invalid.forEach(function (description) {
       it('should not allow too long description', async () => {
         var user = new User({
-          username: `username`,
+          username:   `username`,
           screenName: 'test',
-          password: 'password',
-          email: 'user@example.com'
+          password:   'password',
+          email:      'user@example.com'
         })
 
         await user.create()
@@ -153,7 +153,7 @@ describe('User', function () {
       var user = new User({
         username: 'Luna',
         password: 'password',
-        email: 'user@example.com'
+        email:    'user@example.com'
       })
 
       user.create()
@@ -174,7 +174,7 @@ describe('User', function () {
       var user = new User({
         username: 'Luna',
         password: 'password',
-        email: 'user2@.example..com'
+        email:    'user2@.example..com'
       })
 
       return user.create()
@@ -187,13 +187,13 @@ describe('User', function () {
       var user1 = new User({
         username: 'Luna1',
         password: 'password',
-        email: 'email@example.com'
+        email:    'email@example.com'
       })
 
       var user2 = new User({
         username: 'Luna2',
         password: 'password',
-        email: 'email@example.com'
+        email:    'email@example.com'
       })
 
       await user1.create()
@@ -238,10 +238,10 @@ describe('User', function () {
 
     it('should update without email', function (done) {
       var user = new User({
-        username: 'Luna',
+        username:   'Luna',
         screenName: 'luna',
-        password: 'password',
-        email: 'test@example.com'
+        password:   'password',
+        email:      'test@example.com'
       })
 
       user.create()
@@ -324,7 +324,7 @@ describe('User', function () {
     it('should create with an email address', function (done) {
       var user = new User({
         username: 'Luna',
-        email: 'luna@example.com',
+        email:    'luna@example.com',
         password: 'password'
       })
 
@@ -434,7 +434,7 @@ describe('User', function () {
         var user = new User({
           username: 'Luna',
           password: 'password',
-          email: 'luna@example.com'
+          email:    'luna@example.com'
         })
 
         await user.create()
@@ -455,7 +455,7 @@ describe('User', function () {
       var user = new User({
         username: 'Luna',
         password: 'password',
-        email: 'luna@example.com'
+        email:    'luna@example.com'
       })
 
       user.create()

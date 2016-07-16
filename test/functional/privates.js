@@ -40,7 +40,7 @@ describe('Privates', function () {
         request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: group, screenName: group },
+            group:     { username: group, screenName: group },
             authToken: lunaContext.authToken
           })
           .end(() => {

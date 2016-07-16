@@ -347,7 +347,7 @@ describe('PostsController', function () {
         request
           .post(app.config.host + '/v1/groups')
           .send({
-            group: { username: groupName, screenName },
+            group:     { username: groupName, screenName },
             authToken: ctx.authToken
           })
           .end(function () {
@@ -564,8 +564,8 @@ describe('PostsController', function () {
         request
           .post(app.config.host + '/v1/posts')
           .send({
-            post: { body: 'Post body' },
-            meta: { feeds: [groupName] },
+            post:      { body: 'Post body' },
+            meta:      { feeds: [groupName] },
             authToken: otherUserAuthToken
           })
           .end(function (err, res) {
@@ -598,7 +598,7 @@ describe('PostsController', function () {
         request
             .post(app.config.host + '/v1/groups')
             .send({
-              group: { username: groupName, screenName },
+              group:     { username: groupName, screenName },
               authToken: context.authToken
             })
             .end(function () {
@@ -885,7 +885,7 @@ describe('PostsController', function () {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
         .send({
-          post: { body: newBody },
+          post:      { body: newBody },
           authToken: context.authToken,
           '_method': 'put'
         })
@@ -904,7 +904,7 @@ describe('PostsController', function () {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
         .send({
-          post: { body: newBody },
+          post:      { body: newBody },
           '_method': 'put'
         })
         .end(function (err) {
@@ -920,7 +920,7 @@ describe('PostsController', function () {
       request
           .post(app.config.host + '/v1/posts/' + context.post.id)
           .send({
-            post: { body: newBody },
+            post:      { body: newBody },
             authToken: otherUserAuthToken,
             '_method': 'put'
           })
@@ -934,7 +934,7 @@ describe('PostsController', function () {
 
     it('should update post with adding/removing attachments', async () => {
       const newPost = {
-        body: 'New body',
+        body:        'New body',
         attachments: []
       }
 
@@ -964,7 +964,7 @@ describe('PostsController', function () {
       // Remove attachments from the post
       {
         const anotherPost = {
-          body: 'Another body',
+          body:        'Another body',
           attachments: [newPost.attachments[0]] // leave the first attachment only
         }
 

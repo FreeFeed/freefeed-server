@@ -50,7 +50,7 @@ describe('UsersControllerV2', function () {
       const userBResponse = await createUserAsync(userB.username, userB.password)
 
       await fetch(`${app.config.host}/v1/users/${userB.username}/ban`, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'X-Authentication-Token': userAResponse.authToken }
       })
 

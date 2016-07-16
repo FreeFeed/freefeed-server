@@ -29,7 +29,7 @@ describe('Comment', function () {
         .then(function (newPost) {
           post = newPost
           var commentAttrs = {
-            body: 'Comment body',
+            body:   'Comment body',
             postId: post.id
           }
           return userA.newComment(commentAttrs)
@@ -74,8 +74,8 @@ describe('Comment', function () {
         })
         .then(function (postsTimelineId) {
           post = new Post({
-            body: 'Post body',
-            userId: user.id,
+            body:        'Post body',
+            userId:      user.id,
             timelineIds: [postsTimelineId]
           })
 
@@ -87,7 +87,7 @@ describe('Comment', function () {
 
     it('should create without error', function (done) {
       var comment = new Comment({
-        body: 'Comment body',
+        body:   'Comment body',
         userId: user.id,
         postId: post.id
       })
@@ -134,7 +134,7 @@ describe('Comment', function () {
 
     it('should not create with empty body', function (done) {
       var comment = new Comment({
-        body: '',
+        body:   '',
         userId: user.id,
         postId: post.id
       })
@@ -163,8 +163,8 @@ describe('Comment', function () {
         })
         .then(function (postsTimelineId) {
           post = new Post({
-            body: 'Post body',
-            userId: user.id,
+            body:        'Post body',
+            userId:      user.id,
             timelineIds: [postsTimelineId]
           })
 
@@ -176,7 +176,7 @@ describe('Comment', function () {
 
     it('should find comment with a valid id', function (done) {
       var comment = new Comment({
-        body: 'Comment body',
+        body:   'Comment body',
         userId: user.id,
         postId: post.id
       })
@@ -224,7 +224,7 @@ describe('Comment', function () {
         .then(function (newPost) {
           post = newPost
           var commentAttrs = {
-            body: 'Comment body',
+            body:   'Comment body',
             postId: post.id
           }
           return userA.newComment(commentAttrs)

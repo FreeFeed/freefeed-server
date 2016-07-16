@@ -161,8 +161,8 @@ describe('Attachment', function () {
       newAttachment.should.have.property('imageSizes')
       newAttachment.imageSizes.should.be.deep.equal({
         o: {
-          w: 150,
-          h: 150,
+          w:   150,
+          h:   150,
           url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
@@ -177,13 +177,13 @@ describe('Attachment', function () {
       newAttachment.should.have.property('imageSizes')
       newAttachment.imageSizes.should.be.deep.equal({
         o: {
-          w: 900,
-          h: 300,
+          w:   900,
+          h:   300,
           url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         t: {
-          w: 525,
-          h: 175,
+          w:   525,
+          h:   175,
           url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
@@ -198,18 +198,18 @@ describe('Attachment', function () {
       newAttachment.should.have.property('imageSizes')
       newAttachment.imageSizes.should.be.deep.equal({
         o: {
-          w: 1500,
-          h: 1000,
+          w:   1500,
+          h:   1000,
           url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         t: {
-          w: 263,
-          h: 175,
+          w:   263,
+          h:   175,
           url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         t2: {
-          w: 525,
-          h: 350,
+          w:   525,
+          h:   350,
           url: config.attachments.url + config.attachments.imageSizes.t2.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
@@ -224,23 +224,23 @@ describe('Attachment', function () {
       newAttachment.should.have.property('imageSizes')
       newAttachment.imageSizes.should.be.deep.equal({
         o: {
-          w: 3000,
-          h: 2000,
+          w:   3000,
+          h:   2000,
           url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         t: {
-          w: 263,
-          h: 175,
+          w:   263,
+          h:   175,
           url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         t2: {
-          w: 525,
-          h: 350,
+          w:   525,
+          h:   350,
           url: config.attachments.url + config.attachments.imageSizes.t2.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         anotherTestSize: {
-          w: 1600,
-          h: 1067,
+          w:   1600,
+          h:   1067,
           url: config.attachments.url + config.attachments.imageSizes.anotherTestSize.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
@@ -255,13 +255,13 @@ describe('Attachment', function () {
       newAttachment.should.have.property('imageSizes')
       newAttachment.imageSizes.should.be.deep.equal({
         o: {
-          w: 900,
-          h: 300,
+          w:   900,
+          h:   300,
           url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
         },
         t: {
-          w: 525,
-          h: 175,
+          w:   525,
+          h:   175,
           url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
         }
       })
