@@ -41,12 +41,12 @@ describe('MutualFriends', function () {
       it('should not publish liked direct message to home feed of mutual friends', function (done) {
         const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function (err, res) {
             const post = res.body.posts
             request
-              .post(app.config.host + '/v1/posts/' + post.id + '/like')
+              .post(`${app.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(function () {
                 funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function (err, res) {
@@ -63,15 +63,15 @@ describe('MutualFriends', function () {
       it('should not publish liked direct message to likes feed', function (done) {
         const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function (err, res) {
             const post = res.body.posts
             request
-              .post(app.config.host + '/v1/posts/' + post.id + '/like')
+              .post(`${app.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(function () {
-                funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/likes', lunaContext.authToken, function (err, res) {
+                funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/likes`, lunaContext.authToken, function (err, res) {
                   if (err) {
                     done(err);
                     return;
@@ -94,7 +94,7 @@ describe('MutualFriends', function () {
       it('should not publish commented direct message to home feed of mutual friends', function (done) {
         const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function (err, res) {
             const post = res.body.posts
@@ -117,12 +117,12 @@ describe('MutualFriends', function () {
       it('should not publish commented direct message to comments feed', function (done) {
         const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function (err, res) {
             const post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, function () {
-              funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/comments', lunaContext.authToken, function (err, res) {
+              funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/comments`, lunaContext.authToken, function (err, res) {
                 if (err) {
                   done(err);
                   return;
@@ -145,7 +145,7 @@ describe('MutualFriends', function () {
       it('should not comment on direct message unless you are recipient', function (done) {
         const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function (err, res) {
             const post = res.body.posts
@@ -165,12 +165,12 @@ describe('MutualFriends', function () {
       it('should not like direct message unless you are recipient', function (done) {
         const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function (err, res) {
             const post = res.body.posts
             request
-              .post(app.config.host + '/v1/posts/' + post.id + '/like')
+              .post(`${app.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: zeusContext.authToken })
               .end(function (err, res) {
                 try {

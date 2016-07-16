@@ -34,7 +34,7 @@ describe('CommentsController', function () {
       beforeEach(function (done) {
         const screenName = 'Pepyatka Developers';
         request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: groupName, screenName },
             authToken: context.authToken
@@ -48,18 +48,18 @@ describe('CommentsController', function () {
         const body = 'Post body'
 
         request
-          .post(app.config.host + '/v1/posts')
+          .post(`${app.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [groupName] }, authToken: context.authToken })
           .end(function (err, res) {
             res.status.should.eql(200)
             const postB = res.body.posts
-            funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function (err, res) {
+            funcTestHelper.getTimeline(`/v1/users/${groupName}`, context.authToken, function (err, res) {
               res.status.should.eql(200)
               const lastUpdatedAt = res.body.users.updatedAt
 
               funcTestHelper.createComment(body, postB.id, context.authToken, function (err, res) {
                 res.status.should.eql(200)
-                funcTestHelper.getTimeline('/v1/users/' + groupName, context.authToken, function (err, res) {
+                funcTestHelper.getTimeline(`/v1/users/${groupName}`, context.authToken, function (err, res) {
                   res.status.should.eql(200)
                   res.body.should.have.property('users')
                   res.body.users.should.have.property('updatedAt')
@@ -148,7 +148,7 @@ describe('CommentsController', function () {
     it('should update a comment with a valid user', function (done) {
       const newBody = 'New body'
       request
-        .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
+        .post(`${app.config.host}/v1/comments/${lunaContext.comment.id}`)
         .send({
           comment:   { body: newBody },
           authToken: lunaContext.authToken,
@@ -167,7 +167,7 @@ describe('CommentsController', function () {
     it('should not update a comment with a invalid user', function (done) {
       const newBody = 'New body'
       request
-        .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
+        .post(`${app.config.host}/v1/comments/${lunaContext.comment.id}`)
         .send({
           comment:   { body: newBody },
           '_method': 'put'
@@ -183,7 +183,7 @@ describe('CommentsController', function () {
     it("should not update another user's comment", function (done) {
       const newBody = 'New body'
       request
-          .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
+          .post(`${app.config.host}/v1/comments/${lunaContext.comment.id}`)
           .send({
             comment:   { body: newBody },
             authToken: yoleContext.authToken,

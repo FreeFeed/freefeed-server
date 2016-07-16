@@ -80,7 +80,7 @@ describe('TimelinesController', function () {
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
 
     it('should return posts timeline', function (done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + context.username, context.authToken, function (err, res) {
+      funcTestHelper.getTimeline(`/v1/timelines/${context.username}`, context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -105,7 +105,7 @@ describe('TimelinesController', function () {
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post three')(done) })
 
     it('should respect explicit pagination limits', function (done) {
-      funcTestHelper.getTimelinePaged('/v1/timelines/' + context.username, context.authToken, 0, 1, function (err, res) {
+      funcTestHelper.getTimelinePaged(`/v1/timelines/${context.username}`, context.authToken, 0, 1, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -121,7 +121,7 @@ describe('TimelinesController', function () {
     })
 
     it('should respect pagination offset', function (done) {
-      funcTestHelper.getTimelinePaged('/v1/timelines/' + context.username, context.authToken, 1, 1, function (err, res) {
+      funcTestHelper.getTimelinePaged(`/v1/timelines/${context.username}`, context.authToken, 1, 1, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -146,7 +146,7 @@ describe('TimelinesController', function () {
     beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
     beforeEach(function (done) {
       request
-        .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
+        .post(`${app.config.host}/v1/posts/${context.post.id}/like`)
         .send({ authToken: marsContext.authToken })
         .end(function () {
           done()
@@ -154,7 +154,7 @@ describe('TimelinesController', function () {
     })
 
     it('should return likes timeline', function (done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + marsContext.username + '/likes', context.authToken, function (err, res) {
+      funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -171,10 +171,10 @@ describe('TimelinesController', function () {
 
     it('should return empty likes timeline after un-like', function (done) {
       request
-        .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
+        .post(`${app.config.host}/v1/posts/${context.post.id}/unlike`)
         .send({ authToken: context.authToken })
         .end(function () {
-          funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/likes', context.authToken, function (err, res) {
+          funcTestHelper.getTimeline(`/v1/timelines/${context.username}/likes`, context.authToken, function (err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -211,7 +211,7 @@ describe('TimelinesController', function () {
     })
 
     it('should return comments timeline', function (done) {
-      funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function (err, res) {
+      funcTestHelper.getTimeline(`/v1/timelines/${context.username}/comments`, context.authToken, function (err, res) {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -232,7 +232,7 @@ describe('TimelinesController', function () {
         res.body.should.be.empty
         res.status.should.eql(200)
 
-        funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function (err, res) {
+        funcTestHelper.getTimeline(`/v1/timelines/${context.username}/comments`, context.authToken, function (err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -249,7 +249,7 @@ describe('TimelinesController', function () {
             res.body.should.be.empty
             res.status.should.eql(200)
 
-            funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/comments', context.authToken, function (err, res) {
+            funcTestHelper.getTimeline(`/v1/timelines/${context.username}/comments`, context.authToken, function (err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')

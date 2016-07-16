@@ -162,7 +162,7 @@ describe('Group', function () {
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 35 chars is ok
     ]
     valid.forEach(function (username) {
-      it('should allow username ' + username, async () => {
+      it(`should allow username ${username}`, async () => {
         const group = new Group({
           username,
           screenName: 'test'
@@ -178,7 +178,7 @@ describe('Group', function () {
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 36 chars is 1 char too much
     ]
     invalid.forEach(function (username) {
-      it('should not allow invalid username ' + username, async () => {
+      it(`should not allow invalid username ${username}`, async () => {
         const group = new Group({
           username,
           screenName: 'test'

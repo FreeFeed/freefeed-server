@@ -36,7 +36,7 @@ describe('SessionController', () => {
 
     it('should sign in with a valid user', function (done) {
       request
-        .post(app.config.host + '/v1/session')
+        .post(`${app.config.host}/v1/session`)
         .send({ username: userData.username, password: userData.password })
         .end(function (err, res) {
           res.should.not.be.empty
@@ -50,7 +50,7 @@ describe('SessionController', () => {
 
     it('should not sign in with an invalid user', function (done) {
       request
-        .post(app.config.host + '/v1/session')
+        .post(`${app.config.host}/v1/session`)
         .send({ username: 'username', password: userData.password })
         .end(function (err, res) {
           res.should.not.be.empty
@@ -63,7 +63,7 @@ describe('SessionController', () => {
 
     it('should not sign in with an invalid password', function (done) {
       request
-        .post(app.config.host + '/v1/session')
+        .post(`${app.config.host}/v1/session`)
         .send({ username: userData.username, password: 'wrong' })
         .end(function (err, res) {
           res.should.not.be.empty

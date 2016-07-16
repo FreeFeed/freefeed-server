@@ -61,8 +61,7 @@ describe('Attachment', function () {
       newAttachment.should.have.a.property('fileExtension')
       newAttachment.fileExtension.should.be.equal(file.name.match(/\.(\w+)$/)[1])
 
-      newAttachment.getPath().should.be.equal(config.attachments.storage.rootDir + config.attachments.path +
-        newAttachment.id + '.' + newAttachment.fileExtension)
+      newAttachment.getPath().should.be.equal(`${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`)
 
       const stats = await fs.statAsync(newAttachment.getPath())
       if (file.size >= 0) {
@@ -163,7 +162,7 @@ describe('Attachment', function () {
         o: {
           w:   150,
           h:   150,
-          url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`
         }
       })
     })
@@ -179,12 +178,12 @@ describe('Attachment', function () {
         o: {
           w:   900,
           h:   300,
-          url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         t: {
           w:   525,
           h:   175,
-          url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`
         }
       })
     })
@@ -200,17 +199,17 @@ describe('Attachment', function () {
         o: {
           w:   1500,
           h:   1000,
-          url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         t: {
           w:   263,
           h:   175,
-          url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         t2: {
           w:   525,
           h:   350,
-          url: config.attachments.url + config.attachments.imageSizes.t2.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`
         }
       })
     })
@@ -226,22 +225,22 @@ describe('Attachment', function () {
         o: {
           w:   3000,
           h:   2000,
-          url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         t: {
           w:   263,
           h:   175,
-          url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         t2: {
           w:   525,
           h:   350,
-          url: config.attachments.url + config.attachments.imageSizes.t2.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         anotherTestSize: {
           w:   1600,
           h:   1067,
-          url: config.attachments.url + config.attachments.imageSizes.anotherTestSize.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.anotherTestSize.path}${newAttachment.id}.${newAttachment.fileExtension}`
         }
       })
     })
@@ -257,12 +256,12 @@ describe('Attachment', function () {
         o: {
           w:   900,
           h:   300,
-          url: config.attachments.url + config.attachments.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`
         },
         t: {
           w:   525,
           h:   175,
-          url: config.attachments.url + config.attachments.imageSizes.t.path + newAttachment.id + '.' + newAttachment.fileExtension
+          url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`
         }
       })
     })

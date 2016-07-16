@@ -32,7 +32,7 @@ describe('GroupsController', function () {
 
     it('should reject unauthenticated users', function (done) {
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .end(function (err) {
             err.should.not.be.empty
             err.status.should.eql(401)
@@ -44,7 +44,7 @@ describe('GroupsController', function () {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: userName, screenName },
             authToken: context.authToken
@@ -64,7 +64,7 @@ describe('GroupsController', function () {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-        .post(app.config.host + '/v1/groups')
+        .post(`${app.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName, isPrivate: '1' },
           authToken: context.authToken
@@ -81,7 +81,7 @@ describe('GroupsController', function () {
       const userName = 'Luna';
       const screenName = 'Pepyatka Developers';
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: userName, screenName },
             authToken: context.authToken
@@ -97,7 +97,7 @@ describe('GroupsController', function () {
       const userName = 'Lu/na';
       const screenName = 'Pepyatka Developers';
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: userName, screenName },
             authToken: context.authToken
@@ -115,7 +115,7 @@ describe('GroupsController', function () {
       const userName = '';
       const screenName = '';
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: userName, screenName },
             authToken: context.authToken
@@ -133,7 +133,7 @@ describe('GroupsController', function () {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: userName, screenName },
             authToken: context.authToken
@@ -148,7 +148,7 @@ describe('GroupsController', function () {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: userName, screenName },
             authToken: context.authToken
@@ -156,7 +156,7 @@ describe('GroupsController', function () {
           .end(function (err, res) {
             const newGroupId = res.body.groups.id
             request
-                .get(app.config.host + '/v1/users/Luna/subscriptions')
+                .get(`${app.config.host}/v1/users/Luna/subscriptions`)
                 .query({ authToken: context.authToken })
                 .end(function (err, res) {
                   res.status.should.not.eql(404)
@@ -231,7 +231,7 @@ describe('GroupsController', function () {
       const description = 'Mokum Developers'
 
       request
-        .post(app.config.host + '/v1/users/' + group.id)
+        .post(`${app.config.host}/v1/users/${group.id}`)
         .send({
           authToken: context.authToken,
           user:      { screenName, description },
@@ -316,7 +316,7 @@ describe('GroupsController', function () {
 
     beforeEach(function (done) {
       request
-          .post(app.config.host + '/v1/groups')
+          .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
             authToken: adminContext.authToken
@@ -328,7 +328,7 @@ describe('GroupsController', function () {
 
     beforeEach(function (done) {
       request
-          .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/yole/admin')
+          .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/admin`)
           .send({ authToken: adminContext.authToken })
           .end(function () {
             done()
@@ -337,7 +337,7 @@ describe('GroupsController', function () {
 
     it('should allow an administrator to remove another administrator', function (done) {
       request
-          .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/yole/unadmin')
+          .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/unadmin`)
           .send({ authToken: adminContext.authToken })
           .end(function (err, res) {
             res.status.should.eql(200)
@@ -358,7 +358,7 @@ describe('GroupsController', function () {
 
     beforeEach(function (done) {
       request
-        .post(app.config.host + '/v1/groups')
+        .post(`${app.config.host}/v1/groups`)
         .send({
           group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
           authToken: context.authToken
@@ -370,14 +370,14 @@ describe('GroupsController', function () {
 
     it('should update the profile picture', function (done) {
       request
-        .post(app.config.host + '/v1/groups/pepyatka-dev/updateProfilePicture')
+        .post(`${app.config.host}/v1/groups/pepyatka-dev/updateProfilePicture`)
         .set('X-Authentication-Token', context.authToken)
         .attach('file', 'test/fixtures/default-userpic-75.gif')
         .end(function (err, res) {
           res.status.should.eql(200)
           res.body.should.not.be.empty
           request
-            .get(app.config.host + '/v1/users/pepyatka-dev')
+            .get(`${app.config.host}/v1/users/pepyatka-dev`)
             .query({ authToken: context.authToken })
             .end(function (err, res) {
               res.should.not.be.empty
@@ -399,22 +399,22 @@ describe('GroupsController', function () {
 
     beforeEach(function (done) {
       request
-        .post(app.config.host + '/v1/groups')
+        .post(`${app.config.host}/v1/groups`)
         .send({
           group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
           authToken: adminContext.authToken
         })
         .end(function () {
           request
-            .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
+            .post(`${app.config.host}/v1/users/pepyatka-dev/subscribe`)
             .send({ authToken: secondAdminContext.authToken })
             .end(function () {
               request
-                .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/' + secondAdminContext.user.username + '/admin')
+                .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/${secondAdminContext.user.username}/admin`)
                 .send({ authToken: adminContext.authToken })
                 .end(function () {
                   request
-                    .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
+                    .post(`${app.config.host}/v1/users/pepyatka-dev/subscribe`)
                     .send({ authToken: groupMemberContext.authToken })
                     .end(function () {
                       done()
@@ -426,7 +426,7 @@ describe('GroupsController', function () {
 
     it('admins should be able to unsubscribe user from group', function (done) {
       request
-        .post(app.config.host + '/v1/groups/pepyatka-dev/unsubscribeFromGroup/' + groupMemberContext.user.username)
+        .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${groupMemberContext.user.username}`)
         .send({
           authToken: adminContext.authToken,
           '_method': 'post'
@@ -441,7 +441,7 @@ describe('GroupsController', function () {
 
     it('should not allow to unsubscribe admins from group', function (done) {
       request
-        .post(app.config.host + '/v1/groups/pepyatka-dev/unsubscribeFromGroup/' + secondAdminContext.user.username)
+        .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${secondAdminContext.user.username}`)
         .send({ authToken: adminContext.authToken })
         .end(function (err) {
           err.should.not.be.empty

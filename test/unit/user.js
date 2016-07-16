@@ -70,7 +70,7 @@ describe('User', function () {
       'aaaaaaaaaaaaaaaaaaaaaaaaaa'  // 26 chars is 1 char too much
     ]
     invalid.forEach(function (username) {
-      it('should not allow invalid username ' + username, async () => {
+      it(`should not allow invalid username ${username}`, async () => {
         const user = new User({
           username,
           screenName: 'test',

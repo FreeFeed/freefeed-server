@@ -39,7 +39,7 @@ describe('PasswordsController', function () {
 
       const data = await response.json()
       data.should.have.property('message')
-      data.message.should.eql('Password reset link has been sent to ' + oldEmail)
+      data.message.should.eql(`Password reset link has been sent to ${oldEmail}`)
     })
 
     it('should generate resetToken by new email of user', async () => {
@@ -55,7 +55,7 @@ describe('PasswordsController', function () {
 
       const data = await response.json()
       data.should.have.property('message')
-      data.message.should.eql('Password reset link has been sent to ' + email)
+      data.message.should.eql(`Password reset link has been sent to ${email}`)
     })
 
     it('should generate resetToken by email with capital letters', async () => {
@@ -68,7 +68,7 @@ describe('PasswordsController', function () {
 
       const data = await response.json()
       data.should.have.property('message')
-      data.message.should.eql('Password reset link has been sent to ' + email)
+      data.message.should.eql(`Password reset link has been sent to ${email}`)
     })
   })
 
