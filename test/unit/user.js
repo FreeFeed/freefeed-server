@@ -4,7 +4,7 @@ import async from 'async'
 import { expect } from 'chai'
 import knexCleaner from 'knex-cleaner'
 
-import { dbAdapter, Post, Timeline, User } from "../../app/models"
+import { dbAdapter, Post, Timeline, User } from '../../app/models'
 
 
 describe('User', function () {
@@ -388,7 +388,7 @@ describe('User', function () {
 
       user.create()
         .catch(function (e) {
-          e.message.should.eql("Password cannot be blank")
+          e.message.should.eql('Password cannot be blank')
           done()
         })
     })
@@ -410,7 +410,7 @@ describe('User', function () {
       userA.create()
         .then(function () { return userB.create() })
         .catch(function (e) {
-          e.message.should.eql("Already exists")
+          e.message.should.eql('Already exists')
           done()
         })
     })
@@ -424,7 +424,7 @@ describe('User', function () {
       try {
         await user.create()
       } catch (e) {
-        e.message.should.eql("Invalid username")
+        e.message.should.eql('Invalid username')
         return
       }
 
@@ -509,7 +509,7 @@ describe('User', function () {
 
   describe('#findById()', function () {
     it('should not find user with an invalid id', function (done) {
-      var identifier = "user:identifier"
+      var identifier = 'user:identifier'
 
       dbAdapter.getUserById(identifier)
         .then(function (user) {

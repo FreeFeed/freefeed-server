@@ -1,7 +1,7 @@
 /*eslint-env node, mocha */
 /*global $pg_database */
 import knexCleaner from 'knex-cleaner'
-import { User, Group } from "../../app/models"
+import { User, Group } from '../../app/models'
 
 
 describe('PostBubbling', function () {
@@ -116,7 +116,7 @@ describe('PostBubbling', function () {
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
-        it("not changes posts order in Mars home feed", async () => {
+        it('not changes posts order in Mars home feed', async () => {
           await addCommentToPost(luna, lunaPosts[0], 'Sugar')
           let expectedContent = [...marsPostsContent].reverse()
           await homeFeedEqualTo(mars, expectedContent, mars.id)
@@ -499,8 +499,8 @@ describe('PostBubbling', function () {
       })
 
 
-      describe("Luna banned Pluto", () => {
-        describe("before any activity", () => {
+      describe('Luna banned Pluto', () => {
+        describe('before any activity', () => {
           beforeEach(async () => {
             await luna.ban(pluto.username)
           })
@@ -518,7 +518,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after comment", () => {
+        describe('after comment', () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await luna.ban(pluto.username)
@@ -542,7 +542,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after like", () => {
+        describe('after like', () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await luna.ban(pluto.username)
@@ -567,8 +567,8 @@ describe('PostBubbling', function () {
         })
       })
 
-      describe("Luna banned Mars", () => {
-        describe("before any activity", () => {
+      describe('Luna banned Mars', () => {
+        describe('before any activity', () => {
           beforeEach(async () => {
             await luna.ban(mars.username)
           })
@@ -586,7 +586,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after comment", () => {
+        describe('after comment', () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await luna.ban(mars.username)
@@ -610,7 +610,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after like", () => {
+        describe('after like', () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await luna.ban(mars.username)
@@ -635,8 +635,8 @@ describe('PostBubbling', function () {
         })
       })
 
-      describe("Pluto banned Luna", () => {
-        describe("before any activity", () => {
+      describe('Pluto banned Luna', () => {
+        describe('before any activity', () => {
           beforeEach(async () => {
             await pluto.ban(luna.username)
           })
@@ -654,7 +654,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after comment", () => {
+        describe('after comment', () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await pluto.ban(luna.username)
@@ -678,7 +678,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after like", () => {
+        describe('after like', () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await pluto.ban(luna.username)
@@ -703,8 +703,8 @@ describe('PostBubbling', function () {
         })
       })
 
-      describe("Pluto banned Mars", () => {
-        describe("before any activity", () => {
+      describe('Pluto banned Mars', () => {
+        describe('before any activity', () => {
           beforeEach(async () => {
             await pluto.ban(mars.username)
           })
@@ -722,7 +722,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after comment", () => {
+        describe('after comment', () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await pluto.ban(mars.username)
@@ -746,7 +746,7 @@ describe('PostBubbling', function () {
           })
         })
 
-        describe("after like", () => {
+        describe('after like', () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await pluto.ban(mars.username)
@@ -823,13 +823,13 @@ describe('PostBubbling', function () {
       })
 
       describe("private user's posts are not bringed to Pluto home feed", () => {
-        it("by friend likes", async () => {
+        it('by friend likes', async () => {
           await lunaPosts[0].addLike(mars)
           let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
           await homeFeedEqualTo(pluto, expectedContent, pluto.id)
         })
 
-        it("by friend comments", async () => {
+        it('by friend comments', async () => {
           await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
           let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
           await homeFeedEqualTo(pluto, expectedContent, pluto.id)
@@ -899,8 +899,8 @@ describe('PostBubbling', function () {
         await pluto.subscribeTo(marsTimelineId)
       })
 
-      describe("EasyFox posts feed consists of", () => {
-        it("group posts", async () => {
+      describe('EasyFox posts feed consists of', () => {
+        it('group posts', async () => {
           let expectedContent = ['Jig', 'Item', 'How']
 
           let postsFeed = await easyfox.getPostsTimeline({ currentUser: luna.id })
@@ -915,19 +915,19 @@ describe('PostBubbling', function () {
         })
       })
 
-      describe("Mars is member of EasyFox", () => {
+      describe('Mars is member of EasyFox', () => {
         beforeEach(async () => {
           await mars.subscribeTo(easyfoxTimelineId)
         })
 
-        describe("private group posts are not bringed to Pluto home feed", () => {
-          it("by friend likes", async () => {
+        describe('private group posts are not bringed to Pluto home feed', () => {
+          it('by friend likes', async () => {
             await easyfoxPosts[0].addLike(mars)
             let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
           })
 
-          it("by friend comments", async () => {
+          it('by friend comments', async () => {
             await addCommentToPost(mars, easyfoxPosts[0], 'Whiskey')
             let expectedContent = ['Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(pluto, expectedContent, pluto.id)
@@ -935,7 +935,7 @@ describe('PostBubbling', function () {
         })
 
         describe("private group posts are not bringed to the top of subscriber's home feed", () => {
-          it("by friend likes", async () => {
+          it('by friend likes', async () => {
             await easyfoxPosts[0].addLike(luna)
             let expectedContent = ['Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
@@ -943,7 +943,7 @@ describe('PostBubbling', function () {
         })
 
         describe("private group posts are bringed to the top of subscriber's home feed", () => {
-          it("by friend comments", async () => {
+          it('by friend comments', async () => {
             await addCommentToPost(luna, easyfoxPosts[0], 'Whiskey')
             let expectedContent = ['How', 'Jig', 'Item', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
@@ -951,8 +951,8 @@ describe('PostBubbling', function () {
         })
 
         describe("new private group posts are bringed to subscriber's home feed", () => {
-          it("after post creation", async () => {
-            let post = await easyfox.newPost({ body: "King NaN", timelineIds: [easyfoxTimelineId] })
+          it('after post creation', async () => {
+            let post = await easyfox.newPost({ body: 'King NaN', timelineIds: [easyfoxTimelineId] })
             easyfoxPosts.push(await post.create())
 
             let expectedContent = ['King NaN', 'Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']

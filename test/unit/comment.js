@@ -194,7 +194,7 @@ describe('Comment', function () {
     })
 
     it('should not find comment with invalid id', function (done) {
-      var identifier = "comment:identifier"
+      var identifier = 'comment:identifier'
 
       dbAdapter.getCommentById(identifier)
         .then(function (comment) {

@@ -1,7 +1,7 @@
 /*eslint-env node, mocha */
 /*global $pg_database, $should */
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, Post, User } from "../../app/models"
+import { dbAdapter, Post, User } from '../../app/models'
 
 
 describe('Post', function () {
@@ -199,9 +199,9 @@ describe('Post', function () {
       })
 
       post.create()
-        .then(function () { done(new Error("FAIL")) })
+        .then(function () { done(new Error('FAIL')) })
         .catch(function (e) {
-          e.message.should.eql("Maximum post-length is 1500 graphemes")
+          e.message.should.eql('Maximum post-length is 1500 graphemes')
           done()
         })
     })
@@ -283,7 +283,7 @@ describe('Post', function () {
     })
 
     it('should not find post with an invalid id', function (done) {
-      var identifier = "post:identifier"
+      var identifier = 'post:identifier'
 
       dbAdapter.getPostById(identifier)
         .then(function (post) {

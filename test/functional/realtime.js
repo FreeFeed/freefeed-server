@@ -38,7 +38,7 @@ describe('Realtime (Socket.io)', () => {
 
       const callbacks = {
         'connect': async (client) => {
-          client.emit('subscribe', { "timeline": [feedIds.Posts] });
+          client.emit('subscribe', { 'timeline': [feedIds.Posts] });
           postPromise = funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
           timeoutId = setTimeout(() => {
@@ -72,7 +72,7 @@ describe('Realtime (Socket.io)', () => {
 
       const callbacks = {
         'connect': async (client) => {
-          client.emit('subscribe', { "timeline": [feedIds.Posts] });
+          client.emit('subscribe', { 'timeline': [feedIds.Posts] });
           postPromise = funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
           timeoutId = setTimeout(() => {
@@ -109,7 +109,7 @@ describe('Realtime (Socket.io)', () => {
 
         const callbacks = {
           'connect': async (client) => {
-            client.emit('subscribe', { "timeline": [feedIds.Posts] });
+            client.emit('subscribe', { 'timeline': [feedIds.Posts] });
             await funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
             timeoutId = setTimeout(() => {
@@ -139,7 +139,7 @@ describe('Realtime (Socket.io)', () => {
 
         const callbacks = {
           'connect': async (client) => {
-            client.emit('subscribe', { "timeline": [feedIds.Posts] });
+            client.emit('subscribe', { 'timeline': [feedIds.Posts] });
             await funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
             timeoutId = setTimeout(() => {
@@ -163,7 +163,7 @@ describe('Realtime (Socket.io)', () => {
 
         const callbacks = {
           'connect': async (client) => {
-            client.emit('subscribe', { "timeline": [feedIds.Posts] });
+            client.emit('subscribe', { 'timeline': [feedIds.Posts] });
             await funcTestHelper.createAndReturnPost(lunaContext, 'test post');
 
             timeoutId = setTimeout(() => {
@@ -197,7 +197,7 @@ describe('Realtime (Socket.io)', () => {
 
           const callbacks = {
             'connect': async (client) => {
-              client.emit('subscribe', { "timeline": [feedIds.Posts] });
+              client.emit('subscribe', { 'timeline': [feedIds.Posts] });
               await funcTestHelper.like(postId, lunaContext.authToken);
 
               timeoutId = setTimeout(() => {
@@ -221,7 +221,7 @@ describe('Realtime (Socket.io)', () => {
 
           const callbacks = {
             'connect': async (client) => {
-              client.emit('subscribe', { "timeline": [feedIds.Posts] });
+              client.emit('subscribe', { 'timeline': [feedIds.Posts] });
               await funcTestHelper.createCommentAsync(lunaContext, postId, 'reply');
 
               timeoutId = setTimeout(() => {

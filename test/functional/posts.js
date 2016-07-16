@@ -11,7 +11,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("PostsController", function () {
+describe('PostsController', function () {
   let app
 
   before(async () => {
@@ -456,7 +456,7 @@ describe("PostsController", function () {
         })
       })
 
-      it("should show post to group in the timeline of the subscribing user", function (done) {
+      it('should show post to group in the timeline of the subscribing user', function (done) {
         request
           .post(app.config.host + '/v1/users/' + groupName + '/subscribe')
           .send({ authToken: otherUserAuthToken })
@@ -479,7 +479,7 @@ describe("PostsController", function () {
           })
       })
 
-      it("should not show post to group in the timeline of another user", function (done) {
+      it('should not show post to group in the timeline of another user', function (done) {
         request
           .post(app.config.host + '/v1/users/' + ctx.username + '/subscribe')
           .send({ authToken: otherUserAuthToken })
@@ -500,7 +500,7 @@ describe("PostsController", function () {
           })
       })
 
-      it("should not show liked post to group in the timeline of another user", function (done) {
+      it('should not show liked post to group in the timeline of another user', function (done) {
         request
           .post(app.config.host + '/v1/users/' + ctx.username + '/subscribe')
           .send({ authToken: otherUserAuthToken })
@@ -527,7 +527,7 @@ describe("PostsController", function () {
           })
       })
 
-      it("should not show liked post to group in the user posts", function (done) {
+      it('should not show liked post to group in the user posts', function (done) {
         var body = 'Post body'
 
         request
@@ -787,7 +787,7 @@ describe("PostsController", function () {
       otherUserAuthToken = token
     }))
 
-    it("should disable comments for own post", async () => {
+    it('should disable comments for own post', async () => {
       {
         let response = await funcTestHelper.disableComments(context.post.id, context.authToken)
         response.status.should.eql(200)
@@ -836,7 +836,7 @@ describe("PostsController", function () {
       otherUserAuthToken = token
     }))
 
-    it("should enable comments for own post", async () => {
+    it('should enable comments for own post', async () => {
       {
         let response = await funcTestHelper.enableComments(context.post.id, context.authToken)
         response.status.should.eql(200)
@@ -882,7 +882,7 @@ describe("PostsController", function () {
     }))
 
     it('should update post with a valid user', function (done) {
-      var newBody = "New body"
+      var newBody = 'New body'
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
         .send({
@@ -901,7 +901,7 @@ describe("PostsController", function () {
     })
 
     it('should not update post with a invalid user', function (done) {
-      var newBody = "New body"
+      var newBody = 'New body'
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
         .send({
@@ -917,7 +917,7 @@ describe("PostsController", function () {
     })
 
     it("should not update another user's post", function (done) {
-      var newBody = "New body"
+      var newBody = 'New body'
       request
           .post(app.config.host + '/v1/posts/' + context.post.id)
           .send({
@@ -933,7 +933,7 @@ describe("PostsController", function () {
           })
     })
 
-    it("should update post with adding/removing attachments", async () => {
+    it('should update post with adding/removing attachments', async () => {
       const newPost = {
         body: 'New body',
         attachments: []
@@ -1062,7 +1062,7 @@ describe("PostsController", function () {
     beforeEach(funcTestHelper.createUserCtx(context, username, 'password'))
     beforeEach(funcTestHelper.createPost(context, 'Post body'))
 
-    it("should hide and unhide post", function (done) {
+    it('should hide and unhide post', function (done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/hide')
         .send({ authToken: context.authToken, })

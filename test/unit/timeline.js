@@ -65,7 +65,7 @@ describe('Timeline', function () {
 
       timeline.create()
         .catch(function (e) {
-          e.message.should.eql("Invalid")
+          e.message.should.eql('Invalid')
           done()
         })
     })
@@ -93,7 +93,7 @@ describe('Timeline', function () {
     })
 
     it('should not find timeline with an invalid id', function (done) {
-      var identifier = "timeline:identifier"
+      var identifier = 'timeline:identifier'
 
       dbAdapter.getTimelineById(identifier)
         .then(function (timeline) {

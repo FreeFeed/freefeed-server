@@ -10,7 +10,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("Privates", function () {
+describe('Privates', function () {
   let app
 
   before(async () => {
@@ -741,7 +741,7 @@ describe("Privates", function () {
           })
         })
 
-        it("should not show zeus her posts in his river of news", function (done) {
+        it('should not show zeus her posts in his river of news', function (done) {
           funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function (err, res) {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
@@ -793,7 +793,7 @@ describe("Privates", function () {
             })
           })
 
-          it("should show zeus her posts in his river of news", function (done) {
+          it('should show zeus her posts in his river of news', function (done) {
             funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function (err, res) {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
@@ -855,7 +855,7 @@ describe("Privates", function () {
           })
         })
 
-        it("should not show zeus her posts in his river of news", function (done) {
+        it('should not show zeus her posts in his river of news', function (done) {
           funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function (err, res) {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
@@ -907,7 +907,7 @@ describe("Privates", function () {
             })
           })
 
-          it("should show zeus her posts in his river of news", function (done) {
+          it('should show zeus her posts in his river of news', function (done) {
             funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function (err, res) {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')

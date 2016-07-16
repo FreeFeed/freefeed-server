@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("CommentsController", function () {
+describe('CommentsController', function () {
   let app
 
   before(async () => {
@@ -87,7 +87,7 @@ describe("CommentsController", function () {
     })
 
     it('should not create a comment for an invalid user', function (done) {
-      var body = "Comment"
+      var body = 'Comment'
 
       context.authToken = 'token'
       funcTestHelper.createCommentCtx(context, body)(function (err) {
@@ -99,7 +99,7 @@ describe("CommentsController", function () {
     })
 
     it('should not create a comment for an invalid post', function (done) {
-      var body = "Comment"
+      var body = 'Comment'
 
       context.post.id = 'id'
       funcTestHelper.createCommentCtx(context, body)(function (err) {
@@ -146,7 +146,7 @@ describe("CommentsController", function () {
     beforeEach(function (done) { funcTestHelper.createCommentCtx(lunaContext, 'comment')(done) })
 
     it('should update a comment with a valid user', function (done) {
-      var newBody = "New body"
+      var newBody = 'New body'
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
         .send({
@@ -165,7 +165,7 @@ describe("CommentsController", function () {
     })
 
     it('should not update a comment with a invalid user', function (done) {
-      var newBody = "New body"
+      var newBody = 'New body'
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
         .send({
@@ -181,7 +181,7 @@ describe("CommentsController", function () {
     })
 
     it("should not update another user's comment", function (done) {
-      var newBody = "New body"
+      var newBody = 'New body'
       request
           .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
           .send({
@@ -235,7 +235,7 @@ describe("CommentsController", function () {
       marsPostCeresComment = data.comments.id
     })
 
-    it("should remove comment (your own comment in your own post)", async () => {
+    it('should remove comment (your own comment in your own post)', async () => {
       let response = await funcTestHelper.removeCommentAsync(lunaContext, lunaPostLunaComment)
       response.status.should.eql(200)
     })

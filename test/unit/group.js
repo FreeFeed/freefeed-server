@@ -104,7 +104,7 @@ describe('Group', function () {
       groupA.create()
         .then(function () { return groupB.create() })
         .catch(function (e) {
-          e.message.should.eql("Already exists")
+          e.message.should.eql('Already exists')
           done()
         })
     })
@@ -189,7 +189,7 @@ describe('Group', function () {
         try {
           await group.create()
         } catch (e) {
-          e.message.should.eql("Invalid username")
+          e.message.should.eql('Invalid username')
           return
         }
 
@@ -272,7 +272,7 @@ describe('Group', function () {
             return group.removeAdministrator(groupAdmin.id)
           })
           .catch(function (e) {
-            e.message.should.eql("Cannot remove last administrator")
+            e.message.should.eql('Cannot remove last administrator')
             done()
           })
     })

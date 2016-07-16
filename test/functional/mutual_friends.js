@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("MutualFriends", function () {
+describe('MutualFriends', function () {
   let app
 
   before(async () => {

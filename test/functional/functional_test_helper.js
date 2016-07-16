@@ -387,15 +387,15 @@ export function getUserAsync(context, username) {
 }
 
 export function goPrivate(userContext) {
-  return updateUserAsync(userContext, { isPrivate: "1" });
+  return updateUserAsync(userContext, { isPrivate: '1' });
 }
 
 export function goPublic(userContext) {
-  return updateUserAsync(userContext, { isPrivate: "0" });
+  return updateUserAsync(userContext, { isPrivate: '0' });
 }
 
 export function groupToPrivate(group, userContext) {
-  return updateGroupAsync(group, userContext, { isPrivate: "1" });
+  return updateGroupAsync(group, userContext, { isPrivate: '1' });
 }
 
 export function subscribeToAsync(subscriber, victim) {

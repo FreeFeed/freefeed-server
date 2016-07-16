@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("RequestRevocation", () => {
+describe('RequestRevocation', () => {
   let app
 
   before(async () => {

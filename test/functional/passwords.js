@@ -8,7 +8,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("PasswordsController", function () {
+describe('PasswordsController', function () {
   before(async () => {
     await getSingleton()
     PubSub.setPublisher(new DummyPublisher())
@@ -18,7 +18,7 @@ describe("PasswordsController", function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", function () {
+  describe('#create()', function () {
     var context = {}
       , oldEmail = 'test@example.com'
 
@@ -43,7 +43,7 @@ describe("PasswordsController", function () {
     })
 
     it('should generate resetToken by new email of user', async () => {
-      let email = "luna@example.com"
+      let email = 'luna@example.com'
 
       await funcTestHelper.updateUserAsync(context, { email })
 
@@ -59,7 +59,7 @@ describe("PasswordsController", function () {
     })
 
     it('should generate resetToken by email with capital letters', async () => {
-      let email = "Luna@example.com"
+      let email = 'Luna@example.com'
 
       await funcTestHelper.updateUserAsync(context, { email })
 
@@ -74,7 +74,7 @@ describe("PasswordsController", function () {
 
   describe('#update()', function () {
     var context = {}
-      , email = "luna@example.com"
+      , email = 'luna@example.com'
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
     beforeEach(function (done) { funcTestHelper.updateUserCtx(context, { email })(done) })

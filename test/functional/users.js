@@ -15,7 +15,7 @@ import * as funcTestHelper from './functional_test_helper'
 
 const config = configLoader()
 
-describe("UsersController", function () {
+describe('UsersController', function () {
   let app
 
   before(async () => {
@@ -27,7 +27,7 @@ describe("UsersController", function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", function () {
+  describe('#create()', function () {
     it('should create a valid user', function (done) {
       var user = {
         username: 'Luna',
@@ -244,7 +244,7 @@ describe("UsersController", function () {
     })
   })
 
-  describe("#whoami()", function () {
+  describe('#whoami()', function () {
     var authToken
     var user = {
       username: 'Luna',
@@ -300,7 +300,7 @@ describe("UsersController", function () {
     beforeEach(function (done) { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
 
     it('should submit a post to friends river of news', function (done) {
-      var body = "Post body"
+      var body = 'Post body'
 
       request
         .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
@@ -352,7 +352,7 @@ describe("UsersController", function () {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   err.response.error.should.have.property('text')
-                  JSON.parse(err.response.error.text).err.should.eql("You are already subscribed to that user")
+                  JSON.parse(err.response.error.text).err.should.eql('You are already subscribed to that user')
 
                   done()
                 })
@@ -520,7 +520,7 @@ describe("UsersController", function () {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   err.response.error.should.have.property('text')
-                  JSON.parse(err.response.error.text).err.should.eql("You are not subscribed to that user")
+                  JSON.parse(err.response.error.text).err.should.eql('You are not subscribed to that user')
 
                   done()
                 })
@@ -681,7 +681,7 @@ describe("UsersController", function () {
     })
   })
 
-  describe("#update()", function () {
+  describe('#update()', function () {
     describe('single-user tests', function () {
       var authToken
         , user
@@ -857,8 +857,8 @@ describe("UsersController", function () {
       var lunaContext = {}
       var marsContext = {}
 
-      beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', { email: "luna@example.org" }))
-      beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', { email: "mars@example.org" }))
+      beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', { email: 'luna@example.org' }))
+      beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', { email: 'mars@example.org' }))
 
       it('should not let user use email, which is used by other user', function (done) {
         funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })(function (err) {
@@ -1016,7 +1016,7 @@ describe("UsersController", function () {
 
   })
 
-  describe("#updatePassword()", function () {
+  describe('#updatePassword()', function () {
     var authToken
       , user
 
@@ -1026,7 +1026,7 @@ describe("UsersController", function () {
     }))
 
     it('should update current user password', function (done) {
-      var password = "drowssap"
+      var password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1055,7 +1055,7 @@ describe("UsersController", function () {
     })
 
     it('should not sign in with old password', function (done) {
-      var password = "drowssap"
+      var password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1081,7 +1081,7 @@ describe("UsersController", function () {
     })
 
     it('should not update password that does not match', function (done) {
-      var password = "drowssap"
+      var password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1089,7 +1089,7 @@ describe("UsersController", function () {
           authToken,
           currentPassword: user.password,
           password,
-          passwordConfirmation: "abc",
+          passwordConfirmation: 'abc',
           '_method': 'put'
         })
         .end(function (err) {
@@ -1102,7 +1102,7 @@ describe("UsersController", function () {
     })
 
     it('should not update with blank password', function (done) {
-      var password = ""
+      var password = ''
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
@@ -1123,13 +1123,13 @@ describe("UsersController", function () {
     })
 
     it('should not update with invalid password', function (done) {
-      var password = "drowssap"
+      var password = 'drowssap'
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
         .send({
           authToken,
-          currentPassword: "abc",
+          currentPassword: 'abc',
           password,
           passwordConfirmation: password,
           '_method': 'put'
@@ -1199,7 +1199,7 @@ describe("UsersController", function () {
         .attach('file', 'README.md')
         .end(function (err, res) {
           res.status.should.eql(400)
-          res.body.err.should.eql("Not an image file")
+          res.body.err.should.eql('Not an image file')
           done()
         })
     })
@@ -1390,7 +1390,7 @@ describe("UsersController", function () {
                     err.should.not.be.empty
                     err.status.should.eql(403)
                     err.response.error.should.have.property('text')
-                    JSON.parse(err.response.error.text).err.should.eql("This user has prevented you from seeing their posts")
+                    JSON.parse(err.response.error.text).err.should.eql('This user has prevented you from seeing their posts')
                     done()
                   })
               })
@@ -1414,7 +1414,7 @@ describe("UsersController", function () {
               err.should.not.be.empty
               err.status.should.eql(403)
               err.response.error.should.have.property('text')
-              JSON.parse(err.response.error.text).err.should.eql("This user prevented your from subscribing to them")
+              JSON.parse(err.response.error.text).err.should.eql('This user prevented your from subscribing to them')
               done()
             })
         })

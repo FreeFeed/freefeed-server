@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("TimelinesController", function () {
+describe('TimelinesController', function () {
   let app
 
   before(async () => {
@@ -21,7 +21,7 @@ describe("TimelinesController", function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#home()", function () {
+  describe('#home()', function () {
     var context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
@@ -199,7 +199,7 @@ describe("TimelinesController", function () {
 
     beforeEach(function (done) { funcTestHelper.createPost(context, 'Post body')(done) })
     beforeEach(function (done) {
-      var body = "Comment"
+      var body = 'Comment'
 
       funcTestHelper.createComment(body, context.post.id, context.authToken, function (err, res) {
         comment = res.body.comments

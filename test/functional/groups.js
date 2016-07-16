@@ -13,7 +13,7 @@ import * as funcTestHelper from './functional_test_helper'
 
 const config = configLoader()
 
-describe("GroupsController", function () {
+describe('GroupsController', function () {
   let app
 
   before(async () => {
@@ -25,7 +25,7 @@ describe("GroupsController", function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", function () {
+  describe('#create()', function () {
     var context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
@@ -168,7 +168,7 @@ describe("GroupsController", function () {
                   subIds.should.contain(newGroupId)
                   var users = res.body.subscribers
                   users.length.should.eql(1)
-                  users[0].type.should.eql("group")
+                  users[0].type.should.eql('group')
                   done()
                 })
           })

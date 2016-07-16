@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("PrivateGroups", function () {
+describe('PrivateGroups', function () {
   let app
 
   before(async () => {
@@ -21,7 +21,7 @@ describe("PrivateGroups", function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", function () {
+  describe('#create()', function () {
     var context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))

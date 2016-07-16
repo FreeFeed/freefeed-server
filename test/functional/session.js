@@ -9,7 +9,7 @@ import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, User } from '../../app/models'
 
 
-describe("SessionController", () => {
+describe('SessionController', () => {
   let app
 
   before(async () => {
@@ -21,7 +21,7 @@ describe("SessionController", () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", () => {
+  describe('#create()', () => {
     var user, userData;
 
     beforeEach(async () => {
@@ -34,7 +34,7 @@ describe("SessionController", () => {
       await user.create()
     })
 
-    it("should sign in with a valid user", function (done) {
+    it('should sign in with a valid user', function (done) {
       request
         .post(app.config.host + '/v1/session')
         .send({ username: userData.username, password: userData.password })
@@ -48,7 +48,7 @@ describe("SessionController", () => {
         })
     })
 
-    it("should not sign in with an invalid user", function (done) {
+    it('should not sign in with an invalid user', function (done) {
       request
         .post(app.config.host + '/v1/session')
         .send({ username: 'username', password: userData.password })
@@ -61,7 +61,7 @@ describe("SessionController", () => {
         })
     })
 
-    it("should not sign in with an invalid password", function (done) {
+    it('should not sign in with an invalid password', function (done) {
       request
         .post(app.config.host + '/v1/session')
         .send({ username: userData.username, password: 'wrong' })
