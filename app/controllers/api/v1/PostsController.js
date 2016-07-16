@@ -154,14 +154,15 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
-      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
-      if (userLikedPost) {
-        throw new ForbiddenException("You can't like post that you have already liked")
-      }
-
       const valid = await post.canShow(req.user.id)
       if (!valid) {
         throw new NotFoundException("Can't find post");
+      }
+
+      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+
+      if (userLikedPost) {
+        throw new ForbiddenException("You can't like post that you have already liked")
       }
 
       const affectedTimelines = await post.addLike(req.user)
