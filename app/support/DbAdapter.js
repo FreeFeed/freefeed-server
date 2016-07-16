@@ -1226,8 +1226,7 @@ export class DbAdapter {
   async deletePost(postId) {
     await this.database('posts').where({ uid: postId }).delete()
 
-
-    //TODO: delete post local bumps
+    // TODO: delete post local bumps
     return await Promise.all([
       this._deletePostLikes(postId),
       this._deletePostComments(postId)

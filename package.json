@@ -67,7 +67,7 @@
     "babel-register": "6.9.0",
     "chai": "3.5.0",
     "chai-fs": "^0.1.0",
-    "eslint": "3.0.1",
+    "eslint": "3.1.0",
     "eslint-plugin-babel": "3.3.0",
     "eslint-plugin-import": "^1.10.2",
     "eslint-plugin-lodash": "^1.9.4",

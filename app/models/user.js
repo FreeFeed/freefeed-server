@@ -522,7 +522,7 @@ export function addModel(dbAdapter) {
       this.hashedPassword = payload.hashedPassword
       return this
     } catch (e) {
-      throw e //? hmmm?
+      throw e // ? hmmm?
     }
   }
 
