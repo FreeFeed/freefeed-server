@@ -8,7 +8,7 @@ import { dbAdapter, Post, Timeline, User } from "../../app/models"
 
 
 describe('User', function() {
-  beforeEach(async ()=>{
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 

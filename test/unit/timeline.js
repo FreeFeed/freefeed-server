@@ -6,7 +6,7 @@ import { dbAdapter, Timeline, User } from '../../app/models'
 
 
 describe('Timeline', function() {
-  beforeEach(async ()=>{
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 

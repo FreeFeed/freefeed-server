@@ -5,7 +5,7 @@ import { dbAdapter, Post, User } from "../../app/models"
 
 
 describe('Post', function() {
-  beforeEach(async ()=>{
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 

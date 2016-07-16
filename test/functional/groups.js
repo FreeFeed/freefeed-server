@@ -165,7 +165,7 @@ describe("GroupsController", function() {
     var adminContext = {}
       , nonAdminContext = {}
 
-    beforeEach(async ()=>{
+    beforeEach(async () => {
       adminContext = await funcTestHelper.createUserAsync('Luna', 'password')
       nonAdminContext = await funcTestHelper.createUserAsync('yole', 'wordpass')
       await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers')
@@ -206,7 +206,7 @@ describe("GroupsController", function() {
     var context = {}
       , group
 
-    beforeEach(async ()=>{
+    beforeEach(async () => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
       let res = await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers')
       group = res.group

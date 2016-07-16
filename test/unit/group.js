@@ -5,7 +5,7 @@ import { dbAdapter, User, Group } from '../../app/models'
 
 
 describe('Group', function() {
-  beforeEach(async ()=>{
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 

@@ -5,35 +5,35 @@ import { User, Group } from "../../app/models"
 
 
 describe('PostBubbling', function() {
-  beforeEach(async ()=>{
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  let homeFeedEqualTo = async (user, expectedContent, feedReaderId)=>{
+  let homeFeedEqualTo = async (user, expectedContent, feedReaderId) => {
     let homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
     let posts = await homeFeed.getPosts()
 
     posts.should.not.be.empty
     posts.length.should.eql(expectedContent.length)
-    let homeFeedContent = posts.map((p)=>{
+    let homeFeedContent = posts.map((p) => {
       return p.body
     }).join(',')
     homeFeedContent.should.eql(expectedContent.join(','))
   }
 
-  let homeFeedPageEqualTo = async (user, expectedContent, feedReaderId, limit, offset)=>{
+  let homeFeedPageEqualTo = async (user, expectedContent, feedReaderId, limit, offset) => {
     let homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
     let posts = await homeFeed.getPosts(offset, limit)
 
     posts.should.not.be.empty
     posts.length.should.eql(expectedContent.length)
-    let homeFeedContent = posts.map((p)=>{
+    let homeFeedContent = posts.map((p) => {
       return p.body
     }).join(',')
     homeFeedContent.should.eql(expectedContent.join(','))
   }
 
-  let addCommentToPost = (commenter, post, content)=>{
+  let addCommentToPost = (commenter, post, content) => {
     let commentAttrs = {
       body: content,
       postId: post.id
@@ -82,13 +82,13 @@ describe('PostBubbling', function() {
       })
 
       describe('Luna likes Mars post', () => {
-        it("brings post to the top of Luna's home feed", async ()=>{
+        it("brings post to the top of Luna's home feed", async () => {
           await marsPosts[0].addLike(luna)
           let expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
-        it("not changes posts order in Mars's home feed", async ()=>{
+        it("not changes posts order in Mars's home feed", async () => {
           await marsPosts[0].addLike(luna)
           let expectedContent = [...marsPostsContent].reverse()
           await homeFeedEqualTo(mars, expectedContent, mars.id)
@@ -96,13 +96,13 @@ describe('PostBubbling', function() {
       })
 
       describe('Luna comments Mars post', () => {
-        it("brings post to the top of Luna's home feed", async ()=>{
+        it("brings post to the top of Luna's home feed", async () => {
           await addCommentToPost(luna, marsPosts[0], 'Victor')
           let expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
-        it("brings post to the top of Mars's home feed", async ()=>{
+        it("brings post to the top of Mars's home feed", async () => {
           await addCommentToPost(luna, marsPosts[0], 'Uncle')
           let expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
           await homeFeedEqualTo(mars, expectedContent, mars.id)
@@ -110,13 +110,13 @@ describe('PostBubbling', function() {
       })
 
       describe('Luna comments own post', () => {
-        it("brings post to the top of Luna's home feed", async ()=>{
+        it("brings post to the top of Luna's home feed", async () => {
           await addCommentToPost(luna, lunaPosts[0], 'Sail')
           let expectedContent = ['A', 'C', 'B']
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
-        it("not changes posts order in Mars home feed", async ()=>{
+        it("not changes posts order in Mars home feed", async () => {
           await addCommentToPost(luna, lunaPosts[0], 'Sugar')
           let expectedContent = [...marsPostsContent].reverse()
           await homeFeedEqualTo(mars, expectedContent, mars.id)
@@ -124,7 +124,7 @@ describe('PostBubbling', function() {
       })
 
       describe('Jupiter likes Mars post', () => {
-        it("not changes posts order in Luna's home feed", async ()=>{
+        it("not changes posts order in Luna's home feed", async () => {
           await marsPosts[0].addLike(jupiter)
           let expectedContent = [...lunaPostsContent].reverse()
           await homeFeedEqualTo(luna, expectedContent, luna.id)
@@ -132,7 +132,7 @@ describe('PostBubbling', function() {
       })
 
       describe('Jupiter comments Mars post', () => {
-        it("not changes posts order in Luna's home feed", async ()=>{
+        it("not changes posts order in Luna's home feed", async () => {
           await addCommentToPost(jupiter, marsPosts[0], 'Tare')
           let expectedContent = [...lunaPostsContent].reverse()
           await homeFeedEqualTo(luna, expectedContent, luna.id)
@@ -140,7 +140,7 @@ describe('PostBubbling', function() {
       })
 
       describe('second and other likes', () => {
-        it("not changes posts order in Luna's home feed", async ()=>{
+        it("not changes posts order in Luna's home feed", async () => {
           let expectedContent
           await marsPosts[0].addLike(luna)
           expectedContent = ['Able'].concat([...lunaPostsContent].reverse())
@@ -156,7 +156,7 @@ describe('PostBubbling', function() {
       })
 
       describe('likes of already commented post', () => {
-        it("not changes posts order in Luna's home feed", async ()=>{
+        it("not changes posts order in Luna's home feed", async () => {
           let expectedContent
 
           await addCommentToPost(luna, marsPosts[0], 'Queen')
@@ -190,7 +190,7 @@ describe('PostBubbling', function() {
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
 
-          it("not changes posts order in Mars's home feed", async ()=>{
+          it("not changes posts order in Mars's home feed", async () => {
             let expectedContent = [...marsPostsContent].reverse()
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
@@ -206,7 +206,7 @@ describe('PostBubbling', function() {
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
 
-          it("brings post to the top of Mars's home feed", async ()=>{
+          it("brings post to the top of Mars's home feed", async () => {
             let expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
@@ -233,12 +233,12 @@ describe('PostBubbling', function() {
             await addCommentToPost(mars, lunaPosts[0], 'Victor')
           })
 
-          it('not brings post to Mars home feed', async ()=>{
+          it('not brings post to Mars home feed', async () => {
             let expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
             await homeFeedEqualTo(mars, expectedContent, mars.id)
           })
 
-          it('brings post to the top of Luna home feed', async ()=>{
+          it('brings post to the top of Luna home feed', async () => {
             let expectedContent = ['A', 'C', 'B']
             await homeFeedEqualTo(luna, expectedContent, luna.id)
           })
@@ -255,7 +255,7 @@ describe('PostBubbling', function() {
         await mars.subscribeTo(lunaTimelineId)
       })
 
-      describe("post is already included into Luna's home feed", ()=>{
+      describe("post is already included into Luna's home feed", () => {
         it('likes not changes posts order', async () => {
           await marsPosts[0].addLike(luna)
           let expectedContent = [...marsPostsContent].reverse().concat([...lunaPostsContent].reverse())
@@ -265,7 +265,7 @@ describe('PostBubbling', function() {
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
-        it('each comment moves the post to the top', async ()=>{
+        it('each comment moves the post to the top', async () => {
           let expectedContent
 
           await addCommentToPost(luna, marsPosts[0], 'Zebra')
@@ -318,7 +318,7 @@ describe('PostBubbling', function() {
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
 
-            it("not brings post to Mars's home feed", async ()=>{
+            it("not brings post to Mars's home feed", async () => {
               let expectedContent = [...marsPostsContent].reverse()
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
@@ -329,12 +329,12 @@ describe('PostBubbling', function() {
               await addCommentToPost(luna, marsPosts[0], 'Victor')
             })
 
-            it("not brings post to Luna's home feed", async ()=>{
+            it("not brings post to Luna's home feed", async () => {
               let expectedContent = ['C', 'B', 'A']
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
 
-            it("brings post to the top of Mars's home feed", async ()=>{
+            it("brings post to the top of Mars's home feed", async () => {
               let expectedContent = ['Able', 'Dog', 'Charlie', 'Baker']
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
@@ -361,12 +361,12 @@ describe('PostBubbling', function() {
               await addCommentToPost(mars, lunaPosts[0], 'Victor')
             })
 
-            it('not brings post to Mars home feed', async ()=>{
+            it('not brings post to Mars home feed', async () => {
               let expectedContent = ['Dog', 'Charlie', 'Baker', 'Able']
               await homeFeedEqualTo(mars, expectedContent, mars.id)
             })
 
-            it('brings post to the top of Luna home feed', async ()=>{
+            it('brings post to the top of Luna home feed', async () => {
               let expectedContent = ['A', 'C', 'B']
               await homeFeedEqualTo(luna, expectedContent, luna.id)
             })
@@ -499,8 +499,8 @@ describe('PostBubbling', function() {
       })
 
 
-      describe("Luna banned Pluto", ()=>{
-        describe("before any activity", ()=>{
+      describe("Luna banned Pluto", () => {
+        describe("before any activity", () => {
           beforeEach(async () => {
             await luna.ban(pluto.username)
           })
@@ -518,7 +518,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after comment", ()=>{
+        describe("after comment", () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await luna.ban(pluto.username)
@@ -542,7 +542,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after like", ()=>{
+        describe("after like", () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await luna.ban(pluto.username)
@@ -567,8 +567,8 @@ describe('PostBubbling', function() {
         })
       })
 
-      describe("Luna banned Mars", ()=>{
-        describe("before any activity", ()=>{
+      describe("Luna banned Mars", () => {
+        describe("before any activity", () => {
           beforeEach(async () => {
             await luna.ban(mars.username)
           })
@@ -586,7 +586,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after comment", ()=>{
+        describe("after comment", () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await luna.ban(mars.username)
@@ -610,7 +610,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after like", ()=>{
+        describe("after like", () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await luna.ban(mars.username)
@@ -635,8 +635,8 @@ describe('PostBubbling', function() {
         })
       })
 
-      describe("Pluto banned Luna", ()=>{
-        describe("before any activity", ()=>{
+      describe("Pluto banned Luna", () => {
+        describe("before any activity", () => {
           beforeEach(async () => {
             await pluto.ban(luna.username)
           })
@@ -654,7 +654,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after comment", ()=>{
+        describe("after comment", () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await pluto.ban(luna.username)
@@ -678,7 +678,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after like", ()=>{
+        describe("after like", () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await pluto.ban(luna.username)
@@ -703,8 +703,8 @@ describe('PostBubbling', function() {
         })
       })
 
-      describe("Pluto banned Mars", ()=>{
-        describe("before any activity", ()=>{
+      describe("Pluto banned Mars", () => {
+        describe("before any activity", () => {
           beforeEach(async () => {
             await pluto.ban(mars.username)
           })
@@ -722,7 +722,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after comment", ()=>{
+        describe("after comment", () => {
           beforeEach(async () => {
             await addCommentToPost(mars, lunaPosts[0], 'Whiskey')
             await pluto.ban(mars.username)
@@ -746,7 +746,7 @@ describe('PostBubbling', function() {
           })
         })
 
-        describe("after like", ()=>{
+        describe("after like", () => {
           beforeEach(async () => {
             await lunaPosts[0].addLike(mars)
             await pluto.ban(mars.username)
@@ -910,7 +910,7 @@ describe('PostBubbling', function() {
 
           posts.should.not.be.empty
           posts.length.should.eql(expectedContent.length)
-          let postsFeedContent = posts.map((p)=>{
+          let postsFeedContent = posts.map((p) => {
             return p.body
           }).join(',')
           postsFeedContent.should.eql(expectedContent.join(','))
@@ -1012,7 +1012,7 @@ describe('PostBubbling', function() {
 
     })
 
-    it('home feed pages should consists of requested number of posts', async ()=> {
+    it('home feed pages should consists of requested number of posts', async () => {
       let expectedContent = ['Delta', 'Gamma', 'Beta']
       await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 0)
 
@@ -1023,21 +1023,21 @@ describe('PostBubbling', function() {
       await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 6)
     })
 
-    it('like should bring post to the top of home feed first page', async ()=>{
+    it('like should bring post to the top of home feed first page', async () => {
       await lunaPosts[0].addLike(mars)
 
       const expectedContent = ['A', 'Delta', 'Gamma']
       await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 0)
     })
 
-    it('like should not bring post to home feed second page', async ()=>{
+    it('like should not bring post to home feed second page', async () => {
       await lunaPosts[0].addLike(mars)
 
       const expectedContent = ['Beta', 'Alpha', 'Dog']
       await homeFeedPageEqualTo(pluto, expectedContent, pluto.id, 3, 3)
     })
 
-    it('like should not bring post to home feed other pages', async ()=>{
+    it('like should not bring post to home feed other pages', async () => {
       await lunaPosts[0].addLike(mars)
 
       const expectedContent = ['Charlie', 'Baker', 'Able']

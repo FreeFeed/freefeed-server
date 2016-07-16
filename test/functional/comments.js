@@ -23,7 +23,7 @@ describe("CommentsController", function() {
 
   describe('#create()', function() {
     var context = {}
-    beforeEach(async()=>{
+    beforeEach(async() => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
       context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
     })
