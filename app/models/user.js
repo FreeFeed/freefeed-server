@@ -505,25 +505,24 @@ export function addModel(dbAdapter) {
   User.prototype.updatePassword = async function(password, passwordConfirmation) {
     if (password.length === 0) {
       throw new Error('Password cannot be blank')
-    } else if (password !== passwordConfirmation) {
+    }
+
+    if (password !== passwordConfirmation) {
       throw new Error('Passwords do not match')
     }
 
-    try {
-      const updatedAt = new Date().getTime()
-      const payload = {
-        updatedAt:      updatedAt.toString(),
-        hashedPassword: await bcrypt.hashAsync(password, 10)
-      }
-
-      await dbAdapter.updateUser(this.id, payload)
-
-      this.updatedAt = updatedAt
-      this.hashedPassword = payload.hashedPassword
-      return this
-    } catch (e) {
-      throw e // ? hmmm?
+    const updatedAt = new Date().getTime()
+    const payload = {
+      updatedAt:      updatedAt.toString(),
+      hashedPassword: await bcrypt.hashAsync(password, 10)
     }
+
+    await dbAdapter.updateUser(this.id, payload)
+
+    this.updatedAt = updatedAt
+    this.hashedPassword = payload.hashedPassword
+
+    return this
   }
 
   User.prototype.getAdministratorIds = async function() {
