@@ -176,14 +176,23 @@ describe("PostsController", function() {
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: authTokenC })
               .end(function(err, res) {
-                err.should.not.be.empty
-                err.status.should.eql(422)
-                var error = JSON.parse(err.response.error.text)
-                error.err.should.eql('Not found')
+                try {
+                  err.should.not.be.empty
+                  err.status.should.eql(422)
+                  var error = JSON.parse(err.response.error.text)
+                  error.err.should.eql('Not found')
+                } catch (e) {
+                  done(e);
+                  return;
+                }
 
                 funcTestHelper.getTimeline('/v1/timelines/' + usernameC + '/likes', authTokenC, function(err, res) {
-                  res.body.should.not.have.property('posts')
-                  done()
+                  try {
+                    res.body.should.not.have.property('posts')
+                    done()
+                  } catch (e) {
+                    done(e);
+                  }
                 })
               })
           })
