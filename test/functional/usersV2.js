@@ -24,17 +24,17 @@ describe("UsersControllerV2", function() {
 
   describe("#blockedByMe()", function() {
 
-    it('should reject unauthenticated users', async done => {
+    it('should reject unauthenticated users', async (done) => {
       request
         .get(app.config.host + '/v2/users/blockedByMe')
-        .end( err => {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
         })
     })
 
-    it('should return list for authenticated user', async done => {
+    it('should return list for authenticated user', async (done) => {
       const userA = {
         username: 'Luna',
         password: 'password'

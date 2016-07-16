@@ -29,7 +29,7 @@ export function createUser(username, password, attributes, callback) {
     if (attributes.email)
       user.email = attributes.email
 
-    apiUrl('/v1/users').then(url => {
+    apiUrl('/v1/users').then((url) => {
       request
         .post(url)
         .send(user)
@@ -57,7 +57,7 @@ export function createUserCtx(context, username, password, attrs) {
 
 export function subscribeToCtx(context, username) {
   return function(done) {
-    apiUrl(`/v1/users/${username}/subscribe`).then(url => {
+    apiUrl(`/v1/users/${username}/subscribe`).then((url) => {
       request
         .post(url)
         .send({ authToken: context.authToken })
@@ -70,7 +70,7 @@ export function subscribeToCtx(context, username) {
 
 export function updateUserCtx(context, attrs) {
   return function(done) {
-    apiUrl(`/v1/users/${context.user.id}`).then(url => {
+    apiUrl(`/v1/users/${context.user.id}`).then((url) => {
       request
         .post(url)
         .send({ authToken: context.authToken,
@@ -85,7 +85,7 @@ export function updateUserCtx(context, attrs) {
 
 export function resetPassword(token) {
   return function(done) {
-    apiUrl(`/v1/passwords/${token}`).then(url => {
+    apiUrl(`/v1/passwords/${token}`).then((url) => {
       request
         .post(url)
         .send({ '_method': 'put' })
@@ -98,7 +98,7 @@ export function resetPassword(token) {
 
 export function createPost(context, body, callback) {
   return function(done) {
-    apiUrl('/v1/posts').then(url => {
+    apiUrl('/v1/posts').then((url) => {
       request
         .post(url)
         .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
@@ -122,7 +122,7 @@ export function createPostWithCommentsDisabled(context, body, commentsDisabled) 
 }
 
 export function createPostForTest(context, body, callback) {
-  apiUrl('/v1/posts').then(url => {
+  apiUrl('/v1/posts').then((url) => {
     request
       .post(url)
       .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
@@ -135,7 +135,7 @@ export function createPostForTest(context, body, callback) {
 
 export function createComment(body, postId, authToken, callback) {
   return function(done) {
-    apiUrl('/v1/comments').then(url => {
+    apiUrl('/v1/comments').then((url) => {
       var comment = {
         body: body,
         postId: postId
@@ -153,7 +153,7 @@ export function createComment(body, postId, authToken, callback) {
 
 export function createCommentCtx(context, body) {
   return function(done) {
-    apiUrl('/v1/comments').then(url => {
+    apiUrl('/v1/comments').then((url) => {
       var comment = {
         body: body,
         postId: context.post.id
@@ -172,7 +172,7 @@ export function createCommentCtx(context, body) {
 
 export function removeComment(commentId, authToken, callback) {
   return function(done) {
-    apiUrl(`/v1/comments/${commentId}`).then(url => {
+    apiUrl(`/v1/comments/${commentId}`).then((url) => {
       request
         .post(url)
         .send({
@@ -198,7 +198,7 @@ export function removeCommentAsync(context, commentId) {
 
 export function getTimeline(timelinePath, authToken, callback) {
   return function(done) {
-    apiUrl(timelinePath).then(url => {
+    apiUrl(timelinePath).then((url) => {
       var sendParams = {};
 
       if (authToken) {
@@ -217,7 +217,7 @@ export function getTimeline(timelinePath, authToken, callback) {
 
 export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
   return function(done) {
-    apiUrl(timelinePath).then(url => {
+    apiUrl(timelinePath).then((url) => {
       var sendParams = {};
 
       if (!_.isUndefined(authToken)) {
@@ -249,7 +249,7 @@ export function getSubscribers(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    apiUrl(`/v1/users/${username}/subscribers`).then(url => {
+    apiUrl(`/v1/users/${username}/subscribers`).then((url) => {
       request
         .get(url)
         .query(sendParams)
@@ -279,7 +279,7 @@ export function getSubscriptions(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    apiUrl(`/v1/users/${username}/subscriptions`).then(url => {
+    apiUrl(`/v1/users/${username}/subscriptions`).then((url) => {
       request
         .get(url)
         .query(sendParams)
@@ -625,7 +625,7 @@ const PromisifiedIO = (host, options, events) => {
             args.push(client);
             const result = events[k](...args);
             if (result instanceof Promise) {
-              result.catch(e => { reject(e); })
+              result.catch((e) => { reject(e); })
             }
           } catch (e) {
             reject(e);
