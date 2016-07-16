@@ -1,8 +1,7 @@
 /*eslint-env node, mocha */
 /*global $pg_database */
-import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
-import { Comment, Post, User, Group } from "../../app/models"
+import { User, Group } from "../../app/models"
 
 
 describe('PostBubbling', function() {

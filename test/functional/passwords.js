@@ -1,6 +1,5 @@
 /*eslint-env node, mocha */
 /*global $pg_database */
-import request from 'superagent'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
@@ -10,10 +9,8 @@ import * as funcTestHelper from './functional_test_helper'
 
 
 describe("PasswordsController", function() {
-  let app
-
   before(async () => {
-    app = await getSingleton()
+    await getSingleton()
     PubSub.setPublisher(new DummyPublisher())
   })
 

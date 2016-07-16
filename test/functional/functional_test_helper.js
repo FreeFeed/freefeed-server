@@ -1,11 +1,9 @@
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
-import uuid from 'uuid'
 import SocketIO from 'socket.io-client';
 
 import { dbAdapter } from '../../app/models'
-import { mkKey } from '../../app/support/DbAdapter'
 import { getSingleton as initApp } from '../../app/app'
 
 

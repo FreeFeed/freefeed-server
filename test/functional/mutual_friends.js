@@ -1,7 +1,6 @@
 /*eslint-env node, mocha */
 /*global $pg_database */
 import request from 'superagent'
-import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
@@ -49,7 +48,7 @@ describe("MutualFriends", function() {
             request
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: lunaContext.authToken })
-              .end(function(err, res) {
+              .end(function() {
                 funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
@@ -71,7 +70,7 @@ describe("MutualFriends", function() {
             request
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: lunaContext.authToken })
-              .end(function(err, res) {
+              .end(function() {
                 funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/likes', lunaContext.authToken, function(err, res) {
                   if (err) {
                     done(err);
@@ -99,7 +98,7 @@ describe("MutualFriends", function() {
           .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
-            funcTestHelper.createComment(body, post.id, lunaContext.authToken, function(err, res) {
+            funcTestHelper.createComment(body, post.id, lunaContext.authToken, function() {
               funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
                 try {
                   res.body.should.have.property('timelines')
@@ -122,7 +121,7 @@ describe("MutualFriends", function() {
           .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end(function(err, res) {
             var post = res.body.posts
-            funcTestHelper.createComment(body, post.id, lunaContext.authToken, function(err, res) {
+            funcTestHelper.createComment(body, post.id, lunaContext.authToken, function() {
               funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/comments', lunaContext.authToken, function(err, res) {
                 if (err) {
                   done(err);

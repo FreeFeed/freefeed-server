@@ -147,8 +147,8 @@ describe('Timeline', function() {
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+        .then(function() { return userB.create() })
+        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
@@ -156,14 +156,12 @@ describe('Timeline', function() {
       var attrs = {
         body: 'Post body'
       }
-      var post
 
       userB.newPost(attrs)
         .then(function(newPost) {
-          post = newPost
           return newPost.create()
         })
-        .then(function(post) { return userB.getPostsTimelineId() })
+        .then(function() { return userB.getPostsTimelineId() })
         .then(function(timelineId) { return userA.subscribeTo(timelineId) })
         .then(function() { return userB.getPostsTimeline() })
         .then(function(timeline) { return timeline.getSubscribers() })

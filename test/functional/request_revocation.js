@@ -1,7 +1,6 @@
 /*eslint-env node, mocha */
 /*global $pg_database */
 import request from 'superagent'
-import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
@@ -38,15 +37,15 @@ describe("RequestRevocation", () => {
         .post(app.config.host + '/v1/groups')
         .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1'},
           authToken: zeusContext.authToken })
-        .end(function(err, res) {
+        .end(function() {
           request
             .post(app.config.host + '/v1/groups/pepyatka-dev/sendRequest')
             .send({ authToken: lunaContext.authToken })
-            .end(function(err, res) {
+            .end(function() {
               request
                 .post(app.config.host + `/v1/users/${zeusContext.user.username}/sendRequest`)
                 .send({ authToken: lunaContext.authToken })
-                .end(function(err, res) {
+                .end(function() {
                   done()
                 })
             })
@@ -56,7 +55,7 @@ describe("RequestRevocation", () => {
     it('should reject unauthenticated users', function(done) {
       request
         .post(app.config.host + `/v2/requests/${marsContext.user.username}/revoke`)
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -67,7 +66,7 @@ describe("RequestRevocation", () => {
       request
         .post(app.config.host + '/v2/requests/foobar/revoke')
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
@@ -78,7 +77,7 @@ describe("RequestRevocation", () => {
       request
         .post(app.config.host + `/v2/requests/${marsContext.user.username}/revoke`)
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
@@ -89,7 +88,7 @@ describe("RequestRevocation", () => {
       request
         .post(app.config.host + `/v2/requests/pepyatka-dev/revoke`)
         .send({ authToken: marsContext.authToken })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()

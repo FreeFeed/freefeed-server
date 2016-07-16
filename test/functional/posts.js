@@ -46,7 +46,7 @@ describe("PostsController", function() {
       var body = 'Post body'
 
       ctx.authToken = 'token'
-      funcTestHelper.createPost(ctx, body)(function(err, res) {
+      funcTestHelper.createPost(ctx, body)(function(err) {
         err.should.not.be.empty
         err.status.should.eql(401)
 
@@ -121,7 +121,7 @@ describe("PostsController", function() {
         request
           .post(app.config.host + '/v1/posts')
           .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
-          .end(function(err, res) {
+          .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(403)
             err.response.error.should.have.property('text')
@@ -135,11 +135,11 @@ describe("PostsController", function() {
           request
             .post(app.config.host + '/v1/users/' + ctx.username + '/subscribe')
             .send({ authToken: authTokenB })
-            .end(function(err, res) {
+            .end(function() {
               request
                 .post(app.config.host + '/v1/users/' + usernameB + '/subscribe')
                 .send({ authToken: ctx.authToken })
-                .end(function(err, res) {
+                .end(function() {
                   done()
                 })
             })
@@ -175,7 +175,7 @@ describe("PostsController", function() {
             request
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: authTokenC })
-              .end(function(err, res) {
+              .end(function(err) {
                 try {
                   err.should.not.be.empty
                   err.status.should.eql(404)
@@ -199,7 +199,7 @@ describe("PostsController", function() {
 
           it('should not be commented by person that is not in recipients', function(done) {
             var body = 'comment'
-            funcTestHelper.createComment(body, post.id, authTokenC, function(err, res) {
+            funcTestHelper.createComment(body, post.id, authTokenC, function(err) {
               err.should.not.be.empty
               err.status.should.eql(404)
               var error = JSON.parse(err.response.error.text)
@@ -267,7 +267,6 @@ describe("PostsController", function() {
               post = res.body.posts
 
               var authTokenC
-                , usernameC
 
               request
                 .post(app.config.host + '/v1/users')
@@ -277,12 +276,11 @@ describe("PostsController", function() {
                 })
                 .end(function(err, res) {
                   authTokenC = res.body.users.token
-                  usernameC = res.body.users.username
 
                   request
                     .get(app.config.host + '/v1/posts/' + post.id)
                     .query({ authToken: authTokenC })
-                    .end(function(err, res) {
+                    .end(function(err) {
                       err.should.not.be.empty
                       err.status.should.eql(403)
                       var error = JSON.parse(err.response.error.text)
@@ -320,7 +318,7 @@ describe("PostsController", function() {
           request
             .post(app.config.host + '/v1/posts')
             .send({ post: { body: body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
-            .end(function(err, res) {
+            .end(function() {
               funcTestHelper.getTimeline('/v1/timelines/filter/directs', ctx.authToken, function(err, res) {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
@@ -350,7 +348,7 @@ describe("PostsController", function() {
           .post(app.config.host + '/v1/groups')
           .send({ group: { username: groupName, screenName: screenName },
                   authToken: ctx.authToken })
-          .end(function(err, res) {
+          .end(function() {
             done()
           })
       })
@@ -517,7 +515,7 @@ describe("PostsController", function() {
                 request
                   .post(app.config.host + '/v1/posts/' + post.id + '/like')
                   .send({ authToken: ctx.authToken })
-                  .end(function(err, res) {
+                  .end(function() {
                     funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, function(err, res) {
                       res.body.should.not.have.property('posts')
                       done()
@@ -539,7 +537,7 @@ describe("PostsController", function() {
             request
               .post(app.config.host + '/v1/posts/' + post.id + '/like')
               .send({ authToken: ctx.authToken })
-              .end(function(err, res) {
+              .end(function() {
                 funcTestHelper.getTimeline('/v1/timelines/' + ctx.username, ctx.authToken, function(err, res) {
                   res.body.should.not.have.property('posts')
                   done()
@@ -599,7 +597,7 @@ describe("PostsController", function() {
             .post(app.config.host + '/v1/groups')
             .send({ group: {username: groupName, screenName: screenName},
               authToken: context.authToken })
-            .end(function(err, res) {
+            .end(function() {
               done()
             })
       })
@@ -670,7 +668,7 @@ describe("PostsController", function() {
     it('should not like post with an invalid user', function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -681,7 +679,7 @@ describe("PostsController", function() {
       request
         .post(app.config.host + '/v1/posts/:id/like')
         .send({ authToken: context.authToken })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
@@ -713,7 +711,7 @@ describe("PostsController", function() {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
         .send({ authToken: otherUserAuthToken })
-        .end(function(err, res) {
+        .end(function(err) {
 
           err.should.not.be.empty
           err.status.should.eql(403)
@@ -743,7 +741,7 @@ describe("PostsController", function() {
     it('should not unlike post with an invalid user', function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -754,7 +752,7 @@ describe("PostsController", function() {
       request
         .post(app.config.host + '/v1/posts/:id/unlike')
         .send({ authToken: context.authToken })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
@@ -904,7 +902,7 @@ describe("PostsController", function() {
         .send({ post: { body: newBody },
                 '_method': 'put'
               })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
 
@@ -1063,7 +1061,7 @@ describe("PostsController", function() {
         .send({
           authToken: context.authToken,
         })
-        .end(function(err, res) {
+        .end(function() {
           funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function(err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -1082,7 +1080,7 @@ describe("PostsController", function() {
               .send({
                 authToken: context.authToken,
               })
-              .end(function(err, res) {
+              .end(function() {
                 funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function(err, res) {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
@@ -1146,7 +1144,7 @@ describe("PostsController", function() {
         .send({
           '_method': 'delete'
         })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()

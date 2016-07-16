@@ -417,7 +417,7 @@ describe('User', function() {
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
+        .then(function() { return userB.create() })
         .catch(function(e) {
           e.message.should.eql("Already exists")
           done()
@@ -473,7 +473,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.update({ email: user.email }) })
-        .then(function(user) { return dbAdapter.getUserByEmail('noreply@example.com') })
+        .then(function() { return dbAdapter.getUserByEmail('noreply@example.com') })
         .then(function(e) {
           expect(e).to.be.a('null')
           done()
@@ -508,7 +508,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return dbAdapter.getUserByResetToken('token') })
+        .then(function() { return dbAdapter.getUserByResetToken('token') })
         .then(function(e) {
           expect(e).to.be.a('null')
           done()
@@ -546,7 +546,7 @@ describe('User', function() {
     })
   })
 
-  describe('#findByUsername()', function(done) {
+  describe('#findByUsername()', function() {
     it('should find user with a valid username', function(done) {
       var user = new User({
         username: 'Luna',
@@ -659,7 +659,7 @@ describe('User', function() {
       })
 
       user.create()
-        .then(function(user) { done() })
+        .then(function() { done() })
     })
 
     it('should get my discussions timeline', function(done) {
@@ -730,15 +730,15 @@ describe('User', function() {
       })
 
       user.create()
-        .then(function(newUser) { return user.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return user.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return user.getCommentsTimeline() })
-        .then(function(timeline) { return user.getCommentsTimeline() })
-        .then(function(timeline) { return user.getLikesTimeline() })
-        .then(function(timeline) { return user.getLikesTimeline() })
-        .then(function(timeline) { return user.getPostsTimeline() })
-        .then(function(timeline) { return user.getPostsTimeline() })
-        .then(function(timeline) { return user.getTimelines() })
+        .then(function() { return user.getRiverOfNewsTimeline() })
+        .then(function() { return user.getRiverOfNewsTimeline() })
+        .then(function() { return user.getCommentsTimeline() })
+        .then(function() { return user.getCommentsTimeline() })
+        .then(function() { return user.getLikesTimeline() })
+        .then(function() { return user.getLikesTimeline() })
+        .then(function() { return user.getPostsTimeline() })
+        .then(function() { return user.getPostsTimeline() })
+        .then(function() { return user.getTimelines() })
         .then(function(timelines) {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
@@ -773,7 +773,7 @@ describe('User', function() {
       })
 
       user.create()
-        .then(function(user) { done() })
+        .then(function() { done() })
     })
 
     it('should create a new post', function(done) {
@@ -848,7 +848,7 @@ describe('User', function() {
           timelines.should.not.be.empty
           timelines.length.should.eql(3)
         })
-        .then(function(user) { done() })
+        .then(function() { done() })
     })
   })
 
@@ -868,8 +868,8 @@ describe('User', function() {
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+        .then(function() { return userB.create() })
+        .then(function() { done() })
     })
 
     it('should subscribe to timeline', async function() {
@@ -908,8 +908,8 @@ describe('User', function() {
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+        .then(function() { return userB.create() })
+        .then(function() { done() })
     })
 
     it('should subscribe to username', async function(done) {
@@ -949,8 +949,8 @@ describe('User', function() {
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+        .then(function() { return userB.create() })
+        .then(function() { done() })
     })
 
     it('should unsubscribe from timeline', function(done) {
@@ -961,12 +961,12 @@ describe('User', function() {
 
       userB.newPost(attrs)
         .then(function(newPost) { return newPost.create() })
-        .then(function(post) { return userB.getPostsTimelineId() })
+        .then(function() { return userB.getPostsTimelineId() })
         .then(function(timelineId) {
           identifier = timelineId
           return userA.subscribeTo(timelineId)
         })
-        .then(function(timelineId) { return userA.unsubscribeFrom(identifier) })
+        .then(function() { return userA.unsubscribeFrom(identifier) })
         .then(function() { return userA.getRiverOfNewsTimeline() })
         .then(function(timeline) { return timeline.getPosts() })
         .then(function(posts) {
@@ -992,22 +992,20 @@ describe('User', function() {
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+        .then(function() { return userB.create() })
+        .then(function() { done() })
     })
 
     it('should list subscriptions', function(done) {
       var attrs = {
         body: 'Post body'
       }
-      var post
 
       userB.newPost(attrs)
         .then(function(newPost) {
-          post = newPost
           return newPost.create()
         })
-        .then(function(post) { return userB.getPostsTimelineId() })
+        .then(function() { return userB.getPostsTimelineId() })
         .then(function(timelineId) { return userA.subscribeTo(timelineId) })
         .then(function() { return userA.getSubscriptions() })
         .then(function(users) {

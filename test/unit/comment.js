@@ -24,7 +24,7 @@ describe('Comment', function() {
       var postAttrs = { body: 'Post body' }
 
       userA.create()
-        .then(function(user) { return userA.newPost(postAttrs) })
+        .then(function() { return userA.newPost(postAttrs) })
         .then(function(newPost) { return newPost.create() })
         .then(function(newPost) {
           post = newPost
@@ -38,7 +38,7 @@ describe('Comment', function() {
           comment = newComment
           return comment.create()
         })
-        .then(function(res) { done() })
+        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
@@ -95,7 +95,7 @@ describe('Comment', function() {
       })
 
       comment.create()
-        .then(function(timelines) {
+        .then(function() {
           comment.should.be.an.instanceOf(Comment)
           comment.should.not.be.empty
           comment.should.have.property('id')
@@ -122,7 +122,7 @@ describe('Comment', function() {
         })
 
       comment.create()
-        .then(function(timelines) { return dbAdapter.getCommentById(comment.id) })
+        .then(function() { return dbAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -184,7 +184,7 @@ describe('Comment', function() {
       })
 
       comment.create()
-        .then(function(timelines) { return dbAdapter.getCommentById(comment.id) })
+        .then(function() { return dbAdapter.getCommentById(comment.id) })
         .then(function(newComment) {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
@@ -221,7 +221,7 @@ describe('Comment', function() {
       let comment
 
       userA.create()
-        .then(function(user) { return userA.newPost(postAttrs) })
+        .then(function() { return userA.newPost(postAttrs) })
         .then(function(newPost) { return newPost.create() })
         .then(function(newPost) {
           post = newPost
@@ -235,7 +235,7 @@ describe('Comment', function() {
           comment = newComment
           return comment.create()
         })
-        .then(function(res) { done() })
+        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 

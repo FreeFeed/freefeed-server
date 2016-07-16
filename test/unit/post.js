@@ -1,7 +1,7 @@
 /*eslint-env node, mocha */
 /*global $pg_database, $should */
 import knexCleaner from 'knex-cleaner'
-import { dbAdapter, Comment, Post, User } from "../../app/models"
+import { dbAdapter, Post, User } from "../../app/models"
 
 
 describe('Post', function() {
@@ -22,7 +22,7 @@ describe('Post', function() {
       var postAttrs = { body: 'Post body' }
 
       userA.create()
-        .then(function(user) { return userA.newPost(postAttrs) })
+        .then(function() { return userA.newPost(postAttrs) })
         .then(function(newPost) { return newPost.create() })
         .then(function(newPost) {
           post = newPost
@@ -162,7 +162,7 @@ describe('Post', function() {
       })
 
       post.create()
-        .then(function(post) { return user.getRiverOfNewsTimeline() })
+        .then(function() { return user.getRiverOfNewsTimeline() })
         .then(function(timeline) { return timeline.getPosts() })
         .then(function(posts) {
           posts.should.not.be.empty
@@ -317,15 +317,15 @@ describe('Post', function() {
       }
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { return userB.newPost(attrs) })
+        .then(function() { return userB.create() })
+        .then(function() { return userB.newPost(attrs) })
         .then(function(newPost) { return newPost.create() })
         .then(function(newPost) {
           post = newPost
           return userB.getPostsTimelineId()
         })
         .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function(res) { done() })
+        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
@@ -393,7 +393,7 @@ describe('Post', function() {
 
     it('should add like to friend of friend timelines', function(done) {
       post.addLike(userA)
-        .then(function(res) { return userC.getRiverOfNewsTimeline() })
+        .then(function() { return userC.getRiverOfNewsTimeline() })
         .then(function(timeline) { return timeline.getPosts() })
         .then(function(posts) {
           posts.should.not.be.empty
@@ -563,25 +563,25 @@ describe('Post', function() {
       }
 
       userA.create()
-        .then(function(user) { return userC.create() })
-        .then(function(user) { return userB.create() })
-        .then(function(user) { return userB.newPost(attrs) })
+        .then(function() { return userC.create() })
+        .then(function() { return userB.create() })
+        .then(function() { return userB.newPost(attrs) })
         .then(function(newPost) { return newPost.create() })
         .then(function(newPost) {
           post = newPost
           return userB.getPostsTimelineId()
         })
         .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function(res) { return userA.getPostsTimelineId() })
+        .then(function() { return userA.getPostsTimelineId() })
         .then(function(timelineId) { return userC.subscribeTo(timelineId) })
-        .then(function(res) { done() })
+        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
     it('should remove like from friend of friend timelines', function(done) {
       post.addLike(userA)
-        .then(function(res) { return post.removeLike(userA.id) })
-        .then(function(res) { return post.getLikes() })
+        .then(function() { return post.removeLike(userA.id) })
+        .then(function() { return post.getLikes() })
         .then(function(users) {
           users.should.be.empty
         })
@@ -591,7 +591,7 @@ describe('Post', function() {
 
     it('should add user to likes', function(done) {
       post.addLike(userA)
-        .then(function(res) { return post.getLikes() })
+        .then(function() { return post.getLikes() })
         .then(function(users) {
           users.should.not.be.empty
           users.length.should.eql(1)
@@ -629,18 +629,18 @@ describe('Post', function() {
       var postAttrs = { body: 'Post body' }
 
       userA.create()
-        .then(function(user) { return userC.create() })
-        .then(function(user) { return userB.create() })
-        .then(function(user) { return userB.newPost(postAttrs) })
+        .then(function() { return userC.create() })
+        .then(function() { return userB.create() })
+        .then(function() { return userB.newPost(postAttrs) })
         .then(function(newPost) { return newPost.create() })
         .then(function(newPost) {
           post = newPost
           return userB.getPostsTimelineId()
         })
         .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function(res) { return userA.getPostsTimelineId() })
+        .then(function() { return userA.getPostsTimelineId() })
         .then(function(timelineId) { return userC.subscribeTo(timelineId) })
-        .then(function(res) { done() })
+        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
@@ -653,7 +653,7 @@ describe('Post', function() {
       let comment = userA.newComment(commentAttrs)
 
       comment.create()
-        .then(function(res) { return userC.getRiverOfNewsTimeline() })
+        .then(function() { return userC.getRiverOfNewsTimeline() })
         .then(function(timeline) { return timeline.getPosts() })
         .then(function(posts) {
           posts.should.not.be.empty

@@ -8,10 +8,8 @@ import { createUserAsync, createPostViaBookmarklet, createGroupAsync } from './f
 
 
 describe('BookmarkletController', () => {
-  let app
-
   before(async () => {
-    app = await getSingleton()
+    await getSingleton()
     PubSub.setPublisher(new DummyPublisher())
   })
 

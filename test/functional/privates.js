@@ -41,7 +41,7 @@ describe("Privates", function() {
           .post(app.config.host + '/v1/groups')
           .send({ group: { username: group, screenName: group },
                   authToken: lunaContext.authToken })
-          .end(function(err, res) {
+          .end(() => {
             done()
           })
       })
@@ -52,7 +52,7 @@ describe("Privates", function() {
         request
           .post(app.config.host + '/v1/posts')
           .send({ post: { body: post }, meta: { feeds: [group, lunaContext.user.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
+          .end(function() {
             funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
               _.isUndefined(res).should.be.false
               res.body.should.not.be.empty
@@ -68,7 +68,7 @@ describe("Privates", function() {
               request
                 .post(app.config.host + '/v1/posts/' + _post.id + '/like')
                 .send({ authToken: zeusContext.authToken })
-                .end(function(err, res) {
+                .end(function() {
                   funcTestHelper.getTimeline('/v1/timelines/' + zeusContext.user.username +'/likes', zeusContext.authToken, function(err, res) {
                     _.isUndefined(res).should.be.false
                     res.body.should.not.be.empty
@@ -113,7 +113,7 @@ describe("Privates", function() {
             .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
             .send({ authToken: zeusContext.authToken,
                     '_method': 'post' })
-            .end(function(err, res) {
+            .end(() => {
               done()
             })
         })
@@ -122,7 +122,7 @@ describe("Privates", function() {
           request
             .post(app.config.host + '/v1/users/' + zeusContext.user.username + '/ban')
             .send({ authToken: lunaContext.authToken })
-            .end(function(err, res) {
+            .end(function() {
               request
                 .get(app.config.host + '/v1/users/whoami')
                 .query({ authToken: lunaContext.authToken })
@@ -140,7 +140,7 @@ describe("Privates", function() {
           request
             .post(app.config.host + '/v1/users/' + zeusContext.user.username + '/ban')
             .send({ authToken: lunaContext.authToken })
-            .end(function(err, res) {
+            .end(function() {
               request
                 .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
                 .send({ authToken: zeusContext.authToken,
@@ -168,11 +168,11 @@ describe("Privates", function() {
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
             .send({ authToken: lunaContext.authToken,
                     '_method': 'post' })
-            .end(function(err, res) {
+            .end(function() {
               request
                 .post(app.config.host + '/v1/posts/' + lunaContext.post.id + '/like')
                 .send({ authToken: marsContext.authToken })
-                .end(function(err, res) {
+                .end(function() {
                   funcTestHelper.getTimeline('/v1/timelines/' + marsContext.user.username + '/likes', marsContext.authToken, function(err, res) {
                     res.body.should.have.property('posts')
 
@@ -192,8 +192,8 @@ describe("Privates", function() {
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
             .send({ authToken: lunaContext.authToken,
                     '_method': 'post' })
-            .end(function(err, res) {
-              funcTestHelper.createComment('comment', lunaContext.post.id, marsContext.authToken, function(err, res) {
+            .end(function() {
+              funcTestHelper.createComment('comment', lunaContext.post.id, marsContext.authToken, function() {
                 funcTestHelper.getTimeline('/v1/timelines/' + marsContext.user.username + '/comments', marsContext.authToken, function(err, res) {
                   res.body.should.have.property('posts')
 
@@ -213,7 +213,7 @@ describe("Privates", function() {
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
             .send({ authToken: zeusContext.authToken,
                     '_method': 'post' })
-            .end(function(err, res) {
+            .end(function(err) {
               err.should.not.be.empty
               err.status.should.eql(422)
               done()
@@ -276,7 +276,7 @@ describe("Privates", function() {
             .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
             .send({ authToken: herculesContext.authToken,
                     '_method': 'post' })
-            .end(function(err, res) {
+            .end(function() {
               request
                 .post(app.config.host + '/v1/users/rejectRequest/' + herculesContext.user.username)
                 .send({ authToken: lunaContext.authToken,
@@ -427,18 +427,18 @@ describe("Privates", function() {
       })
 
       it('should protect subscriptions of private user', function(done) {
-        funcTestHelper.getSubscriptions(lunaContext.username, null, function(err, res) {
+        funcTestHelper.getSubscriptions(lunaContext.username, null, function(err) {
           _.isObject(err).should.be.true  // anonymous doesn't have access
           err.status.should.equal(403)
 
-          funcTestHelper.getSubscriptions(lunaContext.username, herculesContext.authToken, function(err, res) {
+          funcTestHelper.getSubscriptions(lunaContext.username, herculesContext.authToken, function(err) {
             _.isObject(err).should.be.true  // hercules doesn't have access
             err.status.should.equal(403)
 
-            funcTestHelper.getSubscriptions(lunaContext.username, marsContext.authToken, function(err, res) {
+            funcTestHelper.getSubscriptions(lunaContext.username, marsContext.authToken, function(err) {
               _.isObject(err).should.be.false  // mars has access
 
-              funcTestHelper.getSubscriptions(lunaContext.username, lunaContext.authToken, function (err, res) {
+              funcTestHelper.getSubscriptions(lunaContext.username, lunaContext.authToken, function (err) {
                 _.isObject(err).should.be.false  // luna is an owner
                 done()
               })
@@ -473,7 +473,7 @@ describe("Privates", function() {
         request
           .post(app.config.host + '/v1/posts/' + lunaContext.post.id + '/like')
           .send({ authToken: marsContext.authToken })
-          .end(function(err, res) {
+          .end(function() {
             funcTestHelper.getTimeline('/v1/timelines/' + marsContext.user.username + '/likes', lunaContext.authToken, function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
@@ -491,7 +491,7 @@ describe("Privates", function() {
         request
           .post(app.config.host + '/v1/posts/' + lunaContext.post.id + '/like')
           .send({ authToken: lunaContext.authToken })
-          .end(function(err, res) {
+          .end(function() {
             funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.user.username + '/likes', herculesContext.authToken, function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
@@ -507,7 +507,7 @@ describe("Privates", function() {
       })
 
       it('should be visible for auth users in comments timeline', function(done) {
-        funcTestHelper.createComment('body', lunaContext.post.id, lunaContext.authToken, function(err, res) {
+        funcTestHelper.createComment('body', lunaContext.post.id, lunaContext.authToken, function() {
           funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.user.username + '/comments', lunaContext.authToken, function(err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -522,7 +522,7 @@ describe("Privates", function() {
       })
 
       it('should protect comments timeline', function(done) {
-        funcTestHelper.createComment('body', lunaContext.post.id, lunaContext.authToken, function(err, res) {
+        funcTestHelper.createComment('body', lunaContext.post.id, lunaContext.authToken, function() {
           funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.user.username + '/comments', herculesContext.authToken, function(err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -537,7 +537,7 @@ describe("Privates", function() {
       })
 
       it('should not subscribe to private feed', function(done) {
-        funcTestHelper.subscribeToCtx(herculesContext, lunaContext.username)(function(err, res) {
+        funcTestHelper.subscribeToCtx(herculesContext, lunaContext.username)(function(err) {
           err.should.not.be.empty
           err.status.should.eql(403)
           var error = JSON.parse(err.response.error.text)
@@ -655,7 +655,7 @@ describe("Privates", function() {
         request
           .get(app.config.host + '/v1/posts/' + lunaContext.post.id)
           .query({ authToken: herculesContext.authToken })
-          .end(function(err, res) {
+          .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(403)
             var error = JSON.parse(err.response.error.text)
@@ -671,10 +671,10 @@ describe("Privates", function() {
 
       describe('with commented post', function() {
         beforeEach(function(done) {
-          funcTestHelper.createComment('mars comment', lunaContext.post.id, marsContext.authToken, function(req, res) { done() })
+          funcTestHelper.createComment('mars comment', lunaContext.post.id, marsContext.authToken, function() { done() })
         })
         beforeEach(function(done) {
-          funcTestHelper.createComment('zeus comment', lunaContext.post.id, zeusContext.authToken, function(req, res) { done() })
+          funcTestHelper.createComment('zeus comment', lunaContext.post.id, zeusContext.authToken, function() { done() })
         })
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
@@ -730,7 +730,7 @@ describe("Privates", function() {
           })
         })
 
-        describe('when luna comes back to being public', function(done) {
+        describe('when luna comes back to being public', function() {
           beforeEach(() => funcTestHelper.goPublic(lunaContext))
 
           it('should not influence how mars sees posts in his comments timeline', function(done) {
@@ -925,12 +925,12 @@ describe("Privates", function() {
           .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
           .send({ authToken: marsContext.authToken,
                   '_method': 'post' })
-          .end(function(err, res) {
+          .end(function() {
             request
               .post(app.config.host + '/v1/users/acceptRequest/' + marsContext.user.username)
               .send({ authToken: lunaContext.authToken,
                       '_method': 'post' })
-              .end(function(err, res) {
+              .end(function() {
                 request
                   .get(app.config.host + '/v1/users/' + marsContext.username + '/subscriptions')
                   .query({ authToken: marsContext.authToken })
@@ -982,6 +982,7 @@ describe("Privates", function() {
 
         let marsRiver = await funcTestHelper.getRiverOfNews(marsContext);
         marsRiver.timelines.posts[0].should.equal(post1.id, 'order of posts in incorrect')
+        marsRiver.timelines.posts[1].should.equal(post2.id, 'order of posts in incorrect')
 
         let zeusRiver = await funcTestHelper.getRiverOfNews(zeusContext);
         zeusRiver.timelines.posts[0].should.equal(post1.id, 'order of posts in incorrect')

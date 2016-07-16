@@ -40,7 +40,7 @@ describe("TimelinesController", function() {
     })
 
     it('should not return River Of News for unauthenticated user', function(done) {
-      funcTestHelper.getTimeline('/v1/timelines/home', null, function(err, res) {
+      funcTestHelper.getTimeline('/v1/timelines/home', null, function(err) {
         err.should.not.be.empty
         err.status.should.eql(401)
         done()
@@ -149,7 +149,7 @@ describe("TimelinesController", function() {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/like')
         .send({ authToken: marsContext.authToken })
-        .end(function(req, res) {
+        .end(function() {
           done()
         })
     })
@@ -174,7 +174,7 @@ describe("TimelinesController", function() {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
         .send({ authToken: context.authToken })
-        .end(function(req, res) {
+        .end(function() {
           funcTestHelper.getTimeline('/v1/timelines/' + context.username + '/likes', context.authToken, function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty

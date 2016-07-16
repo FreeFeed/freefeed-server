@@ -9,10 +9,8 @@ import { PubSub } from '../../app/models'
 
 
 describe('Realtime (Socket.io)', () => {
-  let app;
-
   before(async () => {
-    app = await getSingleton();
+    await getSingleton();
 
     const pubsubAdapter = new PubSubAdapter($database)
     PubSub.setPublisher(pubsubAdapter)
@@ -117,7 +115,7 @@ describe('Realtime (Socket.io)', () => {
               client.disconnect();
             }, 600);
           },
-          'post:new': async (data, client) => {
+          'post:new': async () => {
             clearTimeout(timeoutId);
             throw new Error('there should not be notification');
           }
@@ -147,7 +145,7 @@ describe('Realtime (Socket.io)', () => {
               client.disconnect();
             }, 600);
           },
-          'post:new': async (data, client) => {
+          'post:new': async () => {
             clearTimeout(timeoutId);
             throw new Error('there should not be notification');
           }
@@ -171,7 +169,7 @@ describe('Realtime (Socket.io)', () => {
               client.disconnect();
             }, 600);
           },
-          'post:new': async (data, client) => {
+          'post:new': async () => {
             clearTimeout(timeoutId);
             throw new Error('there should not be notification');
           }
@@ -205,7 +203,7 @@ describe('Realtime (Socket.io)', () => {
                 client.disconnect();
               }, 600);
             },
-            'like:new': async (data, client) => {
+            'like:new': async () => {
               clearTimeout(timeoutId);
               throw new Error('there should not be notification');
             }
@@ -229,7 +227,7 @@ describe('Realtime (Socket.io)', () => {
                 client.disconnect();
               }, 600);
             },
-            'comment:new': async (data, client) => {
+            'comment:new': async () => {
               clearTimeout(timeoutId);
               throw new Error('there should not be notification');
             }

@@ -22,8 +22,7 @@ describe("CommentsController", function() {
   })
 
   describe('#create()', function() {
-    var post
-      , context = {}
+    var context = {}
     beforeEach(async()=>{
       context = await funcTestHelper.createUserAsync('Luna', 'password')
       context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
@@ -38,7 +37,7 @@ describe("CommentsController", function() {
           .post(app.config.host + '/v1/groups')
           .send({ group: { username: groupName, screenName: screenName },
                   authToken: context.authToken })
-          .end(function(err, res) {
+          .end(function() {
             done()
           })
       })
@@ -89,7 +88,7 @@ describe("CommentsController", function() {
       var body = "Comment"
 
       context.authToken = 'token'
-      funcTestHelper.createCommentCtx(context, body)(function(err, res) {
+      funcTestHelper.createCommentCtx(context, body)(function(err) {
         err.should.not.be.empty
         err.status.should.eql(401)
 
@@ -101,7 +100,7 @@ describe("CommentsController", function() {
       var body = "Comment"
 
       context.post.id = 'id'
-      funcTestHelper.createCommentCtx(context, body)(function(err, res) {
+      funcTestHelper.createCommentCtx(context, body)(function(err) {
         err.should.not.be.empty
         err.status.should.eql(404)
 
@@ -169,7 +168,7 @@ describe("CommentsController", function() {
         .send({ comment: { body: newBody },
                 '_method': 'put'
               })
-        .end(function(err, res) {
+        .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
 
@@ -185,7 +184,7 @@ describe("CommentsController", function() {
             authToken: yoleContext.authToken,
             '_method': 'put'
           })
-          .end(function(err, res) {
+          .end(function(err) {
             err.status.should.eql(403)
             done()
           })
