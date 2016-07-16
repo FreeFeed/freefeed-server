@@ -161,7 +161,7 @@ export default class PostsController {
 
       const valid = await post.canShow(req.user.id)
       if (!valid) {
-        throw new Error('Not found')
+        throw new NotFoundException("Can't find post");
       }
 
       const affectedTimelines = await post.addLike(req.user)

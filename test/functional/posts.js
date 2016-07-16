@@ -178,9 +178,9 @@ describe("PostsController", function() {
               .end(function(err, res) {
                 try {
                   err.should.not.be.empty
-                  err.status.should.eql(422)
+                  err.status.should.eql(404)
                   var error = JSON.parse(err.response.error.text)
-                  error.err.should.eql('Not found')
+                  error.err.should.eql(`Can't find post`)
                 } catch (e) {
                   done(e);
                   return;
