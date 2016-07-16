@@ -371,7 +371,7 @@ describe("PostsController", function() {
 
             request
               .get(app.config.host + '/v1/timelines/' + groupName)
-              .query({authToken: ctx.authToken})
+              .query({ authToken: ctx.authToken })
               .end(function (err, res) {
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].body.should.eql(body)
@@ -410,7 +410,7 @@ describe("PostsController", function() {
 
             request
               .get(app.config.host + '/v1/timelines/' + groupName)
-              .query({authToken: ctx.authToken})
+              .query({ authToken: ctx.authToken })
               .end(function (err, res) {
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].body.should.eql(body)
@@ -437,7 +437,7 @@ describe("PostsController", function() {
 
           request
             .post(app.config.host + '/v1/posts')
-            .send({post: {body: body}, meta: {feeds: [groupName]}, authToken: ctx.authToken})
+            .send({ post: { body: body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
             .end(function (err, res) {
               var postTimestamp = res.body.posts.createdAt
               res.status.should.eql(200)
@@ -595,7 +595,7 @@ describe("PostsController", function() {
         var screenName = 'Pepyatka Developers';
         request
             .post(app.config.host + '/v1/groups')
-            .send({ group: {username: groupName, screenName: screenName},
+            .send({ group: { username: groupName, screenName: screenName },
               authToken: context.authToken })
             .end(function() {
               done()
@@ -959,7 +959,7 @@ describe("PostsController", function() {
       {
         const anotherPost = {
           body: 'Another body',
-          attachments: [ newPost.attachments[0] ] // leave the first attachment only
+          attachments: [newPost.attachments[0]] // leave the first attachment only
         }
 
         const response = await funcTestHelper.updatePostAsync(context, anotherPost)

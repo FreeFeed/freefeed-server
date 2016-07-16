@@ -31,7 +31,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: userName, screenName: screenName},
+        .send({ group: { username: userName, screenName: screenName },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -51,7 +51,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: userName, screenName: screenName, isPrivate: '1'},
+        .send({ group: { username: userName, screenName: screenName, isPrivate: '1' },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -67,7 +67,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: userName, screenName: screenName, isRestricted: '1'},
+        .send({ group: { username: userName, screenName: screenName, isRestricted: '1' },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -83,7 +83,7 @@ describe("PrivateGroups", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: userName, screenName: screenName, isPrivate: '1', isRestricted: '1'},
+        .send({ group: { username: userName, screenName: screenName, isPrivate: '1', isRestricted: '1' },
           authToken: context.authToken })
         .end(function(err, res) {
           res.body.should.not.be.empty
@@ -105,7 +105,7 @@ describe("PrivateGroups", function() {
     beforeEach(function(done) {
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1'},
+          .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
             authToken: adminContext.authToken })
           .end(function() {
             done()
@@ -116,7 +116,7 @@ describe("PrivateGroups", function() {
     it('should allow an administrator of private group to add another administrator', function(done) {
       request
           .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/yole/admin')
-          .send({authToken: adminContext.authToken })
+          .send({ authToken: adminContext.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
             done()
@@ -133,7 +133,7 @@ describe("PrivateGroups", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
                 authToken: context.authToken
               })
         .end(function(err, res) {
@@ -149,7 +149,7 @@ describe("PrivateGroups", function() {
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: context.authToken,
-                user: { screenName: screenName, description: description,},
+                user: { screenName: screenName, description: description, },
                 '_method': 'put' })
         .end(function(err, res) {
           res.should.not.be.empty
@@ -172,7 +172,7 @@ describe("PrivateGroups", function() {
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: context.authToken,
-          user: { isRestricted: '1'},
+          user: { isRestricted: '1' },
           '_method': 'put' })
         .end(function(err, res) {
           res.should.not.be.empty
@@ -191,7 +191,7 @@ describe("PrivateGroups", function() {
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: context.authToken,
-          user: { isPrivate: '0'},
+          user: { isPrivate: '0' },
           '_method': 'put' })
         .end(function(err, res) {
           res.should.not.be.empty
@@ -217,7 +217,7 @@ describe("PrivateGroups", function() {
     beforeEach(function(done) {
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1'},
+          .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
             authToken: adminContext.authToken })
           .end(function() {
             done()
@@ -256,7 +256,7 @@ describe("PrivateGroups", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1'},
+        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
           authToken: adminContext.authToken })
         .end(function(err, res) {
           group = res.body.groups
@@ -325,7 +325,7 @@ describe("PrivateGroups", function() {
       request
         .post(app.config.host + '/v1/users/' + group.id)
         .send({ authToken: adminContext.authToken,
-          user: { isPrivate: '0'},
+          user: { isPrivate: '0' },
           '_method': 'put' })
         .end(function() {
           request
@@ -736,7 +736,7 @@ describe("PrivateGroups", function() {
       it('should allow group members to unsubscribe from group', function(done) {
         request
           .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
-          .send({authToken: groupMemberContext.authToken})
+          .send({ authToken: groupMemberContext.authToken })
           .end(function (err, res) {
             res.should.not.be.empty
             res.status.should.eql(200)
@@ -804,7 +804,7 @@ describe("PrivateGroups", function() {
 
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: {username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1'},
+          .send({ group: { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1' },
             authToken: adminContext.authToken })
           .end(function(err, res) {
             res.status.should.eql(200)
@@ -820,7 +820,7 @@ describe("PrivateGroups", function() {
 
                 request
                   .post(app.config.host + '/v1/groups')
-                  .send({ group: {username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '1'},
+                  .send({ group: { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '1' },
                     authToken: nonAdminContext.authToken })
                   .end(function(err, res) {
                     group3 = res.body.groups
@@ -892,13 +892,13 @@ describe("PrivateGroups", function() {
         }
 
         const contexts = [
-          {context: adminContext, shouldHave: true},
-          {context: secondAdminContext, shouldHave: true},
-          {context: groupMemberContext, shouldHave: false},
-          {context: nonAdminContext, shouldHave: false}
+          { context: adminContext, shouldHave: true },
+          { context: secondAdminContext, shouldHave: true },
+          { context: groupMemberContext, shouldHave: false },
+          { context: nonAdminContext, shouldHave: false }
         ]
 
-        for (const {context, shouldHave} of contexts) {
+        for (const { context, shouldHave } of contexts) {
           await verifyUsersPendingGroupRequests(context, shouldHave)
         }
       })
@@ -996,17 +996,17 @@ describe("PrivateGroups", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1', isRestricted: '1'},
+        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1', isRestricted: '1' },
           authToken: adminContext.authToken })
         .end(function() {
           request
             .post(app.config.host + '/v1/groups')
-            .send({ group: {username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1', isRestricted: '0'},
+            .send({ group: { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1', isRestricted: '0' },
               authToken: adminContext.authToken })
             .end(function() {
               request
                 .post(app.config.host + '/v1/groups')
-                .send({ group: {username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '0', isRestricted: '1'},
+                .send({ group: { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '0', isRestricted: '1' },
                   authToken: adminContext.authToken })
                 .end(function() {
                   request

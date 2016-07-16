@@ -412,7 +412,7 @@ describe('Post', function() {
 
       await post.addLike(userA)
 
-      let postsFeedA = await userA.getPostsTimeline({currentUser: userC.id})
+      let postsFeedA = await userA.getPostsTimeline({ currentUser: userC.id })
       let postsA = postsFeedA.posts
 
       postsA.should.not.be.empty

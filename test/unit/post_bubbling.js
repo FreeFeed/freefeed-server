@@ -10,7 +10,7 @@ describe('PostBubbling', function() {
   })
 
   let homeFeedEqualTo = async (user, expectedContent, feedReaderId)=>{
-    let homeFeed = await user.getRiverOfNewsTimeline({currentUser: feedReaderId})
+    let homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
     let posts = await homeFeed.getPosts()
 
     posts.should.not.be.empty
@@ -22,7 +22,7 @@ describe('PostBubbling', function() {
   }
 
   let homeFeedPageEqualTo = async (user, expectedContent, feedReaderId, limit, offset)=>{
-    let homeFeed = await user.getRiverOfNewsTimeline({currentUser: feedReaderId})
+    let homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
     let posts = await homeFeed.getPosts(offset, limit)
 
     posts.should.not.be.empty
@@ -788,9 +788,9 @@ describe('PostBubbling', function() {
       lunaPosts  = []
       marsPosts  = []
       plutoPosts = []
-      luna       = new User({username: 'Luna', password: 'password'})
-      mars       = new User({username: 'Mars', password: 'password'})
-      pluto      = new User({username: 'Pluto', password: 'password'})
+      luna       = new User({ username: 'Luna', password: 'password' })
+      mars       = new User({ username: 'Mars', password: 'password' })
+      pluto      = new User({ username: 'Pluto', password: 'password' })
 
       await luna.create()
       await luna.update({
@@ -800,15 +800,15 @@ describe('PostBubbling', function() {
       await pluto.create()
 
       for (let body of lunaPostsContent) {
-        let post = await luna.newPost({body: body})
+        let post = await luna.newPost({ body: body })
         lunaPosts.push(await post.create())
       }
       for (let body of marsPostsContent) {
-        let post = await mars.newPost({body: body})
+        let post = await mars.newPost({ body: body })
         marsPosts.push(await post.create())
       }
       for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({body: body})
+        let post = await pluto.newPost({ body: body })
         plutoPosts.push(await post.create())
       }
     })
@@ -860,10 +860,10 @@ describe('PostBubbling', function() {
       marsPosts  = []
       plutoPosts = []
       easyfoxPosts = []
-      luna       = new User({username: 'Luna', password: 'password'})
-      mars       = new User({username: 'Mars', password: 'password'})
-      pluto      = new User({username: 'Pluto', password: 'password'})
-      easyfox    = new Group({username: 'EasyFox', password: 'password', isPrivate: '1'})
+      luna       = new User({ username: 'Luna', password: 'password' })
+      mars       = new User({ username: 'Mars', password: 'password' })
+      pluto      = new User({ username: 'Pluto', password: 'password' })
+      easyfox    = new Group({ username: 'EasyFox', password: 'password', isPrivate: '1' })
 
       await luna.create()
       await mars.create()
@@ -873,19 +873,19 @@ describe('PostBubbling', function() {
       easyfoxTimelineId = await easyfox.getPostsTimelineId()
 
       for (let body of lunaPostsContent) {
-        let post = await luna.newPost({body: body})
+        let post = await luna.newPost({ body: body })
         lunaPosts.push(await post.create())
       }
       for (let body of marsPostsContent) {
-        let post = await mars.newPost({body: body})
+        let post = await mars.newPost({ body: body })
         marsPosts.push(await post.create())
       }
       for (let body of plutoPostsContent) {
-        let post = await pluto.newPost({body: body})
+        let post = await pluto.newPost({ body: body })
         plutoPosts.push(await post.create())
       }
       for (let body of easyfoxPostsContent) {
-        let post = await easyfox.newPost({body: body, timelineIds: [easyfoxTimelineId]})
+        let post = await easyfox.newPost({ body: body, timelineIds: [easyfoxTimelineId] })
         easyfoxPosts.push(await post.create())
       }
     })
@@ -905,7 +905,7 @@ describe('PostBubbling', function() {
         it("group posts", async () => {
           let expectedContent = ['Jig', 'Item', 'How']
 
-          let postsFeed = await easyfox.getPostsTimeline({currentUser: luna.id})
+          let postsFeed = await easyfox.getPostsTimeline({ currentUser: luna.id })
           let posts = await postsFeed.getPosts()
 
           posts.should.not.be.empty
@@ -954,7 +954,7 @@ describe('PostBubbling', function() {
 
         describe("new private group posts are bringed to subscriber's home feed", () => {
           it("after post creation", async () => {
-            let post = await easyfox.newPost({body: "King NaN", timelineIds: [easyfoxTimelineId]})
+            let post = await easyfox.newPost({ body: "King NaN", timelineIds: [easyfoxTimelineId] })
             easyfoxPosts.push(await post.create())
 
             let expectedContent = ['King NaN', 'Jig', 'Item', 'How', 'Delta', 'Gamma', 'Beta', 'Alpha', 'Dog', 'Charlie', 'Baker', 'Able', 'C', 'B', 'A']

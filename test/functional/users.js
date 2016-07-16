@@ -564,7 +564,7 @@ describe("UsersController", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0'},
+        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
           authToken: adminContext.authToken })
         .end(function() {
           request
@@ -573,7 +573,7 @@ describe("UsersController", function() {
             .end(function() {
               request
                 .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/' + secondAdminContext.user.username +'/admin')
-                .send({authToken: adminContext.authToken })
+                .send({ authToken: adminContext.authToken })
                 .end(function() {
                   request
                     .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
@@ -608,7 +608,7 @@ describe("UsersController", function() {
     it('should allow group members to unsubscribe from group', function(done) {
       request
         .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
-        .send({authToken: groupMemberContext.authToken})
+        .send({ authToken: groupMemberContext.authToken })
         .end(function (err, res) {
           res.should.not.be.empty
           res.status.should.eql(200)
@@ -851,11 +851,11 @@ describe("UsersController", function() {
       var lunaContext = {}
       var marsContext = {}
 
-      beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', {email: "luna@example.org"}))
-      beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', {email: "mars@example.org"}))
+      beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', { email: "luna@example.org" }))
+      beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', { email: "mars@example.org" }))
 
       it('should not let user use email, which is used by other user', function(done) {
-        funcTestHelper.updateUserCtx(lunaContext, {email: marsContext.attributes.email})(function(err) {
+        funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })(function(err) {
           $should.exist(err)
           err.status.should.eql(422)
           err.response.error.should.have.property('text')
@@ -865,10 +865,10 @@ describe("UsersController", function() {
       })
 
       it('should let user to use email, which was used by other user, but not used anymore', function(done) {
-        funcTestHelper.updateUserCtx(marsContext, {email: 'other@example.org'})(function (err) {
+        funcTestHelper.updateUserCtx(marsContext, { email: 'other@example.org' })(function (err) {
           $should.not.exist(err)
 
-          funcTestHelper.updateUserCtx(lunaContext, {email: marsContext.attributes.email})(function (err2) {
+          funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })(function (err2) {
             $should.not.exist(err2)
             done()
           })

@@ -161,7 +161,7 @@ export function createCommentCtx(context, body) {
 
       request
         .post(url)
-        .send({comment: comment, authToken: context.authToken})
+        .send({ comment: comment, authToken: context.authToken })
         .end(function (err, res) {
           context.comment = res.body.comments
           done(err, res)
@@ -399,7 +399,7 @@ export function groupToPrivate(group, userContext) {
 }
 
 export function subscribeToAsync(subscriber, victim) {
-  return postJson(`/v1/users/${victim.username}/subscribe`, {authToken: subscriber.authToken})
+  return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
 
 export async function mutualSubscriptions(userContexts) {
@@ -422,8 +422,8 @@ export async function createAndReturnPostToFeed(feed, userContext, body) {
   let response = await postJson(
     '/v1/posts',
     {
-      post: {body},
-      meta: {feeds: feed.username},
+      post: { body },
+      meta: { feeds: feed.username },
       authToken: userContext.authToken
     }
   )
@@ -438,7 +438,7 @@ export function createAndReturnPost(userContext, body) {
 }
 
 export function createCommentAsync (userContext, postId, body) {
-  return postJson('/v1/comments', {comment: {body, postId}, authToken: userContext.authToken})
+  return postJson('/v1/comments', { comment: { body, postId }, authToken: userContext.authToken })
 }
 
 const getTimelineAsync = async (relativeUrl, userContext) => {
@@ -580,12 +580,12 @@ export async function createGroupAsync(context, username, screenName) {
 export function promoteToAdmin(group, existingAdminContext, potentialAdminContext) {
   return postJson(
     `/v1/groups/${group.username}/subscribers/${potentialAdminContext.user.username}/admin`,
-    {authToken: existingAdminContext.authToken}
+    { authToken: existingAdminContext.authToken }
   )
 }
 
 export function sendRequestToJoinGroup(subscriber, group) {
-  return postJson(`/v1/groups/${group.username}/sendRequest`, {authToken: subscriber.authToken})
+  return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
 }
 
 export function banUser(who, whom) {
