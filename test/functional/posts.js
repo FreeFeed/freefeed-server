@@ -346,8 +346,10 @@ describe("PostsController", function() {
         var screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: groupName, screenName },
-                  authToken: ctx.authToken })
+          .send({
+            group: { username: groupName, screenName },
+            authToken: ctx.authToken
+          })
           .end(function() {
             done()
           })
@@ -595,8 +597,10 @@ describe("PostsController", function() {
         var screenName = 'Pepyatka Developers';
         request
             .post(app.config.host + '/v1/groups')
-            .send({ group: { username: groupName, screenName },
-              authToken: context.authToken })
+            .send({
+              group: { username: groupName, screenName },
+              authToken: context.authToken
+            })
             .end(function() {
               done()
             })
@@ -881,10 +885,11 @@ describe("PostsController", function() {
       var newBody = "New body"
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
-        .send({ post: { body: newBody },
-                authToken: context.authToken,
-                '_method': 'put'
-              })
+        .send({
+          post: { body: newBody },
+          authToken: context.authToken,
+          '_method': 'put'
+        })
         .end(function(err, res) {
           res.body.should.not.be.empty
           res.body.should.have.property('posts')
@@ -899,9 +904,10 @@ describe("PostsController", function() {
       var newBody = "New body"
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
-        .send({ post: { body: newBody },
-                '_method': 'put'
-              })
+        .send({
+          post: { body: newBody },
+          '_method': 'put'
+        })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -914,7 +920,8 @@ describe("PostsController", function() {
       var newBody = "New body"
       request
           .post(app.config.host + '/v1/posts/' + context.post.id)
-          .send({ post: { body: newBody },
+          .send({
+            post: { body: newBody },
             authToken: otherUserAuthToken,
             '_method': 'put'
           })
@@ -1058,9 +1065,7 @@ describe("PostsController", function() {
     it("should hide and unhide post", function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id + '/hide')
-        .send({
-          authToken: context.authToken,
-        })
+        .send({ authToken: context.authToken, })
         .end(function() {
           funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function(err, res) {
             res.should.not.be.empty
@@ -1077,9 +1082,7 @@ describe("PostsController", function() {
 
             request
               .post(app.config.host + '/v1/posts/' + context.post.id + '/unhide')
-              .send({
-                authToken: context.authToken,
-              })
+              .send({ authToken: context.authToken, })
               .end(function() {
                 funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, function(err, res) {
                   res.should.not.be.empty
@@ -1141,9 +1144,7 @@ describe("PostsController", function() {
     it('should not destroy valid post without user', function(done) {
       request
         .post(app.config.host + '/v1/posts/' + context.post.id)
-        .send({
-          '_method': 'delete'
-        })
+        .send({ '_method': 'delete' })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)

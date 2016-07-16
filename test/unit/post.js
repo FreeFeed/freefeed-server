@@ -33,9 +33,7 @@ describe('Post', function() {
 
     it('should update without error', function(done) {
       var body = 'Body'
-      var attrs = {
-        body
-      }
+      var attrs = { body }
 
       post.update(attrs)
         .then(function(newPost) {
@@ -312,9 +310,7 @@ describe('Post', function() {
         password: 'password'
       })
 
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
 
       userA.create()
         .then(function() { return userB.create() })
@@ -558,9 +554,7 @@ describe('Post', function() {
         password: 'password'
       })
 
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
 
       userA.create()
         .then(function() { return userC.create() })

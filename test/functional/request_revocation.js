@@ -35,8 +35,10 @@ describe("RequestRevocation", () => {
     beforeEach((done) => {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
-          authToken: zeusContext.authToken })
+        .send({
+          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+          authToken: zeusContext.authToken
+        })
         .end(function() {
           request
             .post(app.config.host + '/v1/groups/pepyatka-dev/sendRequest')

@@ -45,8 +45,10 @@ describe("GroupsController", function() {
       var screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: userName, screenName },
-              authToken: context.authToken })
+          .send({
+            group: { username: userName, screenName },
+            authToken: context.authToken
+          })
           .end(function(err, res) {
             res.body.should.not.be.empty
             res.body.should.have.property('groups')
@@ -63,8 +65,10 @@ describe("GroupsController", function() {
       var screenName = 'Pepyatka Developers';
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: userName, screenName, isPrivate: '1' },
-          authToken: context.authToken })
+        .send({
+          group: { username: userName, screenName, isPrivate: '1' },
+          authToken: context.authToken
+        })
         .end(function(err, res) {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
@@ -78,8 +82,10 @@ describe("GroupsController", function() {
       var screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: userName, screenName },
-            authToken: context.authToken })
+          .send({
+            group: { username: userName, screenName },
+            authToken: context.authToken
+          })
           .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(422)
@@ -92,8 +98,10 @@ describe("GroupsController", function() {
       var screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: userName, screenName },
-            authToken: context.authToken })
+          .send({
+            group: { username: userName, screenName },
+            authToken: context.authToken
+          })
           .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(422)
@@ -108,8 +116,10 @@ describe("GroupsController", function() {
       var screenName = '';
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: userName, screenName },
-            authToken: context.authToken })
+          .send({
+            group: { username: userName, screenName },
+            authToken: context.authToken
+          })
           .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(422)
@@ -124,8 +134,10 @@ describe("GroupsController", function() {
       var screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: userName, screenName },
-            authToken: context.authToken })
+          .send({
+            group: { username: userName, screenName },
+            authToken: context.authToken
+          })
           .end(function() {
             // TODO[yole] check that the user is an administrator
             done()
@@ -137,8 +149,10 @@ describe("GroupsController", function() {
       var screenName = 'Pepyatka Developers';
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: userName, screenName },
-            authToken: context.authToken })
+          .send({
+            group: { username: userName, screenName },
+            authToken: context.authToken
+          })
           .end(function(err, res) {
             var newGroupId = res.body.groups.id
             request
@@ -218,9 +232,11 @@ describe("GroupsController", function() {
 
       request
         .post(app.config.host + '/v1/users/' + group.id)
-        .send({ authToken: context.authToken,
-                user: { screenName, description },
-                '_method': 'put' })
+        .send({
+          authToken: context.authToken,
+          user: { screenName, description },
+          '_method': 'put'
+        })
         .end(function(err, res) {
           res.should.not.be.empty
           res.body.should.not.be.empty
@@ -257,9 +273,7 @@ describe("GroupsController", function() {
           user: group,
           authToken: context.authToken
         }
-        await funcTestHelper.updateUserAsync(userContext, {
-          description: newDescription
-        })
+        await funcTestHelper.updateUserAsync(userContext, { description: newDescription })
 
         const response = await funcTestHelper.getUserAsync({}, group.username)
         response.status.should.equal(200)
@@ -278,9 +292,7 @@ describe("GroupsController", function() {
           user: group,
           authToken: context.authToken
         }
-        await funcTestHelper.updateUserAsync(userContext, {
-          screenName: newScreenName
-        })
+        await funcTestHelper.updateUserAsync(userContext, { screenName: newScreenName })
 
         const response = await funcTestHelper.getUserAsync({}, group.username)
         response.status.should.equal(200)
@@ -305,8 +317,10 @@ describe("GroupsController", function() {
     beforeEach(function(done) {
       request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
-            authToken: adminContext.authToken })
+          .send({
+            group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
+            authToken: adminContext.authToken
+          })
           .end(function() {
             done()
           })
@@ -346,8 +360,10 @@ describe("GroupsController", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
-          authToken: context.authToken })
+        .send({
+          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
+          authToken: context.authToken
+        })
         .end(function() {
           done()
         })
@@ -385,8 +401,10 @@ describe("GroupsController", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
-          authToken: adminContext.authToken })
+        .send({
+          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
+          authToken: adminContext.authToken
+        })
         .end(function() {
           request
             .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
@@ -410,8 +428,10 @@ describe("GroupsController", function() {
     it('admins should be able to unsubscribe user from group', function (done) {
       request
         .post(app.config.host + '/v1/groups/pepyatka-dev/unsubscribeFromGroup/' + groupMemberContext.user.username)
-        .send({ authToken: adminContext.authToken,
-          '_method': 'post' })
+        .send({
+          authToken: adminContext.authToken,
+          '_method': 'post'
+        })
         .end(function (err, res) {
           res.status.should.eql(200)
           res.should.not.be.empty

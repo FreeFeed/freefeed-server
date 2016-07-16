@@ -35,8 +35,10 @@ describe("CommentsController", function() {
         var screenName = 'Pepyatka Developers';
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: groupName, screenName },
-                  authToken: context.authToken })
+          .send({
+            group: { username: groupName, screenName },
+            authToken: context.authToken
+          })
           .end(function() {
             done()
           })
@@ -147,10 +149,11 @@ describe("CommentsController", function() {
       var newBody = "New body"
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
-        .send({ comment: { body: newBody },
-                authToken: lunaContext.authToken,
-                '_method': 'put'
-              })
+        .send({
+          comment: { body: newBody },
+          authToken: lunaContext.authToken,
+          '_method': 'put'
+        })
         .end(function(err, res) {
           res.body.should.not.be.empty
           res.body.should.have.property('comments')
@@ -165,9 +168,10 @@ describe("CommentsController", function() {
       var newBody = "New body"
       request
         .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
-        .send({ comment: { body: newBody },
-                '_method': 'put'
-              })
+        .send({
+          comment: { body: newBody },
+          '_method': 'put'
+        })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -180,7 +184,8 @@ describe("CommentsController", function() {
       var newBody = "New body"
       request
           .post(app.config.host + '/v1/comments/' + lunaContext.comment.id)
-          .send({ comment: { body: newBody },
+          .send({
+            comment: { body: newBody },
             authToken: yoleContext.authToken,
             '_method': 'put'
           })

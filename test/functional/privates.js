@@ -39,8 +39,10 @@ describe("Privates", function() {
       beforeEach(function(done) {
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: group, screenName: group },
-                  authToken: lunaContext.authToken })
+          .send({
+            group: { username: group, screenName: group },
+            authToken: lunaContext.authToken
+          })
           .end(() => {
             done()
           })
@@ -111,8 +113,10 @@ describe("Privates", function() {
         beforeEach(function(done) {
           request
             .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
-            .send({ authToken: zeusContext.authToken,
-                    '_method': 'post' })
+            .send({
+              authToken: zeusContext.authToken,
+              '_method': 'post'
+            })
             .end(() => {
               done()
             })
@@ -143,8 +147,10 @@ describe("Privates", function() {
             .end(function() {
               request
                 .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
-                .send({ authToken: zeusContext.authToken,
-                        '_method': 'post' })
+                .send({
+                  authToken: zeusContext.authToken,
+                  '_method': 'post'
+                })
                 .end(function(err, res) {
                   res.should.not.be.empty
                   res.body.err.should.not.be.empty
@@ -166,8 +172,10 @@ describe("Privates", function() {
         it('should show liked post per context', function(done) {
           request
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
-            .send({ authToken: lunaContext.authToken,
-                    '_method': 'post' })
+            .send({
+              authToken: lunaContext.authToken,
+              '_method': 'post'
+            })
             .end(function() {
               request
                 .post(app.config.host + '/v1/posts/' + lunaContext.post.id + '/like')
@@ -190,8 +198,10 @@ describe("Privates", function() {
         it('should show liked post per context', function(done) {
           request
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
-            .send({ authToken: lunaContext.authToken,
-                    '_method': 'post' })
+            .send({
+              authToken: lunaContext.authToken,
+              '_method': 'post'
+            })
             .end(function() {
               funcTestHelper.createComment('comment', lunaContext.post.id, marsContext.authToken, function() {
                 funcTestHelper.getTimeline('/v1/timelines/' + marsContext.user.username + '/comments', marsContext.authToken, function(err, res) {
@@ -211,8 +221,10 @@ describe("Privates", function() {
         it('should not be accepted by invalid user', function(done) {
           request
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
-            .send({ authToken: zeusContext.authToken,
-                    '_method': 'post' })
+            .send({
+              authToken: zeusContext.authToken,
+              '_method': 'post'
+            })
             .end(function(err) {
               err.should.not.be.empty
               err.status.should.eql(422)
@@ -223,8 +235,10 @@ describe("Privates", function() {
         it('should be able to accept', function(done) {
           request
             .post(app.config.host + '/v1/users/acceptRequest/' + zeusContext.user.username)
-            .send({ authToken: lunaContext.authToken,
-                    '_method': 'post' })
+            .send({
+              authToken: lunaContext.authToken,
+              '_method': 'post'
+            })
             .end(function(err, res) {
               res.should.not.be.empty
               res.error.should.be.empty
@@ -274,13 +288,17 @@ describe("Privates", function() {
         it('should be able to reject', function(done) {
           request
             .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
-            .send({ authToken: herculesContext.authToken,
-                    '_method': 'post' })
+            .send({
+              authToken: herculesContext.authToken,
+              '_method': 'post'
+            })
             .end(function() {
               request
                 .post(app.config.host + '/v1/users/rejectRequest/' + herculesContext.user.username)
-                .send({ authToken: lunaContext.authToken,
-                        '_method': 'post' })
+                .send({
+                  authToken: lunaContext.authToken,
+                  '_method': 'post'
+                })
                 .end(function(err, res) {
                   res.should.not.be.empty
                   res.error.should.be.empty
@@ -558,8 +576,10 @@ describe("Privates", function() {
       it('should be able to send and receive subscription request', function(done) {
         request
           .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
-          .send({ authToken: zeusContext.authToken,
-                  '_method': 'post' })
+          .send({
+            authToken: zeusContext.authToken,
+            '_method': 'post'
+          })
           .end(function(err, res) {
             res.should.not.be.empty
             res.error.should.be.empty
@@ -923,13 +943,17 @@ describe("Privates", function() {
       it('should be visible to mutual friends', function(done) {
         request
           .post(app.config.host + '/v1/users/' + lunaContext.user.username + '/sendRequest')
-          .send({ authToken: marsContext.authToken,
-                  '_method': 'post' })
+          .send({
+            authToken: marsContext.authToken,
+            '_method': 'post'
+          })
           .end(function() {
             request
               .post(app.config.host + '/v1/users/acceptRequest/' + marsContext.user.username)
-              .send({ authToken: lunaContext.authToken,
-                      '_method': 'post' })
+              .send({
+                authToken: lunaContext.authToken,
+                '_method': 'post'
+              })
               .end(function() {
                 request
                   .get(app.config.host + '/v1/users/' + marsContext.username + '/subscriptions')

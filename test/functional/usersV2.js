@@ -52,16 +52,10 @@ describe("UsersControllerV2", function() {
 
       await fetch(`${app.config.host}/v1/users/${userB.username}/ban`, {
         method: 'POST',
-        headers: {
-          'X-Authentication-Token': userAResponse.authToken
-        }
+        headers: { 'X-Authentication-Token': userAResponse.authToken }
       })
 
-      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`,{
-        headers: {
-          'X-Authentication-Token': userAResponse.authToken
-        }
-      })
+      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`,{ headers: { 'X-Authentication-Token': userAResponse.authToken } })
 
       const blockedByMe = await blockedByMeResponse.json()
 

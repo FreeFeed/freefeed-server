@@ -21,9 +21,7 @@ describe('Group', function() {
     })
 
     it('should create without error', function(done) {
-      var group = new Group({
-        username: 'FriendFeed'
-      })
+      var group = new Group({ username: 'FriendFeed' })
       var ownerId = groupAdmin.id
 
       group.create(ownerId)
@@ -115,9 +113,7 @@ describe('Group', function() {
   describe('#update()', function() {
     it('should update without error', async () => {
       var screenName = 'Pepyatka'
-      var group = new Group({
-        username: 'FriendFeed'
-      })
+      var group = new Group({ username: 'FriendFeed' })
 
       await group.create()
 
@@ -126,9 +122,7 @@ describe('Group', function() {
       group.should.have.property('id')
       group.should.have.property('screenName')
 
-      await group.update({
-        screenName
-      })
+      await group.update({ screenName })
 
       group.should.be.an.instanceOf(Group)
       group.should.not.be.empty

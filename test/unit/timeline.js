@@ -150,9 +150,7 @@ describe('Timeline', function() {
     })
 
     it('should subscribe to timeline', function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
 
       userB.newPost(attrs)
         .then(function(newPost) {

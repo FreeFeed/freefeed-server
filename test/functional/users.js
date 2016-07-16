@@ -140,9 +140,7 @@ describe("UsersController", function() {
     })
 
     it('should not create user without password', function(done) {
-      var user = {
-        username: 'Luna'
-      }
+      var user = { username: 'Luna' }
 
       request
         .post(app.config.host + '/v1/users')
@@ -564,8 +562,10 @@ describe("UsersController", function() {
     beforeEach(function(done) {
       request
         .post(app.config.host + '/v1/groups')
-        .send({ group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
-          authToken: adminContext.authToken })
+        .send({
+          group: { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
+          authToken: adminContext.authToken
+        })
         .end(function() {
           request
             .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
@@ -699,9 +699,11 @@ describe("UsersController", function() {
 
         request
           .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken,
+          .send({
+            authToken,
             user: { screenName, description },
-            '_method': 'put' })
+            '_method': 'put'
+          })
           .end(function(err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -766,9 +768,11 @@ describe("UsersController", function() {
       it('should update privacy settings', function(done) {
         request
           .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken,
-                  user: { isPrivate: '1' },
-                  '_method': 'put' })
+          .send({
+            authToken,
+            user: { isPrivate: '1' },
+            '_method': 'put'
+          })
           .end(function(err, res) {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -785,9 +789,11 @@ describe("UsersController", function() {
 
         request
           .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken: 'abc',
+          .send({
+            authToken: 'abc',
             user: { screenName },
-            '_method': 'put' })
+            '_method': 'put'
+          })
           .end(function(err) {
             err.should.not.be.empty
             err.status.should.eql(401)
@@ -805,9 +811,11 @@ describe("UsersController", function() {
         it('should not allow invalid screen-name: ' + screenName, function(done) {
           request
             .post(app.config.host + '/v1/users/' + user.id)
-            .send({ authToken,
+            .send({
+              authToken,
               user: { screenName },
-              '_method': 'put' })
+              '_method': 'put'
+            })
             .end(function(err) {
               err.should.not.be.empty
               err.status.should.eql(422)
@@ -829,9 +837,11 @@ describe("UsersController", function() {
         it('should allow valid screen-name: ' + screenName, function(done) {
           request
             .post(app.config.host + '/v1/users/' + user.id)
-            .send({ authToken,
+            .send({
+              authToken,
               user: { screenName },
-              '_method': 'put' })
+              '_method': 'put'
+            })
             .end(function(err, res) {
               res.should.not.be.empty
               res.body.should.not.be.empty
@@ -893,17 +903,11 @@ describe("UsersController", function() {
               'useYou': true
             }
           },
-          'custom.domain': {
-            'customProperty': 'someWeirdValue'
-          }
+          'custom.domain': { 'customProperty': 'someWeirdValue' }
         }
         let anotherPrefs = {
-          'another.client': {
-            'funnyProperty': 'withFunnyValue'
-          },
-          'custom.domain': {
-            'newProperty': 'withNewValue'
-          }
+          'another.client': { 'funnyProperty': 'withFunnyValue' },
+          'custom.domain': { 'newProperty': 'withNewValue' }
         }
         let newDescription = 'The Moon is made of cheese.';
 
@@ -978,14 +982,8 @@ describe("UsersController", function() {
       })
 
       it('should validate frontendPreferences structure', async () => {
-        let validPrefs = {
-          'net.freefeed': {
-            'userProperty': 'value'
-          }
-        }
-        let invalidPrefs = {
-          'userProperty': 'value'
-        }
+        let validPrefs = { 'net.freefeed': { 'userProperty': 'value' } }
+        let invalidPrefs = { 'userProperty': 'value' }
 
         {
           let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
@@ -1003,16 +1001,8 @@ describe("UsersController", function() {
       })
 
       it('should validate frontendPreferences size', async () => {
-        let validPrefs = {
-          'net.freefeed': {
-            'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100)
-          }
-        }
-        let invalidPrefs = {
-          'net.freefeed': {
-            'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1)
-          }
-        }
+        let validPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100) } }
+        let invalidPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1) } }
         {
           let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
           response.status.should.eql(200)
@@ -1044,11 +1034,13 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken,
-                currentPassword: user.password,
-                password,
-                passwordConfirmation: password,
-                '_method': 'put' })
+        .send({
+          authToken,
+          currentPassword: user.password,
+          password,
+          passwordConfirmation: password,
+          '_method': 'put'
+        })
         .end(function(err) {
           (err === null).should.be.true
 
@@ -1071,11 +1063,13 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken,
-                currentPassword: user.password,
-                password,
-                passwordConfirmation: password,
-                '_method': 'put' })
+        .send({
+          authToken,
+          currentPassword: user.password,
+          password,
+          passwordConfirmation: password,
+          '_method': 'put'
+        })
         .end(function(err) {
           (err === null).should.be.true
 
@@ -1095,11 +1089,13 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken,
-                currentPassword: user.password,
-                password,
-                passwordConfirmation: "abc",
-                '_method': 'put' })
+        .send({
+          authToken,
+          currentPassword: user.password,
+          password,
+          passwordConfirmation: "abc",
+          '_method': 'put'
+        })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(422)
@@ -1114,11 +1110,13 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken,
-                currentPassword: user.password,
-                password,
-                passwordConfirmation: password,
-                '_method': 'put' })
+        .send({
+          authToken,
+          currentPassword: user.password,
+          password,
+          passwordConfirmation: password,
+          '_method': 'put'
+        })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(422)
@@ -1133,11 +1131,13 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken,
-                currentPassword: "abc",
-                password,
-                passwordConfirmation: password,
-                '_method': 'put' })
+        .send({
+          authToken,
+          currentPassword: "abc",
+          password,
+          passwordConfirmation: password,
+          '_method': 'put'
+        })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(422)
@@ -1152,9 +1152,11 @@ describe("UsersController", function() {
 
       request
         .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: 'abc',
-                user: { screenName },
-                '_method': 'put' })
+        .send({
+          authToken: 'abc',
+          user: { screenName },
+          '_method': 'put'
+        })
         .end(function(err) {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -1458,14 +1460,18 @@ describe("UsersController", function() {
       beforeEach(function(done) {
         request
           .post(app.config.host + '/v1/groups')
-          .send({ group: { username: groupUserName },
-                  authToken: marsContext.authToken })
+          .send({
+            group: { username: groupUserName },
+            authToken: marsContext.authToken
+          })
           .end(function(err, res) {
             res.body.should.not.be.empty
             request
               .post(app.config.host + '/v1/posts')
-              .send({ post: { body: 'post body' }, meta: { feeds: [groupUserName] },
-                      authToken: marsContext.authToken })
+              .send({
+                post: { body: 'post body' }, meta: { feeds: [groupUserName] },
+                authToken: marsContext.authToken
+              })
               .end(function(err, res) {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')

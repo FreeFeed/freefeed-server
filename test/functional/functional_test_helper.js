@@ -73,9 +73,11 @@ export function updateUserCtx(context, attrs) {
     apiUrl(`/v1/users/${context.user.id}`).then((url) => {
       request
         .post(url)
-        .send({ authToken: context.authToken,
+        .send({
+          authToken: context.authToken,
           user: { email: attrs.email },
-          '_method': 'put' })
+          '_method': 'put'
+        })
         .end(function(err, res) {
           done(err, res)
         })
@@ -295,9 +297,7 @@ async function postJson(relativeUrl, data) {
     await apiUrl(relativeUrl),
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }
   )

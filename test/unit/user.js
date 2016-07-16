@@ -114,9 +114,7 @@ describe('User', function() {
 
         await user.create()
 
-        const updatedUser = await user.update({
-          description
-        })
+        const updatedUser = await user.update({ description })
 
         updatedUser.should.be.an.instanceOf(User)
         updatedUser.should.not.be.empty
@@ -142,9 +140,7 @@ describe('User', function() {
         await user.create()
 
         try {
-          await user.update({
-            description
-          })
+          await user.update({ description })
         } catch (e) {
           e.message.should.eql('Description is too long')
           return
@@ -254,9 +250,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) {
-          return user.update({
-            email: null
-          })
+          return user.update({ email: null })
         })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
@@ -276,8 +270,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) {
-          return user.update({
-          })
+          return user.update({})
         })
         .then(function(newUser) {
           newUser.should.be.an.instanceOf(User)
@@ -296,9 +289,7 @@ describe('User', function() {
 
       user.create()
         .then(function(user) {
-          return user.update({
-            screenName: ''
-          })
+          return user.update({ screenName: '' })
         })
         .catch(function(e) {
           e.message.should.eql(`"" is not a valid display name. Names must be between 3 and 25 characters long.`)
@@ -677,9 +668,7 @@ describe('User', function() {
 
     it('should include post to my discussions timeline', function(done) {
       var post
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
       user.newPost(attrs)
         .then(function(newPost) {
           post = newPost
@@ -778,9 +767,7 @@ describe('User', function() {
 
     it('should create a new post', function(done) {
       var post
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
 
       user.newPost(attrs)
         .then(function(newPost) {
@@ -799,9 +786,7 @@ describe('User', function() {
 
     it('should create a new post to a timeline', function(done) {
       var post
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
 
       user.getPostsTimelineId()
         .then(function(timelineId) {
@@ -873,9 +858,7 @@ describe('User', function() {
     })
 
     it('should subscribe to timeline', async function() {
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
       var post = await userB.newPost(attrs)
       await post.create()
       let timelineId = await userB.getPostsTimelineId()
@@ -913,9 +896,7 @@ describe('User', function() {
     })
 
     it('should subscribe to username', async function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
       var post = await userB.newPost(attrs)
       await post.create()
       await userA.subscribeToUsername(userB.username)
@@ -954,9 +935,7 @@ describe('User', function() {
     })
 
     it('should unsubscribe from timeline', function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
       var identifier
 
       userB.newPost(attrs)
@@ -997,9 +976,7 @@ describe('User', function() {
     })
 
     it('should list subscriptions', function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
+      var attrs = { body: 'Post body' }
 
       userB.newPost(attrs)
         .then(function(newPost) {

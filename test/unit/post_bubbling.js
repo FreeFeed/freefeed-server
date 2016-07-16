@@ -793,9 +793,7 @@ describe('PostBubbling', function() {
       pluto      = new User({ username: 'Pluto', password: 'password' })
 
       await luna.create()
-      await luna.update({
-        isPrivate: '1'
-      })
+      await luna.update({ isPrivate: '1' })
       await mars.create()
       await pluto.create()
 

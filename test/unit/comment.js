@@ -44,9 +44,7 @@ describe('Comment', function() {
 
     it('should update without error', function(done) {
       var body = 'Body'
-      var attrs = {
-        body
-      }
+      var attrs = { body }
 
       comment.update(attrs)
         .then(function(newComment) {
