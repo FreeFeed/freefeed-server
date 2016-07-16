@@ -324,7 +324,6 @@ describe('GroupsController', function () {
           .end(function () {
             done()
           })
-
     })
 
     beforeEach(function (done) {

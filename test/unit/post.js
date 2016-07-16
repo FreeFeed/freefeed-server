@@ -447,7 +447,6 @@ describe('Post', function () {
       likes[3].id.should.eql(users[7].id)
       // …
       likes[9].id.should.eql(users[0].id)
-
     })
 
     it('should be possible to get some likes (properly sorted)', async () => {

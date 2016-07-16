@@ -1007,7 +1007,6 @@ describe('PostBubbling', function () {
       await mars.subscribeTo(lunaTimelineId)
       await mars.subscribeTo(plutoTimelineId)
       await pluto.subscribeTo(marsTimelineId)
-
     })
 
     it('home feed pages should consists of requested number of posts', async () => {

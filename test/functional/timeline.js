@@ -135,7 +135,6 @@ describe('TimelinesController', function () {
         done()
       })
     })
-
   })
 
   describe('#likes()', function () {
@@ -187,7 +186,6 @@ describe('TimelinesController', function () {
           })
         })
     })
-
   })
 
   describe('#comments()', function () {
@@ -230,7 +228,6 @@ describe('TimelinesController', function () {
 
 
     it('should clear comments timeline only after all comments are deleted', function (done) {
-
       funcTestHelper.removeComment(comment.id, context.authToken, function (err, res) {
         res.body.should.be.empty
         res.status.should.eql(200)

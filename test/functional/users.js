@@ -1013,7 +1013,6 @@ describe('UsersController', function () {
         }
       })
     })
-
   })
 
   describe('#updatePassword()', function () {

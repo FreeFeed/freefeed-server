@@ -52,7 +52,6 @@ describe('User', function () {
     var i = 1
     valid.forEach(function (username) {
       it(`should allow username '${username}'`, function (done) {
-
         var user = new User({
           username,
           screenName: 'test',
@@ -72,7 +71,6 @@ describe('User', function () {
     ]
     invalid.forEach(function (username) {
       it('should not allow invalid username ' + username, async () => {
-
         var user = new User({
           username,
           screenName: 'test',
@@ -104,7 +102,6 @@ describe('User', function () {
     var i = 1
     valid.forEach(function (description) {
       it(`should allow description ${i++}`, async () => {
-
         var user = new User({
           username: `username${i}`,
           screenName: 'test',
@@ -129,7 +126,6 @@ describe('User', function () {
 
     invalid.forEach(function (description) {
       it('should not allow too long description', async () => {
-
         var user = new User({
           username: `username`,
           screenName: 'test',

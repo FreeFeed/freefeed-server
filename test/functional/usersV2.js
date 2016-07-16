@@ -23,7 +23,6 @@ describe('UsersControllerV2', function () {
   })
 
   describe('#blockedByMe()', function () {
-
     it('should reject unauthenticated users', async (done) => {
       request
         .get(app.config.host + '/v2/users/blockedByMe')
@@ -72,6 +71,5 @@ describe('UsersControllerV2', function () {
       done()
     })
   })
-
 })
 

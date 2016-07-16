@@ -716,7 +716,6 @@ describe('PostsController', function () {
         .post(app.config.host + '/v1/posts/' + context.post.id + '/unlike')
         .send({ authToken: otherUserAuthToken })
         .end(function (err) {
-
           err.should.not.be.empty
           err.status.should.eql(403)
           err.response.error.should.have.property('text')

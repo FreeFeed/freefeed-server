@@ -120,7 +120,6 @@ describe('PrivateGroups', function () {
           .end(function () {
             done()
           })
-
     })
 
     it('should allow an administrator of private group to add another administrator', function (done) {
@@ -241,7 +240,6 @@ describe('PrivateGroups', function () {
           .end(function () {
             done()
           })
-
     })
 
     beforeEach(function (done) {
@@ -359,7 +357,6 @@ describe('PrivateGroups', function () {
               done()
             })
         })
-
     })
 
     it('should not allow subscriber user to send subscription request to private group', function (done) {
@@ -384,7 +381,6 @@ describe('PrivateGroups', function () {
             })
         })
     })
-
   })
 
   describe('subscription requests and membership management', function () {
@@ -827,7 +823,6 @@ describe('PrivateGroups', function () {
             res.body[0].requests[0].username.should.eql(nonAdminContext.user.username)
             done()
           })
-
       })
 
       it('requests array should match managed groups', function (done) {

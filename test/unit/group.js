@@ -163,7 +163,6 @@ describe('Group', function () {
     ]
     valid.forEach(function (username) {
       it('should allow username ' + username, async () => {
-
         var group = new Group({
           username,
           screenName: 'test'
@@ -180,7 +179,6 @@ describe('Group', function () {
     ]
     invalid.forEach(function (username) {
       it('should not allow invalid username ' + username, async () => {
-
         var group = new Group({
           username,
           screenName: 'test'
