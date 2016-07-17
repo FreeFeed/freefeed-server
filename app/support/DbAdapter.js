@@ -1167,6 +1167,10 @@ export class DbAdapter {
     return ids
   }
 
+  async deleteUser(uid) {
+    await this.database('users').where({ uid }).delete();
+  }
+
   ///////////////////////////////////////////////////
   // Post
   ///////////////////////////////////////////////////
