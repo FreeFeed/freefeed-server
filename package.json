@@ -7,8 +7,8 @@
   "private": true,
   "scripts": {
     "start": "babel-node --ignore node_modules index",
-    "test": "eslint app && NODE_ENV=test mocha",
-    "lint": "eslint app",
+    "test": "eslint app test && NODE_ENV=test mocha",
+    "lint": "eslint app test",
     "console": "babel-node --ignore node_modules bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node --ignore node_modules data_transfer",
