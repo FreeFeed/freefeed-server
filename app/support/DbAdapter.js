@@ -1357,8 +1357,17 @@ export class DbAdapter {
   }
 
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {
-    return this.database
-      .raw('UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE feed_ids && ?', [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]])
+    await this.database.transaction(async (trx) => {
+      try {
+        await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
+        await trx.raw('UPDATE "posts" SET "feed_ids" = uniq("feed_ids" + ?) WHERE "feed_ids" && ?', [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]])
+
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+        throw e;
+      }
+    });
   }
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
