@@ -63,6 +63,7 @@ describe('User', () => {
 
         user.create()
           .then(() => { done() })
+          .catch((e) => { done(e) })
       })
     })
 
@@ -160,6 +161,7 @@ describe('User', () => {
 
       user.create()
         .then(() => { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should validate without email', (done) => {
@@ -170,6 +172,7 @@ describe('User', () => {
 
       user.create()
         .then(() => { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not validate syntactically incorrect email', async () => {
@@ -455,10 +458,11 @@ describe('User', () => {
       user.create()
         .then((user) => user.update({ email: user.email }))
         .then(() => dbAdapter.getUserByEmail('noreply@example.com'))
-        .then((e) => {
-          expect(e).to.be.a('null')
+        .then((user) => {
+          expect(user).to.be.a('null')
           done()
         })
+        .catch((e) => { done(e) })
     })
   })
 
@@ -633,14 +637,9 @@ describe('User', () => {
   describe('#getMyDiscussionsTimeline()', () => {
     let user
 
-    beforeEach((done) => {
-      user = new User({
-        username: 'Luna',
-        password: 'password'
-      })
-
-      user.create()
-        .then(() => { done() })
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' })
+      await user.create()
     })
 
     it('should get my discussions timeline', (done) => {
@@ -838,21 +837,11 @@ describe('User', () => {
     let userA
       , userB
 
-    beforeEach((done) => {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(() => { return userB.create() })
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      await Promise.all([userA.create(), userB.create()])
     })
 
     it('should subscribe to timeline', async () => {
@@ -877,21 +866,11 @@ describe('User', () => {
     let userA
       , userB
 
-    beforeEach((done) => {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(() => userB.create())
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      await Promise.all([userA.create(), userB.create()])
     })
 
     it('should subscribe to username', async function(done) {
@@ -917,21 +896,11 @@ describe('User', () => {
     let userA
       , userB
 
-    beforeEach((done) => {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(() => userB.create())
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      await Promise.all([userA.create(), userB.create()])
     })
 
     it('should unsubscribe from timeline', (done) => {
@@ -960,21 +929,11 @@ describe('User', () => {
     let userA
       , userB
 
-    beforeEach((done) => {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(() => { return userB.create() })
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      await Promise.all([userA.create(), userB.create()])
     })
 
     it('should list subscriptions', (done) => {
