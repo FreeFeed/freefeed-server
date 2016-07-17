@@ -31,17 +31,9 @@ describe('CommentsController', () => {
     describe('in a group', () => {
       const groupName = 'pepyatka-dev'
 
-      beforeEach((done) => {
+      beforeEach(async () => {
         const screenName = 'Pepyatka Developers';
-        request
-          .post(`${app.config.host}/v1/groups`)
-          .send({
-            group:     { username: groupName, screenName },
-            authToken: context.authToken
-          })
-          .end(() => {
-            done()
-          })
+        await funcTestHelper.createGroupAsync(context, groupName, screenName);
       })
 
       it("should not update group's last activity", (done) => {
@@ -136,19 +128,27 @@ describe('CommentsController', () => {
   })
 
   describe('#update()', () => {
-    const lunaContext = {}
-    const yoleContext = {}
+    let lunaContext = {}
+    let yoleContext = {}
+    let comment;
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(yoleContext, 'yole', 'pw'))
+    beforeEach(async () => {
+      [lunaContext, yoleContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('yole', 'pw')
+      ])
 
-    beforeEach((done) => { funcTestHelper.createPost(lunaContext, 'post body')(done) })
-    beforeEach((done) => { funcTestHelper.createCommentCtx(lunaContext, 'comment')(done) })
+      const post = await funcTestHelper.createAndReturnPost(lunaContext, 'post body')
+      const response = await funcTestHelper.createCommentAsync(lunaContext, post.id, 'comment')
+      const commentData = await response.json()
+
+      comment = commentData.comments;
+    })
 
     it('should update a comment with a valid user', (done) => {
       const newBody = 'New body'
       request
-        .post(`${app.config.host}/v1/comments/${lunaContext.comment.id}`)
+        .post(`${app.config.host}/v1/comments/${comment.id}`)
         .send({
           comment:   { body: newBody },
           authToken: lunaContext.authToken,
@@ -167,7 +167,7 @@ describe('CommentsController', () => {
     it('should not update a comment with a invalid user', (done) => {
       const newBody = 'New body'
       request
-        .post(`${app.config.host}/v1/comments/${lunaContext.comment.id}`)
+        .post(`${app.config.host}/v1/comments/${comment.id}`)
         .send({
           comment:   { body: newBody },
           '_method': 'put'
@@ -183,7 +183,7 @@ describe('CommentsController', () => {
     it("should not update another user's comment", (done) => {
       const newBody = 'New body'
       request
-          .post(`${app.config.host}/v1/comments/${lunaContext.comment.id}`)
+          .post(`${app.config.host}/v1/comments/${comment.id}`)
           .send({
             comment:   { body: newBody },
             authToken: yoleContext.authToken,
@@ -197,40 +197,45 @@ describe('CommentsController', () => {
   })
 
   describe('#destroy()', () => {
-    const lunaContext = {},
+    let lunaContext = {},
       marsContext = {},
       ceresContext = {};
+
     let lunaPostLunaComment,
       lunaPostMarsComment,
       marsPostMarsComment,
       marsPostLunaComment,
       marsPostCeresComment
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
-    beforeEach(funcTestHelper.createUserCtx(ceresContext, 'ceres', 'password3'))
-
-    beforeEach((done) => { funcTestHelper.createPost(lunaContext, 'Post body 1')(done) })
-    beforeEach((done) => { funcTestHelper.createPost(marsContext, 'Post body 2')(done) })
-
     beforeEach(async () => {
-      let response = await funcTestHelper.createCommentAsync(lunaContext, lunaContext.post.id, 'Comment 1-1')
+      [lunaContext, marsContext, ceresContext] = await Promise.all([
+        funcTestHelper.createUserAsync('luna', 'password'),
+        funcTestHelper.createUserAsync('mars', 'password2'),
+        funcTestHelper.createUserAsync('ceres', 'password3')
+      ])
+
+      const [lunaPost, marsPost] = await Promise.all([
+        funcTestHelper.createAndReturnPost(lunaContext, 'Post body 1'),
+        funcTestHelper.createAndReturnPost(marsContext, 'Post body 2')
+      ]);
+
+      let response = await funcTestHelper.createCommentAsync(lunaContext, lunaPost.id, 'Comment 1-1')
       let data = await response.json()
       lunaPostLunaComment = data.comments.id
 
-      response = await funcTestHelper.createCommentAsync(marsContext, lunaContext.post.id, 'Comment 1-2')
+      response = await funcTestHelper.createCommentAsync(marsContext, lunaPost.id, 'Comment 1-2')
       data = await response.json()
       lunaPostMarsComment = data.comments.id
 
-      response = await funcTestHelper.createCommentAsync(marsContext, marsContext.post.id, 'Comment 2-1')
+      response = await funcTestHelper.createCommentAsync(marsContext, marsPost.id, 'Comment 2-1')
       data = await response.json()
       marsPostMarsComment = data.comments.id
 
-      response = await funcTestHelper.createCommentAsync(lunaContext, marsContext.post.id, 'Comment 2-2')
+      response = await funcTestHelper.createCommentAsync(lunaContext, marsPost.id, 'Comment 2-2')
       data = await response.json()
       marsPostLunaComment = data.comments.id
 
-      response = await funcTestHelper.createCommentAsync(ceresContext, marsContext.post.id, 'Comment 2-3')
+      response = await funcTestHelper.createCommentAsync(ceresContext, marsPost.id, 'Comment 2-3')
       data = await response.json()
       marsPostCeresComment = data.comments.id
     })
