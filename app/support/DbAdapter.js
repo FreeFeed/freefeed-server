@@ -625,30 +625,60 @@ export class DbAdapter {
   }
 
   async incrementStatsCounter(userId, counterName) {
-    const res = await this.database('user_stats').where('user_id', userId)
-    const stats = res[0]
-    let val = parseInt(stats[counterName])
-    val += 1
-    stats[counterName] = val
+    await this.database.transaction(async (trx) => {
+      try {
+        const res = await this.database('user_stats')
+          .transacting(trx).forUpdate()
+          .where('user_id', userId)
 
-    await this.database('user_stats').where('user_id', userId).update(stats)
+        const stats = res[0]
+        const val = parseInt(stats[counterName], 10) + 1
+
+        stats[counterName] = val
+
+        await this.database('user_stats')
+          .transacting(trx)
+          .where('user_id', userId)
+          .update(stats)
+
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+        throw e;
+      }
+    });
 
     // Invalidate cache
     await this.statsCache.delAsync(userId)
   }
 
   async decrementStatsCounter(userId, counterName) {
-    const res = await this.database('user_stats').where('user_id', userId)
-    const stats = res[0]
-    let val = parseInt(stats[counterName])
-    val -= 1
-    if (val < 0) {
-      console.log('Negative user stats', counterName)    // eslint-disable-line no-console
-      val = 0
-    }
-    stats[counterName] = val
+    await this.database.transaction(async (trx) => {
+      try {
+        const res = await this.database('user_stats')
+          .transacting(trx).forUpdate()
+          .where('user_id', userId)
 
-    await this.database('user_stats').where('user_id', userId).update(stats)
+        const stats = res[0]
+        const val = parseInt(stats[counterName]) - 1
+
+        if (val < 0) {
+          throw new Error(`Negative user stats: ${counterName} of ${userId}`);
+        }
+
+        stats[counterName] = val
+
+        await this.database('user_stats')
+          .transacting(trx)
+          .where('user_id', userId)
+          .update(stats)
+
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+        throw e;
+      }
+    });
 
     // Invalidate cache
     await this.statsCache.delAsync(userId)
