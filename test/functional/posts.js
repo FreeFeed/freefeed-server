@@ -24,9 +24,11 @@ describe('PostsController', () => {
   })
 
   describe('#create()', () => {
-    const ctx = {}
+    let ctx = {}
 
-    beforeEach(funcTestHelper.createUserCtx(ctx, 'Luna', 'password'))
+    beforeEach(async () => {
+      ctx = await funcTestHelper.createUserAsync('Luna', 'password')
+    })
 
     it('should create a post with a valid user', (done) => {
       const body = 'Post body'
@@ -85,13 +87,11 @@ describe('PostsController', () => {
     })
 
     describe('private messages', () => {
-      let authTokenB
-        , usernameB
+      let marsCtx
 
-      beforeEach(funcTestHelper.createUser('mars', 'password', (token, user) => {
-        authTokenB = token
-        usernameB = user.username
-      }))
+      beforeEach(async () => {
+        marsCtx = await funcTestHelper.createUserAsync('mars', 'password');
+      })
 
       it('should create public post that is visible to another user', (done) => {
         const body = 'body'
@@ -104,7 +104,7 @@ describe('PostsController', () => {
           const post = res.body.posts
           request
             .get(`${app.config.host}/v1/posts/${post.id}`)
-            .query({ authToken: authTokenB })
+            .query({ authToken: marsCtx.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
@@ -120,7 +120,7 @@ describe('PostsController', () => {
 
         request
           .post(`${app.config.host}/v1/posts`)
-          .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+          .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
           .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
@@ -131,50 +131,25 @@ describe('PostsController', () => {
       })
 
       describe('for mutual friends', () => {
-        beforeEach((done) => {
-          request
-            .post(`${app.config.host}/v1/users/${ctx.username}/subscribe`)
-            .send({ authToken: authTokenB })
-            .end(() => {
-              request
-                .post(`${app.config.host}/v1/users/${usernameB}/subscribe`)
-                .send({ authToken: ctx.authToken })
-                .end(() => {
-                  done()
-                })
-            })
+        beforeEach(async () => {
+          await funcTestHelper.mutualSubscriptions([marsCtx, ctx])
         })
 
         describe('are protected', () => {
-          let authTokenC
-            , usernameC
+          let zeusCtx
             , post
 
-          beforeEach(funcTestHelper.createUser('zeus', 'password', (token, user) => {
-            authTokenC = token
-            usernameC = user.username
-          }))
-
-          beforeEach((done) => {
-            const body = 'body'
-
-            request
-              .post(`${app.config.host}/v1/posts`)
-              .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
-              .end((err, res) => {
-                res.body.should.not.be.empty
-                res.body.should.have.property('posts')
-                post = res.body.posts
-                post.should.have.property('body')
-                post.body.should.eql(body)
-                done()
-              })
+          beforeEach(async () => {
+            [zeusCtx, post] = await Promise.all([
+              funcTestHelper.createUserAsync('zeus', 'password'),
+              funcTestHelper.createAndReturnPostToFeed(marsCtx, ctx, 'body')
+            ]);
           })
 
           it('should not be liked by person that is not in recipients', (done) => {
             request
               .post(`${app.config.host}/v1/posts/${post.id}/like`)
-              .send({ authToken: authTokenC })
+              .send({ authToken: zeusCtx.authToken })
               .end((err) => {
                 try {
                   err.should.not.be.empty
@@ -186,7 +161,7 @@ describe('PostsController', () => {
                   return;
                 }
 
-                funcTestHelper.getTimeline(`/v1/timelines/${usernameC}/likes`, authTokenC, (err, res) => {
+                funcTestHelper.getTimeline(`/v1/timelines/${zeusCtx.username}/likes`, zeusCtx.authToken, (err, res) => {
                   try {
                     res.body.should.not.have.property('posts')
                     done()
@@ -199,13 +174,13 @@ describe('PostsController', () => {
 
           it('should not be commented by person that is not in recipients', (done) => {
             const body = 'comment'
-            funcTestHelper.createComment(body, post.id, authTokenC, (err) => {
+            funcTestHelper.createComment(body, post.id, zeusCtx.authToken, (err) => {
               err.should.not.be.empty
               err.status.should.eql(404)
               const error = JSON.parse(err.response.error.text)
               error.err.should.eql('Not found')
 
-              funcTestHelper.getTimeline(`/v1/timelines/${usernameC}/comments`, authTokenC, (err, res) => {
+              funcTestHelper.getTimeline(`/v1/timelines/${zeusCtx.username}/comments`, zeusCtx.authToken, (err, res) => {
                 res.body.should.not.have.property('posts')
                 done()
               })
@@ -218,7 +193,7 @@ describe('PostsController', () => {
 
           request
             .post(`${app.config.host}/v1/posts`)
-            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
@@ -233,14 +208,14 @@ describe('PostsController', () => {
 
           request
             .post(`${app.config.host}/v1/posts`)
-            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
               res.body.posts.should.have.property('body')
               res.body.posts.body.should.eql(body)
 
-              funcTestHelper.getTimeline('/v1/timelines/home', authTokenB, (err, res) => {
+              funcTestHelper.getTimeline('/v1/timelines/home', marsCtx.authToken, (err, res) => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].should.have.property('body')
@@ -261,7 +236,7 @@ describe('PostsController', () => {
 
           request
             .post(`${app.config.host}/v1/posts`)
-            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end((err, res) => {
               const post = res.body.posts
 
@@ -295,13 +270,13 @@ describe('PostsController', () => {
 
           request
             .post(`${app.config.host}/v1/posts`)
-            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end((err, res) => {
               const post = res.body.posts
 
               request
                 .get(`${app.config.host}/v1/posts/${post.id}`)
-                .query({ authToken: authTokenB })
+                .query({ authToken: marsCtx.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
                   res.body.posts.body.should.eql(post.body)
@@ -315,14 +290,14 @@ describe('PostsController', () => {
 
           request
             .post(`${app.config.host}/v1/posts`)
-            .send({ post: { body }, meta: { feeds: [usernameB] }, authToken: ctx.authToken })
+            .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end(() => {
               funcTestHelper.getTimeline('/v1/timelines/filter/directs', ctx.authToken, (err, res) => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].should.have.property('body')
                 res.body.posts[0].body.should.eql(body)
-                funcTestHelper.getTimeline('/v1/timelines/filter/directs', authTokenB, (err, res) => {
+                funcTestHelper.getTimeline('/v1/timelines/filter/directs', marsCtx.authToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].should.have.property('body')
@@ -340,22 +315,14 @@ describe('PostsController', () => {
       const otherUserName = 'yole'
       let otherUserAuthToken
 
-      beforeEach((done) => {
+      beforeEach(async () => {
         const screenName = 'Pepyatka Developers';
-        request
-          .post(`${app.config.host}/v1/groups`)
-          .send({
-            group:     { username: groupName, screenName },
-            authToken: ctx.authToken
-          })
-          .end(() => {
-            done()
-          })
-      })
 
-      beforeEach(funcTestHelper.createUser(otherUserName, 'pw', (token) => {
-        otherUserAuthToken = token
-      }))
+        await funcTestHelper.createGroupAsync(ctx, groupName, screenName)
+
+        const yole = await funcTestHelper.createUserAsync(otherUserName, 'pw')
+        otherUserAuthToken = yole.authToken
+      })
 
       it('should allow subscribed user to post to group', (done) => {
         const body = 'Post body'
@@ -578,30 +545,27 @@ describe('PostsController', () => {
   })
 
   describe('#like()', () => {
-    const context = {}
+    let context = {}
     let otherUserAuthToken
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
 
-    beforeEach(funcTestHelper.createUser('mars', 'password2', (token) => {
-      otherUserAuthToken = token
-    }))
+      const [marsCtx, post] = await Promise.all([
+        funcTestHelper.createUserAsync('mars', 'password2'),
+        funcTestHelper.createAndReturnPost(context, 'Post body')
+      ]);
+
+      context.post = post;
+      otherUserAuthToken = marsCtx.authToken;
+    })
 
     describe('in a group', () => {
       const groupName = 'pepyatka-dev'
 
-      beforeEach((done) => {
+      beforeEach(async () => {
         const screenName = 'Pepyatka Developers';
-        request
-            .post(`${app.config.host}/v1/groups`)
-            .send({
-              group:     { username: groupName, screenName },
-              authToken: context.authToken
-            })
-            .end(() => {
-              done()
-            })
+        await funcTestHelper.createGroupAsync(context, groupName, screenName)
       })
 
       it("should not update group's last activity", (done) => {
@@ -699,15 +663,20 @@ describe('PostsController', () => {
   })
 
   describe('#unlike()', () => {
-    const context = {}
+    let context = {}
     let otherUserAuthToken
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
 
-    beforeEach(funcTestHelper.createUser('mars', 'password2', (token) => {
-      otherUserAuthToken = token
-    }))
+      const [marsCtx, post] = await Promise.all([
+        funcTestHelper.createUserAsync('mars', 'password2'),
+        funcTestHelper.createAndReturnPost(context, 'Post body')
+      ]);
+
+      context.post = post;
+      otherUserAuthToken = marsCtx.authToken;
+    })
 
     it('unlike should fail if post was not yet liked and succeed after it was liked with a valid user', (done) => {
       request
@@ -771,18 +740,20 @@ describe('PostsController', () => {
   })
 
   describe('#disableComments()', () => {
-    const context = {}
+    let context = {}
     let otherUserAuthToken
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'luna', 'password'))
     beforeEach(async () => {
-      const response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', false)
-      const data = await response.json()
-      context.post = data.posts
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
+
+      const [marsCtx, post] = await Promise.all([
+        funcTestHelper.createUserAsync('mars', 'password2'),
+        funcTestHelper.createAndReturnPost(context, 'Post body')
+      ]);
+
+      context.post = post;
+      otherUserAuthToken = marsCtx.authToken;
     })
-    beforeEach(funcTestHelper.createUser('mars', 'password2', (token) => {
-      otherUserAuthToken = token
-    }))
 
     it('should disable comments for own post', async () => {
       {
@@ -820,18 +791,22 @@ describe('PostsController', () => {
   })
 
   describe('#enableComments()', () => {
-    const context = {}
+    let context = {}
     let otherUserAuthToken
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'luna', 'password'))
     beforeEach(async () => {
-      const response = await funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
+
+      const [marsCtx, response] = await Promise.all([
+        funcTestHelper.createUserAsync('mars', 'password2'),
+        funcTestHelper.createPostWithCommentsDisabled(context, 'Post body', true)
+      ]);
+
       const data = await response.json()
+
       context.post = data.posts
+      otherUserAuthToken = marsCtx.authToken;
     })
-    beforeEach(funcTestHelper.createUser('mars', 'password2', (token) => {
-      otherUserAuthToken = token
-    }))
 
     it('should enable comments for own post', async () => {
       {
@@ -869,14 +844,20 @@ describe('PostsController', () => {
   })
 
   describe('#update()', () => {
-    const context = {}
+    let context = {}
     let otherUserAuthToken
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createPost(context, 'Post body'))
-    beforeEach(funcTestHelper.createUser('yole', 'pw', (token) => {
-      otherUserAuthToken = token
-    }))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
+
+      const [yoleCtx, post] = await Promise.all([
+        funcTestHelper.createUserAsync('yole', 'pw'),
+        funcTestHelper.createAndReturnPost(context, 'Post body')
+      ]);
+
+      context.post = post;
+      otherUserAuthToken = yoleCtx.authToken;
+    })
 
     it('should update post with a valid user', (done) => {
       const newBody = 'New body'
@@ -980,10 +961,12 @@ describe('PostsController', () => {
   })
 
   describe('#show()', () => {
-    const context = {}
+    let context = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createPost(context, 'Post body'))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
+      context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
+    })
 
     it('should show a post', (done) => {
       request
@@ -1051,11 +1034,12 @@ describe('PostsController', () => {
   })
 
   describe('#hide()', () => {
-    const username = 'Luna'
-    const context = {}
+    let context = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, username, 'password'))
-    beforeEach(funcTestHelper.createPost(context, 'Post body'))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password');
+      context.post = await funcTestHelper.createAndReturnPost(context, 'Post body')
+    })
 
     it('should hide and unhide post', (done) => {
       request
@@ -1100,14 +1084,20 @@ describe('PostsController', () => {
 
   describe('#destroy()', () => {
     const username = 'Luna'
-    const context = {}
+    let context = {}
     let otherUserAuthToken
 
-    beforeEach(funcTestHelper.createUserCtx(context, username, 'password'))
-    beforeEach(funcTestHelper.createPost(context, 'Post body'))
-    beforeEach(funcTestHelper.createUser('yole', 'pw', (token) => {
-      otherUserAuthToken = token
-    }))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync(username, 'password');
+
+      const [yoleCtx, post] = await Promise.all([
+        funcTestHelper.createUserAsync('yole', 'pw'),
+        funcTestHelper.createAndReturnPost(context, 'Post body')
+      ]);
+
+      context.post = post;
+      otherUserAuthToken = yoleCtx.authToken;
+    })
 
     it('should destroy valid post', (done) => {
       request
