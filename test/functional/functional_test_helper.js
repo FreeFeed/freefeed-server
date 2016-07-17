@@ -478,6 +478,10 @@ export async function createAndReturnPostToFeed(feed, userContext, body) {
     }
   )
 
+  if (response.status != 200) {
+    throw new Error(`HTTP/1.1 ${response.status}`);
+  }
+
   const data = await response.json()
 
   return data.posts
