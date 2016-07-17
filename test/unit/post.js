@@ -13,22 +13,16 @@ describe('Post', () => {
     let userA
       , post
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       userA = new User({
         username: 'Luna',
         password: 'password'
       })
+      await userA.create()
 
       const postAttrs = { body: 'Post body' }
-
-      userA.create()
-        .then(() => userA.newPost(postAttrs))
-        .then((newPost) => newPost.create())
-        .then((newPost) => {
-          post = newPost
-          done()
-        })
-        .catch((e) => { done(e) })
+      post = await userA.newPost(postAttrs)
+      await post.create()
     })
 
     it('should update without error', (done) => {
@@ -51,19 +45,14 @@ describe('Post', () => {
     let user,
       timelineId
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
-      user.create()
-        .then((user) => user.getPostsTimelineId())
-        .then((postsTimelineId) => {
-          timelineId = postsTimelineId
-          done()
-        })
-        .catch((e) => { done(e) })
+      await user.create()
+      timelineId = await user.getPostsTimelineId()
     })
 
     it('should create without error', (done) => {
@@ -239,19 +228,14 @@ describe('Post', () => {
     let user,
       timelineId
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
-      user.create()
-        .then(() => user.getPostsTimelineId())
-        .then((postsTimelineId) => {
-          timelineId = postsTimelineId
-          done()
-        })
-        .catch((e) => { done(e) })
+      await user.create()
+      timelineId = await user.getPostsTimelineId()
     })
 
     it('should find post with a valid id', (done) => {
@@ -291,7 +275,7 @@ describe('Post', () => {
       , userB
       , post
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -302,19 +286,17 @@ describe('Post', () => {
         password: 'password'
       })
 
-      const attrs = { body: 'Post body' }
+      const promiseB = userB.create();
+      const promiseA = userA.create();
 
-      userA.create()
-        .then(() => userB.create())
-        .then(() => userB.newPost(attrs))
-        .then((newPost) => newPost.create())
-        .then((newPost) => {
-          post = newPost
-          return userB.getPostsTimelineId()
-        })
-        .then((timelineId) => userA.subscribeTo(timelineId))
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      await promiseB;
+      const attrs = { body: 'Post body' }
+      post = await userB.newPost(attrs);
+      await post.create();
+
+      await promiseA;
+      const timelineId = await userB.getPostsTimelineId();
+      await userA.subscribeTo(timelineId)
     })
 
     it('should copy post to subscribed River of News', (done) => {
@@ -335,6 +317,7 @@ describe('Post', () => {
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' })
       await user.create()
+
       post = await user.newPost({ body: 'Post body', commentsDisabled: '0' })
       await post.create()
     })
@@ -358,9 +341,7 @@ describe('Post', () => {
       userB = new User({ username: 'Mars', password: 'password' })
       userC = new User({ username: 'Zeus', password: 'password' })
 
-      await userA.create()
-      await userB.create()
-      await userC.create()
+      await Promise.all([userA.create(), userB.create(), userC.create()]);
 
       post = await userB.newPost({ body: 'Post body' })
       await post.create()
@@ -529,7 +510,7 @@ describe('Post', () => {
       , userC
       , post
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -545,22 +526,21 @@ describe('Post', () => {
         password: 'password'
       })
 
-      const attrs = { body: 'Post body' }
+      await Promise.all([userA.create(), userB.create(), userC.create()]);
 
-      userA.create()
-        .then(() => userC.create())
-        .then(() => userB.create())
-        .then(() => userB.newPost(attrs))
-        .then((newPost) => newPost.create())
-        .then((newPost) => {
-          post = newPost
-          return userB.getPostsTimelineId()
-        })
-        .then((timelineId) => userA.subscribeTo(timelineId))
-        .then(() => userA.getPostsTimelineId())
-        .then((timelineId) => userC.subscribeTo(timelineId))
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      const attrs = { body: 'Post body' }
+      post = await userB.newPost(attrs)
+      await post.create();
+
+      const [timelineIdA, timelineIdB] = await Promise.all([
+        userA.getPostsTimelineId(),
+        userB.getPostsTimelineId()
+      ]);
+
+      await Promise.all([
+        userA.subscribeTo(timelineIdB),
+        userC.subscribeTo(timelineIdA)
+      ]);
     })
 
     it('should remove like from friend of friend timelines', (done) => {
@@ -595,7 +575,7 @@ describe('Post', () => {
       , userC
       , post
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -611,22 +591,21 @@ describe('Post', () => {
         password: 'password'
       })
 
-      const postAttrs = { body: 'Post body' }
+      await Promise.all([userA.create(), userB.create(), userC.create()]);
 
-      userA.create()
-        .then(() => userC.create())
-        .then(() => userB.create())
-        .then(() => userB.newPost(postAttrs))
-        .then((newPost) => newPost.create())
-        .then((newPost) => {
-          post = newPost
-          return userB.getPostsTimelineId()
-        })
-        .then((timelineId) => userA.subscribeTo(timelineId))
-        .then(() => userA.getPostsTimelineId())
-        .then((timelineId) => userC.subscribeTo(timelineId))
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      const attrs = { body: 'Post body' }
+      post = await userB.newPost(attrs)
+      await post.create();
+
+      const [timelineIdA, timelineIdB] = await Promise.all([
+        userA.getPostsTimelineId(),
+        userB.getPostsTimelineId()
+      ]);
+
+      await Promise.all([
+        userA.subscribeTo(timelineIdB),
+        userC.subscribeTo(timelineIdA)
+      ]);
     })
 
     it('should add comment to friend of friend timelines', (done) => {
@@ -710,19 +689,14 @@ describe('Post', () => {
     let user
       , timelineId
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
-      user.create()
-        .then(() => user.getPostsTimelineId())
-        .then((postsTimelineId) => {
-          timelineId = postsTimelineId
-          done()
-        })
-        .catch((e) => { done(e) })
+      await user.create()
+      timelineId = await user.getPostsTimelineId();
     })
 
     it('should destroy without error', (done) => {
