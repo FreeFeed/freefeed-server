@@ -930,9 +930,9 @@ describe('PrivateGroups', () => {
           { context: nonAdminContext, shouldHave: false }
         ]
 
-        for (const { context, shouldHave } of contexts) {
-          await verifyUsersPendingGroupRequests(context, shouldHave)
-        }
+        await Promise.all(contexts.map(
+          ({ context, shouldHave }) => verifyUsersPendingGroupRequests(context, shouldHave)
+        ))
       })
     })
   })

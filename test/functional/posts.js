@@ -1029,16 +1029,14 @@ describe('PostsController', () => {
         }
         users = await Promise.all(promises)
 
-        for (const u of users) {
-          await funcTestHelper.subscribeToAsync(u, context)
-          await funcTestHelper.subscribeToAsync(context, u)
-        }
+        await Promise.all(_.flatMap(users, (u) => [
+          funcTestHelper.subscribeToAsync(u, context),
+          funcTestHelper.subscribeToAsync(context, u)
+        ]));
 
         await funcTestHelper.goPrivate(context)
 
-        for (const u of users) {
-          await funcTestHelper.like(context.post.id, u.authToken)
-        }
+        await Promise.all(users.map((u) => funcTestHelper.like(context.post.id, u.authToken)))
       })
 
       it('should show all likes', async () => {
