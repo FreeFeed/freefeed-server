@@ -5,17 +5,17 @@ import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Comment, Post, User } from '../../app/models'
 
 
-describe('Comment', function () {
+describe('Comment', () => {
   beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#update()', function () {
+  describe('#update()', () => {
     let userA
       , comment
       , post
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -24,9 +24,9 @@ describe('Comment', function () {
       const postAttrs = { body: 'Post body' }
 
       userA.create()
-        .then(function () { return userA.newPost(postAttrs) })
-        .then(function (newPost) { return newPost.create() })
-        .then(function (newPost) {
+        .then(() => { return userA.newPost(postAttrs) })
+        .then((newPost) => newPost.create())
+        .then((newPost) => {
           post = newPost
           const commentAttrs = {
             body:   'Comment body',
@@ -34,45 +34,43 @@ describe('Comment', function () {
           }
           return userA.newComment(commentAttrs)
         })
-        .then(function (newComment) {
+        .then((newComment) => {
           comment = newComment
           return comment.create()
         })
-        .then(function () { done() })
+        .then(() => { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should update without error', function (done) {
+    it('should update without error', (done) => {
       const body = 'Body'
       const attrs = { body }
 
       comment.update(attrs)
-        .then(function (newComment) {
+        .then((newComment) => {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
           newComment.should.have.property('body')
           newComment.body.should.eql(comment.body)
         })
-        .then(function () { done() })
+        .then(() => { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#create()', function () {
+  describe('#create()', () => {
     let user
       , post
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function (user) {
-          return user.getPostsTimelineId();
-        })
-        .then(function (postsTimelineId) {
+        .then((user) => user.getPostsTimelineId())
+        .then((postsTimelineId) => {
           post = new Post({
             body:        'Post body',
             userId:      user.id,
@@ -81,11 +79,11 @@ describe('Comment', function () {
 
           return post.create()
         })
-        .then(function () { done() })
+        .then(() => { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should create without error', function (done) {
+    it('should create without error', (done) => {
       const comment = new Comment({
         body:   'Comment body',
         userId: user.id,
@@ -93,25 +91,25 @@ describe('Comment', function () {
       })
 
       comment.create()
-        .then(function () {
+        .then(() => {
           comment.should.be.an.instanceOf(Comment)
           comment.should.not.be.empty
           comment.should.have.property('id')
 
           return comment
         })
-        .then(function (comment) { return dbAdapter.getCommentById(comment.id) })
-        .then(function (newComment) {
+        .then((comment) => dbAdapter.getCommentById(comment.id))
+        .then((newComment) => {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
           newComment.should.have.property('id')
           newComment.id.should.eql(comment.id)
+          done()
         })
-        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should ignore whitespaces in body', function (done) {
+    it('should ignore whitespaces in body', (done) => {
       const body = '   Comment body    '
       const comment = new Comment({
         body,
@@ -120,19 +118,19 @@ describe('Comment', function () {
       })
 
       comment.create()
-        .then(function () { return dbAdapter.getCommentById(comment.id) })
-        .then(function (newComment) {
+        .then(() => dbAdapter.getCommentById(comment.id))
+        .then((newComment) => {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
           newComment.should.have.property('id')
           newComment.id.should.eql(comment.id)
           newComment.body.should.eql(body.trim())
+          done()
         })
-        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should not create with empty body', function (done) {
+    it('should not create with empty body', (done) => {
       const comment = new Comment({
         body:   '',
         userId: user.id,
@@ -140,28 +138,26 @@ describe('Comment', function () {
       })
 
       comment.create()
-        .catch(function (e) {
+        .catch((e) => {
           e.message.should.eql('Comment text must not be empty')
           done()
         })
     })
   })
 
-  describe('#findById()', function () {
+  describe('#findById()', () => {
     let user
       , post
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function (user) {
-          return user.getPostsTimelineId();
-        })
-        .then(function (postsTimelineId) {
+        .then((user) => user.getPostsTimelineId())
+        .then((postsTimelineId) => {
           post = new Post({
             body:        'Post body',
             userId:      user.id,
@@ -170,11 +166,11 @@ describe('Comment', function () {
 
           return post.create()
         })
-        .then(function () { done() })
+        .then(() => { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should find comment with a valid id', function (done) {
+    it('should find comment with a valid id', (done) => {
       const comment = new Comment({
         body:   'Comment body',
         userId: user.id,
@@ -182,34 +178,34 @@ describe('Comment', function () {
       })
 
       comment.create()
-        .then(function () { return dbAdapter.getCommentById(comment.id) })
-        .then(function (newComment) {
+        .then(() => dbAdapter.getCommentById(comment.id))
+        .then((newComment) => {
           newComment.should.be.an.instanceOf(Comment)
           newComment.should.not.be.empty
           newComment.should.have.property('id')
           newComment.id.should.eql(comment.id)
+          done()
         })
-        .then(function () { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should not find comment with invalid id', function (done) {
+    it('should not find comment with invalid id', (done) => {
       const identifier = 'comment:identifier'
 
       dbAdapter.getCommentById(identifier)
-        .then(function (comment) {
+        .then((comment) => {
           $should.not.exist(comment)
+          done()
         })
-        .then(function () { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#destroy()', function () {
+  describe('#destroy()', () => {
     let userA
       , post
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       userA = new User({
         username: 'Luna',
         password: 'password'
@@ -219,9 +215,9 @@ describe('Comment', function () {
       let comment
 
       userA.create()
-        .then(function () { return userA.newPost(postAttrs) })
-        .then(function (newPost) { return newPost.create() })
-        .then(function (newPost) {
+        .then(() => userA.newPost(postAttrs))
+        .then((newPost) => newPost.create())
+        .then((newPost) => {
           post = newPost
           const commentAttrs = {
             body:   'Comment body',
@@ -229,11 +225,11 @@ describe('Comment', function () {
           }
           return userA.newComment(commentAttrs)
         })
-        .then(function (newComment) {
+        .then((newComment) => {
           comment = newComment
           return comment.create()
         })
-        .then(function () { done() })
+        .then(() => { done() })
         .catch((e) => { done(e) })
     })
 

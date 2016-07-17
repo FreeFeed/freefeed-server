@@ -8,7 +8,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe('PasswordsController', function () {
+describe('PasswordsController', () => {
   before(async () => {
     await getSingleton()
     PubSub.setPublisher(new DummyPublisher())
@@ -18,7 +18,7 @@ describe('PasswordsController', function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', function () {
+  describe('#create()', () => {
     const context = {}
     const oldEmail = 'test@example.com'
 
@@ -72,16 +72,16 @@ describe('PasswordsController', function () {
     })
   })
 
-  describe('#update()', function () {
+  describe('#update()', () => {
     const context = {}
     const email = 'luna@example.com'
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach(function (done) { funcTestHelper.updateUserCtx(context, { email })(done) })
+    beforeEach((done) => { funcTestHelper.updateUserCtx(context, { email })(done) })
     beforeEach(async () => { await funcTestHelper.sendResetPassword(email) })
 
-    it('should not reset password by invalid resetToken', function (done) {
-      funcTestHelper.resetPassword('token')(function (err, res) {
+    it('should not reset password by invalid resetToken', (done) => {
+      funcTestHelper.resetPassword('token')((err, res) => {
         res.body.should.not.be.empty
         res.body.should.have.property('err')
         res.body.err.should.eql('Password reset token not found or has expired')

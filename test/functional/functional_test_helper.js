@@ -33,7 +33,7 @@ export function createUser(username, password, attributes, callback) {
       request
         .post(url)
         .send(user)
-        .end(function (err, res) {
+        .end((err, res) => {
           if (callback) {
             const luna = res.body.users
             luna.password = user.password
@@ -46,7 +46,7 @@ export function createUser(username, password, attributes, callback) {
 }
 
 export function createUserCtx(context, username, password, attrs) {
-  return createUser(username, password, attrs, function (token, user) {
+  return createUser(username, password, attrs, (token, user) => {
     context.user      = user
     context.authToken = token
     context.username  = username.toLowerCase()
@@ -61,7 +61,7 @@ export function subscribeToCtx(context, username) {
       request
         .post(url)
         .send({ authToken: context.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -78,7 +78,7 @@ export function updateUserCtx(context, attrs) {
           user:      { email: attrs.email },
           '_method': 'put'
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -91,7 +91,7 @@ export function resetPassword(token) {
       request
         .post(url)
         .send({ '_method': 'put' })
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -104,7 +104,7 @@ export function createPost(context, body, callback) {
       request
         .post(url)
         .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           context.post = res.body.posts
           if (typeof callback !== 'undefined')
             callback(context.post)
@@ -128,7 +128,7 @@ export function createPostForTest(context, body, callback) {
     request
       .post(url)
       .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
-      .end(function (err, res) {
+      .end((err, res) => {
         context.post = res.body.posts
         callback(err, res)
       })
@@ -146,7 +146,7 @@ export function createComment(body, postId, authToken, callback) {
       request
         .post(url)
         .send({ comment, authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -164,7 +164,7 @@ export function createCommentCtx(context, body) {
       request
         .post(url)
         .send({ comment, authToken: context.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           context.comment = res.body.comments
           done(err, res)
         })
@@ -181,7 +181,7 @@ export function removeComment(commentId, authToken, callback) {
           authToken,
           '_method': 'delete'
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -210,7 +210,7 @@ export function getTimeline(timelinePath, authToken, callback) {
       request
         .get(url)
         .query(sendParams)
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -237,7 +237,7 @@ export function getTimelinePaged(timelinePath, authToken, offset, limit, callbac
       request
         .get(url)
         .query(sendParams)
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -255,7 +255,7 @@ export function getSubscribers(username, authToken, callback) {
       request
         .get(url)
         .query(sendParams)
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })
@@ -285,7 +285,7 @@ export function getSubscriptions(username, authToken, callback) {
       request
         .get(url)
         .query(sendParams)
-        .end(function (err, res) {
+        .end((err, res) => {
           done(err, res)
         })
     })

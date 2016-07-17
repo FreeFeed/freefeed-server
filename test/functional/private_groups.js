@@ -9,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe('PrivateGroups', function () {
+describe('PrivateGroups', () => {
   let app
 
   before(async () => {
@@ -21,12 +21,12 @@ describe('PrivateGroups', function () {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', function () {
+  describe('#create()', () => {
     const context = {}
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
-    it('should create a public not-restricted group by default', function (done) {
+    it('should create a public not-restricted group by default', (done) => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
@@ -35,7 +35,7 @@ describe('PrivateGroups', function () {
           group:     { username: userName, screenName },
           authToken: context.authToken
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.should.have.property('username')
@@ -48,7 +48,7 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should create a private group', function (done) {
+    it('should create a private group', (done) => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
@@ -57,7 +57,7 @@ describe('PrivateGroups', function () {
           group:     { username: userName, screenName, isPrivate: '1' },
           authToken: context.authToken
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.isPrivate.should.eql('1')
@@ -66,7 +66,7 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should create a public restricted group', function (done) {
+    it('should create a public restricted group', (done) => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
@@ -75,7 +75,7 @@ describe('PrivateGroups', function () {
           group:     { username: userName, screenName, isRestricted: '1' },
           authToken: context.authToken
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.isPrivate.should.eql('0')
@@ -84,7 +84,7 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should create a private restricted group', function (done) {
+    it('should create a private restricted group', (done) => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
@@ -93,7 +93,7 @@ describe('PrivateGroups', function () {
           group:     { username: userName, screenName, isPrivate: '1', isRestricted: '1' },
           authToken: context.authToken
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.isPrivate.should.eql('1')
@@ -103,56 +103,56 @@ describe('PrivateGroups', function () {
     })
   })
 
-  describe('#admin', function () {
+  describe('#admin', () => {
     const adminContext = {}
     const nonAdminContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       request
           .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
             authToken: adminContext.authToken
           })
-          .end(function () {
+          .end(() => {
             done()
           })
     })
 
-    it('should allow an administrator of private group to add another administrator', function (done) {
+    it('should allow an administrator of private group to add another administrator', (done) => {
       request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/admin`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             done()
           })
     })
   })
 
-  describe('#update', function () {
+  describe('#update', () => {
     const context = {}
     let group
 
     beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       request
         .post(`${app.config.host}/v1/groups`)
         .send({
           group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
           authToken: context.authToken
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           group = res.body.groups
           done()
         })
     })
 
-    it('should update private group settings', function (done) {
+    it('should update private group settings', (done) => {
       const screenName = 'mokum-dev'
       const description = 'Mokum Developers'
 
@@ -163,7 +163,7 @@ describe('PrivateGroups', function () {
           user:      { screenName, description },
           '_method': 'put'
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
@@ -180,7 +180,7 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should update group isRestricted', function (done) {
+    it('should update group isRestricted', (done) => {
       request
         .post(`${app.config.host}/v1/users/${group.id}`)
         .send({
@@ -188,7 +188,7 @@ describe('PrivateGroups', function () {
           user:      { isRestricted: '1' },
           '_method': 'put'
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
@@ -201,7 +201,7 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should update group isPrivate', function (done) {
+    it('should update group isPrivate', (done) => {
       request
         .post(`${app.config.host}/v1/users/${group.id}`)
         .send({
@@ -209,7 +209,7 @@ describe('PrivateGroups', function () {
           user:      { isPrivate: '0' },
           '_method': 'put'
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
@@ -223,46 +223,46 @@ describe('PrivateGroups', function () {
     })
   })
 
-  describe('#unadmin', function () {
+  describe('#unadmin', () => {
     const adminContext = {}
     const nonAdminContext = {}
 
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       request
           .post(`${app.config.host}/v1/groups`)
           .send({
             group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
             authToken: adminContext.authToken
           })
-          .end(function () {
+          .end(() => {
             done()
           })
     })
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/admin`)
           .send({ authToken: adminContext.authToken })
-          .end(function () {
+          .end(() => {
             done()
           })
     })
 
-    it('should allow an administrator of private group to remove another administrator', function (done) {
+    it('should allow an administrator of private group to remove another administrator', (done) => {
       request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/unadmin`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             done()
           })
     })
   })
 
-  describe('#sendRequest', function () {
+  describe('#sendRequest', () => {
     const adminContext = {}
     const nonAdminContext = {}
     let group
@@ -270,50 +270,50 @@ describe('PrivateGroups', function () {
     beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       request
         .post(`${app.config.host}/v1/groups`)
         .send({
           group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
           authToken: adminContext.authToken
         })
-        .end(function (err, res) {
+        .end((err, res) => {
           group = res.body.groups
           done()
         })
     })
 
-    it('should reject unauthenticated users', function (done) {
+    it('should reject unauthenticated users', (done) => {
       request
         .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
-        .end(function (err) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
         })
     })
 
-    it('should reject nonexisting group', function (done) {
+    it('should reject nonexisting group', (done) => {
       request
         .post(`${app.config.host}/v1/groups/foobar/sendRequest`)
         .send({ authToken: nonAdminContext.authToken })
-        .end(function (err) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
         })
     })
 
-    it('should allow user to send subscription request to private group', function (done) {
+    it('should allow user to send subscription request to private group', (done) => {
       request
         .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
         .send({ authToken: nonAdminContext.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.status.should.eql(200)
           request
             .get(`${app.config.host}/v1/users/whoami`)
             .query({ authToken: adminContext.authToken })
-            .end(function (err, res) {
+            .end((err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('users')
@@ -324,23 +324,23 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should not allow user to send subscription request to private group twice', function (done) {
+    it('should not allow user to send subscription request to private group twice', (done) => {
       request
         .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
         .send({ authToken: nonAdminContext.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.status.should.eql(200)
           request
             .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
             .send({ authToken: nonAdminContext.authToken })
-            .end(function (err, res) {
+            .end((err, res) => {
               res.status.should.eql(403)
               done()
             })
         })
     })
 
-    it('should not allow user to send subscription request to public group', function (done) {
+    it('should not allow user to send subscription request to public group', (done) => {
       request
         .post(`${app.config.host}/v1/users/${group.id}`)
         .send({
@@ -348,33 +348,33 @@ describe('PrivateGroups', function () {
           user:      { isPrivate: '0' },
           '_method': 'put'
         })
-        .end(function () {
+        .end(() => {
           request
             .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
             .send({ authToken: nonAdminContext.authToken })
-            .end(function (err, res) {
+            .end((err, res) => {
               res.status.should.eql(422)
               done()
             })
         })
     })
 
-    it('should not allow subscriber user to send subscription request to private group', function (done) {
+    it('should not allow subscriber user to send subscription request to private group', (done) => {
       request
         .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
         .send({ authToken: nonAdminContext.authToken })
-        .end(function () {
+        .end(() => {
           request
             .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest${nonAdminContext.user.username}`)
             .send({
               authToken: adminContext.authToken,
               '_method': 'post'
             })
-            .end(function () {
+            .end(() => {
               request
                 .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
                 .send({ authToken: nonAdminContext.authToken })
-                .end(function (err, res) {
+                .end((err, res) => {
                   res.status.should.eql(403)
                   done()
                 })
@@ -383,7 +383,7 @@ describe('PrivateGroups', function () {
     })
   })
 
-  describe('subscription requests and membership management', function () {
+  describe('subscription requests and membership management', () => {
     const adminContext = {}
     const secondAdminContext = {}
     const nonAdminContext = {}
@@ -410,58 +410,58 @@ describe('PrivateGroups', function () {
       await funcTestHelper.sendRequestToJoinGroup(nonAdminContext, group)
     })
 
-    describe('#acceptRequest', function () {
-      it('should reject unauthenticated users', function (done) {
+    describe('#acceptRequest', () => {
+      it('should reject unauthenticated users', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/${nonAdminContext.user.username}`)
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(401)
             done()
           })
       })
 
-      it('should reject nonexisting group', function (done) {
+      it('should reject nonexisting group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/foobar/acceptRequest/${nonAdminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(404)
             done()
           })
       })
 
-      it('should reject nonexisting user', function (done) {
+      it('should reject nonexisting user', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/foobar`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(404)
             done()
           })
       })
 
-      it('should not allow non-admins to accept subscription request', function (done) {
+      it('should not allow non-admins to accept subscription request', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/${nonAdminContext.user.username}`)
           .send({ authToken: groupMemberContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
             done()
           })
       })
 
-      it('should be able to accept subscription request', function (done) {
+      it('should be able to accept subscription request', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/${nonAdminContext.user.username}`)
           .send({
             authToken: adminContext.authToken,
             '_method': 'post'
           })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             res.should.not.be.empty
             res.error.should.be.empty
@@ -469,7 +469,7 @@ describe('PrivateGroups', function () {
             request
               .get(`${app.config.host}/v1/users/whoami`)
               .query({ authToken: adminContext.authToken })
-              .end(function (err, res) {
+              .end((err, res) => {
                 res.should.not.be.empty
                 res.body.should.not.be.empty
                 res.body.should.have.property('users')
@@ -477,7 +477,7 @@ describe('PrivateGroups', function () {
                 res.body.users.pendingGroupRequests.should.be.false
 
 
-                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, function (err, res) {
+                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -496,27 +496,27 @@ describe('PrivateGroups', function () {
       })
 
 
-      it('should not allow to accept non-existent subscription request', function (done) {
+      it('should not allow to accept non-existent subscription request', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/${groupMemberContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(422)
             done()
           })
       })
 
-      it('should not allow to accept subscription request twice', function (done) {
+      it('should not allow to accept subscription request twice', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/${nonAdminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             request
               .post(`${app.config.host}/v1/groups/pepyatka-dev/acceptRequest/${nonAdminContext.user.username}`)
               .send({ authToken: adminContext.authToken })
-              .end(function (err) {
+              .end((err) => {
                 err.should.not.be.empty
                 err.status.should.eql(422)
                 done()
@@ -525,58 +525,58 @@ describe('PrivateGroups', function () {
       })
     })
 
-    describe('#rejectRequest', function () {
-      it('should reject unauthenticated users', function (done) {
+    describe('#rejectRequest', () => {
+      it('should reject unauthenticated users', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/${nonAdminContext.user.username}`)
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(401)
             done()
           })
       })
 
-      it('should reject nonexisting group', function (done) {
+      it('should reject nonexisting group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/foobar/rejectRequest/${nonAdminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(404)
             done()
           })
       })
 
-      it('should reject nonexisting user', function (done) {
+      it('should reject nonexisting user', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/foobar`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(404)
             done()
           })
       })
 
-      it('should not allow non-admins to reject subscription request', function (done) {
+      it('should not allow non-admins to reject subscription request', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/${nonAdminContext.user.username}`)
           .send({ authToken: groupMemberContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
             done()
           })
       })
 
-      it('should be able to reject subscription request', function (done) {
+      it('should be able to reject subscription request', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/${nonAdminContext.user.username}`)
           .send({
             authToken: adminContext.authToken,
             '_method': 'post'
           })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             res.should.not.be.empty
             res.error.should.be.empty
@@ -584,7 +584,7 @@ describe('PrivateGroups', function () {
             request
               .get(`${app.config.host}/v1/users/whoami`)
               .query({ authToken: adminContext.authToken })
-              .end(function (err, res) {
+              .end((err, res) => {
                 res.should.not.be.empty
                 res.body.should.not.be.empty
                 res.body.should.have.property('users')
@@ -592,7 +592,7 @@ describe('PrivateGroups', function () {
                 res.body.users.pendingGroupRequests.should.be.false
 
 
-                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, function (err, res) {
+                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -607,27 +607,27 @@ describe('PrivateGroups', function () {
       })
 
 
-      it('should not allow to reject non-existent subscription request', function (done) {
+      it('should not allow to reject non-existent subscription request', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/${groupMemberContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(422)
             done()
           })
       })
 
-      it('should not allow to reject subscription request twice', function (done) {
+      it('should not allow to reject subscription request twice', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/${nonAdminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             request
               .post(`${app.config.host}/v1/groups/pepyatka-dev/rejectRequest/${nonAdminContext.user.username}`)
               .send({ authToken: adminContext.authToken })
-              .end(function (err) {
+              .end((err) => {
                 err.should.not.be.empty
                 err.status.should.eql(422)
                 done()
@@ -636,63 +636,63 @@ describe('PrivateGroups', function () {
       })
     })
 
-    describe('#unsubscribeFromGroup', function () {
-      it('should reject unauthenticated users', function (done) {
+    describe('#unsubscribeFromGroup', () => {
+      it('should reject unauthenticated users', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${groupMemberContext.user.username}`)
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(401)
             done()
           })
       })
 
-      it('should reject nonexisting group', function (done) {
+      it('should reject nonexisting group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/foobar/unsubscribeFromGroup/${groupMemberContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(404)
             done()
           })
       })
 
-      it('should reject nonexisting user', function (done) {
+      it('should reject nonexisting user', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/foobar`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(404)
             done()
           })
       })
 
-      it('should not allow non-admins to unsubscribe user from group', function (done) {
+      it('should not allow non-admins to unsubscribe user from group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${groupMemberContext.user.username}`)
           .send({ authToken: groupMemberContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
             done()
           })
       })
 
-      it('admins should be able to unsubscribe user from group', function (done) {
+      it('admins should be able to unsubscribe user from group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${groupMemberContext.user.username}`)
           .send({
             authToken: adminContext.authToken,
             '_method': 'post'
           })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             res.should.not.be.empty
             res.error.should.be.empty
 
-            funcTestHelper.getTimeline('/v1/timelines/home', groupMemberContext.authToken, function (err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/home', groupMemberContext.authToken, (err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
@@ -705,33 +705,33 @@ describe('PrivateGroups', function () {
           })
       })
 
-      it('should not allow to unsubscribe non-members from group', function (done) {
+      it('should not allow to unsubscribe non-members from group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${nonAdminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
             done()
           })
       })
 
-      it('should not allow to unsubscribe admins from group', function (done) {
+      it('should not allow to unsubscribe admins from group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${secondAdminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
             done()
           })
       })
 
-      it('should not allow admins to unsubscribe theirself from group', function (done) {
+      it('should not allow admins to unsubscribe theirself from group', (done) => {
         request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${adminContext.user.username}`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
             done()
@@ -740,19 +740,19 @@ describe('PrivateGroups', function () {
     })
 
 
-    describe('#unsubscribe', function () {
-      it('should not allow admins to unsubscribe from group', function (done) {
+    describe('#unsubscribe', () => {
+      it('should not allow admins to unsubscribe from group', (done) => {
         request
           .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
           .send({ authToken: adminContext.authToken })
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
 
             request
               .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
               .send({ authToken: secondAdminContext.authToken })
-              .end(function (err) {
+              .end((err) => {
                 err.should.not.be.empty
                 err.status.should.eql(403)
                 done()
@@ -760,11 +760,11 @@ describe('PrivateGroups', function () {
           })
       })
 
-      it('should allow group members to unsubscribe from group', function (done) {
+      it('should allow group members to unsubscribe from group', (done) => {
         request
           .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
           .send({ authToken: groupMemberContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.should.not.be.empty
             res.status.should.eql(200)
             done()
@@ -772,44 +772,44 @@ describe('PrivateGroups', function () {
       })
     })
 
-    describe('v2/managedGroups', function () {
-      it('should reject unauthenticated users', function (done) {
+    describe('v2/managedGroups', () => {
+      it('should reject unauthenticated users', (done) => {
         request
           .get(`${app.config.host}/v2/managedGroups`)
-          .end(function (err) {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(401)
             done()
           })
       })
 
-      it('should return empty array for non-members', function (done) {
+      it('should return empty array for non-members', (done) => {
         request
           .get(`${app.config.host}/v2/managedGroups`)
           .send({ authToken: nonAdminContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             res.body.length.should.eql(0)
             done()
           })
       })
 
-      it('should return empty array for non-admins', function (done) {
+      it('should return empty array for non-admins', (done) => {
         request
           .get(`${app.config.host}/v2/managedGroups`)
           .send({ authToken: groupMemberContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
             res.body.length.should.eql(0)
             done()
           })
       })
 
-      it('should return requests array for admins', function (done) {
+      it('should return requests array for admins', (done) => {
         request
           .get(`${app.config.host}/v2/managedGroups`)
           .query({ authToken: adminContext.authToken })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.length.should.eql(1)
@@ -825,7 +825,7 @@ describe('PrivateGroups', function () {
           })
       })
 
-      it('requests array should match managed groups', function (done) {
+      it('requests array should match managed groups', (done) => {
         let group3
 
         request
@@ -834,7 +834,7 @@ describe('PrivateGroups', function () {
             group:     { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1' },
             authToken: adminContext.authToken
           })
-          .end(function (err, res) {
+          .end((err, res) => {
             res.status.should.eql(200)
 
 
@@ -844,7 +844,7 @@ describe('PrivateGroups', function () {
                 authToken: groupMemberContext.authToken,
                 '_method': 'post'
               })
-              .end(function (err, res) {
+              .end((err, res) => {
                 res.status.should.eql(200)
 
 
@@ -854,7 +854,7 @@ describe('PrivateGroups', function () {
                     group:     { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '1' },
                     authToken: nonAdminContext.authToken
                   })
-                  .end(function (err, res) {
+                  .end((err, res) => {
                     group3 = res.body.groups
                     res.status.should.eql(200)
 
@@ -862,7 +862,7 @@ describe('PrivateGroups', function () {
                     request
                       .get(`${app.config.host}/v2/managedGroups`)
                       .query({ authToken: adminContext.authToken })
-                      .end(function (err, res) {
+                      .end((err, res) => {
                         res.should.not.be.empty
                         res.body.should.not.be.empty
                         res.body.length.should.eql(2)
@@ -873,7 +873,7 @@ describe('PrivateGroups', function () {
                         request
                           .get(`${app.config.host}/v2/managedGroups`)
                           .query({ authToken: secondAdminContext.authToken })
-                          .end(function (err, res) {
+                          .end((err, res) => {
                             res.should.not.be.empty
                             res.body.should.not.be.empty
                             res.body.length.should.eql(1)
@@ -884,7 +884,7 @@ describe('PrivateGroups', function () {
                             request
                               .get(`${app.config.host}/v2/managedGroups`)
                               .query({ authToken: nonAdminContext.authToken })
-                              .end(function (err, res) {
+                              .end((err, res) => {
                                 res.should.not.be.empty
                                 res.body.should.not.be.empty
                                 res.body.length.should.eql(1)
@@ -897,7 +897,7 @@ describe('PrivateGroups', function () {
                                 request
                                   .get(`${app.config.host}/v2/managedGroups`)
                                   .query({ authToken: groupMemberContext.authToken })
-                                  .end(function (err, res) {
+                                  .end((err, res) => {
                                     res.should.not.be.empty
                                     res.body.should.be.empty
                                     res.body.length.should.eql(0)
@@ -912,7 +912,7 @@ describe('PrivateGroups', function () {
       })
     })
 
-    describe('#whoami:pendingGroupRequests', function () {
+    describe('#whoami:pendingGroupRequests', () => {
       it('pendingGroupRequests should match managed groups', async () => {
         const verifyUsersPendingGroupRequests = async (context, shouldHave) => {
           const response = await funcTestHelper.whoami(context.authToken)
@@ -937,7 +937,7 @@ describe('PrivateGroups', function () {
     })
   })
 
-  describe('subscribers', function () {
+  describe('subscribers', () => {
     const adminContext = {}
     const plutoContext = {}
     const marsContext = {}
@@ -1016,7 +1016,7 @@ describe('PrivateGroups', function () {
     })
   })
 
-  describe('Posting to restricted group', function () {
+  describe('Posting to restricted group', () => {
     const adminContext = {}
     const nonAdminContext = {}
     const nonMemberContext = {}
@@ -1025,35 +1025,35 @@ describe('PrivateGroups', function () {
     beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
     beforeEach(funcTestHelper.createUserCtx(nonMemberContext, 'Pluto', 'wordpass'))
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
       request
         .post(`${app.config.host}/v1/groups`)
         .send({
           group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1', isRestricted: '1' },
           authToken: adminContext.authToken
         })
-        .end(function () {
+        .end(() => {
           request
             .post(`${app.config.host}/v1/groups`)
             .send({
               group:     { username: 'pepyatka-dev-2', screenName: 'Pepyatka Developers 2', isPrivate: '1', isRestricted: '0' },
               authToken: adminContext.authToken
             })
-            .end(function () {
+            .end(() => {
               request
                 .post(`${app.config.host}/v1/groups`)
                 .send({
                   group:     { username: 'pepyatka-dev-3', screenName: 'Pepyatka Developers 3', isPrivate: '0', isRestricted: '1' },
                   authToken: adminContext.authToken
                 })
-                .end(function () {
+                .end(() => {
                   request
                     .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
                     .send({
                       authToken: nonAdminContext.authToken,
                       '_method': 'post'
                     })
-                    .end(function (err, res) {
+                    .end((err, res) => {
                       res.status.should.eql(200)
 
                       request
@@ -1062,7 +1062,7 @@ describe('PrivateGroups', function () {
                           authToken: nonAdminContext.authToken,
                           '_method': 'post'
                         })
-                        .end(function (err, res) {
+                        .end((err, res) => {
                           res.status.should.eql(200)
 
                           request
@@ -1071,7 +1071,7 @@ describe('PrivateGroups', function () {
                               authToken: nonAdminContext.authToken,
                               '_method': 'post'
                             })
-                            .end(function (err, res) {
+                            .end((err, res) => {
                               res.status.should.eql(200)
 
                               request
@@ -1080,7 +1080,7 @@ describe('PrivateGroups', function () {
                                   authToken: adminContext.authToken,
                                   '_method': 'post'
                                 })
-                                .end(function (err, res) {
+                                .end((err, res) => {
                                   res.status.should.eql(200)
 
                                   request
@@ -1089,7 +1089,7 @@ describe('PrivateGroups', function () {
                                       authToken: adminContext.authToken,
                                       '_method': 'post'
                                     })
-                                    .end(function (err, res) {
+                                    .end((err, res) => {
                                       res.status.should.eql(200)
                                       done()
                                     })
@@ -1102,24 +1102,24 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should allow only admins to post to private restricted group', function (done) {
+    it('should allow only admins to post to private restricted group', (done) => {
       request
         .post(`${app.config.host}/v1/posts`)
         .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: adminContext.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.status.should.eql(200)
 
           request
             .post(`${app.config.host}/v1/posts`)
             .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: nonAdminContext.authToken })
-            .end(function (err) {
+            .end((err) => {
               err.should.not.be.empty
               err.status.should.eql(403)
 
               request
                 .post(`${app.config.host}/v1/posts`)
                 .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev' }, authToken: nonMemberContext.authToken })
-                .end(function (err) {
+                .end((err) => {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   done()
@@ -1128,24 +1128,24 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should allow all members to post to private non-restricted group', function (done) {
+    it('should allow all members to post to private non-restricted group', (done) => {
       request
         .post(`${app.config.host}/v1/posts`)
         .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-2' }, authToken: adminContext.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.status.should.eql(200)
 
           request
             .post(`${app.config.host}/v1/posts`)
             .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-2' }, authToken: nonAdminContext.authToken })
-            .end(function (err, res) {
+            .end((err, res) => {
               res.should.not.be.empty
               res.status.should.eql(200)
 
               request
                 .post(`${app.config.host}/v1/posts`)
                 .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-2' }, authToken: nonMemberContext.authToken })
-                .end(function (err) {
+                .end((err) => {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   done()
@@ -1154,24 +1154,24 @@ describe('PrivateGroups', function () {
         })
     })
 
-    it('should allow only admins to post to public restricted group', function (done) {
+    it('should allow only admins to post to public restricted group', (done) => {
       request
         .post(`${app.config.host}/v1/posts`)
         .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-3' }, authToken: adminContext.authToken })
-        .end(function (err, res) {
+        .end((err, res) => {
           res.status.should.eql(200)
 
           request
             .post(`${app.config.host}/v1/posts`)
             .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-3' }, authToken: nonAdminContext.authToken })
-            .end(function (err) {
+            .end((err) => {
               err.should.not.be.empty
               err.status.should.eql(403)
 
               request
                 .post(`${app.config.host}/v1/posts`)
                 .send({ post: { body: 'Post body' }, meta: { feeds: 'pepyatka-dev-3' }, authToken: nonMemberContext.authToken })
-                .end(function (err) {
+                .end((err) => {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   done()

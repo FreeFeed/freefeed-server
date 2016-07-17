@@ -4,7 +4,7 @@ import knexCleaner from 'knex-cleaner'
 import { User, Group } from '../../app/models'
 
 
-describe('PostBubbling', function () {
+describe('PostBubbling', () => {
   beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
@@ -75,7 +75,7 @@ describe('PostBubbling', function () {
       }
     })
 
-    describe('Luna and Mars are not friends', function () {
+    describe('Luna and Mars are not friends', () => {
       it('Home feed of Luna contains posts in reverse chronological order', async () => {
         const expectedContent = [...lunaPostsContent].reverse()
         await homeFeedEqualTo(luna, expectedContent, luna.id)
