@@ -22,21 +22,22 @@ describe('MutualFriends', () => {
   })
 
   describe('user Luna, user Mars, and user Zeus', () => {
-    const lunaContext = {}
-    const marsContext = {}
-    const zeusContext = {}
+    let lunaContext = {}
+    let marsContext = {}
+    let zeusContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, 'zeus', 'pw'))
+    beforeEach(async () => {
+      [lunaContext, marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync('luna', 'pw'),
+        funcTestHelper.createUserAsync('mars', 'pw'),
+        funcTestHelper.createUserAsync('zeus', 'pw')
+      ])
+    })
 
     describe('are mutual friends', () => {
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(lunaContext, marsContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(lunaContext, zeusContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(marsContext, zeusContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(zeusContext, marsContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(zeusContext, lunaContext.username)(done) })
+      beforeEach(async () => {
+        await funcTestHelper.mutualSubscriptions([lunaContext, marsContext, zeusContext])
+      })
 
       it('should not publish liked direct message to home feed of mutual friends', (done) => {
         const body = 'body'
