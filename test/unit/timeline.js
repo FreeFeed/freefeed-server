@@ -129,21 +129,11 @@ describe('Timeline', () => {
     let userA
       , userB
 
-    beforeEach((done) => {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(() => userB.create())
-        .then(() => { done() })
-        .catch((e) => { done(e) })
+      await Promise.all([userA.create(), userB.create()])
     })
 
     it('should subscribe to timeline', (done) => {
