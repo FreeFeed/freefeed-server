@@ -2,17 +2,23 @@
 /* global $pg_database */
 import fs from 'fs'
 import path from 'path'
-import mkdirp from 'mkdirp'
+import { mkdirp } from 'mkdirp'
 import knexCleaner from 'knex-cleaner'
 import gm from 'gm'
-import { promisifyAll } from 'bluebird'
+import { promisify, promisifyAll } from 'bluebird'
 import chai from 'chai'
 import chaiFS from 'chai-fs'
+import _ from 'lodash';
 
 import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
 chai.use(chaiFS)
+
+const mkdirpAsync = promisify(mkdirp);
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
+const stat = promisify(fs.stat);
 
 const config = configLoader()
 
@@ -24,7 +30,46 @@ describe('Attachment', () => {
   describe('#create()', () => {
     let user
     let post
-    let files
+
+    // FormData file objects
+    const files = {
+      small: {
+        size: 708,
+        path: '/tmp/upload_12345678901234567890123456789012_1',
+        name: 'test-image.150x150.png',
+        type: 'image/png'
+      },
+      medium: {
+        size: 1469,
+        path: '/tmp/upload_12345678901234567890123456789012_2',
+        name: 'test-image.900x300.png',
+        type: 'image/png'
+      },
+      large: {
+        size: 3199,
+        path: '/tmp/upload_12345678901234567890123456789012_3',
+        name: 'test-image.1500x1000.png',
+        type: 'image/png'
+      },
+      xlarge: {
+        size: 11639,
+        path: '/tmp/upload_12345678901234567890123456789012_4',
+        name: 'test-image.3000x2000.png',
+        type: 'image/png'
+      },
+      rotated: {
+        size: -1, // do not test
+        path: '/tmp/upload_12345678901234567890123456789012_5',
+        name: 'test-image-exif-rotated.900x300.jpg',
+        type: 'image/jpeg'
+      },
+      colorprofiled: {
+        size: 16698,
+        path: '/tmp/upload_12345678901234567890123456789012_6',
+        name: 'test-image-sgrb.png',
+        type: 'image/png'
+      }
+    }
 
     const createAndCheckAttachment = async (file, post, user) => {
       const attachment = new Attachment({
@@ -63,7 +108,7 @@ describe('Attachment', () => {
 
       newAttachment.getPath().should.be.equal(`${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`)
 
-      const stats = await fs.statAsync(newAttachment.getPath())
+      const stats = await stat(newAttachment.getPath())
       if (file.size >= 0) {
         stats.size.should.be.equal(file.size)
       } else {
@@ -84,65 +129,29 @@ describe('Attachment', () => {
 
       // Create directories for attachments
       mkdirp.sync(config.attachments.storage.rootDir + config.attachments.path)
-      for (const sizeId in config.attachments.imageSizes) {
-        if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
-          mkdirp.sync(config.attachments.storage.rootDir + config.attachments.imageSizes[sizeId].path)
-        }
-      }
+
+      await Promise.all(_.map(
+        config.attachments.imageSizes,
+        (size) => mkdirpAsync(config.attachments.storage.rootDir + size.path)
+      ));
 
       // "Upload" files
-      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_1',
-        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.150x150.png')));
-      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_2',
-        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.900x300.png')));
-      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_3',
-        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.1500x1000.png')));
-      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_4',
-        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image.3000x2000.png')));
-      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_5',
-        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image-exif-rotated.900x300.jpg')));
-      fs.writeFileSync('/tmp/upload_12345678901234567890123456789012_6',
-        fs.readFileSync(path.resolve(__dirname, '../fixtures/test-image-sgrb.png')));
+      const filesToUpload = {
+        'test-image.150x150.png':              '1',
+        'test-image.900x300.png':              '2',
+        'test-image.1500x1000.png':            '3',
+        'test-image.3000x2000.png':            '4',
+        'test-image-exif-rotated.900x300.jpg': '5',
+        'test-image-sgrb.png':                 '6'
+      };
 
-      // FormData file objects
-      files = {
-        small: {
-          size: 708,
-          path: '/tmp/upload_12345678901234567890123456789012_1',
-          name: 'test-image.150x150.png',
-          type: 'image/png'
-        },
-        medium: {
-          size: 1469,
-          path: '/tmp/upload_12345678901234567890123456789012_2',
-          name: 'test-image.900x300.png',
-          type: 'image/png'
-        },
-        large: {
-          size: 3199,
-          path: '/tmp/upload_12345678901234567890123456789012_3',
-          name: 'test-image.1500x1000.png',
-          type: 'image/png'
-        },
-        xlarge: {
-          size: 11639,
-          path: '/tmp/upload_12345678901234567890123456789012_4',
-          name: 'test-image.3000x2000.png',
-          type: 'image/png'
-        },
-        rotated: {
-          size: -1, // do not test
-          path: '/tmp/upload_12345678901234567890123456789012_5',
-          name: 'test-image-exif-rotated.900x300.jpg',
-          type: 'image/jpeg'
-        },
-        colorprofiled: {
-          size: 16698,
-          path: '/tmp/upload_12345678901234567890123456789012_6',
-          name: 'test-image-sgrb.png',
-          type: 'image/png'
-        }
-      }
+      const srcPrefix = path.resolve(__dirname, '../fixtures');
+      const targetPrefix = '/tmp/upload_12345678901234567890123456789012_';
+
+      await Promise.all(_.map(filesToUpload, async (target, src) => {
+        const data = await readFile(path.resolve(srcPrefix, src));
+        return writeFile(`${targetPrefix}${target}`, data);
+      }));
     })
 
     beforeEach(async () => {
@@ -150,6 +159,10 @@ describe('Attachment', () => {
       const newPost = await user.newPost({ body: 'Post body' })
       post = await newPost.create()
     })
+
+    afterEach(async () => {
+      await post.destroy();
+    });
 
     it('should create a small attachment', async () => {
       const newAttachment = await createAndCheckAttachment(files.small, post, user)
