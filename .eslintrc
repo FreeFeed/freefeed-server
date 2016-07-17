@@ -4,7 +4,8 @@
   "plugins": [
     "babel",
     "import",
-    "lodash"
+    "lodash",
+    "promise"
   ],
   "env": {
     "node": true,
@@ -68,6 +69,9 @@
     "prefer-rest-params": 2,
     "prefer-spread": 2,
     "prefer-template": 2,
+    "promise/param-names": 2,
+    "promise/catch-or-return": 2,
+    "promise/no-native": 0,
     "quotes": [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
     "require-yield": 0,
     "rest-spread-spacing": 2,

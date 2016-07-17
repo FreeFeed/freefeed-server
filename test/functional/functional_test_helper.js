@@ -29,19 +29,21 @@ export function createUser(username, password, attributes, callback) {
     if (attributes.email)
       user.email = attributes.email
 
-    apiUrl('/v1/users').then((url) => {
-      request
-        .post(url)
-        .send(user)
-        .end((err, res) => {
-          if (callback) {
-            const luna = res.body.users
-            luna.password = user.password
-            callback(res.body.authToken, luna)
-          }
-          done()
-        })
-    })
+    apiUrl('/v1/users')
+      .then((url) => {
+        request
+          .post(url)
+          .send(user)
+          .end((err, res) => {
+            if (callback) {
+              const luna = res.body.users
+              luna.password = user.password
+              callback(res.body.authToken, luna)
+            }
+            done()
+          })
+      })
+      .catch((e) => { done(e) })
   }
 }
 
@@ -57,61 +59,77 @@ export function createUserCtx(context, username, password, attrs) {
 
 export function subscribeToCtx(context, username) {
   return function (done) {
-    apiUrl(`/v1/users/${username}/subscribe`).then((url) => {
-      request
-        .post(url)
-        .send({ authToken: context.authToken })
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/users/${username}/subscribe`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({ authToken: context.authToken })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function updateUserCtx(context, attrs) {
   return function (done) {
-    apiUrl(`/v1/users/${context.user.id}`).then((url) => {
-      request
-        .post(url)
-        .send({
-          authToken: context.authToken,
-          user:      { email: attrs.email },
-          '_method': 'put'
-        })
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/users/${context.user.id}`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({
+            authToken: context.authToken,
+            user:      { email: attrs.email },
+            '_method': 'put'
+          })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function resetPassword(token) {
   return function (done) {
-    apiUrl(`/v1/passwords/${token}`).then((url) => {
-      request
-        .post(url)
-        .send({ '_method': 'put' })
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/passwords/${token}`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({ '_method': 'put' })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function createPost(context, body, callback) {
   return function (done) {
-    apiUrl('/v1/posts').then((url) => {
-      request
-        .post(url)
-        .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
-        .end((err, res) => {
-          context.post = res.body.posts
-          if (typeof callback !== 'undefined')
-            callback(context.post)
+    apiUrl('/v1/posts')
+      .then((url) => {
+        request
+          .post(url)
+          .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
+          .end((err, res) => {
+            context.post = res.body.posts
+            if (typeof callback !== 'undefined')
+              callback(context.post)
 
-          done(err, res)
-        })
-    })
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
@@ -124,67 +142,83 @@ export function createPostWithCommentsDisabled(context, body, commentsDisabled) 
 }
 
 export function createPostForTest(context, body, callback) {
-  apiUrl('/v1/posts').then((url) => {
-    request
-      .post(url)
-      .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
-      .end((err, res) => {
-        context.post = res.body.posts
-        callback(err, res)
-      })
-  })
+  apiUrl('/v1/posts')
+    .then((url) => {
+      request
+        .post(url)
+        .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
+        .end((err, res) => {
+          context.post = res.body.posts
+          callback(err, res)
+        })
+    })
+    .catch((e) => {
+      callback(e)
+    })
 }
 
 export function createComment(body, postId, authToken, callback) {
   return function (done) {
-    apiUrl('/v1/comments').then((url) => {
-      const comment = {
-        body,
-        postId
-      }
+    apiUrl('/v1/comments')
+      .then((url) => {
+        const comment = {
+          body,
+          postId
+        }
 
-      request
-        .post(url)
-        .send({ comment, authToken })
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+        request
+          .post(url)
+          .send({ comment, authToken })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
 export function createCommentCtx(context, body) {
   return function (done) {
-    apiUrl('/v1/comments').then((url) => {
-      const comment = {
-        body,
-        postId: context.post.id
-      }
+    apiUrl('/v1/comments')
+      .then((url) => {
+        const comment = {
+          body,
+          postId: context.post.id
+        }
 
-      request
-        .post(url)
-        .send({ comment, authToken: context.authToken })
-        .end((err, res) => {
-          context.comment = res.body.comments
-          done(err, res)
-        })
-    })
+        request
+          .post(url)
+          .send({ comment, authToken: context.authToken })
+          .end((err, res) => {
+            context.comment = res.body.comments
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function removeComment(commentId, authToken, callback) {
   return function (done) {
-    apiUrl(`/v1/comments/${commentId}`).then((url) => {
-      request
-        .post(url)
-        .send({
-          authToken,
-          '_method': 'delete'
-        })
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/comments/${commentId}`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({
+            authToken,
+            '_method': 'delete'
+          })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
@@ -200,47 +234,55 @@ export function removeCommentAsync(context, commentId) {
 
 export function getTimeline(timelinePath, authToken, callback) {
   return function (done) {
-    apiUrl(timelinePath).then((url) => {
-      const sendParams = {};
+    apiUrl(timelinePath)
+      .then((url) => {
+        const sendParams = {};
 
-      if (authToken) {
-        sendParams.authToken = authToken
-      }
+        if (authToken) {
+          sendParams.authToken = authToken
+        }
 
-      request
-        .get(url)
-        .query(sendParams)
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
 export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
   return function (done) {
-    apiUrl(timelinePath).then((url) => {
-      const sendParams = {};
+    apiUrl(timelinePath)
+      .then((url) => {
+        const sendParams = {};
 
-      if (!_.isUndefined(authToken)) {
-        sendParams.authToken = authToken
-      }
+        if (!_.isUndefined(authToken)) {
+          sendParams.authToken = authToken
+        }
 
-      if (!_.isUndefined(offset)) {
-        sendParams.offset = offset
-      }
+        if (!_.isUndefined(offset)) {
+          sendParams.offset = offset
+        }
 
-      if (!_.isUndefined(limit)) {
-        sendParams.limit = limit
-      }
+        if (!_.isUndefined(limit)) {
+          sendParams.limit = limit
+        }
 
-      request
-        .get(url)
-        .query(sendParams)
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
@@ -251,14 +293,18 @@ export function getSubscribers(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    apiUrl(`/v1/users/${username}/subscribers`).then((url) => {
-      request
-        .get(url)
-        .query(sendParams)
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/users/${username}/subscribers`)
+      .then((url) => {
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
@@ -281,14 +327,18 @@ export function getSubscriptions(username, authToken, callback) {
       sendParams.authToken = authToken
     }
 
-    apiUrl(`/v1/users/${username}/subscriptions`).then((url) => {
-      request
-        .get(url)
-        .query(sendParams)
-        .end((err, res) => {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/users/${username}/subscriptions`)
+      .then((url) => {
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 

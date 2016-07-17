@@ -71,6 +71,7 @@
     "eslint-plugin-babel": "3.3.0",
     "eslint-plugin-import": "1.10.3",
     "eslint-plugin-lodash": "1.9.4",
+    "eslint-plugin-promise": "^2.0.0",
     "istanbul": "0.4.3",
     "mkdirp": "0.5.1",
     "mocha": "2.5.3",
