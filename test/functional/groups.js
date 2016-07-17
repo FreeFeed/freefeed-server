@@ -1,8 +1,9 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import request from 'superagent'
-import mkdirp from 'mkdirp'
+import { mkdirp } from 'mkdirp'
 import knexCleaner from 'knex-cleaner'
+import { promisify } from 'bluebird'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -11,6 +12,7 @@ import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 
 
+const mkdirpAsync = promisify(mkdirp);
 const config = configLoader()
 
 describe('GroupsController', () => {
@@ -26,9 +28,11 @@ describe('GroupsController', () => {
   })
 
   describe('#create()', () => {
-    const context = {}
+    let context = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+    })
 
     it('should reject unauthenticated users', (done) => {
       request
@@ -180,8 +184,10 @@ describe('GroupsController', () => {
       , nonAdminContext = {}
 
     beforeEach(async () => {
-      adminContext = await funcTestHelper.createUserAsync('Luna', 'password')
-      nonAdminContext = await funcTestHelper.createUserAsync('yole', 'wordpass')
+      [adminContext, nonAdminContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('yole', 'wordpass')
+      ])
       await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers')
     })
 
@@ -205,6 +211,7 @@ describe('GroupsController', () => {
             done()
           })
     })
+
     it('should allow an administrator to add another administrator', (done) => {
       request
           .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/${nonAdminContext.username}/admin`)
@@ -308,64 +315,33 @@ describe('GroupsController', () => {
   })
 
   describe('#unadmin', () => {
-    const adminContext = {}
-    const nonAdminContext = {}
+    let adminContext = {}
+    let nonAdminContext = {}
+    let group = {}
 
-    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(nonAdminContext, 'yole', 'wordpass'))
+    beforeEach(async () => {
+      [adminContext, nonAdminContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('yole', 'wordpass')
+      ]);
 
-    beforeEach((done) => {
-      request
-          .post(`${app.config.host}/v1/groups`)
-          .send({
-            group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
-            authToken: adminContext.authToken
-          })
-          .end(() => {
-            done()
-          })
+      group = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers');
+      await funcTestHelper.promoteToAdmin(group, adminContext, nonAdminContext);
     })
 
-    beforeEach((done) => {
-      request
-          .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/admin`)
-          .send({ authToken: adminContext.authToken })
-          .end(() => {
-            done()
-          })
-    })
-
-    it('should allow an administrator to remove another administrator', (done) => {
-      request
-          .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/unadmin`)
-          .send({ authToken: adminContext.authToken })
-          .end((err, res) => {
-            res.status.should.eql(200)
-            done()
-          })
+    it('should allow an administrator to remove another administrator', async () => {
+      const res = await funcTestHelper.demoteFromAdmin(group, adminContext, nonAdminContext);
+      res.status.should.eql(200)
     })
   })
 
   describe('#updateProfilePicture', () => {
-    const context = {}
+    let context = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-
-    beforeEach((done) => {
-      mkdirp.sync(config.profilePictures.storage.rootDir + config.profilePictures.path)
-      done()
-    })
-
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/groups`)
-        .send({
-          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers' },
-          authToken: context.authToken
-        })
-        .end(() => {
-          done()
-        })
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+      await mkdirpAsync(config.profilePictures.storage.rootDir + config.profilePictures.path)
+      await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers');
     })
 
     it('should update the profile picture', (done) => {
@@ -389,39 +365,25 @@ describe('GroupsController', () => {
   })
 
   describe('#unsubscribeFromGroup', () => {
-    const adminContext = {}
-    const secondAdminContext = {}
-    const groupMemberContext = {}
+    let adminContext = {}
+    let secondAdminContext = {}
+    let groupMemberContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(groupMemberContext, 'Pluto', 'wordpass'))
+    beforeEach(async () => {
+      [adminContext, secondAdminContext, groupMemberContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Neptune', 'password'),
+        funcTestHelper.createUserAsync('Pluto', 'wordpass')
+      ])
 
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/groups`)
-        .send({
-          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
-          authToken: adminContext.authToken
-        })
-        .end(() => {
-          request
-            .post(`${app.config.host}/v1/users/pepyatka-dev/subscribe`)
-            .send({ authToken: secondAdminContext.authToken })
-            .end(() => {
-              request
-                .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/${secondAdminContext.user.username}/admin`)
-                .send({ authToken: adminContext.authToken })
-                .end(() => {
-                  request
-                    .post(`${app.config.host}/v1/users/pepyatka-dev/subscribe`)
-                    .send({ authToken: groupMemberContext.authToken })
-                    .end(() => {
-                      done()
-                    })
-                })
-            })
-        })
+      const group = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers');
+
+      await Promise.all([
+        funcTestHelper.subscribeToAsync(secondAdminContext, group),
+        funcTestHelper.subscribeToAsync(groupMemberContext, group)
+      ]);
+
+      await funcTestHelper.promoteToAdmin(group, adminContext, secondAdminContext);
     })
 
     it('admins should be able to unsubscribe user from group', (done) => {

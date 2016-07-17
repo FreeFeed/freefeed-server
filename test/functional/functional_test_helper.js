@@ -633,6 +633,13 @@ export function promoteToAdmin(group, existingAdminContext, potentialAdminContex
   )
 }
 
+export function demoteFromAdmin(group, existingAdminContext, victimAdminContext) {
+  return postJson(
+    `/v1/groups/${group.username}/subscribers/${victimAdminContext.user.username}/unadmin`,
+    { authToken: existingAdminContext.authToken }
+  )
+}
+
 export function sendRequestToJoinGroup(subscriber, group) {
   return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
 }
