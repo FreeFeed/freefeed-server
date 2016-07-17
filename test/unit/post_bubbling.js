@@ -55,20 +55,19 @@ describe('PostBubbling', () => {
       , marsPosts
 
     beforeEach(async () => {
-      lunaPosts = []
-      marsPosts = []
       luna = new User({ username: 'Luna', password: 'password' })
       mars = new User({ username: 'Mars', password: 'password' })
       jupiter = new User({ username: 'Jupiter', password: 'password' })
 
-      await luna.create()
-      await mars.create()
-      await jupiter.create()
+      await Promise.all([luna.create(), mars.create(), jupiter.create()]);
 
+      lunaPosts = []
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         lunaPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      marsPosts = []
       for (const body of marsPostsContent) {
         const post = await mars.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         marsPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
@@ -248,11 +247,8 @@ describe('PostBubbling', () => {
 
     describe('Luna and Mars are friends', () => {
       beforeEach(async () => {
-        const marsTimelineId = await mars.getPostsTimelineId()
-        await luna.subscribeTo(marsTimelineId)
-
-        const lunaTimelineId = await luna.getPostsTimelineId()
-        await mars.subscribeTo(lunaTimelineId)
+        const [marsTimelineId, lunaTimelineId] = await Promise.all([mars.getPostsTimelineId(), luna.getPostsTimelineId()])
+        await Promise.all([luna.subscribeTo(marsTimelineId), mars.subscribeTo(lunaTimelineId)]);
       })
 
       describe("post is already included into Luna's home feed", () => {
@@ -389,27 +385,26 @@ describe('PostBubbling', () => {
       , plutoPosts
 
     beforeEach(async () => {
-      lunaPosts = []
-      marsPosts = []
-      plutoPosts = []
       luna = new User({ username: 'Luna', password: 'password' })
       mars = new User({ username: 'Mars', password: 'password' })
       pluto = new User({ username: 'Pluto', password: 'password' })
       jupiter = new User({ username: 'Jupiter', password: 'password' })
 
-      await luna.create()
-      await mars.create()
-      await pluto.create()
-      await jupiter.create()
+      await Promise.all([luna.create(), mars.create(), pluto.create(), jupiter.create()]);
 
+      lunaPosts = []
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         lunaPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      marsPosts = []
       for (const body of marsPostsContent) {
         const post = await mars.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         marsPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      plutoPosts = []
       for (const body of plutoPostsContent) {
         const post = await pluto.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         plutoPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
@@ -418,13 +413,16 @@ describe('PostBubbling', () => {
 
     describe('isFriends(Luna, Mars) && isFriends(Mars, Pluto)', () => {
       beforeEach(async () => {
-        const marsTimelineId  = await mars.getPostsTimelineId()
-        const lunaTimelineId  = await luna.getPostsTimelineId()
-        const plutoTimelineId = await pluto.getPostsTimelineId()
-        await luna.subscribeTo(marsTimelineId)
-        await mars.subscribeTo(lunaTimelineId)
-        await mars.subscribeTo(plutoTimelineId)
-        await pluto.subscribeTo(marsTimelineId)
+        const [marsTimelineId, lunaTimelineId, plutoTimelineId] = await Promise.all([
+          mars.getPostsTimelineId(), luna.getPostsTimelineId(), pluto.getPostsTimelineId()
+        ]);
+
+        await Promise.all([
+          luna.subscribeTo(marsTimelineId),
+          mars.subscribeTo(lunaTimelineId),
+          mars.subscribeTo(plutoTimelineId),
+          pluto.subscribeTo(marsTimelineId)
+        ]);
       })
 
       it("Pluto home feed consists of Pluto's and Mars's posts", async () => {
@@ -785,26 +783,26 @@ describe('PostBubbling', () => {
       , plutoPosts
 
     beforeEach(async () => {
-      lunaPosts  = []
-      marsPosts  = []
-      plutoPosts = []
       luna       = new User({ username: 'Luna', password: 'password' })
       mars       = new User({ username: 'Mars', password: 'password' })
       pluto      = new User({ username: 'Pluto', password: 'password' })
 
-      await luna.create()
+      await Promise.all([luna.create(), mars.create(), pluto.create()]);
       await luna.update({ isPrivate: '1' })
-      await mars.create()
-      await pluto.create()
 
+      lunaPosts  = []
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         lunaPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      marsPosts  = []
       for (const body of marsPostsContent) {
         const post = await mars.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         marsPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      plutoPosts = []
       for (const body of plutoPostsContent) {
         const post = await pluto.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         plutoPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
@@ -813,13 +811,16 @@ describe('PostBubbling', () => {
 
     describe('isFriends(Luna, Mars) && isFriends(Mars, Pluto)', () => {
       beforeEach(async () => {
-        const marsTimelineId  = await mars.getPostsTimelineId()
-        const lunaTimelineId  = await luna.getPostsTimelineId()
-        const plutoTimelineId = await pluto.getPostsTimelineId()
-        await luna.subscribeTo(marsTimelineId)
-        await mars.subscribeTo(lunaTimelineId)
-        await mars.subscribeTo(plutoTimelineId)
-        await pluto.subscribeTo(marsTimelineId)
+        const [marsTimelineId, lunaTimelineId, plutoTimelineId] = await Promise.all([
+          mars.getPostsTimelineId(), luna.getPostsTimelineId(), await pluto.getPostsTimelineId()
+        ]);
+
+        await Promise.all([
+          luna.subscribeTo(marsTimelineId),
+          mars.subscribeTo(lunaTimelineId),
+          mars.subscribeTo(plutoTimelineId),
+          pluto.subscribeTo(marsTimelineId)
+        ]);
       })
 
       describe("private user's posts are not bringed to Pluto home feed", () => {
@@ -854,34 +855,35 @@ describe('PostBubbling', () => {
       , easyfoxTimelineId
 
     beforeEach(async () => {
-      lunaPosts  = []
-      marsPosts  = []
-      plutoPosts = []
-      easyfoxPosts = []
       luna       = new User({ username: 'Luna', password: 'password' })
       mars       = new User({ username: 'Mars', password: 'password' })
       pluto      = new User({ username: 'Pluto', password: 'password' })
       easyfox    = new Group({ username: 'EasyFox', password: 'password', isPrivate: '1' })
 
-      await luna.create()
-      await mars.create()
-      await pluto.create()
+      await Promise.all([luna.create(), mars.create(), pluto.create()]);
       await easyfox.create(luna.id)
 
       easyfoxTimelineId = await easyfox.getPostsTimelineId()
 
+      lunaPosts  = []
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         lunaPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      marsPosts  = []
       for (const body of marsPostsContent) {
         const post = await mars.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         marsPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      plutoPosts = []
       for (const body of plutoPostsContent) {
         const post = await pluto.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         plutoPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      easyfoxPosts = []
       for (const body of easyfoxPostsContent) {
         const post = await easyfox.newPost({ body, timelineIds: [easyfoxTimelineId] })  // eslint-disable-line babel/no-await-in-loop
         easyfoxPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
@@ -890,13 +892,16 @@ describe('PostBubbling', () => {
 
     describe('isFriends(Luna, Mars) && isFriends(Mars, Pluto) && easyFox.isGroupMember(Mars)', () => {
       beforeEach(async () => {
-        const marsTimelineId  = await mars.getPostsTimelineId()
-        const lunaTimelineId  = await luna.getPostsTimelineId()
-        const plutoTimelineId = await pluto.getPostsTimelineId()
-        await luna.subscribeTo(marsTimelineId)
-        await mars.subscribeTo(lunaTimelineId)
-        await mars.subscribeTo(plutoTimelineId)
-        await pluto.subscribeTo(marsTimelineId)
+        const [marsTimelineId, lunaTimelineId, plutoTimelineId] = await Promise.all([
+          mars.getPostsTimelineId(), luna.getPostsTimelineId(), await pluto.getPostsTimelineId()
+        ]);
+
+        await Promise.all([
+          luna.subscribeTo(marsTimelineId),
+          mars.subscribeTo(lunaTimelineId),
+          mars.subscribeTo(plutoTimelineId),
+          pluto.subscribeTo(marsTimelineId)
+        ]);
       })
 
       describe('EasyFox posts feed consists of', () => {
@@ -975,38 +980,40 @@ describe('PostBubbling', () => {
       , plutoPosts
 
     beforeEach(async () => {
-      lunaPosts = []
-      marsPosts = []
-      plutoPosts = []
       luna = new User({ username: 'Luna', password: 'password' })
       mars = new User({ username: 'Mars', password: 'password' })
       pluto = new User({ username: 'Pluto', password: 'password' })
 
-      await luna.create()
-      await mars.create()
-      await pluto.create()
+      await Promise.all([luna.create(), mars.create(), pluto.create()]);
 
+      lunaPosts = []
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         lunaPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      marsPosts = []
       for (const body of marsPostsContent) {
         const post = await mars.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         marsPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
+
+      plutoPosts = []
       for (const body of plutoPostsContent) {
         const post = await pluto.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         plutoPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
 
-      const marsTimelineId  = await mars.getPostsTimelineId()
-      const lunaTimelineId  = await luna.getPostsTimelineId()
-      const plutoTimelineId = await pluto.getPostsTimelineId()
+      const [marsTimelineId, lunaTimelineId, plutoTimelineId] = await Promise.all([
+        mars.getPostsTimelineId(), luna.getPostsTimelineId(), await pluto.getPostsTimelineId()
+      ]);
 
-      await luna.subscribeTo(marsTimelineId)
-      await mars.subscribeTo(lunaTimelineId)
-      await mars.subscribeTo(plutoTimelineId)
-      await pluto.subscribeTo(marsTimelineId)
+      await Promise.all([
+        luna.subscribeTo(marsTimelineId),
+        mars.subscribeTo(lunaTimelineId),
+        mars.subscribeTo(plutoTimelineId),
+        pluto.subscribeTo(marsTimelineId)
+      ]);
     })
 
     it('home feed pages should consists of requested number of posts', async () => {
