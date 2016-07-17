@@ -612,11 +612,13 @@ export function deletePostAsync(context, postId) {
   )
 }
 
-export async function createGroupAsync(context, username, screenName) {
+export async function createGroupAsync(context, username, screenName, isPrivate = false, isRestricted = false) {
   const params = {
     group: {
       username,
-      screenName: screenName || username
+      screenName:   screenName || username,
+      isPrivate:    isPrivate ? '1' : '0',
+      isRestricted: isRestricted ? '1' : '0'
     },
     authToken: context.authToken
   }
@@ -646,6 +648,10 @@ export function demoteFromAdmin(group, existingAdminContext, victimAdminContext)
 
 export function sendRequestToJoinGroup(subscriber, group) {
   return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
+}
+
+export function acceptRequestToJoinGroup(admin, subscriber, group) {
+  return postJson(`/v1/groups/${group.username}/acceptRequest/${subscriber.user.username}`, { authToken: admin.authToken })
 }
 
 export function banUser(who, whom) {
