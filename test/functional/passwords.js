@@ -19,10 +19,12 @@ describe('PasswordsController', () => {
   })
 
   describe('#create()', () => {
-    const context = {}
+    let context = {}
     const oldEmail = 'test@example.com'
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password', { 'email': oldEmail }))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password', { 'email': oldEmail })
+    })
 
     it('should require email', async () => {
       const response = await funcTestHelper.sendResetPassword('')
@@ -73,12 +75,14 @@ describe('PasswordsController', () => {
   })
 
   describe('#update()', () => {
-    const context = {}
+    let context = {}
     const email = 'luna@example.com'
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach((done) => { funcTestHelper.updateUserCtx(context, { email })(done) })
-    beforeEach(async () => { await funcTestHelper.sendResetPassword(email) })
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+      await funcTestHelper.updateUserAsync(context, { email })
+      await funcTestHelper.sendResetPassword(email)
+    })
 
     it('should not reset password by invalid resetToken', (done) => {
       funcTestHelper.resetPassword('token')((err, res) => {
