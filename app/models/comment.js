@@ -80,6 +80,7 @@ export function addModel(dbAdapter) {
 
     const payload = {
       'body':      this.body,
+      'postId':    this.postId,
       'updatedAt': this.updatedAt.toString()
     }
     await dbAdapter.updateComment(this.id, payload)
