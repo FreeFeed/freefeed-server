@@ -17,15 +17,17 @@ describe('Realtime (Socket.io)', () => {
     PubSub.setPublisher(pubsubAdapter)
   });
 
+  let lunaContext = {};
+  let marsContext = {};
+
   beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
+    await knexCleaner.clean($pg_database);
+
+    [lunaContext, marsContext] = await Promise.all([
+      funcTestHelper.createUserAsync('luna', 'pw'),
+      funcTestHelper.createUserAsync('mars', 'pw')
+    ])
   })
-
-  const lunaContext = {};
-  const marsContext = {};
-
-  beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-  beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
 
   describe('User timeline', () => {
     it('Luna gets notifications about public posts', async () => {
@@ -98,7 +100,7 @@ describe('Realtime (Socket.io)', () => {
 
     describe('Mars is a private user', () => {
       beforeEach(async () => {
-        return funcTestHelper.goPrivate(marsContext)
+        await funcTestHelper.goPrivate(marsContext)
       });
 
       it('Luna does not get notifications about his posts', async () => {
