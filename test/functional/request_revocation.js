@@ -22,36 +22,27 @@ describe('RequestRevocation', () => {
   })
 
   describe('user Luna, private users Mars, Zeus and private group pepyatka-dev', () => {
-    const lunaContext = {}
-    const marsContext = {}
-    const zeusContext = {}
+    let lunaContext = {}
+    let marsContext = {}
+    let zeusContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, 'zeus', 'pw'))
-    beforeEach(() => funcTestHelper.goPrivate(marsContext))
-    beforeEach(() => funcTestHelper.goPrivate(zeusContext))
+    beforeEach(async () => {
+      [lunaContext, marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync('luna', 'pw'),
+        funcTestHelper.createUserAsync('mars', 'pw'),
+        funcTestHelper.createUserAsync('zeus', 'pw')
+      ])
 
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/groups`)
-        .send({
-          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
-          authToken: zeusContext.authToken
-        })
-        .end(() => {
-          request
-            .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
-            .send({ authToken: lunaContext.authToken })
-            .end(() => {
-              request
-                .post(`${app.config.host}/v1/users/${zeusContext.user.username}/sendRequest`)
-                .send({ authToken: lunaContext.authToken })
-                .end(() => {
-                  done()
-                })
-            })
-        })
+      const [,, group] = await Promise.all([
+        funcTestHelper.goPrivate(marsContext),
+        funcTestHelper.goPrivate(zeusContext),
+        funcTestHelper.createGroupAsync(zeusContext, 'pepyatka-dev', 'Pepyatka Developers', true)
+      ])
+
+      await Promise.all([
+        funcTestHelper.sendRequestToJoinGroup(lunaContext, group),
+        funcTestHelper.sendRequestToSubscribe(lunaContext, zeusContext)
+      ]);
     })
 
     it('should reject unauthenticated users', (done) => {
