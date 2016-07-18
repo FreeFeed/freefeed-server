@@ -22,9 +22,11 @@ describe('TimelinesController', () => {
   })
 
   describe('#home()', () => {
-    const context = {}
+    let context = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+    })
 
     it('should return empty River Of News', (done) => {
       funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
@@ -74,10 +76,13 @@ describe('TimelinesController', () => {
   })
 
   describe('#posts()', () => {
-    const context = {}
+    let context = {}
+    let post = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post body')(done) })
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+      post = await funcTestHelper.createAndReturnPost(context, 'Post body')
+    })
 
     it('should return posts timeline', (done) => {
       funcTestHelper.getTimeline(`/v1/timelines/${context.username}`, context.authToken, (err, res) => {
@@ -90,19 +95,23 @@ describe('TimelinesController', () => {
         res.body.timelines.posts.length.should.eql(1)
         res.body.should.have.property('posts')
         res.body.posts.length.should.eql(1)
-        res.body.posts[0].body.should.eql(context.post.body)
+        res.body.posts[0].body.should.eql(post.body)
         done()
       })
     })
   })
 
   describe('#pagination', () => {
-    const context = {}
+    let context = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post one')(done) })
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post two')(done) })
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post three')(done) })
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+
+      // order is important
+      await funcTestHelper.createAndReturnPost(context, 'Post one')
+      await funcTestHelper.createAndReturnPost(context, 'Post two')
+      await funcTestHelper.createAndReturnPost(context, 'Post three')
+    })
 
     it('should respect explicit pagination limits', (done) => {
       funcTestHelper.getTimelinePaged(`/v1/timelines/${context.username}`, context.authToken, 0, 1, (err, res) => {
@@ -138,19 +147,18 @@ describe('TimelinesController', () => {
   })
 
   describe('#likes()', () => {
-    const context = {}
-    const marsContext = {}
+    let context = {}
+    let marsContext = {}
+    let post = {}
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post body')(done) })
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'password2'))
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/posts/${context.post.id}/like`)
-        .send({ authToken: marsContext.authToken })
-        .end(() => {
-          done()
-        })
+    beforeEach(async () => {
+      [context, marsContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('mars', 'password2')
+      ]);
+
+      post = await funcTestHelper.createAndReturnPost(context, 'Post body')
+      await funcTestHelper.like(post.id, marsContext.authToken)
     })
 
     it('should return likes timeline', (done) => {
@@ -164,14 +172,14 @@ describe('TimelinesController', () => {
         res.body.timelines.posts.length.should.eql(1)
         res.body.should.have.property('posts')
         res.body.posts.length.should.eql(1)
-        res.body.posts[0].body.should.eql(context.post.body)
+        res.body.posts[0].body.should.eql(post.body)
         done()
       })
     })
 
     it('should return empty likes timeline after un-like', (done) => {
       request
-        .post(`${app.config.host}/v1/posts/${context.post.id}/unlike`)
+        .post(`${app.config.host}/v1/posts/${post.id}/unlike`)
         .send({ authToken: context.authToken })
         .end(() => {
           funcTestHelper.getTimeline(`/v1/timelines/${context.username}/likes`, context.authToken, (err, res) => {
@@ -189,25 +197,21 @@ describe('TimelinesController', () => {
   })
 
   describe('#comments()', () => {
-    const context = {}
+    let context = {}
+    let post = {}
     let comment
     let comment2
 
-    beforeEach(funcTestHelper.createUserCtx(context, 'Luna', 'password'))
+    beforeEach(async () => {
+      context = await funcTestHelper.createUserAsync('Luna', 'password')
+      post = await funcTestHelper.createAndReturnPost(context, 'Post body')
 
-    beforeEach((done) => { funcTestHelper.createPost(context, 'Post body')(done) })
-    beforeEach((done) => {
       const body = 'Comment'
+      const response1 = await funcTestHelper.createCommentAsync(context, post.id, body)
+      const response2 = await funcTestHelper.createCommentAsync(context, post.id, body)
 
-      funcTestHelper.createComment(body, context.post.id, context.authToken, (err, res) => {
-        comment = res.body.comments
-
-        funcTestHelper.createComment(body, context.post.id, context.authToken, (err, res) => {
-          comment2 = res.body.comments
-
-          done()
-        })
-      })
+      comment = (await response1.json()).comments
+      comment2 = (await response2.json()).comments
     })
 
     it('should return comments timeline', (done) => {
@@ -221,7 +225,7 @@ describe('TimelinesController', () => {
         res.body.timelines.posts.length.should.eql(1)
         res.body.should.have.property('posts')
         res.body.posts.length.should.eql(1)
-        res.body.posts[0].body.should.eql(context.post.body)
+        res.body.posts[0].body.should.eql(post.body)
         done()
       })
     })
@@ -242,7 +246,7 @@ describe('TimelinesController', () => {
           res.body.timelines.posts.length.should.eql(1)
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
-          res.body.posts[0].body.should.eql(context.post.body)
+          res.body.posts[0].body.should.eql(post.body)
 
           // now remove 2nd comment
           funcTestHelper.removeComment(comment2.id, context.authToken, (err, res) => {
