@@ -612,7 +612,7 @@ export function deletePostAsync(context, postId) {
   )
 }
 
-export async function createGroupAsync(context, username, screenName, isPrivate = false, isRestricted = false) {
+export async function createGroupAsync(context, username, screenName = null, isPrivate = false, isRestricted = false) {
   const params = {
     group: {
       username,

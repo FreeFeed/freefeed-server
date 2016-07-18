@@ -2,9 +2,10 @@
 /* global $pg_database, $should */
 import async from 'async'
 import _ from 'lodash'
-import mkdirp from 'mkdirp'
+import { mkdirp } from 'mkdirp'
 import request from 'superagent'
 import knexCleaner from 'knex-cleaner'
+import { promisify } from 'bluebird'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -13,6 +14,7 @@ import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 
 
+const mkdirpAsync = promisify(mkdirp)
 const config = configLoader()
 
 describe('UsersController', () => {
@@ -72,8 +74,11 @@ describe('UsersController', () => {
     })
 
     describe('onboarding', () => {
-      const onboardCtx = {}
-      beforeEach(funcTestHelper.createUserCtx(onboardCtx, 'welcome', 'pw'))
+      let onboardCtx = {}
+
+      beforeEach(async () => {
+        onboardCtx = await funcTestHelper.createUserAsync('welcome', 'pw')
+      })
 
       it('should subscribe created user to onboarding account', (done) => {
         const user = {
@@ -255,17 +260,9 @@ describe('UsersController', () => {
       password: 'password'
     }
 
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/users`)
-        .send({ username: user.username, password: user.password })
-        .end((err, res) => {
-          res.should.not.be.empty
-          res.body.should.not.be.empty
-          res.body.should.have.property('authToken')
-          authToken = res.body.authToken
-          done()
-        })
+    beforeEach(async () => {
+      const luna = await funcTestHelper.createUserAsync(user.username, user.password)
+      authToken = luna.authToken
     })
 
     it('should return current user for a valid user', (done) => {
@@ -296,12 +293,16 @@ describe('UsersController', () => {
   })
 
   describe('#subscribe()', () => {
-    const lunaContext = {}
-    const marsContext = {}
+    let lunaContext = {}
+    let marsContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'Mars', 'password'))
-    beforeEach((done) => { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
+    beforeEach(async () => {
+      [lunaContext, marsContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
+      await funcTestHelper.createAndReturnPost(lunaContext, 'Post body')
+    })
 
     it('should submit a post to friends river of news', (done) => {
       const body = 'Post body'
@@ -389,47 +390,19 @@ describe('UsersController', () => {
   describe('#subscribers()', () => {
     let userA
       , userB
-      , authTokenA
       , authTokenB
 
-    beforeEach((done) => {
-      userA = {
-        username: 'Luna',
-        password: 'password'
-      }
+    beforeEach(async () => {
+      [userA, userB] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
 
-      userB = {
-        username: 'Mars',
-        password: 'password'
-      }
+      authTokenB = userB.authToken
 
-      request
-        .post(`${app.config.host}/v1/users`)
-        .send({ username: userA.username, password: userA.password })
-        .end((err, res) => {
-          authTokenA = res.body.authToken
-
-          request
-            .post(`${app.config.host}/v1/users`)
-            .send({ username: userB.username, password: userB.password })
-            .end((err, res) => {
-              authTokenB = res.body.authToken
-
-              const body = 'Post body'
-
-              request
-                .post(`${app.config.host}/v1/posts`)
-                .send({ post: { body }, authToken: authTokenA })
-                .end(() => {
-                  request
-                    .post(`${app.config.host}/v1/users/${userA.username}/subscribe`)
-                    .send({ authToken: authTokenB })
-                    .end(() => {
-                      done()
-                    })
-                })
-            })
-        })
+      const body = 'Post body'
+      await funcTestHelper.createAndReturnPost(userA, body)
+      await funcTestHelper.subscribeToAsync(userB, userA)
     })
 
     it('should return list of subscribers', (done) => {
@@ -464,44 +437,18 @@ describe('UsersController', () => {
       , authTokenA
       , authTokenB
 
-    beforeEach((done) => {
-      userA = {
-        username: 'Luna',
-        password: 'password'
-      }
+    beforeEach(async () => {
+      [userA, userB] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
 
-      userB = {
-        username: 'Mars',
-        password: 'password'
-      }
+      authTokenA = userA.authToken
+      authTokenB = userB.authToken
 
-      request
-        .post(`${app.config.host}/v1/users`)
-        .send({ username: userA.username, password: userA.password })
-        .end((err, res) => {
-          authTokenA = res.body.authToken
-
-          request
-            .post(`${app.config.host}/v1/users`)
-            .send({ username: userB.username, password: userB.password })
-            .end((err, res) => {
-              authTokenB = res.body.authToken
-
-              const body = 'Post body'
-
-              request
-                .post(`${app.config.host}/v1/posts`)
-                .send({ post: { body }, authToken: authTokenA })
-                .end(() => {
-                  request
-                    .post(`${app.config.host}/v1/users/${userA.username}/subscribe`)
-                    .send({ authToken: authTokenB })
-                    .end(() => {
-                      done()
-                    })
-                })
-            })
-        })
+      const body = 'Post body'
+      await funcTestHelper.createAndReturnPost(userA, body)
+      await funcTestHelper.subscribeToAsync(userB, userA)
     })
 
     it('should unsubscribe to a user', (done) => {
@@ -555,39 +502,23 @@ describe('UsersController', () => {
   })
 
   describe('#unsubscribe() from group', () => {
-    const adminContext = {}
-    const secondAdminContext = {}
-    const groupMemberContext = {}
+    let adminContext = {}
+    let secondAdminContext = {}
+    let groupMemberContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(groupMemberContext, 'Pluto', 'wordpass'))
+    beforeEach(async () => {
+      [adminContext, secondAdminContext, groupMemberContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Neptune', 'password'),
+        funcTestHelper.createUserAsync('Pluto', 'wordpass')
+      ])
 
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/groups`)
-        .send({
-          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0' },
-          authToken: adminContext.authToken
-        })
-        .end(() => {
-          request
-            .post(`${app.config.host}/v1/users/pepyatka-dev/subscribe`)
-            .send({ authToken: secondAdminContext.authToken })
-            .end(() => {
-              request
-                .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/${secondAdminContext.user.username}/admin`)
-                .send({ authToken: adminContext.authToken })
-                .end(() => {
-                  request
-                    .post(`${app.config.host}/v1/users/pepyatka-dev/subscribe`)
-                    .send({ authToken: groupMemberContext.authToken })
-                    .end(() => {
-                      done()
-                    })
-                })
-            })
-        })
+      const group = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers');
+      await Promise.all([
+        funcTestHelper.subscribeToAsync(secondAdminContext, group),
+        funcTestHelper.subscribeToAsync(groupMemberContext, group)
+      ])
+      await funcTestHelper.promoteToAdmin(group, adminContext, secondAdminContext)
     })
 
     it('should not allow admins to unsubscribe from group', (done) => {
@@ -626,35 +557,15 @@ describe('UsersController', () => {
       , userB
       , authTokenB
 
-    beforeEach((done) => {
-      userA = {
-        username: 'Luna',
-        password: 'password'
-      }
+    beforeEach(async () => {
+      [userA, userB] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
 
-      userB = {
-        username: 'Mars',
-        password: 'password'
-      }
+      authTokenB = userB.authToken
 
-      request
-        .post(`${app.config.host}/v1/users`)
-        .send({ username: userA.username, password: userA.password })
-        .end(() => {
-          request
-            .post(`${app.config.host}/v1/users`)
-            .send({ username: userB.username, password: userB.password })
-            .end((err, res) => {
-              authTokenB = res.body.authToken
-
-              request
-                .post(`${app.config.host}/v1/users/${userA.username}/subscribe`)
-                .send({ authToken: authTokenB })
-                .end(() => {
-                  done()
-                })
-            })
-        })
+      await funcTestHelper.subscribeToAsync(userB, userA)
     })
 
     it('should return list of subscriptions', (done) => {
@@ -694,10 +605,11 @@ describe('UsersController', () => {
       let authToken
         , user
 
-      beforeEach(funcTestHelper.createUser('Luna', 'password', (token, luna) => {
-        authToken = token
-        user = luna
-      }))
+      beforeEach(async () => {
+        const luna = await funcTestHelper.createUserAsync('Luna', 'password')
+        user = luna.user
+        authToken = luna.authToken
+      })
 
       it('should update current user', (done) => {
         const screenName = 'Mars'
@@ -862,11 +774,15 @@ describe('UsersController', () => {
     })
 
     describe('double-user tests', () => {
-      const lunaContext = {}
-      const marsContext = {}
+      let lunaContext = {}
+      let marsContext = {}
 
-      beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', { email: 'luna@example.org' }))
-      beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', { email: 'mars@example.org' }))
+      beforeEach(async () => {
+        [lunaContext, marsContext] = await Promise.all([
+          funcTestHelper.createUserAsync('luna', 'luna', { email: 'luna@example.org' }),
+          funcTestHelper.createUserAsync('mars', 'mars', { email: 'mars@example.org' })
+        ])
+      })
 
       it('should not let user use email, which is used by other user', (done) => {
         funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })((err) => {
@@ -894,10 +810,11 @@ describe('UsersController', () => {
       let authToken
         , user
 
-      beforeEach(funcTestHelper.createUser('Luna', 'password', (token, luna) => {
-        authToken = token
-        user = luna
-      }))
+      beforeEach(async () => {
+        const luna = await funcTestHelper.createUserAsync('Luna', 'password')
+        user = luna.user
+        authToken = luna.authToken
+      })
 
       it('should store frontendPreferences in DB and return it in whoami', async () => {
         const prefs = {
@@ -1027,10 +944,11 @@ describe('UsersController', () => {
     let authToken
       , user
 
-    beforeEach(funcTestHelper.createUser('Luna', 'password', (token, luna) => {
-      authToken = token
-      user = luna
-    }))
+    beforeEach(async () => {
+      const luna = await funcTestHelper.createUserAsync('Luna', 'password')
+      user = luna.user
+      authToken = luna.authToken
+    })
 
     it('should update current user password', (done) => {
       const password = 'drowssap'
@@ -1171,13 +1089,13 @@ describe('UsersController', () => {
   describe('#updateProfilePicture', () => {
     let authToken
 
-    beforeEach(funcTestHelper.createUser('Luna', 'password', (token) => {
-      authToken = token
-    }))
+    beforeEach(async () => {
+      const [user] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        mkdirpAsync(config.profilePictures.storage.rootDir + config.profilePictures.path)
+      ])
 
-    beforeEach((done) => {
-      mkdirp.sync(config.profilePictures.storage.rootDir + config.profilePictures.path)
-      done()
+      authToken = user.authToken
     })
 
     it('should update the profile picture', (done) => {
@@ -1214,23 +1132,18 @@ describe('UsersController', () => {
 
   describe('#ban()', () => {
     // Zeus bans Mars, as usual
-    const marsContext = {}
-    const zeusContext = {}
+    let marsContext = {}
+    let zeusContext = {}
     const username = 'zeus'
     const banUsername = 'mars'
 
-    beforeEach(funcTestHelper.createUserCtx(marsContext, banUsername, 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, username, 'pw'))
+    beforeEach(async () => {
+      [marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync(banUsername, 'pw'),
+        funcTestHelper.createUserAsync(username, 'pw')
+      ])
 
-    // Mars is subscribed to Zeus
-    beforeEach((done) => {
-      request
-        .post(`${app.config.host}/v1/users/${username}/subscribe`)
-        .send({ authToken: marsContext.authToken })
-        .end((err, res) => {
-          res.body.should.not.be.empty
-          done()
-        })
+      await funcTestHelper.subscribeToAsync(marsContext, zeusContext)
     })
 
     // Zeus bans Mars, Mars should become unsubscribed from Zeus.
@@ -1463,30 +1376,9 @@ describe('UsersController', () => {
     describe('in groups', () => {
       const groupUserName = 'pepyatka-dev'
 
-      // Mars creates a group, Mars posts to it...
-      beforeEach((done) => {
-        request
-          .post(`${app.config.host}/v1/groups`)
-          .send({
-            group:     { username: groupUserName },
-            authToken: marsContext.authToken
-          })
-          .end((err, res) => {
-            res.body.should.not.be.empty
-            request
-              .post(`${app.config.host}/v1/posts`)
-              .send({
-                post:      { body: 'post body' }, meta:      { feeds: [groupUserName] },
-                authToken: marsContext.authToken
-              })
-              .end((err, res) => {
-                res.body.should.not.be.empty
-                res.body.should.have.property('posts')
-                res.body.posts.should.have.property('body')
-
-                done()
-              })
-          })
+      beforeEach(async () => {
+        const group = await funcTestHelper.createGroupAsync(marsContext, groupUserName);
+        await funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'post body')
       })
 
       // ... Zeus bans Mars and should no longer see the post in this group
