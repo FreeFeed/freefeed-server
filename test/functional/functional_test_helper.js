@@ -646,6 +646,10 @@ export function demoteFromAdmin(group, existingAdminContext, victimAdminContext)
   )
 }
 
+export function sendRequestToSubscribe(subscriber, user) {
+  return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
+}
+
 export function sendRequestToJoinGroup(subscriber, group) {
   return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
 }

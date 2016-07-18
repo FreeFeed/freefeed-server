@@ -23,31 +23,30 @@ describe('Privates', () => {
   })
 
   describe('user Luna and user Mars', () => {
-    const lunaContext = {}
-    const marsContext = {}
-    const zeusContext = {}
+    let lunaContext = {}
+    let marsContext = {}
+    let zeusContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, 'zeus', 'pw'))
+    beforeEach(async () => {
+      [lunaContext, marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync('luna', 'pw'),
+        funcTestHelper.createUserAsync('mars', 'pw'),
+        funcTestHelper.createUserAsync('zeus', 'pw')
+      ])
+    })
 
     describe('publish private post to public feed', () => {
       const group = 'group'
 
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(lunaContext, marsContext.username)(done) })
-      beforeEach((done) => {
-        request
-          .post(`${app.config.host}/v1/groups`)
-          .send({
-            group:     { username: group, screenName: group },
-            authToken: lunaContext.authToken
-          })
-          .end(() => {
-            done()
-          })
+      beforeEach(async () => {
+        await Promise.all([
+          funcTestHelper.mutualSubscriptions([marsContext, lunaContext]),
+          funcTestHelper.createGroupAsync(lunaContext, group)
+        ])
+
+        await funcTestHelper.subscribeToAsync(zeusContext, { username: group })
       })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(zeusContext, group)(done) })
+
 
       it('should send private post to public feed', (done) => {
         const post = 'post'
@@ -100,26 +99,23 @@ describe('Privates', () => {
     })
 
     describe('can protect private posts', () => {
-      const herculesContext = {}
+      let herculesContext = {}
+      let post = {}
 
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(lunaContext, marsContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(zeusContext, lunaContext.username)(done) })
-      beforeEach(() => funcTestHelper.goPrivate(lunaContext))
-      beforeEach((done) => { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
-      beforeEach(funcTestHelper.createUserCtx(herculesContext, 'hercules', 'pw'))
+      beforeEach(async () => {
+        [,, herculesContext] = await Promise.all([
+          funcTestHelper.mutualSubscriptions([marsContext, lunaContext]),
+          funcTestHelper.subscribeToAsync(zeusContext, lunaContext),
+          funcTestHelper.createUserAsync('hercules', 'pw')
+        ])
+
+        await funcTestHelper.goPrivate(lunaContext)
+        post = await funcTestHelper.createAndReturnPost(lunaContext, 'Post body')
+      })
 
       describe('and manage subscription requests', () => {
-        beforeEach((done) => {
-          request
-            .post(`${app.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
-            .send({
-              authToken: zeusContext.authToken,
-              '_method': 'post'
-            })
-            .end(() => {
-              done()
-            })
+        beforeEach(async () => {
+          await funcTestHelper.sendRequestToSubscribe(zeusContext, lunaContext)
         })
 
         it('should reject subscription request after ban', (done) => {
@@ -178,7 +174,7 @@ describe('Privates', () => {
             })
             .end(() => {
               request
-                .post(`${app.config.host}/v1/posts/${lunaContext.post.id}/like`)
+                .post(`${app.config.host}/v1/posts/${post.id}/like`)
                 .send({ authToken: marsContext.authToken })
                 .end(() => {
                   funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, marsContext.authToken, (err, res) => {
@@ -203,7 +199,7 @@ describe('Privates', () => {
               '_method': 'post'
             })
             .end(() => {
-              funcTestHelper.createComment('comment', lunaContext.post.id, marsContext.authToken, () => {
+              funcTestHelper.createComment('comment', post.id, marsContext.authToken, () => {
                 funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/comments`, marsContext.authToken, (err, res) => {
                   res.body.should.have.property('posts')
 
@@ -277,7 +273,7 @@ describe('Privates', () => {
                         res.body.should.have.property('posts')
                         res.body.posts.length.should.eql(1)
                         const post = res.body.posts[0]
-                        post.body.should.eql(lunaContext.post.body)
+                        post.body.should.eql(post.body)
                         done()
                       })
                     })
@@ -489,7 +485,7 @@ describe('Privates', () => {
 
       it('should be visible for auth users in likes timeline', (done) => {
         request
-          .post(`${app.config.host}/v1/posts/${lunaContext.post.id}/like`)
+          .post(`${app.config.host}/v1/posts/${post.id}/like`)
           .send({ authToken: marsContext.authToken })
           .end(() => {
             funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, lunaContext.authToken, (err, res) => {
@@ -507,7 +503,7 @@ describe('Privates', () => {
 
       it('should protect likes timeline', (done) => {
         request
-          .post(`${app.config.host}/v1/posts/${lunaContext.post.id}/like`)
+          .post(`${app.config.host}/v1/posts/${post.id}/like`)
           .send({ authToken: lunaContext.authToken })
           .end(() => {
             funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/likes`, herculesContext.authToken, (err, res) => {
@@ -525,7 +521,7 @@ describe('Privates', () => {
       })
 
       it('should be visible for auth users in comments timeline', (done) => {
-        funcTestHelper.createComment('body', lunaContext.post.id, lunaContext.authToken, () => {
+        funcTestHelper.createComment('body', post.id, lunaContext.authToken, () => {
           funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/comments`, lunaContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -540,7 +536,7 @@ describe('Privates', () => {
       })
 
       it('should protect comments timeline', (done) => {
-        funcTestHelper.createComment('body', lunaContext.post.id, lunaContext.authToken, () => {
+        funcTestHelper.createComment('body', post.id, lunaContext.authToken, () => {
           funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/comments`, herculesContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
@@ -629,21 +625,21 @@ describe('Privates', () => {
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
           const post = res.body.posts[0]
-          post.body.should.eql(lunaContext.post.body)
+          post.body.should.eql(post.body)
           // post should be visible to owner
           request
-            .get(`${app.config.host}/v1/posts/${lunaContext.post.id}`)
+            .get(`${app.config.host}/v1/posts/${post.id}`)
             .query({ authToken: lunaContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
-              res.body.posts.body.should.eql(lunaContext.post.body)
+              res.body.posts.body.should.eql(post.body)
               // post should be visible to subscribers
               request
-                .get(`${app.config.host}/v1/posts/${lunaContext.post.id}`)
+                .get(`${app.config.host}/v1/posts/${post.id}`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
-                  res.body.posts.body.should.eql(lunaContext.post.body)
+                  res.body.posts.body.should.eql(post.body)
                   done()
                 })
             })
@@ -661,11 +657,11 @@ describe('Privates', () => {
           res.body.should.have.property('posts')
           // post should not be visible to ex-subscribers
           request
-            .get(`${app.config.host}/v1/posts/${lunaContext.post.id}`)
+            .get(`${app.config.host}/v1/posts/${post.id}`)
             .query({ authToken: zeusContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
-              res.body.posts.body.should.eql(lunaContext.post.body)
+              res.body.posts.body.should.eql(post.body)
               done()
             })
         })
@@ -673,7 +669,7 @@ describe('Privates', () => {
 
       it('that should not be visible to users that are not subscribed', (done) => {
         request
-          .get(`${app.config.host}/v1/posts/${lunaContext.post.id}`)
+          .get(`${app.config.host}/v1/posts/${post.id}`)
           .query({ authToken: herculesContext.authToken })
           .end((err) => {
             err.should.not.be.empty
@@ -686,15 +682,18 @@ describe('Privates', () => {
     })
 
     describe('when Luna goes private', () => {
-      beforeEach((done) => { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
+      let post = {}
+      beforeEach(async () => {
+        post = await funcTestHelper.createAndReturnPost(lunaContext, 'Post body')
+        await funcTestHelper.subscribeToAsync(marsContext, lunaContext)
+      })
 
       describe('with commented post', () => {
         beforeEach((done) => {
-          funcTestHelper.createComment('mars comment', lunaContext.post.id, marsContext.authToken, () => { done() })
+          funcTestHelper.createComment('mars comment', post.id, marsContext.authToken, () => { done() })
         })
         beforeEach((done) => {
-          funcTestHelper.createComment('zeus comment', lunaContext.post.id, zeusContext.authToken, () => { done() })
+          funcTestHelper.createComment('zeus comment', post.id, zeusContext.authToken, () => { done() })
         })
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
@@ -776,7 +775,7 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              res.body.posts[0].body.should.eql(lunaContext.post.body)
+              res.body.posts[0].body.should.eql(post.body)
               done()
             })
           })
@@ -788,7 +787,7 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              res.body.posts[0].body.should.eql(lunaContext.post.body)
+              res.body.posts[0].body.should.eql(post.body)
               done()
             })
           })
@@ -800,7 +799,7 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              res.body.posts[0].body.should.eql(lunaContext.post.body)
+              res.body.posts[0].body.should.eql(post.body)
               done()
             })
           })
@@ -808,8 +807,8 @@ describe('Privates', () => {
       })
 
       describe('with liked post', () => {
-        beforeEach(() => funcTestHelper.like(lunaContext.post.id, marsContext.authToken))
-        beforeEach(() => funcTestHelper.like(lunaContext.post.id, zeusContext.authToken))
+        beforeEach(() => funcTestHelper.like(post.id, marsContext.authToken))
+        beforeEach(() => funcTestHelper.like(post.id, zeusContext.authToken))
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
         it('should not influence how mars sees posts in his likes timeline', (done) => {
@@ -890,7 +889,7 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              res.body.posts[0].body.should.eql(lunaContext.post.body)
+              res.body.posts[0].body.should.eql(post.body)
               done()
             })
           })
@@ -902,7 +901,7 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              res.body.posts[0].body.should.eql(lunaContext.post.body)
+              res.body.posts[0].body.should.eql(post.body)
               done()
             })
           })
@@ -914,7 +913,7 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              res.body.posts[0].body.should.eql(lunaContext.post.body)
+              res.body.posts[0].body.should.eql(post.body)
               done()
             })
           })
@@ -923,10 +922,12 @@ describe('Privates', () => {
     })
 
     describe('can go private and unsubscribe followers', () => {
-      beforeEach((done) => { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
-      beforeEach((done) => { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
-      beforeEach((done) => { funcTestHelper.createComment('body', lunaContext.post.id, zeusContext.authToken, done) })
-      beforeEach(() => funcTestHelper.goPrivate(lunaContext))
+      beforeEach(async () => {
+        const post = await funcTestHelper.createAndReturnPost(lunaContext, 'Post body')
+        await funcTestHelper.subscribeToAsync(marsContext, lunaContext)
+        await funcTestHelper.createCommentAsync(zeusContext, post.id, 'body')
+        await funcTestHelper.goPrivate(lunaContext)
+      })
 
       it('should be visible to already subscribed users', (done) => {
         request
