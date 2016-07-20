@@ -18,11 +18,12 @@ export default class SearchController {
         , isSubscribed = false
         , targetUser
         , targetGroup
+      const bannedUserIds = await req.user.getBanIds()
 
       switch (preparedQuery.scope) {
         case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
           {
-            foundPosts = await dbAdapter.searchPosts(preparedQuery.query, req.user.id, req.user.subscribedFeedIds)
+            foundPosts = await dbAdapter.searchPosts(preparedQuery.query, req.user.id, req.user.subscribedFeedIds, bannedUserIds)
             break
           }
 
@@ -39,7 +40,7 @@ export default class SearchController {
               throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
             }
 
-            foundPosts = await dbAdapter.searchUserPosts(preparedQuery.query, targetUser.id, req.user.subscribedFeedIds)
+            foundPosts = await dbAdapter.searchUserPosts(preparedQuery.query, targetUser.id, req.user.subscribedFeedIds, bannedUserIds)
 
             break
           }
@@ -56,7 +57,7 @@ export default class SearchController {
               throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
             }
 
-            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery.query, groupPostsFeedId, req.user.subscribedFeedIds)
+            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery.query, groupPostsFeedId, req.user.subscribedFeedIds, bannedUserIds)
 
             break
           }
