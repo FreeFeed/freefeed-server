@@ -36,7 +36,7 @@ export default class SearchController {
 
             const userPostsFeedId = await targetUser.getPostsTimelineId()
             isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(req.user.id, userPostsFeedId)
-            if (!isSubscribed && targetUser.isPrivate) {
+            if (!isSubscribed && targetUser.isPrivate == '1') {
               throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
             }
 
@@ -53,7 +53,7 @@ export default class SearchController {
 
             const groupPostsFeedId = await targetGroup.getPostsTimelineId()
             isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(req.user.id, groupPostsFeedId)
-            if (!isSubscribed && targetGroup.isPrivate) {
+            if (!isSubscribed && targetGroup.isPrivate == '1') {
               throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
             }
 
