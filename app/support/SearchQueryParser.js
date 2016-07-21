@@ -1,10 +1,5 @@
 import { flow } from 'lodash';
-
-export const SEARCH_TYPES = {
-  DEFAULT:     'default_search',
-  GROUP_POSTS: 'group_posts',
-  USER_POSTS:  'user_posts'
-}
+import { SEARCH_SCOPES } from './SearchConstants'
 
 const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
@@ -21,7 +16,7 @@ export class SearchQueryParser {
     query = decodeURIComponent(query)
 
     const parsedQuery = {
-      type:     SEARCH_TYPES.DEFAULT,
+      scope:    SEARCH_SCOPES.ALL_VISIBLE_POSTS,
       query,
       username: '',
       group:    ''
@@ -31,10 +26,10 @@ export class SearchQueryParser {
     const targetGroupname = this.parseTargetGroupname(query)
 
     if (targetUsername) {
-      parsedQuery.type = SEARCH_TYPES.USER_POSTS
+      parsedQuery.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS
       parsedQuery.username = targetUsername
     } else if (targetGroupname) {
-      parsedQuery.type = SEARCH_TYPES.GROUP_POSTS
+      parsedQuery.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS
       parsedQuery.group = targetGroupname
     }
 

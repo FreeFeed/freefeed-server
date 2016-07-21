@@ -1508,15 +1508,16 @@ export class DbAdapter {
   // Search
   ///////////////////////////////////////////////////
 
-  async searchPosts(query, currentUserId, visibleFeedIds) {
+  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
 
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') ${bannedUsersFilter}` +
       'union ' +
         'select "posts".* from "posts" ' +
         `where "posts"."user_id" = '${currentUserId}' and to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
@@ -1524,27 +1525,28 @@ export class DbAdapter {
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds})` +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       'order by found_posts.updated_at desc'
     )
     return res.rows
   }
 
-  async searchUserPosts(query, targetUserId, visibleFeedIds) {
+  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
 
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') ${bannedUsersFilter}` +
       'union ' +
         'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds})` +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       `where found_posts.user_id='${targetUserId}' ` +
       'order by found_posts.updated_at desc'
@@ -1552,20 +1554,21 @@ export class DbAdapter {
     return res.rows
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds) {
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
 
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}')` +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') ${bannedUsersFilter}` +
       'union ' +
         'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds})` +
+        `where to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${query}') and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       'order by found_posts.updated_at desc'
     )
@@ -1581,5 +1584,15 @@ export class DbAdapter {
       return DbAdapter.initObject(Post, attrs, attrs.id, params)
     })
     return objects
+  }
+
+  _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds) {
+    let bannedUsersFilter = ''
+
+    if (bannedUserIds.length > 0) {
+      const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
+      bannedUsersFilter = `and posts.user_id not in (${bannedUserIdsString}) `
+    }
+    return bannedUsersFilter
   }
 }
