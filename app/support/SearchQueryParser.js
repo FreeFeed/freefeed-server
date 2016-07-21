@@ -6,13 +6,13 @@ export const SEARCH_TYPES = {
   USER_POSTS:  'user_posts'
 }
 
-const FROM_USERNAME_PATTERN             = '^from:\\s*([A-Za-z0-9]{3,25})';
+const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
-const IN_GROUP_PATTERN                  = '^group:\\s*([A-Za-z0-9]{3,25})';
-const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[A-Za-z0-9]{3,}\\s?';
+const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
+const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
 
-const fromUsernameRegex            = new RegExp(FROM_USERNAME_PATTERN, 'ig');
-const inGroupRegex                 = new RegExp(IN_GROUP_PATTERN, 'ig');
+const fromUsernameRegex            = new RegExp(FROM_USERNAME_PATTERN, 'i');
+const inGroupRegex                 = new RegExp(IN_GROUP_PATTERN, 'i');
 const fromUsernameReplacementRegex = new RegExp(FROM_USERNAME_REPLACEMENT_PATTERN, 'ig');
 const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'ig');
 
