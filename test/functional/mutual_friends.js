@@ -1,7 +1,6 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database */
 import request from 'superagent'
-import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
@@ -10,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("MutualFriends", function() {
+describe('MutualFriends', () => {
   let app
 
   before(async () => {
@@ -22,35 +21,36 @@ describe("MutualFriends", function() {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('user Luna, user Mars, and user Zeus', function() {
-    var lunaContext = {}
-    var marsContext = {}
-    var zeusContext = {}
+  describe('user Luna, user Mars, and user Zeus', () => {
+    let lunaContext = {}
+    let marsContext = {}
+    let zeusContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, 'zeus', 'pw'))
+    beforeEach(async () => {
+      [lunaContext, marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync('luna', 'pw'),
+        funcTestHelper.createUserAsync('mars', 'pw'),
+        funcTestHelper.createUserAsync('zeus', 'pw')
+      ])
+    })
 
-    describe('are mutual friends', function() {
-      beforeEach(function(done) { funcTestHelper.subscribeToCtx(lunaContext, marsContext.username)(done) })
-      beforeEach(function(done) { funcTestHelper.subscribeToCtx(lunaContext, zeusContext.username)(done) })
-      beforeEach(function(done) { funcTestHelper.subscribeToCtx(marsContext, lunaContext.username)(done) })
-      beforeEach(function(done) { funcTestHelper.subscribeToCtx(marsContext, zeusContext.username)(done) })
-      beforeEach(function(done) { funcTestHelper.subscribeToCtx(zeusContext, marsContext.username)(done) })
-      beforeEach(function(done) { funcTestHelper.subscribeToCtx(zeusContext, lunaContext.username)(done) })
+    describe('are mutual friends', () => {
+      beforeEach(async () => {
+        await funcTestHelper.mutualSubscriptions([lunaContext, marsContext, zeusContext])
+      })
 
-      it('should not publish liked direct message to home feed of mutual friends', function(done) {
-        var body = 'body'
+      it('should not publish liked direct message to home feed of mutual friends', (done) => {
+        const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            var post = res.body.posts
+          .post(`${app.config.host}/v1/posts`)
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .end((err, res) => {
+            const post = res.body.posts
             request
-              .post(app.config.host + '/v1/posts/' + post.id + '/like')
+              .post(`${app.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
-              .end(function(err, res) {
-                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
+              .end(() => {
+                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
                   res.body.timelines.name.should.eql('RiverOfNews')
@@ -61,18 +61,18 @@ describe("MutualFriends", function() {
           })
       })
 
-      it('should not publish liked direct message to likes feed', function(done) {
-        var body = 'body'
+      it('should not publish liked direct message to likes feed', (done) => {
+        const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            var post = res.body.posts
+          .post(`${app.config.host}/v1/posts`)
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .end((err, res) => {
+            const post = res.body.posts
             request
-              .post(app.config.host + '/v1/posts/' + post.id + '/like')
+              .post(`${app.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
-              .end(function(err, res) {
-                funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/likes', lunaContext.authToken, function(err, res) {
+              .end(() => {
+                funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/likes`, lunaContext.authToken, (err, res) => {
                   if (err) {
                     done(err);
                     return;
@@ -92,15 +92,15 @@ describe("MutualFriends", function() {
           })
       })
 
-      it('should not publish commented direct message to home feed of mutual friends', function(done) {
-        var body = 'body'
+      it('should not publish commented direct message to home feed of mutual friends', (done) => {
+        const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            var post = res.body.posts
-            funcTestHelper.createComment(body, post.id, lunaContext.authToken, function(err, res) {
-              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
+          .post(`${app.config.host}/v1/posts`)
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .end((err, res) => {
+            const post = res.body.posts
+            funcTestHelper.createComment(body, post.id, lunaContext.authToken, () => {
+              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                 try {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
@@ -115,15 +115,15 @@ describe("MutualFriends", function() {
           })
       })
 
-      it('should not publish commented direct message to comments feed', function(done) {
-        var body = 'body'
+      it('should not publish commented direct message to comments feed', (done) => {
+        const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            var post = res.body.posts
-            funcTestHelper.createComment(body, post.id, lunaContext.authToken, function(err, res) {
-              funcTestHelper.getTimeline('/v1/timelines/' + lunaContext.username + '/comments', lunaContext.authToken, function(err, res) {
+          .post(`${app.config.host}/v1/posts`)
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .end((err, res) => {
+            const post = res.body.posts
+            funcTestHelper.createComment(body, post.id, lunaContext.authToken, () => {
+              funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/comments`, lunaContext.authToken, (err, res) => {
                 if (err) {
                   done(err);
                   return;
@@ -143,14 +143,14 @@ describe("MutualFriends", function() {
           })
       })
 
-      it('should not comment on direct message unless you are recipient', function(done) {
-        var body = 'body'
+      it('should not comment on direct message unless you are recipient', (done) => {
+        const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            var post = res.body.posts
-            funcTestHelper.createComment(body, post.id, zeusContext.authToken, function(err, res) {
+          .post(`${app.config.host}/v1/posts`)
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .end((err, res) => {
+            const post = res.body.posts
+            funcTestHelper.createComment(body, post.id, zeusContext.authToken, (err, res) => {
               try {
                 res.body.should.not.be.empty
                 res.body.should.have.property('err')
@@ -163,17 +163,17 @@ describe("MutualFriends", function() {
           })
       })
 
-      it('should not like direct message unless you are recipient', function(done) {
-        var body = 'body'
+      it('should not like direct message unless you are recipient', (done) => {
+        const body = 'body'
         request
-          .post(app.config.host + '/v1/posts')
-          .send({ post: { body: body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
-          .end(function(err, res) {
-            var post = res.body.posts
+          .post(`${app.config.host}/v1/posts`)
+          .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
+          .end((err, res) => {
+            const post = res.body.posts
             request
-              .post(app.config.host + '/v1/posts/' + post.id + '/like')
+              .post(`${app.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: zeusContext.authToken })
-              .end(function(err, res) {
+              .end((err, res) => {
                 try {
                   res.body.should.not.be.empty
                   res.body.should.have.property('err')

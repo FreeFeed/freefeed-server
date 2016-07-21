@@ -7,8 +7,8 @@
   "private": true,
   "scripts": {
     "start": "babel-node --ignore node_modules index",
-    "test": "eslint app && NODE_ENV=test mocha",
-    "lint": "eslint app",
+    "test": "eslint app test && NODE_ENV=test mocha",
+    "lint": "eslint app test",
     "console": "babel-node --ignore node_modules bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node --ignore node_modules data_transfer",
@@ -19,7 +19,6 @@
     "url": "git://github.com/FreeFeed/freefeed-server.git"
   },
   "dependencies": {
-    "async": "1.5.2",
     "await-lock": "^1.1.1",
     "aws-sdk": "2.3.17",
     "babel-cli": "6.10.1",
@@ -50,7 +49,7 @@
     "nodemailer-stub-transport": "1.0.0",
     "passport": "0.2.2",
     "passport-local": "1.0.0",
-    "pg": "6.0.1",
+    "pg": "6.0.2",
     "promise-streams": "^1.0.1",
     "redis": "2.4.2",
     "response-time": "^2.3.1",
@@ -63,14 +62,16 @@
     "winston": "1.1.2"
   },
   "devDependencies": {
+    "async": "1.5.2",
     "babel-eslint": "6.1.2",
     "babel-register": "6.9.0",
     "chai": "3.5.0",
     "chai-fs": "^0.1.0",
-    "eslint": "3.0.1",
+    "eslint": "3.1.1",
     "eslint-plugin-babel": "3.3.0",
-    "eslint-plugin-import": "^1.10.2",
-    "eslint-plugin-lodash": "^1.9.4",
+    "eslint-plugin-import": "1.11.0",
+    "eslint-plugin-lodash": "1.9.4",
+    "eslint-plugin-promise": "^2.0.0",
     "istanbul": "0.4.3",
     "mkdirp": "0.5.1",
     "mocha": "2.5.3",

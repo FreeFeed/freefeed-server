@@ -1,32 +1,33 @@
-/*eslint-env node, mocha */
-/*global $database, $pg_database */
+/* eslint-env node, mocha */
+/* global $database, $pg_database */
 import knexCleaner from 'knex-cleaner'
+
 import { getSingleton } from '../../app/app';
-import * as funcTestHelper from './functional_test_helper';
-import { dbAdapter } from '../../app/models';
+import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
-import { PubSub } from '../../app/models'
+
+import * as funcTestHelper from './functional_test_helper';
 
 
 describe('Realtime (Socket.io)', () => {
-  let app;
-
   before(async () => {
-    app = await getSingleton();
+    await getSingleton();
 
     const pubsubAdapter = new PubSubAdapter($database)
     PubSub.setPublisher(pubsubAdapter)
   });
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
-
   let lunaContext = {};
   let marsContext = {};
 
-  beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-  beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
+  beforeEach(async () => {
+    await knexCleaner.clean($pg_database);
+
+    [lunaContext, marsContext] = await Promise.all([
+      funcTestHelper.createUserAsync('luna', 'pw'),
+      funcTestHelper.createUserAsync('mars', 'pw')
+    ])
+  })
 
   describe('User timeline', () => {
     it('Luna gets notifications about public posts', async () => {
@@ -39,7 +40,7 @@ describe('Realtime (Socket.io)', () => {
 
       const callbacks = {
         'connect': async (client) => {
-          client.emit('subscribe', { "timeline": [feedIds.Posts] });
+          client.emit('subscribe', { 'timeline': [feedIds.Posts] });
           postPromise = funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
           timeoutId = setTimeout(() => {
@@ -73,7 +74,7 @@ describe('Realtime (Socket.io)', () => {
 
       const callbacks = {
         'connect': async (client) => {
-          client.emit('subscribe', { "timeline": [feedIds.Posts] });
+          client.emit('subscribe', { 'timeline': [feedIds.Posts] });
           postPromise = funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
           timeoutId = setTimeout(() => {
@@ -99,7 +100,7 @@ describe('Realtime (Socket.io)', () => {
 
     describe('Mars is a private user', () => {
       beforeEach(async () => {
-        return funcTestHelper.goPrivate(marsContext)
+        await funcTestHelper.goPrivate(marsContext)
       });
 
       it('Luna does not get notifications about his posts', async () => {
@@ -110,14 +111,14 @@ describe('Realtime (Socket.io)', () => {
 
         const callbacks = {
           'connect': async (client) => {
-            client.emit('subscribe', { "timeline": [feedIds.Posts] });
+            client.emit('subscribe', { 'timeline': [feedIds.Posts] });
             await funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
             timeoutId = setTimeout(() => {
               client.disconnect();
             }, 600);
           },
-          'post:new': async (data, client) => {
+          'post:new': async () => {
             clearTimeout(timeoutId);
             throw new Error('there should not be notification');
           }
@@ -140,14 +141,14 @@ describe('Realtime (Socket.io)', () => {
 
         const callbacks = {
           'connect': async (client) => {
-            client.emit('subscribe', { "timeline": [feedIds.Posts] });
+            client.emit('subscribe', { 'timeline': [feedIds.Posts] });
             await funcTestHelper.createAndReturnPost(marsContext, 'test post');
 
             timeoutId = setTimeout(() => {
               client.disconnect();
             }, 600);
           },
-          'post:new': async (data, client) => {
+          'post:new': async () => {
             clearTimeout(timeoutId);
             throw new Error('there should not be notification');
           }
@@ -164,14 +165,14 @@ describe('Realtime (Socket.io)', () => {
 
         const callbacks = {
           'connect': async (client) => {
-            client.emit('subscribe', { "timeline": [feedIds.Posts] });
+            client.emit('subscribe', { 'timeline': [feedIds.Posts] });
             await funcTestHelper.createAndReturnPost(lunaContext, 'test post');
 
             timeoutId = setTimeout(() => {
               client.disconnect();
             }, 600);
           },
-          'post:new': async (data, client) => {
+          'post:new': async () => {
             clearTimeout(timeoutId);
             throw new Error('there should not be notification');
           }
@@ -198,14 +199,14 @@ describe('Realtime (Socket.io)', () => {
 
           const callbacks = {
             'connect': async (client) => {
-              client.emit('subscribe', { "timeline": [feedIds.Posts] });
+              client.emit('subscribe', { 'timeline': [feedIds.Posts] });
               await funcTestHelper.like(postId, lunaContext.authToken);
 
               timeoutId = setTimeout(() => {
                 client.disconnect();
               }, 600);
             },
-            'like:new': async (data, client) => {
+            'like:new': async () => {
               clearTimeout(timeoutId);
               throw new Error('there should not be notification');
             }
@@ -222,14 +223,14 @@ describe('Realtime (Socket.io)', () => {
 
           const callbacks = {
             'connect': async (client) => {
-              client.emit('subscribe', { "timeline": [feedIds.Posts] });
+              client.emit('subscribe', { 'timeline': [feedIds.Posts] });
               await funcTestHelper.createCommentAsync(lunaContext, postId, 'reply');
 
               timeoutId = setTimeout(() => {
                 client.disconnect();
               }, 600);
             },
-            'comment:new': async (data, client) => {
+            'comment:new': async () => {
               clearTimeout(timeoutId);
               throw new Error('there should not be notification');
             }

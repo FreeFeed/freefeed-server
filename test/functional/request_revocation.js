@@ -1,7 +1,6 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database */
 import request from 'superagent'
-import _ from 'lodash'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
@@ -10,7 +9,7 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 
 
-describe("RequestRevocation", () => {
+describe('RequestRevocation', () => {
   let app
 
   before(async () => {
@@ -27,80 +26,73 @@ describe("RequestRevocation", () => {
     let marsContext = {}
     let zeusContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, 'zeus', 'pw'))
-    beforeEach(() => funcTestHelper.goPrivate(marsContext))
-    beforeEach(() => funcTestHelper.goPrivate(zeusContext))
+    beforeEach(async () => {
+      [lunaContext, marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync('luna', 'pw'),
+        funcTestHelper.createUserAsync('mars', 'pw'),
+        funcTestHelper.createUserAsync('zeus', 'pw')
+      ])
 
-    beforeEach((done) => {
-      request
-        .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1'},
-          authToken: zeusContext.authToken })
-        .end(function(err, res) {
-          request
-            .post(app.config.host + '/v1/groups/pepyatka-dev/sendRequest')
-            .send({ authToken: lunaContext.authToken })
-            .end(function(err, res) {
-              request
-                .post(app.config.host + `/v1/users/${zeusContext.user.username}/sendRequest`)
-                .send({ authToken: lunaContext.authToken })
-                .end(function(err, res) {
-                  done()
-                })
-            })
-        })
+      const [,, group] = await Promise.all([
+        funcTestHelper.goPrivate(marsContext),
+        funcTestHelper.goPrivate(zeusContext),
+        funcTestHelper.createGroupAsync(zeusContext, 'pepyatka-dev', 'Pepyatka Developers', true)
+      ])
+
+      await Promise.all([
+        funcTestHelper.sendRequestToJoinGroup(lunaContext, group),
+        funcTestHelper.sendRequestToSubscribe(lunaContext, zeusContext)
+      ]);
     })
 
-    it('should reject unauthenticated users', function(done) {
+    it('should reject unauthenticated users', (done) => {
       request
-        .post(app.config.host + `/v2/requests/${marsContext.user.username}/revoke`)
-        .end(function(err, res) {
+        .post(`${app.config.host}/v2/requests/${marsContext.user.username}/revoke`)
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
         })
     })
 
-    it('should reject nonexisting user', function(done) {
+    it('should reject nonexisting user', (done) => {
       request
-        .post(app.config.host + '/v2/requests/foobar/revoke')
+        .post(`${app.config.host}/v2/requests/foobar/revoke`)
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
         })
     })
 
-    it('should reject nonexisting subscription request to user', function(done) {
+    it('should reject nonexisting subscription request to user', (done) => {
       request
-        .post(app.config.host + `/v2/requests/${marsContext.user.username}/revoke`)
+        .post(`${app.config.host}/v2/requests/${marsContext.user.username}/revoke`)
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
         })
     })
 
-    it('should reject nonexisting subscription request to group', function(done) {
+    it('should reject nonexisting subscription request to group', (done) => {
       request
-        .post(app.config.host + `/v2/requests/pepyatka-dev/revoke`)
+        .post(`${app.config.host}/v2/requests/pepyatka-dev/revoke`)
         .send({ authToken: marsContext.authToken })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(404)
           done()
         })
     })
 
-    it('should remove existing subscription request to group', function(done) {
+    it('should remove existing subscription request to group', (done) => {
       request
-        .post(app.config.host + `/v2/requests/pepyatka-dev/revoke`)
+        .post(`${app.config.host}/v2/requests/pepyatka-dev/revoke`)
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.status.should.eql(200)
           // TODO: check lunaContext.whoami (pendingRequests)
@@ -109,11 +101,11 @@ describe("RequestRevocation", () => {
         })
     })
 
-    it('should remove existing subscription request to user', function(done) {
+    it('should remove existing subscription request to user', (done) => {
       request
-        .post(app.config.host + `/v2/requests/${zeusContext.user.username}/revoke`)
+        .post(`${app.config.host}/v2/requests/${zeusContext.user.username}/revoke`)
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.status.should.eql(200)
           // TODO: check lunaContext.whoami (pendingRequests)

@@ -40,7 +40,7 @@ export default class UsersController {
         }
 
         await user.subscribeToUsername(config.onboardingUsername)
-      } catch (e /*if e instanceof NotFoundException*/) {
+      } catch (e /* if e instanceof NotFoundException */) {
         // if onboarding username is not found, just pass
       }
 
@@ -77,7 +77,7 @@ export default class UsersController {
         }
 
         await user.subscribeToUsername(config.onboardingUsername)
-      } catch (e /*if e instanceof NotFoundException*/) {
+      } catch (e /* if e instanceof NotFoundException */) {
         // if onboarding username is not found, just pass
       }
 
