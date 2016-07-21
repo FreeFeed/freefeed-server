@@ -1,11 +1,9 @@
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
-import uuid from 'uuid'
 import SocketIO from 'socket.io-client';
 
 import { dbAdapter } from '../../app/models'
-import { mkKey } from '../../app/support/DbAdapter'
 import { getSingleton as initApp } from '../../app/app'
 
 
@@ -15,7 +13,7 @@ const apiUrl = async (relativeUrl) => {
 }
 
 export function createUser(username, password, attributes, callback) {
-  return function(done) {
+  return function (done) {
     if (typeof attributes === 'function') {
       callback = attributes
       attributes = {}
@@ -24,31 +22,33 @@ export function createUser(username, password, attributes, callback) {
     if (typeof attributes === 'undefined')
       attributes = {}
 
-    var user = {
-      username: username,
-      password: password
+    const user = {
+      username,
+      password
     }
     if (attributes.email)
       user.email = attributes.email
 
-    apiUrl('/v1/users').then(url => {
-      request
-        .post(url)
-        .send(user)
-        .end(function(err, res) {
-          if (callback) {
-            var luna = res.body.users
-            luna.password = user.password
-            callback(res.body.authToken, luna)
-          }
-          done()
-        })
-    })
+    apiUrl('/v1/users')
+      .then((url) => {
+        request
+          .post(url)
+          .send(user)
+          .end((err, res) => {
+            if (callback) {
+              const luna = res.body.users
+              luna.password = user.password
+              callback(res.body.authToken, luna)
+            }
+            done()
+          })
+      })
+      .catch((e) => { done(e) })
   }
 }
 
 export function createUserCtx(context, username, password, attrs) {
-  return createUser(username, password, attrs, function(token, user) {
+  return createUser(username, password, attrs, (token, user) => {
     context.user      = user
     context.authToken = token
     context.username  = username.toLowerCase()
@@ -58,133 +58,167 @@ export function createUserCtx(context, username, password, attrs) {
 }
 
 export function subscribeToCtx(context, username) {
-  return function(done) {
-    apiUrl(`/v1/users/${username}/subscribe`).then(url => {
-      request
-        .post(url)
-        .send({ authToken: context.authToken })
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+  return function (done) {
+    apiUrl(`/v1/users/${username}/subscribe`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({ authToken: context.authToken })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function updateUserCtx(context, attrs) {
-  return function(done) {
-    apiUrl(`/v1/users/${context.user.id}`).then(url => {
-      request
-        .post(url)
-        .send({ authToken: context.authToken,
-          user: { email: attrs.email },
-          '_method': 'put' })
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+  return function (done) {
+    apiUrl(`/v1/users/${context.user.id}`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({
+            authToken: context.authToken,
+            user:      { email: attrs.email },
+            '_method': 'put'
+          })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function resetPassword(token) {
-  return function(done) {
-    apiUrl(`/v1/passwords/${token}`).then(url => {
-      request
-        .post(url)
-        .send({ '_method': 'put' })
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+  return function (done) {
+    apiUrl(`/v1/passwords/${token}`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({ '_method': 'put' })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function createPost(context, body, callback) {
-  return function(done) {
-    apiUrl('/v1/posts').then(url => {
-      request
-        .post(url)
-        .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
-        .end(function(err, res) {
-          context.post = res.body.posts
-          if (typeof callback !== 'undefined')
-            callback(context.post)
+  return function (done) {
+    apiUrl('/v1/posts')
+      .then((url) => {
+        request
+          .post(url)
+          .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
+          .end((err, res) => {
+            context.post = res.body.posts
+            if (typeof callback !== 'undefined')
+              callback(context.post)
 
-          done(err, res)
-        })
-    })
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function createPostWithCommentsDisabled(context, body, commentsDisabled) {
   return postJson('/v1/posts', {
-    post: { body: body },
-    meta: { feeds: context.username, commentsDisabled: commentsDisabled },
+    post:      { body },
+    meta:      { feeds: context.username, commentsDisabled },
     authToken: context.authToken
   })
 }
 
 export function createPostForTest(context, body, callback) {
-  apiUrl('/v1/posts').then(url => {
-    request
-      .post(url)
-      .send({ post: { body: body }, meta: { feeds: context.username }, authToken: context.authToken })
-      .end(function(err, res) {
-        context.post = res.body.posts
-        callback(err, res)
-      })
-  })
+  apiUrl('/v1/posts')
+    .then((url) => {
+      request
+        .post(url)
+        .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
+        .end((err, res) => {
+          context.post = res.body.posts
+          callback(err, res)
+        })
+    })
+    .catch((e) => {
+      callback(e)
+    })
 }
 
 export function createComment(body, postId, authToken, callback) {
-  return function(done) {
-    apiUrl('/v1/comments').then(url => {
-      var comment = {
-        body: body,
-        postId: postId
-      }
+  return function (done) {
+    apiUrl('/v1/comments')
+      .then((url) => {
+        const comment = {
+          body,
+          postId
+        }
 
-      request
-        .post(url)
-        .send({ comment: comment, authToken: authToken })
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+        request
+          .post(url)
+          .send({ comment, authToken })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
 export function createCommentCtx(context, body) {
-  return function(done) {
-    apiUrl('/v1/comments').then(url => {
-      var comment = {
-        body: body,
-        postId: context.post.id
-      }
+  return function (done) {
+    apiUrl('/v1/comments')
+      .then((url) => {
+        const comment = {
+          body,
+          postId: context.post.id
+        }
 
-      request
-        .post(url)
-        .send({comment: comment, authToken: context.authToken})
-        .end(function (err, res) {
-          context.comment = res.body.comments
-          done(err, res)
-        })
-    })
+        request
+          .post(url)
+          .send({ comment, authToken: context.authToken })
+          .end((err, res) => {
+            context.comment = res.body.comments
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }
 }
 
 export function removeComment(commentId, authToken, callback) {
-  return function(done) {
-    apiUrl(`/v1/comments/${commentId}`).then(url => {
-      request
-        .post(url)
-        .send({
-          authToken: authToken,
-          '_method': 'delete'
-        })
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+  return function (done) {
+    apiUrl(`/v1/comments/${commentId}`)
+      .then((url) => {
+        request
+          .post(url)
+          .send({
+            authToken,
+            '_method': 'delete'
+          })
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
@@ -199,75 +233,87 @@ export function removeCommentAsync(context, commentId) {
 }
 
 export function getTimeline(timelinePath, authToken, callback) {
-  return function(done) {
-    apiUrl(timelinePath).then(url => {
-      var sendParams = {};
+  return function (done) {
+    apiUrl(timelinePath)
+      .then((url) => {
+        const sendParams = {};
 
-      if (authToken) {
-        sendParams.authToken = authToken
-      }
+        if (authToken) {
+          sendParams.authToken = authToken
+        }
 
-      request
-        .get(url)
-        .query(sendParams)
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
 export function getTimelinePaged(timelinePath, authToken, offset, limit, callback) {
-  return function(done) {
-    apiUrl(timelinePath).then(url => {
-      var sendParams = {};
+  return function (done) {
+    apiUrl(timelinePath)
+      .then((url) => {
+        const sendParams = {};
 
-      if (!_.isUndefined(authToken)) {
-        sendParams.authToken = authToken
-      }
+        if (!_.isUndefined(authToken)) {
+          sendParams.authToken = authToken
+        }
 
-      if (!_.isUndefined(offset)) {
-        sendParams.offset = offset
-      }
+        if (!_.isUndefined(offset)) {
+          sendParams.offset = offset
+        }
 
-      if (!_.isUndefined(limit)) {
-        sendParams.limit = limit
-      }
+        if (!_.isUndefined(limit)) {
+          sendParams.limit = limit
+        }
 
-      request
-        .get(url)
-        .query(sendParams)
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
 export function getSubscribers(username, authToken, callback) {
-  return function(done) {
-    let sendParams = {};
+  return function (done) {
+    const sendParams = {};
     if (authToken) {
       sendParams.authToken = authToken
     }
 
-    apiUrl(`/v1/users/${username}/subscribers`).then(url => {
-      request
-        .get(url)
-        .query(sendParams)
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/users/${username}/subscribers`)
+      .then((url) => {
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
-export async function getSubscribersAsync(username, userContext){
+export async function getSubscribersAsync(username, userContext) {
   const relativeUrl = `/v1/users/${username}/subscribers`
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
-    let encodedToken = encodeURIComponent(userContext.authToken)
+    const encodedToken = encodeURIComponent(userContext.authToken)
     url = `${url}?authToken=${encodedToken}`
   }
 
@@ -275,20 +321,24 @@ export async function getSubscribersAsync(username, userContext){
 }
 
 export function getSubscriptions(username, authToken, callback) {
-  return function(done) {
-    let sendParams = {};
+  return function (done) {
+    const sendParams = {};
     if (authToken) {
       sendParams.authToken = authToken
     }
 
-    apiUrl(`/v1/users/${username}/subscriptions`).then(url => {
-      request
-        .get(url)
-        .query(sendParams)
-        .end(function(err, res) {
-          done(err, res)
-        })
-    })
+    apiUrl(`/v1/users/${username}/subscriptions`)
+      .then((url) => {
+        request
+          .get(url)
+          .query(sendParams)
+          .end((err, res) => {
+            done(err, res)
+          })
+      })
+      .catch((e) => {
+        done(e)
+      })
   }(callback)
 }
 
@@ -296,11 +346,9 @@ async function postJson(relativeUrl, data) {
   return fetch(
     await apiUrl(relativeUrl),
     {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(data)
     }
   )
 }
@@ -314,7 +362,7 @@ export async function createUserAsync(username, password, attributes) {
     attributes = {}
   }
 
-  let user = {
+  const user = {
     username,
     password
   }
@@ -323,16 +371,16 @@ export async function createUserAsync(username, password, attributes) {
     user.email = attributes.email
   }
 
-  let response = await createUserAsyncPost(user)
-  let data = await response.json()
+  const response = await createUserAsyncPost(user)
+  const data = await response.json()
 
-  let userData = data.users
+  const userData = data.users
   userData.password = password
 
   return {
     authToken: data.authToken,
-    user: userData,
-    username: username.toLowerCase(),
+    user:      userData,
+    username:  username.toLowerCase(),
     password,
     attributes
   }
@@ -342,7 +390,7 @@ export function whoami(authToken) {
   return postJson(
     '/v1/users/whoami',
     {
-      authToken: authToken,
+      authToken,
       '_method': 'get'
     }
   )
@@ -372,7 +420,7 @@ export function updateGroupAsync(group, adminContext, groupData) {
     `/v1/users/${group.id}`,
     {
       authToken: adminContext.authToken,
-      user: groupData,
+      user:      groupData,
       '_method': 'put'
     }
   )
@@ -389,26 +437,26 @@ export function getUserAsync(context, username) {
 }
 
 export function goPrivate(userContext) {
-  return updateUserAsync(userContext, { isPrivate: "1" });
+  return updateUserAsync(userContext, { isPrivate: '1' });
 }
 
 export function goPublic(userContext) {
-  return updateUserAsync(userContext, { isPrivate: "0" });
+  return updateUserAsync(userContext, { isPrivate: '0' });
 }
 
 export function groupToPrivate(group, userContext) {
-  return updateGroupAsync(group, userContext, { isPrivate: "1" });
+  return updateGroupAsync(group, userContext, { isPrivate: '1' });
 }
 
 export function subscribeToAsync(subscriber, victim) {
-  return postJson(`/v1/users/${victim.username}/subscribe`, {authToken: subscriber.authToken})
+  return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
 
 export async function mutualSubscriptions(userContexts) {
-  let promises = []
+  const promises = []
 
-  for (let ctx1 of userContexts) {
-    for (let ctx2 of userContexts) {
+  for (const ctx1 of userContexts) {
+    for (const ctx2 of userContexts) {
       if (ctx1.username == ctx2.username) {
         continue
       }
@@ -421,16 +469,20 @@ export async function mutualSubscriptions(userContexts) {
 }
 
 export async function createAndReturnPostToFeed(feed, userContext, body) {
-  let response = await postJson(
+  const response = await postJson(
     '/v1/posts',
     {
-      post: {body},
-      meta: {feeds: feed.username},
+      post:      { body },
+      meta:      { feeds: feed.username },
       authToken: userContext.authToken
     }
   )
 
-  let data = await response.json()
+  if (response.status != 200) {
+    throw new Error(`HTTP/1.1 ${response.status}`);
+  }
+
+  const data = await response.json()
 
   return data.posts
 }
@@ -439,20 +491,20 @@ export function createAndReturnPost(userContext, body) {
   return createAndReturnPostToFeed(userContext, userContext, body)
 }
 
-export function createCommentAsync (userContext, postId, body) {
-  return postJson('/v1/comments', {comment: {body, postId}, authToken: userContext.authToken})
+export function createCommentAsync(userContext, postId, body) {
+  return postJson('/v1/comments', { comment: { body, postId }, authToken: userContext.authToken })
 }
 
 const getTimelineAsync = async (relativeUrl, userContext) => {
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
-    let encodedToken = encodeURIComponent(userContext.authToken)
+    const encodedToken = encodeURIComponent(userContext.authToken)
     url = `${url}?authToken=${encodedToken}`
   }
 
-  let response = await fetch(url)
-  let data = await response.json()
+  const response = await fetch(url)
+  const data = await response.json()
 
   return data
 }
@@ -482,11 +534,11 @@ export function sendResetPassword(email) {
 }
 
 export async function readPostAsync(postId, userContext) {
-  let relativeUrl = `/v1/posts/${postId}?maxComments=all`
+  const relativeUrl = `/v1/posts/${postId}?maxComments=all`
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
-    let encodedToken = encodeURIComponent(userContext.authToken)
+    const encodedToken = encodeURIComponent(userContext.authToken)
     url = `${url}&authToken=${encodedToken}`
   }
 
@@ -505,8 +557,8 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
   const parameters = {
     authToken: userContext.authToken,
     title,
-    comment: comment ? comment : '',
-    image: ''
+    comment:   comment ? comment : '',
+    image:     ''
   }
 
   if (image) {
@@ -522,20 +574,19 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 }
 
 export async function createMockAttachmentAsync(context) {
-  let attachmentId
   const params = {
-    fileName: 'lion.jpg',
-    fileSize: 12345,
-    userId: context.user.id,
-    postId: '',
+    fileName:  'lion.jpg',
+    fileSize:  12345,
+    userId:    context.user.id,
+    postId:    '',
     createdAt: (new Date()).getTime(),
     updatedAt: (new Date()).getTime()
   }
 
-  attachmentId = await dbAdapter.createAttachment(params)
+  const id = await dbAdapter.createAttachment(params)
 
   return {
-    id: attachmentId,
+    id,
     ...params
   }
 }
@@ -561,33 +612,50 @@ export function deletePostAsync(context, postId) {
   )
 }
 
-export async function createGroupAsync(context, username, screenName) {
-  let params = {
+export async function createGroupAsync(context, username, screenName = null, isPrivate = false, isRestricted = false) {
+  const params = {
     group: {
-      username: username,
-      screenName: screenName || username
+      username,
+      screenName:   screenName || username,
+      isPrivate:    isPrivate ? '1' : '0',
+      isRestricted: isRestricted ? '1' : '0'
     },
     authToken: context.authToken
   }
 
-  let response = await postJson(`/v1/groups`, params)
-  let data = await response.json()
+  const response = await postJson(`/v1/groups`, params)
+  const data = await response.json()
 
   return {
     group: data.groups,
-    username: username
+    username
   }
 }
 
 export function promoteToAdmin(group, existingAdminContext, potentialAdminContext) {
   return postJson(
     `/v1/groups/${group.username}/subscribers/${potentialAdminContext.user.username}/admin`,
-    {authToken: existingAdminContext.authToken}
+    { authToken: existingAdminContext.authToken }
   )
 }
 
+export function demoteFromAdmin(group, existingAdminContext, victimAdminContext) {
+  return postJson(
+    `/v1/groups/${group.username}/subscribers/${victimAdminContext.user.username}/unadmin`,
+    { authToken: existingAdminContext.authToken }
+  )
+}
+
+export function sendRequestToSubscribe(subscriber, user) {
+  return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
+}
+
 export function sendRequestToJoinGroup(subscriber, group) {
-  return postJson(`/v1/groups/${group.username}/sendRequest`, {authToken: subscriber.authToken})
+  return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
+}
+
+export function acceptRequestToJoinGroup(admin, subscriber, group) {
+  return postJson(`/v1/groups/${group.username}/acceptRequest/${subscriber.user.username}`, { authToken: admin.authToken })
 }
 
 export function banUser(who, whom) {
@@ -627,7 +695,7 @@ const PromisifiedIO = (host, options, events) => {
             args.push(client);
             const result = events[k](...args);
             if (result instanceof Promise) {
-              result.catch(e => { reject(e); })
+              result.catch((e) => { reject(e); })
             }
           } catch (e) {
             reject(e);
@@ -645,9 +713,9 @@ export async function createRealtimeConnection(context, callbacks) {
 
   const port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'));
   const options = {
-    transports: ['websocket'],
+    transports:             ['websocket'],
     'force new connection': true,
-    query: `token=${context.authToken}`
+    query:                  `token=${context.authToken}`
   };
 
   return PromisifiedIO(`http://localhost:${port}/`, options, callbacks);

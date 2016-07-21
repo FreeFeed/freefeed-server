@@ -139,7 +139,7 @@ export default class PostsController {
 
   static async like(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+      res.status(401).jsonp({ err: 'Not authenticated' })
       return
     }
 
@@ -154,23 +154,34 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new NotFoundException("Can't find post");
+      }
+
       const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+
       if (userLikedPost) {
         throw new ForbiddenException("You can't like post that you have already liked")
       }
 
-      const valid = await post.canShow(req.user.id)
-      if (!valid) {
-        throw new Error('Not found')
+      try {
+        const affectedTimelines = await post.addLike(req.user)
+
+        await dbAdapter.statsLikeCreated(req.user.id)
+
+        res.status(200).send({})
+
+        await pubSub.newLike(post, req.user.id, affectedTimelines)
+      } catch (e) {
+        if (e.code === '23505') {
+          // '23505' stands for unique_violation
+          // see https://www.postgresql.org/docs/current/static/errcodes-appendix.html
+          throw new ForbiddenException("You can't like post that you have already liked")
+        }
+
+        throw e;
       }
-
-      const affectedTimelines = await post.addLike(req.user)
-
-      await dbAdapter.statsLikeCreated(req.user.id)
-
-      res.status(200).send({})
-
-      await pubSub.newLike(post, req.user.id, affectedTimelines)
     } catch (e) {
       reportError(res)(e)
     }

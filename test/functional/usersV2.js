@@ -1,5 +1,5 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database */
 import fetch from 'node-fetch'
 import request from 'superagent'
 import knexCleaner from 'knex-cleaner'
@@ -10,7 +10,7 @@ import { PubSub } from '../../app/models'
 import { createUserAsync } from '../functional/functional_test_helper'
 
 
-describe("UsersControllerV2", function() {
+describe('UsersControllerV2', () => {
   let app
 
   before(async () => {
@@ -22,19 +22,18 @@ describe("UsersControllerV2", function() {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#blockedByMe()", function() {
-
-    it('should reject unauthenticated users', async done => {
+  describe('#blockedByMe()', () => {
+    it('should reject unauthenticated users', async (done) => {
       request
-        .get(app.config.host + '/v2/users/blockedByMe')
-        .end( err => {
+        .get(`${app.config.host}/v2/users/blockedByMe`)
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
         })
     })
 
-    it('should return list for authenticated user', async done => {
+    it('should return list for authenticated user', async (done) => {
       const userA = {
         username: 'Luna',
         password: 'password'
@@ -51,17 +50,11 @@ describe("UsersControllerV2", function() {
       const userBResponse = await createUserAsync(userB.username, userB.password)
 
       await fetch(`${app.config.host}/v1/users/${userB.username}/ban`, {
-        method: 'POST',
-        headers: {
-          'X-Authentication-Token': userAResponse.authToken
-        }
+        method:  'POST',
+        headers: { 'X-Authentication-Token': userAResponse.authToken }
       })
 
-      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`,{
-        headers: {
-          'X-Authentication-Token': userAResponse.authToken
-        }
-      })
+      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`,{ headers: { 'X-Authentication-Token': userAResponse.authToken } })
 
       const blockedByMe = await blockedByMeResponse.json()
 
@@ -78,6 +71,5 @@ describe("UsersControllerV2", function() {
       done()
     })
   })
-
 })
 

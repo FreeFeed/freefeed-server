@@ -625,30 +625,60 @@ export class DbAdapter {
   }
 
   async incrementStatsCounter(userId, counterName) {
-    const res = await this.database('user_stats').where('user_id', userId)
-    const stats = res[0]
-    let val = parseInt(stats[counterName])
-    val += 1
-    stats[counterName] = val
+    await this.database.transaction(async (trx) => {
+      try {
+        const res = await this.database('user_stats')
+          .transacting(trx).forUpdate()
+          .where('user_id', userId)
 
-    await this.database('user_stats').where('user_id', userId).update(stats)
+        const stats = res[0]
+        const val = parseInt(stats[counterName], 10) + 1
+
+        stats[counterName] = val
+
+        await this.database('user_stats')
+          .transacting(trx)
+          .where('user_id', userId)
+          .update(stats)
+
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+        throw e;
+      }
+    });
 
     // Invalidate cache
     await this.statsCache.delAsync(userId)
   }
 
   async decrementStatsCounter(userId, counterName) {
-    const res = await this.database('user_stats').where('user_id', userId)
-    const stats = res[0]
-    let val = parseInt(stats[counterName])
-    val -= 1
-    if (val < 0) {
-      console.log('Negative user stats', counterName)    // eslint-disable-line no-console
-      val = 0
-    }
-    stats[counterName] = val
+    await this.database.transaction(async (trx) => {
+      try {
+        const res = await this.database('user_stats')
+          .transacting(trx).forUpdate()
+          .where('user_id', userId)
 
-    await this.database('user_stats').where('user_id', userId).update(stats)
+        const stats = res[0]
+        const val = parseInt(stats[counterName]) - 1
+
+        if (val < 0) {
+          throw new Error(`Negative user stats: ${counterName} of ${userId}`);
+        }
+
+        stats[counterName] = val
+
+        await this.database('user_stats')
+          .transacting(trx)
+          .where('user_id', userId)
+          .update(stats)
+
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+        throw e;
+      }
+    });
 
     // Invalidate cache
     await this.statsCache.delAsync(userId)
@@ -1167,6 +1197,10 @@ export class DbAdapter {
     return ids
   }
 
+  async deleteUser(uid) {
+    await this.database('users').where({ uid }).delete();
+  }
+
   ///////////////////////////////////////////////////
   // Post
   ///////////////////////////////////////////////////
@@ -1226,8 +1260,7 @@ export class DbAdapter {
   async deletePost(postId) {
     await this.database('posts').where({ uid: postId }).delete()
 
-
-    //TODO: delete post local bumps
+    // TODO: delete post local bumps
     return await Promise.all([
       this._deletePostLikes(postId),
       this._deletePostComments(postId)
@@ -1324,8 +1357,17 @@ export class DbAdapter {
   }
 
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {
-    return this.database
-      .raw('UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE feed_ids && ?', [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]])
+    await this.database.transaction(async (trx) => {
+      try {
+        await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
+        await trx.raw('UPDATE "posts" SET "feed_ids" = uniq("feed_ids" + ?) WHERE "feed_ids" && ?', [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]])
+
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+        throw e;
+      }
+    });
   }
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {

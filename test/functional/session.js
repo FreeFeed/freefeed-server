@@ -1,17 +1,15 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database */
 import request from 'superagent'
 import fetch from 'node-fetch'
 import knexCleaner from 'knex-cleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
-import { User } from '../../app/models'
-import * as funcTestHelper from './functional_test_helper'
+import { PubSub, User } from '../../app/models'
 
 
-describe("SessionController", () => {
+describe('SessionController', () => {
   let app
 
   before(async () => {
@@ -23,8 +21,8 @@ describe("SessionController", () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", () => {
-    var user, userData;
+  describe('#create()', () => {
+    let user, userData;
 
     beforeEach(async () => {
       userData = {
@@ -36,11 +34,11 @@ describe("SessionController", () => {
       await user.create()
     })
 
-    it("should sign in with a valid user", function(done) {
+    it('should sign in with a valid user', (done) => {
       request
-        .post(app.config.host + '/v1/session')
+        .post(`${app.config.host}/v1/session`)
         .send({ username: userData.username, password: userData.password })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
@@ -50,11 +48,11 @@ describe("SessionController", () => {
         })
     })
 
-    it("should not sign in with an invalid user", function(done) {
+    it('should not sign in with an invalid user', (done) => {
       request
-        .post(app.config.host + '/v1/session')
+        .post(`${app.config.host}/v1/session`)
         .send({ username: 'username', password: userData.password })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           res.body.should.have.property('err')
@@ -63,11 +61,11 @@ describe("SessionController", () => {
         })
     })
 
-    it("should not sign in with an invalid password", function(done) {
+    it('should not sign in with an invalid password', (done) => {
       request
-        .post(app.config.host + '/v1/session')
+        .post(`${app.config.host}/v1/session`)
         .send({ username: userData.username, password: 'wrong' })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           res.body.should.have.property('err')
@@ -77,8 +75,8 @@ describe("SessionController", () => {
     })
 
     it('should not sign in with missing username', async () => {
-      let result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
-      let data = await result.json()
+      const result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
+      const data = await result.json()
 
       data.should.not.have.property('authToken')
       data.should.have.property('err')

@@ -528,9 +528,8 @@ export function addModel(dbAdapter) {
     const bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
-    await this.publishChangesToFeeds(timelines, true)
-
     await dbAdapter.createUserPostLike(this.id, user.id)
+    await this.publishChangesToFeeds(timelines, true)
 
     timer.stop()
     monitor.increment('posts.likes')

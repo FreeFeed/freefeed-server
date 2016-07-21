@@ -1,180 +1,158 @@
-/*eslint-env node, mocha */
-/*global $pg_database */
+/* eslint-env node, mocha */
+/* global $pg_database, $should */
 import uuid from 'uuid'
 import knexCleaner from 'knex-cleaner'
 import { dbAdapter, Timeline, User } from '../../app/models'
 
 
-describe('Timeline', function() {
-  beforeEach(async ()=>{
+describe('Timeline', () => {
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', function() {
-    it('should create without error', function(done) {
-      var userId = uuid.v4()
-      var timeline = new Timeline({
+  describe('#create()', () => {
+    it('should create without error', (done) => {
+      const userId = uuid.v4()
+      const timeline = new Timeline({
         name: 'name',
-        userId: userId
+        userId
       })
 
       timeline.create()
-        .then(function(timeline) {
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('id')
 
-          return timeline
+          return dbAdapter.getTimelineById(timeline.id)
         })
-        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
-        .then(function(newTimeline) {
+        .then((newTimeline) => {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
           newTimeline.should.have.property('id')
           newTimeline.id.should.eql(timeline.id)
+          done()
         })
-        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should ignore whitespaces in name', function(done) {
-      var userId = uuid.v4()
-      var name = '   name    '
-      var timeline = new Timeline({
-        name: name,
-        userId: userId
-      })
+    it('should ignore whitespaces in name', (done) => {
+      const userId = uuid.v4()
+      const name = '   name    '
+      const timeline = new Timeline({ name, userId })
 
       timeline.create()
-        .then(function(timeline) { return timeline })
-        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
-        .then(function(newTimeline) {
+        .then((timeline) => dbAdapter.getTimelineById(timeline.id))
+        .then((newTimeline) => {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
           newTimeline.should.have.property('id')
           newTimeline.id.should.eql(timeline.id)
           newTimeline.name.should.eql(name.trim())
+          done()
         })
-        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should not create with empty name', function(done) {
-      var userId = uuid.v4()
-      var timeline = new Timeline({
+    it('should not create with empty name', (done) => {
+      const userId = uuid.v4()
+      const timeline = new Timeline({
         name: '',
-        userId: userId
+        userId
       })
 
       timeline.create()
-        .catch(function(e) {
-          e.message.should.eql("Invalid")
+        .catch((e) => {
+          e.message.should.eql('Invalid')
           done()
         })
     })
   })
 
-  describe('#findById()', function() {
-    it('should find timeline with a valid id', function(done) {
-      var userId = uuid.v4()
-      var timeline = new Timeline({
+  describe('#findById()', () => {
+    it('should find timeline with a valid id', (done) => {
+      const userId = uuid.v4()
+      const timeline = new Timeline({
         name: 'name',
-        userId: userId
+        userId
       })
 
       timeline.create()
-        .then(function(timeline) { return timeline })
-        .then(function(timeline) { return dbAdapter.getTimelineById(timeline.id) })
-        .then(function(newTimeline) {
+        .then((timeline) => dbAdapter.getTimelineById(timeline.id))
+        .then((newTimeline) => {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
           newTimeline.should.have.property('id')
           newTimeline.id.should.eql(timeline.id)
+          done()
         })
-        .then(function() { done() })
         .catch((e) => { done(e) })
     })
 
-    it('should not find timeline with an invalid id', function(done) {
-      var identifier = "timeline:identifier"
+    it('should not find timeline with an invalid id', (done) => {
+      const identifier = 'timeline:identifier'
 
       dbAdapter.getTimelineById(identifier)
-        .then(function(timeline) {
+        .then((timeline) => {
           $should.not.exist(timeline)
+          done()
         })
-        .then(function() { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#getPosts()', function() {
-    it('should return an empty list for an empty timeline', function(done) {
-      var user = new User({
+  describe('#getPosts()', () => {
+    it('should return an empty list for an empty timeline', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(_user) {
-          var timeline = new Timeline({
-            name: 'name',
+        .then((_user) => {
+          const timeline = new Timeline({
+            name:   'name',
             userId: _user.id
           })
           return timeline.create()
         })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then((timeline) => timeline.getPosts())
+        .then((posts) => {
           posts.should.be.empty
+          done()
         })
-        .then(function() { done() })
         .catch((e) => { done(e) })
     })
   })
 
-  describe('#getSubscribers()', function() {
-    var userA
+  describe('#getSubscribers()', () => {
+    let userA
       , userB
 
-    beforeEach(function(done) {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
-        .catch((e) => { done(e) })
+      await Promise.all([userA.create(), userB.create()])
     })
 
-    it('should subscribe to timeline', function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
-      var post
+    it('should subscribe to timeline', (done) => {
+      const attrs = { body: 'Post body' }
 
       userB.newPost(attrs)
-        .then(function(newPost) {
-          post = newPost
-          return newPost.create()
-        })
-        .then(function(post) { return userB.getPostsTimelineId() })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function() { return userB.getPostsTimeline() })
-        .then(function(timeline) { return timeline.getSubscribers() })
-        .then(function(users) {
+        .then((newPost) => newPost.create())
+        .then(() => userB.getPostsTimelineId())
+        .then((timelineId) => userA.subscribeTo(timelineId))
+        .then(() => userB.getPostsTimeline())
+        .then((timeline) => timeline.getSubscribers())
+        .then((users) => {
           users.should.not.be.empty
           users.length.should.eql(1)
-          var user = users[0]
+          const user = users[0]
           user.should.have.property('id')
           user.id.should.eql(userA.id)
+          done()
         })
-        .then(function() { done() })
         .catch((e) => { done(e) })
     })
   })
