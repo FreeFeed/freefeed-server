@@ -18,10 +18,10 @@ export default class SessionController {
 
       if (user === false) {
         if (!msg) {
-          msg = 'Internal server error'
+          msg = { message: 'Internal server error' }
         }
 
-        res.status(401).jsonp({ err: msg })
+        res.status(401).jsonp({ err: msg.message })
         return
       }
 
