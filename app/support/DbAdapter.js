@@ -1609,8 +1609,20 @@ export class DbAdapter {
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 
+    if (parsedQuery.hashtags.length > 0) {
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `posts.uid in (
+            select u.post_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            )
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+    }
+
     if (searchConditions.length == 0) {
-      return '1=0'
+      return ' 1=0 '
     }
 
     return `${searchConditions.join(' and ')} `
