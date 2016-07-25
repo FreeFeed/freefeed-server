@@ -23,7 +23,7 @@ export default class SearchController {
       switch (preparedQuery.scope) {
         case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
           {
-            foundPosts = await dbAdapter.searchPosts(preparedQuery.query, req.user.id, req.user.subscribedFeedIds, bannedUserIds)
+            foundPosts = await dbAdapter.searchPosts(preparedQuery, req.user.id, req.user.subscribedFeedIds, bannedUserIds)
             break
           }
 
@@ -36,11 +36,11 @@ export default class SearchController {
 
             const userPostsFeedId = await targetUser.getPostsTimelineId()
             isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(req.user.id, userPostsFeedId)
-            if (!isSubscribed && targetUser.isPrivate) {
+            if (!isSubscribed && targetUser.isPrivate == '1') {
               throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
             }
 
-            foundPosts = await dbAdapter.searchUserPosts(preparedQuery.query, targetUser.id, req.user.subscribedFeedIds, bannedUserIds)
+            foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, req.user.subscribedFeedIds, bannedUserIds)
 
             break
           }
@@ -53,11 +53,11 @@ export default class SearchController {
 
             const groupPostsFeedId = await targetGroup.getPostsTimelineId()
             isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(req.user.id, groupPostsFeedId)
-            if (!isSubscribed && targetGroup.isPrivate) {
+            if (!isSubscribed && targetGroup.isPrivate == '1') {
               throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
             }
 
-            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery.query, groupPostsFeedId, req.user.subscribedFeedIds, bannedUserIds)
+            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, req.user.subscribedFeedIds, bannedUserIds)
 
             break
           }
