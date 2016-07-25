@@ -5,38 +5,56 @@ const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
 const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
 const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
+const QUOTE_PATTERN                     = '\\"(.+?)\\"'
+const QUOTE_REPLACEMENT_PATTERN         = '\\s*\\".*\\"\\s*'
 
 const fromUsernameRegex            = new RegExp(FROM_USERNAME_PATTERN, 'i');
 const inGroupRegex                 = new RegExp(IN_GROUP_PATTERN, 'i');
 const fromUsernameReplacementRegex = new RegExp(FROM_USERNAME_REPLACEMENT_PATTERN, 'ig');
 const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'ig');
+const quotedQueryReplacementRegex  = new RegExp(QUOTE_REPLACEMENT_PATTERN, 'ig')
 
 export class SearchQueryParser {
   static parse(query) {
     query = decodeURIComponent(query)
 
-    const parsedQuery = {
+    const parseResult = {
       scope:    SEARCH_SCOPES.ALL_VISIBLE_POSTS,
       query,
       username: '',
-      group:    ''
+      group:    '',
+      quotes:   []
     }
 
-    const targetUsername  = this.parseTargetUsername(query)
-    const targetGroupname = this.parseTargetGroupname(query)
+    this.parseQueryScope(parseResult)
+    this.parseQueryConditions(parseResult)
+    this.processQueryText(parseResult)
+
+    return parseResult
+  }
+
+  static parseQueryScope(queryObject) {
+    const targetUsername  = this.parseTargetUsername(queryObject.query)
+    const targetGroupname = this.parseTargetGroupname(queryObject.query)
 
     if (targetUsername) {
-      parsedQuery.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS
-      parsedQuery.username = targetUsername
-    } else if (targetGroupname) {
-      parsedQuery.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS
-      parsedQuery.group = targetGroupname
+      queryObject.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS
+      queryObject.username = targetUsername
+      return
     }
+    if (targetGroupname) {
+      queryObject.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS
+      queryObject.group = targetGroupname
+    }
+  }
 
-    const transformQuery = flow(this.removeUserAndGroup, this.cleanupQuery, this.prepareQuery);
-    parsedQuery.query = transformQuery(query);
+  static processQueryText(queryObject) {
+    const transformFullTextQuery = flow(this.removeQuotes, this.removeUserAndGroup, this.cleanupQuery, this.prepareQuery)
+    queryObject.query = transformFullTextQuery(queryObject.query)
+  }
 
-    return parsedQuery
+  static parseQueryConditions(queryObject) {
+    queryObject.quotes = this.parseQuotedQuery(queryObject.query)
   }
 
   static parseTargetUsername(query) {
@@ -47,6 +65,21 @@ export class SearchQueryParser {
   static parseTargetGroupname(query) {
     const inGroupSubquery = inGroupRegex.exec(query)
     return inGroupSubquery ? inGroupSubquery[1] : null
+  }
+
+  static parseQuotedQuery(query) {
+    const quotedQueryRegex = new RegExp(QUOTE_PATTERN, 'ig')
+    const quotes = []
+    let quote
+    while ((quote = quotedQueryRegex.exec(query)) !== null) {
+      quotes.push(quote[1])
+    }
+
+    return quotes
+  }
+
+  static removeQuotes(query) {
+    return query.replace(quotedQueryReplacementRegex, '')
   }
 
   static removeUserAndGroup(query) {
