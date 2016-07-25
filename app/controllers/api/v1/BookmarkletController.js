@@ -14,9 +14,9 @@ import { reportError, NotFoundException } from '../../../support/exceptions'
 
 promisifyAll(fs)
 
-const getAttachments = async function(author, imageUrl) {
+const getAttachment = async function(author, imageUrl) {
   if (!imageUrl) {
-    return []
+    return null;
   }
 
   const p = url.parse(imageUrl)
@@ -48,7 +48,12 @@ const getAttachments = async function(author, imageUrl) {
   const newAttachment = await author.newAttachment({ file })
   await newAttachment.create()
 
-  return [newAttachment.id]
+  return newAttachment.id
+}
+
+const getAttachments = async function(author, imageUrls) {
+  const promises = imageUrls.map((url) => getAttachment(author, url))
+  return await Promise.all(promises)
 }
 
 export default class BookmarkletController {
@@ -102,8 +107,9 @@ export default class BookmarkletController {
         }
       })
 
-      // Download image and create attachment
-      const attachments = await getAttachments(req.user, req.body.image)
+      // Download image(s) and create attachment
+      const imageUrls = req.body.images || [req.body.image]
+      const attachments = await getAttachments(req.user, imageUrls)
 
       // Create post
       const newPost = await req.user.newPost({
