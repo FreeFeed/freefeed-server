@@ -1658,22 +1658,23 @@ export class DbAdapter {
       .where('hashtag_usages.post_id', '=', postId)
   }
 
-  createHashtags(names) {
+  async createHashtags(names) {
     const payload = names.map((name) => {
-      return { name }
-    })
-    return this.database('hashtags').returning('id').insert(payload)
+      return `('${name}')`
+    }).join(',')
+    const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
+    return res.rows.map((t) => t.id)
   }
 
   linkHashtags(tagIds, postId) {
+    if (tagIds.length == 0) {
+      return false
+    }
     const payload = tagIds.map((hashtagId) => {
-      return {
-        hashtag_id: hashtagId,
-        post_id:    postId
-      }
-    })
+      return `(${hashtagId}, '${postId}')`
+    }).join(',')
 
-    return this.database('hashtag_usages').insert(payload)
+    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "post_id") values ${payload} on conflict do nothing`)
   }
 
   unlinkHashtags(tagIds, postId) {
