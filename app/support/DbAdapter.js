@@ -1511,7 +1511,7 @@ export class DbAdapter {
   async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const searchCondition = await this._getTextSearchCondition(query, textSearchConfigName)
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
 
     const res = await this.database.raw(
       'select * from (' +
@@ -1536,7 +1536,7 @@ export class DbAdapter {
   async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const searchCondition = await this._getTextSearchCondition(query, textSearchConfigName)
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
 
     const res = await this.database.raw(
       'select * from (' +
@@ -1559,7 +1559,7 @@ export class DbAdapter {
   async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const searchCondition = await this._getTextSearchCondition(query, textSearchConfigName)
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
 
     const res = await this.database.raw(
       'select * from (' +
@@ -1599,7 +1599,7 @@ export class DbAdapter {
     return bannedUsersFilter
   }
 
-  async _getTextSearchCondition(parsedQuery, textSearchConfigName) {
+  _getTextSearchCondition(parsedQuery, textSearchConfigName) {
     const searchConditions = []
     if (parsedQuery.query.length > 2) {
       searchConditions.push(`to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${parsedQuery.query}')`)
@@ -1610,12 +1610,15 @@ export class DbAdapter {
     }
 
     if (parsedQuery.hashtags.length > 0) {
-      const hashtagIds = await this.getHashtagIdsByNames(parsedQuery.hashtags)
-      if (hashtagIds.length > 0) {
-        const hashtagIdsString = hashtagIds.map((id) => `'${id}'`).join(',')
-        const hashtagCondition = `posts.uid in (select u.post_id from hashtag_usages as u where u.hashtag_id in (${hashtagIdsString}))`
-        searchConditions.push(hashtagCondition)
-      }
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `posts.uid in (
+            select u.post_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            )
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
     }
 
     if (searchConditions.length == 0) {
