@@ -12,6 +12,7 @@
     "console": "babel-node --ignore node_modules bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node --ignore node_modules data_transfer",
+    "reindex_hashtags": "babel-node --ignore node_modules reindex_hashtags",
     "count_stats": "babel-node --ignore node_modules count_stats"
   },
   "repository": {
