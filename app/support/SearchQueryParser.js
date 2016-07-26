@@ -1,4 +1,5 @@
 import { flow } from 'lodash';
+import twitter from 'twitter-text'
 import { SEARCH_SCOPES } from './SearchConstants'
 
 const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
@@ -6,7 +7,7 @@ const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
 const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
 const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
 const QUOTE_PATTERN                     = '\\"(.+?)\\"'
-const QUOTE_REPLACEMENT_PATTERN         = '\\s*\\".*\\"\\s*'
+const QUOTE_REPLACEMENT_PATTERN         = '\\".*\\"'
 
 const fromUsernameRegex            = new RegExp(FROM_USERNAME_PATTERN, 'i');
 const inGroupRegex                 = new RegExp(IN_GROUP_PATTERN, 'i');
@@ -23,7 +24,8 @@ export class SearchQueryParser {
       query,
       username: '',
       group:    '',
-      quotes:   []
+      quotes:   [],
+      hashtags: []
     }
 
     this.parseQueryScope(parseResult)
@@ -49,7 +51,10 @@ export class SearchQueryParser {
   }
 
   static processQueryText(queryObject) {
-    const transformFullTextQuery = flow(this.removeQuotes, this.removeUserAndGroup, this.cleanupQuery, this.prepareQuery)
+    const removeScopeAndQuotes = flow(this.removeQuotes, this.removeUserAndGroup)
+    queryObject.query = removeScopeAndQuotes(queryObject.query)
+    this.extractHashtags(queryObject)
+    const transformFullTextQuery = flow(this.cleanupQuery, this.prepareQuery)
     queryObject.query = transformFullTextQuery(queryObject.query)
   }
 
@@ -76,6 +81,22 @@ export class SearchQueryParser {
     }
 
     return quotes
+  }
+
+  static extractHashtags(queryObject) {
+    const hashtags = twitter.extractHashtagsWithIndices(queryObject.query)
+    const indices = hashtags.map((h) => h.indices)
+    let query = queryObject.query
+
+    const hashtagSubstrings = indices.map(([start, end]) => {
+      return query.substring(start, end)
+    })
+
+    for (const s of hashtagSubstrings) {
+      query = query.replace(s, '')
+    }
+    queryObject.query = query
+    queryObject.hashtags = hashtags.map((h) => h.hashtag)
   }
 
   static removeQuotes(query) {

@@ -1609,10 +1609,85 @@ export class DbAdapter {
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 
+    if (parsedQuery.hashtags.length > 0) {
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `posts.uid in (
+            select u.post_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            )
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+    }
+
     if (searchConditions.length == 0) {
-      return '1=0'
+      return ' 1=0 '
     }
 
     return `${searchConditions.join(' and ')} `
+  }
+
+
+  ///////////////////////////////////////////////////
+  // Hashtags
+  ///////////////////////////////////////////////////
+
+  async getHashtagIdsByNames(names) {
+    const res = this.database('hashtags').select('id', 'name').where('name', 'in', names)
+    return res.map((t) => t.id)
+  }
+
+  async getOrCreateHashtagIdsByNames(names) {
+    const targetTagNames   = _.sortBy(names)
+    const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
+    const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
+
+    const nonExistingTagNames = _.difference(targetTagNames, existingTagNames)
+    let tags = existingTags.map((t) => t.id)
+    if (nonExistingTagNames.length > 0) {
+      const createdTags = await this.createHashtags(nonExistingTagNames)
+      tags = tags.concat(createdTags)
+    }
+    return tags
+  }
+
+  getPostHashtags(postId) {
+    return this.database.select('hashtags.id', 'hashtags.name').from('hashtags')
+      .join('hashtag_usages', { 'hashtag_usages.hashtag_id': 'hashtags.id' })
+      .where('hashtag_usages.post_id', '=', postId)
+  }
+
+  async createHashtags(names) {
+    const payload = names.map((name) => {
+      return `('${name}')`
+    }).join(',')
+    const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
+    return res.rows.map((t) => t.id)
+  }
+
+  linkHashtags(tagIds, postId) {
+    if (tagIds.length == 0) {
+      return false
+    }
+    const payload = tagIds.map((hashtagId) => {
+      return `(${hashtagId}, '${postId}')`
+    }).join(',')
+
+    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "post_id") values ${payload} on conflict do nothing`)
+  }
+
+  unlinkHashtags(tagIds, postId) {
+    return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('post_id', postId).del()
+  }
+
+  async linkHashtagsByNames(names, postId) {
+    const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+    return this.linkHashtags(hashtagIds, postId)
+  }
+
+  async unlinkHashtagsByNames(names, postId) {
+    const hashtagIds = await this.getHashtagIdsByNames(names)
+    return this.unlinkHashtags(hashtagIds, postId)
   }
 }
