@@ -1634,11 +1634,17 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async getHashtagIdsByNames(names) {
-    const res = this.database('hashtags').select('id', 'name').where('name', 'in', names)
+    if (!names || names.length == 0) {
+      return []
+    }
+    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', names)
     return res.map((t) => t.id)
   }
 
   async getOrCreateHashtagIdsByNames(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
     const targetTagNames   = _.sortBy(names)
     const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
     const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
@@ -1647,7 +1653,9 @@ export class DbAdapter {
     let tags = existingTags.map((t) => t.id)
     if (nonExistingTagNames.length > 0) {
       const createdTags = await this.createHashtags(nonExistingTagNames)
-      tags = tags.concat(createdTags)
+      if (createdTags.length > 0) {
+        tags = tags.concat(createdTags)
+      }
     }
     return tags
   }
@@ -1659,6 +1667,9 @@ export class DbAdapter {
   }
 
   async createHashtags(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
     const payload = names.map((name) => {
       return `('${name}')`
     }).join(',')
@@ -1678,16 +1689,31 @@ export class DbAdapter {
   }
 
   unlinkHashtags(tagIds, postId) {
+    if (tagIds.length == 0) {
+      return false
+    }
     return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('post_id', postId).del()
   }
 
   async linkHashtagsByNames(names, postId) {
+    if (!names || names.length == 0) {
+      return false
+    }
     const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
     return this.linkHashtags(hashtagIds, postId)
   }
 
   async unlinkHashtagsByNames(names, postId) {
+    if (!names || names.length == 0) {
+      return false
+    }
     const hashtagIds = await this.getHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
     return this.unlinkHashtags(hashtagIds, postId)
   }
 }
