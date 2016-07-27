@@ -1515,6 +1515,10 @@ export class DbAdapter {
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
 
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
+
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
@@ -1565,6 +1569,10 @@ export class DbAdapter {
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
 
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
+
     const res = await this.database.raw(
       'select * from (' +
         'select "posts".* from "posts" ' +
@@ -1606,6 +1614,10 @@ export class DbAdapter {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
 
     const res = await this.database.raw(
       'select * from (' +
