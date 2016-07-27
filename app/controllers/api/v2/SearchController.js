@@ -34,10 +34,12 @@ export default class SearchController {
               throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
             }
 
-            const userPostsFeedId = await targetUser.getPostsTimelineId()
-            isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(req.user.id, userPostsFeedId)
-            if (!isSubscribed && targetUser.isPrivate == '1') {
-              throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
+            if (targetUser.id != req.user.id) {
+              const userPostsFeedId = await targetUser.getPostsTimelineId()
+              isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(req.user.id, userPostsFeedId)
+              if (!isSubscribed && targetUser.isPrivate == '1') {
+                throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
+              }
             }
 
             foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, req.user.subscribedFeedIds, bannedUserIds)
