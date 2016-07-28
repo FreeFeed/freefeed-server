@@ -1723,6 +1723,18 @@ export class DbAdapter {
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 
+    if (parsedQuery.hashtags.length > 0) {
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `comments.uid in (
+            select u.entity_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            ) and u.type = 'comment'
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+    }
+
     if (searchConditions.length == 0) {
       return ' 1=0 '
     }
