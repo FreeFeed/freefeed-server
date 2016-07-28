@@ -13,17 +13,28 @@ export default class SearchController {
 
     try {
       const preparedQuery = SearchQueryParser.parse(req.query.qs)
+      const DEFAULT_LIMIT = 30
 
       let foundPosts = []
         , isSubscribed = false
         , targetUser
         , targetGroup
+        , offset
+        , limit
+
+      offset = parseInt(req.query.offset, 10) || 0
+      limit =  parseInt(req.query.limit, 10) || DEFAULT_LIMIT
+      if (offset < 0)
+        offset = 0
+      if (limit < 0)
+        limit = DEFAULT_LIMIT
+
       const bannedUserIds = await req.user.getBanIds()
 
       switch (preparedQuery.scope) {
         case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
           {
-            foundPosts = await dbAdapter.searchPosts(preparedQuery, req.user.id, req.user.subscribedFeedIds, bannedUserIds)
+            foundPosts = await dbAdapter.searchPosts(preparedQuery, req.user.id, req.user.subscribedFeedIds, bannedUserIds, offset, limit)
             break
           }
 
@@ -42,7 +53,7 @@ export default class SearchController {
               }
             }
 
-            foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, req.user.subscribedFeedIds, bannedUserIds)
+            foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, req.user.subscribedFeedIds, bannedUserIds, offset, limit)
 
             break
           }
@@ -59,7 +70,7 @@ export default class SearchController {
               throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
             }
 
-            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, req.user.subscribedFeedIds, bannedUserIds)
+            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, req.user.subscribedFeedIds, bannedUserIds, offset, limit)
 
             break
           }
