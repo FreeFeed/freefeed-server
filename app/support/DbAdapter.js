@@ -1508,7 +1508,7 @@ export class DbAdapter {
   // Search
   ///////////////////////////////////////////////////
 
-  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds) {
+  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, offset, limit) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
@@ -1557,12 +1557,12 @@ export class DbAdapter {
           )
           and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
-      'order by found_posts.updated_at desc'
+      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
 
-  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds) {
+  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, offset, limit) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
@@ -1603,12 +1603,12 @@ export class DbAdapter {
           and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       `where found_posts.user_id='${targetUserId}' ` +
-      'order by found_posts.updated_at desc'
+      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds) {
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, offset, limit) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
@@ -1648,7 +1648,7 @@ export class DbAdapter {
           )
           and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
-      'order by found_posts.updated_at desc'
+      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
