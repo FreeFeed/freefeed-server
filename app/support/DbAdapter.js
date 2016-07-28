@@ -1697,9 +1697,9 @@ export class DbAdapter {
     if (parsedQuery.hashtags.length > 0) {
       const hashtagConditions = parsedQuery.hashtags.map((tag) => {
         return `posts.uid in (
-            select u.post_id from hashtag_usages as u where u.hashtag_id in (
+            select u.entity_id from hashtag_usages as u where u.hashtag_id in (
               select hashtags.id from hashtags where hashtags.name = '${tag}'
-            )
+            ) and u.type = 'post'
           )`
       })
 
@@ -1721,6 +1721,18 @@ export class DbAdapter {
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => `comments.body ~ '${quote}'`)
       searchConditions.push(`${quoteConditions.join(' and ')}`)
+    }
+
+    if (parsedQuery.hashtags.length > 0) {
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `comments.uid in (
+            select u.entity_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            ) and u.type = 'comment'
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
     }
 
     if (searchConditions.length == 0) {
@@ -1765,7 +1777,13 @@ export class DbAdapter {
   getPostHashtags(postId) {
     return this.database.select('hashtags.id', 'hashtags.name').from('hashtags')
       .join('hashtag_usages', { 'hashtag_usages.hashtag_id': 'hashtags.id' })
-      .where('hashtag_usages.post_id', '=', postId)
+      .where('hashtag_usages.entity_id', '=', postId).andWhere('hashtag_usages.type', 'post')
+  }
+
+  getCommentHashtags(commentId) {
+    return this.database.select('hashtags.id', 'hashtags.name').from('hashtags')
+      .join('hashtag_usages', { 'hashtag_usages.hashtag_id': 'hashtags.id' })
+      .where('hashtag_usages.entity_id', '=', commentId).andWhere('hashtag_usages.type', 'comment')
   }
 
   async createHashtags(names) {
@@ -1779,25 +1797,33 @@ export class DbAdapter {
     return res.rows.map((t) => t.id)
   }
 
-  linkHashtags(tagIds, postId) {
+  linkHashtags(tagIds, entityId, toPost = true) {
     if (tagIds.length == 0) {
       return false
+    }
+    let entityType = 'post'
+    if (!toPost) {
+      entityType = 'comment'
     }
     const payload = tagIds.map((hashtagId) => {
-      return `(${hashtagId}, '${postId}')`
+      return `(${hashtagId}, '${entityId}', '${entityType}')`
     }).join(',')
 
-    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "post_id") values ${payload} on conflict do nothing`)
+    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "entity_id", "type") values ${payload} on conflict do nothing`)
   }
 
-  unlinkHashtags(tagIds, postId) {
+  unlinkHashtags(tagIds, entityId, fromPost = true) {
     if (tagIds.length == 0) {
       return false
     }
-    return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('post_id', postId).del()
+    let entityType = 'post'
+    if (!fromPost) {
+      entityType = 'comment'
+    }
+    return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('entity_id', entityId).where('type', entityType).del()
   }
 
-  async linkHashtagsByNames(names, postId) {
+  async linkPostHashtagsByNames(names, postId) {
     if (!names || names.length == 0) {
       return false
     }
@@ -1808,7 +1834,7 @@ export class DbAdapter {
     return this.linkHashtags(hashtagIds, postId)
   }
 
-  async unlinkHashtagsByNames(names, postId) {
+  async unlinkPostHashtagsByNames(names, postId) {
     if (!names || names.length == 0) {
       return false
     }
@@ -1817,5 +1843,27 @@ export class DbAdapter {
       return false
     }
     return this.unlinkHashtags(hashtagIds, postId)
+  }
+
+  async linkCommentHashtagsByNames(names, commentId) {
+    if (!names || names.length == 0) {
+      return false
+    }
+    const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
+    return this.linkHashtags(hashtagIds, commentId, false)
+  }
+
+  async unlinkCommentHashtagsByNames(names, commentId) {
+    if (!names || names.length == 0) {
+      return false
+    }
+    const hashtagIds = await this.getHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
+    return this.unlinkHashtags(hashtagIds, commentId, false)
   }
 }

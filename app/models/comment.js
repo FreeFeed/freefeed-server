@@ -1,5 +1,6 @@
 import _ from 'lodash'
 import GraphemeBreaker from 'grapheme-breaker'
+import twitter from 'twitter-text'
 
 import { PubSub as pubSub } from '../models'
 
@@ -67,6 +68,8 @@ export function addModel(dbAdapter) {
     const post = await dbAdapter.getPostById(this.postId)
     const timelines = await post.addComment(this)
 
+    await this.processHashtagsOnCreate()
+
     await dbAdapter.statsCommentCreated(this.userId)
 
     return timelines
@@ -83,6 +86,8 @@ export function addModel(dbAdapter) {
       'updatedAt': this.updatedAt.toString()
     }
     await dbAdapter.updateComment(this.id, payload)
+
+    await this.processHashtagsOnUpdate()
 
     await pubSub.updateComment(this.id)
 
@@ -116,6 +121,34 @@ export function addModel(dbAdapter) {
 
   Comment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
+  }
+
+  Comment.prototype.processHashtagsOnCreate = async function () {
+    const commentTags = _.uniq(twitter.extractHashtags(this.body))
+
+    if (!commentTags || commentTags.length == 0) {
+      return
+    }
+    await dbAdapter.linkCommentHashtagsByNames(commentTags, this.id)
+  }
+
+  Comment.prototype.processHashtagsOnUpdate = async function () {
+    const linkedCommentHashtags = await dbAdapter.getCommentHashtags(this.id)
+
+    const presentTags    = _.sortBy(linkedCommentHashtags.map((t) => t.name))
+    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body)))
+    const notChangedTags = _.intersection(presentTags, newTags)
+    const tagsToUnlink   = _.difference(presentTags, notChangedTags)
+    const tagsToLink     = _.difference(newTags, notChangedTags)
+
+    if (presentTags != newTags) {
+      if (tagsToUnlink.length > 0) {
+        await dbAdapter.unlinkCommentHashtagsByNames(tagsToUnlink, this.id)
+      }
+      if (tagsToLink.length > 0) {
+        await dbAdapter.linkCommentHashtagsByNames(tagsToLink, this.id)
+      }
+    }
   }
 
   return Comment

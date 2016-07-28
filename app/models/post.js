@@ -610,7 +610,7 @@ export function addModel(dbAdapter) {
     if (!postTags || postTags.length == 0) {
       return
     }
-    await dbAdapter.linkHashtagsByNames(postTags, this.id)
+    await dbAdapter.linkPostHashtagsByNames(postTags, this.id)
   }
 
   Post.prototype.processHashtagsOnUpdate = async function () {
@@ -624,10 +624,10 @@ export function addModel(dbAdapter) {
 
     if (presentTags != newTags) {
       if (tagsToUnlink.length > 0) {
-        await dbAdapter.unlinkHashtagsByNames(tagsToUnlink, this.id)
+        await dbAdapter.unlinkPostHashtagsByNames(tagsToUnlink, this.id)
       }
       if (tagsToLink.length > 0) {
-        await dbAdapter.linkHashtagsByNames(tagsToLink, this.id)
+        await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id)
       }
     }
   }

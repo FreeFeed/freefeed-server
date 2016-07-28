@@ -18,7 +18,25 @@ async function processPost(post){
       return
     }
     console.log(postTags)
-    await dbAdapter.linkHashtagsByNames(postTags, postUUID)
+    await dbAdapter.linkPostHashtagsByNames(postTags, postUUID)
+  } catch (e) {
+    console.log("-------------------------------------------------------")
+    console.log(e)
+    console.log("-------------------------------------------------------")
+  }
+}
+
+async function processComment(comment){
+  const commentUUID = comment.uid
+    , commentBody   = comment.body
+  try{
+    const commentTags = _.uniq(twitter.extractHashtags(commentBody))
+
+    if (!commentTags || commentTags.length == 0) {
+      return
+    }
+    console.log(commentTags)
+    await dbAdapter.linkCommentHashtagsByNames(commentTags, commentUUID)
   } catch (e) {
     console.log("-------------------------------------------------------")
     console.log(e)
@@ -40,6 +58,20 @@ async function main(){
     currentOffset += POST_CHUNK_SIZE
 
     const promises = chunk.map((post) => processPost(post))
+    await Promise.all(promises)
+  }
+
+  currentOffset = 0
+  finished = false
+
+  while (!finished) {
+    const chunk = await postgres('comments').select('uid', 'body').orderBy('created_at', 'desc').offset(currentOffset).limit(POST_CHUNK_SIZE)
+    if (chunk.length < POST_CHUNK_SIZE) {
+      finished = true
+    }
+    currentOffset += POST_CHUNK_SIZE
+
+    const promises = chunk.map((comment) => processComment(comment))
     await Promise.all(promises)
   }
 }
