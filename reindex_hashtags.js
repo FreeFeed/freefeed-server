@@ -18,7 +18,7 @@ async function processPost(post){
       return
     }
     console.log(postTags)
-    await dbAdapter.linkHashtagsByNames(postTags, postUUID)
+    await dbAdapter.linkPostHashtagsByNames(postTags, postUUID)
   } catch (e) {
     console.log("-------------------------------------------------------")
     console.log(e)
