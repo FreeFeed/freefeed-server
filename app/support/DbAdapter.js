@@ -1511,7 +1511,13 @@ export class DbAdapter {
   async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
 
     const res = await this.database.raw(
       'select * from (' +
@@ -1527,6 +1533,29 @@ export class DbAdapter {
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ' union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `where "posts"."user_id" = '${currentUserId}' and
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          )
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       'order by found_posts.updated_at desc'
     )
@@ -1536,7 +1565,13 @@ export class DbAdapter {
   async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
 
     const res = await this.database.raw(
       'select * from (' +
@@ -1549,6 +1584,23 @@ export class DbAdapter {
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ' union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          )
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       `where found_posts.user_id='${targetUserId}' ` +
       'order by found_posts.updated_at desc'
@@ -1559,7 +1611,13 @@ export class DbAdapter {
   async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds) {
     const textSearchConfigName = this.database.client.config.textSearchConfigName
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
 
     const res = await this.database.raw(
       'select * from (' +
@@ -1572,6 +1630,23 @@ export class DbAdapter {
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ' union ' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          )
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
       ') as found_posts ' +
       'order by found_posts.updated_at desc'
     )
@@ -1595,6 +1670,16 @@ export class DbAdapter {
     if (bannedUserIds.length > 0) {
       const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
       bannedUsersFilter = `and posts.user_id not in (${bannedUserIdsString}) `
+    }
+    return bannedUsersFilter
+  }
+
+  _getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds) {
+    let bannedUsersFilter = ''
+
+    if (bannedUserIds.length > 0) {
+      const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
+      bannedUsersFilter = `and comments.user_id not in (${bannedUserIdsString}) `
     }
     return bannedUsersFilter
   }
@@ -1628,17 +1713,40 @@ export class DbAdapter {
     return `${searchConditions.join(' and ')} `
   }
 
+  _getCommentSearchCondition(parsedQuery, textSearchConfigName) {
+    const searchConditions = []
+    if (parsedQuery.query.length > 2) {
+      searchConditions.push(`to_tsvector('${textSearchConfigName}', comments.body) @@ to_tsquery('${parsedQuery.query}')`)
+    }
+    if (parsedQuery.quotes.length > 0) {
+      const quoteConditions = parsedQuery.quotes.map((quote) => `comments.body ~ '${quote}'`)
+      searchConditions.push(`${quoteConditions.join(' and ')}`)
+    }
+
+    if (searchConditions.length == 0) {
+      return ' 1=0 '
+    }
+
+    return `${searchConditions.join(' and ')} `
+  }
+
 
   ///////////////////////////////////////////////////
   // Hashtags
   ///////////////////////////////////////////////////
 
   async getHashtagIdsByNames(names) {
-    const res = this.database('hashtags').select('id', 'name').where('name', 'in', names)
+    if (!names || names.length == 0) {
+      return []
+    }
+    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', names)
     return res.map((t) => t.id)
   }
 
   async getOrCreateHashtagIdsByNames(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
     const targetTagNames   = _.sortBy(names)
     const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
     const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
@@ -1647,7 +1755,9 @@ export class DbAdapter {
     let tags = existingTags.map((t) => t.id)
     if (nonExistingTagNames.length > 0) {
       const createdTags = await this.createHashtags(nonExistingTagNames)
-      tags = tags.concat(createdTags)
+      if (createdTags.length > 0) {
+        tags = tags.concat(createdTags)
+      }
     }
     return tags
   }
@@ -1659,6 +1769,9 @@ export class DbAdapter {
   }
 
   async createHashtags(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
     const payload = names.map((name) => {
       return `('${name}')`
     }).join(',')
@@ -1678,16 +1791,31 @@ export class DbAdapter {
   }
 
   unlinkHashtags(tagIds, postId) {
+    if (tagIds.length == 0) {
+      return false
+    }
     return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('post_id', postId).del()
   }
 
   async linkHashtagsByNames(names, postId) {
+    if (!names || names.length == 0) {
+      return false
+    }
     const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
     return this.linkHashtags(hashtagIds, postId)
   }
 
   async unlinkHashtagsByNames(names, postId) {
+    if (!names || names.length == 0) {
+      return false
+    }
     const hashtagIds = await this.getHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
     return this.unlinkHashtags(hashtagIds, postId)
   }
 }
