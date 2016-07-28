@@ -1687,7 +1687,7 @@ export class DbAdapter {
   _getTextSearchCondition(parsedQuery, textSearchConfigName) {
     const searchConditions = []
     if (parsedQuery.query.length > 2) {
-      searchConditions.push(`to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${parsedQuery.query}')`)
+      searchConditions.push(`to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${textSearchConfigName}', '${parsedQuery.query}')`)
     }
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => `posts.body ~ '${quote}'`)
@@ -1716,7 +1716,7 @@ export class DbAdapter {
   _getCommentSearchCondition(parsedQuery, textSearchConfigName) {
     const searchConditions = []
     if (parsedQuery.query.length > 2) {
-      searchConditions.push(`to_tsvector('${textSearchConfigName}', comments.body) @@ to_tsquery('${parsedQuery.query}')`)
+      searchConditions.push(`to_tsvector('${textSearchConfigName}', comments.body) @@ to_tsquery('${textSearchConfigName}', '${parsedQuery.query}')`)
     }
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => `comments.body ~ '${quote}'`)
