@@ -1697,9 +1697,9 @@ export class DbAdapter {
     if (parsedQuery.hashtags.length > 0) {
       const hashtagConditions = parsedQuery.hashtags.map((tag) => {
         return `posts.uid in (
-            select u.post_id from hashtag_usages as u where u.hashtag_id in (
+            select u.entity_id from hashtag_usages as u where u.hashtag_id in (
               select hashtags.id from hashtags where hashtags.name = '${tag}'
-            )
+            ) and u.type = 'post'
           )`
       })
 
@@ -1765,7 +1765,7 @@ export class DbAdapter {
   getPostHashtags(postId) {
     return this.database.select('hashtags.id', 'hashtags.name').from('hashtags')
       .join('hashtag_usages', { 'hashtag_usages.hashtag_id': 'hashtags.id' })
-      .where('hashtag_usages.post_id', '=', postId)
+      .where('hashtag_usages.entity_id', '=', postId).andWhere('hashtag_usages.type', 'post')
   }
 
   async createHashtags(names) {
@@ -1787,14 +1787,14 @@ export class DbAdapter {
       return `(${hashtagId}, '${postId}')`
     }).join(',')
 
-    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "post_id") values ${payload} on conflict do nothing`)
+    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "entity_id") values ${payload} on conflict do nothing`)
   }
 
   unlinkHashtags(tagIds, postId) {
     if (tagIds.length == 0) {
       return false
     }
-    return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('post_id', postId).del()
+    return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('entity_id', postId).del()
   }
 
   async linkHashtagsByNames(names, postId) {
