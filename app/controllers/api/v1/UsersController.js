@@ -297,7 +297,13 @@ export default class UsersController {
       const status = await req.user.ban(req.params.username)
       res.jsonp({ status })
     } catch (e) {
-      reportError(res)(e)
+      if (e.code === '23505') {
+        // '23505' stands for unique_violation
+        // see https://www.postgresql.org/docs/current/static/errcodes-appendix.html
+        reportError(res)(new ForbiddenException("You can't ban user, who's already banned"))
+      } else {
+        reportError(res)(e)
+      }
     }
   }
 

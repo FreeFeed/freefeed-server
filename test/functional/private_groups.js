@@ -120,12 +120,12 @@ describe('PrivateGroups', () => {
 
     it('should allow an administrator of private group to add another administrator', (done) => {
       request
-          .post(`${app.config.host}/v1/groups/${group.username}/subscribers/${nonAdminContext.user.username}/admin`)
-          .send({ authToken: adminContext.authToken })
-          .end((err, res) => {
-            res.status.should.eql(200)
-            done()
-          })
+        .post(`${app.config.host}/v1/groups/${group.username}/subscribers/${nonAdminContext.user.username}/admin`)
+        .send({ authToken: adminContext.authToken })
+        .end((err, res) => {
+          res.status.should.eql(200)
+          done()
+        })
     })
   })
 
@@ -228,33 +228,33 @@ describe('PrivateGroups', () => {
 
     beforeEach((done) => {
       request
-          .post(`${app.config.host}/v1/groups`)
-          .send({
-            group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
-            authToken: adminContext.authToken
-          })
-          .end(() => {
-            done()
-          })
+        .post(`${app.config.host}/v1/groups`)
+        .send({
+          group:     { username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '1' },
+          authToken: adminContext.authToken
+        })
+        .end(() => {
+          done()
+        })
     })
 
     beforeEach((done) => {
       request
-          .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/admin`)
-          .send({ authToken: adminContext.authToken })
-          .end(() => {
-            done()
-          })
+        .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/admin`)
+        .send({ authToken: adminContext.authToken })
+        .end(() => {
+          done()
+        })
     })
 
     it('should allow an administrator of private group to remove another administrator', (done) => {
       request
-          .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/unadmin`)
-          .send({ authToken: adminContext.authToken })
-          .end((err, res) => {
-            res.status.should.eql(200)
-            done()
-          })
+        .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/yole/unadmin`)
+        .send({ authToken: adminContext.authToken })
+        .end((err, res) => {
+          res.status.should.eql(200)
+          done()
+        })
     })
   })
 

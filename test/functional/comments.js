@@ -183,16 +183,16 @@ describe('CommentsController', () => {
     it("should not update another user's comment", (done) => {
       const newBody = 'New body'
       request
-          .post(`${app.config.host}/v1/comments/${comment.id}`)
-          .send({
-            comment:   { body: newBody },
-            authToken: yoleContext.authToken,
-            '_method': 'put'
-          })
-          .end((err) => {
-            err.status.should.eql(403)
-            done()
-          })
+        .post(`${app.config.host}/v1/comments/${comment.id}`)
+        .send({
+          comment:   { body: newBody },
+          authToken: yoleContext.authToken,
+          '_method': 'put'
+        })
+        .end((err) => {
+          err.status.should.eql(403)
+          done()
+        })
     })
   })
 

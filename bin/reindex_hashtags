@@ -1,7 +1,8 @@
+#!/usr/bin/env babel-node
 import bluebird from 'bluebird'
 import _ from 'lodash'
 import twitter from 'twitter-text'
-import { postgres, dbAdapter } from './app/models'
+import { postgres, dbAdapter } from '../app/models'
 
 global.Promise = bluebird
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
