@@ -206,20 +206,20 @@ describe('UsersController', () => {
       }
 
       request
-          .post(`${app.config.host}/v1/users`)
-          .send({ username: user.username, password: user.password })
-          .end(() => {
-            request
-                .post(`${app.config.host}/v1/users`)
-                .send({ username: user.username, password: user.password })
-                .end((err, res) => {
-                  res.should.not.be.empty
-                  res.body.err.should.not.be.empty
-                  err.response.error.should.have.property('text')
-                  JSON.parse(err.response.error.text).err.should.eql('Already exists')
-                  done()
-                })
-          })
+        .post(`${app.config.host}/v1/users`)
+        .send({ username: user.username, password: user.password })
+        .end(() => {
+          request
+            .post(`${app.config.host}/v1/users`)
+            .send({ username: user.username, password: user.password })
+            .end((err, res) => {
+              res.should.not.be.empty
+              res.body.err.should.not.be.empty
+              err.response.error.should.have.property('text')
+              JSON.parse(err.response.error.text).err.should.eql('Already exists')
+              done()
+            })
+        })
     })
 
     it('should not create user if username is in stop list', async function() {
@@ -1226,35 +1226,35 @@ describe('UsersController', () => {
         res.body.should.not.be.empty
 
         request
-            .post(`${app.config.host}/v1/posts/${zeusContext.post.id}/like`)
-            .send({ authToken: marsContext.authToken })
-            .end((err) => {
-              $should.not.exist(err)
-              request
-                .post(`${app.config.host}/v1/users/${banUsername}/ban`)
-                .send({ authToken: zeusContext.authToken })
-                .end((err, res) => {
+          .post(`${app.config.host}/v1/posts/${zeusContext.post.id}/like`)
+          .send({ authToken: marsContext.authToken })
+          .end((err) => {
+            $should.not.exist(err)
+            request
+              .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+              .send({ authToken: zeusContext.authToken })
+              .end((err, res) => {
+                res.body.should.not.be.empty
+                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.not.be.empty
-                  funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
-                    res.body.should.not.be.empty
-                    res.body.should.have.property('posts')
-                    res.body.posts.length.should.eql(1)
-                    const post = res.body.posts[0]
-                    post.should.not.have.property('likes')
+                  res.body.should.have.property('posts')
+                  res.body.posts.length.should.eql(1)
+                  const post = res.body.posts[0]
+                  post.should.not.have.property('likes')
 
-                    // Zeus should not see likes in single-post view either
-                    request
-                      .get(`${app.config.host}/v1/posts/${zeusContext.post.id}`)
-                      .query({ authToken: zeusContext.authToken })
-                      .end((err, res) => {
-                        res.body.should.not.be.empty
-                        res.body.should.have.property('posts')
-                        res.body.posts.should.not.have.property('likes')
-                        done()
-                      })
-                  })
+                  // Zeus should not see likes in single-post view either
+                  request
+                    .get(`${app.config.host}/v1/posts/${zeusContext.post.id}`)
+                    .query({ authToken: zeusContext.authToken })
+                    .end((err, res) => {
+                      res.body.should.not.be.empty
+                      res.body.should.have.property('posts')
+                      res.body.posts.should.not.have.property('likes')
+                      done()
+                    })
                 })
-            })
+              })
+          })
       })
     })
 

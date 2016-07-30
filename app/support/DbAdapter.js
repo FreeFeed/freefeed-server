@@ -1311,10 +1311,10 @@ export class DbAdapter {
 
   async getFeedsPostsRange(timelineIds, offset, limit, params) {
     const responses = await this.database('posts')
-        .select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids')
-        .orderBy('updated_at', 'desc')
-        .offset(offset).limit(limit)
-        .whereRaw('feed_ids && ?', [timelineIds]);
+      .select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids')
+      .orderBy('updated_at', 'desc')
+      .offset(offset).limit(limit)
+      .whereRaw('feed_ids && ?', [timelineIds]);
 
     const postUids = responses.map((p) => p.uid)
     const commentsCount = {}

@@ -897,18 +897,18 @@ describe('PostsController', () => {
     it("should not update another user's post", (done) => {
       const newBody = 'New body'
       request
-          .post(`${app.config.host}/v1/posts/${context.post.id}`)
-          .send({
-            post:      { body: newBody },
-            authToken: otherUserAuthToken,
-            '_method': 'put'
-          })
-          .end((err, res) => {
-            err.status.should.eql(403)
-            res.body.err.should.eql("You can't update another user's post")
+        .post(`${app.config.host}/v1/posts/${context.post.id}`)
+        .send({
+          post:      { body: newBody },
+          authToken: otherUserAuthToken,
+          '_method': 'put'
+        })
+        .end((err, res) => {
+          err.status.should.eql(403)
+          res.body.err.should.eql("You can't update another user's post")
 
-            done()
-          })
+          done()
+        })
     })
 
     it('should update post with adding/removing attachments', async () => {
@@ -992,14 +992,14 @@ describe('PostsController', () => {
 
     it('should return 404 given an invalid post ID', (done) => {
       request
-          .get(`${app.config.host}/v1/posts/123_no_such_id`)
-          .query({ authToken: context.authToken })
-          .end((err, res) => {
-            err.status.should.eql(404)
-            res.body.err.should.eql("Can't find post")
+        .get(`${app.config.host}/v1/posts/123_no_such_id`)
+        .query({ authToken: context.authToken })
+        .end((err, res) => {
+          err.status.should.eql(404)
+          res.body.err.should.eql("Can't find post")
 
-            done()
-          })
+          done()
+        })
     })
 
     describe('with likes', async () => {
@@ -1139,17 +1139,17 @@ describe('PostsController', () => {
 
     it("should not destroy another user's post", (done) => {
       request
-          .post(`${app.config.host}/v1/posts/${context.post.id}`)
-          .send({
-            authToken: otherUserAuthToken,
-            '_method': 'delete'
-          })
-          .end((err, res) => {
-            err.status.should.eql(403)
-            res.body.err.should.eql("You can't delete another user's post")
+        .post(`${app.config.host}/v1/posts/${context.post.id}`)
+        .send({
+          authToken: otherUserAuthToken,
+          '_method': 'delete'
+        })
+        .end((err, res) => {
+          err.status.should.eql(403)
+          res.body.err.should.eql("You can't delete another user's post")
 
-            done()
-          })
+          done()
+        })
     })
   })
 })
