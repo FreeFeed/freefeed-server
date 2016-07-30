@@ -731,16 +731,20 @@ export function addModel(dbAdapter) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
+    await dbAdapter.createUserBan(this.id, user.id);
+
     const promises = [
-      user.unsubscribeFrom(await this.getPostsTimelineId()),
-      dbAdapter.createUserBan(this.id, user.id),
-      monitor.increment('users.bans')
+      user.unsubscribeFrom(await this.getPostsTimelineId())
     ]
+
     // reject if and only if there is a pending request
     const requestIds = await this.getSubscriptionRequestIds()
     if (requestIds.includes(user.id))
       promises.push(this.rejectSubscriptionRequest(user.id))
+
     await Promise.all(promises)
+    monitor.increment('users.bans')
+
     return 1
   }
 
@@ -751,8 +755,10 @@ export function addModel(dbAdapter) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
+    await dbAdapter.deleteUserBan(this.id, user.id)
     monitor.increment('users.unbans')
-    return dbAdapter.deleteUserBan(this.id, user.id)
+
+    return 1;
   }
 
   // Subscribe to user-owner of a given `timelineId`
@@ -799,8 +805,6 @@ export function addModel(dbAdapter) {
     if (user.username == this.username)
       throw new Error('Invalid')
 
-    const promises = []
-
     if (_.isUndefined(options.skip)) {
       // remove timelines from user's subscriptions
       const timelineIds = await user.getPublicTimelineIds()
@@ -808,6 +812,8 @@ export function addModel(dbAdapter) {
       const subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
       this.subscribedFeedIds = subscribedFeedsIntIds
     }
+
+    const promises = []
 
     // remove all posts of The Timeline from user's River of News
     promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))

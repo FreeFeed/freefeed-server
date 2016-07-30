@@ -257,21 +257,21 @@ describe('Group', () => {
 
     it('should remove an administrator', (done) => {
       group.removeAdministrator(groupAdmin.id)
-          .then(() => group.getAdministratorIds())
-          .then((res) => {
-            res.length.should.eql(1)
-            done()
-          })
-          .catch((e) => { done(e) })
+        .then(() => group.getAdministratorIds())
+        .then((res) => {
+          res.length.should.eql(1)
+          done()
+        })
+        .catch((e) => { done(e) })
     })
 
     it('should refuse to remove the last administrator', (done) => {
       group.removeAdministrator(secondGroupAdmin.id)
-          .then(() => group.removeAdministrator(groupAdmin.id))
-          .catch((e) => {
-            e.message.should.eql('Cannot remove last administrator')
-            done()
-          })
+        .then(() => group.removeAdministrator(groupAdmin.id))
+        .catch((e) => {
+          e.message.should.eql('Cannot remove last administrator')
+          done()
+        })
     })
   })
 })

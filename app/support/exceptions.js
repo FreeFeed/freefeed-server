@@ -1,9 +1,9 @@
 export function reportError(res) {
   return (err) => {
-    const status = err.status || 422
-    const result = {}
+    const result = {};
+    const status = err && err.status ? err.status : 422;
 
-    if ('message' in err) {
+    if (err && 'message' in err) {
       result.err = err.message
     }
 

@@ -1,13 +1,13 @@
+#!/usr/bin/env babel-node
 import bluebird from 'bluebird'
 
 global.Promise = bluebird
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
-import { selectDatabase } from './config/database'
-import { connect as redisConnection } from './config/database'
-import { connect as postgresConnection } from './config/postgres'
-import { PgAdapter } from './data_transfer/PgAdapter'
-import { DataTransfer } from './data_transfer/transfer'
+import { connect as redisConnection, selectDatabase } from '../config/database'
+import { connect as postgresConnection } from '../config/postgres'
+import { PgAdapter } from '../data_transfer/PgAdapter'
+import { DataTransfer } from '../data_transfer/transfer'
 
 
 const postgres = postgresConnection()
