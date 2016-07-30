@@ -1146,6 +1146,19 @@ describe('UsersController', () => {
       await funcTestHelper.subscribeToAsync(marsContext, zeusContext)
     })
 
+    it('should not allow to ban user more than once', async () => {
+      const promises = [
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext)
+      ];
+
+      const countOfSuccesses = (await Promise.all(promises)).filter((r) => r.status == 200).length;
+      countOfSuccesses.should.eql(1);
+    });
+
     // Zeus bans Mars, Mars should become unsubscribed from Zeus.
     it('should unsubscribe the user', (done) => {
       request
