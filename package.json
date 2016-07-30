@@ -6,13 +6,13 @@
   "version": "0.9.3",
   "private": true,
   "scripts": {
-    "start": "babel-node --ignore node_modules index",
+    "start": "babel-node index",
     "test": "eslint app test && ./bin/clean_test_db && knex --env test migrate:latest && NODE_ENV=test mocha",
     "lint": "eslint app test",
-    "console": "babel-node --ignore node_modules bin/console",
+    "console": "babel-node bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
-    "data_transfer": "babel-node --ignore node_modules data_transfer",
-    "count_stats": "babel-node --ignore node_modules count_stats"
+    "data_transfer": "babel-node bin/data_transfer",
+    "count_stats": "babel-node bin/count_stats"
   },
   "repository": {
     "type": "git",

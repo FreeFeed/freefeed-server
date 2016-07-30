@@ -1,4 +1,4 @@
-#!/usr/bin/env babel-node --stage 1
+#!/usr/bin/env babel-node
 
 import bluebird from 'bluebird'
 import repl from "repl"
