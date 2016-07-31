@@ -6,11 +6,6 @@ import { SEARCH_SCOPES } from '../../../support/SearchConstants'
 
 export default class SearchController {
   static async search(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized', status: 'fail' })
-      return
-    }
-
     try {
       const preparedQuery = SearchQueryParser.parse(req.query.qs)
       const DEFAULT_LIMIT = 30
@@ -29,12 +24,14 @@ export default class SearchController {
       if (limit < 0)
         limit = DEFAULT_LIMIT
 
-      const bannedUserIds = await req.user.getBanIds()
+      const bannedUserIds = req.user ? await req.user.getBanIds() : [];
+      const currentUserId = req.user ? req.user.id : null;
+      const visibleFeedIds = req.user ? req.user.subscribedFeedIds : [];
 
       switch (preparedQuery.scope) {
         case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
           {
-            foundPosts = await dbAdapter.searchPosts(preparedQuery, req.user.id, req.user.subscribedFeedIds, bannedUserIds, offset, limit)
+            foundPosts = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, offset, limit)
             break
           }
 
@@ -45,15 +42,15 @@ export default class SearchController {
               throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
             }
 
-            if (targetUser.id != req.user.id) {
+            if (targetUser.id != currentUserId) {
               const userPostsFeedId = await targetUser.getPostsTimelineId()
-              isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(req.user.id, userPostsFeedId)
+              isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(currentUserId, userPostsFeedId)
               if (!isSubscribed && targetUser.isPrivate == '1') {
                 throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
               }
             }
 
-            foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, req.user.subscribedFeedIds, bannedUserIds, offset, limit)
+            foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, offset, limit)
 
             break
           }
@@ -65,18 +62,18 @@ export default class SearchController {
             }
 
             const groupPostsFeedId = await targetGroup.getPostsTimelineId()
-            isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(req.user.id, groupPostsFeedId)
+            isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId)
             if (!isSubscribed && targetGroup.isPrivate == '1') {
               throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
             }
 
-            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, req.user.subscribedFeedIds, bannedUserIds, offset, limit)
+            foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, visibleFeedIds, bannedUserIds, offset, limit)
 
             break
           }
       }
 
-      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: req.user.id, maxComments: 'all' })
+      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId, maxComments: 'all' })
 
       const postsCollectionJson = await SearchController._serializePostsCollection(postsObjects)
 
