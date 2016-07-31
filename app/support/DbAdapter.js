@@ -1519,45 +1519,50 @@ export class DbAdapter {
       visibleFeedIds = 'NULL'
     }
 
-    const res = await this.database.raw(
-      'select * from (' +
-        'select "posts".* from "posts" ' +
-        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where ${searchCondition} ${bannedUsersFilter}` +
-      'union ' +
-        'select "posts".* from "posts" ' +
-        `where "posts"."user_id" = '${currentUserId}' and ${searchCondition}` +
-      'union ' +
-        'select "posts".* from "posts" ' +
-        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
-      ' union ' +
-        'select "posts".* from "posts" ' +
-        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where
+    const publicPostsSubQuery = 'select "posts".* from "posts" ' +
+      'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `where ${searchCondition} ${bannedUsersFilter}`;
+
+    const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
+      'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) ` +
-      'union ' +
-        'select "posts".* from "posts" ' +
+          ) `;
+
+    let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
+
+    if (currentUserId) {
+      const myPostsSubQuery = 'select "posts".* from "posts" ' +
+        `where "posts"."user_id" = '${currentUserId}' and ${searchCondition}`;
+
+      const myPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
         `where "posts"."user_id" = '${currentUserId}' and
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) ` +
-      'union ' +
-        'select "posts".* from "posts" ' +
+          ) `;
+
+      const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
+
+      const visiblePrivatePostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
           )
-          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
-      ') as found_posts ' +
-      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
+
+      subQueries = [...subQueries, myPostsSubQuery, myPostsByCommentsSubQuery, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
+    }
+
+    const res = await this.database.raw(
+      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.updated_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
@@ -1569,41 +1574,41 @@ export class DbAdapter {
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
 
-    if (!visibleFeedIds || visibleFeedIds.length == 0) {
-      visibleFeedIds = 'NULL'
-    }
+    const publicPostsSubQuery = 'select "posts".* from "posts" ' +
+      'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `where ${searchCondition} ${bannedUsersFilter}`;
 
-    const res = await this.database.raw(
-      'select * from (' +
-        'select "posts".* from "posts" ' +
-        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where ${searchCondition} ${bannedUsersFilter}` +
-      'union ' +
-        'select "posts".* from "posts" ' +
-        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
-      ' union ' +
-        'select "posts".* from "posts" ' +
-        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where
+    const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
+      'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) ` +
-      'union ' +
-        'select "posts".* from "posts" ' +
+          ) `;
+
+    let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
+
+    if (visibleFeedIds && visibleFeedIds.length > 0) {
+      const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
+
+      const visiblePrivatePostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
           )
-          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
-      ') as found_posts ' +
-      `where found_posts.user_id='${targetUserId}' ` +
-      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
+
+      subQueries = [...subQueries, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
+    }
+
+    const res = await this.database.raw(
+      `select * from (${subQueries.join(' union ')}) as found_posts where found_posts.user_id='${targetUserId}' order by found_posts.updated_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
@@ -1619,36 +1624,41 @@ export class DbAdapter {
       visibleFeedIds = 'NULL'
     }
 
-    const res = await this.database.raw(
-      'select * from (' +
-        'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where ${searchCondition} ${bannedUsersFilter}` +
-      'union ' +
-        'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
-        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
-      ' union ' +
-        'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
-        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
-        `where
+    const publicPostsSubQuery = 'select "posts".* from "posts" ' +
+      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `where ${searchCondition} ${bannedUsersFilter}`;
+
+    const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
+      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) ` +
-      'union ' +
-        'select "posts".* from "posts" ' +
+          ) `;
+
+    let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
+
+    if (visibleFeedIds && visibleFeedIds.length > 0) {
+      const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
+
+      const visiblePrivatePostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
           )
-          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
-      ') as found_posts ' +
-      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
+
+      subQueries = [...subQueries, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
+    }
+
+    const res = await this.database.raw(
+      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.updated_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
