@@ -1,6 +1,7 @@
 import monitor from 'monitor-dog'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
+import twitter from 'twitter-text'
 
 import { Timeline, PubSub as pubSub } from '../models'
 
@@ -92,6 +93,7 @@ export function addModel(dbAdapter) {
 
     // save nested resources
     await this.linkAttachments()
+    await this.processHashtagsOnCreate()
 
     await Timeline.publishPost(this)
 
@@ -127,6 +129,8 @@ export function addModel(dbAdapter) {
       this.linkAttachments(addedAttachments),
       this.unlinkAttachments(removedAttachments)
     ])
+
+    await this.processHashtagsOnUpdate()
 
     // Finally, publish changes
     await pubSub.updatePost(this.id)
@@ -598,6 +602,34 @@ export function addModel(dbAdapter) {
     }))
 
     return _.reduce(arr, (acc, x) => { return acc || x }, false)
+  }
+
+  Post.prototype.processHashtagsOnCreate = async function () {
+    const postTags = _.uniq(twitter.extractHashtags(this.body))
+
+    if (!postTags || postTags.length == 0) {
+      return
+    }
+    await dbAdapter.linkPostHashtagsByNames(postTags, this.id)
+  }
+
+  Post.prototype.processHashtagsOnUpdate = async function () {
+    const linkedPostHashtags = await dbAdapter.getPostHashtags(this.id)
+
+    const presentTags    = _.sortBy(linkedPostHashtags.map((t) => t.name))
+    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body)))
+    const notChangedTags = _.intersection(presentTags, newTags)
+    const tagsToUnlink   = _.difference(presentTags, notChangedTags)
+    const tagsToLink     = _.difference(newTags, notChangedTags)
+
+    if (presentTags != newTags) {
+      if (tagsToUnlink.length > 0) {
+        await dbAdapter.unlinkPostHashtagsByNames(tagsToUnlink, this.id)
+      }
+      if (tagsToLink.length > 0) {
+        await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id)
+      }
+    }
   }
 
   return Post

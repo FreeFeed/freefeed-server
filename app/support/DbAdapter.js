@@ -1502,4 +1502,368 @@ export class DbAdapter {
     })
     return bumps
   }
+
+
+  ///////////////////////////////////////////////////
+  // Search
+  ///////////////////////////////////////////////////
+
+  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, offset, limit) {
+    const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
+
+    const res = await this.database.raw(
+      'select * from (' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where ${searchCondition} ${bannedUsersFilter}` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `where "posts"."user_id" = '${currentUserId}' and ${searchCondition}` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ' union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `where "posts"."user_id" = '${currentUserId}' and
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          )
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ') as found_posts ' +
+      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+    )
+    return res.rows
+  }
+
+  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, offset, limit) {
+    const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
+
+    const res = await this.database.raw(
+      'select * from (' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where ${searchCondition} ${bannedUsersFilter}` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ' union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          )
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ') as found_posts ' +
+      `where found_posts.user_id='${targetUserId}' ` +
+      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+    )
+    return res.rows
+  }
+
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, offset, limit) {
+    const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+
+    if (!visibleFeedIds || visibleFeedIds.length == 0) {
+      visibleFeedIds = 'NULL'
+    }
+
+    const res = await this.database.raw(
+      'select * from (' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where ${searchCondition} ${bannedUsersFilter}` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ' union ' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          ) ` +
+      'union ' +
+        'select "posts".* from "posts" ' +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
+        `where
+          posts.uid in (
+            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+          )
+          and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}` +
+      ') as found_posts ' +
+      `order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+    )
+    return res.rows
+  }
+
+  initRawPosts(rawPosts, params) {
+    const objects = rawPosts.map((attrs) => {
+      if (attrs) {
+        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
+      }
+
+      return DbAdapter.initObject(Post, attrs, attrs.id, params)
+    })
+    return objects
+  }
+
+  _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds) {
+    let bannedUsersFilter = ''
+
+    if (bannedUserIds.length > 0) {
+      const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
+      bannedUsersFilter = `and posts.user_id not in (${bannedUserIdsString}) `
+    }
+    return bannedUsersFilter
+  }
+
+  _getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds) {
+    let bannedUsersFilter = ''
+
+    if (bannedUserIds.length > 0) {
+      const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
+      bannedUsersFilter = `and comments.user_id not in (${bannedUserIdsString}) `
+    }
+    return bannedUsersFilter
+  }
+
+  _getTextSearchCondition(parsedQuery, textSearchConfigName) {
+    const searchConditions = []
+    if (parsedQuery.query.length > 2) {
+      searchConditions.push(`to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${textSearchConfigName}', '${parsedQuery.query}')`)
+    }
+    if (parsedQuery.quotes.length > 0) {
+      const quoteConditions = parsedQuery.quotes.map((quote) => `posts.body ~ '${quote}'`)
+      searchConditions.push(`${quoteConditions.join(' and ')}`)
+    }
+
+    if (parsedQuery.hashtags.length > 0) {
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `posts.uid in (
+            select u.entity_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            ) and u.type = 'post'
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+    }
+
+    if (searchConditions.length == 0) {
+      return ' 1=0 '
+    }
+
+    return `${searchConditions.join(' and ')} `
+  }
+
+  _getCommentSearchCondition(parsedQuery, textSearchConfigName) {
+    const searchConditions = []
+    if (parsedQuery.query.length > 2) {
+      searchConditions.push(`to_tsvector('${textSearchConfigName}', comments.body) @@ to_tsquery('${textSearchConfigName}', '${parsedQuery.query}')`)
+    }
+    if (parsedQuery.quotes.length > 0) {
+      const quoteConditions = parsedQuery.quotes.map((quote) => `comments.body ~ '${quote}'`)
+      searchConditions.push(`${quoteConditions.join(' and ')}`)
+    }
+
+    if (parsedQuery.hashtags.length > 0) {
+      const hashtagConditions = parsedQuery.hashtags.map((tag) => {
+        return `comments.uid in (
+            select u.entity_id from hashtag_usages as u where u.hashtag_id in (
+              select hashtags.id from hashtags where hashtags.name = '${tag}'
+            ) and u.type = 'comment'
+          )`
+      })
+
+      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+    }
+
+    if (searchConditions.length == 0) {
+      return ' 1=0 '
+    }
+
+    return `${searchConditions.join(' and ')} `
+  }
+
+
+  ///////////////////////////////////////////////////
+  // Hashtags
+  ///////////////////////////////////////////////////
+
+  async getHashtagIdsByNames(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
+    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', names)
+    return res.map((t) => t.id)
+  }
+
+  async getOrCreateHashtagIdsByNames(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
+    const targetTagNames   = _.sortBy(names)
+    const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
+    const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
+
+    const nonExistingTagNames = _.difference(targetTagNames, existingTagNames)
+    let tags = existingTags.map((t) => t.id)
+    if (nonExistingTagNames.length > 0) {
+      const createdTags = await this.createHashtags(nonExistingTagNames)
+      if (createdTags.length > 0) {
+        tags = tags.concat(createdTags)
+      }
+    }
+    return tags
+  }
+
+  getPostHashtags(postId) {
+    return this.database.select('hashtags.id', 'hashtags.name').from('hashtags')
+      .join('hashtag_usages', { 'hashtag_usages.hashtag_id': 'hashtags.id' })
+      .where('hashtag_usages.entity_id', '=', postId).andWhere('hashtag_usages.type', 'post')
+  }
+
+  getCommentHashtags(commentId) {
+    return this.database.select('hashtags.id', 'hashtags.name').from('hashtags')
+      .join('hashtag_usages', { 'hashtag_usages.hashtag_id': 'hashtags.id' })
+      .where('hashtag_usages.entity_id', '=', commentId).andWhere('hashtag_usages.type', 'comment')
+  }
+
+  async createHashtags(names) {
+    if (!names || names.length == 0) {
+      return []
+    }
+    const payload = names.map((name) => {
+      return `('${name}')`
+    }).join(',')
+    const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
+    return res.rows.map((t) => t.id)
+  }
+
+  linkHashtags(tagIds, entityId, toPost = true) {
+    if (tagIds.length == 0) {
+      return false
+    }
+    let entityType = 'post'
+    if (!toPost) {
+      entityType = 'comment'
+    }
+    const payload = tagIds.map((hashtagId) => {
+      return `(${hashtagId}, '${entityId}', '${entityType}')`
+    }).join(',')
+
+    return this.database.raw(`insert into hashtag_usages ("hashtag_id", "entity_id", "type") values ${payload} on conflict do nothing`)
+  }
+
+  unlinkHashtags(tagIds, entityId, fromPost = true) {
+    if (tagIds.length == 0) {
+      return false
+    }
+    let entityType = 'post'
+    if (!fromPost) {
+      entityType = 'comment'
+    }
+    return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('entity_id', entityId).where('type', entityType).del()
+  }
+
+  async linkPostHashtagsByNames(names, postId) {
+    if (!names || names.length == 0) {
+      return false
+    }
+    const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
+    return this.linkHashtags(hashtagIds, postId)
+  }
+
+  async unlinkPostHashtagsByNames(names, postId) {
+    if (!names || names.length == 0) {
+      return false
+    }
+    const hashtagIds = await this.getHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
+    return this.unlinkHashtags(hashtagIds, postId)
+  }
+
+  async linkCommentHashtagsByNames(names, commentId) {
+    if (!names || names.length == 0) {
+      return false
+    }
+    const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
+    return this.linkHashtags(hashtagIds, commentId, false)
+  }
+
+  async unlinkCommentHashtagsByNames(names, commentId) {
+    if (!names || names.length == 0) {
+      return false
+    }
+    const hashtagIds = await this.getHashtagIdsByNames(names)
+    if (!hashtagIds || hashtagIds.length == 0) {
+      return false
+    }
+    return this.unlinkHashtags(hashtagIds, commentId, false)
+  }
 }
