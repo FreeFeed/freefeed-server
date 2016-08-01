@@ -258,4 +258,50 @@ describe('FullTextSearch', () => {
       })
     })
   })
+
+  describe('search patterns', () => {
+    it('should not find pieces from the middle of words', async () => {
+      const luna = new User({ username: 'Luna', password: 'password' });
+      await luna.create();
+
+      const post = await luna.newPost({ body: 'hello foobar' });
+      await post.create();
+
+      {
+        const query = SearchQueryParser.parse('"oob"');
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+
+        searchResults.length.should.eql(0)
+      }
+
+      {
+        const query = SearchQueryParser.parse('"hello foob"');
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+
+        searchResults.length.should.eql(0)
+      }
+    })
+
+    it('should find exact matches', async () => {
+      const luna = new User({ username: 'Luna', password: 'password' });
+      await luna.create();
+
+      const post = await luna.newPost({ body: 'hello foobar' });
+      await post.create();
+
+      {
+        const query = SearchQueryParser.parse('"hello"');
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+
+        searchResults.length.should.eql(1)
+      }
+
+      {
+        const query = SearchQueryParser.parse('"foobar"');
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+
+        searchResults.length.should.eql(1)
+      }
+    })
+  })
 })

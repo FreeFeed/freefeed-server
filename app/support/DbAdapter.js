@@ -1710,7 +1710,7 @@ export class DbAdapter {
 
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
-        const regex = `${quote}`;
+        const regex = `[[:<:]]${quote}[[:>:]]`;
         return pgFormat(`posts.body ~ %L`, regex)
       })
       searchConditions.push(`${quoteConditions.join(' and ')}`)
@@ -1743,7 +1743,7 @@ export class DbAdapter {
     }
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
-        const regex = `${quote}`;
+        const regex = `[[:<:]]${quote}[[:>:]]`;
         return pgFormat(`comments.body ~ %L`, regex)
       })
       searchConditions.push(`${quoteConditions.join(' and ')}`)
