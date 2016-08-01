@@ -303,5 +303,20 @@ describe('FullTextSearch', () => {
         searchResults.length.should.eql(1)
       }
     })
+
+    it('should escape regexps-symbols while doing exact matches', async () => {
+      const luna = new User({ username: 'Luna', password: 'password' });
+      await luna.create();
+
+      const post = await luna.newPost({ body: 'hello, dollyg goodbye foobar!' });
+      await post.create();
+
+      {
+        const query = SearchQueryParser.parse('"hello, dolly. goodbye"');
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+
+        searchResults.length.should.eql(0)
+      }
+    })
   })
 })
