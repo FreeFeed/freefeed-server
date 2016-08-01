@@ -1,14 +1,15 @@
+/* eslint-env node, mocha */
+/* global $pg_database */
 import knexCleaner from 'knex-cleaner'
 import { dbAdapter, User, Group } from '../../app/models'
 
 
-describe('Group', function() {
-  beforeEach(async ()=>{
-    await $database.flushdbAsync()
+describe('Group', () => {
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', function() {
+  describe('#create()', () => {
     let groupAdmin
     beforeEach(async () => {
       groupAdmin = new User({
@@ -19,22 +20,20 @@ describe('Group', function() {
       await groupAdmin.create()
     })
 
-    it('should create without error', function(done) {
-      var group = new Group({
-        username: 'FriendFeed'
-      })
-      var ownerId = groupAdmin.id
+    it('should create without error', (done) => {
+      const group = new Group({ username: 'FriendFeed' })
+      const ownerId = groupAdmin.id
 
       group.create(ownerId)
-        .then(function(group) {
+        .then((group) => {
           group.should.be.an.instanceOf(Group)
           group.should.not.be.empty
           group.should.have.property('id')
 
           return group
         })
-        .then((group) => { return dbAdapter.getGroupById(group.id) })
-        .then(function(newGroup) {
+        .then((group) => dbAdapter.getGroupById(group.id))
+        .then((newGroup) => {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty
           newGroup.should.have.property('id')
@@ -44,25 +43,26 @@ describe('Group', function() {
 
           return dbAdapter.getGroupByUsername(group.username)
         })
-        .then(function(groupByName) {
+        .then((groupByName) => {
           groupByName.id.should.eql(group.id)
           groupByName.should.be.an.instanceOf(Group)
           return groupByName.getAdministratorIds()
         })
-        .then(function(adminIds) {
+        .then((adminIds) => {
           adminIds.should.contain(ownerId)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should create with null screenName', function(done) {
-      var group = new Group({
-        username: 'username',
+    it('should create with null screenName', (done) => {
+      const group = new Group({
+        username:   'username',
         screenName: null
       })
 
       group.create()
-        .then(function(newGroup) {
+        .then((newGroup) => {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty
           newGroup.should.have.property('id')
@@ -71,13 +71,14 @@ describe('Group', function() {
           newGroup.type.should.eql('group')
           group.should.have.property('screenName')
           newGroup.screenName.should.eql(group.username)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
     it('should not create with tiny screenName', async () => {
-      var group = new Group({
-        username: 'FriendFeed',
+      const group = new Group({
+        username:   'FriendFeed',
         screenName: 'a'
       })
 
@@ -91,32 +92,31 @@ describe('Group', function() {
       throw new Error(`FAIL (screenname "a" should not be valid)`)
     })
 
-    it('should not create with username that already exists', function(done) {
-      var groupA = new Group({
-        username: 'FriendFeedA',
+    it('should not create with username that already exists', (done) => {
+      const groupA = new Group({
+        username:   'FriendFeedA',
         screenName: 'FriendFeedA'
       })
 
-      var groupB = new Group({
-        username: 'FriendFeedA',
+      const groupB = new Group({
+        username:   'FriendFeedA',
         screenName: 'FriendFeedB'
       })
 
       groupA.create()
-        .then(function() { return groupB.create() })
-        .catch(function(e) {
-          e.message.should.eql("Already exists")
+        .then(() => { return groupB.create() })
+        .then(() => { done(new Error('Creted group with existing username')) })
+        .catch((e) => {
+          e.message.should.eql('Already exists')
           done()
         })
     })
   })
 
-  describe('#update()', function() {
+  describe('#update()', () => {
     it('should update without error', async () => {
-      var screenName = 'Pepyatka'
-      var group = new Group({
-        username: 'FriendFeed'
-      })
+      const screenName = 'Pepyatka'
+      const group = new Group({ username: 'FriendFeed' })
 
       await group.create()
 
@@ -125,9 +125,7 @@ describe('Group', function() {
       group.should.have.property('id')
       group.should.have.property('screenName')
 
-      await group.update({
-        screenName: screenName
-      })
+      await group.update({ screenName })
 
       group.should.be.an.instanceOf(Group)
       group.should.not.be.empty
@@ -139,38 +137,36 @@ describe('Group', function() {
       group.screenName.should.eql(screenName)
     })
 
-    it('should update without screenName', function(done) {
-      var screenName = 'Luna'
-      var group = new Group({
+    it('should update without screenName', (done) => {
+      const screenName = 'Luna'
+      const group = new Group({
         username: 'Luna',
-        screenName: screenName
+        screenName
       })
 
       group.create()
-        .then(function(group) {
-          return group.update({})
-        })
-        .then(function(newGroup) {
+        .then((group) => group.update({}))
+        .then((newGroup) => {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty
           newGroup.should.have.property('id')
           newGroup.screenName.should.eql(screenName)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#isValidUsername()', function() {
-    var valid = [
+  describe('#isValidUsername()', () => {
+    const valid = [
       'luna', 'lun', '12345', 'hello1234', 'save-our-snobs',
       ' group', 'group ',  // automatically trims
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 35 chars is ok
     ]
-    valid.forEach(function(username) {
-      it('should allow username ' + username, async () => {
-
-        var group = new Group({
-          username: username,
+    valid.forEach((username) => {
+      it(`should allow username ${username}`, async () => {
+        const group = new Group({
+          username,
           screenName: 'test'
         })
 
@@ -179,22 +175,21 @@ describe('Group', function() {
       })
     })
 
-    var invalid = [
+    const invalid = [
       'lu', '-12345', 'luna-', 'hel--lo', 'абизьян', 'gr oup',
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  // 36 chars is 1 char too much
     ]
-    invalid.forEach(function(username) {
-      it('should not allow invalid username ' + username, async () => {
-
-        var group = new Group({
-          username: username,
+    invalid.forEach((username) => {
+      it(`should not allow invalid username ${username}`, async () => {
+        const group = new Group({
+          username,
           screenName: 'test'
         })
 
         try {
           await group.create()
         } catch (e) {
-          e.message.should.eql("Invalid username")
+          e.message.should.eql('Invalid username')
           return
         }
 
@@ -203,7 +198,7 @@ describe('Group', function() {
     })
   })
 
-  describe('addAdministrator', function() {
+  describe('addAdministrator', () => {
     let group
       , groupAdmin
     beforeEach(async () => {
@@ -215,28 +210,28 @@ describe('Group', function() {
       await groupAdmin.create()
 
       group = new Group({
-        username: 'Luna',
+        username:   'Luna',
         screenName: 'Moon'
       })
       await group.create()
     })
 
-    it('should add an administrator', function(done) {
+    it('should add an administrator', (done) => {
       group.addAdministrator(groupAdmin.id)
-        .then(function() {
-          return group.getAdministratorIds()
-        })
-        .then(function(res) {
+        .then(() => group.getAdministratorIds())
+        .then((res) => {
           res.should.contain(groupAdmin.id)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('removeAdministrator', function() {
+  describe('removeAdministrator', () => {
     let group
       , groupAdmin
       , secondGroupAdmin
+
     beforeEach(async () => {
       groupAdmin = new User({
         username: 'Pluto',
@@ -253,33 +248,30 @@ describe('Group', function() {
       await secondGroupAdmin.create()
 
       group = new Group({
-        username: 'Luna',
+        username:   'Luna',
         screenName: 'Moon'
       })
       await group.create(groupAdmin.id)
       await group.addAdministrator(secondGroupAdmin.id)
     })
 
-    it('should remove an administrator', function(done) {
+    it('should remove an administrator', (done) => {
       group.removeAdministrator(groupAdmin.id)
-          .then(function() {
-            return group.getAdministratorIds()
-          })
-          .then(function(res) {
-            res.length.should.eql(1)
-          })
-          .then(function() { done() })
+        .then(() => group.getAdministratorIds())
+        .then((res) => {
+          res.length.should.eql(1)
+          done()
+        })
+        .catch((e) => { done(e) })
     })
 
-    it('should refuse to remove the last administrator', function(done) {
+    it('should refuse to remove the last administrator', (done) => {
       group.removeAdministrator(secondGroupAdmin.id)
-          .then(function() {
-            return group.removeAdministrator(groupAdmin.id)
-          })
-          .catch(function(e) {
-            e.message.should.eql("Cannot remove last administrator")
-            done()
-          })
+        .then(() => group.removeAdministrator(groupAdmin.id))
+        .catch((e) => {
+          e.message.should.eql('Cannot remove last administrator')
+          done()
+        })
     })
   })
 })

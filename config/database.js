@@ -9,6 +9,7 @@ promisifyAll(_redis.Multi.prototype)
 
 const config = configLoader()
 let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options)
+export default database;
 
 // TODO: move to app.logger
 database.on('connect'     , log('connect'))

@@ -1,5 +1,6 @@
 import _ from 'lodash'
 import GraphemeBreaker from 'grapheme-breaker'
+import twitter from 'twitter-text'
 
 import { PubSub as pubSub } from '../models'
 
@@ -67,6 +68,8 @@ export function addModel(dbAdapter) {
     const post = await dbAdapter.getPostById(this.postId)
     const timelines = await post.addComment(this)
 
+    await this.processHashtagsOnCreate()
+
     await dbAdapter.statsCommentCreated(this.userId)
 
     return timelines
@@ -84,6 +87,8 @@ export function addModel(dbAdapter) {
     }
     await dbAdapter.updateComment(this.id, payload)
 
+    await this.processHashtagsOnUpdate()
+
     await pubSub.updateComment(this.id)
 
     return this
@@ -94,27 +99,56 @@ export function addModel(dbAdapter) {
   }
 
   Comment.prototype.destroy = async function() {
-    await pubSub.destroyComment(this.id, this.postId)
     await dbAdapter.deleteComment(this.id, this.postId)
-    await dbAdapter.statsCommentDeleted(this.userId)
 
     // look for comment from this user in this post
     // if this is was the last one remove this post from user's comments timeline
     const post = await dbAdapter.getPostById(this.postId)
     const comments = await post.getComments()
 
-    if (_.any(comments, 'userId', this.userId)) {
-      return true
+    if (_.some(comments, ['userId', this.userId])) {
+      return
     }
 
     const user = await dbAdapter.getUserById(this.userId)
     const timelineId = await user.getCommentsTimelineIntId()
 
-    return dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
+    await dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
+
+    await dbAdapter.statsCommentDeleted(this.userId)
+    await pubSub.destroyComment(this.id, this.postId)
   }
 
   Comment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
+  }
+
+  Comment.prototype.processHashtagsOnCreate = async function () {
+    const commentTags = _.uniq(twitter.extractHashtags(this.body))
+
+    if (!commentTags || commentTags.length == 0) {
+      return
+    }
+    await dbAdapter.linkCommentHashtagsByNames(commentTags, this.id)
+  }
+
+  Comment.prototype.processHashtagsOnUpdate = async function () {
+    const linkedCommentHashtags = await dbAdapter.getCommentHashtags(this.id)
+
+    const presentTags    = _.sortBy(linkedCommentHashtags.map((t) => t.name))
+    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body)))
+    const notChangedTags = _.intersection(presentTags, newTags)
+    const tagsToUnlink   = _.difference(presentTags, notChangedTags)
+    const tagsToLink     = _.difference(newTags, notChangedTags)
+
+    if (presentTags != newTags) {
+      if (tagsToUnlink.length > 0) {
+        await dbAdapter.unlinkCommentHashtagsByNames(tagsToUnlink, this.id)
+      }
+      if (tagsToLink.length > 0) {
+        await dbAdapter.linkCommentHashtagsByNames(tagsToLink, this.id)
+      }
+    }
   }
 
   return Comment

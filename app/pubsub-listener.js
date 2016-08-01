@@ -5,8 +5,8 @@ import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
 import { load as configLoader } from '../config/config'
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
 
 
 promisifyAll(jwt)
@@ -146,20 +146,20 @@ export default class PubsubListener {
         if (user.id) {  // otherwise, it is an anonymous user
           const banIds = await user.getBanIds()
 
-          if (banIds.indexOf(post.userId) >= 0) {
+          if (banIds.includes(post.userId)) {
             return;
           }
 
           const authorBans = await dbAdapter.getUserBansIds(post.userId)
 
-          if (authorBans.indexOf(user.id) >= 0) {
+          if (authorBans.includes(user.id)) {
             return;
           }
 
           if (type === 'comment:new' || type === 'comment:update') {
             const uid = json.comments.createdBy;
 
-            if (banIds.indexOf(uid) >= 0) {
+            if (banIds.includes(uid)) {
               return;
             }
           }
@@ -167,7 +167,7 @@ export default class PubsubListener {
           if (type === 'like:new') {
             const uid = json.users.id;
 
-            if (banIds.indexOf(uid) >= 0) {
+            if (banIds.includes(uid)) {
               return;
             }
           }

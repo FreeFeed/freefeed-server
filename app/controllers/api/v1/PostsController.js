@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
-import exceptions, { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class PostsController {
@@ -69,7 +69,7 @@ export default class PostsController {
       const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -94,7 +94,7 @@ export default class PostsController {
       const json = await new PostSerializer(post).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -121,25 +121,25 @@ export default class PostsController {
         const author = await dbAdapter.getUserById(post.userId)
         const banIds = await author.getBanIds()
 
-        if (banIds.indexOf(req.user.id) >= 0)
+        if (banIds.includes(req.user.id))
           throw new ForbiddenException('This user has prevented you from seeing their posts')
 
         const yourBanIds = await req.user.getBanIds()
 
-        if (yourBanIds.indexOf(author.id) >= 0)
+        if (yourBanIds.includes(author.id))
           throw new ForbiddenException('You have blocked this user and do not want to see their posts')
       }
 
       const json = new PostSerializer(post).promiseToJSON()
       res.jsonp(await json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
   static async like(req, res) {
     if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+      res.status(401).jsonp({ err: 'Not authenticated' })
       return
     }
 
@@ -154,25 +154,36 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
+      const valid = await post.canShow(req.user.id)
+      if (!valid) {
+        throw new NotFoundException("Can't find post");
+      }
+
       const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+
       if (userLikedPost) {
         throw new ForbiddenException("You can't like post that you have already liked")
       }
 
-      const valid = await post.canShow(req.user.id)
-      if (!valid) {
-        throw new Error('Not found')
+      try {
+        const affectedTimelines = await post.addLike(req.user)
+
+        await dbAdapter.statsLikeCreated(req.user.id)
+
+        res.status(200).send({})
+
+        await pubSub.newLike(post, req.user.id, affectedTimelines)
+      } catch (e) {
+        if (e.code === '23505') {
+          // '23505' stands for unique_violation
+          // see https://www.postgresql.org/docs/current/static/errcodes-appendix.html
+          throw new ForbiddenException("You can't like post that you have already liked")
+        }
+
+        throw e;
       }
-
-      const affectedTimelines = await post.addLike(req.user)
-
-      await dbAdapter.statsLikeCreated(req.user.id)
-
-      res.status(200).send({})
-
-      await pubSub.newLike(post, req.user.id, affectedTimelines)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -209,7 +220,7 @@ export default class PostsController {
 
       res.status(200).send({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -233,7 +244,7 @@ export default class PostsController {
       await post.destroy()
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -253,7 +264,7 @@ export default class PostsController {
       await post.hide(req.user.id)
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -273,7 +284,7 @@ export default class PostsController {
       await post.unhide(req.user.id)
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -298,7 +309,7 @@ export default class PostsController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -323,7 +334,7 @@ export default class PostsController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

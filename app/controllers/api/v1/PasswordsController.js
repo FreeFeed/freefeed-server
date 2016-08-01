@@ -1,6 +1,6 @@
 import { dbAdapter } from '../../../models'
 import { UserMailer } from '../../../mailers'
-import exceptions, { NotFoundException } from '../../../support/exceptions'
+import { reportError, NotFoundException } from '../../../support/exceptions'
 
 
 export default class PasswordsController {
@@ -25,7 +25,7 @@ export default class PasswordsController {
 
       res.jsonp({ message: `Password reset link has been sent to ${user.email}` })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -49,7 +49,7 @@ export default class PasswordsController {
 
       res.jsonp({ message: 'Your new password has been saved' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 }

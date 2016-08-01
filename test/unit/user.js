@@ -1,82 +1,84 @@
+/* eslint-env node, mocha */
+/* global $pg_database, $should */
 import async from 'async'
 import { expect } from 'chai'
 import knexCleaner from 'knex-cleaner'
 
-import { dbAdapter, Post, Timeline, User } from "../../app/models"
+import { dbAdapter, Post, Timeline, User } from '../../app/models'
 
 
-describe('User', function() {
-  beforeEach(async ()=>{
-    await $database.flushdbAsync()
+describe('User', () => {
+  beforeEach(async () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#validPassword()', function() {
-    it('should validate valid password', function(done) {
-      var user = new User({
+  describe('#validPassword()', () => {
+    it('should validate valid password', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user.validPassword('password') })
-        .then(function(valid) {
+        .then((user) => user.validPassword('password'))
+        .then((valid) => {
           valid.should.eql(true)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should not validate invalid password', function(done) {
-      var user = new User({
+    it('should not validate invalid password', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user.validPassword('drowssap') })
-        .then(function(valid) {
+        .then((user) => user.validPassword('drowssap'))
+        .then((valid) => {
           valid.should.eql(false)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#isValidUsername()', function() {
-    var valid = [
+  describe('#isValidUsername()', () => {
+    const valid = [
       'luna', 'lun', '12345', 'hello1234',
       ' group', 'group ',  // automatically trims
       'aaaaaaaaaaaaaaaaaaaaaaaaa'  // 25 chars is ok
     ]
 
-    var i = 1
-    valid.forEach(function(username) {
-      it(`should allow username '${username}'`, function(done) {
-
-        var user = new User({
-          username: username,
+    let i = 1
+    valid.forEach((username) => {
+      it(`should allow username '${username}'`, (done) => {
+        const user = new User({
+          username,
           screenName: 'test',
-          password: 'password',
-          email: `user+${i++}@example.com`
+          password:   'password',
+          email:      `user+${i++}@example.com`
         })
 
         user.create()
-          .then(function() { done() })
+          .then(() => { done() })
+          .catch((e) => { done(e) })
       })
     })
 
-    var invalid = [
+    const invalid = [
       'lu', '-12345', 'luna-', 'hel--lo', 'save-our-snobs', 'абизьян',
       'gr oup', '',
       'aaaaaaaaaaaaaaaaaaaaaaaaaa'  // 26 chars is 1 char too much
     ]
-    invalid.forEach(function(username) {
-      it('should not allow invalid username ' + username, async () => {
-
-        var user = new User({
-          username: username,
+    invalid.forEach((username) => {
+      it(`should not allow invalid username ${username}`, async () => {
+        const user = new User({
+          username,
           screenName: 'test',
-          password: 'password',
-          email: 'user@example.com'
+          password:   'password',
+          email:      'user@example.com'
         })
 
         try {
@@ -91,8 +93,8 @@ describe('User', function() {
     })
   })
 
-  describe('#isValidDescription()', function() {
-    var valid = [
+  describe('#isValidDescription()', () => {
+    const valid = [
       '',
       "Earth's only natural satellite",
       "window.alert('Ha-ha-ha!')",
@@ -100,22 +102,19 @@ describe('User', function() {
       '!'.repeat(1500) // 1500 characters is OK
     ]
 
-    var i = 1
-    valid.forEach(function(description) {
+    let i = 1
+    valid.forEach((description) => {
       it(`should allow description ${i++}`, async () => {
-
-        var user = new User({
-          username: `username${i}`,
+        const user = new User({
+          username:   `username${i}`,
           screenName: 'test',
-          password: 'password',
-          email: `user+${i++}@example.com`
+          password:   'password',
+          email:      `user+${i++}@example.com`
         })
 
         await user.create()
 
-        const updatedUser = await user.update({
-          description: description
-        })
+        const updatedUser = await user.update({ description })
 
         updatedUser.should.be.an.instanceOf(User)
         updatedUser.should.not.be.empty
@@ -124,26 +123,23 @@ describe('User', function() {
       })
     })
 
-    var invalid = [
+    const invalid = [
       '!'.repeat(1501) // 1501 characters is NOT OK
     ]
 
-    invalid.forEach(function(description) {
+    invalid.forEach((description) => {
       it('should not allow too long description', async () => {
-
-        var user = new User({
-          username: `username`,
+        const user = new User({
+          username:   `username`,
           screenName: 'test',
-          password: 'password',
-          email: 'user@example.com'
+          password:   'password',
+          email:      'user@example.com'
         })
 
         await user.create()
 
         try {
-          await user.update({
-            description: description
-          })
+          await user.update({ description })
         } catch (e) {
           e.message.should.eql('Description is too long')
           return
@@ -154,53 +150,59 @@ describe('User', function() {
     })
   })
 
-  describe('#validEmail()', function() {
+  describe('#validEmail()', () => {
     // @todo Provide fixtures to validate various email formats
-    it('should validate syntactically correct email', function(done) {
-      var user = new User({
+    it('should validate syntactically correct email', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password',
-        email: 'user@example.com'
+        email:    'user@example.com'
       })
 
       user.create()
-        .then(function() { done() })
+        .then(() => { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should validate without email', function(done) {
-      var user = new User({
+    it('should validate without email', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function() { done() })
+        .then(() => { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should not validate syntactically incorrect email', function() {
-      var user = new User({
+    it('should not validate syntactically incorrect email', async () => {
+      const user = new User({
         username: 'Luna',
         password: 'password',
-        email: 'user2@.example..com'
+        email:    'user2@.example..com'
       })
 
-      return user.create()
-        .catch(function(e) {
-          expect(e.message).to.equal('Invalid email');
-        })
+      try {
+        await user.create()
+      } catch (e) {
+        expect(e.message).to.equal('Invalid email');
+        return;
+      }
+
+      throw new Error('FAIL (should not allow user with invalid email)')
     })
 
     it('should not allow 2 users with same email', async () => {
-      var user1 = new User({
+      const user1 = new User({
         username: 'Luna1',
         password: 'password',
-        email: 'email@example.com'
+        email:    'email@example.com'
       })
 
-      var user2 = new User({
+      const user2 = new User({
         username: 'Luna2',
         password: 'password',
-        email: 'email@example.com'
+        email:    'email@example.com'
       })
 
       await user1.create()
@@ -216,140 +218,127 @@ describe('User', function() {
     })
   })
 
-  describe('#update()', function() {
-    it('should update without error', function(done) {
-      var screenName = 'Mars'
-      var description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
+  describe('#update()', () => {
+    it('should update without error', (done) => {
+      const screenName = 'Mars'
+      const description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
 
-      var user = new User({
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.update({
-            screenName: screenName,
-            description: description
-          })
-        })
-        .then(function(newUser) {
+        .then((user) => user.update({ screenName, description }))
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.screenName.should.eql(screenName)
           newUser.description.should.eql(description)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should update without email', function(done) {
-      var user = new User({
-        username: 'Luna',
+    it('should update without email', (done) => {
+      const user = new User({
+        username:   'Luna',
         screenName: 'luna',
-        password: 'password',
-        email: 'test@example.com'
+        password:   'password',
+        email:      'test@example.com'
       })
 
       user.create()
-        .then(function(user) {
-          return user.update({
-            email: null
-          })
-        })
-        .then(function(newUser) {
+        .then((user) => user.update({ email: null }))
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           done()
         })
+        .catch((e) => { done(e) })
     })
 
-    it('should update without screenName', function(done) {
-      var screenName = 'Luna'
-      var user = new User({
+    it('should update without screenName', (done) => {
+      const screenName = 'Luna'
+      const user = new User({
         username: 'Luna',
-        screenName: screenName,
+        screenName,
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.update({
-          })
-        })
-        .then(function(newUser) {
+        .then((user) => user.update({}))
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.screenName.should.eql(screenName)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should not update with blank screenName', function(done) {
-      var user = new User({
+    it('should not update with blank screenName', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.update({
-            screenName: ''
-          })
-        })
-        .catch(function(e) {
+        .then((user) => user.update({ screenName: '' }))
+        .then(() => { done(new Error('FAIL')) })
+        .catch((e) => {
           e.message.should.eql(`"" is not a valid display name. Names must be between 3 and 25 characters long.`)
           done()
         })
     })
   })
 
-  describe('#create()', function() {
-    it('should create without error', function(done) {
-      var user = new User({
+  describe('#create()', () => {
+    it('should create without error', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
+        .then((user) => {
           user.should.be.an.instanceOf(User)
           user.should.not.be.empty
           user.should.have.property('id')
 
-          return user
+          return dbAdapter.getUserById(user.id)
         })
-        .then((user) => dbAdapter.getUserById(user.id))
-        .then(function(newUser) {
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.id.should.eql(user.id)
           newUser.should.have.property('type')
           newUser.type.should.eql('user')
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should create with an email address', function(done) {
-      var user = new User({
+    it('should create with an email address', (done) => {
+      const user = new User({
         username: 'Luna',
-        email: 'luna@example.com',
+        email:    'luna@example.com',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
+        .then((user) => {
           user.should.be.an.instanceOf(User)
           user.should.not.be.empty
           user.should.have.property('id')
 
-          return user
+          return dbAdapter.getUserById(user.id)
         })
-        .then((user) => dbAdapter.getUserById(user.id))
-        .then(function(newUser) {
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
@@ -358,73 +347,73 @@ describe('User', function() {
           newUser.type.should.eql('user')
           newUser.should.have.property('email')
           newUser.email.should.eql(user.email)
+          done();
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should ignore whitespaces in username', function(done) {
-      var username = ' Luna  '
-        , user = new User({
-          username: username,
-          password: 'password'
-        })
+    it('should ignore whitespaces in username', (done) => {
+      const username = ' Luna  '
+      const user = new User({
+        username,
+        password: 'password'
+      })
 
       user.create()
-        .then(function(user) {
+        .then((user) => {
           user.should.be.an.instanceOf(User)
           user.should.not.be.empty
           user.should.have.property('id')
 
-          return user
+          return dbAdapter.getUserById(user.id)
         })
-        .then(() => dbAdapter.getUserById(user.id))
-        .then(function(newUser) {
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.id.should.eql(user.id)
           newUser.username.should.eql(username.trim().toLowerCase())
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should not create with empty password', function(done) {
-      var user = new User({
+    it('should not create with empty password', (done) => {
+      const user = new User({
         username: 'Luna',
         password: ''
       })
 
       user.create()
-        .catch(function(e) {
-          e.message.should.eql("Password cannot be blank")
+        .then(() => { done(new Error('FAIL')) })
+        .catch((e) => {
+          e.message.should.eql('Password cannot be blank')
           done()
         })
     })
 
-    it('should not create two users with the same username', function(done) {
-      var userA
-        , userB
-
-      userA = new User({
+    it('should not create two users with the same username', (done) => {
+      const userA = new User({
         username: 'Luna',
         password: 'password'
       })
 
-      userB = new User({
+      const userB = new User({
         username: 'luna',
         password: 'password'
       })
 
       userA.create()
-        .then(function(user) { return userB.create() })
-        .catch(function(e) {
-          e.message.should.eql("Already exists")
+        .then(() => userB.create())
+        .then(() => { done(new Error('FAIL')) })
+        .catch((e) => {
+          e.message.should.eql('Already exists')
           done()
         })
     })
 
     it('should not create user from stop-list', async () => {
-      var user = new User({
+      const user = new User({
         username: 'Public',
         password: 'password'
       })
@@ -432,7 +421,7 @@ describe('User', function() {
       try {
         await user.create()
       } catch (e) {
-        e.message.should.eql("Invalid username")
+        e.message.should.eql('Invalid username')
         return
       }
 
@@ -440,253 +429,244 @@ describe('User', function() {
     })
   })
 
-  describe('#findByEmail()', function() {
-    it('should find a user by email', function(done) {
-      let asyncFunc = async function() {
-        var user = new User({
-          username: 'Luna',
-          password: 'password',
-          email: 'luna@example.com'
-        })
-
-        await user.create()
-        await user.update({ email: user.email })
-
-        var newUser = await dbAdapter.getUserByEmail(user.email)
-
-        newUser.should.be.an.instanceOf(User)
-        newUser.should.not.be.empty
-        newUser.should.have.property('id')
-        newUser.id.should.eql(user.id)
-      }
-
-      asyncFunc().then(() => {done()}).catch((e) => {done(e)})
-    })
-
-    it('should not find a user by invalid email', function(done) {
-      var user = new User({
+  describe('#findByEmail()', () => {
+    it('should find a user by email', async () => {
+      const user = new User({
         username: 'Luna',
         password: 'password',
-        email: 'luna@example.com'
+        email:    'luna@example.com'
+      })
+
+      await user.create()
+      await user.update({ email: user.email })
+
+      const newUser = await dbAdapter.getUserByEmail(user.email)
+
+      newUser.should.be.an.instanceOf(User)
+      newUser.should.not.be.empty
+      newUser.should.have.property('id')
+      newUser.id.should.eql(user.id)
+    })
+
+    it('should not find a user by invalid email', (done) => {
+      const user = new User({
+        username: 'Luna',
+        password: 'password',
+        email:    'luna@example.com'
       })
 
       user.create()
-        .then(function(user) { return user.update({ email: user.email }) })
-        .then(function(user) { return dbAdapter.getUserByEmail('noreply@example.com') })
-        .then(function(e) {
-          expect(e).to.be.a('null')
+        .then((user) => user.update({ email: user.email }))
+        .then(() => dbAdapter.getUserByEmail('noreply@example.com'))
+        .then((user) => {
+          expect(user).to.be.a('null')
           done()
         })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#findByResetToken()', function() {
-    it('should find a user by reset token', function(done) {
-      var user = new User({
+  describe('#findByResetToken()', () => {
+    it('should find a user by reset token', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return dbAdapter.getUserByResetToken(token) })
-        .then(function(newUser) {
+        .then((user) => user.updateResetPasswordToken())
+        .then((token) => dbAdapter.getUserByResetToken(token))
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.id.should.eql(user.id)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should not find a user by invalid reset token', function(done) {
-      var user = new User({
+    it('should not find a user by invalid reset token', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user.updateResetPasswordToken() })
-        .then(function(token) { return dbAdapter.getUserByResetToken('token') })
-        .then(function(e) {
+        .then((user) => user.updateResetPasswordToken())
+        .then(() => dbAdapter.getUserByResetToken('token'))
+        .then((e) => {
           expect(e).to.be.a('null')
           done()
         })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#findById()', function() {
-    it('should not find user with an invalid id', function(done) {
-      var identifier = "user:identifier"
+  describe('#findById()', () => {
+    it('should not find user with an invalid id', (done) => {
+      const identifier = 'user:identifier'
 
       dbAdapter.getUserById(identifier)
-        .then(function(user) {
+        .then((user) => {
           $should.not.exist(user)
           done()
         })
+        .catch((e) => { done(e) })
     })
 
-    it('should find user with a valid id', function(done) {
-      var user = new User({
+    it('should find user with a valid id', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user })
-        .then(function(user) { return dbAdapter.getUserById(user.id) })
-        .then(function(newUser) {
+        .then((user) => dbAdapter.getUserById(user.id))
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('id')
           newUser.id.should.eql(user.id)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#findByUsername()', function(done) {
-    it('should find user with a valid username', function(done) {
-      var user = new User({
+  describe('#findByUsername()', () => {
+    it('should find user with a valid username', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return dbAdapter.getUserByUsername(user.username) })
-        .then(function(newUser) {
+        .then((user) => dbAdapter.getUserByUsername(user.username))
+        .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
           newUser.should.have.property('username')
           newUser.username.should.eql(user.username.toLowerCase())
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getRiverOfNews()', function() {
-    it('should get river of news', function(done) {
-      var user = new User({
+  describe('#getRiverOfNews()', () => {
+    it('should get river of news', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.getRiverOfNewsTimeline()
-        })
-        .then(function(timeline) {
+        .then((user) => user.getRiverOfNewsTimeline())
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('RiverOfNews')
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getLikesTimeline()', function() {
-    it('should get likes timeline', function(done) {
-      var user = new User({
+  describe('#getLikesTimeline()', () => {
+    it('should get likes timeline', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.getLikesTimeline()
-        })
-        .then(function(timeline) {
+        .then((user) => user.getLikesTimeline())
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('Likes')
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getPostsTimeline()', function() {
-    it('should get posts timeline', function(done) {
-      var user = new User({
+  describe('#getPostsTimeline()', () => {
+    it('should get posts timeline', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.getPostsTimeline()
-        })
-        .then(function(timeline) {
+        .then((user) => user.getPostsTimeline())
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('Posts')
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getCommentsTimeline()', function() {
-    it('should get comments timeline', function(done) {
-      var user = new User({
+  describe('#getCommentsTimeline()', () => {
+    it('should get comments timeline', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) {
-          return user.getCommentsTimeline()
-        })
-        .then(function(timeline) {
+        .then((user) => user.getCommentsTimeline())
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('Comments')
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getMyDiscussionsTimeline()', function() {
-    var user
+  describe('#getMyDiscussionsTimeline()', () => {
+    let user
 
-    beforeEach(function(done) {
-      user = new User({
-        username: 'Luna',
-        password: 'password'
-      })
-
-      user.create()
-        .then(function(user) { done() })
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' })
+      await user.create()
     })
 
-    it('should get my discussions timeline', function(done) {
+    it('should get my discussions timeline', (done) => {
       user.getMyDiscussionsTimeline()
-        .then(function(timeline) {
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('MyDiscussions')
           timeline.should.have.property('id')
           timeline.id.should.eql(user.id)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should include post to my discussions timeline', function(done) {
-      var post
-      var attrs = {
-        body: 'Post body'
-      }
+    it('should include post to my discussions timeline', (done) => {
+      let post
+      const attrs = { body: 'Post body' }
       user.newPost(attrs)
-        .then(function(newPost) {
+        .then((newPost) => {
           post = newPost
           return newPost.create()
         })
-        .then(function(post) { return post.addLike(user) })
-        .then(function() { return user.getMyDiscussionsTimeline() })
-        .then(function(timeline) {
+        .then((post) => post.addLike(user))
+        .then(() => user.getMyDiscussionsTimeline())
+        .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('name')
@@ -694,55 +674,56 @@ describe('User', function() {
 
           return timeline.getPosts()
         })
-        .then(function(posts) {
+        .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()
         })
-        .catch(function(e) { done(e) })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getTimelines()', function() {
-    it('should return user timelines after user creation', function(done) {
-      var user = new User({
+  describe('#getTimelines()', () => {
+    it('should return user timelines after user creation', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user.getTimelines() })
-        .then(function(timelines) {
+        .then((user) => user.getTimelines())
+        .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
           timelines.length.should.be.eql(7)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should return timelines', function(done) {
-      var user = new User({
+    it('should return timelines', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(newUser) { return user.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return user.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return user.getCommentsTimeline() })
-        .then(function(timeline) { return user.getCommentsTimeline() })
-        .then(function(timeline) { return user.getLikesTimeline() })
-        .then(function(timeline) { return user.getLikesTimeline() })
-        .then(function(timeline) { return user.getPostsTimeline() })
-        .then(function(timeline) { return user.getPostsTimeline() })
-        .then(function(timeline) { return user.getTimelines() })
-        .then(function(timelines) {
+        .then(() => user.getRiverOfNewsTimeline())
+        .then(() => user.getRiverOfNewsTimeline())
+        .then(() => user.getCommentsTimeline())
+        .then(() => user.getCommentsTimeline())
+        .then(() => user.getLikesTimeline())
+        .then(() => user.getLikesTimeline())
+        .then(() => user.getPostsTimeline())
+        .then(() => user.getPostsTimeline())
+        .then(() => user.getTimelines())
+        .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
           timelines.length.should.be.eql(7)
-          var timeline = timelines[0]
+          const timeline = timelines[0]
           timeline.should.have.property('name')
           timeline.name.should.eql('RiverOfNews')
           timelines[1].should.have.property('name')
@@ -757,62 +738,61 @@ describe('User', function() {
           timelines[5].name.should.eql('Directs')
           timelines[6].should.have.property('name')
           timelines[6].name.should.eql('MyDiscussions')
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#newPost()', function() {
-    var user
+  describe('#newPost()', () => {
+    let user
 
-    beforeEach(function(done) {
+    beforeEach((done) => {
       user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { done() })
+        .then(() => { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should create a new post', function(done) {
-      var post
-      var attrs = {
-        body: 'Post body'
-      }
+    it('should create a new post', (done) => {
+      let post
+      const attrs = { body: 'Post body' }
 
       user.newPost(attrs)
-        .then(function(newPost) {
+        .then((newPost) => {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
-        .then(function(newPost) {
+        .then((newPost) => dbAdapter.getPostById(newPost.id))
+        .then((newPost) => {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
+          done();
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
 
-    it('should create a new post to a timeline', function(done) {
-      var post
-      var attrs = {
-        body: 'Post body'
-      }
+    it('should create a new post to a timeline', (done) => {
+      let post
+      const attrs = { body: 'Post body' }
 
       user.getPostsTimelineId()
-        .then(function(timelineId) {
+        .then((timelineId) => {
           attrs.timelineIds = [timelineId]
           return user.newPost(attrs)
         })
-        .then(function(newPost) {
+        .then((newPost) => {
           post = newPost
           return newPost.create()
         })
-        .then(function(newPost) { return dbAdapter.getPostById(newPost.id) })
-        .then(function(newPost) {
+        .then((newPost) => dbAdapter.getPostById(newPost.id))
+        .then((newPost) => {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('id')
@@ -820,110 +800,90 @@ describe('User', function() {
 
           return user.getPostsTimeline()
         })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then((timeline) => timeline.getPosts())
+        .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          var newPost = posts[0]
+          const newPost = posts[0]
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
           newPost.body.should.eql(post.body)
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getPublicTimelineIds()', function() {
-    it('should return all public timesline ids', function(done) {
-      var user = new User({
+  describe('#getPublicTimelineIds()', () => {
+    it('should return all public timesline ids', (done) => {
+      const user = new User({
         username: 'Luna',
         password: 'password'
       })
 
       user.create()
-        .then(function(user) { return user.getPublicTimelineIds() })
-        .then(function(timelines) {
+        .then((user) => user.getPublicTimelineIds())
+        .then((timelines) => {
           timelines.should.not.be.empty
           timelines.length.should.eql(3)
+          done()
         })
-        .then(function(user) { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#subscribeTo()', function() {
-    var userA
+  describe('#subscribeTo()', () => {
+    let userA
       , userB
 
-    beforeEach(function(done) {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+      await Promise.all([userA.create(), userB.create()])
     })
 
-    it('should subscribe to timeline', async function() {
-      var attrs = {
-        body: 'Post body'
-      }
-      var post = await userB.newPost(attrs)
+    it('should subscribe to timeline', async () => {
+      const attrs = { body: 'Post body' }
+      const post = await userB.newPost(attrs)
       await post.create()
-      let timelineId = await userB.getPostsTimelineId()
+      const timelineId = await userB.getPostsTimelineId()
       await userA.subscribeTo(timelineId)
-      let timeline = await userA.getRiverOfNewsTimeline()
-      let posts = await timeline.getPosts()
+      const timeline = await userA.getRiverOfNewsTimeline()
+      const posts = await timeline.getPosts()
 
       posts.should.not.be.empty
       posts.length.should.eql(1)
-      var newPost = posts[0]
+      const newPost = posts[0]
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)
     })
   })
 
-  describe('#subscribeToUsername()', function() {
-    var userA
+  describe('#subscribeToUsername()', () => {
+    let userA
       , userB
 
-    beforeEach(function(done) {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+      await Promise.all([userA.create(), userB.create()])
     })
 
     it('should subscribe to username', async function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
-      var post = await userB.newPost(attrs)
+      const attrs = { body: 'Post body' }
+      const post = await userB.newPost(attrs)
       await post.create()
       await userA.subscribeToUsername(userB.username)
-      let timeline = await userA.getRiverOfNewsTimeline()
-      let posts = await timeline.getPosts()
+      const timeline = await userA.getRiverOfNewsTimeline()
+      const posts = await timeline.getPosts()
 
       posts.should.not.be.empty
       posts.length.should.eql(1)
-      var newPost = posts[0]
+      const newPost = posts[0]
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)
@@ -932,94 +892,79 @@ describe('User', function() {
     })
   })
 
-  describe('#unsubscribeFrom()', function() {
-    var userA
+  describe('#unsubscribeFrom()', () => {
+    let userA
       , userB
 
-    beforeEach(function(done) {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+      await Promise.all([userA.create(), userB.create()])
     })
 
-    it('should unsubscribe from timeline', function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
-      var identifier
+    it('should unsubscribe from timeline', (done) => {
+      const attrs = { body: 'Post body' }
+      let identifier
 
       userB.newPost(attrs)
-        .then(function(newPost) { return newPost.create() })
-        .then(function(post) { return userB.getPostsTimelineId() })
-        .then(function(timelineId) {
+        .then((newPost) => newPost.create())
+        .then(() => userB.getPostsTimelineId())
+        .then((timelineId) => {
           identifier = timelineId
           return userA.subscribeTo(timelineId)
         })
-        .then(function(timelineId) { return userA.unsubscribeFrom(identifier) })
-        .then(function() { return userA.getRiverOfNewsTimeline() })
-        .then(function(timeline) { return timeline.getPosts() })
-        .then(function(posts) {
+        .then(() => userA.unsubscribeFrom(identifier))
+        .then(() => userA.getRiverOfNewsTimeline())
+        .then((timeline) => timeline.getPosts())
+        .then((posts) => {
           posts.should.be.empty
+          done()
         })
-        .then(function() { done() })
+        .catch((e) => { done(e) })
     })
   })
 
-  describe('#getSubscriptions()', function() {
-    var userA
+  describe('#getSubscriptions()', () => {
+    let userA
       , userB
 
-    beforeEach(function(done) {
-      userA = new User({
-        username: 'Luna',
-        password: 'password'
-      })
+    beforeEach(async () => {
+      userA = new User({ username: 'Luna', password: 'password' })
+      userB = new User({ username: 'Mars', password: 'password' })
 
-      userB = new User({
-        username: 'Mars',
-        password: 'password'
-      })
-
-      userA.create()
-        .then(function(user) { return userB.create() })
-        .then(function(user) { done() })
+      await Promise.all([userA.create(), userB.create()])
     })
 
-    it('should list subscriptions', function(done) {
-      var attrs = {
-        body: 'Post body'
-      }
-      var post
+    it('should list subscriptions', (done) => {
+      const attrs = { body: 'Post body' }
 
       userB.newPost(attrs)
-        .then(function(newPost) {
-          post = newPost
-          return newPost.create()
-        })
-        .then(function(post) { return userB.getPostsTimelineId() })
-        .then(function(timelineId) { return userA.subscribeTo(timelineId) })
-        .then(function() { return userA.getSubscriptions() })
-        .then(function(users) {
+        .then((newPost) => newPost.create())
+        .then(() => userB.getPostsTimelineId())
+        .then((timelineId) => userA.subscribeTo(timelineId))
+        .then(() => userA.getSubscriptions())
+        .then((users) => {
           users.should.not.be.empty
           users.length.should.eql(3)
-          var types = ['Comments', 'Likes', 'Posts']
-          async.reduce(users, true, function(memo, user, callback) {
-            callback(null, memo && (types.indexOf(user.name) >= 0))
-          }, function(err, contains) {
-            contains.should.eql(true)
-            done()
-          })
+          const types = ['Comments', 'Likes', 'Posts']
+          async.reduce(
+            users, true,
+            (memo, user, callback) => {
+              callback(null, memo && types.includes(user.name))
+            },
+            (err, contains) => {
+              if (err) {
+                done(err);
+                return;
+              }
+
+              contains.should.eql(true)
+              done()
+            }
+          )
         })
+        .catch((e) => { done(e) })
     })
   })
 })

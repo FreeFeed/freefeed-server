@@ -4,7 +4,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
-import exceptions, { NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { reportError, NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 
@@ -40,7 +40,7 @@ export default class UsersController {
         }
 
         await user.subscribeToUsername(config.onboardingUsername)
-      } catch (e /*if e instanceof NotFoundException*/) {
+      } catch (e /* if e instanceof NotFoundException */) {
         // if onboarding username is not found, just pass
       }
 
@@ -50,7 +50,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken }))
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -77,7 +77,7 @@ export default class UsersController {
         }
 
         await user.subscribeToUsername(config.onboardingUsername)
-      } catch (e /*if e instanceof NotFoundException*/) {
+      } catch (e /* if e instanceof NotFoundException */) {
         // if onboarding username is not found, just pass
       }
 
@@ -87,7 +87,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(_.extend(json, { authToken }))
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -111,7 +111,7 @@ export default class UsersController {
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
       const banIds = await user.getBanIds()
 
-      const valid = !hasRequest && banIds.indexOf(req.user.id) === -1
+      const valid = !hasRequest && !banIds.includes(req.user.id)
 
       if (!valid) {
         throw new Error('Invalid')
@@ -121,7 +121,7 @@ export default class UsersController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -146,7 +146,7 @@ export default class UsersController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -171,7 +171,7 @@ export default class UsersController {
 
       res.jsonp({})
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -201,7 +201,7 @@ export default class UsersController {
       const json = await new serializer(feed).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -219,7 +219,7 @@ export default class UsersController {
           throw new ForbiddenException('User is private')
         }
         const subscriberIds = await user.getSubscriberIds()
-        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+        if (req.user.id !== user.id && !subscriberIds.includes(req.user.id)) {
           throw new ForbiddenException('User is private')
         }
       }
@@ -239,7 +239,7 @@ export default class UsersController {
 
       res.jsonp(await json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -258,7 +258,7 @@ export default class UsersController {
         }
 
         const subscriberIds = await user.getSubscriberIds()
-        if (req.user.id !== user.id && subscriberIds.indexOf(req.user.id) == -1) {
+        if (req.user.id !== user.id && !subscriberIds.includes(req.user.id)) {
           throw new ForbiddenException('User is private')
         }
       }
@@ -283,7 +283,7 @@ export default class UsersController {
 
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -297,7 +297,13 @@ export default class UsersController {
       const status = await req.user.ban(req.params.username)
       res.jsonp({ status })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      if (e.code === '23505') {
+        // '23505' stands for unique_violation
+        // see https://www.postgresql.org/docs/current/static/errcodes-appendix.html
+        reportError(res)(new ForbiddenException("You can't ban user, who's already banned"))
+      } else {
+        reportError(res)(e)
+      }
     }
   }
 
@@ -311,7 +317,7 @@ export default class UsersController {
       const status = await req.user.unban(req.params.username)
       res.jsonp({ status })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -340,12 +346,12 @@ export default class UsersController {
       }
 
       const banIds = await req.user.getBanIds()
-      if (banIds.indexOf(user.id) >= 0) {
+      if (banIds.includes(user.id)) {
         throw new ForbiddenException('You cannot subscribe to a banned user')
       }
 
       const theirBanIds = await user.getBanIds()
-      if (theirBanIds.indexOf(req.user.id) >= 0) {
+      if (theirBanIds.includes(req.user.id)) {
         throw new ForbiddenException('This user prevented your from subscribing to them')
       }
 
@@ -354,7 +360,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -383,7 +389,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -421,7 +427,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(req.user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     } finally {
       timer.stop()
     }
@@ -448,7 +454,7 @@ export default class UsersController {
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp(json)
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -467,7 +473,7 @@ export default class UsersController {
 
       res.jsonp({ message: 'Your password has been changed' })
     } catch (e) {
-      exceptions.reportError(res)(e)
+      reportError(res)(e)
     }
   }
 
@@ -484,7 +490,7 @@ export default class UsersController {
         await req.user.updateProfilePicture(file)
         res.jsonp({ message: 'Your profile picture has been updated' })
       } catch (e) {
-        exceptions.reportError(res)(e)
+        reportError(res)(e)
       }
     })
 

@@ -1,6 +1,7 @@
 import monitor from 'monitor-dog'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
+import twitter from 'twitter-text'
 
 import { Timeline, PubSub as pubSub } from '../models'
 
@@ -92,6 +93,7 @@ export function addModel(dbAdapter) {
 
     // save nested resources
     await this.linkAttachments()
+    await this.processHashtagsOnCreate()
 
     await Timeline.publishPost(this)
 
@@ -112,8 +114,8 @@ export function addModel(dbAdapter) {
     // Calculate changes in attachments
     const oldAttachments = await this.getAttachmentIds() || []
     const newAttachments = params.attachments || []
-    const addedAttachments = newAttachments.filter((i) => oldAttachments.indexOf(i) < 0)
-    const removedAttachments = oldAttachments.filter((i) => newAttachments.indexOf(i) < 0)
+    const addedAttachments = newAttachments.filter((i) => !oldAttachments.includes(i))
+    const removedAttachments = oldAttachments.filter((i) => !newAttachments.includes(i))
 
     // Update post body in DB
     const payload = {
@@ -127,6 +129,8 @@ export function addModel(dbAdapter) {
       this.linkAttachments(addedAttachments),
       this.unlinkAttachments(removedAttachments)
     ])
+
+    await this.processHashtagsOnUpdate()
 
     // Finally, publish changes
     await pubSub.updatePost(this.id)
@@ -149,7 +153,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.destroy = async function() {
-    // remove all comments
+    await dbAdapter.statsPostDeleted(this.userId, this.id)  // needs data in DB
+
+// remove all comments
     const comments = await this.getComments()
     await Promise.all(comments.map((comment) => comment.destroy()))
 
@@ -158,8 +164,6 @@ export function addModel(dbAdapter) {
     await dbAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
-
-    await dbAdapter.statsPostDeleted(this.userId)
 
     monitor.increment('posts.destroys')
   }
@@ -231,7 +235,7 @@ export function addModel(dbAdapter) {
     // otherwise this post will stay in group(s) timelines
     let groupOnly = true
 
-    if (_.any(timelineOwners.map((owner) => owner.isUser()))) {
+    if (_.some(timelineOwners.map((owner) => owner.isUser()))) {
       groupOnly = false
 
       const subscribersIds = await timeline.getSubscriberIds()
@@ -397,7 +401,7 @@ export function addModel(dbAdapter) {
       if (this.attachments) {
         const pos = this.attachments.indexOf(attachment.id)
 
-        if (pos < 0) {
+        if (pos === -1) {
           this.attachments.push(attachment)
         } else {
           this.attachments[pos] = attachment
@@ -528,9 +532,8 @@ export function addModel(dbAdapter) {
     const bannedIds = await user.getBanIds()
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
-    await this.publishChangesToFeeds(timelines, true)
-
     await dbAdapter.createUserPostLike(this.id, user.id)
+    await this.publishChangesToFeeds(timelines, true)
 
     timer.stop()
     monitor.increment('posts.likes')
@@ -561,8 +564,7 @@ export function addModel(dbAdapter) {
     const user = await dbAdapter.getUserById(userId)
     const banIds = await user.getBanIds()
 
-    const index = banIds.indexOf(this.userId)
-    return index >= 0
+    return banIds.includes(this.userId)
   }
 
   Post.prototype.isHiddenIn = async function(timeline) {
@@ -596,10 +598,38 @@ export function addModel(dbAdapter) {
 
       // otherwise user can view post if and only if she is subscriber
       const userIds = await timeline.getSubscriberIds()
-      return userIds.indexOf(userId) >= 0
+      return userIds.includes(userId)
     }))
 
     return _.reduce(arr, (acc, x) => { return acc || x }, false)
+  }
+
+  Post.prototype.processHashtagsOnCreate = async function () {
+    const postTags = _.uniq(twitter.extractHashtags(this.body))
+
+    if (!postTags || postTags.length == 0) {
+      return
+    }
+    await dbAdapter.linkPostHashtagsByNames(postTags, this.id)
+  }
+
+  Post.prototype.processHashtagsOnUpdate = async function () {
+    const linkedPostHashtags = await dbAdapter.getPostHashtags(this.id)
+
+    const presentTags    = _.sortBy(linkedPostHashtags.map((t) => t.name))
+    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body)))
+    const notChangedTags = _.intersection(presentTags, newTags)
+    const tagsToUnlink   = _.difference(presentTags, notChangedTags)
+    const tagsToLink     = _.difference(newTags, notChangedTags)
+
+    if (presentTags != newTags) {
+      if (tagsToUnlink.length > 0) {
+        await dbAdapter.unlinkPostHashtagsByNames(tagsToUnlink, this.id)
+      }
+      if (tagsToLink.length > 0) {
+        await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id)
+      }
+    }
   }
 
   return Post

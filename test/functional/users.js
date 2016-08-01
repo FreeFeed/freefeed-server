@@ -1,11 +1,11 @@
-/*eslint-env node, mocha */
-/*global $database */
+/* eslint-env node, mocha */
+/* global $pg_database, $should */
 import async from 'async'
 import _ from 'lodash'
-import mkdirp from 'mkdirp'
-import fetch from 'node-fetch'
+import { mkdirp } from 'mkdirp'
 import request from 'superagent'
 import knexCleaner from 'knex-cleaner'
+import { promisify } from 'bluebird'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -14,9 +14,10 @@ import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 
 
+const mkdirpAsync = promisify(mkdirp)
 const config = configLoader()
 
-describe("UsersController", function() {
+describe('UsersController', () => {
   let app
 
   before(async () => {
@@ -25,21 +26,20 @@ describe("UsersController", function() {
   })
 
   beforeEach(async () => {
-    await $database.flushdbAsync()
     await knexCleaner.clean($pg_database)
   })
 
-  describe("#create()", function() {
-    it('should create a valid user', function(done) {
-      var user = {
+  describe('#create()', () => {
+    it('should create a valid user', (done) => {
+      const user = {
         username: 'Luna',
         password: 'password'
       }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
@@ -50,17 +50,17 @@ describe("UsersController", function() {
         })
     })
 
-    it('should create a valid user with email', function(done) {
-      var user = {
+    it('should create a valid user with email', (done) => {
+      const user = {
         username: 'Luna',
         password: 'password',
-        email: 'user@example.com'
+        email:    'user@example.com'
       }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password, email: user.email })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
@@ -73,67 +73,74 @@ describe("UsersController", function() {
         })
     })
 
-    describe('onboarding', function() {
-      var onboardCtx = {}
-      beforeEach(funcTestHelper.createUserCtx(onboardCtx, 'welcome', 'pw'))
+    describe('onboarding', () => {
+      let onboardCtx = {}
 
-      it('should subscribe created user to onboarding account', function(done) {
-        var user = {
+      beforeEach(async () => {
+        onboardCtx = await funcTestHelper.createUserAsync('welcome', 'pw')
+      })
+
+      it('should subscribe created user to onboarding account', (done) => {
+        const user = {
           username: 'Luna',
           password: 'password'
         }
 
         request
-          .post(app.config.host + '/v1/users')
+          .post(`${app.config.host}/v1/users`)
           .send({ username: user.username, password: user.password })
-          .end(function(err, res) {
+          .end((err, res) => {
             res.body.should.have.property('authToken')
-            let authToken = res.body.authToken
+            const authToken = res.body.authToken
 
             request
-              .get(app.config.host + '/v1/users/' + user.username + '/subscriptions')
+              .get(`${app.config.host}/v1/users/${user.username}/subscriptions`)
               .query({ authToken })
-              .end(function(err, res) {
+              .end((err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('subscriptions')
-                var types = ['Comments', 'Likes', 'Posts']
-                async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
-                  callback(null, memo && (types.indexOf(user.name) >= 0) && (user.user == onboardCtx.user.id))
-                }, function(err, contains) {
-                  contains.should.eql(true)
-                  done()
-                })
+                const types = ['Comments', 'Likes', 'Posts']
+                async.reduce(
+                  res.body.subscriptions, true,
+                  (memo, user, callback) => {
+                    callback(null, memo && types.includes(user.name) && (user.user == onboardCtx.user.id))
+                  },
+                  (err, contains) => {
+                    contains.should.eql(true)
+                    done()
+                  }
+                )
               })
           })
       })
     })
 
-    it('should not create an invalid user', function(done) {
-      var user = {
+    it('should not create an invalid user', (done) => {
+      const user = {
         username: 'Luna',
         password: ''
       }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           done()
         })
     })
 
-    it('should not create user with slash in her username', function(done) {
-      var user = {
+    it('should not create user with slash in her username', (done) => {
+      const user = {
         username: 'Lu/na',
         password: 'password'
       }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           res.body.err.should.eql('Invalid username')
@@ -141,15 +148,13 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not create user without password', function(done) {
-      var user = {
-        username: 'Luna'
-      }
+    it('should not create user without password', (done) => {
+      const user = { username: 'Luna' }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           res.body.err.should.eql('Password cannot be blank')
@@ -157,17 +162,17 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not create user with invalid email', function(done) {
-      var user = {
+    it('should not create user with invalid email', (done) => {
+      const user = {
         username: 'Luna',
         password: 'password',
-        email: 'user2.example.com'
+        email:    'user2.example.com'
       }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password, email: user.email })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           err.response.error.should.have.property('text')
@@ -176,16 +181,16 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not create user with empty password', function(done) {
-      var user = {
+    it('should not create user with empty password', (done) => {
+      const user = {
         username: 'Luna',
         password: '',
       }
 
       request
-        .post(app.config.host + '/v1/users')
+        .post(`${app.config.host}/v1/users`)
         .send({ username: user.username, password: user.password, email: user.email })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
           err.response.error.should.have.property('text')
@@ -194,40 +199,40 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not create a user with a duplicate name', function(done) {
-      var user = {
+    it('should not create a user with a duplicate name', (done) => {
+      const user = {
         username: 'Luna',
         password: 'password'
       }
 
       request
-          .post(app.config.host + '/v1/users')
-          .send({ username: user.username, password: user.password })
-          .end(function(err, res) {
-            request
-                .post(app.config.host + '/v1/users')
-                .send({ username: user.username, password: user.password })
-                .end(function(err, res) {
-                  res.should.not.be.empty
-                  res.body.err.should.not.be.empty
-                  err.response.error.should.have.property('text')
-                  JSON.parse(err.response.error.text).err.should.eql('Already exists')
-                  done()
-                })
-          })
+        .post(`${app.config.host}/v1/users`)
+        .send({ username: user.username, password: user.password })
+        .end(() => {
+          request
+            .post(`${app.config.host}/v1/users`)
+            .send({ username: user.username, password: user.password })
+            .end((err, res) => {
+              res.should.not.be.empty
+              res.body.err.should.not.be.empty
+              err.response.error.should.have.property('text')
+              JSON.parse(err.response.error.text).err.should.eql('Already exists')
+              done()
+            })
+        })
     })
 
     it('should not create user if username is in stop list', async function() {
       const user = {
         username: 'dev',
         password: 'password123',
-        email: 'dev@dev.com'
+        email:    'dev@dev.com'
       }
 
       const response = await funcTestHelper.createUserAsyncPost(user)
       response.status.should.equal(422)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql('Invalid username')
     })
@@ -236,43 +241,35 @@ describe("UsersController", function() {
       const user = {
         username: 'nicegirlnextdoor',
         password: 'password123',
-        email: 'nicegirlnextdoor@gmail.com'
+        email:    'nicegirlnextdoor@gmail.com'
       }
 
       const response = await funcTestHelper.createUserAsyncPost(user)
       response.status.should.equal(422)
 
-      let data = await response.json()
+      const data = await response.json()
       data.should.have.property('err')
       data.err.should.eql('Invalid username')
     })
   })
 
-  describe("#whoami()", function() {
-    var authToken
-    var user = {
+  describe('#whoami()', () => {
+    let authToken
+    const user = {
       username: 'Luna',
       password: 'password'
     }
 
-    beforeEach(function(done) {
-      request
-        .post(app.config.host + '/v1/users')
-        .send({ username: user.username, password: user.password })
-        .end(function(err, res) {
-          res.should.not.be.empty
-          res.body.should.not.be.empty
-          res.body.should.have.property('authToken')
-          authToken = res.body.authToken
-          done()
-        })
+    beforeEach(async () => {
+      const luna = await funcTestHelper.createUserAsync(user.username, user.password)
+      authToken = luna.authToken
     })
 
-    it('should return current user for a valid user', function(done) {
+    it('should return current user for a valid user', (done) => {
       request
-        .get(app.config.host + '/v1/users/whoami')
-        .query({ authToken: authToken })
-        .end(function(err, res) {
+        .get(`${app.config.host}/v1/users/whoami`)
+        .query({ authToken })
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
@@ -283,11 +280,11 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not return user for an invalid user', function(done) {
+    it('should not return user for an invalid user', (done) => {
       request
-        .get(app.config.host + '/v1/users/whoami')
+        .get(`${app.config.host}/v1/users/whoami`)
         .query({ authToken: 'token' })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -295,31 +292,35 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#subscribe()', function() {
-    var lunaContext = {}
-      , marsContext = {}
+  describe('#subscribe()', () => {
+    let lunaContext = {}
+    let marsContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(lunaContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(marsContext, 'Mars', 'password'))
-    beforeEach(function(done) { funcTestHelper.createPost(lunaContext, 'Post body')(done) })
+    beforeEach(async () => {
+      [lunaContext, marsContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
+      await funcTestHelper.createAndReturnPost(lunaContext, 'Post body')
+    })
 
-    it('should submit a post to friends river of news', function(done) {
-      var body = "Post body"
+    it('should submit a post to friends river of news', (done) => {
+      const body = 'Post body'
 
       request
-        .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
+        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .send({ authToken: marsContext.authToken })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('users')
           res.body.users.should.have.property('username')
           res.body.users.username.should.eql(marsContext.username.toLowerCase())
 
-          funcTestHelper.createPost(lunaContext, body)(function(err, res) {
+          funcTestHelper.createPost(lunaContext, body)(() => {
             request
-              .get(app.config.host + '/v1/timelines/home')
+              .get(`${app.config.host}/v1/timelines/home`)
               .query({ authToken: marsContext.authToken })
-              .end(function(err, res) {
+              .end((err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('timelines')
                 res.body.timelines.should.have.property('posts')
@@ -330,33 +331,33 @@ describe("UsersController", function() {
         })
     })
 
-    it('should subscribe to a user', function(done) {
+    it('should subscribe to a user', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
+        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .send({ authToken: marsContext.authToken })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('users')
           res.body.users.should.have.property('username')
           res.body.users.username.should.eql(marsContext.username.toLowerCase())
 
           request
-            .get(app.config.host + '/v1/timelines/home')
+            .get(`${app.config.host}/v1/timelines/home`)
             .query({ authToken: marsContext.authToken })
-            .end(function(err, res) {
+            .end((err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
               res.body.timelines.should.have.property('posts')
               res.body.timelines.posts.length.should.eql(1)
 
               request
-                .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
+                .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
                 .send({ authToken: marsContext.authToken })
-                .end(function(err, res) {
+                .end((err) => {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   err.response.error.should.have.property('text')
-                  JSON.parse(err.response.error.text).err.should.eql("You are already subscribed to that user")
+                  JSON.parse(err.response.error.text).err.should.eql('You are already subscribed to that user')
 
                   done()
                 })
@@ -364,21 +365,21 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not subscribe to herself', function(done) {
+    it('should not subscribe to herself', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
+        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .send({ authToken: lunaContext.authToken })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(422)
           done()
         })
     })
 
-    it('should require valid user to subscribe to another user', function(done) {
+    it('should require valid user to subscribe to another user', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + lunaContext.username + '/subscribe')
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -386,57 +387,29 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#subscribers()', function() {
-    var userA
+  describe('#subscribers()', () => {
+    let userA
       , userB
-      , authTokenA
       , authTokenB
 
-    beforeEach(function(done) {
-      userA = {
-        username: 'Luna',
-        password: 'password'
-      }
+    beforeEach(async () => {
+      [userA, userB] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
 
-      userB = {
-        username: 'Mars',
-        password: 'password'
-      }
+      authTokenB = userB.authToken
 
-      request
-        .post(app.config.host + '/v1/users')
-        .send({ username: userA.username, password: userA.password })
-        .end(function(err, res) {
-          authTokenA = res.body.authToken
-
-          request
-            .post(app.config.host + '/v1/users')
-            .send({ username: userB.username, password: userB.password })
-            .end(function(err, res) {
-              authTokenB = res.body.authToken
-
-              var body = 'Post body'
-
-              request
-                .post(app.config.host + '/v1/posts')
-                .send({ post: { body: body }, authToken: authTokenA })
-                .end(function(err, res) {
-                  request
-                    .post(app.config.host + '/v1/users/' + userA.username + '/subscribe')
-                    .send({ authToken: authTokenB })
-                    .end(function(err, res) {
-                      done()
-                    })
-                })
-            })
-        })
+      const body = 'Post body'
+      await funcTestHelper.createAndReturnPost(userA, body)
+      await funcTestHelper.subscribeToAsync(userB, userA)
     })
 
-    it('should return list of subscribers', function(done) {
+    it('should return list of subscribers', (done) => {
       request
-        .get(app.config.host + '/v1/users/' + userA.username + '/subscribers')
+        .get(`${app.config.host}/v1/users/${userA.username}/subscribers`)
         .query({ authToken: authTokenB })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscribers')
           res.body.subscribers.should.not.be.empty
@@ -447,10 +420,10 @@ describe("UsersController", function() {
         })
     })
 
-    it('should return list of subscribers of public user without authorization', function(done) {
+    it('should return list of subscribers of public user without authorization', (done) => {
       request
-        .get(app.config.host + '/v1/users/' + userA.username + '/subscribers')
-        .end(function(err, res) {
+        .get(`${app.config.host}/v1/users/${userA.username}/subscribers`)
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscribers')
           done()
@@ -458,73 +431,47 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#unsubscribe()', function() {
-    var userA
+  describe('#unsubscribe()', () => {
+    let userA
       , userB
       , authTokenA
       , authTokenB
 
-    beforeEach(function(done) {
-      userA = {
-        username: 'Luna',
-        password: 'password'
-      }
+    beforeEach(async () => {
+      [userA, userB] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
 
-      userB = {
-        username: 'Mars',
-        password: 'password'
-      }
+      authTokenA = userA.authToken
+      authTokenB = userB.authToken
 
-      request
-        .post(app.config.host + '/v1/users')
-        .send({ username: userA.username, password: userA.password })
-        .end(function(err, res) {
-          authTokenA = res.body.authToken
-
-          request
-            .post(app.config.host + '/v1/users')
-            .send({ username: userB.username, password: userB.password })
-            .end(function(err, res) {
-              authTokenB = res.body.authToken
-
-              var body = 'Post body'
-
-              request
-                .post(app.config.host + '/v1/posts')
-                .send({ post: { body: body }, authToken: authTokenA })
-                .end(function(err, res) {
-                  request
-                    .post(app.config.host + '/v1/users/' + userA.username + '/subscribe')
-                    .send({ authToken: authTokenB })
-                    .end(function(err, res) {
-                      done()
-                    })
-                })
-            })
-        })
+      const body = 'Post body'
+      await funcTestHelper.createAndReturnPost(userA, body)
+      await funcTestHelper.subscribeToAsync(userB, userA)
     })
 
-    it('should unsubscribe to a user', function(done) {
+    it('should unsubscribe to a user', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + userA.username + '/unsubscribe')
+        .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
         .send({ authToken: authTokenB })
-        .end(function(err, res) {
+        .end(() => {
           request
-            .get(app.config.host + '/v1/timelines/home')
+            .get(`${app.config.host}/v1/timelines/home`)
             .query({ authToken: authTokenB })
-            .end(function(err, res) {
+            .end((err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
               res.body.timelines.should.not.have.property('posts')
 
               request
-                .post(app.config.host + '/v1/users/' + userA.username + '/unsubscribe')
+                .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
                 .send({ authToken: authTokenB })
-                .end(function(err, res) {
+                .end((err) => {
                   err.should.not.be.empty
                   err.status.should.eql(403)
                   err.response.error.should.have.property('text')
-                  JSON.parse(err.response.error.text).err.should.eql("You are not subscribed to that user")
+                  JSON.parse(err.response.error.text).err.should.eql('You are not subscribed to that user')
 
                   done()
                 })
@@ -532,21 +479,21 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not unsubscribe to herself', function(done) {
+    it('should not unsubscribe to herself', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + userA.username + '/unsubscribe')
+        .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
         .send({ authToken: authTokenA })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(403)
           done()
         })
     })
 
-    it('should require valid user to unsubscribe to another user', function(done) {
+    it('should require valid user to unsubscribe to another user', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + userA.username + '/unsubscribe')
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -554,54 +501,38 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#unsubscribe() from group', function() {
-    var adminContext = {}
-      , secondAdminContext = {}
-      , groupMemberContext = {}
-      , group
+  describe('#unsubscribe() from group', () => {
+    let adminContext = {}
+    let secondAdminContext = {}
+    let groupMemberContext = {}
 
-    beforeEach(funcTestHelper.createUserCtx(adminContext, 'Luna', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(secondAdminContext, 'Neptune', 'password'))
-    beforeEach(funcTestHelper.createUserCtx(groupMemberContext, 'Pluto', 'wordpass'))
+    beforeEach(async () => {
+      [adminContext, secondAdminContext, groupMemberContext] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Neptune', 'password'),
+        funcTestHelper.createUserAsync('Pluto', 'wordpass')
+      ])
 
-    beforeEach(function(done) {
-      request
-        .post(app.config.host + '/v1/groups')
-        .send({ group: {username: 'pepyatka-dev', screenName: 'Pepyatka Developers', isPrivate: '0'},
-          authToken: adminContext.authToken })
-        .end(function(err, res) {
-          group = res.body.groups
-          request
-            .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
-            .send({ authToken: secondAdminContext.authToken })
-            .end(function(err, res) {
-              request
-                .post(app.config.host + '/v1/groups/pepyatka-dev/subscribers/' + secondAdminContext.user.username +'/admin')
-                .send({authToken: adminContext.authToken })
-                .end(function(err, res) {
-                  request
-                    .post(app.config.host + '/v1/users/pepyatka-dev/subscribe')
-                    .send({ authToken: groupMemberContext.authToken })
-                    .end(function(err, res) {
-                      done()
-                    })
-                })
-            })
-        })
+      const group = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers');
+      await Promise.all([
+        funcTestHelper.subscribeToAsync(secondAdminContext, group),
+        funcTestHelper.subscribeToAsync(groupMemberContext, group)
+      ])
+      await funcTestHelper.promoteToAdmin(group, adminContext, secondAdminContext)
     })
 
-    it('should not allow admins to unsubscribe from group', function(done) {
+    it('should not allow admins to unsubscribe from group', (done) => {
       request
-        .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
+        .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
         .send({ authToken: adminContext.authToken })
-        .end(function(err, res) {
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(403)
 
           request
-            .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
+            .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
             .send({ authToken: secondAdminContext.authToken })
-            .end(function(err, res) {
+            .end((err) => {
               err.should.not.be.empty
               err.status.should.eql(403)
               done()
@@ -609,11 +540,11 @@ describe("UsersController", function() {
         })
     })
 
-    it('should allow group members to unsubscribe from group', function(done) {
+    it('should allow group members to unsubscribe from group', (done) => {
       request
-        .post(app.config.host + '/v1/users/pepyatka-dev/unsubscribe')
-        .send({authToken: groupMemberContext.authToken})
-        .end(function (err, res) {
+        .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
+        .send({ authToken: groupMemberContext.authToken })
+        .end((err, res) => {
           res.should.not.be.empty
           res.status.should.eql(200)
           done()
@@ -621,66 +552,47 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#subscriptions()', function() {
-    var userA
+  describe('#subscriptions()', () => {
+    let userA
       , userB
-      , authTokenA
       , authTokenB
 
-    beforeEach(function(done) {
-      userA = {
-        username: 'Luna',
-        password: 'password'
-      }
+    beforeEach(async () => {
+      [userA, userB] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        funcTestHelper.createUserAsync('Mars', 'password')
+      ])
 
-      userB = {
-        username: 'Mars',
-        password: 'password'
-      }
+      authTokenB = userB.authToken
 
-      request
-        .post(app.config.host + '/v1/users')
-        .send({ username: userA.username, password: userA.password })
-        .end(function(err, res) {
-          authTokenA = res.body.authToken
-
-          request
-            .post(app.config.host + '/v1/users')
-            .send({ username: userB.username, password: userB.password })
-            .end(function(err, res) {
-              authTokenB = res.body.authToken
-
-              request
-                .post(app.config.host + '/v1/users/' + userA.username + '/subscribe')
-                .send({ authToken: authTokenB })
-                .end(function(err, res) {
-                  done()
-                })
-            })
-        })
+      await funcTestHelper.subscribeToAsync(userB, userA)
     })
 
-    it('should return list of subscriptions', function(done) {
+    it('should return list of subscriptions', (done) => {
       request
-        .get(app.config.host + '/v1/users/' + userB.username + '/subscriptions')
+        .get(`${app.config.host}/v1/users/${userB.username}/subscriptions`)
         .query({ authToken: authTokenB })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
-          var types = ['Comments', 'Likes', 'Posts']
-          async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
-            callback(null, memo && (types.indexOf(user.name) >= 0))
-          }, function(err, contains) {
-            contains.should.eql(true)
-            done()
-          })
+          const types = ['Comments', 'Likes', 'Posts']
+          async.reduce(
+            res.body.subscriptions, true,
+            (memo, user, callback) => {
+              callback(null, memo && types.includes(user.name))
+            },
+            (err, contains) => {
+              contains.should.eql(true)
+              done()
+            }
+          )
         })
     })
 
-    it('should return list of subscriptions of public user without authorization', function(done) {
+    it('should return list of subscriptions of public user without authorization', (done) => {
       request
-        .get(app.config.host + '/v1/users/' + userB.username + '/subscriptions')
-        .end(function(err, res) {
+        .get(`${app.config.host}/v1/users/${userB.username}/subscriptions`)
+        .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
           done()
@@ -688,28 +600,29 @@ describe("UsersController", function() {
     })
   })
 
-  describe("#update()", function() {
-    describe('single-user tests', function() {
-      "use strict";
-
-      var authToken
+  describe('#update()', () => {
+    describe('single-user tests', () => {
+      let authToken
         , user
 
-      beforeEach(funcTestHelper.createUser('Luna', 'password', function(token, luna) {
-        authToken = token
-        user = luna
-      }))
+      beforeEach(async () => {
+        const luna = await funcTestHelper.createUserAsync('Luna', 'password')
+        user = luna.user
+        authToken = luna.authToken
+      })
 
-      it('should update current user', function(done) {
-        var screenName = 'Mars'
-        var description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
+      it('should update current user', (done) => {
+        const screenName = 'Mars'
+        const description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
 
         request
-          .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken: authToken,
-            user: { screenName: screenName, description: description },
-            '_method': 'put' })
-          .end(function(err, res) {
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken,
+            user:      { screenName, description },
+            '_method': 'put'
+          })
+          .end((err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('users')
@@ -723,9 +636,9 @@ describe("UsersController", function() {
       })
 
       it("should not reset description if it's not provided", async () => {
-        var oldScreenName = user.screenName
-        var newScreenName = 'Ceres'
-        var newDescription = 'The largest object in the asteroid belt that lies between the orbits of Mars and Jupiter.'
+        const oldScreenName = user.screenName
+        const newScreenName = 'Ceres'
+        const newDescription = 'The largest object in the asteroid belt that lies between the orbits of Mars and Jupiter.'
 
         // First, check screenName and description (should be the old ones)
         {
@@ -770,15 +683,15 @@ describe("UsersController", function() {
         }
       })
 
-      it('should update privacy settings', function(done) {
-        var screenName = 'Mars'
-
+      it('should update privacy settings', (done) => {
         request
-          .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken: authToken,
-                  user: { isPrivate: '1' },
-                  '_method': 'put' })
-          .end(function(err, res) {
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken,
+            user:      { isPrivate: '1' },
+            '_method': 'put'
+          })
+          .end((err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('users')
@@ -789,35 +702,39 @@ describe("UsersController", function() {
           })
       })
 
-      it('should require signed in user', function(done) {
-        var screenName = 'Mars'
+      it('should require signed in user', (done) => {
+        const screenName = 'Mars'
 
         request
-          .post(app.config.host + '/v1/users/' + user.id)
-          .send({ authToken: 'abc',
-            user: { screenName: screenName },
-            '_method': 'put' })
-          .end(function(err, res) {
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken: 'abc',
+            user:      { screenName },
+            '_method': 'put'
+          })
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(401)
             done()
           })
       })
 
-      var invalid = [
+      const invalid = [
         '', 'a', 'aa', 'aaaaaaaaaaaaaaaaaaaaaaaaaa',
         '\u4E9C\u4E9C',  // 2 han ideographs
         '\u0928\u093F\u0928\u093F'  // Devanagari syllable "ni" (repeated 2 times)
       ]
 
-      _.forEach(invalid, function(screenName) {
-        it('should not allow invalid screen-name: ' + screenName, function(done) {
+      _.forEach(invalid, (screenName) => {
+        it(`should not allow invalid screen-name: ${screenName}`, (done) => {
           request
-            .post(app.config.host + '/v1/users/' + user.id)
-            .send({ authToken: authToken,
-              user: { screenName: screenName },
-              '_method': 'put' })
-            .end(function(err, res) {
+            .post(`${app.config.host}/v1/users/${user.id}`)
+            .send({
+              authToken,
+              user:      { screenName },
+              '_method': 'put'
+            })
+            .end((err) => {
               err.should.not.be.empty
               err.status.should.eql(422)
               done()
@@ -825,7 +742,7 @@ describe("UsersController", function() {
         })
       })
 
-      var valid = [
+      const valid = [
         'aaa', 'aaaaaaaaaaaaaaaaaaaaaaaaa',
         '\u4E9C\u4E9C\u4E9C',
         '\u0928\u093F\u0928\u093F\u0928\u093F',
@@ -834,14 +751,16 @@ describe("UsersController", function() {
         // extreme grapheme example done
       ]
 
-      _.forEach(valid, function(screenName) {
-        it('should allow valid screen-name: ' + screenName, function(done) {
+      _.forEach(valid, (screenName) => {
+        it(`should allow valid screen-name: ${screenName}`, (done) => {
           request
-            .post(app.config.host + '/v1/users/' + user.id)
-            .send({ authToken: authToken,
-              user: { screenName: screenName },
-              '_method': 'put' })
-            .end(function(err, res) {
+            .post(`${app.config.host}/v1/users/${user.id}`)
+            .send({
+              authToken,
+              user:      { screenName },
+              '_method': 'put'
+            })
+            .end((err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('users')
@@ -854,17 +773,19 @@ describe("UsersController", function() {
       })
     })
 
-    describe('double-user tests', function() {
-      "use strict";
+    describe('double-user tests', () => {
+      let lunaContext = {}
+      let marsContext = {}
 
-      var lunaContext = {}
-      var marsContext = {}
+      beforeEach(async () => {
+        [lunaContext, marsContext] = await Promise.all([
+          funcTestHelper.createUserAsync('luna', 'luna', { email: 'luna@example.org' }),
+          funcTestHelper.createUserAsync('mars', 'mars', { email: 'mars@example.org' })
+        ])
+      })
 
-      beforeEach(funcTestHelper.createUserCtx(lunaContext, 'luna', 'luna', {email: "luna@example.org"}))
-      beforeEach(funcTestHelper.createUserCtx(marsContext, 'mars', 'mars', {email: "mars@example.org"}))
-
-      it('should not let user use email, which is used by other user', function(done) {
-        funcTestHelper.updateUserCtx(lunaContext, {email: marsContext.attributes.email})(function(err, response) {
+      it('should not let user use email, which is used by other user', (done) => {
+        funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })((err) => {
           $should.exist(err)
           err.status.should.eql(422)
           err.response.error.should.have.property('text')
@@ -873,11 +794,11 @@ describe("UsersController", function() {
         })
       })
 
-      it('should let user to use email, which was used by other user, but not used anymore', function(done) {
-        funcTestHelper.updateUserCtx(marsContext, {email: 'other@example.org'})(function (err, response) {
+      it('should let user to use email, which was used by other user, but not used anymore', (done) => {
+        funcTestHelper.updateUserCtx(marsContext, { email: 'other@example.org' })((err) => {
           $should.not.exist(err)
 
-          funcTestHelper.updateUserCtx(lunaContext, {email: marsContext.attributes.email})(function (err2, response2) {
+          funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })((err2) => {
             $should.not.exist(err2)
             done()
           })
@@ -885,54 +806,38 @@ describe("UsersController", function() {
       })
     })
 
-    describe('frontendPreferences tests', function() {
-      var authToken
+    describe('frontendPreferences tests', () => {
+      let authToken
         , user
 
-      beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
-        authToken = token
-        user = luna
-      }))
+      beforeEach(async () => {
+        const luna = await funcTestHelper.createUserAsync('Luna', 'password')
+        user = luna.user
+        authToken = luna.authToken
+      })
 
       it('should store frontendPreferences in DB and return it in whoami', async () => {
-        let prefs = {
+        const prefs = {
           'net.freefeed': {
             'screenName': {
               'displayOption': 1,
-              'useYou': true
+              'useYou':        true
             }
           },
-          'custom.domain': {
-            'customProperty': 'someWeirdValue'
-          }
+          'custom.domain': { 'customProperty': 'someWeirdValue' }
         }
-        let newPrefs = {
-          'another.client': {
-            'funnyProperty': 'withFunnyValue'
-          },
-          'net.freefeed': {
-            'screenName': {
-              'displayOption': 2,
-              'useYou': false
-            }
-          }
+        const anotherPrefs = {
+          'another.client': { 'funnyProperty': 'withFunnyValue' },
+          'custom.domain':  { 'newProperty': 'withNewValue' }
         }
-        let anotherPrefs = {
-          'another.client': {
-            'funnyProperty': 'withFunnyValue'
-          },
-          'custom.domain': {
-            'newProperty': 'withNewValue'
-          }
-        }
-        let newDescription = 'The Moon is made of cheese.';
+        const newDescription = 'The Moon is made of cheese.';
 
         // First, check the response on update
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: prefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: prefs })
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
@@ -944,10 +849,10 @@ describe("UsersController", function() {
 
         // Second, check whoami response
         {
-          let response = await funcTestHelper.whoami(authToken)
+          const response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.useYou')
@@ -961,10 +866,10 @@ describe("UsersController", function() {
         {
           await funcTestHelper.updateUserAsync({ user, authToken }, { description: newDescription })
 
-          let response = await funcTestHelper.whoami(authToken)
+          const response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.description')
           data.users.description.should.equal(newDescription)
           data.should.have.deep.property('users.frontendPreferences.net\\.freefeed.screenName.displayOption')
@@ -980,10 +885,10 @@ describe("UsersController", function() {
         {
           await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: anotherPrefs })
 
-          let response = await funcTestHelper.whoami(authToken)
+          const response = await funcTestHelper.whoami(authToken)
           response.status.should.eql(200)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.deep.property('users.frontendPreferences')
           // net.freefeed should be unchanged
           data.users.frontendPreferences.should.have.property('net.freefeed')
@@ -998,85 +903,72 @@ describe("UsersController", function() {
       })
 
       it('should validate frontendPreferences structure', async () => {
-        let validPrefs = {
-          'net.freefeed': {
-            'userProperty': 'value'
-          }
-        }
-        let invalidPrefs = {
-          'userProperty': 'value'
-        }
+        const validPrefs = { 'net.freefeed': { 'userProperty': 'value' } }
+        const invalidPrefs = { 'userProperty': 'value' }
 
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
           response.status.should.eql(200)
         }
 
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
           response.status.should.eql(422)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.property('err')
           data.err.should.eql('Invalid frontendPreferences')
         }
       })
 
       it('should validate frontendPreferences size', async () => {
-        let validPrefs = {
-          'net.freefeed': {
-            'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100)
-          }
-        }
-        let invalidPrefs = {
-          'net.freefeed': {
-            'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1)
-          }
-        }
+        const validPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100) } }
+        const invalidPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1) } }
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
           response.status.should.eql(200)
         }
         {
-          let response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
+          const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
           response.status.should.eql(422)
 
-          let data = await response.json()
+          const data = await response.json()
           data.should.have.property('err')
           data.err.should.eql('Invalid frontendPreferences')
         }
       })
     })
-
   })
 
-  describe("#updatePassword()", function() {
-    var authToken
+  describe('#updatePassword()', () => {
+    let authToken
       , user
 
-    beforeEach(funcTestHelper.createUser('Luna', 'password', function(token, luna) {
-      authToken = token
-      user = luna
-    }))
+    beforeEach(async () => {
+      const luna = await funcTestHelper.createUserAsync('Luna', 'password')
+      user = luna.user
+      authToken = luna.authToken
+    })
 
-    it('should update current user password', function(done) {
-      var screenName = 'Mars'
-      var password = "drowssap"
+    it('should update current user password', (done) => {
+      const password = 'drowssap'
 
       request
-        .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
-                currentPassword: user.password,
-                password: password,
-                passwordConfirmation: password,
-                '_method': 'put' })
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/updatePassword`)
+        .send({
+          authToken,
+          currentPassword:      user.password,
+          password,
+          passwordConfirmation: password,
+          '_method':            'put'
+        })
+        .end((err) => {
           (err === null).should.be.true
 
           request
-            .post(app.config.host + '/v1/session')
-            .send({ username: user.username, password: password })
-            .end(function(err, res) {
+            .post(`${app.config.host}/v1/session`)
+            .send({ username: user.username, password })
+            .end((err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('users')
@@ -1087,24 +979,25 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not sign in with old password', function(done) {
-      var screenName = 'Mars'
-      var password = "drowssap"
+    it('should not sign in with old password', (done) => {
+      const password = 'drowssap'
 
       request
-        .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
-                currentPassword: user.password,
-                password: password,
-                passwordConfirmation: password,
-                '_method': 'put' })
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/updatePassword`)
+        .send({
+          authToken,
+          currentPassword:      user.password,
+          password,
+          passwordConfirmation: password,
+          '_method':            'put'
+        })
+        .end((err) => {
           (err === null).should.be.true
 
           request
-            .post(app.config.host + '/v1/session')
+            .post(`${app.config.host}/v1/session`)
             .send({ username: user.username, password: user.password })
-            .end(function(err, res) {
+            .end((err) => {
               err.should.not.be.empty
               err.status.should.eql(401)
               done()
@@ -1112,18 +1005,19 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not update password that does not match', function(done) {
-      var screenName = 'Mars'
-      var password = "drowssap"
+    it('should not update password that does not match', (done) => {
+      const password = 'drowssap'
 
       request
-        .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
-                currentPassword: user.password,
-                password: password,
-                passwordConfirmation: "abc",
-                '_method': 'put' })
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/updatePassword`)
+        .send({
+          authToken,
+          currentPassword:      user.password,
+          password,
+          passwordConfirmation: 'abc',
+          '_method':            'put'
+        })
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(422)
           err.response.error.should.have.property('text')
@@ -1132,18 +1026,19 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not update with blank password', function(done) {
-      var screenName = 'Mars'
-      var password = ""
+    it('should not update with blank password', (done) => {
+      const password = ''
 
       request
-        .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
-                currentPassword: user.password,
-                password: password,
-                passwordConfirmation: password,
-                '_method': 'put' })
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/updatePassword`)
+        .send({
+          authToken,
+          currentPassword:      user.password,
+          password,
+          passwordConfirmation: password,
+          '_method':            'put'
+        })
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(422)
           err.response.error.should.have.property('text')
@@ -1152,18 +1047,19 @@ describe("UsersController", function() {
         })
     })
 
-    it('should not update with invalid password', function(done) {
-      var screenName = 'Mars'
-      var password = "drowssap"
+    it('should not update with invalid password', (done) => {
+      const password = 'drowssap'
 
       request
-        .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: authToken,
-                currentPassword: "abc",
-                password: password,
-                passwordConfirmation: password,
-                '_method': 'put' })
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/updatePassword`)
+        .send({
+          authToken,
+          currentPassword:      'abc',
+          password,
+          passwordConfirmation: password,
+          '_method':            'put'
+        })
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(422)
           err.response.error.should.have.property('text')
@@ -1172,15 +1068,17 @@ describe("UsersController", function() {
         })
     })
 
-    it('should require signed in user', function(done) {
-      var screenName = 'Mars'
+    it('should require signed in user', (done) => {
+      const screenName = 'Mars'
 
       request
-        .post(app.config.host + '/v1/users/updatePassword')
-        .send({ authToken: 'abc',
-                user: { screenName: screenName },
-                '_method': 'put' })
-        .end(function(err, res) {
+        .post(`${app.config.host}/v1/users/updatePassword`)
+        .send({
+          authToken: 'abc',
+          user:      { screenName },
+          '_method': 'put'
+        })
+        .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
           done()
@@ -1188,32 +1086,30 @@ describe("UsersController", function() {
     })
   })
 
-  describe('#updateProfilePicture', function() {
-    var authToken
-      , user
+  describe('#updateProfilePicture', () => {
+    let authToken
 
-    beforeEach(funcTestHelper.createUser('Luna', 'password', function (token, luna) {
-      authToken = token
-      user = luna
-    }))
+    beforeEach(async () => {
+      const [user] = await Promise.all([
+        funcTestHelper.createUserAsync('Luna', 'password'),
+        mkdirpAsync(config.profilePictures.storage.rootDir + config.profilePictures.path)
+      ])
 
-    beforeEach(function(done){
-      mkdirp.sync(config.profilePictures.storage.rootDir + config.profilePictures.path)
-      done()
+      authToken = user.authToken
     })
 
-    it('should update the profile picture', function(done) {
+    it('should update the profile picture', (done) => {
       request
-        .post(app.config.host + '/v1/users/updateProfilePicture')
+        .post(`${app.config.host}/v1/users/updateProfilePicture`)
         .set('X-Authentication-Token', authToken)
         .attach('file', 'test/fixtures/default-userpic-75.gif')
-        .end(function(err, res) {
+        .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           request
-            .get(app.config.host + '/v1/users/whoami')
-            .query({ authToken: authToken })
-            .end(function(err, res) {
+            .get(`${app.config.host}/v1/users/whoami`)
+            .query({ authToken })
+            .end((err, res) => {
               res.should.not.be.empty
               res.body.users.profilePictureLargeUrl.should.not.be.empty
               done()
@@ -1221,63 +1117,75 @@ describe("UsersController", function() {
         })
     })
 
-    it('should report an error if the profile picture is not an image', function(done) {
+    it('should report an error if the profile picture is not an image', (done) => {
       request
-        .post(app.config.host + '/v1/users/updateProfilePicture')
+        .post(`${app.config.host}/v1/users/updateProfilePicture`)
         .set('X-Authentication-Token', authToken)
         .attach('file', 'README.md')
-        .end(function(err, res) {
+        .end((err, res) => {
           res.status.should.eql(400)
-          res.body.err.should.eql("Not an image file")
+          res.body.err.should.eql('Not an image file')
           done()
         })
     })
   })
 
-  describe('#ban()', function() {
+  describe('#ban()', () => {
     // Zeus bans Mars, as usual
-    var marsContext = {}
-    var zeusContext = {}
-    var username = 'zeus'
-    var banUsername = 'mars'
+    let marsContext = {}
+    let zeusContext = {}
+    const username = 'zeus'
+    const banUsername = 'mars'
 
-    beforeEach(funcTestHelper.createUserCtx(marsContext, banUsername, 'pw'))
-    beforeEach(funcTestHelper.createUserCtx(zeusContext, username, 'pw'))
+    beforeEach(async () => {
+      [marsContext, zeusContext] = await Promise.all([
+        funcTestHelper.createUserAsync(banUsername, 'pw'),
+        funcTestHelper.createUserAsync(username, 'pw')
+      ])
 
-    // Mars is subscribed to Zeus
-    beforeEach(function(done) {
-      request
-        .post(app.config.host + '/v1/users/' + username + '/subscribe')
-        .send({ authToken: marsContext.authToken })
-        .end(function(err, res) {
-          res.body.should.not.be.empty
-          done()
-        })
+      await funcTestHelper.subscribeToAsync(marsContext, zeusContext)
     })
 
+    it('should not allow to ban user more than once', async () => {
+      const promises = [
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext),
+        funcTestHelper.banUser(zeusContext, marsContext)
+      ];
+
+      const countOfSuccesses = (await Promise.all(promises)).filter((r) => r.status == 200).length;
+      countOfSuccesses.should.eql(1);
+    });
+
     // Zeus bans Mars, Mars should become unsubscribed from Zeus.
-    it('should unsubscribe the user', function(done) {
+    it('should unsubscribe the user', (done) => {
       request
-        .get(app.config.host + '/v1/users/' + username + '/subscriptions')
+        .get(`${app.config.host}/v1/users/${username}/subscriptions`)
         .query({ authToken: marsContext.authToken })
-        .end(function(err, res) { // Mars has subcriptions to Zeus
+        .end((err, res) => { // Mars has subcriptions to Zeus
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
-          var types = ['Comments', 'Likes', 'Posts']
-          async.reduce(res.body.subscriptions, true, function(memo, user, callback) {
-            callback(null, memo && (types.indexOf(user.name) >= 0))
-          }, function(err, contains) {
-            contains.should.eql(true)
-          })
+          const types = ['Comments', 'Likes', 'Posts']
+          async.reduce(
+            res.body.subscriptions, true,
+            (memo, user, callback) => {
+              callback(null, memo && types.includes(user.name))
+            },
+            (err, contains) => {
+              contains.should.eql(true)
+            }
+          )
           request
-            .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+            .post(`${app.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
-            .end(function(err, res) {
+            .end((err, res) => {
               res.body.should.not.be.empty
               request
-                .get(app.config.host + '/v1/users/' + username + '/subscriptions')
+                .get(`${app.config.host}/v1/users/${username}/subscriptions`)
                 .query({ authToken: marsContext.authToken })
-                .end(function(err, res) { // Mars now has NO subcriptions to Zeus
+                .end((err, res) => { // Mars now has NO subcriptions to Zeus
                   res.body.should.not.be.empty
                   res.body.should.have.property('subscriptions')
                   res.body.subscriptions.length.should.eql(0)
@@ -1288,32 +1196,32 @@ describe("UsersController", function() {
     })
 
     // Zeus writes a post, Mars comments, Zeus bans Mars and should see no comments
-    it('should ban user comments', function(done) {
-      var body = 'Post'
-      funcTestHelper.createPost(zeusContext, body)(function(err, res) {
+    it('should ban user comments', (done) => {
+      const body = 'Post'
+      funcTestHelper.createPost(zeusContext, body)((err, res) => {
         res.body.should.not.be.empty
-        var postId = res.body.posts.id
-        funcTestHelper.createComment(body, postId, marsContext.authToken, function(err, res) {
+        const postId = res.body.posts.id
+        funcTestHelper.createComment(body, postId, marsContext.authToken, (err, res) => {
           res.body.should.not.be.empty
 
           request
-            .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+            .post(`${app.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
-            .end(function(err, res) {
+            .end((err, res) => {
               res.error.should.be.empty
               res.body.should.not.be.empty
-              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
+              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
-                var post = res.body.posts[0]
+                const post = res.body.posts[0]
                 post.should.not.have.property('comments')
 
                 // Zeus should not see comments in single-post view either
                 request
-                  .get(app.config.host + '/v1/posts/' + postId)
+                  .get(`${app.config.host}/v1/posts/${postId}`)
                   .query({ authToken: zeusContext.authToken })
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     res.body.should.not.be.empty
                     res.body.should.have.property('posts')
                     res.body.posts.should.not.have.property('comments')
@@ -1326,100 +1234,100 @@ describe("UsersController", function() {
     })
 
     // Zeus writes a post, Mars likes it, Zeus bans Mars and should not see like
-    it('should ban user likes', function(done) {
-      funcTestHelper.createPostForTest(zeusContext, 'Post body', function(err, res) {
-          res.body.should.not.be.empty
+    it('should ban user likes', (done) => {
+      funcTestHelper.createPostForTest(zeusContext, 'Post body', (err, res) => {
+        res.body.should.not.be.empty
 
-          request
-            .post(app.config.host + '/v1/posts/' + zeusContext.post.id + '/like')
-            .send({ authToken: marsContext.authToken })
-            .end(function(err, res) {
-              $should.not.exist(err)
-              request
-                .post(app.config.host + '/v1/users/' + banUsername + '/ban')
-                .send({ authToken: zeusContext.authToken })
-                .end(function(err, res) {
+        request
+          .post(`${app.config.host}/v1/posts/${zeusContext.post.id}/like`)
+          .send({ authToken: marsContext.authToken })
+          .end((err) => {
+            $should.not.exist(err)
+            request
+              .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+              .send({ authToken: zeusContext.authToken })
+              .end((err, res) => {
+                res.body.should.not.be.empty
+                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.not.be.empty
-                  funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
-                    res.body.should.not.be.empty
-                    res.body.should.have.property('posts')
-                    res.body.posts.length.should.eql(1)
-                    var post = res.body.posts[0]
-                    post.should.not.have.property('likes')
+                  res.body.should.have.property('posts')
+                  res.body.posts.length.should.eql(1)
+                  const post = res.body.posts[0]
+                  post.should.not.have.property('likes')
 
-                    // Zeus should not see likes in single-post view either
-                    request
-                      .get(app.config.host + '/v1/posts/' + zeusContext.post.id)
-                      .query({ authToken: zeusContext.authToken })
-                      .end(function(err, res) {
-                        res.body.should.not.be.empty
-                        res.body.should.have.property('posts')
-                        res.body.posts.should.not.have.property('likes')
-                        done()
-                      })
-                  })
+                  // Zeus should not see likes in single-post view either
+                  request
+                    .get(`${app.config.host}/v1/posts/${zeusContext.post.id}`)
+                    .query({ authToken: zeusContext.authToken })
+                    .end((err, res) => {
+                      res.body.should.not.be.empty
+                      res.body.should.have.property('posts')
+                      res.body.posts.should.not.have.property('likes')
+                      done()
+                    })
                 })
-            })
-        })
+              })
+          })
+      })
     })
 
     // Mars writes a post, Zeus likes post, Zeus bans Mars and should not see the post any more
-    it('should ban user posts', function(done) {
-      funcTestHelper.createPostForTest(marsContext, 'Post body', function(err, res) {
+    it('should ban user posts', (done) => {
+      funcTestHelper.createPostForTest(marsContext, 'Post body', () => {
         request
-          .post(app.config.host + '/v1/posts/' + marsContext.post.id + '/like')
+          .post(`${app.config.host}/v1/posts/${marsContext.post.id}/like`)
           .send({ authToken: zeusContext.authToken })
-          .end(function(err, res) {
+          .end(() => {
             // Now Zeus should see this post in his timeline
-            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
+            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
 
               request
-                .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+                .post(`${app.config.host}/v1/users/${banUsername}/ban`)
                 .send({ authToken: zeusContext.authToken })
-                .end(function(err, res) {
+                .end((err, res) => {
                   res.body.should.not.be.empty
-                  funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, function(err, res) {
+                  funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                     res.body.should.not.be.empty
                     res.body.should.not.have.property('posts')
                     done()
                   })
                 })
             })
-        })
+          })
       })
     })
 
     // Zeus writes a post, Zeus bans Mars, Mars should not see Zeus post any more
-    it('should completely disallow to see banning user posts', function(done) {
-      funcTestHelper.createPostForTest(zeusContext, 'Post body', function(err, res) {
+    it('should completely disallow to see banning user posts', (done) => {
+      funcTestHelper.createPostForTest(zeusContext, 'Post body', () => {
         // Mars sees the post because he's subscribed to Zeus
-        funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, function(err, res) {
+        funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
 
           request
-            .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+            .post(`${app.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
-            .end(function(err, res) {
+            .end((err, res) => {
               res.body.should.not.be.empty
               // Now Mars doesn't see post in his timeline
-              funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, function(err, res) {
+              funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.not.have.property('posts')
 
                 // Mars should not see the post in single-post view either
                 request
-                  .get(app.config.host + '/v1/posts/' + zeusContext.post.id)
+                  .get(`${app.config.host}/v1/posts/${zeusContext.post.id}`)
                   .query({ authToken: marsContext.authToken })
-                  .end(function(err, res) {
+                  .end((err) => {
                     err.should.not.be.empty
                     err.status.should.eql(403)
                     err.response.error.should.have.property('text')
-                    JSON.parse(err.response.error.text).err.should.eql("This user has prevented you from seeing their posts")
+                    JSON.parse(err.response.error.text).err.should.eql('This user has prevented you from seeing their posts')
                     done()
                   })
               })
@@ -1429,21 +1337,21 @@ describe("UsersController", function() {
     })
 
     // Zeus bans Mars and Mars could not subscribe again any more
-    it('should not let user resubscribe', function(done) {
+    it('should not let user resubscribe', (done) => {
       request
-        .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+        .post(`${app.config.host}/v1/users/${banUsername}/ban`)
         .send({ authToken: zeusContext.authToken })
-        .end(function(err, res) {
+        .end((err, res) => {
           res.body.should.not.be.empty
 
           request
-            .post(app.config.host + '/v1/users/' + username + '/subscribe')
+            .post(`${app.config.host}/v1/users/${username}/subscribe`)
             .send({ authToken: marsContext.authToken })
-            .end(function(err, res) {
+            .end((err) => {
               err.should.not.be.empty
               err.status.should.eql(403)
               err.response.error.should.have.property('text')
-              JSON.parse(err.response.error.text).err.should.eql("This user prevented your from subscribing to them")
+              JSON.parse(err.response.error.text).err.should.eql('This user prevented your from subscribing to them')
               done()
             })
         })
@@ -1478,39 +1386,22 @@ describe("UsersController", function() {
     })
 
     // Same fun inside groups
-    describe('in groups', function() {
-      var groupUserName = 'pepyatka-dev'
+    describe('in groups', () => {
+      const groupUserName = 'pepyatka-dev'
 
-      // Mars creates a group, Mars posts to it...
-      beforeEach(function(done) {
-        request
-          .post(app.config.host + '/v1/groups')
-          .send({ group: { username: groupUserName },
-                  authToken: marsContext.authToken })
-          .end(function(err, res) {
-            res.body.should.not.be.empty
-            request
-              .post(app.config.host + '/v1/posts')
-              .send({ post: { body: 'post body' }, meta: { feeds: [groupUserName] },
-                      authToken: marsContext.authToken })
-              .end(function(err, res) {
-                res.body.should.not.be.empty
-                res.body.should.have.property('posts')
-                res.body.posts.should.have.property('body')
-
-                done()
-              })
-          })
+      beforeEach(async () => {
+        const group = await funcTestHelper.createGroupAsync(marsContext, groupUserName);
+        await funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'post body')
       })
 
       // ... Zeus bans Mars and should no longer see the post in this group
-      it('should ban user posts to group', function(done) {
+      it('should ban user posts to group', (done) => {
         request
-          .post(app.config.host + '/v1/users/' + banUsername + '/ban')
+          .post(`${app.config.host}/v1/users/${banUsername}/ban`)
           .send({ authToken: zeusContext.authToken })
-          .end(function(err, res) {
+          .end((err, res) => {
             res.body.should.not.be.empty
-            funcTestHelper.getTimeline('/v1/timelines/' + groupUserName, zeusContext.authToken, function(err, res) {
+            funcTestHelper.getTimeline(`/v1/timelines/${groupUserName}`, zeusContext.authToken, (err, res) => {
               res.body.should.not.be.empty
               res.body.should.not.have.property('posts')
 
