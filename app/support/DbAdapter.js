@@ -2,6 +2,7 @@ import _ from 'lodash'
 import validator from 'validator'
 import NodeCache from 'node-cache'
 import { promisifyAll } from 'bluebird'
+import pgFormat from 'pg-format';
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
 
@@ -1268,12 +1269,14 @@ export class DbAdapter {
   }
 
   async createPostsUsagesInTimeline(postIds, feedIntIds) {
-    const preparedPostIds = postIds.map((el) => { return `'${el}'`; })
-    if (!feedIntIds || feedIntIds.length == 0 || preparedPostIds.length == 0) {
+    if (!feedIntIds || feedIntIds.length == 0 || postIds.length == 0) {
       return null
     }
-    return this.database
-      .raw(`UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE uid IN (${preparedPostIds.toString()})`, [feedIntIds])
+
+    return this.database.raw(
+      pgFormat(`UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE uid IN (%L)`, postIds),
+      [feedIntIds]
+    )
   }
 
   async getPostUsagesInTimelines(postId) {
@@ -1360,7 +1363,10 @@ export class DbAdapter {
     await this.database.transaction(async (trx) => {
       try {
         await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
-        await trx.raw('UPDATE "posts" SET "feed_ids" = uniq("feed_ids" + ?) WHERE "feed_ids" && ?', [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]])
+        await trx.raw(
+          'UPDATE "posts" SET "feed_ids" = uniq("feed_ids" + ?) WHERE "feed_ids" && ?',
+          [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]]
+        );
 
         await trx.commit();
       } catch (e) {
@@ -1444,8 +1450,10 @@ export class DbAdapter {
 
     const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
-    const res = await this.database
-      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ? RETURNING subscribed_feed_ids', [feedIntIds, currentUserId])
+    const res = await this.database.raw(
+      'UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ? RETURNING subscribed_feed_ids',
+      [feedIntIds, currentUserId]
+    );
 
     return res.rows[0].subscribed_feed_ids
   }
@@ -1461,8 +1469,10 @@ export class DbAdapter {
 
     const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
-    const res = await this.database
-      .raw('UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids', [feedIntIds, currentUserId])
+    const res = await this.database.raw(
+      'UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
+      [feedIntIds, currentUserId]
+    );
     return res.rows[0].subscribed_feed_ids
   }
 
@@ -1675,42 +1685,44 @@ export class DbAdapter {
   }
 
   _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds) {
-    let bannedUsersFilter = ''
-
-    if (bannedUserIds.length > 0) {
-      const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
-      bannedUsersFilter = `and posts.user_id not in (${bannedUserIdsString}) `
+    if (bannedUserIds.length === 0) {
+      return '';
     }
-    return bannedUsersFilter
+
+    return pgFormat('and posts.user_id not in (%L) ', bannedUserIds);
   }
 
   _getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds) {
-    let bannedUsersFilter = ''
-
-    if (bannedUserIds.length > 0) {
-      const bannedUserIdsString = bannedUserIds.map((uid) => `'${uid}'`).join(',')
-      bannedUsersFilter = `and comments.user_id not in (${bannedUserIdsString}) `
+    if (bannedUserIds.length === 0) {
+      return '';
     }
-    return bannedUsersFilter
+
+    return pgFormat(`and comments.user_id not in (%L) `, bannedUserIds)
   }
 
   _getTextSearchCondition(parsedQuery, textSearchConfigName) {
     const searchConditions = []
+
     if (parsedQuery.query.length > 2) {
-      searchConditions.push(`to_tsvector('${textSearchConfigName}', posts.body) @@ to_tsquery('${textSearchConfigName}', '${parsedQuery.query}')`)
+      const sql = pgFormat(`to_tsvector(%L, posts.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query)
+      searchConditions.push(sql)
     }
+
     if (parsedQuery.quotes.length > 0) {
-      const quoteConditions = parsedQuery.quotes.map((quote) => `posts.body ~ '${quote}'`)
+      const quoteConditions = parsedQuery.quotes.map((quote) => {
+        const regex = `${quote}`;
+        return pgFormat(`posts.body ~ %L`, regex)
+      })
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 
     if (parsedQuery.hashtags.length > 0) {
       const hashtagConditions = parsedQuery.hashtags.map((tag) => {
-        return `posts.uid in (
+        return pgFormat(`posts.uid in (
             select u.entity_id from hashtag_usages as u where u.hashtag_id in (
-              select hashtags.id from hashtags where hashtags.name = '${tag}'
+              select hashtags.id from hashtags where hashtags.name = %L
             ) and u.type = 'post'
-          )`
+          )`, tag)
       })
 
       searchConditions.push(`${hashtagConditions.join(' and ')}`)
@@ -1726,20 +1738,24 @@ export class DbAdapter {
   _getCommentSearchCondition(parsedQuery, textSearchConfigName) {
     const searchConditions = []
     if (parsedQuery.query.length > 2) {
-      searchConditions.push(`to_tsvector('${textSearchConfigName}', comments.body) @@ to_tsquery('${textSearchConfigName}', '${parsedQuery.query}')`)
+      const sql = pgFormat(`to_tsvector(%L, comments.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query)
+      searchConditions.push(sql)
     }
     if (parsedQuery.quotes.length > 0) {
-      const quoteConditions = parsedQuery.quotes.map((quote) => `comments.body ~ '${quote}'`)
+      const quoteConditions = parsedQuery.quotes.map((quote) => {
+        const regex = `${quote}`;
+        return pgFormat(`comments.body ~ %L`, regex)
+      })
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 
     if (parsedQuery.hashtags.length > 0) {
       const hashtagConditions = parsedQuery.hashtags.map((tag) => {
-        return `comments.uid in (
+        return pgFormat(`comments.uid in (
             select u.entity_id from hashtag_usages as u where u.hashtag_id in (
-              select hashtags.id from hashtags where hashtags.name = '${tag}'
+              select hashtags.id from hashtags where hashtags.name = %L
             ) and u.type = 'comment'
-          )`
+          )`, tag)
       })
 
       searchConditions.push(`${hashtagConditions.join(' and ')}`)
@@ -1801,7 +1817,7 @@ export class DbAdapter {
       return []
     }
     const payload = names.map((name) => {
-      return `('${name}')`
+      return pgFormat(`(%L)`, name)
     }).join(',')
     const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
     return res.rows.map((t) => t.id)
@@ -1811,12 +1827,10 @@ export class DbAdapter {
     if (tagIds.length == 0) {
       return false
     }
-    let entityType = 'post'
-    if (!toPost) {
-      entityType = 'comment'
-    }
+
+    const entityType = toPost ? 'post' : 'comment'
     const payload = tagIds.map((hashtagId) => {
-      return `(${hashtagId}, '${entityId}', '${entityType}')`
+      return pgFormat(`(%L, %L, %L)`, hashtagId, entityId, entityType)
     }).join(',')
 
     return this.database.raw(`insert into hashtag_usages ("hashtag_id", "entity_id", "type") values ${payload} on conflict do nothing`)
