@@ -1710,9 +1710,9 @@ export class DbAdapter {
 
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
-        const regex = `[[:<:]]${_.escapeRegExp(quote)}[[:>:]]`;
+        const regex = `([[:<:]]|\\W|^)${_.escapeRegExp(quote)}([[:>:]]|\\W|$)`;
         return pgFormat(`posts.body ~ %L`, regex)
-      })
+      });
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 
@@ -1743,9 +1743,9 @@ export class DbAdapter {
     }
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
-        const regex = `[[:<:]]${_.escapeRegExp(quote)}[[:>:]]`;
+        const regex = `([[:<:]]|\\W|^)${_.escapeRegExp(quote)}([[:>:]]|\\W|$)`;
         return pgFormat(`comments.body ~ %L`, regex)
-      })
+      });
       searchConditions.push(`${quoteConditions.join(' and ')}`)
     }
 

@@ -265,10 +265,14 @@ describe('FullTextSearch', () => {
       return dbAdapter.searchPosts(query, null, [], [], 0, 30);
     };
 
-    it('should not find pieces from the middle of words', async () => {
-      const luna = new User({ username: 'Luna', password: 'password' });
-      await luna.create();
+    let luna;
 
+    beforeEach(async () => {
+      luna = new User({ username: 'Luna', password: 'password' });
+      await luna.create();
+    });
+
+    it('should not find pieces from the middle of words', async () => {
       const post = await luna.newPost({ body: 'hello foobar' });
       await post.create();
 
@@ -284,9 +288,6 @@ describe('FullTextSearch', () => {
     });
 
     it('should find exact matches', async () => {
-      const luna = new User({ username: 'Luna', password: 'password' });
-      await luna.create();
-
       const post = await luna.newPost({ body: 'hello foobar' });
       await post.create();
 
@@ -302,9 +303,6 @@ describe('FullTextSearch', () => {
     });
 
     it('should escape regexps-symbols while doing exact matches', async () => {
-      const luna = new User({ username: 'Luna', password: 'password' });
-      await luna.create();
-
       const post = await luna.newPost({ body: 'hello, dollyg goodbye foobar!' });
       await post.create();
 
@@ -312,6 +310,47 @@ describe('FullTextSearch', () => {
         const searchResults = await searchFor('"hello, dolly. goodbye"');
         searchResults.length.should.eql(0)
       }
+    });
+
+    it('should be possible to search for usernames', async () => {
+      const postTexts = [
+        'hello @home!',
+        '@home, are you here?',
+        'I was visiting automation@home exhibition today. It was just as @homely told'  // shouldn't match for @home
+      ];
+
+      const posts = await Promise.all(postTexts.map((body) => luna.newPost({ body })));
+      await Promise.all(posts.map((post) => post.create()));
+
+      const searchResults = await searchFor('"@home"');
+      searchResults.length.should.eql(2);
+
+      const bodies = searchResults.map((row) => row.body);
+      bodies.should.include(postTexts[0]);
+      bodies.should.include(postTexts[1]);
+    });
+
+    it('should be possible to search for special char-patterns', async () => {
+      const postTexts = [
+        '$special pattern$',
+        'text $special pattern$',
+        '$special pattern$, text',
+        'text, $special pattern$ text',
+        'abc$special pattern$',
+        '$special pattern$abc',
+      ];
+
+      const posts = await Promise.all(postTexts.map((body) => luna.newPost({ body })));
+      await Promise.all(posts.map((post) => post.create()));
+
+      const searchResults = await searchFor('"$special pattern$"');
+      searchResults.length.should.eql(4);
+
+      const bodies = searchResults.map((row) => row.body);
+      bodies.should.include(postTexts[0]);
+      bodies.should.include(postTexts[1]);
+      bodies.should.include(postTexts[2]);
+      bodies.should.include(postTexts[3]);
     });
   })
 });
