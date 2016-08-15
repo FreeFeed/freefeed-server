@@ -154,9 +154,22 @@ export default class PostsController {
         throw new ForbiddenException("You can't like your own post")
       }
 
-      const valid = await post.canShow(req.user.id)
-      if (!valid) {
+      const isVisible = await post.canShow(req.user.id)
+      if (!isVisible) {
         throw new NotFoundException("Can't find post");
+      }
+
+      const author = await dbAdapter.getUserById(post.userId);
+      const banIds = await author.getBanIds();
+
+      if (banIds.includes(req.user.id)) {
+        throw new ForbiddenException('Author of this post has banned you');
+      }
+
+      const yourBanIds = await req.user.getBanIds();
+
+      if (yourBanIds.includes(author.id)) {
+        throw new ForbiddenException('You have banned the author of this post');
       }
 
       const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
@@ -202,6 +215,19 @@ export default class PostsController {
 
       if (post.userId === req.user.id) {
         throw new ForbiddenException("You can't un-like your own post")
+      }
+
+      const author = await dbAdapter.getUserById(post.userId);
+      const banIds = await author.getBanIds();
+
+      if (banIds.includes(req.user.id)) {
+        throw new ForbiddenException('Author of this post has blocked you');
+      }
+
+      const yourBanIds = await req.user.getBanIds();
+
+      if (yourBanIds.includes(author.id)) {
+        throw new ForbiddenException('You have blocked the author of this post');
       }
 
       const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)

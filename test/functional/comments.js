@@ -125,7 +125,28 @@ describe('CommentsController', () => {
       data.should.have.property('err')
       data.err.should.eql('Comments disabled')
     })
-  })
+
+    describe('Interaction with banned user', () => {
+      let mars;
+      let postOfMars;
+
+      beforeEach(async () => {
+        mars = await funcTestHelper.createUserAsync('Mars', 'password');
+        postOfMars = await funcTestHelper.createAndReturnPost(mars, 'I am mars!');
+        await funcTestHelper.banUser(context, mars);
+      });
+
+      it(`should not create comment on banned user's post`, async () => {
+        const response = await funcTestHelper.createCommentAsync(context, postOfMars.id, 'Comment');
+        response.status.should.eql(403);
+      });
+
+      it(`should not create comment on post of user who banned us`, async () => {
+        const response = await funcTestHelper.createCommentAsync(mars, context.post.id, 'Comment');
+        response.status.should.eql(403);
+      });
+    });
+  });
 
   describe('#update()', () => {
     let lunaContext = {}
