@@ -545,13 +545,15 @@ describe('PostsController', () => {
   })
 
   describe('#like()', () => {
-    let context = {}
-    let otherUserAuthToken
+    let context = {};
+    let marsCtx;
+    let otherUserAuthToken;
 
     beforeEach(async () => {
+      let post = {};
       context = await funcTestHelper.createUserAsync('Luna', 'password');
 
-      const [marsCtx, post] = await Promise.all([
+      [marsCtx, post] = await Promise.all([
         funcTestHelper.createUserAsync('mars', 'password2'),
         funcTestHelper.createAndReturnPost(context, 'Post body')
       ]);
@@ -660,7 +662,26 @@ describe('PostsController', () => {
       data.should.have.property('err')
       data.err.should.eql("You can't like your own post")
     })
-  })
+
+    describe('Interaction with banned user', () => {
+      let postOfMars;
+
+      beforeEach(async() => {
+        postOfMars = await funcTestHelper.createAndReturnPost(marsCtx, 'I am mars!');
+        await funcTestHelper.banUser(context, marsCtx);
+      });
+
+      it(`should not allow like on  banned user's post`, async () => {
+        const response = await funcTestHelper.like(postOfMars.id, context.authToken);
+        response.status.should.eql(403);
+      });
+
+      it(`should not allow like on post of user who banned us`, async () => {
+        const response = await funcTestHelper.like(context.post.id, marsCtx.authToken);
+        response.status.should.eql(403);
+      });
+    });
+  });
 
   describe('#unlike()', () => {
     let context = {}
