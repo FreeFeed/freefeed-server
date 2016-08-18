@@ -75,6 +75,20 @@ export default class BookmarkletController {
         feeds = [req.user.username]
       }
 
+      // hack for buggy bookmarklet
+      const nulledFeedsCount = feeds.filter((feed) => feed === null).length;
+      if (nulledFeedsCount === 1) {
+        feeds = feeds.map((feed) => {
+          if (feed === null) {
+            return req.user.username;
+          }
+
+          return feed;
+        });
+      } else if (nulledFeedsCount > 1) {
+        throw new Error('too much nulls as feeds');
+      }
+
       const promises = feeds.map(async (username) => {
         const feed = await dbAdapter.getFeedOwnerByUsername(username)
 

@@ -19,9 +19,22 @@ export default class CommentsController {
         throw new NotFoundException('Not found')
       }
 
-      const valid = await post.canShow(req.user.id)
-      if (!valid) {
+      const isVisible = await post.canShow(req.user.id)
+      if (!isVisible) {
         throw new NotFoundException('Not found')
+      }
+
+      const author = await dbAdapter.getUserById(post.userId);
+      const banIds = await author.getBanIds();
+
+      if (banIds.includes(req.user.id)) {
+        throw new ForbiddenException('Author of this post has banned you');
+      }
+
+      const yourBanIds = await req.user.getBanIds();
+
+      if (yourBanIds.includes(author.id)) {
+        throw new ForbiddenException('You have banned the author of this post');
       }
 
       if (post.commentsDisabled === '1' && post.userId !== req.user.id) {

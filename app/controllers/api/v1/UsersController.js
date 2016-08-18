@@ -195,6 +195,11 @@ export default class UsersController {
         throw new NotFoundException(`Feed "${req.params.username}" is not found`)
       }
 
+      // cleaned accounts have password-hash set to empty string
+      if (feed.hashedPassword === '') {
+        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
+      }
+
       // HACK: feed.isUser() ? UserSerializer : GroupSerializer
       const serializer = UserSerializer
 
