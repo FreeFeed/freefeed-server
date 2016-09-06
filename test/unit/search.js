@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import knexCleaner from 'knex-cleaner'
-import { User, dbAdapter } from '../../app/models'
+import { User, Group, dbAdapter } from '../../app/models'
 import { SearchQueryParser } from '../../app/support/SearchQueryParser'
 
 
@@ -352,5 +352,1072 @@ describe('FullTextSearch', () => {
       bodies.should.include(postTexts[2]);
       bodies.should.include(postTexts[3]);
     });
+  })
+
+  describe('banned users content', () => {
+    let luna
+      , mars
+      , jupiter
+      , post;
+
+    const _becomeFriends = async (user1, user2) => {
+      const [user1TimelineId, user2TimelineId] = await Promise.all([
+        user1.getPostsTimelineId(),
+        user2.getPostsTimelineId()
+      ]);
+
+      await user1.subscribeTo(user2TimelineId);
+      return user2.subscribeTo(user1TimelineId);
+    }
+
+    const _createPost = async (author, text) => {
+      post = await author.newPost({ body: text });
+      return post.create();
+    }
+
+    const _createGroupPost = async (author, groupPostsFeedId, text) => {
+      post = await author.newPost({ body: text, timelineIds: [groupPostsFeedId] });
+      return post.create();
+    }
+
+    const _createComment = async (commenter, commentBody, post) => {
+      const comment = await commenter.newComment({
+        body:   commentBody,
+        postId: post.id
+      });
+
+      return comment.create();
+    }
+
+    beforeEach(async () => {
+      luna = new User({ username: 'Luna', password: 'password' });
+      mars = new User({ username: 'Mars', password: 'password' });
+      jupiter = new User({ username: 'Jupiter', password: 'password' });
+
+      await luna.create();
+      await mars.create();
+      await jupiter.create();
+    });
+
+    describe('public posts search', () => {
+      const _searchPublicPosts = async (term, viewer) => {
+        const bannedUserIds = await viewer.getBanIds();
+
+        const query = SearchQueryParser.parse(term);
+        return dbAdapter.searchPosts(query, null, [], bannedUserIds, 0, 30);
+      };
+
+      describe('full text search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('exact match search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('hashtag search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green #fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicPosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+    })
+
+    describe('private posts search', () => {
+      beforeEach(async () => {
+        await _becomeFriends(luna, mars);
+        await _becomeFriends(luna, jupiter);
+        await _becomeFriends(jupiter, mars);
+
+        await luna.update({ isPrivate: '1' });
+        await mars.update({ isPrivate: '1' });
+        await jupiter.update({ isPrivate: '1' });
+      });
+
+      const _searchPrivatePosts = async (term, viewer) => {
+        const visibleFeedIds = (await dbAdapter.getUserById(viewer.id)).subscribedFeedIds;
+        const bannedUserIds = await viewer.getBanIds();
+
+        const query = SearchQueryParser.parse(term);
+        return dbAdapter.searchPosts(query, viewer.id, visibleFeedIds, bannedUserIds, 0, 30);
+      };
+
+      describe('full text search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('exact match search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('"fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('hashtag search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green #fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivatePosts('#fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+    })
+
+    describe('public posts search with specified author', () => {
+      const _searchPublicUserPosts = async (term, viewer) => {
+        const bannedUserIds = await viewer.getBanIds();
+
+        const query = SearchQueryParser.parse(term);
+        const targetUser = await dbAdapter.getUserByUsername(query.username);
+        return dbAdapter.searchUserPosts(query, targetUser.id, [], bannedUserIds, 0, 30);
+      };
+
+      describe('full text search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: jupiter fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('exact match search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('hashtag search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green #fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+    })
+
+    describe('private posts search with specified author', () => {
+      beforeEach(async () => {
+        await _becomeFriends(luna, mars);
+        await _becomeFriends(luna, jupiter);
+        await _becomeFriends(jupiter, mars);
+
+        await luna.update({ isPrivate: '1' });
+        await mars.update({ isPrivate: '1' });
+        await jupiter.update({ isPrivate: '1' });
+      });
+
+      const _searchPrivateUserPosts = async (term, viewer) => {
+        const visibleFeedIds = (await dbAdapter.getUserById(viewer.id)).subscribedFeedIds;
+        const bannedUserIds = await viewer.getBanIds();
+
+        const query = SearchQueryParser.parse(term);
+        const targetUser = await dbAdapter.getUserByUsername(query.username);
+        return dbAdapter.searchUserPosts(query, targetUser.id, visibleFeedIds, bannedUserIds, 0, 30);
+      };
+
+      describe('full text search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: jupiter fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('exact match search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('hashtag search', () => {
+        it('should not find post from banned user', async () => {
+          await _createPost(mars, 'Lazy green #fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createPost(mars, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createPost(jupiter, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateUserPosts('from: mars #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+    })
+
+    describe('public posts search with specified group', () => {
+      let group
+        , groupTimelineId;
+      beforeEach(async () => {
+        group = new Group({ username: 'search-dev' });
+        await group.create(luna.id, false);
+        groupTimelineId = await group.getPostsTimelineId();
+        await mars.subscribeTo(groupTimelineId);
+        return jupiter.subscribeTo(groupTimelineId);
+      });
+
+      const _searchPublicGroupPosts = async (term, viewer) => {
+        const bannedUserIds = await viewer.getBanIds();
+
+        const query = SearchQueryParser.parse(term);
+        const targetGroup = await dbAdapter.getGroupByUsername(query.group);
+        const groupPostsFeedId = await targetGroup.getPostsTimelineId();
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], bannedUserIds, 0, 30);
+      };
+
+      describe('full text search', () => {
+        it('should not find post from banned user', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('exact match search', () => {
+        it('should not find post from banned user', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('hashtag search', () => {
+        it('should not find post from banned user', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+    })
+
+    describe('private posts search with specified group', () => {
+      let group
+        , groupTimelineId;
+      beforeEach(async () => {
+        group = new Group({ username: 'search-dev', isPrivate: '1' });
+        await group.create(luna.id, false);
+        groupTimelineId = await group.getPostsTimelineId();
+        await mars.subscribeTo(groupTimelineId);
+        return jupiter.subscribeTo(groupTimelineId);
+      });
+
+      const _searchPrivateGroupPosts = async (term, viewer) => {
+        const visibleFeedIds = (await dbAdapter.getUserById(viewer.id)).subscribedFeedIds;
+        const bannedUserIds = await viewer.getBanIds();
+
+        const query = SearchQueryParser.parse(term);
+        const targetGroup = await dbAdapter.getGroupByUsername(query.group);
+        const groupPostsFeedId = await targetGroup.getPostsTimelineId();
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, visibleFeedIds, bannedUserIds, 0, 30);
+      };
+
+      describe('full text search', () => {
+        it('should not find post from banned user', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('exact match search', () => {
+        it('should not find post from banned user', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+
+      describe('hashtag search', () => {
+        it('should not find post from banned user', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by banned user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by other user's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(jupiter, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find post from banned user by viewer's comment match", async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+
+        it("should not find visible post by banned user's comment match", async () => {
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Very lazy #fox', post);
+
+          await luna.ban('mars');
+
+          const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
+          searchResults.length.should.eql(0);
+        });
+      })
+    })
   })
 });
