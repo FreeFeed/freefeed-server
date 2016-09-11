@@ -445,14 +445,13 @@ export function addModel(dbAdapter) {
 
     for (const usersChunk of _.chunk(fixedUsers, 10)) {
       const promises = usersChunk.map(async (user) => {
-        const [riverId, commentsTimeline, likesTimeline] = await Promise.all([
+        const [riverId, commentsTimelineId, likesTimelineId] = await Promise.all([
           user.getRiverOfNewsTimelineIntId(),
-          user.getCommentsTimeline(),
-          user.getLikesTimeline()
+          user.getCommentsTimelineIntId(),
+          user.getLikesTimelineIntId()
         ])
 
-        await commentsTimeline.mergeTo(riverId)
-        await likesTimeline.mergeTo(riverId)
+        await dbAdapter.createMergedPostsTimeline(riverId, [commentsTimelineId, likesTimelineId]);
       })
 
       await Promise.all(promises)
@@ -772,7 +771,7 @@ export function addModel(dbAdapter) {
     const timelineIds = await user.getPublicTimelineIds()
     const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
-    await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
+    await dbAdapter.createMergedPostsTimeline(await this.getRiverOfNewsTimelineIntId(), [timeline.intId]);
 
     this.subscribedFeedIds = subscribedFeedsIntIds
 

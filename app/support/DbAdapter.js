@@ -1359,13 +1359,14 @@ export class DbAdapter {
     return objects
   }
 
-  async createMergedPostsTimeline(destinationTimelineId, sourceTimelineId1, sourceTimelineId2) {
+  // merges posts from "source" into "destination"
+  async createMergedPostsTimeline(destinationTimelineId, sourceTimelineIds) {
     await this.database.transaction(async (trx) => {
       try {
         await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
         await trx.raw(
           'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
-          [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]]
+          [[destinationTimelineId], sourceTimelineIds]
         );
 
         await trx.commit();
