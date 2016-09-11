@@ -1274,7 +1274,7 @@ export class DbAdapter {
     }
 
     return this.database.raw(
-      pgFormat(`UPDATE posts SET feed_ids = uniq(feed_ids + ?) WHERE uid IN (%L)`, postIds),
+      pgFormat(`UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid IN (%L)`, postIds),
       [feedIntIds]
     )
   }
@@ -1295,7 +1295,7 @@ export class DbAdapter {
 
   withdrawPostFromFeeds(feedIntIds, postUUID) {
     return this.database
-      .raw('UPDATE posts SET feed_ids = uniq(feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID])
+      .raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID])
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
@@ -1364,7 +1364,7 @@ export class DbAdapter {
       try {
         await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
         await trx.raw(
-          'UPDATE "posts" SET "feed_ids" = uniq("feed_ids" + ?) WHERE "feed_ids" && ?',
+          'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
           [[destinationTimelineId], [sourceTimelineId1, sourceTimelineId2]]
         );
 
@@ -1451,7 +1451,7 @@ export class DbAdapter {
     const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
     const res = await this.database.raw(
-      'UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids + ?) WHERE uid = ? RETURNING subscribed_feed_ids',
+      'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids | ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
 
@@ -1470,7 +1470,7 @@ export class DbAdapter {
     const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
 
     const res = await this.database.raw(
-      'UPDATE users SET subscribed_feed_ids = uniq(subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
+      'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
     return res.rows[0].subscribed_feed_ids
