@@ -375,7 +375,7 @@ describe('Post', () => {
         .catch((e) => { done(e) })
     })
 
-    it('should not add liked posts to friends posts timelines', async function(done) {
+    it('should not add liked posts to friends posts timelines', async () => {
       const post2 = await userA.newPost({ body: 'Post body 2' })
       await post2.create()
 
@@ -386,11 +386,11 @@ describe('Post', () => {
 
       postsA.should.not.be.empty
       postsA.length.should.eql(1)
+
       const newPost = postsA[0]
       newPost.should.have.property('id')
       newPost.id.should.eql(post2.id)
-      done()
-    })
+    });
 
     it('should add user to likes', async () => {
       await post.addLike(userA)

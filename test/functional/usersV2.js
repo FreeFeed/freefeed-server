@@ -23,7 +23,7 @@ describe('UsersControllerV2', () => {
   })
 
   describe('#blockedByMe()', () => {
-    it('should reject unauthenticated users', async (done) => {
+    it('should reject unauthenticated users', (done) => {
       request
         .get(`${app.config.host}/v2/users/blockedByMe`)
         .end((err) => {
@@ -33,7 +33,7 @@ describe('UsersControllerV2', () => {
         })
     })
 
-    it('should return list for authenticated user', async (done) => {
+    it('should return list for authenticated user', async () => {
       const userA = {
         username: 'Luna',
         password: 'password'
@@ -67,8 +67,6 @@ describe('UsersControllerV2', () => {
       blockedByMe[0].should.have.property('screenName')
       blockedByMe[0].should.have.property('profilePictureLargeUrl')
       blockedByMe[0].should.have.property('profilePictureMediumUrl')
-
-      done()
     })
   })
 })
