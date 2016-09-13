@@ -358,7 +358,7 @@ describe('Privates', () => {
         })
       })
 
-      it('should protect subscribers of private user', async function(done) {
+      it('should protect subscribers of private user', async () => {
         const lunaSubscribersViewedByAnonymous = await funcTestHelper.getSubscribersAsync(lunaContext.username)
         lunaSubscribersViewedByAnonymous.status.should.equal(403)
         const viewedByAnonymous = await lunaSubscribersViewedByAnonymous.json()
@@ -436,9 +436,7 @@ describe('Privates', () => {
         lunaCommentsFeedViewedByLuna.timelines.should.have.property('subscribers')
         lunaCommentsFeedViewedByLuna.should.have.property('subscribers')
         lunaCommentsFeedViewedByLuna.should.have.property('admins')
-
-        done()
-      })
+      });
 
       it('should protect subscriptions of private user', (done) => {
         funcTestHelper.getSubscriptions(lunaContext.username, null, (err) => {

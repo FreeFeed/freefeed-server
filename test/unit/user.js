@@ -873,7 +873,7 @@ describe('User', () => {
       await Promise.all([userA.create(), userB.create()])
     })
 
-    it('should subscribe to username', async function(done) {
+    it('should subscribe to username', async () => {
       const attrs = { body: 'Post body' }
       const post = await userB.newPost(attrs)
       await post.create()
@@ -883,13 +883,12 @@ describe('User', () => {
 
       posts.should.not.be.empty
       posts.length.should.eql(1)
+
       const newPost = posts[0]
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)
-
-      done()
-    })
+    });
   })
 
   describe('#unsubscribeFrom()', () => {
