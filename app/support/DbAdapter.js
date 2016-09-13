@@ -550,7 +550,13 @@ export class DbAdapter {
     const userPostsFeed = await this.database('feeds').returning('uid').where({
       user_id: userId,
       name:    'Posts'
-    })
+    });
+
+    if (!userPostsFeed[0]) {
+      // hard-reserved username without other data-structures
+      return;
+    }
+
     const userPostsFeedId = userPostsFeed[0].uid
     const readablePostFeeds = this.database('feeds').whereIn('id', readableFeedsIds).where('name', 'Posts')
 
