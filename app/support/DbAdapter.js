@@ -1268,17 +1268,6 @@ export class DbAdapter {
     ])
   }
 
-  async createPostsUsagesInTimeline(postIds, feedIntIds) {
-    if (!feedIntIds || feedIntIds.length == 0 || postIds.length == 0) {
-      return null
-    }
-
-    return this.database.raw(
-      pgFormat(`UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid IN (%L)`, postIds),
-      [feedIntIds]
-    )
-  }
-
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
     const attrs = res[0]
@@ -1289,13 +1278,16 @@ export class DbAdapter {
     return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
   }
 
-  insertPostIntoFeeds(feedIntIds, postId) {
-    return this.createPostsUsagesInTimeline([postId], feedIntIds)
+  async insertPostIntoFeeds(feedIntIds, postId) {
+    if (!feedIntIds || feedIntIds.length == 0) {
+      return null
+    }
+
+    return this.database.raw('UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid = ?', [feedIntIds, postId]);
   }
 
-  withdrawPostFromFeeds(feedIntIds, postUUID) {
-    return this.database
-      .raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID])
+  async withdrawPostFromFeeds(feedIntIds, postUUID) {
+    return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
@@ -1468,6 +1460,7 @@ export class DbAdapter {
       'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
+
     return res.rows[0].subscribed_feed_ids
   }
 
