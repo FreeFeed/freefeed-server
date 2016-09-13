@@ -1477,6 +1477,29 @@ export class DbAdapter {
     return res.rows[0].subscribed_feed_ids
   }
 
+  /**
+   * Executes SERIALIZABLE transaction until it succeeds
+   * @param transaction
+   */
+  async executeSerizlizableTransaction(transaction) {
+    while (true) {  // eslint-disable-line no-constant-condition
+      try {
+        await this.database.transaction(async (trx) => {  // eslint-disable-line babel/no-await-in-loop
+          await trx.raw('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          return transaction(trx);
+        });
+        break;
+      } catch (e) {
+        if (e.code === '40001') {
+          // Serialization failure (other transaction has changed the data). RETRY
+          continue;
+        }
+
+        throw e;
+      }
+    }
+  }
+
   ///////////////////////////////////////////////////
   // LocalBumps
   ///////////////////////////////////////////////////
