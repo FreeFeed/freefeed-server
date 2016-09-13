@@ -291,19 +291,6 @@ export function addModel(dbAdapter) {
     return this.posts
   }
 
-  /**
-   * Merges contents of this timeline into timeline specified by id
-   * @param timelineId
-   */
-  Timeline.prototype.mergeTo = async function(timelineId) {
-    await dbAdapter.createMergedPostsTimeline(timelineId, timelineId, this.intId)
-
-    const timeline = await dbAdapter.getTimelineByIntId(timelineId)
-    const postIds = await timeline.getPostIds(0, -1)
-
-    await dbAdapter.createPostsUsagesInTimeline(postIds, [timelineId])
-  }
-
   Timeline.prototype.unmerge = async function(feedIntId) {
     const postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.intId, feedIntId)
 

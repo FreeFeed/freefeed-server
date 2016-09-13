@@ -954,7 +954,7 @@ describe('PrivateGroups', () => {
       await funcTestHelper.createAndReturnPostToFeed(group, adminContext, 'Post body')
     })
 
-    it('anonymous users should have no access to private group subscribers', async function(done) {
+    it('anonymous users should have no access to private group subscribers', async () => {
       const groupFeedViewedByAnonymous = await funcTestHelper.getUserFeed(group)
       groupFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
       groupFeedViewedByAnonymous.should.not.have.property('subscribers')
@@ -969,11 +969,9 @@ describe('PrivateGroups', () => {
       groupCommentsFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
       groupCommentsFeedViewedByAnonymous.should.not.have.property('subscribers')
       groupCommentsFeedViewedByAnonymous.should.not.have.property('admins')
+    });
 
-      done()
-    })
-
-    it('non-members of group should have no access to private group subscribers', async function(done) {
+    it('non-members of group should have no access to private group subscribers', async () => {
       const groupFeedViewedByMars = await funcTestHelper.getUserFeed(group, marsContext)
       groupFeedViewedByMars.timelines.should.not.have.property('subscribers')
       groupFeedViewedByMars.should.not.have.property('subscribers')
@@ -988,11 +986,9 @@ describe('PrivateGroups', () => {
       groupCommentsFeedViewedByMars.timelines.should.not.have.property('subscribers')
       groupCommentsFeedViewedByMars.should.not.have.property('subscribers')
       groupCommentsFeedViewedByMars.should.not.have.property('admins')
-
-      done()
     })
 
-    it('group members should have access to private group subscribers', async function(done) {
+    it('group members should have access to private group subscribers', async () => {
       const groupFeedViewedByPluto = await funcTestHelper.getUserFeed(group, plutoContext)
       groupFeedViewedByPluto.timelines.should.have.property('subscribers')
       groupFeedViewedByPluto.should.have.property('subscribers')
@@ -1007,9 +1003,7 @@ describe('PrivateGroups', () => {
       groupCommentsFeedViewedByPluto.timelines.should.have.property('subscribers')
       groupCommentsFeedViewedByPluto.should.have.property('subscribers')
       groupCommentsFeedViewedByPluto.should.have.property('admins')
-
-      done()
-    })
+    });
   })
 
   describe('Posting to restricted group', () => {

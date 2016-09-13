@@ -445,14 +445,13 @@ export function addModel(dbAdapter) {
 
     for (const usersChunk of _.chunk(fixedUsers, 10)) {
       const promises = usersChunk.map(async (user) => {
-        const [riverId, commentsTimeline, likesTimeline] = await Promise.all([
+        const [riverId, commentsTimelineId, likesTimelineId] = await Promise.all([
           user.getRiverOfNewsTimelineIntId(),
-          user.getCommentsTimeline(),
-          user.getLikesTimeline()
+          user.getCommentsTimelineIntId(),
+          user.getLikesTimelineIntId()
         ])
 
-        await commentsTimeline.mergeTo(riverId)
-        await likesTimeline.mergeTo(riverId)
+        await dbAdapter.createMergedPostsTimeline(riverId, [commentsTimelineId, likesTimelineId]);
       })
 
       await Promise.all(promises)
@@ -762,22 +761,22 @@ export function addModel(dbAdapter) {
   }
 
   // Subscribe to user-owner of a given `timelineId`
-  User.prototype.subscribeTo = async function(timelineId) {
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
+  User.prototype.subscribeTo = async function(targetTimelineId) {
+    const targetTimeline = await dbAdapter.getTimelineById(targetTimelineId)
+    const targetTimelineOwner = await dbAdapter.getFeedOwnerById(targetTimeline.userId)
 
-    if (user.username == this.username)
+    if (targetTimelineOwner.username == this.username)
       throw new Error('Invalid')
 
-    const timelineIds = await user.getPublicTimelineIds()
+    const timelineIds = await targetTimelineOwner.getPublicTimelineIds()
     const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
 
-    await timeline.mergeTo(await this.getRiverOfNewsTimelineIntId())
+    await dbAdapter.createMergedPostsTimeline(await this.getRiverOfNewsTimelineIntId(), [targetTimeline.intId]);
 
     this.subscribedFeedIds = subscribedFeedsIntIds
 
     await dbAdapter.statsSubscriptionCreated(this.id)
-    await dbAdapter.statsSubscriberAdded(user.id)
+    await dbAdapter.statsSubscriberAdded(targetTimelineOwner.id)
 
     monitor.increment('users.subscriptions')
 
