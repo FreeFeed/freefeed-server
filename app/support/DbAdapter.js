@@ -1391,6 +1391,7 @@ export class DbAdapter {
   bestPosts = async (currentUser, offset = 0, limit = 30) => {
     const MIN_LIKES = 10;
     const MIN_COMMENTS = 15;
+    const MIN_COMMENT_AUTHORS = 5;
 
     const bannedUserIds = currentUser ? await currentUser.getBanIds() : [];
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
@@ -1398,12 +1399,12 @@ export class DbAdapter {
     const sql = `
       SELECT
         "posts".* FROM "posts"
-      LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
+      LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
       INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND "users"."is_private" = false
       WHERE
-        "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS}
+        "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS}
         ${bannedUsersFilter}
       ORDER BY "posts"."updated_at" DESC
       OFFSET ${offset} LIMIT ${limit}`;
