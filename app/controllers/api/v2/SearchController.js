@@ -1,8 +1,8 @@
-import _ from 'lodash'
-import { dbAdapter, PostSerializer } from '../../../models'
+import { dbAdapter } from '../../../models'
 import { reportError, NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { SearchQueryParser } from '../../../support/SearchQueryParser'
 import { SEARCH_SCOPES } from '../../../support/SearchConstants'
+import { serializePostsCollection } from '../../../serializers/v2/post';
 
 export default class SearchController {
   static async search(req, res) {
@@ -75,38 +75,11 @@ export default class SearchController {
 
       const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId, maxComments: 'all' })
 
-      const postsCollectionJson = await SearchController._serializePostsCollection(postsObjects)
+      const postsCollectionJson = await serializePostsCollection(postsObjects)
 
       res.jsonp(postsCollectionJson)
     } catch (e) {
       reportError(res)(e)
     }
-  }
-
-  static async _serializePostsCollection(postsObjects) {
-    const postsCollection = await Promise.all(postsObjects.map((post) => new PostSerializer(post).promiseToJSON()))
-    const postsCollectionJson = {
-      posts:         [],
-      comments:      [],
-      attachments:   [],
-      subscriptions: [],
-      admins:        [],
-      users:         [],
-      subscribers:   []
-    }
-
-    const transformPosts = (result, val) => {
-      result.posts.push(val.posts)
-      result.comments       = _.uniqBy(result.comments.concat(val.comments || []), 'id')
-      result.attachments    = _.uniqBy(result.attachments.concat(val.attachments || []), 'id')
-      result.subscriptions  = _.uniqBy(result.subscriptions.concat(val.subscriptions || []), 'id')
-      result.admins         = _.uniqBy(result.admins.concat(val.admins || []), 'id')
-      result.users          = _.uniqBy(result.users.concat(val.users || []), 'id')
-      result.subscribers    = _.uniqBy(result.subscribers.concat(val.subscribers || []), 'id')
-
-      return result
-    };
-
-    return _.reduce(postsCollection, transformPosts, postsCollectionJson)
   }
 }
