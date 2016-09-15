@@ -1274,17 +1274,6 @@ export class DbAdapter {
     ])
   }
 
-  async createPostsUsagesInTimeline(postIds, feedIntIds) {
-    if (!feedIntIds || feedIntIds.length == 0 || postIds.length == 0) {
-      return null
-    }
-
-    return this.database.raw(
-      pgFormat(`UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid IN (%L)`, postIds),
-      [feedIntIds]
-    )
-  }
-
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
     const attrs = res[0]
@@ -1295,13 +1284,16 @@ export class DbAdapter {
     return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
   }
 
-  insertPostIntoFeeds(feedIntIds, postId) {
-    return this.createPostsUsagesInTimeline([postId], feedIntIds)
+  async insertPostIntoFeeds(feedIntIds, postId) {
+    if (!feedIntIds || feedIntIds.length == 0) {
+      return null
+    }
+
+    return this.database.raw('UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid = ?', [feedIntIds, postId]);
   }
 
-  withdrawPostFromFeeds(feedIntIds, postUUID) {
-    return this.database
-      .raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID])
+  async withdrawPostFromFeeds(feedIntIds, postUUID) {
+    return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
@@ -1367,20 +1359,14 @@ export class DbAdapter {
 
   // merges posts from "source" into "destination"
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineIds) {
-    await this.database.transaction(async (trx) => {
-      try {
-        await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
-        await trx.raw(
-          'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
-          [[destinationTimelineId], sourceTimelineIds]
-        );
+    const transaction = async (trx) => {
+      await trx.raw(
+        'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
+        [[destinationTimelineId], sourceTimelineIds]
+      );
+    };
 
-        await trx.commit();
-      } catch (e) {
-        await trx.rollback();
-        throw e;
-      }
-    });
+    await this.executeSerizlizableTransaction(transaction);
   }
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
@@ -1480,7 +1466,31 @@ export class DbAdapter {
       'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
+
     return res.rows[0].subscribed_feed_ids
+  }
+
+  /**
+   * Executes SERIALIZABLE transaction until it succeeds
+   * @param transaction
+   */
+  async executeSerizlizableTransaction(transaction) {
+    while (true) {  // eslint-disable-line no-constant-condition
+      try {
+        await this.database.transaction(async (trx) => {  // eslint-disable-line babel/no-await-in-loop
+          await trx.raw('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          return transaction(trx);
+        });
+        break;
+      } catch (e) {
+        if (e.code === '40001') {
+          // Serialization failure (other transaction has changed the data). RETRY
+          continue;
+        }
+
+        throw e;
+      }
+    }
   }
 
   ///////////////////////////////////////////////////
