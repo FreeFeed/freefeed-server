@@ -1390,7 +1390,7 @@ export class DbAdapter {
    */
   bestPosts = async (currentUser, offset = 0, limit = 30) => {
     const MIN_LIKES = 10;
-    const MIN_COMMENTS = 5;
+    const MIN_COMMENTS = 15;
 
     const bannedUserIds = currentUser ? await currentUser.getBanIds() : [];
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
