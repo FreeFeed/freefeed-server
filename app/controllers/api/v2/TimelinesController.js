@@ -11,9 +11,13 @@ export default class TimelinesController {
 
   bestOf = async (req, res) => {
     try {
-      const currentUserId = req.user ? req.user.id : null;
+      const DEFAULT_LIMIT = 30;
 
-      const foundPosts = await dbAdapter.bestPosts(req.user);
+      const currentUserId = req.user ? req.user.id : null;
+      const offset = parseInt(req.query.offset, 10) || 0;
+      const limit =  parseInt(req.query.limit, 10) || DEFAULT_LIMIT;
+
+      const foundPosts = await dbAdapter.bestPosts(req.user, offset, limit);
       const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
       const postsCollectionJson = await serializePostsCollection(postsObjects);
 
