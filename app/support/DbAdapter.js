@@ -550,7 +550,13 @@ export class DbAdapter {
     const userPostsFeed = await this.database('feeds').returning('uid').where({
       user_id: userId,
       name:    'Posts'
-    })
+    });
+
+    if (!userPostsFeed[0]) {
+      // hard-reserved username without other data-structures
+      return;
+    }
+
     const userPostsFeedId = userPostsFeed[0].uid
     const readablePostFeeds = this.database('feeds').whereIn('id', readableFeedsIds).where('name', 'Posts')
 
@@ -1268,17 +1274,6 @@ export class DbAdapter {
     ])
   }
 
-  async createPostsUsagesInTimeline(postIds, feedIntIds) {
-    if (!feedIntIds || feedIntIds.length == 0 || postIds.length == 0) {
-      return null
-    }
-
-    return this.database.raw(
-      pgFormat(`UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid IN (%L)`, postIds),
-      [feedIntIds]
-    )
-  }
-
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
     const attrs = res[0]
@@ -1289,13 +1284,16 @@ export class DbAdapter {
     return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
   }
 
-  insertPostIntoFeeds(feedIntIds, postId) {
-    return this.createPostsUsagesInTimeline([postId], feedIntIds)
+  async insertPostIntoFeeds(feedIntIds, postId) {
+    if (!feedIntIds || feedIntIds.length == 0) {
+      return null
+    }
+
+    return this.database.raw('UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid = ?', [feedIntIds, postId]);
   }
 
-  withdrawPostFromFeeds(feedIntIds, postUUID) {
-    return this.database
-      .raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID])
+  async withdrawPostFromFeeds(feedIntIds, postUUID) {
+    return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
@@ -1361,20 +1359,14 @@ export class DbAdapter {
 
   // merges posts from "source" into "destination"
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineIds) {
-    await this.database.transaction(async (trx) => {
-      try {
-        await trx.raw('LOCK TABLE "posts" IN SHARE ROW EXCLUSIVE MODE');
-        await trx.raw(
-          'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
-          [[destinationTimelineId], sourceTimelineIds]
-        );
+    const transaction = async (trx) => {
+      await trx.raw(
+        'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
+        [[destinationTimelineId], sourceTimelineIds]
+      );
+    };
 
-        await trx.commit();
-      } catch (e) {
-        await trx.rollback();
-        throw e;
-      }
-    });
+    await this.executeSerizlizableTransaction(transaction);
   }
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
@@ -1390,6 +1382,36 @@ export class DbAdapter {
 
     return _.intersection(postIds1, postIds2)
   }
+
+  /**
+   * Show all PUBLIC posts with
+   * 10+ likes
+   * 15+ comments by 5+ users
+   */
+  bestPosts = async (currentUser, offset = 0, limit = 30) => {
+    const MIN_LIKES = 10;
+    const MIN_COMMENTS = 15;
+    const MIN_COMMENT_AUTHORS = 5;
+
+    const bannedUserIds = currentUser ? await currentUser.getBanIds() : [];
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
+
+    const sql = `
+      SELECT
+        "posts".* FROM "posts"
+      LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
+      LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
+      INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
+      INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND "users"."is_private" = false
+      WHERE
+        "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS}
+        ${bannedUsersFilter}
+      ORDER BY "posts"."updated_at" DESC
+      OFFSET ${offset} LIMIT ${limit}`;
+
+    const res = await this.database.raw(sql);
+    return res.rows;
+  };
 
   ///////////////////////////////////////////////////
   // Subscriptions
@@ -1474,7 +1496,31 @@ export class DbAdapter {
       'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
+
     return res.rows[0].subscribed_feed_ids
+  }
+
+  /**
+   * Executes SERIALIZABLE transaction until it succeeds
+   * @param transaction
+   */
+  async executeSerizlizableTransaction(transaction) {
+    while (true) {  // eslint-disable-line no-constant-condition
+      try {
+        await this.database.transaction(async (trx) => {  // eslint-disable-line babel/no-await-in-loop
+          await trx.raw('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          return transaction(trx);
+        });
+        break;
+      } catch (e) {
+        if (e.code === '40001') {
+          // Serialization failure (other transaction has changed the data). RETRY
+          continue;
+        }
+
+        throw e;
+      }
+    }
   }
 
   ///////////////////////////////////////////////////
