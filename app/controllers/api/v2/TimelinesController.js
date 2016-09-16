@@ -14,7 +14,7 @@ export default class TimelinesController {
       const currentUserId = req.user ? req.user.id : null;
 
       const foundPosts = await dbAdapter.bestPosts(req.user);
-      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId, maxComments: 'all' });
+      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
       const postsCollectionJson = await serializePostsCollection(postsObjects);
 
       res.jsonp(postsCollectionJson);
