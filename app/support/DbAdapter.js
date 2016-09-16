@@ -743,13 +743,14 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async getUserBansIds(userId) {
-    const res = await this.database('bans').select('banned_user_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record) => {
-      return record.banned_user_id
-    })
-    return attrs
+    const res = await this.database('bans').select('banned_user_id').orderBy('created_at', 'desc').where('user_id', userId);
+    return res.map((record) => record.banned_user_id);
   }
 
+  async getUserIdsWhoBannedUser(userId) {
+    const res = await this.database('bans').select('user_id').orderBy('created_at', 'desc').where('banned_user_id', userId);
+    return res.map((record) => record.user_id);
+  }
 
   async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId) {
     let res = [];
@@ -1393,8 +1394,21 @@ export class DbAdapter {
     const MIN_COMMENTS = 15;
     const MIN_COMMENT_AUTHORS = 5;
 
-    const bannedUserIds = currentUser ? await currentUser.getBanIds() : [];
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    let bannedUsersFilter = '';
+    let usersWhoBannedMeFilter = '';
+
+    if (currentUser) {
+      const [iBanned, bannedMe] = await Promise.all([
+        this.getUserBansIds(currentUser.id),
+        this.getUserIdsWhoBannedUser(currentUser.id)
+      ]);
+
+      bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(iBanned);
+
+      if (bannedMe.length > 0) {
+        usersWhoBannedMeFilter = pgFormat('AND "feeds"."user_id" NOT IN (%L) ', bannedMe);
+      }
+    }
 
     const sql = `
       SELECT
@@ -1406,6 +1420,7 @@ export class DbAdapter {
       WHERE
         "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS}
         ${bannedUsersFilter}
+        ${usersWhoBannedMeFilter}
       ORDER BY "posts"."updated_at" DESC
       OFFSET ${offset} LIMIT ${limit}`;
 
