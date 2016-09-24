@@ -1412,7 +1412,7 @@ export class DbAdapter {
 
     const sql = `
       SELECT
-        "posts".* FROM "posts"
+        DISTINCT "posts".* FROM "posts"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
