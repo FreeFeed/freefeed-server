@@ -1388,11 +1388,13 @@ export class DbAdapter {
    * Show all PUBLIC posts with
    * 10+ likes
    * 15+ comments by 5+ users
+   * Created less than 60 days ago
    */
   bestPosts = async (currentUser, offset = 0, limit = 30) => {
     const MIN_LIKES = 10;
     const MIN_COMMENTS = 15;
     const MIN_COMMENT_AUTHORS = 5;
+    const MAX_DAYS = 60;
 
     let bannedUsersFilter = '';
     let usersWhoBannedMeFilter = '';
@@ -1418,7 +1420,7 @@ export class DbAdapter {
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
       INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND "users"."is_private" = false
       WHERE
-        "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS}
+        "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS} AND "posts"."created_at" > (current_date - ${MAX_DAYS} * interval '1 day')
         ${bannedUsersFilter}
         ${usersWhoBannedMeFilter}
       ORDER BY "posts"."updated_at" DESC
