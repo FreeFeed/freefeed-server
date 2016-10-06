@@ -233,7 +233,7 @@ export default class UsersController {
       const subscribers = await timeline.getSubscribers()
       const jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
 
-      const json = _.reduce(jsonPromises, async function (memoPromise, jsonPromise) {
+      const json = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
         const obj = await jsonPromise
         const memo = await memoPromise
 
@@ -271,7 +271,7 @@ export default class UsersController {
       const subscriptions = await user.getSubscriptions()
       const jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
 
-      const reducedJsonPromise = _.reduce(jsonPromises, async function(memoPromise, jsonPromise) {
+      const reducedJsonPromise = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
         const obj = await jsonPromise
         const memo = await memoPromise
 
@@ -490,7 +490,7 @@ export default class UsersController {
 
     const form = new formidable.IncomingForm()
 
-    form.on('file', async function(inputName, file) {
+    form.on('file', async (inputName, file) => {
       try {
         await req.user.updateProfilePicture(file)
         res.jsonp({ message: 'Your profile picture has been updated' })

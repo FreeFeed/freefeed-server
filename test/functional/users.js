@@ -222,7 +222,7 @@ describe('UsersController', () => {
         })
     })
 
-    it('should not create user if username is in stop list', async function() {
+    it('should not create user if username is in stop list', async () => {
       const user = {
         username: 'dev',
         password: 'password123',
@@ -237,7 +237,7 @@ describe('UsersController', () => {
       data.err.should.eql('Invalid username')
     })
 
-    it('should not create user if username is in extra stop list', async function() {
+    it('should not create user if username is in extra stop list', async () => {
       const user = {
         username: 'nicegirlnextdoor',
         password: 'password123',

@@ -10,7 +10,7 @@ const config = configLoader()
 
 export default class SessionController {
   static create(req, res) {
-    passport.authenticate('local', async function(err, user, msg) {
+    passport.authenticate('local', async (err, user, msg) => {
       if (err) {
         res.status(401).jsonp({ err: err.message })
         return

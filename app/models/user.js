@@ -54,7 +54,7 @@ export function addModel(dbAdapter) {
     this.profilePictureUuid = params.profilePictureUuid || ''
     this.subscribedFeedIds = params.subscribedFeedIds || []
 
-    this.initPassword = async function() {
+    this.initPassword = async function () {
       if (!_.isNull(password)) {
         if (password.length === 0) {
           throw new Error('Password cannot be blank')
@@ -73,7 +73,7 @@ export function addModel(dbAdapter) {
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
 
-  Object.defineProperty(User.prototype, 'username', {
+  Reflect.defineProperty(User.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
       if (newValue)
@@ -81,7 +81,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(User.prototype, 'screenName', {
+  Reflect.defineProperty(User.prototype, 'screenName', {
     get: function () { return this.screenName_ },
     set: function (newValue) {
       if (_.isString(newValue))
@@ -89,7 +89,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(User.prototype, 'email', {
+  Reflect.defineProperty(User.prototype, 'email', {
     get: function () { return _.isUndefined(this.email_) ? '' : this.email_ },
     set: function (newValue) {
       if (_.isString(newValue))
@@ -97,14 +97,14 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(User.prototype, 'isPrivate', {
+  Reflect.defineProperty(User.prototype, 'isPrivate', {
     get: function () { return this.isPrivate_ },
     set: function (newValue) {
       this.isPrivate_ = newValue || '0'
     }
   })
 
-  Object.defineProperty(User.prototype, 'description', {
+  Reflect.defineProperty(User.prototype, 'description', {
     get: function () { return this.description_ },
     set: function (newValue) {
       if (_.isString(newValue))
@@ -112,7 +112,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(User.prototype, 'frontendPreferences', {
+  Reflect.defineProperty(User.prototype, 'frontendPreferences', {
     get: function () { return this.frontendPreferences_ },
     set: function (newValue) {
       if (_.isString(newValue)) {
@@ -139,7 +139,7 @@ export function addModel(dbAdapter) {
     return this.type === 'user'
   }
 
-  User.prototype.newPost = async function(attrs) {
+  User.prototype.newPost = async function (attrs) {
     attrs.userId = this.id
     if (!attrs.timelineIds || !attrs.timelineIds[0]) {
       const timelineId = await this.getPostsTimelineId()
@@ -148,7 +148,7 @@ export function addModel(dbAdapter) {
     return new Post(attrs)
   }
 
-  User.prototype.updateResetPasswordToken = async function() {
+  User.prototype.updateResetPasswordToken = async function () {
     const now = new Date().getTime()
     const token = await this.generateResetPasswordToken()
 
@@ -163,7 +163,7 @@ export function addModel(dbAdapter) {
     return this.resetPasswordToken
   }
 
-  User.prototype.generateResetPasswordToken = async function() {
+  User.prototype.generateResetPasswordToken = async function () {
     const buf = await crypto.randomBytesAsync(48)
     return buf.toString('hex')
   }
@@ -172,11 +172,11 @@ export function addModel(dbAdapter) {
     return bcrypt.compareAsync(clearPassword, this.hashedPassword)
   }
 
-  User.prototype.isValidEmail = async function() {
+  User.prototype.isValidEmail = async function () {
     return User.emailIsValid(this.email)
   }
 
-  User.emailIsValid = async function(email) {
+  User.emailIsValid = async function (email) {
     // email is optional
     if (!email || email.length == 0) {
       return true
@@ -255,7 +255,7 @@ export function addModel(dbAdapter) {
     return true
   }
 
-  User.prototype.validate = async function(skip_stoplist) {
+  User.prototype.validate = async function (skip_stoplist) {
     if (!this.isValidUsername(skip_stoplist)) {
       throw new Error('Invalid username')
     }
@@ -273,14 +273,14 @@ export function addModel(dbAdapter) {
     }
   }
 
-  User.prototype.validateUsernameUniqueness = async function() {
+  User.prototype.validateUsernameUniqueness = async function () {
     const res = await dbAdapter.existsUsername(this.username)
 
     if (res !== 0)
       throw new Error('Already exists')
   }
 
-  User.prototype.validateOnCreate = async function(skip_stoplist) {
+  User.prototype.validateOnCreate = async function (skip_stoplist) {
     const promises = [
       this.validate(skip_stoplist),
       this.validateUsernameUniqueness()
@@ -289,7 +289,7 @@ export function addModel(dbAdapter) {
     await Promise.all(promises)
   }
 
-  User.prototype.create = async function(skip_stoplist) {
+  User.prototype.create = async function (skip_stoplist) {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
     this.screenName = this.screenName || this.username
@@ -319,7 +319,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  User.prototype.update = async function(params) {
+  User.prototype.update = async function (params) {
     const payload = {}
     const changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
 
@@ -400,7 +400,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  User.prototype.subscribeNonFriends = async function() {
+  User.prototype.subscribeNonFriends = async function () {
     // NOTE: this method is super ineffective as it iterates all posts
     // and then all comments in user's timeline, we could make it more
     // efficient when introduce Entries table with meta column (post to
@@ -459,14 +459,14 @@ export function addModel(dbAdapter) {
     /* eslint-enable babel/no-await-in-loop */
   }
 
-  User.prototype.unsubscribeNonFriends = async function() {
+  User.prototype.unsubscribeNonFriends = async function () {
     /* eslint-disable babel/no-await-in-loop */
     const subscriberIds = await this.getSubscriberIds()
     const timeline = await this.getPostsTimeline()
 
     // users that I'm not following are ex-followers now
     // var subscribers = await this.getSubscribers()
-    // await Promise.all(subscribers.map(function(user) {
+    // await Promise.all(subscribers.map(function (user) {
     //   // this is not friend, let's unsubscribe her before going to private
     //   if (!subscriptionIds.includes(user.id)) {
     //     return user.unsubscribeFrom(timeline.id, { likes: true, comments: true })
@@ -501,7 +501,7 @@ export function addModel(dbAdapter) {
     /* eslint-enable babel/no-await-in-loop */
   }
 
-  User.prototype.updatePassword = async function(password, passwordConfirmation) {
+  User.prototype.updatePassword = async function (password, passwordConfirmation) {
     if (password.length === 0) {
       throw new Error('Password cannot be blank')
     }
@@ -524,15 +524,15 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  User.prototype.getAdministratorIds = async function() {
+  User.prototype.getAdministratorIds = async function () {
     return [this.id]
   }
 
-  User.prototype.getAdministrators = async function() {
+  User.prototype.getAdministrators = async function () {
     return [this]
   }
 
-  User.prototype.getMyDiscussionsTimeline = async function(params) {
+  User.prototype.getMyDiscussionsTimeline = async function (params) {
     const myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
 
     const feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
@@ -540,7 +540,7 @@ export function addModel(dbAdapter) {
     return feed
   }
 
-  User.prototype.getGenericTimelineId = async function(name, params) {
+  User.prototype.getGenericTimelineId = async function (name, params) {
     params = params || {}
 
     const timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
@@ -553,7 +553,7 @@ export function addModel(dbAdapter) {
     return timeline.id
   }
 
-  User.prototype.getGenericTimelineIntId = async function(name) {
+  User.prototype.getGenericTimelineIntId = async function (name) {
     const timelineIds = await this.getTimelineIds()
 
     const timeline = await dbAdapter.getTimelineById(timelineIds[name])
@@ -561,7 +561,7 @@ export function addModel(dbAdapter) {
     return timeline.intId
   }
 
-  User.prototype.getGenericTimeline = async function(name, params) {
+  User.prototype.getGenericTimeline = async function (name, params) {
     const timelineId = await this[`get${name}TimelineId`](params)
 
     const timeline = await dbAdapter.getTimelineById(timelineId, params)
@@ -590,7 +590,7 @@ export function addModel(dbAdapter) {
     return this.getGenericTimelineIntId('RiverOfNews', params)
   }
 
-  User.prototype.getRiverOfNewsTimeline = async function(params) {
+  User.prototype.getRiverOfNewsTimeline = async function (params) {
     const timelineId = await this.getRiverOfNewsTimelineId(params)
     const hidesTimelineIntId = await this.getHidesTimelineIntId(params)
 
@@ -656,12 +656,12 @@ export function addModel(dbAdapter) {
     return this.getGenericTimeline('Directs', params)
   }
 
-  User.prototype.getTimelineIds = async function() {
+  User.prototype.getTimelineIds = async function () {
     const timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
     return timelineIds || {}
   }
 
-  User.prototype.getTimelines = async function(params) {
+  User.prototype.getTimelines = async function (params) {
     const timelineIds = await this.getTimelineIds()
     const timelines = await dbAdapter.getTimelinesByIds(_.values(timelineIds), params)
     const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
@@ -687,24 +687,24 @@ export function addModel(dbAdapter) {
   /**
    * @return {Timeline[]}
    */
-  User.prototype.getSubscriptions = async function() {
+  User.prototype.getSubscriptions = async function () {
     this.subscriptions = await dbAdapter.getTimelinesByIntIds(this.subscribedFeedIds)
     return this.subscriptions
   }
 
-  User.prototype.getFriendIds = async function() {
+  User.prototype.getFriendIds = async function () {
     const timelines = await this.getSubscriptions()
     const postTimelines = _.filter(timelines, _.method('isPosts'))
 
     return postTimelines.map((timeline) => timeline.userId)
   }
 
-  User.prototype.getFriends = async function() {
+  User.prototype.getFriends = async function () {
     const userIds = await this.getFriendIds()
     return await dbAdapter.getUsersByIds(userIds)
   }
 
-  User.prototype.getSubscriberIds = async function() {
+  User.prototype.getSubscriberIds = async function () {
     const postsFeedIntId = await this.getPostsTimelineIntId()
     const timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
     this.subscriberIds = await timeline.getSubscriberIds()
@@ -712,7 +712,7 @@ export function addModel(dbAdapter) {
     return this.subscriberIds
   }
 
-  User.prototype.getSubscribers = async function() {
+  User.prototype.getSubscribers = async function () {
     const subscriberIds = await this.getSubscriberIds()
     this.subscribers = await dbAdapter.getUsersByIds(subscriberIds)
 
@@ -723,7 +723,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.getUserBansIds(this.id)
   }
 
-  User.prototype.ban = async function(username) {
+  User.prototype.ban = async function (username) {
     const user = await dbAdapter.getUserByUsername(username)
 
     if (null === user) {
@@ -747,7 +747,7 @@ export function addModel(dbAdapter) {
     return 1
   }
 
-  User.prototype.unban = async function(username) {
+  User.prototype.unban = async function (username) {
     const user = await dbAdapter.getUserByUsername(username)
 
     if (null === user) {
@@ -761,7 +761,7 @@ export function addModel(dbAdapter) {
   }
 
   // Subscribe to user-owner of a given `timelineId`
-  User.prototype.subscribeTo = async function(targetTimelineId) {
+  User.prototype.subscribeTo = async function (targetTimelineId) {
     const targetTimeline = await dbAdapter.getTimelineById(targetTimelineId)
     const targetTimelineOwner = await dbAdapter.getFeedOwnerById(targetTimeline.userId)
 
@@ -784,7 +784,7 @@ export function addModel(dbAdapter) {
   }
 
   // Subscribe this user to `username`
-  User.prototype.subscribeToUsername = async function(username) {
+  User.prototype.subscribeToUsername = async function (username) {
     const user = await dbAdapter.getFeedOwnerByUsername(username)
 
     if (null === user) {
@@ -795,7 +795,7 @@ export function addModel(dbAdapter) {
     return this.subscribeTo(timelineId)
   }
 
-  User.prototype.unsubscribeFrom = async function(timelineId, options = {}) {
+  User.prototype.unsubscribeFrom = async function (timelineId, options = {}) {
     const timeline = await dbAdapter.getTimelineById(timelineId)
     const user = await dbAdapter.getFeedOwnerById(timeline.userId)
     const wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
@@ -837,7 +837,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  User.prototype.calculateStatsValues = async function() {
+  User.prototype.calculateStatsValues = async function () {
     let res
     try {
       res = await dbAdapter.getUserStats(this.id)
@@ -849,7 +849,7 @@ export function addModel(dbAdapter) {
   }
 
 
-  User.prototype.getStatistics = async function() {
+  User.prototype.getStatistics = async function () {
     if (!this.statsValues) {
       this.statsValues = await this.calculateStatsValues()
     }
@@ -862,13 +862,13 @@ export function addModel(dbAdapter) {
     return new Comment(attrs)
   }
 
-  User.prototype.newAttachment = async function(attrs) {
+  User.prototype.newAttachment = async function (attrs) {
     attrs.userId = this.id
     monitor.increment('users.attachments')
     return new Attachment(attrs)
   }
 
-  User.prototype.updateProfilePicture = async function(file) {
+  User.prototype.updateProfilePicture = async function (file) {
     const image = promisifyAll(gm(file.path))
 
     let originalSize
@@ -899,7 +899,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.updateUser(this.id, payload)
   }
 
-  User.prototype.saveProfilePictureWithSize = async function(path, uuid, originalSize, size) {
+  User.prototype.saveProfilePictureWithSize = async function (path, uuid, originalSize, size) {
     const origWidth = originalSize.width
     const origHeight = originalSize.height
     const retinaSize = size * 2
@@ -935,7 +935,7 @@ export function addModel(dbAdapter) {
   }
 
   // Upload profile picture to the S3 bucket
-  User.prototype.uploadToS3 = async function(sourceFile, destFile, subConfig) {
+  User.prototype.uploadToS3 = async function (sourceFile, destFile, subConfig) {
     const s3 = new aws.S3({
       'accessKeyId':     subConfig.storage.accessKeyId || null,
       'secretAccessKey': subConfig.storage.secretAccessKey || null
@@ -960,7 +960,7 @@ export function addModel(dbAdapter) {
   }
 
   // used by serializer
-  User.prototype.getProfilePictureLargeUrl = async function() {
+  User.prototype.getProfilePictureLargeUrl = async function () {
     if (_.isEmpty(this.profilePictureUuid)) {
       return ''
     }
@@ -971,7 +971,7 @@ export function addModel(dbAdapter) {
   }
 
   // used by serializer
-  User.prototype.getProfilePictureMediumUrl = async function() {
+  User.prototype.getProfilePictureMediumUrl = async function () {
     if (_.isEmpty(this.profilePictureUuid)) {
       return ''
     }
@@ -984,7 +984,7 @@ export function addModel(dbAdapter) {
   /**
    * Checks if the specified user can post to the timeline of this user.
    */
-  User.prototype.validateCanPost = async function(postingUser) {
+  User.prototype.validateCanPost = async function (postingUser) {
     // NOTE: when user is subscribed to another user she in fact is
     // subscribed to her posts timeline
     const [timelineIdA, timelineIdB] =
@@ -1000,7 +1000,7 @@ export function addModel(dbAdapter) {
     }
   }
 
-  User.prototype.updateLastActivityAt = async function() {
+  User.prototype.updateLastActivityAt = async function () {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers
       const updatedAt = new Date().getTime()
@@ -1009,15 +1009,15 @@ export function addModel(dbAdapter) {
     }
   }
 
-  User.prototype.sendSubscriptionRequest = async function(userId) {
+  User.prototype.sendSubscriptionRequest = async function (userId) {
     return await dbAdapter.createSubscriptionRequest(this.id, userId)
   }
 
-  User.prototype.sendPrivateGroupSubscriptionRequest = async function(groupId) {
+  User.prototype.sendPrivateGroupSubscriptionRequest = async function (groupId) {
     return await dbAdapter.createSubscriptionRequest(this.id, groupId)
   }
 
-  User.prototype.acceptSubscriptionRequest = async function(userId) {
+  User.prototype.acceptSubscriptionRequest = async function (userId) {
     await dbAdapter.deleteSubscriptionRequest(this.id, userId)
 
     const timelineId = await this.getPostsTimelineId()
@@ -1026,25 +1026,25 @@ export function addModel(dbAdapter) {
     return user.subscribeTo(timelineId)
   }
 
-  User.prototype.rejectSubscriptionRequest = async function(userId) {
+  User.prototype.rejectSubscriptionRequest = async function (userId) {
     return await dbAdapter.deleteSubscriptionRequest(this.id, userId)
   }
 
-  User.prototype.getPendingSubscriptionRequestIds = async function() {
+  User.prototype.getPendingSubscriptionRequestIds = async function () {
     this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(this.id)
     return this.pendingSubscriptionRequestIds
   }
 
-  User.prototype.getPendingSubscriptionRequests = async function() {
+  User.prototype.getPendingSubscriptionRequests = async function () {
     const pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
     return await dbAdapter.getUsersByIds(pendingSubscriptionRequestIds)
   }
 
-  User.prototype.getSubscriptionRequestIds = async function() {
+  User.prototype.getSubscriptionRequestIds = async function () {
     return await dbAdapter.getUserSubscriptionRequestsIds(this.id)
   }
 
-  User.prototype.getSubscriptionRequests = async function() {
+  User.prototype.getSubscriptionRequests = async function () {
     const subscriptionRequestIds = await this.getSubscriptionRequestIds()
     return await dbAdapter.getUsersByIds(subscriptionRequestIds)
   }
