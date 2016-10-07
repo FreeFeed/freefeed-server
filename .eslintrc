@@ -11,10 +11,12 @@
     "node": true,
     "es6": true
   },
-  "ecmaFeatures": {
-    "blockBindings": true,
-    "forOf": true,
-    "modules": true
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    },
   },
   "rules": {
     "babel/array-bracket-spacing": [2, "never"],
@@ -23,7 +25,7 @@
     "brace-style": [2, "1tbs", { "allowSingleLine": true }],
     "consistent-return": 2,
     "eol-last": 2,
-    "indent": [2, 2, {"SwitchCase": 1}],
+    "func-call-spacing": 2,
     "import/default": 2,
     "import/named": 2,
     "import/namespace": 2,
@@ -33,6 +35,7 @@
     "import/no-named-as-default-member": 2,
     "import/no-unresolved": 2,
     "import/order": 2,
+    "indent": [2, 2, {"SwitchCase": 1}],
     "key-spacing": [2, { "align": "value" }],
     "keyword-spacing": 2,
     "linebreak-style": 2,
@@ -49,14 +52,17 @@
     "no-duplicate-imports": 2,
     "no-else-return": 2,
     "no-lonely-if": 2,
+    "no-multiple-empty-lines": 2,
     "no-native-reassign": 2,
     "no-nested-ternary": 2,
     "no-spaced-func": 2,
     "no-tabs": 2,
+    "no-template-curly-in-string": 2,
     "no-throw-literal": 2,
     "no-trailing-spaces": 2,
     "no-undef": 2,
     "no-unneeded-ternary": 2,
+    "no-unsafe-negation": 2,
     "no-useless-computed-key": 2,
     "no-var": 2,
     "no-warning-comments": 1,
@@ -66,6 +72,7 @@
     "padded-blocks": [2, "never"],
     "prefer-arrow-callback": [2, { "allowNamedFunctions": true }],
     "prefer-const": 2,
+    "prefer-numeric-literals": 1,
     "prefer-reflect": 1,
     "prefer-rest-params": 2,
     "prefer-spread": 2,

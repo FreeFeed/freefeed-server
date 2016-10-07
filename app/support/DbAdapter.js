@@ -154,7 +154,6 @@ const ATTACHMENT_FIELDS_MAPPING = {
 }
 
 
-
 const COMMENT_COLUMNS = {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
@@ -422,12 +421,6 @@ export class DbAdapter {
   }
 
 
-
-
-
-
-
-
   async getFeedOwnerById(id) {
     if (!validator.isUUID(id,4)) {
       return null
@@ -482,9 +475,6 @@ export class DbAdapter {
 
     return DbAdapter.initObject(User, attrs, attrs.id)
   }
-
-
-
 
 
   async getGroupById(id) {

@@ -955,9 +955,7 @@ export function addModel(dbAdapter) {
     return config.profilePictures.storage.rootDir + config.profilePictures.path + this.getProfilePictureFilename(uuid, size)
   }
 
-  User.prototype.getProfilePictureFilename = function (uuid, size) {
-    return `${uuid}_${size}.jpg`
-  }
+  User.prototype.getProfilePictureFilename = (uuid, size) => `${uuid}_${size}.jpg`;
 
   // used by serializer
   User.prototype.getProfilePictureLargeUrl = async function () {
