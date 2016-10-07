@@ -1,6 +1,5 @@
 import passport from 'passport'
 import jwt from 'jsonwebtoken'
-import _ from 'lodash'
 
 import { load as configLoader } from '../../../../config/config'
 import { UserSerializer } from '../../../models'
@@ -29,7 +28,7 @@ export default class SessionController {
       const authToken = jwt.sign({ userId: user.id }, secret)
 
       const json = await new UserSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken }))
+      res.jsonp({ ...json, authToken });
     })(req, res)
   }
 }

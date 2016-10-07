@@ -208,7 +208,8 @@ AbstractSerializer.prototype = {
     if (!this.strategy.select) {
       return {}
     }
-    let json = {}
+
+    const json = {};
     root = root || {}
     level = level || 0
 
@@ -232,14 +233,13 @@ AbstractSerializer.prototype = {
 
     await Promise.all(promises)
 
-    if (level === 0) {
-      const inner_json = json
-      json = {}
-      json[name] = inner_json
-      await this.loadRelations(root, level)
-      json = _.extend(json, root)
+    if (level !== 0) {
+      return json;
     }
-    return json
+
+    await this.loadRelations(root, level);
+
+    return { [name]: json, ...root };
   },
 
   loadRelations: function (root, level) {

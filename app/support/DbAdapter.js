@@ -599,7 +599,7 @@ export class DbAdapter {
     })
     await Promise.all(promises)
 
-    if (!_.includes(postLikers, authorId)) {
+    if (!postLikers.includes(authorId)) {
       return this.decrementStatsCounter(authorId, 'posts_count')
     }
     return null
@@ -753,12 +753,9 @@ export class DbAdapter {
     }
 
     const matrix = bannersUserIds.map((id) => {
-      const foundBan = _.find(res, (record) => {
-        return record.user_id == id
-      })
-
-      return foundBan ? [id, true] : [id, false]
-    })
+      const foundBan = res.find((record) => record.user_id == id);
+      return foundBan ? [id, true] : [id, false];
+    });
 
     return matrix
   }
@@ -1288,9 +1285,9 @@ export class DbAdapter {
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
-    const res = await this.database('posts').where('uid', postId)
-    const postData = res[0]
-    return _.includes(postData.feed_ids, timelineId)
+    const res = await this.database('posts').where('uid', postId);
+    const postData = res[0];
+    return postData.feed_ids.includes(timelineId);
   }
 
   async getTimelinePostsRange(timelineId, offset, limit) {

@@ -367,10 +367,7 @@ export function addModel(dbAdapter) {
         throw new ValidationException('Invalid frontendPreferences')
       }
 
-      const preferences = this.frontendPreferences
-
-      // Shallow merge objects
-      _.assign(preferences, params.frontendPreferences)
+      const preferences = { ...this.frontendPreferences, ...params.frontendPreferences };
 
       // Validate the merged object
       if (!User.frontendPreferencesIsValid(preferences)) {
@@ -380,7 +377,7 @@ export function addModel(dbAdapter) {
       payload.frontendPreferences = preferences
     }
 
-    if (_.intersection(_.keys(payload), changeableKeys).length > 0) {
+    if (_.intersection(Object.keys(payload), changeableKeys).length > 0) {
       const preparedPayload = payload
       payload.updatedAt = new Date().getTime()
 
@@ -600,7 +597,7 @@ export function addModel(dbAdapter) {
                                                    riverOfNewsTimeline.limit)
 
     riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      const postInTimeline = _.includes(post.feedIntIds, hidesTimelineIntId)
+      const postInTimeline = post.feedIntIds.includes(hidesTimelineIntId);
 
       if (postInTimeline) {
         post.isHidden = true

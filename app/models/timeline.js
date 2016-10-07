@@ -186,8 +186,8 @@ export function addModel(dbAdapter) {
       }
 
       for (const p of posts) {
-        if (_.includes(localBumpedPostIds, p.id)) {
-          const bump = _.find(localBumps, (b) => { return b.postId === p.id })
+        if (localBumpedPostIds.includes(p.id)) {
+          const bump = localBumps.find((b) => b.postId === p.id);
           p.bumpedAt = bump.bumpedAt
         }
       }

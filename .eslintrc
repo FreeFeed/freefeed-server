@@ -5,7 +5,8 @@
     "babel",
     "import",
     "lodash",
-    "promise"
+    "promise",
+    "you-dont-need-lodash-underscore"
   ],
   "env": {
     "node": true,
@@ -55,6 +56,14 @@
     "no-multiple-empty-lines": 2,
     "no-native-reassign": 2,
     "no-nested-ternary": 2,
+    "no-restricted-properties": [
+      1,
+      {
+        "object": "_",
+        "property": "extend",
+        "message": "consider using [...arr] or { ...obj } instead"
+      }
+    ],
     "no-spaced-func": 2,
     "no-tabs": 2,
     "no-template-curly-in-string": 2,
@@ -91,6 +100,17 @@
     "spaced-comment": [2, "always", { "exceptions": ["/"] }],
     "strict": [2, "never"],
     "template-curly-spacing": 2,
-    "unicode-bom": 2
+    "unicode-bom": 2,
+
+    "you-dont-need-lodash-underscore/assign": 2,
+    "you-dont-need-lodash-underscore/concat": 2,
+    "you-dont-need-lodash-underscore/find": 2,
+    "you-dont-need-lodash-underscore/find-index": 2,
+    "you-dont-need-lodash-underscore/includes": 2,
+    "you-dont-need-lodash-underscore/keys": 2,
+    "you-dont-need-lodash-underscore/repeat": 2,
+    "you-dont-need-lodash-underscore/to-lower": 2,
+    "you-dont-need-lodash-underscore/to-upper": 2,
+    "you-dont-need-lodash-underscore/trim": 2
   }
 }

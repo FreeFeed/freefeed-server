@@ -312,7 +312,7 @@ export function addModel(dbAdapter) {
     const insertIntoFeedIds = _.difference(feedsIntIds, this.feedIntIds)
     const timelineOwnersIds = timelines.map((t) => t.userId)
     let riversOfNewsOwners = timelines.map((t) => {
-      if (t.isRiverOfNews() && _.includes(insertIntoFeedIds, t.intId)) {
+      if (t.isRiverOfNews() && insertIntoFeedIds.includes(t.intId)) {
         return t.userId
       }
       return null

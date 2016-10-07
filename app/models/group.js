@@ -211,13 +211,13 @@ export function addModel(dbAdapter) {
     const timeline = await this.getPostsTimeline()
     const ids = await timeline.getSubscriberIds()
 
-    if (!_.includes(ids, postingUser.id)) {
+    if (!ids.includes(postingUser.id)) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
 
     if (this.isRestricted === '1') {
       const adminIds = await this.getAdministratorIds()
-      if (!_.includes(adminIds, postingUser.id)) {
+      if (!adminIds.includes(postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")
       }
     }

@@ -48,7 +48,7 @@ export default class UsersController {
       const authToken = jwt.sign({ userId: user.id }, secret)
 
       const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken }))
+      res.jsonp({ ...json, authToken });
     } catch (e) {
       reportError(res)(e)
     }
@@ -85,7 +85,7 @@ export default class UsersController {
       const authToken = jwt.sign({ userId: user.id }, secret)
 
       const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken }))
+      res.jsonp({ ...json, authToken });
     } catch (e) {
       reportError(res)(e)
     }
@@ -423,7 +423,7 @@ export default class UsersController {
       if ('group' === user.type) {
         const adminIds = await user.getAdministratorIds()
 
-        if (_.includes(adminIds, req.user.id)) {
+        if (adminIds.includes(req.user.id)) {
           throw new ForbiddenException('Group administrators cannot unsubscribe from own groups')
         }
       }
