@@ -1,9 +1,17 @@
+import { statSync } from 'fs';
+
 import bluebird from 'bluebird'
 import consoleStamp from 'console-stamp'
-import 'newrelic';
 
 import { getSingleton as initApp } from './app/app'
 
+
+try {
+  statSync(`${__dirname}/newrelic.js`);
+  require('newrelic');
+} catch (e) {
+  // No newrelic's config found. Won't report stats to them
+}
 
 global.Promise = bluebird
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
