@@ -1,5 +1,6 @@
 import bluebird from 'bluebird'
 import consoleStamp from 'console-stamp'
+import 'newrelic';
 
 import { getSingleton as initApp } from './app/app'
 
