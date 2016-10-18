@@ -1,6 +1,5 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import async from 'async'
 import _ from 'lodash'
 import { mkdirp } from 'mkdirp'
 import request from 'superagent'
@@ -100,16 +99,14 @@ describe('UsersController', () => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('subscriptions')
                 const types = ['Comments', 'Likes', 'Posts']
-                async.reduce(
-                  res.body.subscriptions, true,
-                  (memo, user, callback) => {
-                    callback(null, memo && types.includes(user.name) && (user.user == onboardCtx.user.id))
-                  },
-                  (err, contains) => {
-                    contains.should.eql(true)
-                    done()
+
+                for (const feed of res.body.subscriptions) {
+                  if (!types.includes(feed.name) || feed.user != onboardCtx.user.id) {
+                    done('wrong subscription');
                   }
-                )
+                }
+
+                done();
               })
           })
       })
@@ -222,7 +219,7 @@ describe('UsersController', () => {
         })
     })
 
-    it('should not create user if username is in stop list', async function() {
+    it('should not create user if username is in stop list', async () => {
       const user = {
         username: 'dev',
         password: 'password123',
@@ -237,7 +234,7 @@ describe('UsersController', () => {
       data.err.should.eql('Invalid username')
     })
 
-    it('should not create user if username is in extra stop list', async function() {
+    it('should not create user if username is in extra stop list', async () => {
       const user = {
         username: 'nicegirlnextdoor',
         password: 'password123',
@@ -576,16 +573,14 @@ describe('UsersController', () => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
           const types = ['Comments', 'Likes', 'Posts']
-          async.reduce(
-            res.body.subscriptions, true,
-            (memo, user, callback) => {
-              callback(null, memo && types.includes(user.name))
-            },
-            (err, contains) => {
-              contains.should.eql(true)
-              done()
+
+          for (const feed of res.body.subscriptions) {
+            if (!types.includes(feed.name)) {
+              done('unexpected subscription');
             }
-          )
+          }
+
+          done();
         })
     })
 
@@ -1168,15 +1163,11 @@ describe('UsersController', () => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
           const types = ['Comments', 'Likes', 'Posts']
-          async.reduce(
-            res.body.subscriptions, true,
-            (memo, user, callback) => {
-              callback(null, memo && types.includes(user.name))
-            },
-            (err, contains) => {
-              contains.should.eql(true)
-            }
-          )
+
+          for (const feed of res.body.subscriptions) {
+            types.includes(feed.name).should.eql(true);
+          }
+
           request
             .post(`${app.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })

@@ -29,7 +29,7 @@ export function addModel(dbAdapter) {
   Group.className = Group
   Group.namespace = 'user'
 
-  Object.defineProperty(Group.prototype, 'username', {
+  Reflect.defineProperty(Group.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
       if (newValue)
@@ -37,7 +37,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(Group.prototype, 'screenName', {
+  Reflect.defineProperty(Group.prototype, 'screenName', {
     get: function () { return this.screenName_ },
     set: function (newValue) {
       if (_.isString(newValue))
@@ -45,7 +45,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(Group.prototype, 'description', {
+  Reflect.defineProperty(Group.prototype, 'description', {
     get: function () { return this.description_ },
     set: function (newValue) {
       if (_.isString(newValue))
@@ -53,7 +53,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Object.defineProperty(Group.prototype, 'isRestricted', {
+  Reflect.defineProperty(Group.prototype, 'isRestricted', {
     get: function () { return this.isRestricted_ },
     set: function (newValue) {
       this.isRestricted_ = newValue || '0'
@@ -70,7 +70,7 @@ export function addModel(dbAdapter) {
     return valid
   }
 
-  Group.prototype.validate = async function(skip_stoplist) {
+  Group.prototype.validate = async function (skip_stoplist) {
     if (!this.isValidUsername(skip_stoplist)) {
       throw new Error('Invalid username')
     }
@@ -84,7 +84,7 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Group.prototype.create = async function(ownerId, skip_stoplist) {
+  Group.prototype.create = async function (ownerId, skip_stoplist) {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
     this.screenName = this.screenName || this.username
@@ -113,7 +113,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Group.prototype.update = async function(params) {
+  Group.prototype.update = async function (params) {
     let hasChanges = false
 
     if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
@@ -161,7 +161,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Group.prototype.subscribeOwner = async function(ownerId) {
+  Group.prototype.subscribeOwner = async function (ownerId) {
     const owner = await dbAdapter.getUserById(ownerId)
 
     if (!owner) {
@@ -178,7 +178,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.addAdministratorToGroup(this.id, feedId)
   }
 
-  Group.prototype.removeAdministrator = async function(feedId) {
+  Group.prototype.removeAdministrator = async function (feedId) {
     const adminIds = await this.getAdministratorIds()
 
     if (!adminIds.includes(feedId)) {
@@ -192,12 +192,12 @@ export function addModel(dbAdapter) {
     return dbAdapter.removeAdministratorFromGroup(this.id, feedId)
   }
 
-  Group.prototype.getAdministratorIds = async function() {
+  Group.prototype.getAdministratorIds = async function () {
     this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.id)
     return this.administratorIds
   }
 
-  Group.prototype.getAdministrators = async function() {
+  Group.prototype.getAdministrators = async function () {
     const adminIds = await this.getAdministratorIds()
     this.administrators = await dbAdapter.getUsersByIds(adminIds)
 
@@ -207,17 +207,17 @@ export function addModel(dbAdapter) {
   /**
    * Checks if the specified user can post to the timeline of this group.
    */
-  Group.prototype.validateCanPost = async function(postingUser) {
+  Group.prototype.validateCanPost = async function (postingUser) {
     const timeline = await this.getPostsTimeline()
     const ids = await timeline.getSubscriberIds()
 
-    if (!_.includes(ids, postingUser.id)) {
+    if (!ids.includes(postingUser.id)) {
       throw new ForbiddenException("You can't post to a group to which you aren't subscribed")
     }
 
     if (this.isRestricted === '1') {
       const adminIds = await this.getAdministratorIds()
-      if (!_.includes(adminIds, postingUser.id)) {
+      if (!adminIds.includes(postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")
       }
     }

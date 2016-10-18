@@ -64,7 +64,7 @@ export function addModel(dbAdapter) {
   Attachment.className = Attachment
   Attachment.namespace = 'attachment'
 
-  Object.defineProperty(Attachment.prototype, 'imageSizes', {
+  Reflect.defineProperty(Attachment.prototype, 'imageSizes', {
     get: function () { return this.imageSizes_ },
     set: function (newValue) {
       if (_.isString(newValue)) {
@@ -75,7 +75,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Attachment.prototype.validate = async function() {
+  Attachment.prototype.validate = async function () {
     const valid = this.file
                && Object.keys(this.file).length > 0
                && this.file.path
@@ -87,7 +87,7 @@ export function addModel(dbAdapter) {
       throw new Error('Invalid')
   }
 
-  Attachment.prototype.create = async function() {
+  Attachment.prototype.create = async function () {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
     this.postId = this.postId || ''
@@ -148,12 +148,12 @@ export function addModel(dbAdapter) {
   }
 
   // Get public URL of attachment (via Promise, for serializer)
-  Attachment.prototype.getUrl = async function() {
+  Attachment.prototype.getUrl = async function () {
     return config.attachments.url + config.attachments.path + this.getFilename()
   }
 
   // Get public URL of attachment's thumbnail (via Promise, for serializer)
-  Attachment.prototype.getThumbnailUrl = async function() {
+  Attachment.prototype.getThumbnailUrl = async function () {
     if (this.noThumbnail === '1') {
       return this.getUrl()
     }
@@ -186,7 +186,7 @@ export function addModel(dbAdapter) {
   }
 
   // Store the file and process its thumbnail, if necessary
-  Attachment.prototype.handleMedia = async function() {
+  Attachment.prototype.handleMedia = async function () {
     const tmpAttachmentFile = this.file.path
 
     const supportedImageTypes = {
@@ -293,7 +293,7 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Attachment.prototype.resizeAndSaveImage = async function(originalImage, originalSize, sizeConfig, sizeId) {
+  Attachment.prototype.resizeAndSaveImage = async function (originalImage, originalSize, sizeConfig, sizeId) {
     if (originalSize.width > sizeConfig.bounds.width || originalSize.height > sizeConfig.bounds.height) {
       const tmpImageFile = `${this.file.path}.resized.${sizeId}`
 
@@ -328,7 +328,7 @@ export function addModel(dbAdapter) {
   }
 
   // Upload original attachment or its thumbnail to the S3 bucket
-  Attachment.prototype.uploadToS3 = async function(sourceFile, destPath) {
+  Attachment.prototype.uploadToS3 = async function (sourceFile, destPath) {
     const s3 = new aws.S3({
       'accessKeyId':     config.attachments.storage.accessKeyId || null,
       'secretAccessKey': config.attachments.storage.secretAccessKey || null

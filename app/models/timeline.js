@@ -24,7 +24,7 @@ export function addModel(dbAdapter) {
   Timeline.className = Timeline
   Timeline.namespace = 'timeline'
 
-  Object.defineProperty(Timeline.prototype, 'name', {
+  Reflect.defineProperty(Timeline.prototype, 'name', {
     get: function () { return this.name_ },
     set: function (newValue) {
       newValue ? this.name_ = newValue.trim() : this.name_ = ''
@@ -38,7 +38,7 @@ export function addModel(dbAdapter) {
    * subscribers of the feeds to which it is posted).
    */
 
-  Timeline.publishPost = async function(post) {
+  Timeline.publishPost = async function (post) {
     const currentTime = new Date().getTime()
 
     // We can use post.timelineIds here instead of post.getPostedToIds
@@ -64,7 +64,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.getTimelinesByIds(objectIds)
   }
 
-  Timeline.prototype.validate = async function() {
+  Timeline.prototype.validate = async function () {
     const valid = this.name
       && this.name.length > 0
       && this.userId
@@ -74,11 +74,11 @@ export function addModel(dbAdapter) {
       throw new Error('Invalid')
   }
 
-  Timeline.prototype.create = async function() {
+  Timeline.prototype.create = async function () {
     return this._createTimeline()
   }
 
-  Timeline.prototype._createTimeline = async function() {
+  Timeline.prototype._createTimeline = async function () {
     const currentTime = new Date().getTime()
 
     await this.validate()
@@ -100,7 +100,7 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  Timeline.prototype.getPostIds = async function(offset, limit) {
+  Timeline.prototype.getPostIds = async function (offset, limit) {
     if (_.isUndefined(offset))
       offset = this.offset
     else if (offset < 0)
@@ -123,7 +123,7 @@ export function addModel(dbAdapter) {
     return this.postIds
   }
 
-  Timeline.prototype.getFeedPosts = async function(offset, limit, params, customFeedIds) {
+  Timeline.prototype.getFeedPosts = async function (offset, limit, params, customFeedIds) {
     const valid = await this.canShow(this.currentUser)
 
     if (!valid)
@@ -137,7 +137,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.getFeedsPostsRange(feedIds, offset, limit, params)
   }
 
-  Timeline.prototype.getPosts = async function(offset, limit) {
+  Timeline.prototype.getPosts = async function (offset, limit) {
     if (_.isUndefined(offset))
       offset = this.offset
     else if (offset < 0)
@@ -186,8 +186,8 @@ export function addModel(dbAdapter) {
       }
 
       for (const p of posts) {
-        if (_.includes(localBumpedPostIds, p.id)) {
-          const bump = _.find(localBumps, (b) => { return b.postId === p.id })
+        if (localBumpedPostIds.includes(p.id)) {
+          const bump = localBumps.find((b) => b.postId === p.id);
           p.bumpedAt = bump.bumpedAt
         }
       }
@@ -291,7 +291,7 @@ export function addModel(dbAdapter) {
     return this.posts
   }
 
-  Timeline.prototype.unmerge = async function(feedIntId) {
+  Timeline.prototype.unmerge = async function (feedIntId) {
     const postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.intId, feedIntId)
 
     await Promise.all(_.flatten(postIds.map((postId) =>
@@ -308,7 +308,7 @@ export function addModel(dbAdapter) {
   /**
    * Returns the IDs of users subscribed to this timeline, as a promise.
    */
-  Timeline.prototype.getSubscriberIds = async function(includeSelf) {
+  Timeline.prototype.getSubscriberIds = async function (includeSelf) {
     let userIds = await dbAdapter.getTimelineSubscribersIds(this.id)
 
     // A user is always subscribed to their own posts timeline.
@@ -321,7 +321,7 @@ export function addModel(dbAdapter) {
     return userIds
   }
 
-  Timeline.prototype.getSubscribers = async function(includeSelf) {
+  Timeline.prototype.getSubscribers = async function (includeSelf) {
     let users = await dbAdapter.getTimelineSubscribers(this.intId)
 
     if (includeSelf && (this.isPosts() || this.isDirects())) {
@@ -334,7 +334,7 @@ export function addModel(dbAdapter) {
     return this.subscribers
   }
 
-  Timeline.prototype.loadVisibleSubscribersAndAdmins = async function(feedOwner, viewer) {
+  Timeline.prototype.loadVisibleSubscribersAndAdmins = async function (feedOwner, viewer) {
     if (!feedOwner || feedOwner.id != this.userId) {
       throw new Error('Wrong feed owner')
     }
@@ -358,12 +358,12 @@ export function addModel(dbAdapter) {
    * Returns the list of the 'River of News' timelines of all subscribers to this
    * timeline.
    */
-  Timeline.prototype.getSubscribedTimelineIds = async function() {
+  Timeline.prototype.getSubscribedTimelineIds = async function () {
     const subscribers = await this.getSubscribers(true);
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()))
   }
 
-  Timeline.prototype.getSubscribersRiversOfNewsIntIds = async function() {
+  Timeline.prototype.getSubscribersRiversOfNewsIntIds = async function () {
     const subscribers = await this.getSubscribers(true);
     return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()))
   }
@@ -392,7 +392,7 @@ export function addModel(dbAdapter) {
     return this.name === 'Hides'
   }
 
-  Timeline.prototype.updatePost = async function(postId, action) {
+  Timeline.prototype.updatePost = async function (postId, action) {
     if (action === 'like') {
       const postInTimeline = await dbAdapter.isPostPresentInTimeline(this.intId, postId)
 
@@ -425,7 +425,7 @@ export function addModel(dbAdapter) {
     await feed.updateLastActivityAt()
   }
 
-  Timeline.prototype.canShow = async function(userId) {
+  Timeline.prototype.canShow = async function (userId) {
     // owner can read her posts
     if (this.userId === userId)
       return true

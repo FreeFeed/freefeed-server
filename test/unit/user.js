@@ -1,6 +1,5 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import async from 'async'
 import { expect } from 'chai'
 import knexCleaner from 'knex-cleaner'
 
@@ -710,14 +709,6 @@ describe('User', () => {
       })
 
       user.create()
-        .then(() => user.getRiverOfNewsTimeline())
-        .then(() => user.getRiverOfNewsTimeline())
-        .then(() => user.getCommentsTimeline())
-        .then(() => user.getCommentsTimeline())
-        .then(() => user.getLikesTimeline())
-        .then(() => user.getLikesTimeline())
-        .then(() => user.getPostsTimeline())
-        .then(() => user.getPostsTimeline())
         .then(() => user.getTimelines())
         .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
@@ -935,35 +926,26 @@ describe('User', () => {
       await Promise.all([userA.create(), userB.create()])
     })
 
-    it('should list subscriptions', (done) => {
-      const attrs = { body: 'Post body' }
+    it('should list subscriptions', async () => {
+      const attrs = { body: 'Post body' };
 
-      userB.newPost(attrs)
-        .then((newPost) => newPost.create())
-        .then(() => userB.getPostsTimelineId())
-        .then((timelineId) => userA.subscribeTo(timelineId))
-        .then(() => userA.getSubscriptions())
-        .then((users) => {
-          users.should.not.be.empty
-          users.length.should.eql(3)
-          const types = ['Comments', 'Likes', 'Posts']
-          async.reduce(
-            users, true,
-            (memo, user, callback) => {
-              callback(null, memo && types.includes(user.name))
-            },
-            (err, contains) => {
-              if (err) {
-                done(err);
-                return;
-              }
+      const newPost = await userB.newPost(attrs);
+      await newPost.create();
 
-              contains.should.eql(true)
-              done()
-            }
-          )
-        })
-        .catch((e) => { done(e) })
+      const timelineId = await userB.getPostsTimelineId();
+      await userA.subscribeTo(timelineId);
+
+      const feeds = await userA.getSubscriptions();
+      feeds.should.not.be.empty;
+      feeds.length.should.eql(3);
+
+      const types = ['Comments', 'Likes', 'Posts'];
+
+      for (const feed of feeds) {
+        if (!types.includes(feed.name)) {
+          throw new Error('got unexpected feed');
+        }
+      }
     })
   })
 })

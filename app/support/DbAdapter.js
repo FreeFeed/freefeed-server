@@ -15,6 +15,7 @@ const USER_COLUMNS = {
   profilePictureUuid:     'profile_picture_uuid',
   createdAt:              'created_at',
   updatedAt:              'updated_at',
+  directsReadAt:          'directs_read_at',
   isPrivate:              'is_private',
   isRestricted:           'is_restricted',
   hashedPassword:         'hashed_password',
@@ -32,6 +33,11 @@ const USER_COLUMNS_MAPPING = {
     return d.toISOString()
   },
   updatedAt: (timestamp) => {
+    const d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  directsReadAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -55,6 +61,7 @@ const USER_FIELDS = {
   profile_picture_uuid:      'profilePictureUuid',
   created_at:                'createdAt',
   updated_at:                'updatedAt',
+  directs_read_at:           'directsReadAt',
   is_private:                'isPrivate',
   is_restricted:             'isRestricted',
   hashed_password:           'hashedPassword',
@@ -152,7 +159,6 @@ const ATTACHMENT_FIELDS_MAPPING = {
   post_id:      (post_id) => {return post_id ? post_id : ''},
   user_id:      (user_id) => {return user_id ? user_id : ''}
 }
-
 
 
 const COMMENT_COLUMNS = {
@@ -422,12 +428,6 @@ export class DbAdapter {
   }
 
 
-
-
-
-
-
-
   async getFeedOwnerById(id) {
     if (!validator.isUUID(id,4)) {
       return null
@@ -482,9 +482,6 @@ export class DbAdapter {
 
     return DbAdapter.initObject(User, attrs, attrs.id)
   }
-
-
-
 
 
   async getGroupById(id) {
@@ -609,7 +606,7 @@ export class DbAdapter {
     })
     await Promise.all(promises)
 
-    if (!_.includes(postLikers, authorId)) {
+    if (!postLikers.includes(authorId)) {
       return this.decrementStatsCounter(authorId, 'posts_count')
     }
     return null
@@ -763,12 +760,9 @@ export class DbAdapter {
     }
 
     const matrix = bannersUserIds.map((id) => {
-      const foundBan = _.find(res, (record) => {
-        return record.user_id == id
-      })
-
-      return foundBan ? [id, true] : [id, false]
-    })
+      const foundBan = res.find((record) => record.user_id == id);
+      return foundBan ? [id, true] : [id, false];
+    });
 
     return matrix
   }
@@ -1298,9 +1292,9 @@ export class DbAdapter {
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
-    const res = await this.database('posts').where('uid', postId)
-    const postData = res[0]
-    return _.includes(postData.feed_ids, timelineId)
+    const res = await this.database('posts').where('uid', postId);
+    const postData = res[0];
+    return postData.feed_ids.includes(timelineId);
   }
 
   async getTimelinePostsRange(timelineId, offset, limit) {
@@ -1954,4 +1948,52 @@ export class DbAdapter {
     }
     return this.unlinkHashtags(hashtagIds, commentId, false)
   }
+
+  ///////////////////////////////////////////////////
+  // Unread directs counter
+  ///////////////////////////////////////////////////
+
+  async markAllDirectsAsRead(userId) {
+    const currentTime = new Date().toISOString()
+
+    const payload = { directs_read_at: currentTime }
+
+    return this.database('users').where('uid', userId).update(payload)
+  }
+
+  async getUnreadDirectsNumber(userId) {
+    /*
+     Select posts from my Directs feed, created after the directs_read_at authored by
+     users other than me and then add posts from my Directs feed, having comments created after the directs_read_at
+     authored by users other than me
+     */
+    const uid = pgFormat('%L', userId)
+
+    const sql = `
+      select count(distinct unread.id) as cnt from (
+        select posts.id, posts.uid from posts
+          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
+          inner join users on feeds.user_id = users.uid
+          where 
+            users.uid=${uid}
+            and posts.user_id != ${uid}
+            and posts.created_at > users.directs_read_at
+        union
+        select posts.id, posts.uid from posts
+          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
+          inner join users on feeds.user_id = users.uid
+          inner join comments on comments.post_id = posts.uid
+          where 
+            users.uid=${uid}
+            and comments.user_id != ${uid}
+          group by 
+            posts.id, posts.uid, users.directs_read_at
+          having 
+            max(comments.created_at) > users.directs_read_at) as unread`
+
+    const res = await this.database.raw(sql);
+    return res.rows[0].cnt;
+  }
 }
+
+
