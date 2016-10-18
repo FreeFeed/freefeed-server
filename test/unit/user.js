@@ -710,14 +710,6 @@ describe('User', () => {
       })
 
       user.create()
-        .then(() => user.getRiverOfNewsTimeline())
-        .then(() => user.getRiverOfNewsTimeline())
-        .then(() => user.getCommentsTimeline())
-        .then(() => user.getCommentsTimeline())
-        .then(() => user.getLikesTimeline())
-        .then(() => user.getLikesTimeline())
-        .then(() => user.getPostsTimeline())
-        .then(() => user.getPostsTimeline())
         .then(() => user.getTimelines())
         .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
