@@ -14,7 +14,7 @@ import { reportError, NotFoundException } from '../../../support/exceptions'
 
 promisifyAll(fs)
 
-const getAttachment = async function(author, imageUrl) {
+const getAttachment = async function (author, imageUrl) {
   if (!imageUrl) {
     return null;
   }
@@ -51,7 +51,7 @@ const getAttachment = async function(author, imageUrl) {
   return newAttachment.id
 }
 
-const getAttachments = async function(author, imageUrls) {
+const getAttachments = async function (author, imageUrls) {
   const promises = imageUrls.map((url) => getAttachment(author, url))
   return await Promise.all(promises)
 }

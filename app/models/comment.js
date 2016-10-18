@@ -23,14 +23,14 @@ export function addModel(dbAdapter) {
   Comment.className = Comment
   Comment.namespace = 'comment'
 
-  Object.defineProperty(Comment.prototype, 'body', {
+  Reflect.defineProperty(Comment.prototype, 'body', {
     get: function () { return this.body_ },
     set: function (newValue) {
       newValue ? this.body_ = newValue.trim() : this.body_ = ''
     }
   })
 
-  Comment.prototype.validate = async function() {
+  Comment.prototype.validate = async function () {
     const valid = this.body
                && this.body.length > 0
                && this.userId
@@ -49,7 +49,7 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Comment.prototype.create = async function() {
+  Comment.prototype.create = async function () {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
 
@@ -75,7 +75,7 @@ export function addModel(dbAdapter) {
     return timelines
   }
 
-  Comment.prototype.update = async function(params) {
+  Comment.prototype.update = async function (params) {
     this.updatedAt = new Date().getTime()
     this.body = params.body
 
@@ -98,7 +98,7 @@ export function addModel(dbAdapter) {
     return dbAdapter.getPostById(this.postId)
   }
 
-  Comment.prototype.destroy = async function() {
+  Comment.prototype.destroy = async function () {
     await dbAdapter.deleteComment(this.id, this.postId)
 
     // look for comment from this user in this post

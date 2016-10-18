@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { compact, extend, isArray, isPlainObject } from 'lodash'
+import { compact, isArray, isPlainObject } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -18,7 +18,7 @@ export default class PubsubListener {
     const config = configLoader()
 
     const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
-    const redisSub = createRedisClient(config.redis.port, config.redis.host, extend(config.redis.options, { detect_buffers: true }))
+    const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
 
     redisPub.on('error', (err) => { app.logger.error('redisPub error', err) })
     redisSub.on('error', (err) => { app.logger.error('redisSub error', err) })

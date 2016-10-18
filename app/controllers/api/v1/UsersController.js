@@ -48,7 +48,7 @@ export default class UsersController {
       const authToken = jwt.sign({ userId: user.id }, secret)
 
       const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken }))
+      res.jsonp({ ...json, authToken });
     } catch (e) {
       reportError(res)(e)
     }
@@ -85,7 +85,7 @@ export default class UsersController {
       const authToken = jwt.sign({ userId: user.id }, secret)
 
       const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(_.extend(json, { authToken }))
+      res.jsonp({ ...json, authToken });
     } catch (e) {
       reportError(res)(e)
     }
@@ -233,7 +233,7 @@ export default class UsersController {
       const subscribers = await timeline.getSubscribers()
       const jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
 
-      const json = _.reduce(jsonPromises, async function (memoPromise, jsonPromise) {
+      const json = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
         const obj = await jsonPromise
         const memo = await memoPromise
 
@@ -271,7 +271,7 @@ export default class UsersController {
       const subscriptions = await user.getSubscriptions()
       const jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
 
-      const reducedJsonPromise = _.reduce(jsonPromises, async function(memoPromise, jsonPromise) {
+      const reducedJsonPromise = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
         const obj = await jsonPromise
         const memo = await memoPromise
 
@@ -423,7 +423,7 @@ export default class UsersController {
       if ('group' === user.type) {
         const adminIds = await user.getAdministratorIds()
 
-        if (_.includes(adminIds, req.user.id)) {
+        if (adminIds.includes(req.user.id)) {
           throw new ForbiddenException('Group administrators cannot unsubscribe from own groups')
         }
       }
@@ -490,7 +490,7 @@ export default class UsersController {
 
     const form = new formidable.IncomingForm()
 
-    form.on('file', async function(inputName, file) {
+    form.on('file', async (inputName, file) => {
       try {
         await req.user.updateProfilePicture(file)
         res.jsonp({ message: 'Your profile picture has been updated' })

@@ -80,7 +80,7 @@ export default class GroupsController {
       }
 
       const adminIds = await group.getAdministratorIds()
-      if (!_.includes(adminIds, req.user.id)) {
+      if (!adminIds.includes(req.user.id)) {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
@@ -107,7 +107,7 @@ export default class GroupsController {
       }
 
       const adminIds = await group.getAdministratorIds()
-      if (!_.includes(adminIds, req.user.id)) {
+      if (!adminIds.includes(req.user.id)) {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
@@ -150,7 +150,7 @@ export default class GroupsController {
       }
 
       const adminIds = await group.getAdministratorIds()
-      if (!_.includes(adminIds, req.user.id)) {
+      if (!adminIds.includes(req.user.id)) {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
@@ -199,7 +199,7 @@ export default class GroupsController {
         return group.id
       })
 
-      if (_.includes(followedGroupIds, group.id)) {
+      if (followedGroupIds.includes(group.id)) {
         throw new ForbiddenException('You are already subscribed to that group')
       }
 
@@ -227,7 +227,7 @@ export default class GroupsController {
       }
 
       const adminIds = await group.getAdministratorIds()
-      if (!_.includes(adminIds, req.user.id)) {
+      if (!adminIds.includes(req.user.id)) {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
@@ -265,7 +265,7 @@ export default class GroupsController {
       }
 
       const adminIds = await group.getAdministratorIds()
-      if (!_.includes(adminIds, req.user.id)) {
+      if (!adminIds.includes(req.user.id)) {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
@@ -303,7 +303,7 @@ export default class GroupsController {
       }
 
       const adminIds = await group.getAdministratorIds()
-      if (!_.includes(adminIds, req.user.id)) {
+      if (!adminIds.includes(req.user.id)) {
         throw new ForbiddenException("You aren't an administrator of this group")
       }
 
@@ -312,7 +312,7 @@ export default class GroupsController {
         throw new NotFoundException(`User "${userName}" is not found`)
       }
       const timelineId = await group.getPostsTimelineId()
-      if (_.includes(adminIds, user.id)) {
+      if (adminIds.includes(user.id)) {
         throw new ForbiddenException('Group administrators cannot be unsubscribed from own groups')
       }
 

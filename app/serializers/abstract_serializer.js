@@ -25,7 +25,7 @@ AbstractSerializer.prototype = {
       const method = this.object[name]
 
       if (method) {
-        return await method.apply(this.object)
+        return await Reflect.apply(method, this.object, []);
       }
       return null
     }
@@ -49,7 +49,7 @@ AbstractSerializer.prototype = {
     return this.NESTED_STRATEGY
   },
 
-  processMultiObjects: async function(objects, strategy, serializer, root, level) {
+  processMultiObjects: async function (objects, strategy, serializer, root, level) {
     const promises = []
 
     for (const object of objects) {
@@ -66,7 +66,7 @@ AbstractSerializer.prototype = {
     return Promise.all(promises)
   },
 
-  processMultiObjectsWithRoot: async function(field, objects, strategy, serializer, root, level) {
+  processMultiObjectsWithRoot: async function (field, objects, strategy, serializer, root, level) {
     const promises = []
 
     const node = serializer ? new serializer(objects[0]).name : field
@@ -95,7 +95,7 @@ AbstractSerializer.prototype = {
     }
   },
 
-  processNestedStrategy: async function(field, root, level) {
+  processNestedStrategy: async function (field, root, level) {
     const fieldValue = await this.getField(field)
 
     if (!Array.isArray(fieldValue)) {
@@ -105,10 +105,10 @@ AbstractSerializer.prototype = {
     return this.processMultiObjects(fieldValue, this.strategy[field], null, root, level)
   },
 
-  processThroughPoint: async function(field, root, level) {
+  processThroughPoint: async function (field, root, level) {
     const serializer = this
 
-    const processWithRoot = async function(_objects, one) {
+    const processWithRoot = async function (_objects, one) {
       const objects = _.filter(_objects, (object) => _.has(object, 'id'))
       const objectIds = objects.map((e) => e.id)
       const strategy = serializer.strategy[field]
@@ -180,7 +180,7 @@ AbstractSerializer.prototype = {
     return null
   },
 
-  processNode: async function(root, field, level) {
+  processNode: async function (root, field, level) {
     const fieldType = this.decideNode(field)
     let res
     switch (fieldType) {
@@ -204,11 +204,12 @@ AbstractSerializer.prototype = {
     return res
   },
 
-  promiseToJSON: async function(root, level) {
+  promiseToJSON: async function (root, level) {
     if (!this.strategy.select) {
       return {}
     }
-    let json = {}
+
+    const json = {};
     root = root || {}
     level = level || 0
 
@@ -232,14 +233,13 @@ AbstractSerializer.prototype = {
 
     await Promise.all(promises)
 
-    if (level === 0) {
-      const inner_json = json
-      json = {}
-      json[name] = inner_json
-      await this.loadRelations(root, level)
-      json = _.extend(json, root)
+    if (level !== 0) {
+      return json;
     }
-    return json
+
+    await this.loadRelations(root, level);
+
+    return { [name]: json, ...root };
   },
 
   loadRelations: function (root, level) {
@@ -265,14 +265,14 @@ AbstractSerializer.prototype = {
       return descr
     })
 
-    delete root[this.RELATIONS_STORAGE]
+    Reflect.deleteProperty(root, this.RELATIONS_STORAGE);
 
     const promises = relationsDescr.map(async (rel) => {
       let relatedObjects = await this.serializeRelation(root, rel.objectIds, rel.model, rel.serializeUsing, level)
       const existingObjects = root[rel.relKey] || []
       relatedObjects = relatedObjects || []
       root[rel.relKey] = relatedObjects.concat(existingObjects)
-      delete root[rel.objectIdsKey]
+      Reflect.deleteProperty(root, rel.objectIdsKey);
     })
     return Promise.all(promises)
   },

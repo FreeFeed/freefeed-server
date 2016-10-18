@@ -44,7 +44,6 @@ describe('PostBubbling', () => {
   }
 
 
-
   describe('public users Luna, Mars and stranger Jupiter', () => {
     const lunaPostsContent = ['A', 'B', 'C']
         , marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']

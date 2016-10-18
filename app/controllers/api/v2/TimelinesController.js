@@ -1,3 +1,4 @@
+import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
 import { reportError } from '../../../support/exceptions'
 import { serializePostsCollection } from '../../../serializers/v2/post';
@@ -10,6 +11,8 @@ export default class TimelinesController {
   }
 
   bestOf = async (req, res) => {
+    const timer = monitor.timer('timelines.bestof-time')
+
     try {
       const DEFAULT_LIMIT = 30;
 
@@ -22,8 +25,11 @@ export default class TimelinesController {
       const postsCollectionJson = await serializePostsCollection(postsObjects);
 
       res.jsonp(postsCollectionJson);
+      monitor.increment('timelines.bestof-requests')
     } catch (e) {
       reportError(res)(e);
+    } finally {
+      timer.stop()
     }
   };
 }
