@@ -300,13 +300,15 @@ export default class PubsubListener {
     let room = `post:${data.postId}`
     await this.validateAndEmitMessage(sockets, room, type, json, post)
 
-    const timelineIds = await post.getTimelineIds()
-    const promises = timelineIds.map(async (timelineId) => {
-      room = `timeline:${timelineId}`
-      await this.validateAndEmitMessage(sockets, room, type, json, post)
-    })
+    if (post) {
+      const timelineIds = await post.getTimelineIds();
+      const promises = timelineIds.map(async (timelineId) => {
+        room = `timeline:${timelineId}`;
+        await this.validateAndEmitMessage(sockets, room, type, json, post)
+      });
 
-    await Promise.all(promises)
+      await Promise.all(promises);
+    }
   }
 
   onLikeNew = async (sockets, data) => {

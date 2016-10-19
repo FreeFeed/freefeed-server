@@ -1,11 +1,3 @@
-try {
-  statSync(`${__dirname}/newrelic.js`);
-  require('newrelic');
-} catch (e) {
-  // No newrelic's config found. Won't report stats to them
-}
-
-import { statSync } from 'fs';
 
 import bluebird from 'bluebird'
 import consoleStamp from 'console-stamp'
