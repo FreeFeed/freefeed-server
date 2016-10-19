@@ -6,7 +6,7 @@
   "version": "1.5.0",
   "private": true,
   "scripts": {
-    "start": "babel-node index",
+    "start": "babel-node profiled.js",
     "test": "eslint app test && ./bin/clean_test_db && knex --env test migrate:latest && NODE_ENV=test mocha",
     "lint": "eslint app test",
     "console": "babel-node bin/console",
