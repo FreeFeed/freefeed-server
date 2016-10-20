@@ -69,8 +69,9 @@ const USER_FIELDS = {
   reset_password_sent_at:    'resetPasswordSentAt',
   reset_password_expires_at: 'resetPasswordExpiresAt',
   frontend_preferences:      'frontendPreferences',
-  subscribed_feed_ids:       'subscribedFeedIds'
-}
+  subscribed_feed_ids:       'subscribedFeedIds',
+  private_meta:              'privateMeta'
+};
 
 const USER_FIELDS_MAPPING = {
   created_at:                (time) => { return time.getTime().toString() },
@@ -78,8 +79,9 @@ const USER_FIELDS_MAPPING = {
   is_private:                (is_private) => {return is_private ? '1' : '0' },
   is_restricted:             (is_restricted) => {return is_restricted ? '1' : '0' },
   reset_password_sent_at:    (time) => { return time && time.getTime() },
-  reset_password_expires_at: (time) => { return time && time.getTime() }
-}
+  reset_password_expires_at: (time) => { return time && time.getTime() },
+  private_meta:              (data) => data || {}
+};
 
 const USER_STATS_FIELDS = {
   posts_count:         'posts',
