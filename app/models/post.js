@@ -1,4 +1,3 @@
-import monitor from 'monitor-dog'
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
 import twitter from 'twitter-text'
@@ -77,8 +76,6 @@ export function addModel(dbAdapter) {
 
     await this.validate()
 
-    const timer = monitor.timer('posts.create-time')
-
     const payload = {
       'body':             this.body,
       'userId':           this.userId,
@@ -98,9 +95,6 @@ export function addModel(dbAdapter) {
     await Timeline.publishPost(this)
 
     await dbAdapter.statsPostCreated(this.userId)
-
-    timer.stop()
-    monitor.increment('posts.creates')
 
     return this
   }
@@ -164,8 +158,6 @@ export function addModel(dbAdapter) {
     await dbAdapter.deletePost(this.id)
 
     await pubSub.destroyPost(this.id, timelineIds)
-
-    monitor.increment('posts.destroys')
   }
 
   Post.prototype.getCreatedBy = function () {
@@ -515,7 +507,6 @@ export function addModel(dbAdapter) {
     this.feedIntIds = relevantPostState.feedIntIds
     this.destinationFeedIds = relevantPostState.destinationFeedIds
 
-    const timer = monitor.timer('posts.likes.time')
     let timelineIntIds = this.destinationFeedIds.slice()
 
     // only subscribers are allowed to read direct posts
@@ -535,16 +526,11 @@ export function addModel(dbAdapter) {
     await dbAdapter.createUserPostLike(this.id, user.id)
     await this.publishChangesToFeeds(timelines, true)
 
-    timer.stop()
-    monitor.increment('posts.likes')
-    monitor.increment('posts.reactions')
-
     return timelines
   }
 
   Post.prototype.removeLike = async function (userId) {
     const user = await dbAdapter.getUserById(userId)
-    const timer = monitor.timer('posts.unlikes.time')
     const timelineId = await user.getLikesTimelineIntId()
     const promises = [
       dbAdapter.removeUserPostLike(this.id, userId),
@@ -552,10 +538,6 @@ export function addModel(dbAdapter) {
     ]
     await Promise.all(promises)
     await pubSub.removeLike(this.id, userId)
-
-    timer.stop()
-    monitor.increment('posts.unlikes')
-    monitor.increment('posts.unreactions')
 
     return true
   }
