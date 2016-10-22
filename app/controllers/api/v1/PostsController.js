@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import monitor from 'monitor-dog';
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
 import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
@@ -99,6 +100,8 @@ export default class PostsController {
   }
 
   static async show(req, res) {
+    const timer = monitor.timer('posts.show-time');
+
     try {
       const userId = req.user ? req.user.id : null
       const post = await dbAdapter.getPostById(req.params.postId, {
@@ -132,8 +135,12 @@ export default class PostsController {
 
       const json = new PostSerializer(post).promiseToJSON()
       res.jsonp(await json)
+
+      monitor.increment('posts.show-requests');
     } catch (e) {
       reportError(res)(e)
+    } finally {
+      timer.stop();
     }
   }
 
