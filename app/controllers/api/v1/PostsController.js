@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import monitor from 'monitor-dog';
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
 import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
@@ -10,6 +11,8 @@ export default class PostsController {
       res.status(401).jsonp({ err: 'Not found' })
       return
     }
+
+    const timer = monitor.timer('posts.create-time');
 
     req.body.meta = req.body.meta || {}
 
@@ -68,8 +71,12 @@ export default class PostsController {
 
       const json = await new PostSerializer(newPost).promiseToJSON()
       res.jsonp(json)
+
+      monitor.increment('posts.creates');
     } catch (e) {
       reportError(res)(e)
+    } finally {
+      timer.stop();
     }
   }
 
@@ -99,6 +106,8 @@ export default class PostsController {
   }
 
   static async show(req, res) {
+    const timer = monitor.timer('posts.show-time');
+
     try {
       const userId = req.user ? req.user.id : null
       const post = await dbAdapter.getPostById(req.params.postId, {
@@ -132,8 +141,12 @@ export default class PostsController {
 
       const json = new PostSerializer(post).promiseToJSON()
       res.jsonp(await json)
+
+      monitor.increment('posts.show-requests');
     } catch (e) {
       reportError(res)(e)
+    } finally {
+      timer.stop();
     }
   }
 
@@ -142,6 +155,8 @@ export default class PostsController {
       res.status(401).jsonp({ err: 'Not authenticated' })
       return
     }
+
+    const timer = monitor.timer('posts.likes.time');
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -186,6 +201,9 @@ export default class PostsController {
         res.status(200).send({})
 
         await pubSub.newLike(post, req.user.id, affectedTimelines)
+
+        monitor.increment('posts.likes');
+        monitor.increment('posts.reactions');
       } catch (e) {
         if (e.code === '23505') {
           // '23505' stands for unique_violation
@@ -197,6 +215,8 @@ export default class PostsController {
       }
     } catch (e) {
       reportError(res)(e)
+    } finally {
+      timer.stop();
     }
   }
 
@@ -205,6 +225,8 @@ export default class PostsController {
       res.status(401).jsonp({ err: 'Not found' })
       return
     }
+
+    const timer = monitor.timer('posts.unlikes.time');
 
     try {
       const post = await dbAdapter.getPostById(req.params.postId)
@@ -245,8 +267,13 @@ export default class PostsController {
       await dbAdapter.statsLikeDeleted(req.user.id)
 
       res.status(200).send({})
+
+      monitor.increment('posts.unlikes');
+      monitor.increment('posts.unreactions');
     } catch (e) {
       reportError(res)(e)
+    } finally {
+      timer.stop();
     }
   }
 
@@ -269,6 +296,8 @@ export default class PostsController {
 
       await post.destroy()
       res.jsonp({})
+
+      monitor.increment('posts.destroys');
     } catch (e) {
       reportError(res)(e)
     }

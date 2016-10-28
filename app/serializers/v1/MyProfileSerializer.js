@@ -7,7 +7,7 @@ export function addSerializer() {
              'subscriptions', 'profilePictureLargeUrl', 'profilePictureMediumUrl',
              'banIds', 'subscribers', 'isPrivate', 'pendingSubscriptionRequests',
              'subscriptionRequests', 'description', 'frontendPreferences',
-             'administrators', 'pendingGroupRequests'],
+             'administrators', 'pendingGroupRequests', 'privateMeta'],
     subscriptions:               { through: SubscriptionSerializer, embed: true },
     subscribers:                 { through: SubscriberSerializer },
     pendingSubscriptionRequests: { through: SubscriptionRequestSerializer, embed: true },
