@@ -30,8 +30,8 @@ module.exports = {
     client: 'postgresql',
     connection: {
       database: 'freefeed_test',
-      user:     'postgres',
-      password: ''
+      user:     'freefeed',
+      password: 'freefeed'
     },
     pool: {
       min: 2,

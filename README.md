@@ -24,6 +24,7 @@ Setting out database on OSX
 1. postgres.server start
 1. createuser -P -s freefeed (enter freefeed as password)
 1. createdb -O freefeed freefeed
+1. createdb -O freefeed freefeed_test (if you want to run tests)
 1. cp knexfile.js{.dist,}
 1. ./node_modules/.bin/knex migrate:latest
 
