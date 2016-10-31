@@ -165,7 +165,9 @@ export default class PostsController {
         throw new NotFoundException("Can't find post");
       }
 
-      if (post.userId === req.user.id) {
+      const authorId = post.userId;
+
+      if (authorId === req.user.id) {
         throw new ForbiddenException("You can't like your own post")
       }
 
@@ -174,8 +176,7 @@ export default class PostsController {
         throw new NotFoundException("Can't find post");
       }
 
-      const author = await dbAdapter.getUserById(post.userId);
-      const banIds = await author.getBanIds();
+      const banIds = await dbAdapter.getUserBansIds(authorId);
 
       if (banIds.includes(req.user.id)) {
         throw new ForbiddenException('Author of this post has banned you');
@@ -183,7 +184,7 @@ export default class PostsController {
 
       const yourBanIds = await req.user.getBanIds();
 
-      if (yourBanIds.includes(author.id)) {
+      if (yourBanIds.includes(authorId)) {
         throw new ForbiddenException('You have banned the author of this post');
       }
 
