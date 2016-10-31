@@ -73,7 +73,7 @@ export default class SearchController {
           }
       }
 
-      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId, maxComments: 'all' })
+      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId })
 
       const postsCollectionJson = await serializePostsCollection(postsObjects)
 
