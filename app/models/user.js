@@ -590,26 +590,29 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getRiverOfNewsTimeline = async function (params) {
-    const timelineId = await this.getRiverOfNewsTimelineId();
-    const hidesTimelineIntId = await this.getHidesTimelineIntId(params)
+    const [banIds, timelineId, hidesTimelineIntId] = await Promise.all([
+      this.getBanIds(),
+      this.getRiverOfNewsTimelineId(),
+      this.getHidesTimelineIntId(params)
+    ]);
 
-    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
-    const banIds = await this.getBanIds()
-    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
-                                                   riverOfNewsTimeline.limit)
+    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params);
+    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset, riverOfNewsTimeline.limit);
 
-    riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      const postInTimeline = post.feedIntIds.includes(hidesTimelineIntId);
-
-      if (postInTimeline) {
-        post.isHidden = true
+    riverOfNewsTimeline.posts = posts.map((post) => {
+      if (banIds.includes(post.userId)) {
+        return null;
       }
 
-      return banIds.includes(post.userId) ? null : post
-    }))
+      if (post.feedIntIds.includes(hidesTimelineIntId)) {
+        post.isHidden = true;
+      }
 
-    return riverOfNewsTimeline
-  }
+      return post;
+    });
+
+    return riverOfNewsTimeline;
+  };
 
   User.prototype.getLikesTimelineId = function () {
     return this.getGenericTimelineId('Likes')
