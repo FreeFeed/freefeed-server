@@ -1163,6 +1163,19 @@ export class DbAdapter {
     return uuids
   }
 
+  async getUserNamedFeedId(userId, name) {
+    const response = await this.database('feeds').select('uid').where({
+      user_id: userId,
+      name
+    });
+
+    if (response.length === 0) {
+      return null;
+    }
+
+    return response[0].uid;
+  }
+
   async getUserNamedFeed(userId, name, params) {
     const response = await this.database('feeds').returning('uid').where({
       user_id: userId,

@@ -538,18 +538,16 @@ export function addModel(dbAdapter) {
     return feed
   }
 
-  User.prototype.getGenericTimelineId = async function (name, params) {
-    params = params || {}
+  User.prototype.getGenericTimelineId = async function (name) {
+    const timelineId = await dbAdapter.getUserNamedFeedId(this.id, name);
 
-    const timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
-
-    if (!timeline) {
-      console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
-      return null
+    if (!timelineId) {
+      console.log(`Timeline '${name}' not found for user`, this);  // eslint-disable-line no-console
+      return null;
     }
 
-    return timeline.id
-  }
+    return timelineId;
+  };
 
   User.prototype.getGenericTimelineIntId = async function (name) {
     const timelineIds = await this.getTimelineIds();
@@ -575,16 +573,16 @@ export function addModel(dbAdapter) {
     return this.getGenericTimelineIntId('MyDiscussions')
   }
 
-  User.prototype.getHidesTimelineId = function (params) {
-    return this.getGenericTimelineId('Hides', params)
+  User.prototype.getHidesTimelineId = function () {
+    return this.getGenericTimelineId('Hides')
   }
 
   User.prototype.getHidesTimelineIntId = function (params) {
     return this.getGenericTimelineIntId('Hides', params)
   }
 
-  User.prototype.getRiverOfNewsTimelineId = function (params) {
-    return this.getGenericTimelineId('RiverOfNews', params)
+  User.prototype.getRiverOfNewsTimelineId = function () {
+    return this.getGenericTimelineId('RiverOfNews')
   }
 
   User.prototype.getRiverOfNewsTimelineIntId = function (params) {
@@ -592,7 +590,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getRiverOfNewsTimeline = async function (params) {
-    const timelineId = await this.getRiverOfNewsTimelineId(params)
+    const timelineId = await this.getRiverOfNewsTimelineId();
     const hidesTimelineIntId = await this.getHidesTimelineIntId(params)
 
     const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
