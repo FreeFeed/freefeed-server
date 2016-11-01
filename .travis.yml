@@ -1,7 +1,7 @@
 sudo: required
 language: node_js
 node_js:
-  - 6.8
+  - 6.9
 env:
   - CXX=g++-4.8
 services:
