@@ -552,11 +552,14 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getGenericTimelineIntId = async function (name) {
-    const timelineIds = await this.getTimelineIds()
+    const timelineIds = await this.getTimelineIds();
+    const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([timelineIds[name]]);
 
-    const timeline = await dbAdapter.getTimelineById(timelineIds[name])
+    if (intIds.length === 0) {
+      return null;
+    }
 
-    return timeline.intId
+    return intIds[0];
   }
 
   User.prototype.getGenericTimeline = async function (name, params) {

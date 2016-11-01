@@ -213,10 +213,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getGenericFriendOfFriendTimelineIntIds = async function (user, type) {
-    let timelineIntIds = []
+    const timelineIntIds = []
 
     const userTimelineIntId = await user[`get${type}TimelineIntId`]()
-    const timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId)
     timelineIntIds.push(userTimelineIntId)
 
     const timelines = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
@@ -230,6 +229,7 @@ export function addModel(dbAdapter) {
     if (_.some(timelineOwners.map((owner) => owner.isUser()))) {
       groupOnly = false
 
+      const timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId)
       const subscribersIds = await timeline.getSubscriberIds()
       const subscribersRiversOfNewsIntIds = await dbAdapter.getUsersNamedFeedsIntIds(subscribersIds, ['RiverOfNews'])
       timelineIntIds.push(subscribersRiversOfNewsIntIds)
@@ -244,9 +244,8 @@ export function addModel(dbAdapter) {
 
     timelineIntIds.push(await user.getRiverOfNewsTimelineIntId())
     timelineIntIds.push(this.feedIntIds)
-    timelineIntIds = _.uniq(_.flatten(timelineIntIds))
 
-    return timelineIntIds
+    return _.uniq(_.flatten(timelineIntIds))
   }
 
   Post.prototype.getLikesFriendOfFriendTimelineIntIds = function (user) {

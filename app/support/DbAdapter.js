@@ -1150,12 +1150,8 @@ export class DbAdapter {
   }
 
   async getTimelinesIntIdsByUUIDs(uuids) {
-    const responses = await this.database('feeds').select('id').whereIn('uid', uuids)
-
-    const ids = responses.map((record) => {
-      return record.id
-    })
-    return ids
+    const responses = await this.database('feeds').select('id').whereIn('uid', uuids);
+    return responses.map((record) => record.id);
   }
 
   async getTimelinesUUIDsByIntIds(ids) {
@@ -1193,12 +1189,8 @@ export class DbAdapter {
   }
 
   async getUsersNamedFeedsIntIds(userIds, names) {
-    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names)
-
-    const ids = responses.map((record) => {
-      return record.id
-    })
-    return ids
+    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names);
+    return responses.map((record) => record.id);
   }
 
   async deleteUser(uid) {
