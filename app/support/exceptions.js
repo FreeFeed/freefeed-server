@@ -1,7 +1,7 @@
 export function reportError(res) {
   return (err) => {
     const result = {};
-    const status = err && err.status ? err.status : 422;
+    const status = err && err.status ? err.status : 500;
 
     if (err && 'message' in err) {
       result.err = err.message
