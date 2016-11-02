@@ -538,18 +538,16 @@ export function addModel(dbAdapter) {
     return feed
   }
 
-  User.prototype.getGenericTimelineId = async function (name, params) {
-    params = params || {}
+  User.prototype.getGenericTimelineId = async function (name) {
+    const timelineId = await dbAdapter.getUserNamedFeedId(this.id, name);
 
-    const timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
-
-    if (!timeline) {
-      console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
-      return null
+    if (!timelineId) {
+      console.log(`Timeline '${name}' not found for user`, this);  // eslint-disable-line no-console
+      return null;
     }
 
-    return timeline.id
-  }
+    return timelineId;
+  };
 
   User.prototype.getGenericTimelineIntId = async function (name) {
     const timelineIds = await this.getTimelineIds();
@@ -575,16 +573,16 @@ export function addModel(dbAdapter) {
     return this.getGenericTimelineIntId('MyDiscussions')
   }
 
-  User.prototype.getHidesTimelineId = function (params) {
-    return this.getGenericTimelineId('Hides', params)
+  User.prototype.getHidesTimelineId = function () {
+    return this.getGenericTimelineId('Hides')
   }
 
   User.prototype.getHidesTimelineIntId = function (params) {
     return this.getGenericTimelineIntId('Hides', params)
   }
 
-  User.prototype.getRiverOfNewsTimelineId = function (params) {
-    return this.getGenericTimelineId('RiverOfNews', params)
+  User.prototype.getRiverOfNewsTimelineId = function () {
+    return this.getGenericTimelineId('RiverOfNews')
   }
 
   User.prototype.getRiverOfNewsTimelineIntId = function (params) {
@@ -592,26 +590,29 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getRiverOfNewsTimeline = async function (params) {
-    const timelineId = await this.getRiverOfNewsTimelineId(params)
-    const hidesTimelineIntId = await this.getHidesTimelineIntId(params)
+    const [banIds, timelineId, hidesTimelineIntId] = await Promise.all([
+      this.getBanIds(),
+      this.getRiverOfNewsTimelineId(),
+      this.getHidesTimelineIntId(params)
+    ]);
 
-    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
-    const banIds = await this.getBanIds()
-    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
-                                                   riverOfNewsTimeline.limit)
+    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params);
+    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset, riverOfNewsTimeline.limit);
 
-    riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      const postInTimeline = post.feedIntIds.includes(hidesTimelineIntId);
-
-      if (postInTimeline) {
-        post.isHidden = true
+    riverOfNewsTimeline.posts = posts.map((post) => {
+      if (banIds.includes(post.userId)) {
+        return null;
       }
 
-      return banIds.includes(post.userId) ? null : post
-    }))
+      if (post.feedIntIds.includes(hidesTimelineIntId)) {
+        post.isHidden = true;
+      }
 
-    return riverOfNewsTimeline
-  }
+      return post;
+    });
+
+    return riverOfNewsTimeline;
+  };
 
   User.prototype.getLikesTimelineId = function () {
     return this.getGenericTimelineId('Likes')

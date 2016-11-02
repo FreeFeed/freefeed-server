@@ -227,7 +227,7 @@ describe('UsersController', () => {
       }
 
       const response = await funcTestHelper.createUserAsyncPost(user)
-      response.status.should.equal(422)
+      response.status.should.equal(500)
 
       const data = await response.json()
       data.should.have.property('err')
@@ -242,7 +242,7 @@ describe('UsersController', () => {
       }
 
       const response = await funcTestHelper.createUserAsyncPost(user)
-      response.status.should.equal(422)
+      response.status.should.equal(500)
 
       const data = await response.json()
       data.should.have.property('err')
@@ -368,7 +368,7 @@ describe('UsersController', () => {
         .send({ authToken: lunaContext.authToken })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           done()
         })
     })
@@ -731,7 +731,7 @@ describe('UsersController', () => {
             })
             .end((err) => {
               err.should.not.be.empty
-              err.status.should.eql(422)
+              err.status.should.eql(500)
               done()
             })
         })
@@ -782,7 +782,7 @@ describe('UsersController', () => {
       it('should not let user use email, which is used by other user', (done) => {
         funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })((err) => {
           $should.exist(err)
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Invalid email')
           done()
@@ -1014,7 +1014,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Passwords do not match')
           done()
@@ -1035,7 +1035,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Password cannot be blank')
           done()
@@ -1056,7 +1056,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Your old password is not valid')
           done()

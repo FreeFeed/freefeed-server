@@ -343,7 +343,7 @@ describe('PrivateGroups', () => {
             .post(`${app.config.host}/v1/groups/pepyatka-dev/sendRequest`)
             .send({ authToken: nonAdminContext.authToken })
             .end((err, res) => {
-              res.status.should.eql(422)
+              res.status.should.eql(500)
               done()
             })
         })
@@ -496,7 +496,7 @@ describe('PrivateGroups', () => {
           .send({ authToken: adminContext.authToken })
           .end((err) => {
             err.should.not.be.empty
-            err.status.should.eql(422)
+            err.status.should.eql(500)
             done()
           })
       })
@@ -512,7 +512,7 @@ describe('PrivateGroups', () => {
               .send({ authToken: adminContext.authToken })
               .end((err) => {
                 err.should.not.be.empty
-                err.status.should.eql(422)
+                err.status.should.eql(500)
                 done()
               })
           })
@@ -607,7 +607,7 @@ describe('PrivateGroups', () => {
           .send({ authToken: adminContext.authToken })
           .end((err) => {
             err.should.not.be.empty
-            err.status.should.eql(422)
+            err.status.should.eql(500)
             done()
           })
       })
@@ -623,7 +623,7 @@ describe('PrivateGroups', () => {
               .send({ authToken: adminContext.authToken })
               .end((err) => {
                 err.should.not.be.empty
-                err.status.should.eql(422)
+                err.status.should.eql(500)
                 done()
               })
           })

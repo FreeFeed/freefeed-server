@@ -11,7 +11,10 @@ import { SEARCH_SCOPES } from '../../app/support/SearchConstants';
  */
 describe('SearchQueryParser', () => {
   const expectations = {
-    'test':                       { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,     query: 'test' },
+    'test':                       { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: 'test' },
+    'foo -bar':                   { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: 'foo & !bar' },
+    '-foo bar':                   { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: '!foo & bar' },
+    'foo-bar':                    { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: 'foo-bar' },
     'from:luna test':             { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'test',      username: 'luna' },
     'test from:luna':             { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'test',      username: 'luna' },
     'from:luna foo bar':          { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'foo & bar', username: 'luna' },
