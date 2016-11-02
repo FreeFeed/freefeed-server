@@ -116,7 +116,7 @@ export class SearchQueryParser {
 
   static prepareQuery(query) {
     return query
-      .replace(/-/ig, '!')
-      .replace(/\s/g, ' & ')
+      .replace(/(^|\s)-/ig, '$1!')
+      .replace(/\s+/g, ' & ')
   }
 }
