@@ -5,7 +5,13 @@ import { SEARCH_SCOPES } from '../../../support/SearchConstants'
 import { serializePostsCollection } from '../../../serializers/v2/post';
 
 export default class SearchController {
-  static async search(req, res) {
+  app = null;
+
+  constructor(app) {
+    this.app = app;
+  }
+
+  search = async (req, res) => {
     try {
       const preparedQuery = SearchQueryParser.parse(req.query.qs)
       const DEFAULT_LIMIT = 30
@@ -81,5 +87,5 @@ export default class SearchController {
     } catch (e) {
       reportError(res)(e)
     }
-  }
+  };
 }
