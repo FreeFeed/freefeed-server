@@ -85,6 +85,12 @@ export default class SearchController {
 
       res.jsonp(postsCollectionJson)
     } catch (e) {
+      if ('internalQuery' in e) {
+        // looks like postgres err
+        this.app.logger.error(e);
+        Reflect.deleteProperty(e, 'message');  // do not expose DB internals
+      }
+
       reportError(res)(e)
     }
   };
