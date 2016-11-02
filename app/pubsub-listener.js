@@ -2,11 +2,13 @@ import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
 import { compact, isArray, isPlainObject } from 'lodash'
 import IoServer from 'socket.io'
+import SIOStream  from 'socket.io-stream'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../config/config'
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
+import socketController from './controllers/api/socketio'
 
 
 promisifyAll(jwt)
@@ -95,7 +97,28 @@ export default class PubsubListener {
           logger.info(`User has unsubscribed from ${id} ${channel}`)
         })
       }
-    })
+    });
+
+    [
+      'createPost',
+      'updateProfile',
+      'createComment'
+    ].forEach((cmd) => {
+      socket.on(cmd, async (data) => {
+        const res = await socketController.handle(this.app, cmd, data);
+        socket.emit('API_res', { 'id': data.id, res });
+      })
+    });
+
+    SIOStream(socket).on('createAttachment', async (stream, data) => {
+      data.body = {
+        stream,
+        'name': data.filename,
+        'type': data.type
+      }
+      const res = await socketController.handle(this.app, 'createAttachment', data);
+      socket.emit('API_res', { 'id': data.id, res });
+    });
   }
 
   onRedisMessage = async (channel, msg) => {
