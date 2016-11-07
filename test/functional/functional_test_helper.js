@@ -112,6 +112,17 @@ export function resetPassword(token) {
   }
 }
 
+export async function performSearch(context, query) {
+  const response = await postJson(
+    `/v2/search?qs=${encodeURIComponent(query)}`,
+    {
+      authToken: context.authToken,
+      '_method': 'get'
+    }
+  )
+  return await response.json()
+}
+
 export function createPost(context, body, callback) {
   return function (done) {
     apiUrl('/v1/posts')
