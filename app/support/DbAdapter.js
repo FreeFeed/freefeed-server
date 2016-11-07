@@ -1605,7 +1605,7 @@ export class DbAdapter {
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) `;
+          ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
@@ -1660,7 +1660,7 @@ export class DbAdapter {
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) `;
+          ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
@@ -1710,7 +1710,7 @@ export class DbAdapter {
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) `;
+          ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
