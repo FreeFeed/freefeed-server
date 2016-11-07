@@ -19,11 +19,6 @@
       "jsx": true
     },
   },
-  "settings": {
-    "import/ignore": [
-      "node_modules"
-    ]
-  },
   "rules": {
     "babel/array-bracket-spacing": [2, "never"],
     "babel/arrow-parens": 2,

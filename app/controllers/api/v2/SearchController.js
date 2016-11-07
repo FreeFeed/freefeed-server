@@ -13,7 +13,7 @@ export default class SearchController {
 
   search = async (req, res) => {
     try {
-      const preparedQuery = SearchQueryParser.parse(req.query.qs)
+      const preparedQuery = SearchQueryParser.parse(req.query.qs, req.user ? req.user.username : null)
       const DEFAULT_LIMIT = 30
 
       let foundPosts = []
@@ -43,6 +43,10 @@ export default class SearchController {
 
         case SEARCH_SCOPES.VISIBLE_USER_POSTS:
           {
+            if (preparedQuery.username === 'me') {
+              throw new NotFoundException(`Please sign in to use 'from:me' operator`)
+            }
+
             targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
             if (!targetUser) {
               throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
