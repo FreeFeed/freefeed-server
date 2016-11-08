@@ -39,12 +39,20 @@ describe('SessionController', () => {
         .post(`${app.config.host}/v1/session`)
         .send({ username: userData.username, password: userData.password })
         .end((err, res) => {
-          res.should.not.be.empty
-          res.body.should.not.be.empty
-          res.body.should.have.property('users')
-          res.body.users.should.have.property('id')
-          res.body.users.id.should.eql(user.id)
-          done()
+          if (err) {
+            done(err);
+          }
+
+          try {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('id')
+            res.body.users.id.should.eql(user.id)
+            done()
+          } catch (e) {
+            done(e)
+          }
         })
     })
 
