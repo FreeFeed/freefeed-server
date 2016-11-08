@@ -44,8 +44,8 @@ export default class UsersController {
         // if onboarding username is not found, just pass
       }
 
-      const secret = config.secret
-      const authToken = jwt.sign({ userId: user.id }, secret)
+      const secret = config.secret;
+      const authToken = jwt.sign(user.jwtPayload(), secret);
 
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp({ ...json, authToken });
@@ -81,8 +81,8 @@ export default class UsersController {
         // if onboarding username is not found, just pass
       }
 
-      const secret = config.secret
-      const authToken = jwt.sign({ userId: user.id }, secret)
+      const secret = config.secret;
+      const authToken = jwt.sign(user.jwtPayload(), secret);
 
       const json = await new MyProfileSerializer(user).promiseToJSON()
       res.jsonp({ ...json, authToken });

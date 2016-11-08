@@ -36,6 +36,12 @@ export default function (app) {
         const user = await dbAdapter.getUserById(decoded.userId);
 
         if (user) {
+          const expectedTokenVersion = 'version' in decoded ? decoded.version : 0;
+
+          if (user.tokenVersion != expectedTokenVersion) {
+            throw new Error('revoked token');
+          }
+
           req.user = user;
         }
       } catch (e) {

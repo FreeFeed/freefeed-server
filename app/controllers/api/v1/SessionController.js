@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../../../../config/config'
 import { UserSerializer } from '../../../models'
+import { reportError }  from '../../../support/exceptions'
 
 
 const config = configLoader()
@@ -24,11 +25,15 @@ export default class SessionController {
         return
       }
 
-      const secret = config.secret
-      const authToken = jwt.sign({ userId: user.id }, secret)
+      try {
+        const secret = config.secret;
+        const authToken = jwt.sign(user.jwtPayload(), secret);
 
-      const json = await new UserSerializer(user).promiseToJSON()
-      res.jsonp({ ...json, authToken });
+        const json = await new UserSerializer(user).promiseToJSON()
+        res.jsonp({ ...json, authToken });
+      } catch (e) {
+        reportError(res)(e);
+      }
     })(req, res)
   }
 }

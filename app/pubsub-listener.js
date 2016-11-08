@@ -48,8 +48,29 @@ export default class PubsubListener {
     const logger = this.app.logger
 
     try {
-      const decoded = await jwt.verifyAsync(authToken, secret)
-      socket.user = await dbAdapter.getUserById(decoded.userId)
+      if (!authToken) {
+        throw new Error('no token');
+      }
+
+      const decoded = await jwt.verifyAsync(authToken, secret);
+
+      if (!decoded) {
+        throw new Error('malformed token');
+      }
+
+      const user = await dbAdapter.getUserById(decoded.userId);
+
+      if (!user) {
+        throw new Error('user is not found');
+      }
+
+      const expectedTokenVersion = 'version' in decoded ? decoded.version : 0;
+
+      if (user.tokenVersion != expectedTokenVersion) {
+        throw new Error('revoked token');
+      }
+
+      socket.user = user;
     } catch (e) {
       socket.user = { id: null }
     }

@@ -141,6 +141,16 @@ export function addModel(dbAdapter) {
     return this.type === 'user'
   }
 
+  User.prototype.jwtPayload = function jwtPayload() {
+    const tokenPayload = { userId: this.id };
+
+    if (this.tokenVersion > 0) {
+      tokenPayload.version = parseInt(this.tokenVersion, 10);
+    }
+
+    return tokenPayload;
+  };
+
   User.prototype.newPost = async function (attrs) {
     attrs.userId = this.id
     if (!attrs.timelineIds || !attrs.timelineIds[0]) {
