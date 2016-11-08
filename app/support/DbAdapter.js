@@ -70,7 +70,8 @@ const USER_FIELDS = {
   reset_password_expires_at: 'resetPasswordExpiresAt',
   frontend_preferences:      'frontendPreferences',
   subscribed_feed_ids:       'subscribedFeedIds',
-  private_meta:              'privateMeta'
+  private_meta:              'privateMeta',
+  token_version:             'tokenVersion'
 };
 
 const USER_FIELDS_MAPPING = {

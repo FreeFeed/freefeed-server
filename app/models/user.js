@@ -53,7 +53,8 @@ export function addModel(dbAdapter) {
 
     this.profilePictureUuid = params.profilePictureUuid || ''
     this.subscribedFeedIds = params.subscribedFeedIds || []
-    this.privateMeta = params.privateMeta;
+    this.privateMeta = params.privateMeta
+    this.tokenVersion = params.tokenVersion || 0;
 
     this.initPassword = async function () {
       if (!_.isNull(password)) {
