@@ -28,6 +28,8 @@
     "bcrypt": "0.8.7",
     "bluebird": "3.4.6",
     "body-parser": "1.15.2",
+    "cache-manager": "2.2.0",
+    "cache-manager-redis": "0.2.5",
     "console-stamp": "0.2.4",
     "ejs": "2.5.2",
     "express": "4.14.0",

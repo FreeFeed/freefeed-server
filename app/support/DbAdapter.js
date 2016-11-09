@@ -1,8 +1,12 @@
 import _ from 'lodash'
 import validator from 'validator'
 import NodeCache from 'node-cache'
+import cacheManager from 'cache-manager'
+import redisStore from 'cache-manager-redis'
 import { promisifyAll } from 'bluebird'
 import pgFormat from 'pg-format';
+
+import { load as configLoader } from '../../config/config'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
 
@@ -290,6 +294,14 @@ export class DbAdapter {
   constructor(database) {
     this.database = database
     this.statsCache = promisifyAll(new NodeCache({ stdTTL: 300 }))
+
+    const config = configLoader()
+
+    // Memory only cache: this.cache = cacheManager.caching({ store: 'memory', ttl: 900 })
+
+    this.cache = cacheManager.caching({ store: redisStore, host: config.redis.host, port: config.redis.port, ttl: 900 })
+
+    promisifyAll(this.cache)
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -332,6 +344,7 @@ export class DbAdapter {
       preparedPayload['reset_password_expires_at'] = tokenExpirationTime.toISOString()
     }
 
+    this.cacheFlushUser(userId)
     return this.database('users').where('uid', userId).update(preparedPayload)
   }
 
@@ -429,13 +442,11 @@ export class DbAdapter {
     return DbAdapter.initObject(User, attrs, attrs.id)
   }
 
-
   async getFeedOwnerById(id) {
     if (!validator.isUUID(id,4)) {
       return null
     }
-    const res = await this.database('users').where('uid', id)
-    let attrs = res[0]
+    let attrs = await this.fetchUser(id)
 
     if (!attrs) {
       return null
@@ -512,6 +523,53 @@ export class DbAdapter {
     }
 
     return feed
+  }
+
+  ///////////////////////////////////////////////////
+  // User's attributes caching
+  ///////////////////////////////////////////////////
+
+  async cacheFlushUser(id) {
+    const cacheKey = `user_${id}`
+    await this.cache.delAsync(cacheKey)
+  }
+
+  jsonTextToDate(string) {
+    if (string) {
+      return new Date(string)
+    }
+    return null
+  }
+
+  async fetchUser(id) {
+    const cacheKey = `user_${id}`
+    let userAttrs
+
+    // Check the cache first
+    const cachedUserAttrs = await this.cache.getAsync(cacheKey)
+
+    if (typeof cachedUserAttrs != 'undefined' && cachedUserAttrs) {
+      // Cache hit
+      userAttrs = JSON.parse(cachedUserAttrs)
+
+      // Convert dates back to the Date type
+      userAttrs['created_at'] = this.jsonTextToDate(userAttrs['created_at'])
+      userAttrs['updated_at'] = this.jsonTextToDate(userAttrs['updated_at'])
+      userAttrs['reset_password_sent_at'] = this.jsonTextToDate(userAttrs['reset_password_sent_at'])
+      userAttrs['reset_password_expires_at'] = this.jsonTextToDate(userAttrs['reset_password_expires_at'])
+    } else {
+      // Cache miss, read from the database
+      const res = await this.database('users').where('uid', id)
+      userAttrs = res[0]
+
+      if (!userAttrs) {
+        return null
+      }
+
+      await this.cache.setAsync(cacheKey, JSON.stringify(userAttrs))
+    }
+
+    return userAttrs
   }
 
   ///////////////////////////////////////////////////
@@ -1208,6 +1266,7 @@ export class DbAdapter {
 
   async deleteUser(uid) {
     await this.database('users').where({ uid }).delete();
+    await this.cacheFlushUser(uid)
   }
 
   ///////////////////////////////////////////////////
@@ -1496,6 +1555,8 @@ export class DbAdapter {
       [feedIntIds, currentUserId]
     );
 
+    await this.cacheFlushUser(currentUserId)
+
     return res.rows[0].subscribed_feed_ids
   }
 
@@ -1514,6 +1575,8 @@ export class DbAdapter {
       'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
+
+    await this.cacheFlushUser(currentUserId)
 
     return res.rows[0].subscribed_feed_ids
   }
