@@ -327,14 +327,14 @@ export function addModel(dbAdapter) {
       return
     }
 
-    const currentTime = new Date().getTime()
-    await dbAdapter.setPostUpdatedAt(this.id, currentTime)
+    const now = new Date();
 
-    const promises = timelineOwnersIds.map(async (ownerId) => {
-      const feedOwner = await dbAdapter.getFeedOwnerById(ownerId)
-      return feedOwner.updateLastActivityAt()
-    })
-    await Promise.all(promises)
+    const promises = [
+      dbAdapter.setPostUpdatedAt(this.id, now.getTime()),
+      dbAdapter.setUpdatedAtInGroupsByIds(timelineOwnersIds, now.getTime())
+    ];
+
+    await Promise.all(promises);
   }
 
   Post.prototype.getOmittedComments = async function () {
