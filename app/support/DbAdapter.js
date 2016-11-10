@@ -348,6 +348,17 @@ export class DbAdapter {
     return this.database('users').where('uid', userId).update(preparedPayload)
   }
 
+  setUpdatedAtInGroupsByIds = async (groupIds, time) => {
+    const updatedAt = new Date();
+    updatedAt.setTime(time);
+
+    const sql = pgFormat(`UPDATE "users" SET "updated_at" = ? WHERE "uid" IN (%L) AND "type"='group' RETURNING "uid"`, groupIds);
+    const uids = await this.database.raw(sql, [updatedAt.toISOString()]);
+
+    const flushPromises = uids.rows.map((row) => this.cacheFlushUser(row.uid));
+    await Promise.all(flushPromises);
+  };
+
   async existsUser(userId) {
     const res = await this.database('users').where('uid', userId).count()
     return parseInt(res[0].count)
