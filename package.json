@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "start": "babel-node profiled.js",
-    "test": "eslint app test && ./bin/clean_test_db && knex --env test migrate:latest && NODE_ENV=test mocha",
+    "test": "eslint app test && ./bin/clean_test_db && knex --env test migrate:latest && NODE_ENV=test mocha --opts test/mocha.opts test/unit test/functional",
     "lint": "eslint app test",
     "console": "babel-node bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
