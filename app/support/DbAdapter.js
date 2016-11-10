@@ -534,12 +534,17 @@ export class DbAdapter {
     await this.cache.delAsync(cacheKey)
   }
 
-  jsonTextToDate(string) {
-    if (string) {
-      return new Date(string)
+  fixDateType = (date) => {
+    if (_.isString(date)) {
+      return new Date(date);
     }
-    return null
-  }
+
+    if (_.isDate(date)) {
+      return date;
+    }
+
+    return null;
+  };
 
   async fetchUser(id) {
     const cacheKey = `user_${id}`
@@ -550,13 +555,13 @@ export class DbAdapter {
 
     if (typeof cachedUserAttrs != 'undefined' && cachedUserAttrs) {
       // Cache hit
-      userAttrs = JSON.parse(cachedUserAttrs)
+      userAttrs = cachedUserAttrs;
 
       // Convert dates back to the Date type
-      userAttrs['created_at'] = this.jsonTextToDate(userAttrs['created_at'])
-      userAttrs['updated_at'] = this.jsonTextToDate(userAttrs['updated_at'])
-      userAttrs['reset_password_sent_at'] = this.jsonTextToDate(userAttrs['reset_password_sent_at'])
-      userAttrs['reset_password_expires_at'] = this.jsonTextToDate(userAttrs['reset_password_expires_at'])
+      userAttrs['created_at'] = this.fixDateType(userAttrs['created_at']);
+      userAttrs['updated_at'] = this.fixDateType(userAttrs['updated_at']);
+      userAttrs['reset_password_sent_at'] = this.fixDateType(userAttrs['reset_password_sent_at']);
+      userAttrs['reset_password_expires_at'] = this.fixDateType(userAttrs['reset_password_expires_at']);
     } else {
       // Cache miss, read from the database
       const res = await this.database('users').where('uid', id)
@@ -566,7 +571,7 @@ export class DbAdapter {
         return null
       }
 
-      await this.cache.setAsync(cacheKey, JSON.stringify(userAttrs))
+      await this.cache.setAsync(cacheKey, userAttrs);
     }
 
     return userAttrs
