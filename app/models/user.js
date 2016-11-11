@@ -549,6 +549,11 @@ export function addModel(dbAdapter) {
     return timelineId;
   };
 
+  User.prototype.getUnreadDirectsNumber = async function () {
+    const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(this.id);
+    return unreadDirectsNumber;
+  }
+
   User.prototype.getGenericTimelineIntId = async function (name) {
     const timelineIds = await this.getTimelineIds();
     const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([timelineIds[name]]);
