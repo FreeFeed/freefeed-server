@@ -297,11 +297,11 @@ export class DbAdapter {
 
     const config = configLoader()
 
-    // Memory only cache: this.cache = cacheManager.caching({ store: 'memory', ttl: 900 })
-
+    this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: 3600 })
     this.cache = cacheManager.caching({ store: redisStore, host: config.redis.host, port: config.redis.port, ttl: 900 })
 
     promisifyAll(this.cache)
+    promisifyAll(this.memoryCache)
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -1143,15 +1143,26 @@ export class DbAdapter {
     return Promise.all(promises)
   }
 
-  async getUserTimelinesIds(userId) {
-    const res = await this.database('feeds').where('user_id', userId)
-    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'})
-    const hides         = _.filter(res, (record) => { return record.name == 'Hides'})
-    const comments      = _.filter(res, (record) => { return record.name == 'Comments'})
-    const likes         = _.filter(res, (record) => { return record.name == 'Likes'})
-    const posts         = _.filter(res, (record) => { return record.name == 'Posts'})
-    const directs       = _.filter(res, (record) => { return record.name == 'Directs'})
-    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'})
+  async cacheFetchUserTimelinesIds(userId) {
+    const cacheKey = `timelines_user_${userId}`;
+
+    // Check the cache first
+    const cachedTimelines = await this.memoryCache.getAsync(cacheKey);
+
+    if (typeof cachedTimelines != 'undefined' && cachedTimelines) {
+      // Cache hit
+      return cachedTimelines;
+    }
+
+    // Cache miss, read from the database
+    const res = await this.database('feeds').where('user_id', userId);
+    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'});
+    const hides         = _.filter(res, (record) => { return record.name == 'Hides'});
+    const comments      = _.filter(res, (record) => { return record.name == 'Comments'});
+    const likes         = _.filter(res, (record) => { return record.name == 'Likes'});
+    const posts         = _.filter(res, (record) => { return record.name == 'Posts'});
+    const directs       = _.filter(res, (record) => { return record.name == 'Directs'});
+    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'});
 
     const timelines =  {
       'RiverOfNews': riverOfNews[0] && riverOfNews[0].uid,
@@ -1159,17 +1170,26 @@ export class DbAdapter {
       'Comments':    comments[0] && comments[0].uid,
       'Likes':       likes[0] && likes[0].uid,
       'Posts':       posts[0] && posts[0].uid
-    }
+    };
 
     if (directs[0]) {
-      timelines['Directs'] = directs[0].uid
+      timelines['Directs'] = directs[0].uid;
     }
 
     if (myDiscussions[0]) {
-      timelines['MyDiscussions'] = myDiscussions[0].uid
+      timelines['MyDiscussions'] = myDiscussions[0].uid;
     }
 
-    return timelines
+    if (res.length) {
+      // Don not cache empty feeds lists
+      await this.memoryCache.setAsync(cacheKey, timelines);
+    }
+
+    return timelines;
+  }
+
+  async getUserTimelinesIds(userId) {
+    return await this.cacheFetchUserTimelinesIds(userId);
   }
 
   async getTimelineById(id, params) {
