@@ -50,6 +50,10 @@ export function addModel(dbAdapter) {
       const feed = await timeline.getUser()
       await feed.updateLastActivityAt()
 
+      if (timeline.isDirects()) {
+        await pubSub.updateUnreadDirects(timeline.userId)
+      }
+
       return timeline.getSubscribersRiversOfNewsIntIds()
     })
 
