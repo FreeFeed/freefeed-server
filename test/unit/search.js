@@ -149,12 +149,15 @@ describe('FullTextSearch', () => {
   })
 
 
-  describe('private user Luna, public user Mars, stranger Jupiter', () => {
+  describe('private user Luna, public user Mars, not visible to anonymous Saturn, stranger Jupiter, anonymous Uranus', () => {
     const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
+    const saturnPostsContent = ['Eagle', 'Fire', 'Gigantic']
+    const marsPostsContent = ['Humidity', 'Icicle', 'Job']
 
     let luna
       , mars
       , jupiter
+      , saturn
       , lunaPosts
       , lunaVisibleFeedIds
       , bannedByLunaUserIds
@@ -162,14 +165,18 @@ describe('FullTextSearch', () => {
       , bannedByMarsUserIds
       , jupiterVisibleFeedIds
       , bannedByJupiterUserIds
+      , saturnPosts
+      , marsPosts
 
     beforeEach(async () => {
       luna    = new User({ username: 'Luna', password: 'password' })
       mars    = new User({ username: 'Mars', password: 'password' })
       jupiter = new User({ username: 'Jupiter', password: 'password' })
+      saturn  = new User({ username: 'Saturn', password: 'password' })
 
-      await Promise.all([luna.create(), mars.create(), jupiter.create()])
+      await Promise.all([luna.create(), mars.create(), jupiter.create(), saturn.create()])
       await luna.update({ isPrivate: '1' })
+      await saturn.update({ isVisibleToAnonymous: '0' })
 
       lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds
       bannedByLunaUserIds = await luna.getBanIds()
@@ -181,6 +188,16 @@ describe('FullTextSearch', () => {
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
         lunaPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
+      }
+      saturnPosts = []
+      for (const body of saturnPostsContent) {
+        const post = await saturn.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
+        saturnPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
+      }
+      marsPosts = []
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body })  // eslint-disable-line babel/no-await-in-loop
+        marsPosts.push(await post.create())  // eslint-disable-line babel/no-await-in-loop
       }
     })
 
@@ -202,6 +219,45 @@ describe('FullTextSearch', () => {
         searchResults[0].uid.should.eql(lunaPosts[1].id)
         searchResults[0].should.have.property('body')
         searchResults[0].body.should.eql(lunaPosts[1].body)
+      })
+    })
+
+    describe('Saturn doesn\'t like people who are not logged in', () => {
+      beforeEach(async () => {
+        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
+        jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds
+        bannedByJupiterUserIds = await jupiter.getBanIds()
+      })
+
+      it("Mars can find Saturn's posts", async () => {
+        const query = SearchQueryParser.parse('gigantic')
+
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
+        searchResults.should.not.be.empty
+        searchResults.length.should.eql(1)
+        searchResults[0].should.have.property('uid')
+        searchResults[0].uid.should.eql(saturnPosts[2].id)
+        searchResults[0].should.have.property('body')
+        searchResults[0].body.should.eql(saturnPosts[2].body)
+      })
+
+      it("Uranus can't find Saturn's posts", async () => {
+        const query = SearchQueryParser.parse('gigantic')
+
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30)
+        searchResults.should.be.empty
+      })
+
+      it("Uranus can find Mars' posts", async () => {
+        const query = SearchQueryParser.parse('icicle')
+
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30)
+        searchResults.should.not.be.empty
+        searchResults.length.should.eql(1)
+        searchResults[0].should.have.property('uid')
+        searchResults[0].uid.should.eql(marsPosts[1].id)
+        searchResults[0].should.have.property('body')
+        searchResults[0].body.should.eql(marsPosts[1].body)
       })
     })
 

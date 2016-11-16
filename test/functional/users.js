@@ -697,6 +697,25 @@ describe('UsersController', () => {
           })
       })
 
+      it('should update visibility to anonymous', (done) => {
+        request
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken,
+            user:      { isVisibleToAnonymous: '0' },
+            '_method': 'put'
+          })
+          .end((err, res) => {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('id')
+            res.body.users.should.have.property('isVisibleToAnonymous')
+            res.body.users.isVisibleToAnonymous.should.eql('0')
+            done()
+          })
+      })
+
       it('should require signed in user', (done) => {
         const screenName = 'Mars'
 

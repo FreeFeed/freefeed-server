@@ -434,11 +434,19 @@ export function addModel(dbAdapter) {
     if (this.isDirects())
       return this.userId === userId
 
+    const user = await this.getUser()
+
+    // this feed is not visible to anonymous and we just happen to
+    // be one
+    if (!userId && user && user.isVisibleToAnonymous === '0') {
+      return false
+    }
+
     // this is a public feed, anyone can read public posts, this is
     // a free country
-    const user = await this.getUser()
-    if (user && user.isPrivate !== '1')
+    if (user && user.isPrivate !== '1') {
       return true
+    }
 
     // otherwise user can view post if and only if she is subscriber
     const userIds = await this.getSubscriberIds()
