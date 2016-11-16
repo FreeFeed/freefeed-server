@@ -1,4 +1,5 @@
 const CHANNEL_NAMES = {
+  USER_UPDATE:       'user:update',
   POST_CREATED:      'post:new',
   POST_UPDATED:      'post:update',
   POST_DESTROYED:    'post:destroy',
@@ -14,6 +15,12 @@ const CHANNEL_NAMES = {
 export class PubSubAdapter {
   constructor(redisClient) {
     this.redisClient = redisClient
+  }
+
+  ///////////////////////////////////////////////////
+
+  userUpdated(payload) {
+    return this._publish(CHANNEL_NAMES.USER_UPDATE, payload)
   }
 
   ///////////////////////////////////////////////////

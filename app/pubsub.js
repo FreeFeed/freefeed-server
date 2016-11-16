@@ -2,6 +2,7 @@ import { dbAdapter } from './models'
 
 
 export class DummyPublisher {
+  userUpdated() {}
   postCreated() {}
   postDestroyed() {}
   postUpdated() {}
