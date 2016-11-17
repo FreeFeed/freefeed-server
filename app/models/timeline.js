@@ -12,6 +12,7 @@ export function addModel(dbAdapter) {
     this.intId = params.intId
     this.name = params.name
     this.userId = params.userId
+    this.user = null;
     if (parseInt(params.createdAt, 10))
       this.createdAt = params.createdAt
     if (parseInt(params.updatedAt, 10))
@@ -301,8 +302,12 @@ export function addModel(dbAdapter) {
     return
   }
 
-  Timeline.prototype.getUser = function () {
-    return dbAdapter.getFeedOwnerById(this.userId)
+  Timeline.prototype.getUser = async function () {
+    if (!this.user) {
+      this.user = await dbAdapter.getFeedOwnerById(this.userId);
+    }
+
+    return this.user;
   }
 
   /**
