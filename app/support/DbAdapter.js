@@ -490,24 +490,6 @@ export class DbAdapter {
     return objects
   }
 
-  async getUserSubscribers(id) {
-    if (!validator.isUUID(id,4)) {
-      return null;
-    }
-
-    const uid = pgFormat('%L', id);
-
-    const sql = `
-      select user_id from subscriptions
-        where feed_id in (
-          select uid from feeds where user_id = ${uid} and name = 'Posts'
-        )
-        order by created_at`;
-
-    const res = await this.database.raw(sql);
-    return res.rows;
-  }
-
   async getFeedOwnerByUsername(username) {
     const res = await this.database('users').where('username', username.toLowerCase())
     let attrs = res[0]
