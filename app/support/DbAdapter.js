@@ -536,6 +536,22 @@ export class DbAdapter {
     return feed
   }
 
+  async getUserSubscribers(id) {
+    if (!validator.isUUID(id,4)) {
+      return null;
+    }
+
+    const sql = `
+      select user_id from subscriptions
+        where feed_id in (
+          select uid from feeds where user_id = ? and name = 'Posts'
+        )
+        order by created_at`;
+
+    const res = await this.database.raw(sql, id);
+    return res.rows;
+  }
+
   ///////////////////////////////////////////////////
   // User's attributes caching
   ///////////////////////////////////////////////////
