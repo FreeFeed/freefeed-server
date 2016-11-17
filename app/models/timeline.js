@@ -430,33 +430,33 @@ export function addModel(dbAdapter) {
     await feed.updateLastActivityAt()
   }
 
-  Timeline.prototype.canShow = async function (userId) {
-    // owner can read her posts
-    if (this.userId === userId)
-      return true
+  Timeline.prototype.canShow = async function (readerId) {
+    if (this.userId === readerId)
+      return true;  // owner can read her posts
 
-    // if post is already in user's feed then she can read it
     if (this.isDirects())
-      return this.userId === userId
+      return false;  // this is someone else's direct
 
-    const user = await this.getUser()
+    const user = await this.getUser();
 
-    // this feed is not visible to anonymous and we just happen to
-    // be one
-    if (!userId && user && user.isVisibleToAnonymous === '0') {
-      return false
+    if (!user) {
+      throw new Error;
     }
 
-    // this is a public feed, anyone can read public posts, this is
-    // a free country
-    if (user && user.isPrivate !== '1') {
-      return true
+    // this feed is not visible to anonymous and we just happen to be one
+    if (!readerId && user.isVisibleToAnonymous === '0') {
+      return false;
     }
 
-    // otherwise user can view post if and only if she is subscriber
-    const userIds = await this.getSubscriberIds()
-    return userIds.includes(userId)
-  }
+    if (user.isPrivate === '1') {
+      // user can view post if and only if she is subscriber
+      const subscriberIds = await this.getSubscriberIds();
+      return subscriberIds.includes(readerId);
+    }
+
+    // this is a public feed, anyone can read public posts, this is a free country
+    return true;
+  };
 
   return Timeline
 }
