@@ -33,6 +33,12 @@ Starting up FreeFeed
 1. redis-server /usr/local/etc/redis.conf
 1. npm start
 
+Testing
+-------------------
+1. /usr/local/Cellar/postgresql/{VERSION}/bin/createuser -s postgres
+1. createdb -O freefeed freefeed_test
+1. npm test
+
 Contribute
 ----------
 

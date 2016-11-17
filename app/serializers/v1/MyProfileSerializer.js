@@ -5,7 +5,7 @@ export function addSerializer() {
   return new Serializer('users', {
     select: ['id', 'username', 'type', 'screenName', 'email', 'statistics',
       'subscriptions', 'profilePictureLargeUrl', 'profilePictureMediumUrl',
-      'banIds', 'subscribers', 'isPrivate', 'pendingSubscriptionRequests',
+      'banIds', 'subscribers', 'isPrivate', 'isVisibleToAnonymous', 'pendingSubscriptionRequests',
       'subscriptionRequests', 'description', 'frontendPreferences',
       'administrators', 'pendingGroupRequests', 'privateMeta', 'unreadDirectsNumber'],
     subscriptions:               { through: SubscriptionSerializer, embed: true },

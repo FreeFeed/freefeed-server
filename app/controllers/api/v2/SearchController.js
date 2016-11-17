@@ -32,6 +32,7 @@ export default class SearchController {
 
       const bannedUserIds = req.user ? await req.user.getBanIds() : [];
       const currentUserId = req.user ? req.user.id : null;
+      const isAnonymous = !req.user;
       const visibleFeedIds = req.user ? req.user.subscribedFeedIds : [];
 
       switch (preparedQuery.scope) {
@@ -50,6 +51,10 @@ export default class SearchController {
             targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
             if (!targetUser) {
               throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
+            }
+
+            if (isAnonymous && targetUser.isVisibleToAnonymous === '0') {
+              throw new ForbiddenException(`Please sign in to view user "${preparedQuery.username}"`)
             }
 
             if (targetUser.id != currentUserId) {

@@ -12,6 +12,7 @@ const USER_COLUMNS = {
   createdAt:              "created_at",
   updatedAt:              "updated_at",
   isPrivate:              "is_private",
+  isVisibleToAnonymous:   "is_visible_to_anonymous",
   isRestricted:           "is_restricted",
   hashedPassword:         "hashed_password",
   resetPasswordToken:     "reset_password_token",
@@ -33,6 +34,7 @@ const USER_COLUMNS_MAPPING = {
     return d.toISOString()
   },
   isPrivate:              (is_private)=>{return is_private === '1'},
+  isVisibleToAnonymous:   (is_visible_to_anonymous)=>{return is_visible_to_anonymous === '1'},
   isRestricted:           (is_restricted)=>{return is_restricted === '1'},
   resetPasswordSentAt:    (timestamp)=>{
     let d = new Date()
@@ -164,7 +166,7 @@ export class PgAdapter {
   constructor(database) {
     this.database = database
   }
-  
+
   ///////////////////////////////////////////////////
   // User
   ///////////////////////////////////////////////////
