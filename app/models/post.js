@@ -559,8 +559,12 @@ export function addModel(dbAdapter) {
     return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
-  Post.prototype.canShow = async function (readerId) {
-    const timelines = await this.getPostedTo();
+  Post.prototype.canShow = async function (readerId, checkOnlyDestinations = true) {
+    let timelines = await (checkOnlyDestinations ? this.getPostedTo() : this.getTimelines());
+
+    if (!checkOnlyDestinations) {
+      timelines = timelines.filter((timeline) => timeline.isPosts() || timeline.isDirects());
+    }
 
     if (timelines.map((timeline) => timeline.userId).includes(readerId)) {
       // one of the timelines belongs to the user

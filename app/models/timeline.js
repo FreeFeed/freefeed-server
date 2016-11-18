@@ -268,18 +268,7 @@ export function addModel(dbAdapter) {
           return post
         }
 
-        const postTimelines = await post.getTimelines()
-        const promises = postTimelines.map(async (timeline) => {
-          if (!timeline.isPosts() && !timeline.isDirects()) {
-            return false
-          }
-
-          return timeline.canShow(this.currentUser)
-        })
-
-        const wasPostedToReadableFeed = _.some(await Promise.all(promises))
-
-        if (!wasPostedToReadableFeed) {
+        if (!await post.canShow(this.currentUser, false)) {
           return null
         }
       }
