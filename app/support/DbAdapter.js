@@ -608,6 +608,13 @@ export class DbAdapter {
     return userAttrs
   }
 
+  async someUsersArePublic(userIds, anonymousFriendly) {
+    const anonymousCondition = anonymousFriendly ? 'AND "is_visible_to_anonymous" = true' : '';
+    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE "is_private" = false ${anonymousCondition} AND "uid" IN (%L)`, userIds);
+    const res = await this.database.raw(q);
+    return res.rows[0].cnt > 0;
+  }
+
   ///////////////////////////////////////////////////
   // User statistics
   ///////////////////////////////////////////////////
@@ -1564,6 +1571,13 @@ export class DbAdapter {
       user_id: currentUserId
     }).count()
     return parseInt(res[0].count) != 0
+  }
+
+  async isUserSubscribedToOneOfTimelines(currentUserId, timelineIds) {
+    const q = pgFormat('SELECT COUNT(*) AS "cnt" FROM "subscriptions" WHERE "feed_id" IN (%L) AND "user_id" = ?', timelineIds);
+    const res = await this.database.raw(q, [currentUserId]);
+
+    return res.rows[0].cnt > 0;
   }
 
   async getTimelineSubscribersIds(timelineId) {

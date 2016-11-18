@@ -560,41 +560,33 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.canShow = async function (readerId) {
-    const timelines = await this.getPostedTo()
+    const timelines = await this.getPostedTo();
 
-    const arr = await Promise.all(timelines.map(async (timeline) => {
-      // owner can read her posts
-      if (timeline.userId === readerId)
-        return true
-
-      // if post is already in user's feed then she can read it
-      if (timeline.isDirects())
-        return false;
-
-      const user = await timeline.getUser();
-
-      if (!user) {
-        throw new Error;
-      }
-
-      // this feed is not visible to anonymous and we just happen to be one
-      if (!readerId && user.isVisibleToAnonymous === '0') {
-        return false;
-      }
-
-      if (user.isPrivate === '1') {
-        // user can view post if and only if she is subscriber
-        const userIds = await timeline.getSubscriberIds();
-        return userIds.includes(readerId);
-      }
-
-      // this is a public feed, anyone can read public posts, this is
-      // a free country
+    if (timelines.map((timeline) => timeline.userId).includes(readerId)) {
+      // one of the timelines belongs to the user
       return true;
-    }));
+    }
 
-    return _.some(arr);
-  }
+    // skipping someone else's directs
+    const nonDirectTimelines = timelines.filter((timeline) => !timeline.isDirects());
+
+    if (nonDirectTimelines.length === 0) {
+      return false;
+    }
+
+    const ownerIds = nonDirectTimelines.map((timeline) => timeline.userId);
+    if (await dbAdapter.someUsersArePublic(ownerIds, !readerId)) {
+      return true;
+    }
+
+    if (!readerId) {
+      // no public feeds. anonymous can't see
+      return false;
+    }
+
+    const timelineIds = nonDirectTimelines.map((timeline) => timeline.id);
+    return await dbAdapter.isUserSubscribedToOneOfTimelines(readerId, timelineIds);
+  };
 
   Post.prototype.processHashtagsOnCreate = async function () {
     const postTags = _.uniq(twitter.extractHashtags(this.body))
