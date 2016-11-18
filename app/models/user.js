@@ -720,10 +720,8 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getSubscribers = async function () {
-    const subscriberIds = await this.getSubscriberIds()
-    this.subscribers = await dbAdapter.getUsersByIds(subscriberIds)
-
-    return this.subscribers
+    this.subscribers = await dbAdapter.getUserSubscribers(this.id);
+    return this.subscribers;
   }
 
   User.prototype.getBanIds = function () {
