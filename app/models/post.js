@@ -559,30 +559,41 @@ export function addModel(dbAdapter) {
     return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
-  Post.prototype.canShow = async function (userId) {
+  Post.prototype.canShow = async function (readerId) {
     const timelines = await this.getPostedTo()
 
     const arr = await Promise.all(timelines.map(async (timeline) => {
       // owner can read her posts
-      if (timeline.userId === userId)
+      if (timeline.userId === readerId)
         return true
 
       // if post is already in user's feed then she can read it
       if (timeline.isDirects())
-        return timeline.userId === userId
+        return false;
+
+      const user = await timeline.getUser();
+
+      if (!user) {
+        throw new Error;
+      }
+
+      // this feed is not visible to anonymous and we just happen to be one
+      if (!readerId && user.isVisibleToAnonymous === '0') {
+        return false;
+      }
+
+      if (user.isPrivate === '1') {
+        // user can view post if and only if she is subscriber
+        const userIds = await timeline.getSubscriberIds();
+        return userIds.includes(readerId);
+      }
 
       // this is a public feed, anyone can read public posts, this is
       // a free country
-      const user = await timeline.getUser()
-      if (user.isPrivate !== '1')
-        return true
+      return true;
+    }));
 
-      // otherwise user can view post if and only if she is subscriber
-      const userIds = await timeline.getSubscriberIds()
-      return userIds.includes(userId)
-    }))
-
-    return _.reduce(arr, (acc, x) => { return acc || x }, false)
+    return _.some(arr);
   }
 
   Post.prototype.processHashtagsOnCreate = async function () {
