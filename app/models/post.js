@@ -559,31 +559,38 @@ export function addModel(dbAdapter) {
     return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
-  Post.prototype.canShow = async function (userId) {
-    const timelines = await this.getPostedTo()
+  Post.prototype.canShow = async function (readerId, checkOnlyDestinations = true) {
+    let timelines = await (checkOnlyDestinations ? this.getPostedTo() : this.getTimelines());
 
-    const arr = await Promise.all(timelines.map(async (timeline) => {
-      // owner can read her posts
-      if (timeline.userId === userId)
-        return true
+    if (!checkOnlyDestinations) {
+      timelines = timelines.filter((timeline) => timeline.isPosts() || timeline.isDirects());
+    }
 
-      // if post is already in user's feed then she can read it
-      if (timeline.isDirects())
-        return timeline.userId === userId
+    if (timelines.map((timeline) => timeline.userId).includes(readerId)) {
+      // one of the timelines belongs to the user
+      return true;
+    }
 
-      // this is a public feed, anyone can read public posts, this is
-      // a free country
-      const user = await timeline.getUser()
-      if (user.isPrivate !== '1')
-        return true
+    // skipping someone else's directs
+    const nonDirectTimelines = timelines.filter((timeline) => !timeline.isDirects());
 
-      // otherwise user can view post if and only if she is subscriber
-      const userIds = await timeline.getSubscriberIds()
-      return userIds.includes(userId)
-    }))
+    if (nonDirectTimelines.length === 0) {
+      return false;
+    }
 
-    return _.reduce(arr, (acc, x) => { return acc || x }, false)
-  }
+    const ownerIds = nonDirectTimelines.map((timeline) => timeline.userId);
+    if (await dbAdapter.someUsersArePublic(ownerIds, !readerId)) {
+      return true;
+    }
+
+    if (!readerId) {
+      // no public feeds. anonymous can't see
+      return false;
+    }
+
+    const timelineIds = nonDirectTimelines.map((timeline) => timeline.id);
+    return await dbAdapter.isUserSubscribedToOneOfTimelines(readerId, timelineIds);
+  };
 
   Post.prototype.processHashtagsOnCreate = async function () {
     const postTags = _.uniq(twitter.extractHashtags(this.body))
