@@ -720,7 +720,9 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getSubscribers = async function () {
-    this.subscribers = await dbAdapter.getUserSubscribers(this.id);
+    const subscriberIds = await this.getSubscriberIds();
+    this.subscribers = await dbAdapter.getUsersByIds(subscriberIds);
+
     return this.subscribers;
   }
 
