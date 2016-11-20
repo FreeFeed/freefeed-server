@@ -893,12 +893,8 @@ export class DbAdapter {
   // Group administrators
   ///////////////////////////////////////////////////
 
-  async getGroupAdministratorsIds(groupId) {
-    const res = await this.database('group_admins').select('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
-    const attrs = res.map((record) => {
-      return record.user_id
-    })
-    return attrs
+  getGroupAdministratorsIds(groupId) {
+    return this.database('group_admins').pluck('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
   }
 
   addAdministratorToGroup(groupId, adminId) {
@@ -918,6 +914,10 @@ export class DbAdapter {
       user_id:  adminId,
       group_id: groupId
     }).delete()
+  }
+
+  getManagedGroupIds(userId) {
+    return this.database('group_admins').pluck('group_id').orderBy('created_at', 'desc').where('user_id', userId);
   }
 
   ///////////////////////////////////////////////////
