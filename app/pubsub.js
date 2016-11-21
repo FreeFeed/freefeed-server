@@ -2,6 +2,7 @@ import { dbAdapter } from './models'
 
 
 export class DummyPublisher {
+  userUpdated() {}
   postCreated() {}
   postDestroyed() {}
   postUpdated() {}
@@ -21,6 +22,13 @@ export default class pubSub {
 
   setPublisher(publisher) {
     this.publisher = publisher;
+  }
+
+  async updateUnreadDirects(userId) {
+    const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(userId);
+    const user = { id: userId, unreadDirectsNumber };
+    const payload = JSON.stringify({ user });
+    await this.publisher.userUpdated(payload);
   }
 
   async newPost(postId) {

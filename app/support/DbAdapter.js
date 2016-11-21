@@ -21,6 +21,7 @@ const USER_COLUMNS = {
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
   isPrivate:              'is_private',
+  isVisibleToAnonymous:   'is_visible_to_anonymous',
   isRestricted:           'is_restricted',
   hashedPassword:         'hashed_password',
   resetPasswordToken:     'reset_password_token',
@@ -46,9 +47,10 @@ const USER_COLUMNS_MAPPING = {
     d.setTime(timestamp)
     return d.toISOString()
   },
-  isPrivate:           (is_private) => {return is_private === '1'},
-  isRestricted:        (is_restricted) => {return is_restricted === '1'},
-  resetPasswordSentAt: (timestamp) => {
+  isPrivate:            (is_private) => {return is_private === '1'},
+  isVisibleToAnonymous: (is_visible_to_anonymous) => {return is_visible_to_anonymous === '1'},
+  isRestricted:         (is_restricted) => {return is_restricted === '1'},
+  resetPasswordSentAt:  (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -67,6 +69,7 @@ const USER_FIELDS = {
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
   is_private:                'isPrivate',
+  is_visible_to_anonymous:   'isVisibleToAnonymous',
   is_restricted:             'isRestricted',
   hashed_password:           'hashedPassword',
   reset_password_token:      'resetPasswordToken',
@@ -81,6 +84,7 @@ const USER_FIELDS_MAPPING = {
   created_at:                (time) => { return time.getTime().toString() },
   updated_at:                (time) => { return time.getTime().toString() },
   is_private:                (is_private) => {return is_private ? '1' : '0' },
+  is_visible_to_anonymous:   (is_visible_to_anonymous) => {return is_visible_to_anonymous ? '1' : '0' },
   is_restricted:             (is_restricted) => {return is_restricted ? '1' : '0' },
   reset_password_sent_at:    (time) => { return time && time.getTime() },
   reset_password_expires_at: (time) => { return time && time.getTime() },
@@ -604,6 +608,13 @@ export class DbAdapter {
     return userAttrs
   }
 
+  async someUsersArePublic(userIds, anonymousFriendly) {
+    const anonymousCondition = anonymousFriendly ? 'AND "is_visible_to_anonymous" = true' : '';
+    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE "is_private" = false ${anonymousCondition} AND "uid" IN (%L)`, userIds);
+    const res = await this.database.raw(q);
+    return res.rows[0].cnt > 0;
+  }
+
   ///////////////////////////////////////////////////
   // User statistics
   ///////////////////////////////////////////////////
@@ -882,12 +893,8 @@ export class DbAdapter {
   // Group administrators
   ///////////////////////////////////////////////////
 
-  async getGroupAdministratorsIds(groupId) {
-    const res = await this.database('group_admins').select('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
-    const attrs = res.map((record) => {
-      return record.user_id
-    })
-    return attrs
+  getGroupAdministratorsIds(groupId) {
+    return this.database('group_admins').pluck('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
   }
 
   addAdministratorToGroup(groupId, adminId) {
@@ -907,6 +914,10 @@ export class DbAdapter {
       user_id:  adminId,
       group_id: groupId
     }).delete()
+  }
+
+  getManagedGroupIds(userId) {
+    return this.database('group_admins').pluck('group_id').orderBy('created_at', 'desc').where('user_id', userId);
   }
 
   ///////////////////////////////////////////////////
@@ -1562,6 +1573,13 @@ export class DbAdapter {
     return parseInt(res[0].count) != 0
   }
 
+  async isUserSubscribedToOneOfTimelines(currentUserId, timelineIds) {
+    const q = pgFormat('SELECT COUNT(*) AS "cnt" FROM "subscriptions" WHERE "feed_id" IN (%L) AND "user_id" = ?', timelineIds);
+    const res = await this.database.raw(q, [currentUserId]);
+
+    return res.rows[0].cnt > 0;
+  }
+
   async getTimelineSubscribersIds(timelineId) {
     const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
     const attrs = res.map((record) => {
@@ -1704,6 +1722,7 @@ export class DbAdapter {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+    const publicOrVisibleForAnonymous = currentUserId ? 'users.is_private=false' : 'users.is_private=false and users.is_visible_to_anonymous=true'
 
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
       visibleFeedIds = 'NULL'
@@ -1711,12 +1730,12 @@ export class DbAdapter {
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and ${publicOrVisibleForAnonymous} ` +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and ${publicOrVisibleForAnonymous} ` +
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}

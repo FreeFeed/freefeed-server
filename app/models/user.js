@@ -43,6 +43,7 @@ export function addModel(dbAdapter) {
     }
 
     this.isPrivate = params.isPrivate
+    this.isVisibleToAnonymous = params.isVisibleToAnonymous
     this.resetPasswordToken = params.resetPasswordToken
     this.resetPasswordSentAt = params.resetPasswordSentAt
     if (parseInt(params.createdAt, 10))
@@ -102,6 +103,13 @@ export function addModel(dbAdapter) {
     get: function () { return this.isPrivate_ },
     set: function (newValue) {
       this.isPrivate_ = newValue || '0'
+    }
+  })
+
+  Reflect.defineProperty(User.prototype, 'isVisibleToAnonymous', {
+    get: function () { return this.isVisibleToAnonymous_ },
+    set: function (newValue) {
+      this.isVisibleToAnonymous_ = newValue || '1'
     }
   })
 
@@ -301,16 +309,17 @@ export function addModel(dbAdapter) {
     await this.initPassword()
 
     const payload = {
-      'username':            this.username,
-      'screenName':          this.screenName,
-      'email':               this.email,
-      'type':                this.type,
-      'isPrivate':           '0',
-      'description':         '',
-      'createdAt':           this.createdAt.toString(),
-      'updatedAt':           this.updatedAt.toString(),
-      'hashedPassword':      this.hashedPassword,
-      'frontendPreferences': JSON.stringify({})
+      'username':             this.username,
+      'screenName':           this.screenName,
+      'email':                this.email,
+      'type':                 this.type,
+      'isPrivate':            '0',
+      'isVisibleToAnonymous': '1',
+      'description':          '',
+      'createdAt':            this.createdAt.toString(),
+      'updatedAt':            this.updatedAt.toString(),
+      'hashedPassword':       this.hashedPassword,
+      'frontendPreferences':  JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
@@ -322,7 +331,7 @@ export function addModel(dbAdapter) {
 
   User.prototype.update = async function (params) {
     const payload = {}
-    const changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
+    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isVisibleToAnonymous', 'description', 'frontendPreferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -346,12 +355,19 @@ export function addModel(dbAdapter) {
         throw new Error('bad input')
       }
 
-      if (params.isPrivate === '1' && this.isPrivate === '0')
+      if (params.isPrivate === '1' && this.isPrivate === '0') {
+        // was public, now private
         await this.unsubscribeNonFriends()
-      else if (params.isPrivate === '0' && this.isPrivate === '1')
+      } else if (params.isPrivate === '0' && this.isPrivate === '1') {
+        // was private, now public
         await this.subscribeNonFriends()
+      }
 
       payload.isPrivate = params.isPrivate
+    }
+
+    if (params.hasOwnProperty('isVisibleToAnonymous') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
+      payload.isVisibleToAnonymous = params.isVisibleToAnonymous
     }
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
@@ -1079,19 +1095,8 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getManagedGroups = async function () {
-    const followedGroups = await this.getFollowedGroups()
-    const currentUserId  = this.id
-
-    const promises = followedGroups.map(async (group) => {
-      const adminIds = await group.getAdministratorIds()
-      if (adminIds.includes(currentUserId)) {
-        return group
-      }
-      return null
-    })
-
-    const managedGroups = await Promise.all(promises)
-    return _.compact(managedGroups)
+    const groupsIds = await dbAdapter.getManagedGroupIds(this.id);
+    return await dbAdapter.getUsersByIds(groupsIds);
   }
 
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {

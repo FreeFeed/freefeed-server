@@ -48,6 +48,12 @@ export default class CommentsController {
 
       const timelines = await newComment.create()
 
+      await Promise.all(timelines.map(async (timeline) => {
+        if (timeline.isDirects()) {
+          await PubSub.updateUnreadDirects(timeline.userId)
+        }
+      }))
+
       await PubSub.newComment(newComment, timelines)
       monitor.increment('comments.creates')
 
