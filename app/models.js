@@ -20,6 +20,7 @@ import { addSerializer as commentSerializer } from './serializers/v1/CommentSeri
 import { addSerializer as groupSerializer } from './serializers/v1/GroupSerializer'
 import { addSerializer as likeSerializer } from './serializers/v1/LikeSerializer'
 import { addSerializer as myProfileSerializer } from './serializers/v1/MyProfileSerializer'
+import { addSerializer as myProfileSerializerV2 } from './serializers/v2/MyProfileSerializerV2'
 import { addSerializer as postSerializer } from './serializers/v1/PostSerializer'
 import { addSerializer as pubsubCommentSerializer } from './serializers/v1/PubsubCommentSerializer'
 import { addSerializer as subscriberSerializer } from './serializers/v1/SubscriberSerializer'
@@ -62,6 +63,7 @@ export const SubscriberSerializer          = subscriberSerializer()
 export const SubscriptionSerializer        = subscriptionSerializer()
 export const SubscriptionRequestSerializer = subscriptionRequestSerializer()
 export const MyProfileSerializer           = myProfileSerializer()
+export const MyProfileSerializerV2         = myProfileSerializerV2()
 export const LikeSerializer                = likeSerializer()
 export const GroupSerializer               = groupSerializer()
 export const AttachmentSerializer          = attachmentSerializer()

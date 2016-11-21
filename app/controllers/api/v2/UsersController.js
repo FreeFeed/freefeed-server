@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import monitor from 'monitor-dog'
-import { dbAdapter } from '../../../models'
+import { dbAdapter, MyProfileSerializerV2 } from '../../../models'
 import { reportError } from '../../../support/exceptions'
 
 export default class UsersController {
@@ -54,5 +54,17 @@ export default class UsersController {
     } catch (e) {
       reportError(res)(e)
     }
+  }
+
+  static async whoami(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' })
+      return
+    }
+
+    const timer = monitor.timer('users.whoami-v2-time')
+    const json = await new MyProfileSerializerV2(req.user).promiseToJSON()
+    res.jsonp(json)
+    timer.stop()
   }
 }
