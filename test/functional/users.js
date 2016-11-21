@@ -289,6 +289,45 @@ describe('UsersController', () => {
     })
   })
 
+  describe('#v2/whoami()', () => {
+    let authToken
+    const user = {
+      username: 'Luna',
+      password: 'password'
+    }
+
+    beforeEach(async () => {
+      const luna = await funcTestHelper.createUserAsync(user.username, user.password)
+      authToken = luna.authToken
+    })
+
+    it('should return current user for a valid user', (done) => {
+      request
+        .get(`${app.config.host}/v2/users/whoami`)
+        .query({ authToken })
+        .end((err, res) => {
+          res.should.not.be.empty
+          res.body.should.not.be.empty
+          res.body.should.have.property('users')
+          res.body.users.should.have.property('id')
+          res.body.users.should.have.property('username')
+          res.body.users.username.should.eql(user.username.toLowerCase())
+          done()
+        })
+    })
+
+    it('should not return user for an invalid user', (done) => {
+      request
+        .get(`${app.config.host}/v2/users/whoami`)
+        .query({ authToken: 'token' })
+        .end((err) => {
+          err.should.not.be.empty
+          err.status.should.eql(401)
+          done()
+        })
+    })
+  })
+
   describe('#subscribe()', () => {
     let lunaContext = {}
     let marsContext = {}
