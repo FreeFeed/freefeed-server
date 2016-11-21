@@ -542,35 +542,29 @@ export class DbAdapter {
     return null;
   };
 
-  async fetchUser(id) {
-    const cacheKey = `user_${id}`
-    let userAttrs
-
-    // Check the cache first
-    const cachedUserAttrs = await this.cache.getAsync(cacheKey)
-
-    if (typeof cachedUserAttrs != 'undefined' && cachedUserAttrs) {
-      // Cache hit
-      userAttrs = cachedUserAttrs;
-
-      // Convert dates back to the Date type
-      userAttrs['created_at'] = this.fixDateType(userAttrs['created_at']);
-      userAttrs['updated_at'] = this.fixDateType(userAttrs['updated_at']);
-      userAttrs['reset_password_sent_at'] = this.fixDateType(userAttrs['reset_password_sent_at']);
-      userAttrs['reset_password_expires_at'] = this.fixDateType(userAttrs['reset_password_expires_at']);
-    } else {
-      // Cache miss, read from the database
-      const res = await this.database('users').where('uid', id)
-      userAttrs = res[0]
-
-      if (!userAttrs) {
-        return null
-      }
-
-      await this.cache.setAsync(cacheKey, userAttrs);
+  getCachedUserAttrs = async (id) => {
+    const attrs = await this.cache.getAsync(`user_${id}`);
+    if (!attrs) {
+      return null;
     }
+    // Convert dates back to the Date type
+    attrs['created_at'] = this.fixDateType(attrs['created_at']);
+    attrs['updated_at'] = this.fixDateType(attrs['updated_at']);
+    attrs['reset_password_sent_at'] = this.fixDateType(attrs['reset_password_sent_at']);
+    attrs['reset_password_expires_at'] = this.fixDateType(attrs['reset_password_expires_at']);
+    return attrs;
+  }
 
-    return userAttrs
+  async fetchUser(id) {
+    let attrs = await this.getCachedUserAttrs(id);
+    if (!attrs) {
+      // Cache miss, read from the database
+      attrs = await this.database('users').first().where('uid', id) || null;
+      if (attrs) {
+        await this.cache.setAsync(`user_${id}`, attrs);
+      }
+    }
+    return attrs;
   }
 
   async someUsersArePublic(userIds, anonymousFriendly) {
