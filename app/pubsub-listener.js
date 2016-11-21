@@ -34,9 +34,12 @@ export default class PubsubListener {
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
     redisClient.on('error', (err) => { app.logger.error('redis error', err) })
-    redisClient.subscribe('post:new', 'post:destroy', 'post:update',
-      'comment:new', 'comment:destroy', 'comment:update',
-      'like:new', 'like:remove', 'post:hide', 'post:unhide')
+    redisClient.subscribe(
+      'user:update',
+      'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
+      'comment:new', 'comment:update', 'comment:destroy',
+      'like:new', 'like:remove'
+    )
 
     redisClient.on('message', this.onRedisMessage)
   }
@@ -100,6 +103,8 @@ export default class PubsubListener {
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
+      'user:update': this.onUserUpdate,
+
       'post:new':     this.onPostNew,
       'post:update':  this.onPostUpdate,
       'post:destroy': this.onPostDestroy,
@@ -177,6 +182,10 @@ export default class PubsubListener {
       socket.emit(type, json)
     }))
   }
+
+  onUserUpdate = async (sockets, data) => {
+    sockets.in(`user:${data.user.id}`).emit('user:update', data);
+  };
 
   // Message-handlers follow
   onPostDestroy = async (sockets, data) => {
