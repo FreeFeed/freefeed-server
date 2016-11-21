@@ -1095,19 +1095,8 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getManagedGroups = async function () {
-    const followedGroups = await this.getFollowedGroups()
-    const currentUserId  = this.id
-
-    const promises = followedGroups.map(async (group) => {
-      const adminIds = await group.getAdministratorIds()
-      if (adminIds.includes(currentUserId)) {
-        return group
-      }
-      return null
-    })
-
-    const managedGroups = await Promise.all(promises)
-    return _.compact(managedGroups)
+    const groupsIds = await dbAdapter.getManagedGroupIds(this.id);
+    return await dbAdapter.getUsersByIds(groupsIds);
   }
 
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
