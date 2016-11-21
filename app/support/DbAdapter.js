@@ -467,8 +467,7 @@ export class DbAdapter {
   }
 
   async getFeedOwnersByIds(ids) {
-    const responses = await this.database('users').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-    return responses.map(this.initUserObject);
+    return (await this.fetchUsers(ids)).map(this.initUserObject);
   }
 
   async getFeedOwnerByUsername(username) {
@@ -565,6 +564,22 @@ export class DbAdapter {
       }
     }
     return attrs;
+  }
+
+  async fetchUsers(ids) {
+    const uniqIds = _.uniq(ids);
+    const cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+
+    const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
+    const dbUsers = await this.database('users').whereIn('uid', notFoundIds);
+
+    await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
+
+    const idToUser = {};
+    _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
+    dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
+
+    return ids.map((id) => idToUser[id] || null);
   }
 
   async someUsersArePublic(userIds, anonymousFriendly) {
