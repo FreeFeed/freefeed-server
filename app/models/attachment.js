@@ -6,6 +6,7 @@ import gm from 'gm'
 import meta from 'musicmetadata'
 import mmm from 'mmmagic'
 import _ from 'lodash'
+import mv from 'mv'
 
 import { load as configLoader } from '../../config/config'
 
@@ -289,7 +290,7 @@ export function addModel(dbAdapter) {
       await this.uploadToS3(tmpAttachmentFile, config.attachments.path)
       await fs.unlinkAsync(tmpAttachmentFile)
     } else {
-      await fs.renameAsync(tmpAttachmentFile, this.getPath())
+      await promisify(mv)(tmpAttachmentFile, this.getPath(),{})
     }
   }
 
@@ -322,7 +323,7 @@ export function addModel(dbAdapter) {
         await this.uploadToS3(tmpImageFile, sizeConfig.path)
         await fs.unlinkAsync(tmpImageFile)
       } else {
-        await fs.renameAsync(tmpImageFile, this.getResizedImagePath(sizeId))
+        await promisify(mv)(tmpImageFile, this.getResizedImagePath(sizeId),{})
       }
     }
   }
