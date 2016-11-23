@@ -373,7 +373,16 @@ export function addModel(dbAdapter) {
       payload.isPrivate = params.isPrivate
     }
 
-    if (params.hasOwnProperty('isVisibleToAnonymous') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
+    if (params.hasOwnProperty('isPrivate') && params.isPrivate === '1') {
+      params.isProtected = '1';
+    }
+
+    if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
+      payload.isVisibleToAnonymous = (params.isProtected === '1') ? '0' : '1';
+    }
+
+    // isProtected have priority
+    if (params.hasOwnProperty('isVisibleToAnonymous') && !params.hasOwnProperty('isProtected') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
       payload.isVisibleToAnonymous = params.isVisibleToAnonymous
     }
 
