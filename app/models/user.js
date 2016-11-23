@@ -106,6 +106,13 @@ export function addModel(dbAdapter) {
     }
   })
 
+  Reflect.defineProperty(User.prototype, 'isProtected', {
+    get: function () { return (this.isVisibleToAnonymous_ === '0') ? '1' : '0' },
+    set: function (newValue) {
+      this.isVisibleToAnonymous_ = (newValue === '1') ? '0' : '1'
+    }
+  })
+
   Reflect.defineProperty(User.prototype, 'isVisibleToAnonymous', {
     get: function () { return this.isVisibleToAnonymous_ },
     set: function (newValue) {
