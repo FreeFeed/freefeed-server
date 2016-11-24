@@ -106,6 +106,13 @@ export function addModel(dbAdapter) {
     }
   })
 
+  Reflect.defineProperty(User.prototype, 'isProtected', {
+    get: function () { return (this.isVisibleToAnonymous_ === '0') ? '1' : '0' },
+    set: function (newValue) {
+      this.isVisibleToAnonymous_ = (newValue === '1') ? '0' : '1'
+    }
+  })
+
   Reflect.defineProperty(User.prototype, 'isVisibleToAnonymous', {
     get: function () { return this.isVisibleToAnonymous_ },
     set: function (newValue) {
@@ -366,7 +373,16 @@ export function addModel(dbAdapter) {
       payload.isPrivate = params.isPrivate
     }
 
-    if (params.hasOwnProperty('isVisibleToAnonymous') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
+    if (params.hasOwnProperty('isPrivate') && params.isPrivate === '1') {
+      params.isProtected = '1';
+    }
+
+    if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
+      payload.isVisibleToAnonymous = (params.isProtected === '1') ? '0' : '1';
+    }
+
+    // isProtected have priority
+    if (params.hasOwnProperty('isVisibleToAnonymous') && !params.hasOwnProperty('isProtected') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
       payload.isVisibleToAnonymous = params.isVisibleToAnonymous
     }
 

@@ -711,7 +711,30 @@ describe('UsersController', () => {
             res.body.should.have.property('users')
             res.body.users.should.have.property('id')
             res.body.users.should.have.property('isVisibleToAnonymous')
+            res.body.users.should.have.property('isProtected')
             res.body.users.isVisibleToAnonymous.should.eql('0')
+            res.body.users.isProtected.should.eql('1')
+            done()
+          })
+      })
+
+      it('should update protection settings', (done) => {
+        request
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken,
+            user:      { isProtected: '1' },
+            '_method': 'put'
+          })
+          .end((err, res) => {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('id')
+            res.body.users.should.have.property('isVisibleToAnonymous')
+            res.body.users.should.have.property('isProtected')
+            res.body.users.isVisibleToAnonymous.should.eql('0')
+            res.body.users.isProtected.should.eql('1')
             done()
           })
       })

@@ -5,7 +5,7 @@ export function addSerializer() {
   return new Serializer('admins', {
     select: ['id', 'username', 'type', 'screenName', 'statistics',
       'profilePictureLargeUrl', 'profilePictureMediumUrl',
-      'updatedAt', 'isPrivate',
+      'updatedAt', 'isPrivate', 'isProtected', 'isVisibleToAnonymous',
       'administrators'],
     administrators: { through: AdminSerializer, embed: true }
   })
