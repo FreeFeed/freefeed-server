@@ -124,7 +124,7 @@ export function addModel(dbAdapter) {
   }
 
   Comment.prototype.processHashtagsOnCreate = async function () {
-    const commentTags = _.uniq(twitter.extractHashtags(this.body))
+    const commentTags = _.uniq(twitter.extractHashtags(this.body.toLowerCase()))
 
     if (!commentTags || commentTags.length == 0) {
       return
@@ -136,7 +136,7 @@ export function addModel(dbAdapter) {
     const linkedCommentHashtags = await dbAdapter.getCommentHashtags(this.id)
 
     const presentTags    = _.sortBy(linkedCommentHashtags.map((t) => t.name))
-    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body)))
+    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body.toLowerCase())))
     const notChangedTags = _.intersection(presentTags, newTags)
     const tagsToUnlink   = _.difference(presentTags, notChangedTags)
     const tagsToLink     = _.difference(newTags, notChangedTags)
