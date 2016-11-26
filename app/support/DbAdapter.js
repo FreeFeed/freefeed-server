@@ -1938,7 +1938,12 @@ export class DbAdapter {
     if (!names || names.length == 0) {
       return []
     }
-    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', names)
+
+    const lowerCaseNames =  names.map((hashtag) => {
+      return hashtag.toLowerCase()
+    })
+
+    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', lowerCaseNames)
     return res.map((t) => t.id)
   }
 
@@ -1946,7 +1951,12 @@ export class DbAdapter {
     if (!names || names.length == 0) {
       return []
     }
-    const targetTagNames   = _.sortBy(names)
+
+    const lowerCaseNames    =  names.map((hashtag) => {
+      return hashtag.toLowerCase()
+    })
+
+    const targetTagNames   = _.sortBy(lowerCaseNames)
     const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
     const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
 
@@ -1978,7 +1988,7 @@ export class DbAdapter {
       return []
     }
     const payload = names.map((name) => {
-      return pgFormat(`(%L)`, name)
+      return pgFormat(`(%L)`, name.toLowerCase())
     }).join(',')
     const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
     return res.rows.map((t) => t.id)
