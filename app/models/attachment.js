@@ -291,7 +291,7 @@ export function addModel(dbAdapter) {
       await this.uploadToS3(tmpAttachmentFile, config.attachments.path)
       await fs.unlinkAsync(tmpAttachmentFile)
     } else {
-      await mvAsync(tmpAttachmentFile, this.getPath(),{})
+      await mvAsync(tmpAttachmentFile, this.getPath(), {})
     }
   }
 
@@ -324,7 +324,7 @@ export function addModel(dbAdapter) {
         await this.uploadToS3(tmpImageFile, sizeConfig.path)
         await fs.unlinkAsync(tmpImageFile)
       } else {
-        await mvAsync(tmpImageFile, this.getResizedImagePath(sizeId),{})
+        await mvAsync(tmpImageFile, this.getResizedImagePath(sizeId), {})
       }
     }
   }

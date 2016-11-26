@@ -25,6 +25,7 @@
     "arrow-spacing": 2,
     "brace-style": [2, "1tbs", { "allowSingleLine": true }],
     "consistent-return": 2,
+    "comma-spacing": 2,
     "eol-last": 2,
     "func-call-spacing": 2,
     "import/default": 2,

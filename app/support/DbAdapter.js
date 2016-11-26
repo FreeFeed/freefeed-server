@@ -458,7 +458,7 @@ export class DbAdapter {
   }
 
   async getFeedOwnerById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     let attrs = await this.fetchUser(id)
@@ -541,7 +541,7 @@ export class DbAdapter {
   }
 
   async getUserSubscribers(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null;
     }
 
@@ -931,7 +931,7 @@ export class DbAdapter {
   }
 
   async getAttachmentById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('attachments').where('uid', id)
@@ -1080,7 +1080,7 @@ export class DbAdapter {
   }
 
   async getCommentById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('comments').where('uid', id)
@@ -1220,7 +1220,7 @@ export class DbAdapter {
   }
 
   async getTimelineById(id, params) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('feeds').where('uid', id)
@@ -1349,7 +1349,7 @@ export class DbAdapter {
   }
 
   async getPostById(id, params) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('posts').where('uid', id)

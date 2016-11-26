@@ -54,7 +54,7 @@ describe('UsersControllerV2', () => {
         headers: { 'X-Authentication-Token': userAResponse.authToken }
       })
 
-      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`,{ headers: { 'X-Authentication-Token': userAResponse.authToken } })
+      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`, { headers: { 'X-Authentication-Token': userAResponse.authToken } })
 
       const blockedByMe = await blockedByMeResponse.json()
 
