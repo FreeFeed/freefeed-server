@@ -4,7 +4,7 @@ import NodeCache from 'node-cache'
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
 import { promisifyAll } from 'bluebird'
-import pgFormat from 'pg-format';
+import pgFormat, { literal as pgQuote } from 'pg-format';
 
 import { load as configLoader } from '../../config/config'
 
@@ -2075,34 +2075,36 @@ export class DbAdapter {
   }
 
   async getUnreadDirectsNumber(userId) {
+    const [
+      [directsFeedId],
+      [directsReadAt],
+    ] = await Promise.all([
+      this.database.pluck('id').from('feeds').where({ 'user_id': userId, 'name': 'Directs' }),
+      this.database.pluck('directs_read_at').from('users').where({ 'uid': userId }),
+    ]);
+
     /*
      Select posts from my Directs feed, created after the directs_read_at authored by
      users other than me and then add posts from my Directs feed, having comments created after the directs_read_at
      authored by users other than me
      */
-    const uid = pgFormat('%L', userId)
-
     const sql = `
       select count(distinct unread.id) as cnt from (
-        select posts.id, posts.uid from posts
-          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
-          inner join users on feeds.user_id = users.uid
-          where 
-            users.uid=${uid}
-            and posts.user_id != ${uid}
-            and posts.created_at > users.directs_read_at
+        select id from 
+          posts 
+        where
+          destination_feed_ids && ARRAY[${directsFeedId}]
+          and user_id != ${pgQuote(userId)}
+          and created_at > ${pgQuote(directsReadAt)}
         union
-        select posts.id, posts.uid from posts
-          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
-          inner join users on feeds.user_id = users.uid
-          inner join comments on comments.post_id = posts.uid
-          where 
-            users.uid=${uid}
-            and comments.user_id != ${uid}
-          group by 
-            posts.id, posts.uid, users.directs_read_at
-          having 
-            max(comments.created_at) > users.directs_read_at) as unread`
+        select p.id from
+          comments c
+          join posts p on p.uid = c.post_id
+        where
+          p.destination_feed_ids && ARRAY[${directsFeedId}]
+          and c.user_id != ${pgQuote(userId)}
+          and c.created_at > ${pgQuote(directsReadAt)} 
+      ) as unread`;
 
     const res = await this.database.raw(sql);
     return res.rows[0].cnt;
