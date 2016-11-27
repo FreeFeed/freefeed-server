@@ -1154,6 +1154,14 @@ export class DbAdapter {
   // Feeds
   ///////////////////////////////////////////////////
 
+  initTimelineObject = (attrs, params) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
+    return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
+  }
+
   async createTimeline(payload) {
     const preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
     if (preparedPayload.name == 'MyDiscussions') {
@@ -1230,51 +1238,23 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('feeds').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, attrs, id, params)
+    const attrs = await this.database('feeds').first().where('uid', id);
+    return this.initTimelineObject(attrs, params);
   }
 
   async getTimelineByIntId(id, params) {
-    const res = await this.database('feeds').where('id', id)
-    let feed = res[0]
-
-    if (!feed) {
-      return null
-    }
-
-    feed = this._prepareModelPayload(feed, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, feed, feed.id, params)
+    const attrs = await this.database('feeds').first().where('id', id);
+    return this.initTimelineObject(attrs, params);
   }
 
   async getTimelinesByIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
-    })
-    return objects
+    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`);
+    return responses.map((r) => this.initTimelineObject(r, params));
   }
 
   async getTimelinesByIntIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
-    })
-    return objects
+    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`);
+    return responses.map((r) => this.initTimelineObject(r, params));
   }
 
   async getTimelinesIntIdsByUUIDs(uuids) {
@@ -1305,19 +1285,11 @@ export class DbAdapter {
   }
 
   async getUserNamedFeed(userId, name, params) {
-    const response = await this.database('feeds').returning('uid').where({
+    const response = await this.database('feeds').first().returning('uid').where({
       user_id: userId,
       name
-    })
-
-    let namedFeed = response[0]
-
-    if (!namedFeed) {
-      return null
-    }
-
-    namedFeed = this._prepareModelPayload(namedFeed, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, namedFeed, namedFeed.id, params)
+    });
+    return this.initTimelineObject(response, params);
   }
 
   async getUserNamedFeedsIntIds(userId, names) {
