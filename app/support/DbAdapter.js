@@ -1566,12 +1566,26 @@ export class DbAdapter {
   // Subscriptions
   ///////////////////////////////////////////////////
 
-  async getUserSubscriptionsIds(userId) {
-    const res = await this.database('subscriptions').select('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record) => {
-      return record.feed_id
-    })
-    return attrs
+  getUserSubscriptionsIds(userId) {
+    return this.database('subscriptions').pluck('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
+  }
+
+  getUserSubscriptionsIdsByType(userId, feedType) {
+    return this.database
+      .pluck('s.feed_id')
+      .from('subscriptions as s').innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where({ 's.user_id': userId, 'f.name': feedType })
+      .orderBy('s.created_at', 'desc')
+  }
+
+  getUserFriendIds(userId) {
+    const feedType = 'Posts';
+    return this.database
+      .pluck('f.user_id')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where({ 's.user_id': userId, 'f.name': feedType })
+      .orderBy('s.created_at', 'desc');
   }
 
   async isUserSubscribedToTimeline(currentUserId, timelineId) {
