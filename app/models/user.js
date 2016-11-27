@@ -732,10 +732,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getFriendIds = async function () {
-    const timelines = await this.getSubscriptions()
-    const postTimelines = _.filter(timelines, _.method('isPosts'))
-
-    return postTimelines.map((timeline) => timeline.userId)
+    return await dbAdapter.getUserFriendIds(this.id);
   }
 
   User.prototype.getFriends = async function () {
