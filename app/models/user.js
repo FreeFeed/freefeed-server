@@ -1015,6 +1015,28 @@ export function addModel(dbAdapter) {
          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
   }
 
+  Reflect.defineProperty(User.prototype, 'profilePictureLargeUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE);
+    }
+  });
+
+  Reflect.defineProperty(User.prototype, 'profilePictureMediumUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM);
+    }
+  });
+
   /**
    * Checks if the specified user can post to the timeline of this user.
    */
