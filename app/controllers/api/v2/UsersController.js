@@ -2,6 +2,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
 import { reportError } from '../../../support/exceptions'
+import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
 
 export default class UsersController {
   static async blockedByMe(req, res) {
@@ -53,6 +54,36 @@ export default class UsersController {
       res.jsonp({ message: `Directs are now marked as read for ${req.user.id}` })
     } catch (e) {
       reportError(res)(e)
+    }
+  }
+
+  static async whoAmI(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' });
+      return;
+    }
+    const timer = monitor.timer('users.whoami-v2');
+    try {
+      const [
+        users,
+        subscribers, // actually there are friends of req.user
+        subscriptions,
+      ] = await Promise.all([
+        serializeSelfUser(req.user),
+        (async () => {
+          const friends = await req.user.getFriends();
+          return friends.map((s) => serializeUser(s));
+        })(),
+        (async () => {
+          const timelines = await dbAdapter.getTimelinesUserSubscribed(req.user.id, 'Posts');
+          return timelines.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
+        })(),
+      ]);
+      res.jsonp({ users, subscribers, subscriptions });
+    } catch (e) {
+      reportError(res)(e);
+    } finally {
+      timer.stop();
     }
   }
 }
