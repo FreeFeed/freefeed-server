@@ -1271,6 +1271,20 @@ export class DbAdapter {
     return uuids
   }
 
+  async getTimelinesUserSubscribed(userId, feedType = null) {
+    const where = { 's.user_id': userId };
+    if (feedType !== null) {
+      where['f.name'] = feedType;
+    }
+    const records = await this.database
+      .select('f.*')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where(where)
+      .orderBy('s.created_at', 'desc');
+    return records.map(this.initTimelineObject);
+  }
+
   async getUserNamedFeedId(userId, name) {
     const response = await this.database('feeds').select('uid').where({
       user_id: userId,
