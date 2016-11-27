@@ -1127,7 +1127,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getPendingGroupRequests = function () {
-    return this.pendingPrivateGroupSubscriptionRequests()
+    return dbAdapter.userHavePendingGroupRequests(this.id);
   }
 
   return User

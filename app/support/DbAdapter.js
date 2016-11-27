@@ -896,6 +896,15 @@ export class DbAdapter {
     return this.database('group_admins').pluck('group_id').orderBy('created_at', 'desc').where('user_id', userId);
   }
 
+  async userHavePendingGroupRequests(userId) {
+    const res = await this.database.first('r.id')
+      .from('subscription_requests as r')
+      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
+      .where({ 'a.user_id': userId })
+      .limit(1);
+    return !!res;
+  }
+
   ///////////////////////////////////////////////////
   // Attachments
   ///////////////////////////////////////////////////
