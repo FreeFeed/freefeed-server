@@ -62,23 +62,28 @@ export default class UsersController {
       res.status(401).jsonp({ err: 'Not found' });
       return;
     }
+    const { user } = req;
     const timer = monitor.timer('users.whoami-v2');
     try {
       const [
         users,
-        subscribers, // actually there are friends of req.user
-        subscriptions,
+        timelinesUserSubscribed,
+        subscribersUIDs, // UIDs of users subscribed to the our user
       ] = await Promise.all([
-        serializeSelfUser(req.user),
-        (async () => {
-          const friends = await req.user.getFriends();
-          return friends.map((s) => serializeUser(s));
-        })(),
-        (async () => {
-          const timelines = await dbAdapter.getTimelinesUserSubscribed(req.user.id, 'Posts');
-          return timelines.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
-        })(),
+        serializeSelfUser(user),
+        dbAdapter.getTimelinesUserSubscribed(user.id, 'Posts'),
+        user.getSubscriberIds(),
       ]);
+
+      const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
+      const subscriptionsUIDs = _.map(subscriptions, 'user'); // UIDs of users our user subscribed to
+
+      const allUsers = await dbAdapter.getUsersByIdsAssoc(_.union(subscribersUIDs, subscriptionsUIDs));
+
+      users.subscriptions = _.map(timelinesUserSubscribed, 'id');
+      users.subscribers = subscribersUIDs.map((id) => serializeUser(allUsers[id]));
+      const subscribers = subscriptionsUIDs.map((id) => serializeUser(allUsers[id]));
+
       res.jsonp({ users, subscribers, subscriptions });
     } catch (e) {
       reportError(res)(e);

@@ -1,5 +1,4 @@
 import { pick } from 'lodash';
-import { dbAdapter } from '../../models';
 
 const commonUserFields = [
   'id',
@@ -31,18 +30,11 @@ export async function serializeSelfUser(user) {
     result.pendingGroupRequests,
     result.unreadDirectsNumber,
     result.statistics,
-    result.subscribers,
-    result.subscriptions,
   ] = await Promise.all([
     user.getBanIds(),
     user.getPendingGroupRequests(),
     user.getUnreadDirectsNumber(),
     user.getStatistics(),
-    (async () => {
-      const subscribers = await user.getSubscribers();
-      return subscribers.map((s) => serializeUser(s));
-    })(),
-    dbAdapter.getUserSubscriptionsIdsByType(user.id, 'Posts'),
   ]);
 
   return result;
