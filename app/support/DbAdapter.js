@@ -476,6 +476,10 @@ export class DbAdapter {
     return (await this.fetchUsers(ids)).map(this.initUserObject);
   }
 
+  async getUsersByIdsAssoc(ids) {
+    return _.mapValues(await this.fetchUsersAssoc(ids), this.initUserObject);
+  }
+
   async getFeedOwnerByUsername(username) {
     const attrs = await this.database('users').first().where('username', username.toLowerCase())
     return this.initUserObject(attrs);
@@ -575,9 +579,13 @@ export class DbAdapter {
     return attrs;
   }
 
-  async fetchUsers(ids) {
+  /**
+   * Returns plain object with ids as keys and user attributes as values
+   */
+  async fetchUsersAssoc(ids) {
+    const idToUser = {};
     if (_.isEmpty(ids)) {
-      return [];
+      return idToUser;
     }
     const uniqIds = _.uniq(ids);
     let cachedUsers;
@@ -599,10 +607,13 @@ export class DbAdapter {
 
     await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
 
-    const idToUser = {};
     _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
     dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
+    return idToUser;
+  }
 
+  async fetchUsers(ids) {
+    const idToUser = await this.fetchUsersAssoc(ids);
     return ids.map((id) => idToUser[id] || null);
   }
 
