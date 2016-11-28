@@ -5,7 +5,7 @@ import redis from 'redis'
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
 import pgFormat from 'pg-format';
-import { promisifyAll, promisify } from 'bluebird'
+import { promisifyAll } from 'bluebird'
 
 import { load as configLoader } from '../../config/config'
 
@@ -309,6 +309,7 @@ export class DbAdapter {
 
     promisifyAll(this.cache)
     promisifyAll(this.memoryCache)
+    promisifyAll(this.cache.store)
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -579,11 +580,14 @@ export class DbAdapter {
     const uniqIds = _.uniq(ids);
     let cachedUsers;
     if (this.cache.store.name === 'redis') {
-      const { client, done } = await promisify(this.cache.store.getClient)();
-      const cacheKeys = ids.map((id) => `user_${id}`);
-      const result = await client.mgetAsync(cacheKeys);
-      done();
-      cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(this.fixCachedUserAttrs);
+      const { client, done } = await this.cache.store.getClientAsync();
+      try {
+        const cacheKeys = ids.map((id) => `user_${id}`);
+        const result = await client.mgetAsync(cacheKeys);
+        cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(this.fixCachedUserAttrs);
+      } finally {
+        done();
+      }
     } else {
       cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
     }
