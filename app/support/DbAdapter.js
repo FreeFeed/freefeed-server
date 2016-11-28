@@ -4,7 +4,7 @@ import NodeCache from 'node-cache'
 import redis from 'redis'
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
-import pgFormat, { literal as pgQuote } from 'pg-format';
+import pgFormat from 'pg-format';
 import { promisifyAll, promisify } from 'bluebird'
 
 import { load as configLoader } from '../../config/config'
@@ -2120,20 +2120,20 @@ export class DbAdapter {
         select id from 
           posts 
         where
-          destination_feed_ids && ARRAY[${directsFeedId}]
-          and user_id != ${pgQuote(userId)}
-          and created_at > ${pgQuote(directsReadAt)}
+          destination_feed_ids && :feeds
+          and user_id != :userId
+          and created_at > :directsReadAt
         union
         select p.id from
           comments c
           join posts p on p.uid = c.post_id
         where
-          p.destination_feed_ids && ARRAY[${directsFeedId}]
-          and c.user_id != ${pgQuote(userId)}
-          and c.created_at > ${pgQuote(directsReadAt)} 
+          p.destination_feed_ids && :feeds
+          and c.user_id != :userId
+          and c.created_at > :directsReadAt
       ) as unread`;
 
-    const res = await this.database.raw(sql);
+    const res = await this.database.raw(sql, { feeds: `{${directsFeedId}}`, userId, directsReadAt });
     return res.rows[0].cnt;
   }
 }
