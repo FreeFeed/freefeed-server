@@ -29,8 +29,10 @@ describe('SearchController', () => {
       ])
       await Promise.all([
         funcTestHelper.createPostWithCommentsDisabled(lunaContext, 'hello from luna', false),
+        funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashTagA from luna', false),
         funcTestHelper.createPostWithCommentsDisabled(marsContext, 'hello from mars', false)
       ])
+      await funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashtaga from luna again', false)
     })
 
     it('should search posts', async () => {
@@ -60,6 +62,13 @@ describe('SearchController', () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from:me hello')
       response.should.not.be.empty
       response.should.have.property('err')
+    })
+
+    it('should search hashtags with different casing', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, '#hashtaga')
+      response.should.not.be.empty
+      response.should.have.property('posts')
+      response.posts.length.should.be.eql(2)
     })
   })
 });

@@ -702,7 +702,7 @@ describe('Post', () => {
     it('should destroy without error', (done) => {
       let post = new Post({
         body:             'Post body',
-        userId:           user.id ,
+        userId:           user.id,
         timelineIds:      [timelineId],
         commentsDisabled: '0'
       })

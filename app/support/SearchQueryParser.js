@@ -88,7 +88,7 @@ export class SearchQueryParser {
   }
 
   static extractHashtags(queryObject) {
-    const hashtags = twitter.extractHashtagsWithIndices(queryObject.query)
+    const hashtags = twitter.extractHashtagsWithIndices(queryObject.query.toLowerCase())
     const indices = hashtags.map((h) => h.indices)
     let query = queryObject.query
 

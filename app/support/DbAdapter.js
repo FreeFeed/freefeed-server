@@ -329,6 +329,14 @@ export class DbAdapter {
     })
   }
 
+  initUserObject = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+    return DbAdapter.initObject(attrs.type === 'group' ? Group : User, attrs, attrs.id)
+  }
+
   async createUser(payload) {
     const preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
@@ -419,8 +427,7 @@ export class DbAdapter {
   }
 
   async getUserByResetToken(token) {
-    const res = await this.database('users').where('reset_password_token', token)
-    let attrs = res[0]
+    const attrs = await this.database('users').first().where('reset_password_token', token)
 
     if (!attrs) {
       return null
@@ -435,14 +442,11 @@ export class DbAdapter {
       return null
     }
 
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return DbAdapter.initObject(User, attrs, attrs.id)
+    return this.initUserObject(attrs);
   }
 
   async getUserByEmail(email) {
-    const res = await this.database('users').whereRaw('LOWER(email)=LOWER(?)', email)
-    let attrs = res[0]
+    const attrs = await this.database('users').first().whereRaw('LOWER(email)=LOWER(?)', email)
 
     if (!attrs) {
       return null
@@ -452,63 +456,23 @@ export class DbAdapter {
       throw new Error(`Expected User, got ${attrs.type}`)
     }
 
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return DbAdapter.initObject(User, attrs, attrs.id)
+    return this.initUserObject(attrs);
   }
 
   async getFeedOwnerById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
-    let attrs = await this.fetchUser(id)
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    if (attrs.type === 'group') {
-      return DbAdapter.initObject(Group, attrs, id)
-    }
-
-    return DbAdapter.initObject(User, attrs, id)
+    return this.initUserObject(await this.fetchUser(id));
   }
 
   async getFeedOwnersByIds(ids) {
-    const responses = await this.database('users').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-      }
-
-      if (attrs.type === 'group') {
-        return DbAdapter.initObject(Group, attrs, attrs.id)
-      }
-
-      return DbAdapter.initObject(User, attrs, attrs.id)
-    })
-
-    return objects
+    return (await this.fetchUsers(ids)).map(this.initUserObject);
   }
 
   async getFeedOwnerByUsername(username) {
-    const res = await this.database('users').where('username', username.toLowerCase())
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    if (attrs.type === 'group') {
-      return DbAdapter.initObject(Group, attrs, attrs.id)
-    }
-
-    return DbAdapter.initObject(User, attrs, attrs.id)
+    const attrs = await this.database('users').first().where('username', username.toLowerCase())
+    return this.initUserObject(attrs);
   }
 
 
@@ -541,7 +505,7 @@ export class DbAdapter {
   }
 
   async getUserSubscribers(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null;
     }
 
@@ -577,35 +541,45 @@ export class DbAdapter {
     return null;
   };
 
-  async fetchUser(id) {
-    const cacheKey = `user_${id}`
-    let userAttrs
-
-    // Check the cache first
-    const cachedUserAttrs = await this.cache.getAsync(cacheKey)
-
-    if (typeof cachedUserAttrs != 'undefined' && cachedUserAttrs) {
-      // Cache hit
-      userAttrs = cachedUserAttrs;
-
-      // Convert dates back to the Date type
-      userAttrs['created_at'] = this.fixDateType(userAttrs['created_at']);
-      userAttrs['updated_at'] = this.fixDateType(userAttrs['updated_at']);
-      userAttrs['reset_password_sent_at'] = this.fixDateType(userAttrs['reset_password_sent_at']);
-      userAttrs['reset_password_expires_at'] = this.fixDateType(userAttrs['reset_password_expires_at']);
-    } else {
-      // Cache miss, read from the database
-      const res = await this.database('users').where('uid', id)
-      userAttrs = res[0]
-
-      if (!userAttrs) {
-        return null
-      }
-
-      await this.cache.setAsync(cacheKey, userAttrs);
+  getCachedUserAttrs = async (id) => {
+    const attrs = await this.cache.getAsync(`user_${id}`);
+    if (!attrs) {
+      return null;
     }
+    // Convert dates back to the Date type
+    attrs['created_at'] = this.fixDateType(attrs['created_at']);
+    attrs['updated_at'] = this.fixDateType(attrs['updated_at']);
+    attrs['reset_password_sent_at'] = this.fixDateType(attrs['reset_password_sent_at']);
+    attrs['reset_password_expires_at'] = this.fixDateType(attrs['reset_password_expires_at']);
+    return attrs;
+  }
 
-    return userAttrs
+  async fetchUser(id) {
+    let attrs = await this.getCachedUserAttrs(id);
+    if (!attrs) {
+      // Cache miss, read from the database
+      attrs = await this.database('users').first().where('uid', id) || null;
+      if (attrs) {
+        await this.cache.setAsync(`user_${id}`, attrs);
+      }
+    }
+    return attrs;
+  }
+
+  async fetchUsers(ids) {
+    const uniqIds = _.uniq(ids);
+    const cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+
+    const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
+    const dbUsers = await this.database('users').whereIn('uid', notFoundIds);
+
+    await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
+
+    const idToUser = {};
+    _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
+    dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
+
+    return ids.map((id) => idToUser[id] || null);
   }
 
   async someUsersArePublic(userIds, anonymousFriendly) {
@@ -931,7 +905,7 @@ export class DbAdapter {
   }
 
   async getAttachmentById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('attachments').where('uid', id)
@@ -1080,7 +1054,7 @@ export class DbAdapter {
   }
 
   async getCommentById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('comments').where('uid', id)
@@ -1220,7 +1194,7 @@ export class DbAdapter {
   }
 
   async getTimelineById(id, params) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('feeds').where('uid', id)
@@ -1349,7 +1323,7 @@ export class DbAdapter {
   }
 
   async getPostById(id, params) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('posts').where('uid', id)
@@ -1590,19 +1564,7 @@ export class DbAdapter {
 
   async getTimelineSubscribers(timelineIntId) {
     const responses = this.database('users').whereRaw('subscribed_feed_ids && ?', [[timelineIntId]])
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-      }
-
-      if (attrs.type === 'group') {
-        return DbAdapter.initObject(Group, attrs, attrs.id)
-      }
-
-      return DbAdapter.initObject(User, attrs, attrs.id)
-    })
-
-    return objects
+    return responses.map(this.initUserObject)
   }
 
   async subscribeUserToTimelines(timelineIds, currentUserId) {
@@ -1976,7 +1938,12 @@ export class DbAdapter {
     if (!names || names.length == 0) {
       return []
     }
-    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', names)
+
+    const lowerCaseNames =  names.map((hashtag) => {
+      return hashtag.toLowerCase()
+    })
+
+    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', lowerCaseNames)
     return res.map((t) => t.id)
   }
 
@@ -1984,7 +1951,12 @@ export class DbAdapter {
     if (!names || names.length == 0) {
       return []
     }
-    const targetTagNames   = _.sortBy(names)
+
+    const lowerCaseNames    =  names.map((hashtag) => {
+      return hashtag.toLowerCase()
+    })
+
+    const targetTagNames   = _.sortBy(lowerCaseNames)
     const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
     const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
 
@@ -2016,7 +1988,7 @@ export class DbAdapter {
       return []
     }
     const payload = names.map((name) => {
-      return pgFormat(`(%L)`, name)
+      return pgFormat(`(%L)`, name.toLowerCase())
     }).join(',')
     const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
     return res.rows.map((t) => t.id)
