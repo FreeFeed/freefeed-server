@@ -1496,6 +1496,8 @@ export class DbAdapter {
     let bannedUsersFilter = '';
     let usersWhoBannedMeFilter = '';
 
+    const publicOrVisibleForAnonymous = currentUser ? '"users"."is_private"=false' : '"users"."is_private"=false AND "users"."is_visible_to_anonymous"=true'
+
     if (currentUser) {
       const [iBanned, bannedMe] = await Promise.all([
         this.getUserBansIds(currentUser.id),
@@ -1515,7 +1517,7 @@ export class DbAdapter {
       LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
-      INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND "users"."is_private" = false
+      INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND ${publicOrVisibleForAnonymous}
       WHERE
         "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS} AND "posts"."created_at" > (current_date - ${MAX_DAYS} * interval '1 day')
         ${bannedUsersFilter}
@@ -2087,7 +2089,7 @@ export class DbAdapter {
         select posts.id, posts.uid from posts
           inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
           inner join users on feeds.user_id = users.uid
-          where 
+          where
             users.uid=${uid}
             and posts.user_id != ${uid}
             and posts.created_at > users.directs_read_at
@@ -2096,12 +2098,12 @@ export class DbAdapter {
           inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
           inner join users on feeds.user_id = users.uid
           inner join comments on comments.post_id = posts.uid
-          where 
+          where
             users.uid=${uid}
             and comments.user_id != ${uid}
-          group by 
+          group by
             posts.id, posts.uid, users.directs_read_at
-          having 
+          having
             max(comments.created_at) > users.directs_read_at) as unread`
 
     const res = await this.database.raw(sql);
