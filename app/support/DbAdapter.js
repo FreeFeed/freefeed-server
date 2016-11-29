@@ -2097,6 +2097,26 @@ export class DbAdapter {
     const res = await this.database.raw(sql);
     return res.rows[0].cnt;
   }
+
+  ///////////////////////////////////////////////////
+  // Stats
+  ///////////////////////////////////////////////////
+  async getStats(data, start_date, end_date) {
+    // Other data types are not yet implemented
+    if (data !== 'users') {
+      return null;
+    }
+
+    const sql = pgFormat(`
+      select d.dt as date,
+             (select count(u.uid) from users as u
+                where u.created_at < d.dt + interval '1 day'
+            and u.type ='user') AS users
+        from (select dt::date
+          from generate_series(timestamp %L, timestamp %L, interval '1 day') dt) as d`,
+      start_date, end_date);
+
+    const res = await this.database.raw(sql);
+    return res.rows;
+  }
 }
-
-

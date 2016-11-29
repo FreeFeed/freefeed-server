@@ -46,6 +46,7 @@
     "lodash": "4.17.2",
     "method-override": "2.3.7",
     "mmmagic": "0.4.5",
+    "moment": "^2.17.0",
     "monitor-dog": "1.5.0",
     "morgan": "1.7.0",
     "musicmetadata": "2.0.5",
