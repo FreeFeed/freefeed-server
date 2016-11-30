@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import validator from 'validator'
 import NodeCache from 'node-cache'
+import redis from 'redis'
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
 import pgFormat from 'pg-format';
@@ -9,6 +10,9 @@ import { promisifyAll } from 'bluebird'
 import { load as configLoader } from '../../config/config'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
+
+promisifyAll(redis.RedisClient.prototype);
+promisifyAll(redis.Multi.prototype);
 
 const USER_COLUMNS = {
   username:               'username',
@@ -293,7 +297,6 @@ const POST_FIELDS_MAPPING = {
   user_id:           (user_id) => {return user_id ? user_id : ''}
 }
 
-
 export class DbAdapter {
   constructor(database) {
     this.database = database
@@ -308,6 +311,7 @@ export class DbAdapter {
 
     promisifyAll(this.cache)
     promisifyAll(this.memoryCache)
+    promisifyAll(this.cache.store)
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -543,8 +547,7 @@ export class DbAdapter {
     return null;
   };
 
-  getCachedUserAttrs = async (id) => {
-    const attrs = await this.cache.getAsync(`user_${id}`);
+  fixCachedUserAttrs = (attrs) => {
     if (!attrs) {
       return null;
     }
@@ -554,7 +557,11 @@ export class DbAdapter {
     attrs['reset_password_sent_at'] = this.fixDateType(attrs['reset_password_sent_at']);
     attrs['reset_password_expires_at'] = this.fixDateType(attrs['reset_password_expires_at']);
     return attrs;
-  }
+  };
+
+  getCachedUserAttrs = async (id) => {
+    return this.fixCachedUserAttrs(await this.cache.getAsync(`user_${id}`))
+  };
 
   async fetchUser(id) {
     let attrs = await this.getCachedUserAttrs(id);
@@ -569,11 +576,26 @@ export class DbAdapter {
   }
 
   async fetchUsers(ids) {
+    if (_.isEmpty(ids)) {
+      return [];
+    }
     const uniqIds = _.uniq(ids);
-    const cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+    let cachedUsers;
+    if (this.cache.store.name === 'redis') {
+      const { client, done } = await this.cache.store.getClientAsync();
+      try {
+        const cacheKeys = ids.map((id) => `user_${id}`);
+        const result = await client.mgetAsync(cacheKeys);
+        cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(this.fixCachedUserAttrs);
+      } finally {
+        done();
+      }
+    } else {
+      cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+    }
 
     const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
-    const dbUsers = await this.database('users').whereIn('uid', notFoundIds);
+    const dbUsers = notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
 
     await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
 
