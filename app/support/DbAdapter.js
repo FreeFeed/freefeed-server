@@ -301,8 +301,10 @@ export class DbAdapter {
 
     const config = configLoader()
 
-    this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: 3600 })
-    this.cache = cacheManager.caching({ store: redisStore, host: config.redis.host, port: config.redis.port, ttl: 900 })
+    const CACHE_TTL = 60 * 60 * 24 // 24 hours
+
+    this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: CACHE_TTL })
+    this.cache = cacheManager.caching({ store: redisStore, host: config.redis.host, port: config.redis.port, ttl: CACHE_TTL })
 
     promisifyAll(this.cache)
     promisifyAll(this.memoryCache)
