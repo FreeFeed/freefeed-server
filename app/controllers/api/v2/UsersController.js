@@ -2,6 +2,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
 import { reportError } from '../../../support/exceptions'
+import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
 
 export default class UsersController {
   static async blockedByMe(req, res) {
@@ -53,6 +54,41 @@ export default class UsersController {
       res.jsonp({ message: `Directs are now marked as read for ${req.user.id}` })
     } catch (e) {
       reportError(res)(e)
+    }
+  }
+
+  static async whoAmI(req, res) {
+    if (!req.user) {
+      res.status(401).jsonp({ err: 'Not found' });
+      return;
+    }
+    const { user } = req;
+    const timer = monitor.timer('users.whoami-v2');
+    try {
+      const [
+        users,
+        timelinesUserSubscribed,
+        subscribersUIDs, // UIDs of users subscribed to the our user
+      ] = await Promise.all([
+        serializeSelfUser(user),
+        dbAdapter.getTimelinesUserSubscribed(user.id, 'Posts'),
+        user.getSubscriberIds(),
+      ]);
+
+      const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
+      const subscriptionsUIDs = _.map(subscriptions, 'user'); // UIDs of users our user subscribed to
+
+      const allUsers = await dbAdapter.getUsersByIdsAssoc(_.union(subscribersUIDs, subscriptionsUIDs));
+
+      users.subscriptions = _.map(timelinesUserSubscribed, 'id');
+      users.subscribers = subscribersUIDs.map((id) => serializeUser(allUsers[id]));
+      const subscribers = subscriptionsUIDs.map((id) => serializeUser(allUsers[id]));
+
+      res.jsonp({ users, subscribers, subscriptions });
+    } catch (e) {
+      reportError(res)(e);
+    } finally {
+      timer.stop();
     }
   }
 }

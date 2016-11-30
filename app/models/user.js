@@ -732,10 +732,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getFriendIds = async function () {
-    const timelines = await this.getSubscriptions()
-    const postTimelines = _.filter(timelines, _.method('isPosts'))
-
-    return postTimelines.map((timeline) => timeline.userId)
+    return await dbAdapter.getUserFriendIds(this.id);
   }
 
   User.prototype.getFriends = async function () {
@@ -1018,6 +1015,28 @@ export function addModel(dbAdapter) {
          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
   }
 
+  Reflect.defineProperty(User.prototype, 'profilePictureLargeUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE);
+    }
+  });
+
+  Reflect.defineProperty(User.prototype, 'profilePictureMediumUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM);
+    }
+  });
+
   /**
    * Checks if the specified user can post to the timeline of this user.
    */
@@ -1127,7 +1146,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getPendingGroupRequests = function () {
-    return this.pendingPrivateGroupSubscriptionRequests()
+    return dbAdapter.userHavePendingGroupRequests(this.id);
   }
 
   return User
