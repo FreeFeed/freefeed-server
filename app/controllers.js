@@ -12,5 +12,6 @@ export UsersController from './controllers/api/v1/UsersController'
 export GroupsControllerV2 from './controllers/api/v2/GroupsController'
 export RequestsControllerV2 from './controllers/api/v2/RequestsController'
 export UsersControllerV2 from './controllers/api/v2/UsersController'
+export StatsControllerV2 from './controllers/api/v2/StatsController'
 export SearchController from './controllers/api/v2/SearchController'
 
