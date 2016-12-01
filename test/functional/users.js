@@ -693,6 +693,8 @@ describe('UsersController', () => {
             res.body.users.should.have.property('id')
             res.body.users.should.have.property('isPrivate')
             res.body.users.isPrivate.should.eql('1')
+            res.body.users.should.have.property('isProtected')
+            res.body.users.isProtected.should.eql('1')
             done()
           })
       })
