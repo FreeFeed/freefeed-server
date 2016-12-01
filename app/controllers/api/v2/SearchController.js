@@ -53,7 +53,7 @@ export default class SearchController {
               throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
             }
 
-            if (isAnonymous && targetUser.isVisibleToAnonymous === '0') {
+            if (isAnonymous && targetUser.isProtected === '1') {
               throw new ForbiddenException(`Please sign in to view user "${preparedQuery.username}"`)
             }
 

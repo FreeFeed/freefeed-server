@@ -25,7 +25,7 @@ const USER_COLUMNS = {
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
   isPrivate:              'is_private',
-  isVisibleToAnonymous:   'is_visible_to_anonymous',
+  isProtected:            'is_protected',
   isRestricted:           'is_restricted',
   hashedPassword:         'hashed_password',
   resetPasswordToken:     'reset_password_token',
@@ -51,10 +51,10 @@ const USER_COLUMNS_MAPPING = {
     d.setTime(timestamp)
     return d.toISOString()
   },
-  isPrivate:            (is_private) => {return is_private === '1'},
-  isVisibleToAnonymous: (is_visible_to_anonymous) => {return is_visible_to_anonymous === '1'},
-  isRestricted:         (is_restricted) => {return is_restricted === '1'},
-  resetPasswordSentAt:  (timestamp) => {
+  isPrivate:           (is_private) => {return is_private === '1'},
+  isProtected:         (is_protected) => {return is_protected === '1'},
+  isRestricted:        (is_restricted) => {return is_restricted === '1'},
+  resetPasswordSentAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -73,7 +73,7 @@ const USER_FIELDS = {
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
   is_private:                'isPrivate',
-  is_visible_to_anonymous:   'isVisibleToAnonymous',
+  is_protected:              'isProtected',
   is_restricted:             'isRestricted',
   hashed_password:           'hashedPassword',
   reset_password_token:      'resetPasswordToken',
@@ -88,7 +88,7 @@ const USER_FIELDS_MAPPING = {
   created_at:                (time) => { return time.getTime().toString() },
   updated_at:                (time) => { return time.getTime().toString() },
   is_private:                (is_private) => {return is_private ? '1' : '0' },
-  is_visible_to_anonymous:   (is_visible_to_anonymous) => {return is_visible_to_anonymous ? '1' : '0' },
+  is_protected:              (is_protected) => {return is_protected ? '1' : '0' },
   is_restricted:             (is_restricted) => {return is_restricted ? '1' : '0' },
   reset_password_sent_at:    (time) => { return time && time.getTime() },
   reset_password_expires_at: (time) => { return time && time.getTime() },
@@ -618,8 +618,8 @@ export class DbAdapter {
   }
 
   async someUsersArePublic(userIds, anonymousFriendly) {
-    const anonymousCondition = anonymousFriendly ? 'AND "is_visible_to_anonymous" = true' : '';
-    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE "is_private" = false ${anonymousCondition} AND "uid" IN (%L)`, userIds);
+    const anonymousCondition = anonymousFriendly ? 'AND not "is_protected"' : '';
+    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE not "is_private" ${anonymousCondition} AND "uid" IN (%L)`, userIds);
     const res = await this.database.raw(q);
     return res.rows[0].cnt > 0;
   }
@@ -1526,7 +1526,7 @@ export class DbAdapter {
     let bannedUsersFilter = '';
     let usersWhoBannedMeFilter = '';
 
-    const publicOrVisibleForAnonymous = currentUser ? '"users"."is_private"=false' : '"users"."is_private"=false AND "users"."is_visible_to_anonymous"=true'
+    const publicOrVisibleForAnonymous = currentUser ? 'not "users"."is_private"' : 'not "users"."is_protected"'
 
     if (currentUser) {
       const [iBanned, bannedMe] = await Promise.all([
@@ -1730,7 +1730,7 @@ export class DbAdapter {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
-    const publicOrVisibleForAnonymous = currentUserId ? 'users.is_private=false' : 'users.is_private=false and users.is_visible_to_anonymous=true'
+    const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected'
 
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
       visibleFeedIds = 'NULL'
