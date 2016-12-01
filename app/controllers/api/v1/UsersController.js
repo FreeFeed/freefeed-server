@@ -183,6 +183,7 @@ export default class UsersController {
 
     const timer = monitor.timer('users.whoami-time')
     const json = await new MyProfileSerializer(req.user).promiseToJSON()
+    json['users']['unreadDirects'] = await dbAdapter.getUnreadDirectsNumber(req.user.id)
     res.jsonp(json)
     timer.stop()
   }
