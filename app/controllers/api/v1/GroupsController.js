@@ -238,7 +238,7 @@ export default class GroupsController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
-        throw new Error('Invalid')
+        throw new Error('Subscription request is not found')
       }
 
       await group.acceptSubscriptionRequest(user.id)
