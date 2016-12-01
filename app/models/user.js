@@ -377,8 +377,10 @@ export function addModel(dbAdapter) {
       payload.isPrivate = params.isPrivate
     }
 
-    if (params.hasOwnProperty('isPrivate') && params.isPrivate === '1') {
-      params.isProtected = '1';
+    // Compatibility with pre-isProtected clients:
+    // if there is only isPrivate param then isProtected becomes the same as isPrivate
+    if (params.hasOwnProperty('isPrivate') && (!params.hasOwnProperty('isProtected') || params.isPrivate === '1')) {
+      params.isProtected = params.isPrivate
     }
 
     if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
