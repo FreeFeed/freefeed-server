@@ -14,6 +14,11 @@ const commonUserFields = [
   'profilePictureMediumUrl',
 ];
 
+const commonGroupFields = [
+  ...commonUserFields,
+  'isRestricted',
+];
+
 const selfUserFields = [
   ...commonUserFields,
   'description',
@@ -41,5 +46,5 @@ export async function serializeSelfUser(user) {
 }
 
 export function serializeUser(user) {
-  return pick(user, commonUserFields);
+  return pick(user, user.type === 'group' ? commonGroupFields : commonUserFields);
 }

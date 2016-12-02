@@ -112,9 +112,20 @@ describe('UsersControllerV2', () => {
         isVisibleToAnonymous:    expect.it('to be a string').and('to be one of', ['0', '1']),
         createdAt:               expect.it('to be a string').and('to match', /^\d+$/),
         updatedAt:               expect.it('to be a string').and('to match', /^\d+$/),
-        type:                    expect.it('to be a string').and('to be one of', ['user', 'group']),
+        type:                    expect.it('to equal', 'user'),
         profilePictureLargeUrl:  expect.it('to be a string'),
         profilePictureMediumUrl: expect.it('to be a string'),
+      };
+
+      const groupSchema = {
+        ...userSchema,
+        isRestricted: expect.it('to be a string').and('to be one of', ['0', '1']),
+        type:         expect.it('to equal', 'group'),
+      };
+
+      const userOrGroup = (obj) => {
+        const isGroup = obj && typeof obj === 'object' && obj.type === 'group';
+        return expect(obj, 'to exhaustively satisfy', isGroup ? groupSchema : userSchema);
       };
 
       const thisUserSchema = {
@@ -135,13 +146,13 @@ describe('UsersControllerV2', () => {
 
       expect(whoAmI, 'to exhaustively satisfy', {
         users:         thisUserSchema,
-        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
+        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
         subscriptions: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', {
           id:   expect.it('to be a string'),
           name: expect.it('to be a string'),
           user: expect.it('to be a string'),
         }),
-        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
+        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
       });
     });
   })
