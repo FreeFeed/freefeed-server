@@ -70,11 +70,13 @@ export default class UsersController {
         timelinesUserSubscribed,
         subscribersUIDs, // UIDs of users subscribed to the our user
         pendingSubscriptionRequestsUIDs,
+        subscriptionRequestsUIDs,
       ] = await Promise.all([
         serializeSelfUser(user),
         dbAdapter.getTimelinesUserSubscribed(user.id, 'Posts'),
         user.getSubscriberIds(),
         user.getPendingSubscriptionRequestIds(),
+        user.getSubscriptionRequestIds(),
       ]);
 
       const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
@@ -83,14 +85,16 @@ export default class UsersController {
       const allUsers = await dbAdapter.getUsersByIdsAssoc(_.union(
         subscribersUIDs,
         subscriptionsUIDs,
-        pendingSubscriptionRequestsUIDs
+        pendingSubscriptionRequestsUIDs,
+        subscriptionRequestsUIDs
       ));
 
       users.pendingSubscriptionRequests = pendingSubscriptionRequestsUIDs;
+      users.subscriptionRequests = subscriptionRequestsUIDs;
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
       users.subscribers = subscribersUIDs.map((id) => serializeUser(allUsers[id]));
       const subscribers = subscriptionsUIDs.map((id) => serializeUser(allUsers[id]));
-      const requests = pendingSubscriptionRequestsUIDs.map((id) => serializeUser(allUsers[id]));
+      const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map((id) => serializeUser(allUsers[id]));
 
       res.jsonp({ users, subscribers, subscriptions, requests });
     } catch (e) {

@@ -127,6 +127,7 @@ describe('UsersControllerV2', () => {
         banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
         pendingGroupRequests:        expect.it('to be a boolean'),
         pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        subscriptionRequests:        expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
         unreadDirectsNumber:         expect.it('to be a string').and('to match', /^\d+$/),
         subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
         subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
