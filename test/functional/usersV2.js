@@ -119,16 +119,17 @@ describe('UsersControllerV2', () => {
 
       const thisUserSchema = {
         ...userSchema,
-        email:                expect.it('to be a string'),
-        description:          expect.it('to be a string'),
-        privateMeta:          expect.it('to be an object'),
-        frontendPreferences:  expect.it('to be an object'),
-        statistics:           expect.it('to be an object'),
-        banIds:               expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
-        pendingGroupRequests: expect.it('to be a boolean'),
-        unreadDirectsNumber:  expect.it('to be a string').and('to match', /^\d+$/),
-        subscribers:          expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
-        subscriptions:        expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        email:                       expect.it('to be a string'),
+        description:                 expect.it('to be a string'),
+        privateMeta:                 expect.it('to be an object'),
+        frontendPreferences:         expect.it('to be an object'),
+        statistics:                  expect.it('to be an object'),
+        banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        pendingGroupRequests:        expect.it('to be a boolean'),
+        pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        unreadDirectsNumber:         expect.it('to be a string').and('to match', /^\d+$/),
+        subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
+        subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {
@@ -139,6 +140,7 @@ describe('UsersControllerV2', () => {
           name: expect.it('to be a string'),
           user: expect.it('to be a string'),
         }),
+        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
       });
     });
   })
