@@ -71,12 +71,16 @@ export default class UsersController {
         subscribersUIDs, // UIDs of users subscribed to the our user
         pendingSubscriptionRequestsUIDs,
         subscriptionRequestsUIDs,
+        managedGroupUIDs,
+        pendingGroupRequests,
       ] = await Promise.all([
         serializeSelfUser(user),
         dbAdapter.getTimelinesUserSubscribed(user.id, 'Posts'),
         user.getSubscriberIds(),
         user.getPendingSubscriptionRequestIds(),
         user.getSubscriptionRequestIds(),
+        dbAdapter.getManagedGroupIds(user.id),
+        dbAdapter.getPendingGroupRequests(user.id),
       ]);
 
       const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
@@ -86,20 +90,27 @@ export default class UsersController {
         subscribersUIDs,
         subscriptionsUIDs,
         pendingSubscriptionRequestsUIDs,
-        subscriptionRequestsUIDs
+        subscriptionRequestsUIDs,
+        managedGroupUIDs
       );
 
       const allUsers = await dbAdapter.getUsersByIdsAssoc(allUIDs);
       const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'));
 
+      users.pendingGroupRequests = _.values(pendingGroupRequests).some((r) => r.length > 0);
       users.pendingSubscriptionRequests = pendingSubscriptionRequestsUIDs;
       users.subscriptionRequests = subscriptionRequestsUIDs;
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
       users.subscribers = usersFromUIDs(subscribersUIDs, allUsers, allGroupAdmins);
       const subscribers = usersFromUIDs(subscriptionsUIDs, allUsers, allGroupAdmins);
       const requests = usersFromUIDs(_.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs), allUsers, allGroupAdmins);
+      const managedGroups = usersFromUIDs(managedGroupUIDs, allUsers, allGroupAdmins)
+        .map((group) => {
+          group.requests = usersFromUIDs(pendingGroupRequests[group.id] || [], allUsers);
+          return group;
+        });
 
-      res.jsonp({ users, subscribers, subscriptions, requests });
+      res.jsonp({ users, subscribers, subscriptions, requests, managedGroups });
     } catch (e) {
       reportError(res)(e);
     } finally {
@@ -108,7 +119,7 @@ export default class UsersController {
   }
 }
 
-function usersFromUIDs(uids, allUsers, allGroupAdmins) {
+function usersFromUIDs(uids, allUsers, allGroupAdmins = {}) {
   return uids.map((id) => {
     const obj = serializeUser(allUsers[id]);
     if (obj.type === 'group') {

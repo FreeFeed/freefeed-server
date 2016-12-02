@@ -953,6 +953,25 @@ export class DbAdapter {
     return !!res;
   }
 
+  /**
+   * Returns plain object with group UIDs as keys and arrays of requester's UIDs as values
+   */
+  async getPendingGroupRequests(groupsAdminId) {
+    const rows = await this.database.select('r.from_user_id as user_id', 'r.to_user_id as group_id')
+      .from('subscription_requests as r')
+      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
+      .where({ 'a.user_id': groupsAdminId });
+
+    const res = {};
+    rows.forEach(({ group_id, user_id }) => {
+      if (!res.hasOwnProperty(group_id)) {
+        res[group_id] = [];
+      }
+      res[group_id].push(user_id);
+    });
+    return res;
+  }
+
   ///////////////////////////////////////////////////
   // Attachments
   ///////////////////////////////////////////////////
