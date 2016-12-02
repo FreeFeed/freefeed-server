@@ -8,7 +8,7 @@ import expect from 'unexpected'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
-import { createUserAsync, mutualSubscriptions, subscribeToAsync } from '../functional/functional_test_helper'
+import { createUserAsync, mutualSubscriptions, subscribeToAsync, createGroupAsync } from '../functional/functional_test_helper'
 
 
 describe('UsersControllerV2', () => {
@@ -99,6 +99,7 @@ describe('UsersControllerV2', () => {
         mutualSubscriptions([luna, mars]),
         subscribeToAsync(luna, venus),
         subscribeToAsync(zeus, luna),
+        createGroupAsync(luna, 'selenites', 'Selenites', true, false),
       ]);
 
       const whoAmI = await fetch(`${app.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
@@ -112,33 +113,48 @@ describe('UsersControllerV2', () => {
         isVisibleToAnonymous:    expect.it('to be a string').and('to be one of', ['0', '1']),
         createdAt:               expect.it('to be a string').and('to match', /^\d+$/),
         updatedAt:               expect.it('to be a string').and('to match', /^\d+$/),
-        type:                    expect.it('to be a string').and('to be one of', ['user', 'group']),
+        type:                    expect.it('to equal', 'user'),
         profilePictureLargeUrl:  expect.it('to be a string'),
         profilePictureMediumUrl: expect.it('to be a string'),
       };
 
+      const groupSchema = {
+        ...userSchema,
+        isRestricted:   expect.it('to be a string').and('to be one of', ['0', '1']),
+        type:           expect.it('to equal', 'group'),
+        administrators: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
+      };
+
+      const userOrGroup = (obj) => {
+        const isGroup = obj && typeof obj === 'object' && obj.type === 'group';
+        return expect(obj, 'to exhaustively satisfy', isGroup ? groupSchema : userSchema);
+      };
+
       const thisUserSchema = {
         ...userSchema,
-        email:                expect.it('to be a string'),
-        description:          expect.it('to be a string'),
-        privateMeta:          expect.it('to be an object'),
-        frontendPreferences:  expect.it('to be an object'),
-        statistics:           expect.it('to be an object'),
-        banIds:               expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
-        pendingGroupRequests: expect.it('to be a boolean'),
-        unreadDirectsNumber:  expect.it('to be a string').and('to match', /^\d+$/),
-        subscribers:          expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
-        subscriptions:        expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        email:                       expect.it('to be a string'),
+        description:                 expect.it('to be a string'),
+        privateMeta:                 expect.it('to be an object'),
+        frontendPreferences:         expect.it('to be an object'),
+        statistics:                  expect.it('to be an object'),
+        banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        pendingGroupRequests:        expect.it('to be a boolean'),
+        pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        subscriptionRequests:        expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        unreadDirectsNumber:         expect.it('to be a string').and('to match', /^\d+$/),
+        subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
+        subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {
         users:         thisUserSchema,
-        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
+        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
         subscriptions: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', {
           id:   expect.it('to be a string'),
           name: expect.it('to be a string'),
           user: expect.it('to be a string'),
         }),
+        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
       });
     });
   })
