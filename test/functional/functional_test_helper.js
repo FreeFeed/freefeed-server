@@ -514,7 +514,12 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  const response = await fetch(url)
+  const response = await fetch(url);
+
+  if (response.status != 200) {
+    throw new Error(`HTTP/1.1 ${response.status}`);
+  }
+
   const data = await response.json()
 
   return data
