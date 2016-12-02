@@ -8,7 +8,7 @@ import expect from 'unexpected'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
-import { createUserAsync, mutualSubscriptions, subscribeToAsync } from '../functional/functional_test_helper'
+import { createUserAsync, mutualSubscriptions, subscribeToAsync, createGroupAsync } from '../functional/functional_test_helper'
 
 
 describe('UsersControllerV2', () => {
@@ -99,6 +99,7 @@ describe('UsersControllerV2', () => {
         mutualSubscriptions([luna, mars]),
         subscribeToAsync(luna, venus),
         subscribeToAsync(zeus, luna),
+        createGroupAsync(luna, 'selenites', 'Selenites', true, false),
       ]);
 
       const whoAmI = await fetch(`${app.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
@@ -119,8 +120,9 @@ describe('UsersControllerV2', () => {
 
       const groupSchema = {
         ...userSchema,
-        isRestricted: expect.it('to be a string').and('to be one of', ['0', '1']),
-        type:         expect.it('to equal', 'group'),
+        isRestricted:   expect.it('to be a string').and('to be one of', ['0', '1']),
+        type:           expect.it('to equal', 'group'),
+        administrators: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
       };
 
       const userOrGroup = (obj) => {
