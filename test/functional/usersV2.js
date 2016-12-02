@@ -8,7 +8,13 @@ import expect from 'unexpected'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
-import { createUserAsync, mutualSubscriptions, subscribeToAsync, createGroupAsync } from '../functional/functional_test_helper'
+import {
+  createUserAsync,
+  mutualSubscriptions,
+  subscribeToAsync,
+  createGroupAsync,
+  sendRequestToJoinGroup,
+} from '../functional/functional_test_helper'
 
 
 describe('UsersControllerV2', () => {
@@ -95,12 +101,19 @@ describe('UsersControllerV2', () => {
         createUserAsync('zeus', 'pw'),
       ]);
 
-      await Promise.all([
+      const [
+        ,
+        ,
+        ,
+        selenitesGroup,
+      ] = await Promise.all([
         mutualSubscriptions([luna, mars]),
         subscribeToAsync(luna, venus),
         subscribeToAsync(zeus, luna),
         createGroupAsync(luna, 'selenites', 'Selenites', true, false),
       ]);
+
+      await sendRequestToJoinGroup(mars, selenitesGroup);
 
       const whoAmI = await fetch(`${app.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
 
@@ -123,6 +136,11 @@ describe('UsersControllerV2', () => {
         isRestricted:   expect.it('to be a string').and('to be one of', ['0', '1']),
         type:           expect.it('to equal', 'group'),
         administrators: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
+      };
+
+      const managedGroupSchema = {
+        ...groupSchema,
+        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
       };
 
       const userOrGroup = (obj) => {
@@ -154,7 +172,8 @@ describe('UsersControllerV2', () => {
           name: expect.it('to be a string'),
           user: expect.it('to be a string'),
         }),
-        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
+        requests:      expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
+        managedGroups: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', managedGroupSchema),
       });
     });
   })
