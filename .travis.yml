@@ -20,7 +20,7 @@ before_install:
   - sudo apt-get -y install postgresql-9.5
   - sudo sh -c 'echo "local all postgres trust" > /etc/postgresql/9.5/main/pg_hba.conf'
   - sudo sh -c 'echo -n "host all all 127.0.0.1/32 trust" >> /etc/postgresql/9.5/main/pg_hba.conf'
-  - sudo /etc/init.d/postgresql restart
+  - sudo service postgresql restart 9.5
   - psql --version
 before_script:
   - cp  knexfile.js.dist knexfile.js

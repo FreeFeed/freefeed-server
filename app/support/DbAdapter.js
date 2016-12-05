@@ -1,14 +1,18 @@
 import _ from 'lodash'
 import validator from 'validator'
 import NodeCache from 'node-cache'
+import redis from 'redis'
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
-import { promisifyAll } from 'bluebird'
 import pgFormat from 'pg-format';
+import { promisifyAll } from 'bluebird'
 
 import { load as configLoader } from '../../config/config'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
+
+promisifyAll(redis.RedisClient.prototype);
+promisifyAll(redis.Multi.prototype);
 
 const USER_COLUMNS = {
   username:               'username',
@@ -21,7 +25,7 @@ const USER_COLUMNS = {
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
   isPrivate:              'is_private',
-  isVisibleToAnonymous:   'is_visible_to_anonymous',
+  isProtected:            'is_protected',
   isRestricted:           'is_restricted',
   hashedPassword:         'hashed_password',
   resetPasswordToken:     'reset_password_token',
@@ -47,10 +51,10 @@ const USER_COLUMNS_MAPPING = {
     d.setTime(timestamp)
     return d.toISOString()
   },
-  isPrivate:            (is_private) => {return is_private === '1'},
-  isVisibleToAnonymous: (is_visible_to_anonymous) => {return is_visible_to_anonymous === '1'},
-  isRestricted:         (is_restricted) => {return is_restricted === '1'},
-  resetPasswordSentAt:  (timestamp) => {
+  isPrivate:           (is_private) => {return is_private === '1'},
+  isProtected:         (is_protected) => {return is_protected === '1'},
+  isRestricted:        (is_restricted) => {return is_restricted === '1'},
+  resetPasswordSentAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -69,7 +73,7 @@ const USER_FIELDS = {
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
   is_private:                'isPrivate',
-  is_visible_to_anonymous:   'isVisibleToAnonymous',
+  is_protected:              'isProtected',
   is_restricted:             'isRestricted',
   hashed_password:           'hashedPassword',
   reset_password_token:      'resetPasswordToken',
@@ -84,7 +88,7 @@ const USER_FIELDS_MAPPING = {
   created_at:                (time) => { return time.getTime().toString() },
   updated_at:                (time) => { return time.getTime().toString() },
   is_private:                (is_private) => {return is_private ? '1' : '0' },
-  is_visible_to_anonymous:   (is_visible_to_anonymous) => {return is_visible_to_anonymous ? '1' : '0' },
+  is_protected:              (is_protected) => {return is_protected ? '1' : '0' },
   is_restricted:             (is_restricted) => {return is_restricted ? '1' : '0' },
   reset_password_sent_at:    (time) => { return time && time.getTime() },
   reset_password_expires_at: (time) => { return time && time.getTime() },
@@ -293,7 +297,6 @@ const POST_FIELDS_MAPPING = {
   user_id:           (user_id) => {return user_id ? user_id : ''}
 }
 
-
 export class DbAdapter {
   constructor(database) {
     this.database = database
@@ -308,6 +311,7 @@ export class DbAdapter {
 
     promisifyAll(this.cache)
     promisifyAll(this.memoryCache)
+    promisifyAll(this.cache.store)
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -472,6 +476,10 @@ export class DbAdapter {
     return (await this.fetchUsers(ids)).map(this.initUserObject);
   }
 
+  async getUsersByIdsAssoc(ids) {
+    return _.mapValues(await this.fetchUsersAssoc(ids), this.initUserObject);
+  }
+
   async getFeedOwnerByUsername(username) {
     const attrs = await this.database('users').first().where('username', username.toLowerCase())
     return this.initUserObject(attrs);
@@ -543,8 +551,7 @@ export class DbAdapter {
     return null;
   };
 
-  getCachedUserAttrs = async (id) => {
-    const attrs = await this.cache.getAsync(`user_${id}`);
+  fixCachedUserAttrs = (attrs) => {
     if (!attrs) {
       return null;
     }
@@ -554,7 +561,11 @@ export class DbAdapter {
     attrs['reset_password_sent_at'] = this.fixDateType(attrs['reset_password_sent_at']);
     attrs['reset_password_expires_at'] = this.fixDateType(attrs['reset_password_expires_at']);
     return attrs;
-  }
+  };
+
+  getCachedUserAttrs = async (id) => {
+    return this.fixCachedUserAttrs(await this.cache.getAsync(`user_${id}`))
+  };
 
   async fetchUser(id) {
     let attrs = await this.getCachedUserAttrs(id);
@@ -568,25 +579,47 @@ export class DbAdapter {
     return attrs;
   }
 
-  async fetchUsers(ids) {
+  /**
+   * Returns plain object with ids as keys and user attributes as values
+   */
+  async fetchUsersAssoc(ids) {
+    const idToUser = {};
+    if (_.isEmpty(ids)) {
+      return idToUser;
+    }
     const uniqIds = _.uniq(ids);
-    const cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+    let cachedUsers;
+    if (this.cache.store.name === 'redis') {
+      const { client, done } = await this.cache.store.getClientAsync();
+      try {
+        const cacheKeys = ids.map((id) => `user_${id}`);
+        const result = await client.mgetAsync(cacheKeys);
+        cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(this.fixCachedUserAttrs);
+      } finally {
+        done();
+      }
+    } else {
+      cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+    }
 
     const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
-    const dbUsers = await this.database('users').whereIn('uid', notFoundIds);
+    const dbUsers = notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
 
     await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
 
-    const idToUser = {};
     _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
     dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
+    return idToUser;
+  }
 
+  async fetchUsers(ids) {
+    const idToUser = await this.fetchUsersAssoc(ids);
     return ids.map((id) => idToUser[id] || null);
   }
 
   async someUsersArePublic(userIds, anonymousFriendly) {
-    const anonymousCondition = anonymousFriendly ? 'AND "is_visible_to_anonymous" = true' : '';
-    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE "is_private" = false ${anonymousCondition} AND "uid" IN (%L)`, userIds);
+    const anonymousCondition = anonymousFriendly ? 'AND not "is_protected"' : '';
+    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE not "is_private" ${anonymousCondition} AND "uid" IN (%L)`, userIds);
     const res = await this.database.raw(q);
     return res.rows[0].cnt > 0;
   }
@@ -873,6 +906,21 @@ export class DbAdapter {
     return this.database('group_admins').pluck('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
   }
 
+  /**
+   * Returns plain object with group UIDs as keys and arrays of admin UIDs as values
+   */
+  async getGroupsAdministratorsIds(groupIds) {
+    const rows = await this.database.select('group_id', 'user_id').from('group_admins').where('group_id', 'in', groupIds);
+    const res = {};
+    rows.forEach(({ group_id, user_id }) => {
+      if (!res.hasOwnProperty(group_id)) {
+        res[group_id] = [];
+      }
+      res[group_id].push(user_id);
+    });
+    return res;
+  }
+
   addAdministratorToGroup(groupId, adminId) {
     const currentTime = new Date().toISOString()
 
@@ -894,6 +942,34 @@ export class DbAdapter {
 
   getManagedGroupIds(userId) {
     return this.database('group_admins').pluck('group_id').orderBy('created_at', 'desc').where('user_id', userId);
+  }
+
+  async userHavePendingGroupRequests(userId) {
+    const res = await this.database.first('r.id')
+      .from('subscription_requests as r')
+      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
+      .where({ 'a.user_id': userId })
+      .limit(1);
+    return !!res;
+  }
+
+  /**
+   * Returns plain object with group UIDs as keys and arrays of requester's UIDs as values
+   */
+  async getPendingGroupRequests(groupsAdminId) {
+    const rows = await this.database.select('r.from_user_id as user_id', 'r.to_user_id as group_id')
+      .from('subscription_requests as r')
+      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
+      .where({ 'a.user_id': groupsAdminId });
+
+    const res = {};
+    rows.forEach(({ group_id, user_id }) => {
+      if (!res.hasOwnProperty(group_id)) {
+        res[group_id] = [];
+      }
+      res[group_id].push(user_id);
+    });
+    return res;
   }
 
   ///////////////////////////////////////////////////
@@ -1123,6 +1199,14 @@ export class DbAdapter {
   // Feeds
   ///////////////////////////////////////////////////
 
+  initTimelineObject = (attrs, params) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
+    return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
+  }
+
   async createTimeline(payload) {
     const preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
     if (preparedPayload.name == 'MyDiscussions') {
@@ -1199,51 +1283,23 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('feeds').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, attrs, id, params)
+    const attrs = await this.database('feeds').first().where('uid', id);
+    return this.initTimelineObject(attrs, params);
   }
 
   async getTimelineByIntId(id, params) {
-    const res = await this.database('feeds').where('id', id)
-    let feed = res[0]
-
-    if (!feed) {
-      return null
-    }
-
-    feed = this._prepareModelPayload(feed, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, feed, feed.id, params)
+    const attrs = await this.database('feeds').first().where('id', id);
+    return this.initTimelineObject(attrs, params);
   }
 
   async getTimelinesByIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
-    })
-    return objects
+    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`);
+    return responses.map((r) => this.initTimelineObject(r, params));
   }
 
   async getTimelinesByIntIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
-    })
-    return objects
+    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`);
+    return responses.map((r) => this.initTimelineObject(r, params));
   }
 
   async getTimelinesIntIdsByUUIDs(uuids) {
@@ -1260,6 +1316,20 @@ export class DbAdapter {
     return uuids
   }
 
+  async getTimelinesUserSubscribed(userId, feedType = null) {
+    const where = { 's.user_id': userId };
+    if (feedType !== null) {
+      where['f.name'] = feedType;
+    }
+    const records = await this.database
+      .select('f.*')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where(where)
+      .orderBy('s.created_at', 'desc');
+    return records.map(this.initTimelineObject);
+  }
+
   async getUserNamedFeedId(userId, name) {
     const response = await this.database('feeds').select('uid').where({
       user_id: userId,
@@ -1274,19 +1344,11 @@ export class DbAdapter {
   }
 
   async getUserNamedFeed(userId, name, params) {
-    const response = await this.database('feeds').returning('uid').where({
+    const response = await this.database('feeds').first().returning('uid').where({
       user_id: userId,
       name
-    })
-
-    let namedFeed = response[0]
-
-    if (!namedFeed) {
-      return null
-    }
-
-    namedFeed = this._prepareModelPayload(namedFeed, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, namedFeed, namedFeed.id, params)
+    });
+    return this.initTimelineObject(response, params);
   }
 
   async getUserNamedFeedsIntIds(userId, names) {
@@ -1498,7 +1560,7 @@ export class DbAdapter {
     let bannedUsersFilter = '';
     let usersWhoBannedMeFilter = '';
 
-    const publicOrVisibleForAnonymous = currentUser ? '"users"."is_private"=false' : '"users"."is_private"=false AND "users"."is_visible_to_anonymous"=true'
+    const publicOrVisibleForAnonymous = currentUser ? 'not "users"."is_private"' : 'not "users"."is_protected"'
 
     if (currentUser) {
       const [iBanned, bannedMe] = await Promise.all([
@@ -1535,12 +1597,26 @@ export class DbAdapter {
   // Subscriptions
   ///////////////////////////////////////////////////
 
-  async getUserSubscriptionsIds(userId) {
-    const res = await this.database('subscriptions').select('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record) => {
-      return record.feed_id
-    })
-    return attrs
+  getUserSubscriptionsIds(userId) {
+    return this.database('subscriptions').pluck('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
+  }
+
+  getUserSubscriptionsIdsByType(userId, feedType) {
+    return this.database
+      .pluck('s.feed_id')
+      .from('subscriptions as s').innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where({ 's.user_id': userId, 'f.name': feedType })
+      .orderBy('s.created_at', 'desc')
+  }
+
+  getUserFriendIds(userId) {
+    const feedType = 'Posts';
+    return this.database
+      .pluck('f.user_id')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where({ 's.user_id': userId, 'f.name': feedType })
+      .orderBy('s.created_at', 'desc');
   }
 
   async isUserSubscribedToTimeline(currentUserId, timelineId) {
@@ -1688,7 +1764,7 @@ export class DbAdapter {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
-    const publicOrVisibleForAnonymous = currentUserId ? 'users.is_private=false' : 'users.is_private=false and users.is_visible_to_anonymous=true'
+    const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected'
 
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
       visibleFeedIds = 'NULL'
@@ -2079,38 +2155,60 @@ export class DbAdapter {
   }
 
   async getUnreadDirectsNumber(userId) {
+    const [
+      [directsFeedId],
+      [directsReadAt],
+    ] = await Promise.all([
+      this.database.pluck('id').from('feeds').where({ 'user_id': userId, 'name': 'Directs' }),
+      this.database.pluck('directs_read_at').from('users').where({ 'uid': userId }),
+    ]);
+
     /*
      Select posts from my Directs feed, created after the directs_read_at authored by
      users other than me and then add posts from my Directs feed, having comments created after the directs_read_at
      authored by users other than me
      */
-    const uid = pgFormat('%L', userId)
-
     const sql = `
       select count(distinct unread.id) as cnt from (
-        select posts.id, posts.uid from posts
-          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
-          inner join users on feeds.user_id = users.uid
-          where
-            users.uid=${uid}
-            and posts.user_id != ${uid}
-            and posts.created_at > users.directs_read_at
+        select id from 
+          posts 
+        where
+          destination_feed_ids && :feeds
+          and user_id != :userId
+          and created_at > :directsReadAt
         union
-        select posts.id, posts.uid from posts
-          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
-          inner join users on feeds.user_id = users.uid
-          inner join comments on comments.post_id = posts.uid
-          where
-            users.uid=${uid}
-            and comments.user_id != ${uid}
-          group by
-            posts.id, posts.uid, users.directs_read_at
-          having
-            max(comments.created_at) > users.directs_read_at) as unread`
+        select p.id from
+          comments c
+          join posts p on p.uid = c.post_id
+        where
+          p.destination_feed_ids && :feeds
+          and c.user_id != :userId
+          and c.created_at > :directsReadAt
+      ) as unread`;
 
-    const res = await this.database.raw(sql);
+    const res = await this.database.raw(sql, { feeds: `{${directsFeedId}}`, userId, directsReadAt });
     return res.rows[0].cnt;
   }
+
+  ///////////////////////////////////////////////////
+  // Stats
+  ///////////////////////////////////////////////////
+  async getStats(data, start_date, end_date) {
+    // Other data types are not yet implemented
+    if (data !== 'users') {
+      return null;
+    }
+
+    const sql = pgFormat(`
+      select d.dt as date,
+             (select count(u.uid) from users as u
+                where u.created_at < d.dt + interval '1 day'
+            and u.type ='user') AS users
+        from (select dt::date
+          from generate_series(timestamp %L, timestamp %L, interval '1 day') dt) as d`,
+      start_date, end_date);
+
+    const res = await this.database.raw(sql);
+    return res.rows;
+  }
 }
-
-

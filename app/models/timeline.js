@@ -437,7 +437,7 @@ export function addModel(dbAdapter) {
     }
 
     // this feed is not visible to anonymous and we just happen to be one
-    if (!readerId && user.isVisibleToAnonymous === '0') {
+    if (!readerId && user.isProtected === '1') {
       return false;
     }
 

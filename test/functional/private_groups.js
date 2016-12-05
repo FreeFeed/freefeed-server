@@ -45,6 +45,26 @@ describe('PrivateGroups', () => {
           res.body.groups.username.should.eql(userName)
           res.body.groups.screenName.should.eql(screenName)
           res.body.groups.isPrivate.should.eql('0')
+          res.body.groups.isProtected.should.eql('0')
+          res.body.groups.isRestricted.should.eql('0')
+          done()
+        })
+    })
+
+    it('should create a protected group', (done) => {
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
+      request
+        .post(`${app.config.host}/v1/groups`)
+        .send({
+          group:     { username: userName, screenName, isProtected: '1' },
+          authToken: context.authToken
+        })
+        .end((err, res) => {
+          res.body.should.not.be.empty
+          res.body.should.have.property('groups')
+          res.body.groups.isPrivate.should.eql('0')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.isRestricted.should.eql('0')
           done()
         })
@@ -63,6 +83,7 @@ describe('PrivateGroups', () => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.isPrivate.should.eql('1')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.isRestricted.should.eql('0')
           done()
         })
@@ -81,6 +102,26 @@ describe('PrivateGroups', () => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.isPrivate.should.eql('0')
+          res.body.groups.isProtected.should.eql('0')
+          res.body.groups.isRestricted.should.eql('1')
+          done()
+        })
+    })
+
+    it('should create a protected restricted group', (done) => {
+      const userName = 'pepyatka-dev';
+      const screenName = 'Pepyatka Developers';
+      request
+        .post(`${app.config.host}/v1/groups`)
+        .send({
+          group:     { username: userName, screenName, isProtected: '1', isRestricted: '1' },
+          authToken: context.authToken
+        })
+        .end((err, res) => {
+          res.body.should.not.be.empty
+          res.body.should.have.property('groups')
+          res.body.groups.isPrivate.should.eql('0')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.isRestricted.should.eql('1')
           done()
         })
@@ -99,6 +140,7 @@ describe('PrivateGroups', () => {
           res.body.should.not.be.empty
           res.body.should.have.property('groups')
           res.body.groups.isPrivate.should.eql('1')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.isRestricted.should.eql('1')
           done()
         })
@@ -170,6 +212,8 @@ describe('PrivateGroups', () => {
           res.body.groups.description.should.eql(description)
           res.body.groups.should.have.property('isPrivate')
           res.body.groups.isPrivate.should.eql('1')
+          res.body.groups.should.have.property('isProtected')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.should.have.property('isRestricted')
           res.body.groups.isRestricted.should.eql('0')
           done()
@@ -191,6 +235,8 @@ describe('PrivateGroups', () => {
           res.body.groups.should.have.property('id')
           res.body.groups.should.have.property('isPrivate')
           res.body.groups.isPrivate.should.eql('1')
+          res.body.groups.should.have.property('isProtected')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.should.have.property('isRestricted')
           res.body.groups.isRestricted.should.eql('1')
           done()
@@ -212,6 +258,31 @@ describe('PrivateGroups', () => {
           res.body.groups.should.have.property('id')
           res.body.groups.should.have.property('isPrivate')
           res.body.groups.isPrivate.should.eql('0')
+          res.body.groups.should.have.property('isProtected')
+          res.body.groups.isProtected.should.eql('0')
+          res.body.groups.should.have.property('isRestricted')
+          res.body.groups.isRestricted.should.eql('0')
+          done()
+        })
+    })
+
+    it('should update group isProtected', (done) => {
+      request
+        .post(`${app.config.host}/v1/users/${group.id}`)
+        .send({
+          authToken: context.authToken,
+          user:      { isPrivate: '0', isProtected: '1' },
+          '_method': 'put'
+        })
+        .end((err, res) => {
+          res.should.not.be.empty
+          res.body.should.not.be.empty
+          res.body.should.have.property('groups')
+          res.body.groups.should.have.property('id')
+          res.body.groups.should.have.property('isPrivate')
+          res.body.groups.isPrivate.should.eql('0')
+          res.body.groups.should.have.property('isProtected')
+          res.body.groups.isProtected.should.eql('1')
           res.body.groups.should.have.property('isRestricted')
           res.body.groups.isRestricted.should.eql('0')
           done()

@@ -44,6 +44,10 @@ export function addModel(dbAdapter) {
 
     this.isPrivate = params.isPrivate
     this.isVisibleToAnonymous = params.isVisibleToAnonymous
+    this.isProtected = params.isProtected
+    if (this.isPrivate === '1') {
+      this.isProtected = '1'
+    }
     this.resetPasswordToken = params.resetPasswordToken
     this.resetPasswordSentAt = params.resetPasswordSentAt
     if (parseInt(params.createdAt, 10))
@@ -107,16 +111,16 @@ export function addModel(dbAdapter) {
   })
 
   Reflect.defineProperty(User.prototype, 'isProtected', {
-    get: function () { return (this.isVisibleToAnonymous_ === '0') ? '1' : '0' },
+    get: function () { return this.isProtected_ },
     set: function (newValue) {
-      this.isVisibleToAnonymous_ = (newValue === '1') ? '0' : '1'
+      this.isProtected_ = newValue || '0'
     }
   })
 
   Reflect.defineProperty(User.prototype, 'isVisibleToAnonymous', {
-    get: function () { return this.isVisibleToAnonymous_ },
+    get: function () { return (this.isProtected_ === '1') ? '0' : '1' },
     set: function (newValue) {
-      this.isVisibleToAnonymous_ = newValue || '1'
+      this.isProtected_ = (newValue === '0') ? '1' : '0'
     }
   })
 
@@ -316,17 +320,17 @@ export function addModel(dbAdapter) {
     await this.initPassword()
 
     const payload = {
-      'username':             this.username,
-      'screenName':           this.screenName,
-      'email':                this.email,
-      'type':                 this.type,
-      'isPrivate':            '0',
-      'isVisibleToAnonymous': '1',
-      'description':          '',
-      'createdAt':            this.createdAt.toString(),
-      'updatedAt':            this.updatedAt.toString(),
-      'hashedPassword':       this.hashedPassword,
-      'frontendPreferences':  JSON.stringify({})
+      'username':            this.username,
+      'screenName':          this.screenName,
+      'email':               this.email,
+      'type':                this.type,
+      'isPrivate':           '0',
+      'isProtected':         '0',
+      'description':         '',
+      'createdAt':           this.createdAt.toString(),
+      'updatedAt':           this.updatedAt.toString(),
+      'hashedPassword':      this.hashedPassword,
+      'frontendPreferences': JSON.stringify({})
     }
     this.id = await dbAdapter.createUser(payload)
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
@@ -338,7 +342,7 @@ export function addModel(dbAdapter) {
 
   User.prototype.update = async function (params) {
     const payload = {}
-    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isVisibleToAnonymous', 'description', 'frontendPreferences']
+    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -373,17 +377,19 @@ export function addModel(dbAdapter) {
       payload.isPrivate = params.isPrivate
     }
 
-    if (params.hasOwnProperty('isPrivate') && params.isPrivate === '1') {
-      params.isProtected = '1';
+    // Compatibility with pre-isProtected clients:
+    // if there is only isPrivate param then isProtected becomes the same as isPrivate
+    if (params.hasOwnProperty('isPrivate') && (!params.hasOwnProperty('isProtected') || params.isPrivate === '1')) {
+      params.isProtected = params.isPrivate
     }
 
     if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
-      payload.isVisibleToAnonymous = (params.isProtected === '1') ? '0' : '1';
+      payload.isProtected = params.isProtected;
     }
 
     // isProtected have priority
     if (params.hasOwnProperty('isVisibleToAnonymous') && !params.hasOwnProperty('isProtected') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
-      payload.isVisibleToAnonymous = params.isVisibleToAnonymous
+      payload.isProtected = (params.isVisibleToAnonymous === '0') ? '1' : '0';
     }
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
@@ -732,10 +738,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getFriendIds = async function () {
-    const timelines = await this.getSubscriptions()
-    const postTimelines = _.filter(timelines, _.method('isPosts'))
-
-    return postTimelines.map((timeline) => timeline.userId)
+    return await dbAdapter.getUserFriendIds(this.id);
   }
 
   User.prototype.getFriends = async function () {
@@ -1018,6 +1021,28 @@ export function addModel(dbAdapter) {
          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
   }
 
+  Reflect.defineProperty(User.prototype, 'profilePictureLargeUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE);
+    }
+  });
+
+  Reflect.defineProperty(User.prototype, 'profilePictureMediumUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM);
+    }
+  });
+
   /**
    * Checks if the specified user can post to the timeline of this user.
    */
@@ -1127,7 +1152,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getPendingGroupRequests = function () {
-    return this.pendingPrivateGroupSubscriptionRequests()
+    return dbAdapter.userHavePendingGroupRequests(this.id);
   }
 
   return User
