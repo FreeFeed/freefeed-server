@@ -17,7 +17,7 @@ export default class GroupsController {
       return
     }
 
-    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isRestricted'])
+    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'description', 'isPrivate', 'isProtected', 'isRestricted'])
 
     try {
       const group = new Group(params)
@@ -31,7 +31,7 @@ export default class GroupsController {
   }
 
   static async sudoCreate(req, res) {
-    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isRestricted'])
+    const params = GroupsController._filteredParams(req.body.group, ['username', 'screenName', 'isPrivate', 'isProtected', 'isRestricted'])
 
     try {
       if (!_.isArray(req.body.admins)) {
@@ -71,7 +71,7 @@ export default class GroupsController {
       res.status(403).jsonp({ err: 'You need to log in before you can manage groups', status: 'fail' })
       return
     }
-    const attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isRestricted'])
+    const attrs = GroupsController._filteredParams(req.body.user, ['screenName', 'description', 'isPrivate', 'isProtected', 'isRestricted'])
 
     try {
       const group = await dbAdapter.getGroupById(req.params.userId)
@@ -238,7 +238,7 @@ export default class GroupsController {
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
       if (!hasRequest) {
-        throw new Error('Invalid')
+        throw new Error('Subscription request is not found')
       }
 
       await group.acceptSubscriptionRequest(user.id)
