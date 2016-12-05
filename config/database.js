@@ -1,7 +1,7 @@
 import { promisifyAll } from 'bluebird'
 import _redis from 'redis'
 
-import { load as configLoader } from "./config"
+import { load as configLoader } from './config'
 
 
 promisifyAll(_redis.RedisClient.prototype)
@@ -12,22 +12,22 @@ let database = _redis.createClient(config.redis.port, config.redis.host, config.
 export default database;
 
 // TODO: move to app.logger
-database.on('connect'     , log('connect'))
-database.on('ready'       , log('ready'))
+database.on('connect', log('connect'))
+database.on('ready', log('ready'))
 database.on('reconnecting', log('reconnecting'))
-database.on('error'       , logAndQuit('error'))
-database.on('end'         , log('end'))
+database.on('error', logAndQuit('error'))
+database.on('end', log('end'))
 
 function log(type) {
-  return function() {
-    console.log(type, arguments)
+  return function (...args) {
+    console.log(type, args);  // eslint-disable-line no-console
   }
 }
 
 function logAndQuit(type) {
-  return function() {
-    console.log(type, arguments)
-    process.exit(1)
+  return function (...args) {
+    console.log(type, args);  // eslint-disable-line no-console
+    process.exit(1);
   }
 }
 

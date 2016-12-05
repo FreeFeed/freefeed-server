@@ -1,31 +1,29 @@
 import stubTransport from 'nodemailer-stub-transport'
-import {test as postgresConfig} from '../../knexfile'
+import { test as postgresConfig } from '../../knexfile'
 
 
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
 process.env.MONITOR_PREFIX = 'tests'
 
 export function getConfig() {
-  var config = {
-    port: 31337,
+  const config = {
+    port:     31337,
     database: 3,
 
-    secret: 'secret',
-    origin: 'http://localhost:3333',
-    appRoot: '.',
+    secret:                    'secret',
+    origin:                    'http://localhost:3333',
+    appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel: 'warn',
-    //disableRealtime: true,
+    logLevel:           'warn',
+    // disableRealtime: true,
     onboardingUsername: 'welcome',
-    recaptcha: {
-      enabled: false
-    },
+    recaptcha:          { enabled: false },
 
     frontendPreferencesLimit: 65536
   }
 
-  config.host = 'http://localhost:' + config.port
+  config.host = `http://localhost:${config.port}`
 
   config.application = {
     USERNAME_STOP_LIST: [
@@ -39,46 +37,46 @@ export function getConfig() {
   }
 
   config.media = {
-    url: config.host + '/', // must have trailing slash
+    url:     `${config.host}/`, // must have trailing slash
     storage: {
-      type: 'fs',
+      type:    'fs',
       rootDir: '/tmp/pepyatka-media/' // must have trailing slash
     }
   }
   config.attachments = {
-    url: config.media.url,
-    storage: config.media.storage,
-    path: 'attachments/', // must have trailing slash
+    url:           config.media.url,
+    storage:       config.media.storage,
+    path:          'attachments/', // must have trailing slash
     fileSizeLimit: '10mb',
-    imageSizes: {
+    imageSizes:    {
       t: {
-        path: 'attachments/thumbnails/', // must have trailing slash
+        path:   'attachments/thumbnails/', // must have trailing slash
         bounds: { width: 525, height: 175 }
       },
       t2: {
-        path: 'attachments/thumbnails2/', // must have trailing slash
+        path:   'attachments/thumbnails2/', // must have trailing slash
         bounds: { width: 1050, height: 350 }
       },
       anotherTestSize: {
-        path: 'attachments/anotherTestSize/', // must have trailing slash
+        path:   'attachments/anotherTestSize/', // must have trailing slash
         bounds: { width: 1600, height: 1200 }
       }
     }
   }
   config.profilePictures = {
-    url: config.media.url,
+    url:     config.media.url,
     storage: config.media.storage,
-    path: 'profilepics/' // must have trailing slash
+    path:    'profilepics/' // must have trailing slash
   }
 
   config.mailer = {
     transport: stubTransport,
-    options: {}
+    options:   {}
   }
 
   config.redis = {
-    host: 'localhost',
-    port: 6379,
+    host:    'localhost',
+    port:    6379,
     options: {}
   }
 

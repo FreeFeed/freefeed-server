@@ -9,7 +9,7 @@
     "start": "babel-node profiled.js",
     "travis": "run-s -c test lint",
     "test": "run-s reset-test-db mocha",
-    "lint": "eslint app test",
+    "lint": "eslint app config test",
     "reset-test-db": "./bin/clean_test_db && knex --env test migrate:latest",
     "mocha": "NODE_ENV=test mocha --opts test/mocha.opts test/unit test/functional",
     "console": "babel-node bin/console",

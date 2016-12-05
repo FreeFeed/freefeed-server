@@ -9,7 +9,7 @@ import responseTime from 'response-time'
 import { promisify } from 'bluebird';
 
 import { init as originInit } from './initializers/origin'
-import { load as configLoader } from "./config"
+import { load as configLoader } from './config'
 import { selectDatabase } from './database'
 import { configure as configurePostgres } from './postgres'
 import { init as passportInit } from './initializers/passport'
@@ -25,8 +25,8 @@ async function selectEnvironment(app) {
   app.logger = new (winston.Logger)({
     transports: [
       new (winston.transports.Console)({
-        'timestamp': true,
-        'level': config.logLevel || 'debug',
+        timestamp:        true,
+        level:            config.logLevel || 'debug',
         handleExceptions: true
       })
     ]
@@ -41,7 +41,7 @@ async function selectEnvironment(app) {
   return app
 }
 
-exports.init = async function(app) {
+exports.init = async function (app) {
   await selectEnvironment(app)
 
   if (config.media.storage.type === 'fs') {
@@ -57,44 +57,46 @@ exports.init = async function(app) {
       app.logger.error(`Attachments dir does not exist: ${attachmentsDir}`)
     }
 
-    for (const sizeId of Object.keys(config.attachments.imageSizes)) {
-      const sizeConfig = config.attachments.imageSizes[sizeId];
+    const checkPromises = Object.values(config.attachments.imageSizes).map(async (sizeConfig) => {
       const thumbnailsDir = config.attachments.storage.rootDir + sizeConfig.path;
 
       try {
         await access(thumbnailsDir, fs.W_OK);
       } catch (e) {
         gotErrors = true;
-        app.logger.error(`Thumbnails dir does not exist: ${thumbnailsDir}`)
+        app.logger.error(`Thumbnails dir does not exist: ${thumbnailsDir}`);
       }
-    }
+    });
+    await Promise.all(checkPromises);
 
     if (gotErrors) {
       throw new Error(`some of required directories are missing`);
     }
   }
 
-  app.use(bodyParser.json({limit: config.attachments.fileSizeLimit}))
-  app.use(bodyParser.urlencoded({limit: config.attachments.fileSizeLimit, extended: true}))
+  app.use(bodyParser.json({ limit: config.attachments.fileSizeLimit }))
+  app.use(bodyParser.urlencoded({ limit: config.attachments.fileSizeLimit, extended: true }))
   app.use(passport.initialize())
   app.use(originInit)
-  app.use(methodOverride(function(req) {
+  app.use(methodOverride((req) => {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
       // look in urlencoded POST bodies and delete it
-      var method = req.body._method
+      const method = req.body._method
       delete req.body._method
       return method
     }
-  }))
 
-  var accessLogStream = fs.createWriteStream(__dirname + '/../log/' + env + '.log', {flags: 'a'})
-  app.use(morgan('combined', {stream: accessLogStream}))
+    return undefined;  // otherwise, no need to override
+  }));
+
+  const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' })
+  app.use(morgan('combined', { stream: accessLogStream }))
 
   if (config.logResponseTime) {
-    app.use(responseTime(function (req, res, time) {
-      let val = time.toFixed(3) + 'ms'
+    app.use(responseTime((req, res, time) => {
+      const val = `${time.toFixed(3)}ms`
       res.setHeader('X-Response-Time', val)
-      let resource = (req.method + req.url).toLowerCase()
+      const resource = (req.method + req.url).toLowerCase()
       app.logger.warn(resource, time)
     }))
   }
