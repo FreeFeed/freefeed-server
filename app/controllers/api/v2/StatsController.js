@@ -35,17 +35,9 @@ export default class StatsController {
         throw new Error(`ERROR: the requested period is too long`);
       }
 
-      if (data !== 'users') {
-        throw new Error(`ERROR: only 'users' data is currently supported`);
-      }
-
       const stats_res = await dbAdapter.getStats(data, start.format(`YYYY-MM-DD`), end.format(`YYYY-MM-DD`));
 
       if (stats_res) {
-        stats_res.forEach((stat) => {
-          stat['date'] = moment(stat['date']).format(`YYYY-MM-DD`);
-        });
-
         res.jsonp({ stats: stats_res });
       } else {
         res.status(401).jsonp({ stats: 'Not found' });

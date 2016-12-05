@@ -16,7 +16,8 @@
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node bin/data_transfer",
     "reindex_hashtags": "babel-node bin/reindex_hashtags",
-    "count_stats": "babel-node bin/count_stats"
+    "count_stats": "babel-node bin/count_stats",
+    "count-daily-stats": "babel-node bin/count-daily-stats"
   },
   "repository": {
     "type": "git",
