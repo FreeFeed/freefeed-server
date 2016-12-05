@@ -72,4 +72,6 @@ export default function (app) {
   SearchRoute(app);
   TimelinesRouteV2(app);
   UsersRouteV2(app);
+
+  app.all('/v[0-9]+/*', (req, res) => res.status(404).send({ err: `API method not found: '${req.path}'` }));
 }
