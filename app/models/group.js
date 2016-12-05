@@ -19,6 +19,10 @@ export function addModel(dbAdapter) {
     this.createdAt = params.createdAt
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
+    this.isProtected = params.isProtected
+    if (this.isPrivate === '1') {
+      this.isProtected = '1'
+    }
     this.isRestricted = params.isRestricted
     this.type = 'group'
     this.profilePictureUuid = params.profilePictureUuid || ''
@@ -99,6 +103,7 @@ export function addModel(dbAdapter) {
       'createdAt':    this.createdAt.toString(),
       'updatedAt':    this.updatedAt.toString(),
       'isPrivate':    this.isPrivate,
+      'isProtected':  this.isProtected,
       'isRestricted': this.isRestricted
     }
     this.id = await dbAdapter.createUser(payload)
@@ -139,6 +144,17 @@ export function addModel(dbAdapter) {
       hasChanges = true
     }
 
+    // Compatibility with pre-isProtected clients:
+    // if there is only isPrivate param then isProtected becomes the same as isPrivate
+    if (params.hasOwnProperty('isPrivate') && (!params.hasOwnProperty('isProtected') || params.isPrivate === '1')) {
+      params.isProtected = params.isPrivate
+    }
+
+    if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
+      this.isProtected = params.isProtected
+      hasChanges = true
+    }
+
     if (params.hasOwnProperty('isRestricted') && params.isRestricted != this.isRestricted) {
       this.isRestricted = params.isRestricted
       hasChanges = true
@@ -152,6 +168,7 @@ export function addModel(dbAdapter) {
         'description':  this.description,
         'updatedAt':    this.updatedAt.toString(),
         'isPrivate':    this.isPrivate,
+        'isProtected':  this.isProtected,
         'isRestricted': this.isRestricted
       }
 

@@ -20,6 +20,7 @@ import RequestsRouteV2 from './routes/api/v2/RequestsRoute'
 import SearchRoute from './routes/api/v2/SearchRoute'
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
+import StatsRouteV2 from './routes/api/v2/Stats'
 
 const config = configLoader();
 promisifyAll(jwt);
@@ -64,10 +65,13 @@ export default function (app) {
   PostsRoute(app);
   TimelinesRoute(app);
   UsersRoute(app);
+  StatsRouteV2(app);
 
   GroupsRouteV2(app);
   RequestsRouteV2(app);
   SearchRoute(app);
   TimelinesRouteV2(app);
   UsersRouteV2(app);
+
+  app.all('/v[0-9]+/*', (req, res) => res.status(404).send({ err: `API method not found: '${req.path}'` }));
 }

@@ -5,9 +5,15 @@ import { SEARCH_SCOPES } from '../../../support/SearchConstants'
 import { serializePostsCollection } from '../../../serializers/v2/post';
 
 export default class SearchController {
-  static async search(req, res) {
+  app = null;
+
+  constructor(app) {
+    this.app = app;
+  }
+
+  search = async (req, res) => {
     try {
-      const preparedQuery = SearchQueryParser.parse(req.query.qs)
+      const preparedQuery = SearchQueryParser.parse(req.query.qs, req.user ? req.user.username : null)
       const DEFAULT_LIMIT = 30
 
       let foundPosts = []
@@ -26,6 +32,7 @@ export default class SearchController {
 
       const bannedUserIds = req.user ? await req.user.getBanIds() : [];
       const currentUserId = req.user ? req.user.id : null;
+      const isAnonymous = !req.user;
       const visibleFeedIds = req.user ? req.user.subscribedFeedIds : [];
 
       switch (preparedQuery.scope) {
@@ -37,9 +44,17 @@ export default class SearchController {
 
         case SEARCH_SCOPES.VISIBLE_USER_POSTS:
           {
+            if (preparedQuery.username === 'me') {
+              throw new NotFoundException(`Please sign in to use 'from:me' operator`)
+            }
+
             targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
             if (!targetUser) {
               throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
+            }
+
+            if (isAnonymous && targetUser.isProtected === '1') {
+              throw new ForbiddenException(`Please sign in to view user "${preparedQuery.username}"`)
             }
 
             if (targetUser.id != currentUserId) {
@@ -73,13 +88,19 @@ export default class SearchController {
           }
       }
 
-      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId, maxComments: 'all' })
+      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId })
 
       const postsCollectionJson = await serializePostsCollection(postsObjects)
 
       res.jsonp(postsCollectionJson)
     } catch (e) {
+      if ('internalQuery' in e) {
+        // looks like postgres err
+        this.app.logger.error(e);
+        Reflect.deleteProperty(e, 'message');  // do not expose DB internals
+      }
+
       reportError(res)(e)
     }
-  }
+  };
 }

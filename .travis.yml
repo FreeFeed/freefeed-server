@@ -1,7 +1,7 @@
 sudo: required
 language: node_js
 node_js:
-  - 6.8
+  - 6.9
 env:
   - CXX=g++-4.8
 services:
@@ -20,7 +20,7 @@ before_install:
   - sudo apt-get -y install postgresql-9.5
   - sudo sh -c 'echo "local all postgres trust" > /etc/postgresql/9.5/main/pg_hba.conf'
   - sudo sh -c 'echo -n "host all all 127.0.0.1/32 trust" >> /etc/postgresql/9.5/main/pg_hba.conf'
-  - sudo /etc/init.d/postgresql restart
+  - sudo service postgresql restart 9.5
   - psql --version
 before_script:
   - cp  knexfile.js.dist knexfile.js
@@ -40,3 +40,4 @@ addons:
 notifications:
   slack:
     secure: Cu2y76KVIdl4+uYcv/J595jteBN2U1Q4HCKs90J1PZaIHjz86sWg2y+1EIWLd0UUtw+d15gbLy/xqrrCo+y1pR+5e6Df3duHktxYX1FkBD31sg/9M2RI18hdxPZWZ11M/uF3xMOzD6LepOwXPBXN/rwSjalLydzcjNB2DpCSgIQ=
+script: "npm run travis"

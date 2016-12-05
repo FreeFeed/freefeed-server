@@ -4,10 +4,10 @@ import { Serializer, AdminSerializer, SubscriptionSerializer, SubscriptionReques
 export function addSerializer() {
   return new Serializer('users', {
     select: ['id', 'username', 'type', 'screenName', 'email', 'statistics',
-             'subscriptions', 'profilePictureLargeUrl', 'profilePictureMediumUrl',
-             'banIds', 'subscribers', 'isPrivate', 'pendingSubscriptionRequests',
-             'subscriptionRequests', 'description', 'frontendPreferences',
-             'administrators', 'pendingGroupRequests', 'privateMeta'],
+      'subscriptions', 'profilePictureLargeUrl', 'profilePictureMediumUrl',
+      'banIds', 'subscribers', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'pendingSubscriptionRequests',
+      'subscriptionRequests', 'description', 'frontendPreferences',
+      'administrators', 'pendingGroupRequests', 'privateMeta', 'unreadDirectsNumber'],
     subscriptions:               { through: SubscriptionSerializer, embed: true },
     subscribers:                 { through: SubscriberSerializer },
     pendingSubscriptionRequests: { through: SubscriptionRequestSerializer, embed: true },

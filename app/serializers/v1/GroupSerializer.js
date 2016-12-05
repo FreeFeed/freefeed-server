@@ -4,9 +4,9 @@ import { Serializer, AdminSerializer, SubscriptionSerializer } from '../../model
 export function addSerializer() {
   return new Serializer('groups', {
     select: ['id', 'username', 'type', 'screenName',
-             'profilePictureLargeUrl', 'profilePictureMediumUrl',
-             'updatedAt', 'isPrivate', 'isRestricted', 'description',
-             'timelines', 'administrators'],
+      'profilePictureLargeUrl', 'profilePictureMediumUrl',
+      'updatedAt', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'isRestricted', 'description',
+      'timelines', 'administrators'],
     timelines:      { through: SubscriptionSerializer, embed: true },
     administrators: { through: AdminSerializer, embed: true }
   })

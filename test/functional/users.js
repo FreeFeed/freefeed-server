@@ -227,7 +227,7 @@ describe('UsersController', () => {
       }
 
       const response = await funcTestHelper.createUserAsyncPost(user)
-      response.status.should.equal(422)
+      response.status.should.equal(500)
 
       const data = await response.json()
       data.should.have.property('err')
@@ -242,7 +242,7 @@ describe('UsersController', () => {
       }
 
       const response = await funcTestHelper.createUserAsyncPost(user)
-      response.status.should.equal(422)
+      response.status.should.equal(500)
 
       const data = await response.json()
       data.should.have.property('err')
@@ -368,7 +368,7 @@ describe('UsersController', () => {
         .send({ authToken: lunaContext.authToken })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           done()
         })
     })
@@ -693,6 +693,50 @@ describe('UsersController', () => {
             res.body.users.should.have.property('id')
             res.body.users.should.have.property('isPrivate')
             res.body.users.isPrivate.should.eql('1')
+            res.body.users.should.have.property('isProtected')
+            res.body.users.isProtected.should.eql('1')
+            done()
+          })
+      })
+
+      it('should update visibility to anonymous', (done) => {
+        request
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken,
+            user:      { isVisibleToAnonymous: '0' },
+            '_method': 'put'
+          })
+          .end((err, res) => {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('id')
+            res.body.users.should.have.property('isVisibleToAnonymous')
+            res.body.users.should.have.property('isProtected')
+            res.body.users.isVisibleToAnonymous.should.eql('0')
+            res.body.users.isProtected.should.eql('1')
+            done()
+          })
+      })
+
+      it('should update protection settings', (done) => {
+        request
+          .post(`${app.config.host}/v1/users/${user.id}`)
+          .send({
+            authToken,
+            user:      { isProtected: '1' },
+            '_method': 'put'
+          })
+          .end((err, res) => {
+            res.should.not.be.empty
+            res.body.should.not.be.empty
+            res.body.should.have.property('users')
+            res.body.users.should.have.property('id')
+            res.body.users.should.have.property('isVisibleToAnonymous')
+            res.body.users.should.have.property('isProtected')
+            res.body.users.isVisibleToAnonymous.should.eql('0')
+            res.body.users.isProtected.should.eql('1')
             done()
           })
       })
@@ -731,7 +775,7 @@ describe('UsersController', () => {
             })
             .end((err) => {
               err.should.not.be.empty
-              err.status.should.eql(422)
+              err.status.should.eql(500)
               done()
             })
         })
@@ -782,7 +826,7 @@ describe('UsersController', () => {
       it('should not let user use email, which is used by other user', (done) => {
         funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })((err) => {
           $should.exist(err)
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Invalid email')
           done()
@@ -1014,7 +1058,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Passwords do not match')
           done()
@@ -1035,7 +1079,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Password cannot be blank')
           done()
@@ -1056,7 +1100,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Your old password is not valid')
           done()

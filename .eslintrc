@@ -19,17 +19,13 @@
       "jsx": true
     },
   },
-  "settings": {
-    "import/ignore": [
-      "node_modules"
-    ]
-  },
   "rules": {
-    "babel/array-bracket-spacing": [2, "never"],
-    "babel/arrow-parens": 2,
+    "array-bracket-spacing": [2, "never"],
+    "arrow-parens": 2,
     "arrow-spacing": 2,
     "brace-style": [2, "1tbs", { "allowSingleLine": true }],
     "consistent-return": 2,
+    "comma-spacing": 2,
     "eol-last": 2,
     "func-call-spacing": 2,
     "import/default": 2,
@@ -82,7 +78,7 @@
     "no-warning-comments": 1,
     "object-curly-newline": [2, { "multiline": true }],
     "babel/object-curly-spacing": [2, "always"],
-    "babel/object-shorthand": [2, "properties"],
+    "object-shorthand": [2, "properties"],
     "padded-blocks": [2, "never"],
     "prefer-arrow-callback": [2, { "allowNamedFunctions": true }],
     "prefer-const": 2,

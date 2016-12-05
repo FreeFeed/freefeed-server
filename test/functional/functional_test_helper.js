@@ -112,6 +112,17 @@ export function resetPassword(token) {
   }
 }
 
+export async function performSearch(context, query) {
+  const response = await postJson(
+    `/v2/search?qs=${encodeURIComponent(query)}`,
+    {
+      authToken: context.authToken,
+      '_method': 'get'
+    }
+  )
+  return await response.json()
+}
+
 export function createPost(context, body, callback) {
   return function (done) {
     apiUrl('/v1/posts')
@@ -503,7 +514,12 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  const response = await fetch(url)
+  const response = await fetch(url);
+
+  if (response.status != 200) {
+    throw new Error(`HTTP/1.1 ${response.status}`);
+  }
+
   const data = await response.json()
 
   return data

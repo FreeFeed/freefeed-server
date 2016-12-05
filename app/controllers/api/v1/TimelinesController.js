@@ -70,6 +70,10 @@ export default class TimelineController {
         throw new NotFoundException(`Feed "${username}" is not found`)
       }
 
+      if (user.hashedPassword === '') {
+        throw new NotFoundException(`Feed "${username}" is not found`);
+      }
+
       const currentUser = req.user ? req.user.id : null
       const timeline = await user.getPostsTimeline({
         offset: req.query.offset,
@@ -101,6 +105,10 @@ export default class TimelineController {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
       }
 
+      if (user.hashedPassword === '') {
+        throw new NotFoundException(`Feed "${username}" is not found`);
+      }
+
       const currentUser = req.user ? req.user.id : null
       const timeline = await user.getLikesTimeline({
         offset: req.query.offset,
@@ -130,6 +138,10 @@ export default class TimelineController {
 
       if (null === user) {
         throw new NotFoundException(`User "${req.params.username}" is not found`)
+      }
+
+      if (user.hashedPassword === '') {
+        throw new NotFoundException(`Feed "${username}" is not found`);
       }
 
       const currentUser = req.user ? req.user.id : null

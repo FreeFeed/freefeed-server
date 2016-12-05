@@ -43,6 +43,11 @@ export function addModel(dbAdapter) {
     }
 
     this.isPrivate = params.isPrivate
+    this.isVisibleToAnonymous = params.isVisibleToAnonymous
+    this.isProtected = params.isProtected
+    if (this.isPrivate === '1') {
+      this.isProtected = '1'
+    }
     this.resetPasswordToken = params.resetPasswordToken
     this.resetPasswordSentAt = params.resetPasswordSentAt
     if (parseInt(params.createdAt, 10))
@@ -102,6 +107,20 @@ export function addModel(dbAdapter) {
     get: function () { return this.isPrivate_ },
     set: function (newValue) {
       this.isPrivate_ = newValue || '0'
+    }
+  })
+
+  Reflect.defineProperty(User.prototype, 'isProtected', {
+    get: function () { return this.isProtected_ },
+    set: function (newValue) {
+      this.isProtected_ = newValue || '0'
+    }
+  })
+
+  Reflect.defineProperty(User.prototype, 'isVisibleToAnonymous', {
+    get: function () { return (this.isProtected_ === '1') ? '0' : '1' },
+    set: function (newValue) {
+      this.isProtected_ = (newValue === '0') ? '1' : '0'
     }
   })
 
@@ -306,6 +325,7 @@ export function addModel(dbAdapter) {
       'email':               this.email,
       'type':                this.type,
       'isPrivate':           '0',
+      'isProtected':         '0',
       'description':         '',
       'createdAt':           this.createdAt.toString(),
       'updatedAt':           this.updatedAt.toString(),
@@ -322,7 +342,7 @@ export function addModel(dbAdapter) {
 
   User.prototype.update = async function (params) {
     const payload = {}
-    const changeableKeys = ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences']
+    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -346,12 +366,30 @@ export function addModel(dbAdapter) {
         throw new Error('bad input')
       }
 
-      if (params.isPrivate === '1' && this.isPrivate === '0')
+      if (params.isPrivate === '1' && this.isPrivate === '0') {
+        // was public, now private
         await this.unsubscribeNonFriends()
-      else if (params.isPrivate === '0' && this.isPrivate === '1')
+      } else if (params.isPrivate === '0' && this.isPrivate === '1') {
+        // was private, now public
         await this.subscribeNonFriends()
+      }
 
       payload.isPrivate = params.isPrivate
+    }
+
+    // Compatibility with pre-isProtected clients:
+    // if there is only isPrivate param then isProtected becomes the same as isPrivate
+    if (params.hasOwnProperty('isPrivate') && (!params.hasOwnProperty('isProtected') || params.isPrivate === '1')) {
+      params.isProtected = params.isPrivate
+    }
+
+    if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
+      payload.isProtected = params.isProtected;
+    }
+
+    // isProtected have priority
+    if (params.hasOwnProperty('isVisibleToAnonymous') && !params.hasOwnProperty('isProtected') && params.isVisibleToAnonymous != this.isVisibleToAnonymous) {
+      payload.isProtected = (params.isVisibleToAnonymous === '0') ? '1' : '0';
     }
 
     if (params.hasOwnProperty('description') && params.description != this.description) {
@@ -538,25 +576,31 @@ export function addModel(dbAdapter) {
     return feed
   }
 
-  User.prototype.getGenericTimelineId = async function (name, params) {
-    params = params || {}
+  User.prototype.getGenericTimelineId = async function (name) {
+    const timelineId = await dbAdapter.getUserNamedFeedId(this.id, name);
 
-    const timeline = await dbAdapter.getUserNamedFeed(this.id, name, params)
-
-    if (!timeline) {
-      console.log(`Timeline '${name}' not found for user`, this)         // eslint-disable-line no-console
-      return null
+    if (!timelineId) {
+      console.log(`Timeline '${name}' not found for user`, this);  // eslint-disable-line no-console
+      return null;
     }
 
-    return timeline.id
+    return timelineId;
+  };
+
+  User.prototype.getUnreadDirectsNumber = async function () {
+    const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(this.id);
+    return unreadDirectsNumber;
   }
 
   User.prototype.getGenericTimelineIntId = async function (name) {
-    const timelineIds = await this.getTimelineIds()
+    const timelineIds = await this.getTimelineIds();
+    const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([timelineIds[name]]);
 
-    const timeline = await dbAdapter.getTimelineById(timelineIds[name])
+    if (intIds.length === 0) {
+      return null;
+    }
 
-    return timeline.intId
+    return intIds[0];
   }
 
   User.prototype.getGenericTimeline = async function (name, params) {
@@ -572,16 +616,16 @@ export function addModel(dbAdapter) {
     return this.getGenericTimelineIntId('MyDiscussions')
   }
 
-  User.prototype.getHidesTimelineId = function (params) {
-    return this.getGenericTimelineId('Hides', params)
+  User.prototype.getHidesTimelineId = function () {
+    return this.getGenericTimelineId('Hides')
   }
 
   User.prototype.getHidesTimelineIntId = function (params) {
     return this.getGenericTimelineIntId('Hides', params)
   }
 
-  User.prototype.getRiverOfNewsTimelineId = function (params) {
-    return this.getGenericTimelineId('RiverOfNews', params)
+  User.prototype.getRiverOfNewsTimelineId = function () {
+    return this.getGenericTimelineId('RiverOfNews')
   }
 
   User.prototype.getRiverOfNewsTimelineIntId = function (params) {
@@ -589,26 +633,29 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getRiverOfNewsTimeline = async function (params) {
-    const timelineId = await this.getRiverOfNewsTimelineId(params)
-    const hidesTimelineIntId = await this.getHidesTimelineIntId(params)
+    const [banIds, timelineId, hidesTimelineIntId] = await Promise.all([
+      this.getBanIds(),
+      this.getRiverOfNewsTimelineId(),
+      this.getHidesTimelineIntId(params)
+    ]);
 
-    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params)
-    const banIds = await this.getBanIds()
-    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset,
-                                                   riverOfNewsTimeline.limit)
+    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params);
+    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset, riverOfNewsTimeline.limit);
 
-    riverOfNewsTimeline.posts = await Promise.all(posts.map(async (post) => {
-      const postInTimeline = post.feedIntIds.includes(hidesTimelineIntId);
-
-      if (postInTimeline) {
-        post.isHidden = true
+    riverOfNewsTimeline.posts = posts.map((post) => {
+      if (banIds.includes(post.userId)) {
+        return null;
       }
 
-      return banIds.includes(post.userId) ? null : post
-    }))
+      if (post.feedIntIds.includes(hidesTimelineIntId)) {
+        post.isHidden = true;
+      }
 
-    return riverOfNewsTimeline
-  }
+      return post;
+    });
+
+    return riverOfNewsTimeline;
+  };
 
   User.prototype.getLikesTimelineId = function () {
     return this.getGenericTimelineId('Likes')
@@ -691,10 +738,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getFriendIds = async function () {
-    const timelines = await this.getSubscriptions()
-    const postTimelines = _.filter(timelines, _.method('isPosts'))
-
-    return postTimelines.map((timeline) => timeline.userId)
+    return await dbAdapter.getUserFriendIds(this.id);
   }
 
   User.prototype.getFriends = async function () {
@@ -711,10 +755,10 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getSubscribers = async function () {
-    const subscriberIds = await this.getSubscriberIds()
-    this.subscribers = await dbAdapter.getUsersByIds(subscriberIds)
+    const subscriberIds = await this.getSubscriberIds();
+    this.subscribers = await dbAdapter.getUsersByIds(subscriberIds);
 
-    return this.subscribers
+    return this.subscribers;
   }
 
   User.prototype.getBanIds = function () {
@@ -977,6 +1021,28 @@ export function addModel(dbAdapter) {
          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
   }
 
+  Reflect.defineProperty(User.prototype, 'profilePictureLargeUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE);
+    }
+  });
+
+  Reflect.defineProperty(User.prototype, 'profilePictureMediumUrl', {
+    get: function () {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+      return config.profilePictures.url
+          + config.profilePictures.path
+          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM);
+    }
+  });
+
   /**
    * Checks if the specified user can post to the timeline of this user.
    */
@@ -1070,19 +1136,8 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getManagedGroups = async function () {
-    const followedGroups = await this.getFollowedGroups()
-    const currentUserId  = this.id
-
-    const promises = followedGroups.map(async (group) => {
-      const adminIds = await group.getAdministratorIds()
-      if (adminIds.includes(currentUserId)) {
-        return group
-      }
-      return null
-    })
-
-    const managedGroups = await Promise.all(promises)
-    return _.compact(managedGroups)
+    const groupsIds = await dbAdapter.getManagedGroupIds(this.id);
+    return await dbAdapter.getUsersByIds(groupsIds);
   }
 
   User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
@@ -1097,7 +1152,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.getPendingGroupRequests = function () {
-    return this.pendingPrivateGroupSubscriptionRequests()
+    return dbAdapter.userHavePendingGroupRequests(this.id);
   }
 
   return User

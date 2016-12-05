@@ -12,6 +12,7 @@ export function addModel(dbAdapter) {
     this.intId = params.intId
     this.name = params.name
     this.userId = params.userId
+    this.user = null;
     if (parseInt(params.createdAt, 10))
       this.createdAt = params.createdAt
     if (parseInt(params.updatedAt, 10))
@@ -49,6 +50,10 @@ export function addModel(dbAdapter) {
     const promises = timelines.map(async (timeline) => {
       const feed = await timeline.getUser()
       await feed.updateLastActivityAt()
+
+      if (timeline.isDirects()) {
+        await pubSub.updateUnreadDirects(timeline.userId)
+      }
 
       return timeline.getSubscribersRiversOfNewsIntIds()
     })
@@ -267,18 +272,7 @@ export function addModel(dbAdapter) {
           return post
         }
 
-        const postTimelines = await post.getTimelines()
-        const promises = postTimelines.map(async (timeline) => {
-          if (!timeline.isPosts() && !timeline.isDirects()) {
-            return false
-          }
-
-          return timeline.canShow(this.currentUser)
-        })
-
-        const wasPostedToReadableFeed = _.some(await Promise.all(promises))
-
-        if (!wasPostedToReadableFeed) {
+        if (!await post.canShow(this.currentUser, false)) {
           return null
         }
       }
@@ -301,8 +295,12 @@ export function addModel(dbAdapter) {
     return
   }
 
-  Timeline.prototype.getUser = function () {
-    return dbAdapter.getFeedOwnerById(this.userId)
+  Timeline.prototype.getUser = async function () {
+    if (!this.user) {
+      this.user = await dbAdapter.getFeedOwnerById(this.userId);
+    }
+
+    return this.user;
   }
 
   /**
@@ -425,25 +423,33 @@ export function addModel(dbAdapter) {
     await feed.updateLastActivityAt()
   }
 
-  Timeline.prototype.canShow = async function (userId) {
-    // owner can read her posts
-    if (this.userId === userId)
-      return true
+  Timeline.prototype.canShow = async function (readerId) {
+    if (this.userId === readerId)
+      return true;  // owner can read her posts
 
-    // if post is already in user's feed then she can read it
     if (this.isDirects())
-      return this.userId === userId
+      return false;  // this is someone else's direct
 
-    // this is a public feed, anyone can read public posts, this is
-    // a free country
-    const user = await this.getUser()
-    if (user && user.isPrivate !== '1')
-      return true
+    const user = await this.getUser();
 
-    // otherwise user can view post if and only if she is subscriber
-    const userIds = await this.getSubscriberIds()
-    return userIds.includes(userId)
-  }
+    if (!user) {
+      throw new Error;
+    }
+
+    // this feed is not visible to anonymous and we just happen to be one
+    if (!readerId && user.isProtected === '1') {
+      return false;
+    }
+
+    if (user.isPrivate === '1') {
+      // user can view post if and only if she is subscriber
+      const subscriberIds = await this.getSubscriberIds();
+      return subscriberIds.includes(readerId);
+    }
+
+    // this is a public feed, anyone can read public posts, this is a free country
+    return true;
+  };
 
   return Timeline
 }

@@ -1,10 +1,18 @@
 import _ from 'lodash'
 import validator from 'validator'
 import NodeCache from 'node-cache'
-import { promisifyAll } from 'bluebird'
+import redis from 'redis'
+import cacheManager from 'cache-manager'
+import redisStore from 'cache-manager-redis'
 import pgFormat from 'pg-format';
+import { promisifyAll } from 'bluebird'
+
+import { load as configLoader } from '../../config/config'
 
 import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
+
+promisifyAll(redis.RedisClient.prototype);
+promisifyAll(redis.Multi.prototype);
 
 const USER_COLUMNS = {
   username:               'username',
@@ -17,6 +25,7 @@ const USER_COLUMNS = {
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
   isPrivate:              'is_private',
+  isProtected:            'is_protected',
   isRestricted:           'is_restricted',
   hashedPassword:         'hashed_password',
   resetPasswordToken:     'reset_password_token',
@@ -43,6 +52,7 @@ const USER_COLUMNS_MAPPING = {
     return d.toISOString()
   },
   isPrivate:           (is_private) => {return is_private === '1'},
+  isProtected:         (is_protected) => {return is_protected === '1'},
   isRestricted:        (is_restricted) => {return is_restricted === '1'},
   resetPasswordSentAt: (timestamp) => {
     const d = new Date()
@@ -63,6 +73,7 @@ const USER_FIELDS = {
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
   is_private:                'isPrivate',
+  is_protected:              'isProtected',
   is_restricted:             'isRestricted',
   hashed_password:           'hashedPassword',
   reset_password_token:      'resetPasswordToken',
@@ -77,6 +88,7 @@ const USER_FIELDS_MAPPING = {
   created_at:                (time) => { return time.getTime().toString() },
   updated_at:                (time) => { return time.getTime().toString() },
   is_private:                (is_private) => {return is_private ? '1' : '0' },
+  is_protected:              (is_protected) => {return is_protected ? '1' : '0' },
   is_restricted:             (is_restricted) => {return is_restricted ? '1' : '0' },
   reset_password_sent_at:    (time) => { return time && time.getTime() },
   reset_password_expires_at: (time) => { return time && time.getTime() },
@@ -285,11 +297,21 @@ const POST_FIELDS_MAPPING = {
   user_id:           (user_id) => {return user_id ? user_id : ''}
 }
 
-
 export class DbAdapter {
   constructor(database) {
     this.database = database
     this.statsCache = promisifyAll(new NodeCache({ stdTTL: 300 }))
+
+    const config = configLoader()
+
+    const CACHE_TTL = 60 * 60 * 24 // 24 hours
+
+    this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: CACHE_TTL })
+    this.cache = cacheManager.caching({ store: redisStore, host: config.redis.host, port: config.redis.port, ttl: CACHE_TTL })
+
+    promisifyAll(this.cache)
+    promisifyAll(this.memoryCache)
+    promisifyAll(this.cache.store)
   }
 
   static initObject(classDef, attrs, id, params) {
@@ -313,6 +335,14 @@ export class DbAdapter {
     })
   }
 
+  initUserObject = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
+    return DbAdapter.initObject(attrs.type === 'group' ? Group : User, attrs, attrs.id)
+  }
+
   async createUser(payload) {
     const preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
     const res = await this.database('users').returning('uid').insert(preparedPayload)
@@ -332,8 +362,20 @@ export class DbAdapter {
       preparedPayload['reset_password_expires_at'] = tokenExpirationTime.toISOString()
     }
 
+    this.cacheFlushUser(userId)
     return this.database('users').where('uid', userId).update(preparedPayload)
   }
+
+  setUpdatedAtInGroupsByIds = async (groupIds, time) => {
+    const updatedAt = new Date();
+    updatedAt.setTime(time);
+
+    const sql = pgFormat(`UPDATE "users" SET "updated_at" = ? WHERE "uid" IN (%L) AND "type"='group' RETURNING "uid"`, groupIds);
+    const uids = await this.database.raw(sql, [updatedAt.toISOString()]);
+
+    const flushPromises = uids.rows.map((row) => this.cacheFlushUser(row.uid));
+    await Promise.all(flushPromises);
+  };
 
   async existsUser(userId) {
     const res = await this.database('users').where('uid', userId).count()
@@ -391,8 +433,7 @@ export class DbAdapter {
   }
 
   async getUserByResetToken(token) {
-    const res = await this.database('users').where('reset_password_token', token)
-    let attrs = res[0]
+    const attrs = await this.database('users').first().where('reset_password_token', token)
 
     if (!attrs) {
       return null
@@ -407,14 +448,11 @@ export class DbAdapter {
       return null
     }
 
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return DbAdapter.initObject(User, attrs, attrs.id)
+    return this.initUserObject(attrs);
   }
 
   async getUserByEmail(email) {
-    const res = await this.database('users').whereRaw('LOWER(email)=LOWER(?)', email)
-    let attrs = res[0]
+    const attrs = await this.database('users').first().whereRaw('LOWER(email)=LOWER(?)', email)
 
     if (!attrs) {
       return null
@@ -424,65 +462,27 @@ export class DbAdapter {
       throw new Error(`Expected User, got ${attrs.type}`)
     }
 
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    return DbAdapter.initObject(User, attrs, attrs.id)
+    return this.initUserObject(attrs);
   }
 
-
   async getFeedOwnerById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('users').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    if (attrs.type === 'group') {
-      return DbAdapter.initObject(Group, attrs, id)
-    }
-
-    return DbAdapter.initObject(User, attrs, id)
+    return this.initUserObject(await this.fetchUser(id));
   }
 
   async getFeedOwnersByIds(ids) {
-    const responses = await this.database('users').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
+    return (await this.fetchUsers(ids)).map(this.initUserObject);
+  }
 
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-      }
-
-      if (attrs.type === 'group') {
-        return DbAdapter.initObject(Group, attrs, attrs.id)
-      }
-
-      return DbAdapter.initObject(User, attrs, attrs.id)
-    })
-
-    return objects
+  async getUsersByIdsAssoc(ids) {
+    return _.mapValues(await this.fetchUsersAssoc(ids), this.initUserObject);
   }
 
   async getFeedOwnerByUsername(username) {
-    const res = await this.database('users').where('username', username.toLowerCase())
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-
-    if (attrs.type === 'group') {
-      return DbAdapter.initObject(Group, attrs, attrs.id)
-    }
-
-    return DbAdapter.initObject(User, attrs, attrs.id)
+    const attrs = await this.database('users').first().where('username', username.toLowerCase())
+    return this.initUserObject(attrs);
   }
 
 
@@ -512,6 +512,116 @@ export class DbAdapter {
     }
 
     return feed
+  }
+
+  async getUserSubscribers(id) {
+    if (!validator.isUUID(id, 4)) {
+      return null;
+    }
+
+    const sql = `
+      select user_id from subscriptions
+        where feed_id in (
+          select uid from feeds where user_id = ? and name = 'Posts'
+        )
+        order by created_at`;
+
+    const res = await this.database.raw(sql, id);
+    return res.rows;
+  }
+
+  ///////////////////////////////////////////////////
+  // User's attributes caching
+  ///////////////////////////////////////////////////
+
+  async cacheFlushUser(id) {
+    const cacheKey = `user_${id}`
+    await this.cache.delAsync(cacheKey)
+  }
+
+  fixDateType = (date) => {
+    if (_.isString(date)) {
+      return new Date(date);
+    }
+
+    if (_.isDate(date)) {
+      return date;
+    }
+
+    return null;
+  };
+
+  fixCachedUserAttrs = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    // Convert dates back to the Date type
+    attrs['created_at'] = this.fixDateType(attrs['created_at']);
+    attrs['updated_at'] = this.fixDateType(attrs['updated_at']);
+    attrs['reset_password_sent_at'] = this.fixDateType(attrs['reset_password_sent_at']);
+    attrs['reset_password_expires_at'] = this.fixDateType(attrs['reset_password_expires_at']);
+    return attrs;
+  };
+
+  getCachedUserAttrs = async (id) => {
+    return this.fixCachedUserAttrs(await this.cache.getAsync(`user_${id}`))
+  };
+
+  async fetchUser(id) {
+    let attrs = await this.getCachedUserAttrs(id);
+    if (!attrs) {
+      // Cache miss, read from the database
+      attrs = await this.database('users').first().where('uid', id) || null;
+      if (attrs) {
+        await this.cache.setAsync(`user_${id}`, attrs);
+      }
+    }
+    return attrs;
+  }
+
+  /**
+   * Returns plain object with ids as keys and user attributes as values
+   */
+  async fetchUsersAssoc(ids) {
+    const idToUser = {};
+    if (_.isEmpty(ids)) {
+      return idToUser;
+    }
+    const uniqIds = _.uniq(ids);
+    let cachedUsers;
+    if (this.cache.store.name === 'redis') {
+      const { client, done } = await this.cache.store.getClientAsync();
+      try {
+        const cacheKeys = ids.map((id) => `user_${id}`);
+        const result = await client.mgetAsync(cacheKeys);
+        cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(this.fixCachedUserAttrs);
+      } finally {
+        done();
+      }
+    } else {
+      cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+    }
+
+    const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
+    const dbUsers = notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
+
+    await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
+
+    _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
+    dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
+    return idToUser;
+  }
+
+  async fetchUsers(ids) {
+    const idToUser = await this.fetchUsersAssoc(ids);
+    return ids.map((id) => idToUser[id] || null);
+  }
+
+  async someUsersArePublic(userIds, anonymousFriendly) {
+    const anonymousCondition = anonymousFriendly ? 'AND not "is_protected"' : '';
+    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE not "is_private" ${anonymousCondition} AND "uid" IN (%L)`, userIds);
+    const res = await this.database.raw(q);
+    return res.rows[0].cnt > 0;
   }
 
   ///////////////////////////////////////////////////
@@ -792,12 +902,23 @@ export class DbAdapter {
   // Group administrators
   ///////////////////////////////////////////////////
 
-  async getGroupAdministratorsIds(groupId) {
-    const res = await this.database('group_admins').select('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
-    const attrs = res.map((record) => {
-      return record.user_id
-    })
-    return attrs
+  getGroupAdministratorsIds(groupId) {
+    return this.database('group_admins').pluck('user_id').orderBy('created_at', 'desc').where('group_id', groupId)
+  }
+
+  /**
+   * Returns plain object with group UIDs as keys and arrays of admin UIDs as values
+   */
+  async getGroupsAdministratorsIds(groupIds) {
+    const rows = await this.database.select('group_id', 'user_id').from('group_admins').where('group_id', 'in', groupIds);
+    const res = {};
+    rows.forEach(({ group_id, user_id }) => {
+      if (!res.hasOwnProperty(group_id)) {
+        res[group_id] = [];
+      }
+      res[group_id].push(user_id);
+    });
+    return res;
   }
 
   addAdministratorToGroup(groupId, adminId) {
@@ -819,6 +940,38 @@ export class DbAdapter {
     }).delete()
   }
 
+  getManagedGroupIds(userId) {
+    return this.database('group_admins').pluck('group_id').orderBy('created_at', 'desc').where('user_id', userId);
+  }
+
+  async userHavePendingGroupRequests(userId) {
+    const res = await this.database.first('r.id')
+      .from('subscription_requests as r')
+      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
+      .where({ 'a.user_id': userId })
+      .limit(1);
+    return !!res;
+  }
+
+  /**
+   * Returns plain object with group UIDs as keys and arrays of requester's UIDs as values
+   */
+  async getPendingGroupRequests(groupsAdminId) {
+    const rows = await this.database.select('r.from_user_id as user_id', 'r.to_user_id as group_id')
+      .from('subscription_requests as r')
+      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
+      .where({ 'a.user_id': groupsAdminId });
+
+    const res = {};
+    rows.forEach(({ group_id, user_id }) => {
+      if (!res.hasOwnProperty(group_id)) {
+        res[group_id] = [];
+      }
+      res[group_id].push(user_id);
+    });
+    return res;
+  }
+
   ///////////////////////////////////////////////////
   // Attachments
   ///////////////////////////////////////////////////
@@ -830,7 +983,7 @@ export class DbAdapter {
   }
 
   async getAttachmentById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('attachments').where('uid', id)
@@ -979,7 +1132,7 @@ export class DbAdapter {
   }
 
   async getCommentById(id) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('comments').where('uid', id)
@@ -1046,6 +1199,14 @@ export class DbAdapter {
   // Feeds
   ///////////////////////////////////////////////////
 
+  initTimelineObject = (attrs, params) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
+    return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
+  }
+
   async createTimeline(payload) {
     const preparedPayload = this._prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
     if (preparedPayload.name == 'MyDiscussions') {
@@ -1069,15 +1230,26 @@ export class DbAdapter {
     return Promise.all(promises)
   }
 
-  async getUserTimelinesIds(userId) {
-    const res = await this.database('feeds').where('user_id', userId)
-    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'})
-    const hides         = _.filter(res, (record) => { return record.name == 'Hides'})
-    const comments      = _.filter(res, (record) => { return record.name == 'Comments'})
-    const likes         = _.filter(res, (record) => { return record.name == 'Likes'})
-    const posts         = _.filter(res, (record) => { return record.name == 'Posts'})
-    const directs       = _.filter(res, (record) => { return record.name == 'Directs'})
-    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'})
+  async cacheFetchUserTimelinesIds(userId) {
+    const cacheKey = `timelines_user_${userId}`;
+
+    // Check the cache first
+    const cachedTimelines = await this.memoryCache.getAsync(cacheKey);
+
+    if (typeof cachedTimelines != 'undefined' && cachedTimelines) {
+      // Cache hit
+      return cachedTimelines;
+    }
+
+    // Cache miss, read from the database
+    const res = await this.database('feeds').where('user_id', userId);
+    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'});
+    const hides         = _.filter(res, (record) => { return record.name == 'Hides'});
+    const comments      = _.filter(res, (record) => { return record.name == 'Comments'});
+    const likes         = _.filter(res, (record) => { return record.name == 'Likes'});
+    const posts         = _.filter(res, (record) => { return record.name == 'Posts'});
+    const directs       = _.filter(res, (record) => { return record.name == 'Directs'});
+    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'});
 
     const timelines =  {
       'RiverOfNews': riverOfNews[0] && riverOfNews[0].uid,
@@ -1085,77 +1257,54 @@ export class DbAdapter {
       'Comments':    comments[0] && comments[0].uid,
       'Likes':       likes[0] && likes[0].uid,
       'Posts':       posts[0] && posts[0].uid
-    }
+    };
 
     if (directs[0]) {
-      timelines['Directs'] = directs[0].uid
+      timelines['Directs'] = directs[0].uid;
     }
 
     if (myDiscussions[0]) {
-      timelines['MyDiscussions'] = myDiscussions[0].uid
+      timelines['MyDiscussions'] = myDiscussions[0].uid;
     }
 
-    return timelines
+    if (res.length) {
+      // Don not cache empty feeds lists
+      await this.memoryCache.setAsync(cacheKey, timelines);
+    }
+
+    return timelines;
+  }
+
+  async getUserTimelinesIds(userId) {
+    return await this.cacheFetchUserTimelinesIds(userId);
   }
 
   async getTimelineById(id, params) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('feeds').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, attrs, id, params)
+    const attrs = await this.database('feeds').first().where('uid', id);
+    return this.initTimelineObject(attrs, params);
   }
 
   async getTimelineByIntId(id, params) {
-    const res = await this.database('feeds').where('id', id)
-    let feed = res[0]
-
-    if (!feed) {
-      return null
-    }
-
-    feed = this._prepareModelPayload(feed, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, feed, feed.id, params)
+    const attrs = await this.database('feeds').first().where('id', id);
+    return this.initTimelineObject(attrs, params);
   }
 
   async getTimelinesByIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
-    })
-    return objects
+    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`);
+    return responses.map((r) => this.initTimelineObject(r, params));
   }
 
   async getTimelinesByIntIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING)
-      }
-      return DbAdapter.initObject(Timeline, attrs, attrs.id, params)
-    })
-    return objects
+    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`);
+    return responses.map((r) => this.initTimelineObject(r, params));
   }
 
   async getTimelinesIntIdsByUUIDs(uuids) {
-    const responses = await this.database('feeds').select('id').whereIn('uid', uuids)
-
-    const ids = responses.map((record) => {
-      return record.id
-    })
-    return ids
+    const responses = await this.database('feeds').select('id').whereIn('uid', uuids);
+    return responses.map((record) => record.id);
   }
 
   async getTimelinesUUIDsByIntIds(ids) {
@@ -1167,20 +1316,39 @@ export class DbAdapter {
     return uuids
   }
 
-  async getUserNamedFeed(userId, name, params) {
-    const response = await this.database('feeds').returning('uid').where({
+  async getTimelinesUserSubscribed(userId, feedType = null) {
+    const where = { 's.user_id': userId };
+    if (feedType !== null) {
+      where['f.name'] = feedType;
+    }
+    const records = await this.database
+      .select('f.*')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where(where)
+      .orderBy('s.created_at', 'desc');
+    return records.map(this.initTimelineObject);
+  }
+
+  async getUserNamedFeedId(userId, name) {
+    const response = await this.database('feeds').select('uid').where({
       user_id: userId,
       name
-    })
+    });
 
-    let namedFeed = response[0]
-
-    if (!namedFeed) {
-      return null
+    if (response.length === 0) {
+      return null;
     }
 
-    namedFeed = this._prepareModelPayload(namedFeed, FEED_FIELDS, FEED_FIELDS_MAPPING)
-    return DbAdapter.initObject(Timeline, namedFeed, namedFeed.id, params)
+    return response[0].uid;
+  }
+
+  async getUserNamedFeed(userId, name, params) {
+    const response = await this.database('feeds').first().returning('uid').where({
+      user_id: userId,
+      name
+    });
+    return this.initTimelineObject(response, params);
   }
 
   async getUserNamedFeedsIntIds(userId, names) {
@@ -1193,16 +1361,13 @@ export class DbAdapter {
   }
 
   async getUsersNamedFeedsIntIds(userIds, names) {
-    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names)
-
-    const ids = responses.map((record) => {
-      return record.id
-    })
-    return ids
+    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names);
+    return responses.map((record) => record.id);
   }
 
   async deleteUser(uid) {
     await this.database('users').where({ uid }).delete();
+    await this.cacheFlushUser(uid)
   }
 
   ///////////////////////////////////////////////////
@@ -1222,7 +1387,7 @@ export class DbAdapter {
   }
 
   async getPostById(id, params) {
-    if (!validator.isUUID(id,4)) {
+    if (!validator.isUUID(id, 4)) {
       return null
     }
     const res = await this.database('posts').where('uid', id)
@@ -1395,6 +1560,8 @@ export class DbAdapter {
     let bannedUsersFilter = '';
     let usersWhoBannedMeFilter = '';
 
+    const publicOrVisibleForAnonymous = currentUser ? 'not "users"."is_private"' : 'not "users"."is_protected"'
+
     if (currentUser) {
       const [iBanned, bannedMe] = await Promise.all([
         this.getUserBansIds(currentUser.id),
@@ -1414,7 +1581,7 @@ export class DbAdapter {
       LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
-      INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND "users"."is_private" = false
+      INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND ${publicOrVisibleForAnonymous}
       WHERE
         "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS} AND "posts"."created_at" > (current_date - ${MAX_DAYS} * interval '1 day')
         ${bannedUsersFilter}
@@ -1430,12 +1597,26 @@ export class DbAdapter {
   // Subscriptions
   ///////////////////////////////////////////////////
 
-  async getUserSubscriptionsIds(userId) {
-    const res = await this.database('subscriptions').select('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
-    const attrs = res.map((record) => {
-      return record.feed_id
-    })
-    return attrs
+  getUserSubscriptionsIds(userId) {
+    return this.database('subscriptions').pluck('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
+  }
+
+  getUserSubscriptionsIdsByType(userId, feedType) {
+    return this.database
+      .pluck('s.feed_id')
+      .from('subscriptions as s').innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where({ 's.user_id': userId, 'f.name': feedType })
+      .orderBy('s.created_at', 'desc')
+  }
+
+  getUserFriendIds(userId) {
+    const feedType = 'Posts';
+    return this.database
+      .pluck('f.user_id')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 's.feed_id', 'f.uid')
+      .where({ 's.user_id': userId, 'f.name': feedType })
+      .orderBy('s.created_at', 'desc');
   }
 
   async isUserSubscribedToTimeline(currentUserId, timelineId) {
@@ -1444,6 +1625,13 @@ export class DbAdapter {
       user_id: currentUserId
     }).count()
     return parseInt(res[0].count) != 0
+  }
+
+  async isUserSubscribedToOneOfTimelines(currentUserId, timelineIds) {
+    const q = pgFormat('SELECT COUNT(*) AS "cnt" FROM "subscriptions" WHERE "feed_id" IN (%L) AND "user_id" = ?', timelineIds);
+    const res = await this.database.raw(q, [currentUserId]);
+
+    return res.rows[0].cnt > 0;
   }
 
   async getTimelineSubscribersIds(timelineId) {
@@ -1456,19 +1644,7 @@ export class DbAdapter {
 
   async getTimelineSubscribers(timelineIntId) {
     const responses = this.database('users').whereRaw('subscribed_feed_ids && ?', [[timelineIntId]])
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING)
-      }
-
-      if (attrs.type === 'group') {
-        return DbAdapter.initObject(Group, attrs, attrs.id)
-      }
-
-      return DbAdapter.initObject(User, attrs, attrs.id)
-    })
-
-    return objects
+    return responses.map(this.initUserObject)
   }
 
   async subscribeUserToTimelines(timelineIds, currentUserId) {
@@ -1491,6 +1667,8 @@ export class DbAdapter {
       [feedIntIds, currentUserId]
     );
 
+    await this.cacheFlushUser(currentUserId)
+
     return res.rows[0].subscribed_feed_ids
   }
 
@@ -1509,6 +1687,8 @@ export class DbAdapter {
       'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
       [feedIntIds, currentUserId]
     );
+
+    await this.cacheFlushUser(currentUserId)
 
     return res.rows[0].subscribed_feed_ids
   }
@@ -1584,6 +1764,7 @@ export class DbAdapter {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+    const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected'
 
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
       visibleFeedIds = 'NULL'
@@ -1591,16 +1772,16 @@ export class DbAdapter {
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and ${publicOrVisibleForAnonymous} ` +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and ${publicOrVisibleForAnonymous} ` +
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) `;
+          ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
@@ -1655,7 +1836,7 @@ export class DbAdapter {
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) `;
+          ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
@@ -1705,7 +1886,7 @@ export class DbAdapter {
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
-          ) `;
+          ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
@@ -1837,7 +2018,12 @@ export class DbAdapter {
     if (!names || names.length == 0) {
       return []
     }
-    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', names)
+
+    const lowerCaseNames =  names.map((hashtag) => {
+      return hashtag.toLowerCase()
+    })
+
+    const res = await this.database('hashtags').select('id', 'name').where('name', 'in', lowerCaseNames)
     return res.map((t) => t.id)
   }
 
@@ -1845,7 +2031,12 @@ export class DbAdapter {
     if (!names || names.length == 0) {
       return []
     }
-    const targetTagNames   = _.sortBy(names)
+
+    const lowerCaseNames    =  names.map((hashtag) => {
+      return hashtag.toLowerCase()
+    })
+
+    const targetTagNames   = _.sortBy(lowerCaseNames)
     const existingTags     = await this.database('hashtags').select('id', 'name').where('name', 'in', targetTagNames)
     const existingTagNames = _.sortBy(existingTags.map((t) => t.name))
 
@@ -1877,7 +2068,7 @@ export class DbAdapter {
       return []
     }
     const payload = names.map((name) => {
-      return pgFormat(`(%L)`, name)
+      return pgFormat(`(%L)`, name.toLowerCase())
     }).join(',')
     const res = await this.database.raw(`insert into hashtags ("name") values ${payload} on conflict do nothing returning "id" `)
     return res.rows.map((t) => t.id)
@@ -1964,38 +2155,60 @@ export class DbAdapter {
   }
 
   async getUnreadDirectsNumber(userId) {
+    const [
+      [directsFeedId],
+      [directsReadAt],
+    ] = await Promise.all([
+      this.database.pluck('id').from('feeds').where({ 'user_id': userId, 'name': 'Directs' }),
+      this.database.pluck('directs_read_at').from('users').where({ 'uid': userId }),
+    ]);
+
     /*
      Select posts from my Directs feed, created after the directs_read_at authored by
      users other than me and then add posts from my Directs feed, having comments created after the directs_read_at
      authored by users other than me
      */
-    const uid = pgFormat('%L', userId)
-
     const sql = `
       select count(distinct unread.id) as cnt from (
-        select posts.id, posts.uid from posts
-          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
-          inner join users on feeds.user_id = users.uid
-          where 
-            users.uid=${uid}
-            and posts.user_id != ${uid}
-            and posts.created_at > users.directs_read_at
+        select id from 
+          posts 
+        where
+          destination_feed_ids && :feeds
+          and user_id != :userId
+          and created_at > :directsReadAt
         union
-        select posts.id, posts.uid from posts
-          inner join feeds on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Directs'
-          inner join users on feeds.user_id = users.uid
-          inner join comments on comments.post_id = posts.uid
-          where 
-            users.uid=${uid}
-            and comments.user_id != ${uid}
-          group by 
-            posts.id, posts.uid, users.directs_read_at
-          having 
-            max(comments.created_at) > users.directs_read_at) as unread`
+        select p.id from
+          comments c
+          join posts p on p.uid = c.post_id
+        where
+          p.destination_feed_ids && :feeds
+          and c.user_id != :userId
+          and c.created_at > :directsReadAt
+      ) as unread`;
 
-    const res = await this.database.raw(sql);
+    const res = await this.database.raw(sql, { feeds: `{${directsFeedId}}`, userId, directsReadAt });
     return res.rows[0].cnt;
   }
+
+  ///////////////////////////////////////////////////
+  // Stats
+  ///////////////////////////////////////////////////
+  async getStats(data, start_date, end_date) {
+    // Other data types are not yet implemented
+    if (data !== 'users') {
+      return null;
+    }
+
+    const sql = pgFormat(`
+      select d.dt as date,
+             (select count(u.uid) from users as u
+                where u.created_at < d.dt + interval '1 day'
+            and u.type ='user') AS users
+        from (select dt::date
+          from generate_series(timestamp %L, timestamp %L, interval '1 day') dt) as d`,
+      start_date, end_date);
+
+    const res = await this.database.raw(sql);
+    return res.rows;
+  }
 }
-
-

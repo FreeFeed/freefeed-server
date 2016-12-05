@@ -2,8 +2,8 @@ import { flow } from 'lodash';
 import twitter from 'twitter-text'
 import { SEARCH_SCOPES } from './SearchConstants'
 
-const FROM_USERNAME_PATTERN             = 'from:\\s*([A-Za-z0-9]{3,25})';
-const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*[A-Za-z0-9]{3,}\\s?';
+const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
+const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*(me|[A-Za-z0-9]{3,})\\s?';
 const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
 const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
 const QUOTE_PATTERN                     = '\\"(.+?)\\"'
@@ -16,7 +16,7 @@ const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'i
 const quotedQueryReplacementRegex  = new RegExp(QUOTE_REPLACEMENT_PATTERN, 'ig')
 
 export class SearchQueryParser {
-  static parse(query) {
+  static parse(query, defaultUsername = null) {
     query = decodeURIComponent(query)
 
     const parseResult = {
@@ -28,16 +28,20 @@ export class SearchQueryParser {
       hashtags: []
     }
 
-    this.parseQueryScope(parseResult)
+    this.parseQueryScope(parseResult, defaultUsername)
     this.parseQueryConditions(parseResult)
     this.processQueryText(parseResult)
 
     return parseResult
   }
 
-  static parseQueryScope(queryObject) {
-    const targetUsername  = this.parseTargetUsername(queryObject.query)
+  static parseQueryScope(queryObject, defaultUsername = null) {
+    let targetUsername  = this.parseTargetUsername(queryObject.query)
     const targetGroupname = this.parseTargetGroupname(queryObject.query)
+
+    if (targetUsername === 'me' && defaultUsername) {
+      targetUsername = defaultUsername
+    }
 
     if (targetUsername) {
       queryObject.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS
@@ -84,7 +88,7 @@ export class SearchQueryParser {
   }
 
   static extractHashtags(queryObject) {
-    const hashtags = twitter.extractHashtagsWithIndices(queryObject.query)
+    const hashtags = twitter.extractHashtagsWithIndices(queryObject.query.toLowerCase())
     const indices = hashtags.map((h) => h.indices)
     let query = queryObject.query
 
@@ -116,7 +120,7 @@ export class SearchQueryParser {
 
   static prepareQuery(query) {
     return query
-      .replace(/-/ig, '!')
-      .replace(/\s/g, ' & ')
+      .replace(/(^|\s)-/ig, '$1!')
+      .replace(/\s+/g, ' & ')
   }
 }

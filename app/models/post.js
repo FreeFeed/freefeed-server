@@ -213,10 +213,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getGenericFriendOfFriendTimelineIntIds = async function (user, type) {
-    let timelineIntIds = []
+    const timelineIntIds = []
 
     const userTimelineIntId = await user[`get${type}TimelineIntId`]()
-    const timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId)
     timelineIntIds.push(userTimelineIntId)
 
     const timelines = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds)
@@ -230,6 +229,7 @@ export function addModel(dbAdapter) {
     if (_.some(timelineOwners.map((owner) => owner.isUser()))) {
       groupOnly = false
 
+      const timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId)
       const subscribersIds = await timeline.getSubscriberIds()
       const subscribersRiversOfNewsIntIds = await dbAdapter.getUsersNamedFeedsIntIds(subscribersIds, ['RiverOfNews'])
       timelineIntIds.push(subscribersRiversOfNewsIntIds)
@@ -244,9 +244,8 @@ export function addModel(dbAdapter) {
 
     timelineIntIds.push(await user.getRiverOfNewsTimelineIntId())
     timelineIntIds.push(this.feedIntIds)
-    timelineIntIds = _.uniq(_.flatten(timelineIntIds))
 
-    return timelineIntIds
+    return _.uniq(_.flatten(timelineIntIds))
   }
 
   Post.prototype.getLikesFriendOfFriendTimelineIntIds = function (user) {
@@ -328,14 +327,14 @@ export function addModel(dbAdapter) {
       return
     }
 
-    const currentTime = new Date().getTime()
-    await dbAdapter.setPostUpdatedAt(this.id, currentTime)
+    const now = new Date();
 
-    const promises = timelineOwnersIds.map(async (ownerId) => {
-      const feedOwner = await dbAdapter.getFeedOwnerById(ownerId)
-      return feedOwner.updateLastActivityAt()
-    })
-    await Promise.all(promises)
+    const promises = [
+      dbAdapter.setPostUpdatedAt(this.id, now.getTime()),
+      dbAdapter.setUpdatedAtInGroupsByIds(timelineOwnersIds, now.getTime())
+    ];
+
+    await Promise.all(promises);
   }
 
   Post.prototype.getOmittedComments = async function () {
@@ -560,34 +559,41 @@ export function addModel(dbAdapter) {
     return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
-  Post.prototype.canShow = async function (userId) {
-    const timelines = await this.getPostedTo()
+  Post.prototype.canShow = async function (readerId, checkOnlyDestinations = true) {
+    let timelines = await (checkOnlyDestinations ? this.getPostedTo() : this.getTimelines());
 
-    const arr = await Promise.all(timelines.map(async (timeline) => {
-      // owner can read her posts
-      if (timeline.userId === userId)
-        return true
+    if (!checkOnlyDestinations) {
+      timelines = timelines.filter((timeline) => timeline.isPosts() || timeline.isDirects());
+    }
 
-      // if post is already in user's feed then she can read it
-      if (timeline.isDirects())
-        return timeline.userId === userId
+    if (timelines.map((timeline) => timeline.userId).includes(readerId)) {
+      // one of the timelines belongs to the user
+      return true;
+    }
 
-      // this is a public feed, anyone can read public posts, this is
-      // a free country
-      const user = await timeline.getUser()
-      if (user.isPrivate !== '1')
-        return true
+    // skipping someone else's directs
+    const nonDirectTimelines = timelines.filter((timeline) => !timeline.isDirects());
 
-      // otherwise user can view post if and only if she is subscriber
-      const userIds = await timeline.getSubscriberIds()
-      return userIds.includes(userId)
-    }))
+    if (nonDirectTimelines.length === 0) {
+      return false;
+    }
 
-    return _.reduce(arr, (acc, x) => { return acc || x }, false)
-  }
+    const ownerIds = nonDirectTimelines.map((timeline) => timeline.userId);
+    if (await dbAdapter.someUsersArePublic(ownerIds, !readerId)) {
+      return true;
+    }
+
+    if (!readerId) {
+      // no public feeds. anonymous can't see
+      return false;
+    }
+
+    const timelineIds = nonDirectTimelines.map((timeline) => timeline.id);
+    return await dbAdapter.isUserSubscribedToOneOfTimelines(readerId, timelineIds);
+  };
 
   Post.prototype.processHashtagsOnCreate = async function () {
-    const postTags = _.uniq(twitter.extractHashtags(this.body))
+    const postTags = _.uniq(twitter.extractHashtags(this.body.toLowerCase()))
 
     if (!postTags || postTags.length == 0) {
       return
@@ -599,7 +605,7 @@ export function addModel(dbAdapter) {
     const linkedPostHashtags = await dbAdapter.getPostHashtags(this.id)
 
     const presentTags    = _.sortBy(linkedPostHashtags.map((t) => t.name))
-    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body)))
+    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body.toLowerCase())))
     const notChangedTags = _.intersection(presentTags, newTags)
     const tagsToUnlink   = _.difference(presentTags, notChangedTags)
     const tagsToLink     = _.difference(newTags, notChangedTags)

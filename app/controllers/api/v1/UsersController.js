@@ -445,7 +445,7 @@ export default class UsersController {
     }
 
     const attrs = _.reduce(
-      ['screenName', 'email', 'isPrivate', 'description', 'frontendPreferences'],
+      ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences'],
       (acc, key) => {
         if (key in req.body.user)
           acc[key] = req.body.user[key]

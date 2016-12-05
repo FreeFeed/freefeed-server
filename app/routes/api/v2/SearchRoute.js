@@ -2,5 +2,6 @@ import { SearchController } from '../../../controllers'
 
 
 export default function addRoutes(app) {
-  app.get('/v2/search', SearchController.search)
+  const controller = new SearchController(app);
+  app.get('/v2/search', controller.search);
 }

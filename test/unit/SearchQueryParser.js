@@ -11,8 +11,13 @@ import { SEARCH_SCOPES } from '../../app/support/SearchConstants';
  */
 describe('SearchQueryParser', () => {
   const expectations = {
-    'test':                       { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,     query: 'test' },
+    'test':                       { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: 'test' },
+    'foo -bar':                   { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: 'foo & !bar' },
+    '-foo bar':                   { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: '!foo & bar' },
+    'foo-bar':                    { scope: SEARCH_SCOPES.ALL_VISIBLE_POSTS,   query: 'foo-bar' },
     'from:luna test':             { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'test',      username: 'luna' },
+    'from:me test':               { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'test',      username: 'luna', defaultUsername: 'luna' },
+    'from:me foo':                { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'foo',       username: 'me' },
     'test from:luna':             { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'test',      username: 'luna' },
     'from:luna foo bar':          { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'foo & bar', username: 'luna' },
     'foo from:luna bar':          { scope: SEARCH_SCOPES.VISIBLE_USER_POSTS,  query: 'foo & bar', username: 'luna' },
@@ -22,7 +27,7 @@ describe('SearchQueryParser', () => {
 
   forEach(expectations, (output, input) => {
     it(`should parse "${input}"`, () => {
-      const result = SearchQueryParser.parse(input);
+      const result = SearchQueryParser.parse(input, output.defaultUsername ? output.defaultUsername : null);
 
       expect(result.scope).to.equal(output.scope);
       expect(result.query).to.equal(output.query);

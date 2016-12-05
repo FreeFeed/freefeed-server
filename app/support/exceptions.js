@@ -1,10 +1,12 @@
 export function reportError(res) {
   return (err) => {
     const result = {};
-    const status = err && err.status ? err.status : 422;
+    const status = err && err.status ? err.status : 500;
 
-    if (err && 'message' in err) {
+    if (err && 'message' in err && err.message) {
       result.err = err.message
+    } else {
+      result.err = 'Internal Server Error';
     }
 
     res.status(status).jsonp(result)

@@ -1,6 +1,8 @@
 export default class pubSubStub {
   constructor() {}
 
+  updateUnreadDirects() {}
+
   newPost() {}
 
   destroyPost() {}

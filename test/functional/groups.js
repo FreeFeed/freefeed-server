@@ -92,7 +92,7 @@ describe('GroupsController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           done()
         })
     })
@@ -108,7 +108,7 @@ describe('GroupsController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Invalid username')
           done()
@@ -126,7 +126,7 @@ describe('GroupsController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(422)
+          err.status.should.eql(500)
           err.response.error.should.have.property('text')
           JSON.parse(err.response.error.text).err.should.eql('Invalid username')
           done()
@@ -164,7 +164,7 @@ describe('GroupsController', () => {
             .query({ authToken: context.authToken })
             .end((err, res) => {
               res.status.should.not.eql(404)
-              res.status.should.not.eql(422)
+              res.status.should.not.eql(500)
               res.body.should.not.be.empty
               res.body.should.have.property('subscribers')
               res.body.should.have.property('subscriptions')

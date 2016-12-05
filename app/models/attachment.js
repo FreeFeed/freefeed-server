@@ -6,12 +6,14 @@ import gm from 'gm'
 import meta from 'musicmetadata'
 import mmm from 'mmmagic'
 import _ from 'lodash'
+import mv from 'mv';
 
 import { load as configLoader } from '../../config/config'
 
 
 const config = configLoader()
 promisifyAll(fs)
+const mvAsync = promisify(mv);
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE)
 const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
@@ -289,7 +291,7 @@ export function addModel(dbAdapter) {
       await this.uploadToS3(tmpAttachmentFile, config.attachments.path)
       await fs.unlinkAsync(tmpAttachmentFile)
     } else {
-      await fs.renameAsync(tmpAttachmentFile, this.getPath())
+      await mvAsync(tmpAttachmentFile, this.getPath(), {})
     }
   }
 
@@ -322,7 +324,7 @@ export function addModel(dbAdapter) {
         await this.uploadToS3(tmpImageFile, sizeConfig.path)
         await fs.unlinkAsync(tmpImageFile)
       } else {
-        await fs.renameAsync(tmpImageFile, this.getResizedImagePath(sizeId))
+        await mvAsync(tmpImageFile, this.getResizedImagePath(sizeId), {})
       }
     }
   }

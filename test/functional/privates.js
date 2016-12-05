@@ -223,7 +223,7 @@ describe('Privates', () => {
             })
             .end((err) => {
               err.should.not.be.empty
-              err.status.should.eql(422)
+              err.status.should.eql(500)
               done()
             })
         })
