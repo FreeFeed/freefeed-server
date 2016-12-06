@@ -2194,19 +2194,32 @@ export class DbAdapter {
   // Stats
   ///////////////////////////////////////////////////
   async getStats(data, start_date, end_date) {
-    // Other data types are not yet implemented
-    if (data !== 'users') {
+    const supported_metrics = ['comments', 'comments_creates', 'posts', 'posts_creates', 'users', 'active_users'];
+
+    const metrics = data.split(',').sort();
+
+    let metrics_req = ``, metrics_list = `''null''`;
+
+    for (const metric of metrics) {
+      if (supported_metrics.includes(metric)) {
+        metrics_req += `, "${metric}" bigint`;
+        metrics_list += `, ''${metric}''`;
+      } else {
+        throw new Error(`ERROR: unsupported metric: ${metric}`);
+      }
+    }
+
+    if (!metrics_req.length) {
       return null;
     }
 
     const sql = pgFormat(`
-      select d.dt as date,
-             (select count(u.uid) from users as u
-                where u.created_at < d.dt + interval '1 day'
-            and u.type ='user') AS users
-        from (select dt::date
-          from generate_series(timestamp %L, timestamp %L, interval '1 day') dt) as d`,
-      start_date, end_date);
+      select * from crosstab(
+        'select to_char(dt, ''YYYY-MM-DD'') as date, metric, value from stats 
+          where dt between '%L' and '%L' 
+            and metric in (%s)
+          order by 1,2;')  
+       AS ct ("date" text %s);`, start_date, end_date, metrics_list, metrics_req);
 
     const res = await this.database.raw(sql);
     return res.rows;
