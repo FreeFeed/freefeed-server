@@ -11,7 +11,7 @@ const config = configLoader()
 let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options)
 export default database;
 
-// TODO: move to app.logger
+// TODO: move to app.context.logger
 database.on('connect', log('connect'))
 database.on('ready', log('ready'))
 database.on('reconnecting', log('reconnecting'))

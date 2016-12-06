@@ -1,7 +1,13 @@
-export function reportError(res) {
+export function reportError(ctx) {
   return (err) => {
     const result = {};
     const status = err && err.status ? err.status : 500;
+
+    if ('internalQuery' in err) {
+      // looks like postgres err
+      ctx.logger.error(err);
+      Reflect.deleteProperty(err, 'message');  // do not expose DB internals
+    }
 
     if (err && 'message' in err && err.message) {
       result.err = err.message
@@ -9,7 +15,8 @@ export function reportError(res) {
       result.err = 'Internal Server Error';
     }
 
-    res.status(status).jsonp(result)
+    ctx.status = status;
+    ctx.body = result;
   }
 }
 

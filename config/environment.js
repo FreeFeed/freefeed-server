@@ -1,15 +1,15 @@
 import fs from 'fs'
 
-import bodyParser from 'body-parser'
-import methodOverride from 'method-override'
-import morgan from 'morgan'
-import passport from 'passport'
+import koaBody from 'koa-body';
+import methodOverride from 'koa-methodoverride';
+import morgan from 'koa-morgan';
+import passport from 'koa-passport';
 import winston from 'winston'
 import responseTime from 'response-time'
 import { promisify } from 'bluebird';
 
-import { init as originInit } from './initializers/origin'
-import { load as configLoader } from './config'
+import { originMiddleware } from './initializers/origin';
+import { load as configLoader } from './config';
 import { selectDatabase } from './database'
 import { configure as configurePostgres } from './postgres'
 import { init as passportInit } from './initializers/passport'
@@ -21,8 +21,9 @@ const env = process.env.NODE_ENV || 'development'
 passportInit(passport)
 
 async function selectEnvironment(app) {
-  app.config = config
-  app.logger = new (winston.Logger)({
+  app.context.config = config;
+  app.context.port = process.env.PORT || config.port;
+  app.context.logger = new (winston.Logger)({
     transports: [
       new (winston.transports.Console)({
         timestamp:        true,
@@ -31,9 +32,6 @@ async function selectEnvironment(app) {
       })
     ]
   })
-
-  app.set('redisdb', config.database)
-  app.set('port', process.env.PORT || config.port)
 
   await selectDatabase()
   await configurePostgres()
@@ -54,7 +52,7 @@ exports.init = async function (app) {
       await access(attachmentsDir, fs.W_OK);
     } catch (e) {
       gotErrors = true;
-      app.logger.error(`Attachments dir does not exist: ${attachmentsDir}`)
+      app.context.logger.error(`Attachments dir does not exist: ${attachmentsDir}`)
     }
 
     const checkPromises = Object.values(config.attachments.imageSizes).map(async (sizeConfig) => {
@@ -64,7 +62,7 @@ exports.init = async function (app) {
         await access(thumbnailsDir, fs.W_OK);
       } catch (e) {
         gotErrors = true;
-        app.logger.error(`Thumbnails dir does not exist: ${thumbnailsDir}`);
+        app.context.logger.error(`Thumbnails dir does not exist: ${thumbnailsDir}`);
       }
     });
     await Promise.all(checkPromises);
@@ -74,10 +72,14 @@ exports.init = async function (app) {
     }
   }
 
-  app.use(bodyParser.json({ limit: config.attachments.fileSizeLimit }))
-  app.use(bodyParser.urlencoded({ limit: config.attachments.fileSizeLimit, extended: true }))
+  app.use(koaBody({
+    multipart: true,
+    formLimit: config.attachments.fileSizeLimit,
+    jsonLimit: config.attachments.fileSizeLimit,
+    textLimit: config.attachments.fileSizeLimit
+  }));
   app.use(passport.initialize())
-  app.use(originInit)
+  app.use(originMiddleware);
   app.use(methodOverride((req) => {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
       // look in urlencoded POST bodies and delete it
@@ -97,7 +99,7 @@ exports.init = async function (app) {
       const val = `${time.toFixed(3)}ms`
       res.setHeader('X-Response-Time', val)
       const resource = (req.method + req.url).toLowerCase()
-      app.logger.warn(resource, time)
+      app.context.logger.warn(resource, time)
     }))
   }
 
