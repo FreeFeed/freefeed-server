@@ -1,4 +1,4 @@
-#!/usr/bin/env babel-node
+#!node_modules/.bin/babel-node
 import moment from 'moment';
 import bluebird from 'bluebird';
 import pgFormat from 'pg-format';
