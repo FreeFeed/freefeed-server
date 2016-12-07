@@ -85,19 +85,21 @@ export default class UsersController {
 
       const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
       const subscriptionsUIDs = _.map(subscriptions, 'user'); // UIDs of users our user subscribed to
+      const groupRequestersUIDs = [].concat(..._.values(pendingGroupRequests));
 
       const allUIDs = _.union(
         subscribersUIDs,
         subscriptionsUIDs,
         pendingSubscriptionRequestsUIDs,
         subscriptionRequestsUIDs,
-        managedGroupUIDs
+        managedGroupUIDs,
+        groupRequestersUIDs,
       );
 
       const allUsers = await dbAdapter.getUsersByIdsAssoc(allUIDs);
       const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'));
 
-      users.pendingGroupRequests = _.values(pendingGroupRequests).some((r) => r.length > 0);
+      users.pendingGroupRequests = groupRequestersUIDs.length > 0;
       users.pendingSubscriptionRequests = pendingSubscriptionRequestsUIDs;
       users.subscriptionRequests = subscriptionRequestsUIDs;
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
