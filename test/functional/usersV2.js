@@ -94,11 +94,13 @@ describe('UsersControllerV2', () => {
         mars,
         venus,
         zeus,
+        pluto,
       ] = await Promise.all([
         createUserAsync('luna', 'pw'),
         createUserAsync('mars', 'pw'),
         createUserAsync('venus', 'pw'),
         createUserAsync('zeus', 'pw'),
+        createUserAsync('pluto', 'pw'),
       ]);
 
       const [
@@ -114,6 +116,7 @@ describe('UsersControllerV2', () => {
       ]);
 
       await sendRequestToJoinGroup(mars, selenitesGroup);
+      await sendRequestToJoinGroup(pluto, selenitesGroup); // request from non-friend
 
       const whoAmI = await fetch(`${app.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
 
