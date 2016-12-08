@@ -3,7 +3,7 @@
   "name": "freefeed-server",
   "description": "FreeFeed is an open source FriendFeed clone (yes, it is free and open!) based on Pepyatka open-source FriendFeed clone (yes, that one is also free and open). Basically, this is a social real-time feed aggregator that allows you to share cute kittens, coordinate upcoming events, discuss any other cool stuff on the Internet or setup a private Pepyatka instance in your company.",
   "homepage": "https://freefeed.net",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "private": true,
   "scripts": {
     "start": "babel-node profiled.js",
@@ -16,7 +16,8 @@
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node bin/data_transfer",
     "reindex_hashtags": "babel-node bin/reindex_hashtags",
-    "count_stats": "babel-node bin/count_stats"
+    "count_stats": "babel-node bin/count_stats",
+    "count-daily-stats": "babel-node bin/count-daily-stats"
   },
   "repository": {
     "type": "git",
