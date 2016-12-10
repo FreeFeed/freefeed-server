@@ -39,6 +39,10 @@ describe('SessionController', () => {
         .post(`${app.context.config.host}/v1/session`)
         .send({ username: userData.username, password: userData.password })
         .end((err, res) => {
+          if (err) {
+            done(err);
+            return;
+          }
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')

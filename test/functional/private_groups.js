@@ -851,7 +851,7 @@ describe('PrivateGroups', () => {
       it('should return empty array for non-members', (done) => {
         request
           .get(`${app.context.config.host}/v2/managedGroups`)
-          .send({ authToken: nonAdminContext.authToken })
+          .query({ authToken: nonAdminContext.authToken })
           .end((err, res) => {
             res.status.should.eql(200)
             res.body.length.should.eql(0)
@@ -862,7 +862,7 @@ describe('PrivateGroups', () => {
       it('should return empty array for non-admins', (done) => {
         request
           .get(`${app.context.config.host}/v2/managedGroups`)
-          .send({ authToken: groupMemberContext.authToken })
+          .query({ authToken: groupMemberContext.authToken })
           .end((err, res) => {
             res.status.should.eql(200)
             res.body.length.should.eql(0)
