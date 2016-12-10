@@ -51,7 +51,7 @@ describe('Privates', () => {
       it('should send private post to public feed', (done) => {
         const post = 'post'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body: post }, meta: { feeds: [group, lunaContext.user.username] }, authToken: lunaContext.authToken })
           .end(() => {
             funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
@@ -67,7 +67,7 @@ describe('Privates', () => {
               const _post = res.body.posts[0]
               _post.body.should.eql(post)
               request
-                .post(`${app.config.host}/v1/posts/${_post.id}/like`)
+                .post(`${app.context.config.host}/v1/posts/${_post.id}/like`)
                 .send({ authToken: zeusContext.authToken })
                 .end(() => {
                   funcTestHelper.getTimeline(`/v1/timelines/${zeusContext.user.username}/likes`, zeusContext.authToken, (err, res) => {
@@ -83,7 +83,7 @@ describe('Privates', () => {
                     const _post = res.body.posts[0]
                     _post.body.should.eql(post)
                     request
-                      .get(`${app.config.host}/v1/posts/${_post.id}`)
+                      .get(`${app.context.config.host}/v1/posts/${_post.id}`)
                       .query({ authToken: zeusContext.authToken })
                       .end((err, res) => {
                         _.isUndefined(res).should.be.false
@@ -120,11 +120,11 @@ describe('Privates', () => {
 
         it('should reject subscription request after ban', (done) => {
           request
-            .post(`${app.config.host}/v1/users/${zeusContext.user.username}/ban`)
+            .post(`${app.context.config.host}/v1/users/${zeusContext.user.username}/ban`)
             .send({ authToken: lunaContext.authToken })
             .end(() => {
               request
-                .get(`${app.config.host}/v1/users/whoami`)
+                .get(`${app.context.config.host}/v1/users/whoami`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   res.should.not.be.empty
@@ -138,11 +138,11 @@ describe('Privates', () => {
 
         it('should not allow banned user to send subscription request', (done) => {
           request
-            .post(`${app.config.host}/v1/users/${zeusContext.user.username}/ban`)
+            .post(`${app.context.config.host}/v1/users/${zeusContext.user.username}/ban`)
             .send({ authToken: lunaContext.authToken })
             .end(() => {
               request
-                .post(`${app.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
+                .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
                 .send({
                   authToken: zeusContext.authToken,
                   '_method': 'post'
@@ -152,7 +152,7 @@ describe('Privates', () => {
                   res.body.err.should.not.be.empty
                   res.body.err.should.eql('Invalid')
                   request
-                    .get(`${app.config.host}/v1/users/whoami`)
+                    .get(`${app.context.config.host}/v1/users/whoami`)
                     .query({ authToken: lunaContext.authToken })
                     .end((err, res) => {
                       res.should.not.be.empty
@@ -167,14 +167,14 @@ describe('Privates', () => {
 
         it('should show liked post per context', (done) => {
           request
-            .post(`${app.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
+            .post(`${app.context.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
             .send({
               authToken: lunaContext.authToken,
               '_method': 'post'
             })
             .end(() => {
               request
-                .post(`${app.config.host}/v1/posts/${post.id}/like`)
+                .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
                 .send({ authToken: marsContext.authToken })
                 .end(() => {
                   funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, marsContext.authToken, (err, res) => {
@@ -193,7 +193,7 @@ describe('Privates', () => {
 
         it('should show liked post per context', (done) => {
           request
-            .post(`${app.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
+            .post(`${app.context.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
             .send({
               authToken: lunaContext.authToken,
               '_method': 'post'
@@ -216,7 +216,7 @@ describe('Privates', () => {
 
         it('should not be accepted by invalid user', (done) => {
           request
-            .post(`${app.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
+            .post(`${app.context.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
             .send({
               authToken: zeusContext.authToken,
               '_method': 'post'
@@ -230,7 +230,7 @@ describe('Privates', () => {
 
         it('should be able to accept', (done) => {
           request
-            .post(`${app.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
+            .post(`${app.context.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
             .send({
               authToken: lunaContext.authToken,
               '_method': 'post'
@@ -240,7 +240,7 @@ describe('Privates', () => {
               res.error.should.be.empty
 
               request
-                .get(`${app.config.host}/v1/users/whoami`)
+                .get(`${app.context.config.host}/v1/users/whoami`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   // check there are no subscription requests
@@ -251,7 +251,7 @@ describe('Privates', () => {
                   res.body.should.not.have.property('requests')
 
                   request
-                    .get(`${app.config.host}/v1/users/whoami`)
+                    .get(`${app.context.config.host}/v1/users/whoami`)
                     .query({ authToken: lunaContext.authToken })
                     .end((err, res) => {
                       // check there are no pending requests
@@ -283,14 +283,14 @@ describe('Privates', () => {
 
         it('should be able to reject', (done) => {
           request
-            .post(`${app.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
+            .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
             .send({
               authToken: herculesContext.authToken,
               '_method': 'post'
             })
             .end(() => {
               request
-                .post(`${app.config.host}/v1/users/rejectRequest/${herculesContext.user.username}`)
+                .post(`${app.context.config.host}/v1/users/rejectRequest/${herculesContext.user.username}`)
                 .send({
                   authToken: lunaContext.authToken,
                   '_method': 'post'
@@ -300,7 +300,7 @@ describe('Privates', () => {
                   res.error.should.be.empty
 
                   request
-                    .get(`${app.config.host}/v1/users/whoami`)
+                    .get(`${app.context.config.host}/v1/users/whoami`)
                     .query({ authToken: lunaContext.authToken })
                     .end((err, res) => {
                       // check there are no subscription requests
@@ -314,7 +314,7 @@ describe('Privates', () => {
                       res.body.requests.length.should.eql(1)
 
                       request
-                        .get(`${app.config.host}/v1/users/whoami`)
+                        .get(`${app.context.config.host}/v1/users/whoami`)
                         .query({ authToken: herculesContext.authToken })
                         .end((err, res) => {
                           res.should.not.be.empty
@@ -483,7 +483,7 @@ describe('Privates', () => {
 
       it('should be visible for auth users in likes timeline', (done) => {
         request
-          .post(`${app.config.host}/v1/posts/${post.id}/like`)
+          .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
           .send({ authToken: marsContext.authToken })
           .end(() => {
             funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, lunaContext.authToken, (err, res) => {
@@ -501,7 +501,7 @@ describe('Privates', () => {
 
       it('should protect likes timeline', (done) => {
         request
-          .post(`${app.config.host}/v1/posts/${post.id}/like`)
+          .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
           .send({ authToken: lunaContext.authToken })
           .end(() => {
             funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/likes`, herculesContext.authToken, (err, res) => {
@@ -569,7 +569,7 @@ describe('Privates', () => {
 
       it('should be able to send and receive subscription request', (done) => {
         request
-          .post(`${app.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
+          .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
           .send({
             authToken: zeusContext.authToken,
             '_method': 'post'
@@ -579,7 +579,7 @@ describe('Privates', () => {
             res.error.should.be.empty
 
             request
-              .get(`${app.config.host}/v1/users/whoami`)
+              .get(`${app.context.config.host}/v1/users/whoami`)
               .query({ authToken: lunaContext.authToken })
               .end((err, res) => {
                 // check there are subscription requests
@@ -593,7 +593,7 @@ describe('Privates', () => {
                 res.body.requests[0].id.should.eql(zeusContext.user.id)
 
                 request
-                  .get(`${app.config.host}/v1/users/whoami`)
+                  .get(`${app.context.config.host}/v1/users/whoami`)
                   .query({ authToken: zeusContext.authToken })
                   .end((err, res) => {
                     // check there are pending requests
@@ -626,14 +626,14 @@ describe('Privates', () => {
           post.body.should.eql(post.body)
           // post should be visible to owner
           request
-            .get(`${app.config.host}/v1/posts/${post.id}`)
+            .get(`${app.context.config.host}/v1/posts/${post.id}`)
             .query({ authToken: lunaContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
               res.body.posts.body.should.eql(post.body)
               // post should be visible to subscribers
               request
-                .get(`${app.config.host}/v1/posts/${post.id}`)
+                .get(`${app.context.config.host}/v1/posts/${post.id}`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
@@ -655,7 +655,7 @@ describe('Privates', () => {
           res.body.should.have.property('posts')
           // post should not be visible to ex-subscribers
           request
-            .get(`${app.config.host}/v1/posts/${post.id}`)
+            .get(`${app.context.config.host}/v1/posts/${post.id}`)
             .query({ authToken: zeusContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -667,7 +667,7 @@ describe('Privates', () => {
 
       it('that should not be visible to users that are not subscribed', (done) => {
         request
-          .get(`${app.config.host}/v1/posts/${post.id}`)
+          .get(`${app.context.config.host}/v1/posts/${post.id}`)
           .query({ authToken: herculesContext.authToken })
           .end((err) => {
             err.should.not.be.empty
@@ -929,7 +929,7 @@ describe('Privates', () => {
 
       it('should be visible to already subscribed users', (done) => {
         request
-          .get(`${app.config.host}/v1/users/${marsContext.username}/subscriptions`)
+          .get(`${app.context.config.host}/v1/users/${marsContext.username}/subscriptions`)
           .query({ authToken: marsContext.authToken })
           .end((err, res) => {
             res.body.should.not.be.empty
@@ -941,21 +941,21 @@ describe('Privates', () => {
 
       it('should be visible to mutual friends', (done) => {
         request
-          .post(`${app.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
+          .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
           .send({
             authToken: marsContext.authToken,
             '_method': 'post'
           })
           .end(() => {
             request
-              .post(`${app.config.host}/v1/users/acceptRequest/${marsContext.user.username}`)
+              .post(`${app.context.config.host}/v1/users/acceptRequest/${marsContext.user.username}`)
               .send({
                 authToken: lunaContext.authToken,
                 '_method': 'post'
               })
               .end(() => {
                 request
-                  .get(`${app.config.host}/v1/users/${marsContext.username}/subscriptions`)
+                  .get(`${app.context.config.host}/v1/users/${marsContext.username}/subscriptions`)
                   .query({ authToken: marsContext.authToken })
                   .end((err, res) => {
                     res.body.should.not.be.empty
@@ -970,7 +970,7 @@ describe('Privates', () => {
 
       it('should be visible to subscribers', (done) => {
         request
-          .get(`${app.config.host}/v1/users/${marsContext.username}/subscriptions`)
+          .get(`${app.context.config.host}/v1/users/${marsContext.username}/subscriptions`)
           .query({ authToken: marsContext.authToken })
           .end((err, res) => {
             res.body.should.not.be.empty

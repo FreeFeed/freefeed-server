@@ -9,7 +9,7 @@ import fetch from 'node-fetch'
 import { wait as waitForStream } from 'promise-streams'
 
 import { dbAdapter, PostSerializer } from '../../../models'
-import { reportError, NotFoundException } from '../../../support/exceptions'
+import { NotFoundException } from '../../../support/exceptions'
 
 
 promisifyAll(fs)
@@ -57,83 +57,80 @@ const getAttachments = async function (author, imageUrls) {
 }
 
 export default class BookmarkletController {
-  static async create(req, res) {
-    try {
-      if (!req.user) {
-        res.status(401).jsonp({ err: 'Not found' })
-        return
-      }
-
-      // TODO: code copypasted (with small change about how to deal with empty feeds) from PostsController#create
-      // need to refactor this part or merge this two controllers
-      let feeds = []
-      if (req.body.meta && _.isArray(req.body.meta.feeds)) {
-        feeds = req.body.meta.feeds
-      } else if (req.body.meta && req.body.meta.feeds) {
-        feeds = [req.body.meta.feeds]
-      } else { // if no feeds specified post into personal one
-        feeds = [req.user.username]
-      }
-
-      const promises = feeds.map(async (username) => {
-        const feed = await dbAdapter.getFeedOwnerByUsername(username)
-
-        if (null === feed) {
-          return null
-        }
-
-        await feed.validateCanPost(req.user)
-
-        // we are going to publish this message to posts feed if
-        // it's my home feed or group's feed, otherwise this is a
-        // private message that goes to its own feed(s)
-        if (
-          (feed.isUser() && feed.id == req.user.id) ||
-          !feed.isUser()
-        ) {
-          return feed.getPostsTimelineId()
-        }
-
-        // private post goes to sendee and sender
-        return await Promise.all([
-          feed.getDirectsTimelineId(),
-          req.user.getDirectsTimelineId()
-        ])
-      })
-      const timelineIds = _.flatten(await Promise.all(promises))
-      _.each(timelineIds, (id, i) => {
-        if (null == id) {
-          throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
-        }
-      })
-
-      // Download image(s) and create attachment
-      const imageUrls = req.body.images || [req.body.image]
-      const attachments = await getAttachments(req.user, imageUrls)
-
-      // Create post
-      const newPost = await req.user.newPost({
-        body: req.body.title,
-        attachments,
-        timelineIds
-      })
-      await newPost.create()
-
-      // Create comment
-      if (req.body.comment) {
-        const newComment = await req.user.newComment({
-          body:   req.body.comment,
-          postId: newPost.id
-        })
-
-        await newComment.create()
-      }
-
-      // Send response with the created post
-      const json = await new PostSerializer(newPost).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+  static async create(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
+      return;
     }
+
+    // TODO: code copypasted (with small change about how to deal with empty feeds) from PostsController#create
+    // need to refactor this part or merge this two controllers
+    let feeds = []
+    if (ctx.request.body.meta && _.isArray(ctx.request.body.meta.feeds)) {
+      feeds = ctx.request.body.meta.feeds
+    } else if (ctx.request.body.meta && ctx.request.body.meta.feeds) {
+      feeds = [ctx.request.body.meta.feeds]
+    } else { // if no feeds specified post into personal one
+      feeds = [ctx.state.user.username]
+    }
+
+    const promises = feeds.map(async (username) => {
+      const feed = await dbAdapter.getFeedOwnerByUsername(username)
+
+      if (null === feed) {
+        return null
+      }
+
+      await feed.validateCanPost(ctx.state.user)
+
+      // we are going to publish this message to posts feed if
+      // it's my home feed or group's feed, otherwise this is a
+      // private message that goes to its own feed(s)
+      if (
+        (feed.isUser() && feed.id == ctx.state.user.id) ||
+        !feed.isUser()
+      ) {
+        return feed.getPostsTimelineId()
+      }
+
+      // private post goes to sendee and sender
+      return await Promise.all([
+        feed.getDirectsTimelineId(),
+        ctx.state.user.getDirectsTimelineId()
+      ])
+    })
+    const timelineIds = _.flatten(await Promise.all(promises))
+    _.each(timelineIds, (id, i) => {
+      if (null == id) {
+        throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
+      }
+    })
+
+    // Download image(s) and create attachment
+    const imageUrls = ctx.request.body.images || [ctx.request.body.image]
+    const attachments = await getAttachments(ctx.state.user, imageUrls)
+
+    // Create post
+    const newPost = await ctx.state.user.newPost({
+      body: ctx.request.body.title,
+      attachments,
+      timelineIds
+    })
+    await newPost.create()
+
+    // Create comment
+    if (ctx.request.body.comment) {
+      const newComment = await ctx.state.user.newComment({
+        body:   ctx.request.body.comment,
+        postId: newPost.id
+      })
+
+      await newComment.create()
+    }
+
+    // Send response with the created post
+    const json = new PostSerializer(newPost).promiseToJSON();
+    ctx.body = await json;
   }
 }

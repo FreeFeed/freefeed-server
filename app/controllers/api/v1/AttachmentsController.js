@@ -1,7 +1,6 @@
-import formidable from 'formidable'
-
-import { AttachmentSerializer } from '../../../models'
-import { reportError } from '../../../support/exceptions'
+import _ from 'lodash';
+import { AttachmentSerializer } from '../../../models';
+import { reportError } from '../../../support/exceptions';
 
 
 export default class AttachmentsController {
@@ -11,42 +10,41 @@ export default class AttachmentsController {
     this.app = app
   }
 
-  create = (req, res) => {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  create = async (ctx) => {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    const form = new formidable.IncomingForm()
-
-    form.on('file', async (inputName, file) => {
+    const fileHandlerPromises = _.map(ctx.request.body.files, async (file) => {
       try {
-        const newAttachment = await req.user.newAttachment({ file })
-        await newAttachment.create()
+        const newAttachment = await ctx.state.user.newAttachment({ file });
+        await newAttachment.create();
 
-        const json = await new AttachmentSerializer(newAttachment).promiseToJSON()
-        res.jsonp(json)
+        const json = new AttachmentSerializer(newAttachment).promiseToJSON();
+        ctx.body = await json;
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
-          this.app.logger.warn(e.message)
+          ctx.logger.warn(e.message);
 
           const errorDetails = { message: 'Corrupt image' }
-          reportError(res)(errorDetails)
+          reportError(ctx)(errorDetails);
           return;
         }
 
         if (e.message && e.message.indexOf('LCMS encoding') > -1) {
-          this.app.logger.warn(`GraphicsMagick should be configured with --with-lcms2 option`)
+          ctx.logger.warn(`GraphicsMagick should be configured with --with-lcms2 option`);
 
           const errorDetails = { status: 500, message: 'Internal server error' }
-          reportError(res)(errorDetails)
+          reportError(ctx)(errorDetails);
           return;
         }
 
-        reportError(res)(e)
+        reportError(ctx)(e);
       }
     })
 
-    form.parse(req)
+    await Promise.all(fileHandlerPromises);
   }
 }

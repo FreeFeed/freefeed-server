@@ -1,10 +1,9 @@
-import formidable from 'formidable'
 import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
-import { reportError, NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 
@@ -12,410 +11,375 @@ import recaptchaVerify from '../../../../lib/recaptcha'
 const config = configLoader()
 
 export default class UsersController {
-  static async create(req, res) {
+  static async create(ctx) {
     const params = {
-      username: req.body.username,
-      email:    req.body.email
+      username: ctx.request.body.username,
+      email:    ctx.request.body.email
     }
 
-    params.hashedPassword = req.body.password_hash
+    params.hashedPassword = ctx.request.body.password_hash
     if (!config.acceptHashedPasswordsOnly) {
-      params.password = req.body.password
+      params.password = ctx.request.body.password
     }
+
+    if (config.recaptcha.enabled) {
+      const ip = ctx.request.get('x-forwarded-for') || ctx.request.ip;
+      await recaptchaVerify(ctx.request.body.captcha, ip);
+    }
+
+    const user = new User(params)
+    await user.create(false)
 
     try {
-      if (config.recaptcha.enabled) {
-        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-        await recaptchaVerify(req.body.captcha, ip)
+      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+
+      if (null === onboardingUser) {
+        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
       }
 
-      const user = new User(params)
-      await user.create(false)
-
-      try {
-        const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
-
-        if (null === onboardingUser) {
-          throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
-        }
-
-        await user.subscribeToUsername(config.onboardingUsername)
-      } catch (e /* if e instanceof NotFoundException */) {
-        // if onboarding username is not found, just pass
-      }
-
-      const secret = config.secret
-      const authToken = jwt.sign({ userId: user.id }, secret)
-
-      const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp({ ...json, authToken });
-    } catch (e) {
-      reportError(res)(e)
+      await user.subscribeToUsername(config.onboardingUsername)
+    } catch (e /* if e instanceof NotFoundException */) {
+      // if onboarding username is not found, just pass
     }
+
+    const secret = config.secret
+    const authToken = jwt.sign({ userId: user.id }, secret)
+
+    const json = await new MyProfileSerializer(user).promiseToJSON()
+    ctx.body = { ...json, authToken };
   }
 
-  static async sudoCreate(req, res) {
+  static async sudoCreate(ctx) {
     const params = {
-      username: req.body.username,
-      email:    req.body.email
+      username: ctx.request.body.username,
+      email:    ctx.request.body.email
     }
 
-    params.hashedPassword = req.body.password_hash
+    params.hashedPassword = ctx.request.body.password_hash
     if (!config.acceptHashedPasswordsOnly) {
-      params.password = req.body.password
+      params.password = ctx.request.body.password
     }
+
+    const user = new User(params)
+    await user.create(true)
 
     try {
-      const user = new User(params)
-      await user.create(true)
+      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
 
-      try {
-        const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
-
-        if (null === onboardingUser) {
-          throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
-        }
-
-        await user.subscribeToUsername(config.onboardingUsername)
-      } catch (e /* if e instanceof NotFoundException */) {
-        // if onboarding username is not found, just pass
+      if (null === onboardingUser) {
+        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
       }
 
-      const secret = config.secret
-      const authToken = jwt.sign({ userId: user.id }, secret)
-
-      const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp({ ...json, authToken });
-    } catch (e) {
-      reportError(res)(e)
+      await user.subscribeToUsername(config.onboardingUsername)
+    } catch (e /* if e instanceof NotFoundException */) {
+      // if onboarding username is not found, just pass
     }
+
+    const secret = config.secret
+    const authToken = jwt.sign({ userId: user.id }, secret)
+
+    const json = await new MyProfileSerializer(user).promiseToJSON()
+    ctx.body = { ...json, authToken };
   }
 
-  static async sendRequest(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async sendRequest(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
+    const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
 
-      if (null === user) {
-        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
-      }
-
-      if (user.isPrivate !== '1') {
-        throw new Error('Invalid')
-      }
-
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(req.user.id, user.id)
-      const banIds = await user.getBanIds()
-
-      const valid = !hasRequest && !banIds.includes(req.user.id)
-
-      if (!valid) {
-        throw new Error('Invalid')
-      }
-
-      await req.user.sendSubscriptionRequest(user.id)
-
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
     }
+
+    if (user.isPrivate !== '1') {
+      throw new Error('Invalid')
+    }
+
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, user.id)
+    const banIds = await user.getBanIds()
+
+    const valid = !hasRequest && !banIds.includes(ctx.state.user.id)
+
+    if (!valid) {
+      throw new Error('Invalid')
+    }
+
+    await ctx.state.user.sendSubscriptionRequest(user.id)
+
+    ctx.body = {};
   }
 
-  static async acceptRequest(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async acceptRequest(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const user = await dbAdapter.getUserByUsername(req.params.username)
+    const user = await dbAdapter.getUserByUsername(ctx.params.username)
 
-      if (null === user) {
-        throw new NotFoundException(`User "${req.params.username}" is not found`)
-      }
-
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
-      if (!hasRequest) {
-        throw new Error('Invalid')
-      }
-      await req.user.acceptSubscriptionRequest(user.id)
-
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
+
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id)
+    if (!hasRequest) {
+      throw new Error('Invalid')
+    }
+    await ctx.state.user.acceptSubscriptionRequest(user.id)
+
+    ctx.body = {};
   }
 
-  static async rejectRequest(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async rejectRequest(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const user = await dbAdapter.getUserByUsername(req.params.username)
+    const user = await dbAdapter.getUserByUsername(ctx.params.username)
 
-      if (null === user) {
-        throw new NotFoundException(`User "${req.params.username}" is not found`)
-      }
-
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, req.user.id)
-      if (!hasRequest) {
-        throw new Error('Invalid')
-      }
-      await req.user.rejectSubscriptionRequest(user.id)
-
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
+
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id)
+    if (!hasRequest) {
+      throw new Error('Invalid')
+    }
+    await ctx.state.user.rejectSubscriptionRequest(user.id)
+
+    ctx.body = {};
   }
 
-  static async whoami(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async whoami(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     const timer = monitor.timer('users.whoami-time')
-    const json = await new MyProfileSerializer(req.user).promiseToJSON()
-    res.jsonp(json)
+    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
+    ctx.body = json
     timer.stop()
   }
 
-  static async show(req, res) {
-    try {
-      const feed = await dbAdapter.getFeedOwnerByUsername(req.params.username)
+  static async show(ctx) {
+    const feed = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
 
-      if (null === feed) {
-        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
-      }
-
-      // cleaned accounts have password-hash set to empty string
-      if (feed.hashedPassword === '') {
-        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
-      }
-
-      // HACK: feed.isUser() ? UserSerializer : GroupSerializer
-      const serializer = UserSerializer
-
-      const json = await new serializer(feed).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+    if (null === feed) {
+      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
     }
+
+    // cleaned accounts have password-hash set to empty string
+    if (feed.hashedPassword === '') {
+      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
+    }
+
+    // HACK: feed.isUser() ? UserSerializer : GroupSerializer
+    const serializer = UserSerializer
+
+    const json = await new serializer(feed).promiseToJSON()
+    ctx.body = json
   }
 
-  static async subscribers(req, res) {
-    try {
-      const username = req.params.username
-      const user = await dbAdapter.getFeedOwnerByUsername(username)
+  static async subscribers(ctx) {
+    const username = ctx.params.username
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
 
-      if (null === user) {
-        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
-      }
-
-      if (user.isPrivate === '1') {
-        if (!req.user) {
-          throw new ForbiddenException('User is private')
-        }
-        const subscriberIds = await user.getSubscriberIds()
-        if (req.user.id !== user.id && !subscriberIds.includes(req.user.id)) {
-          throw new ForbiddenException('User is private')
-        }
-      }
-
-      const timeline = await user.getPostsTimeline()
-      const subscribers = await timeline.getSubscribers()
-      const jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
-
-      const json = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
-        const obj = await jsonPromise
-        const memo = await memoPromise
-
-        memo.subscribers.push(obj.subscribers)
-
-        return memo
-      }, { subscribers: [] })
-
-      res.jsonp(await json)
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
     }
+
+    if (user.isPrivate === '1') {
+      if (!ctx.state.user) {
+        throw new ForbiddenException('User is private')
+      }
+      const subscriberIds = await user.getSubscriberIds()
+      if (ctx.state.user.id !== user.id && !subscriberIds.includes(ctx.state.user.id)) {
+        throw new ForbiddenException('User is private')
+      }
+    }
+
+    const timeline = await user.getPostsTimeline()
+    const subscribers = await timeline.getSubscribers()
+    const jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
+
+    const json = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
+      const obj = await jsonPromise
+      const memo = await memoPromise
+
+      memo.subscribers.push(obj.subscribers)
+
+      return memo
+    }, { subscribers: [] })
+
+    ctx.body = await json;
   }
 
-  static async subscriptions(req, res) {
-    try {
-      const username = req.params.username
-      const user = await dbAdapter.getUserByUsername(username)
+  static async subscriptions(ctx) {
+    const username = ctx.params.username
+    const user = await dbAdapter.getUserByUsername(username)
 
-      if (null === user) {
-        throw new NotFoundException(`User "${req.params.username}" is not found`)
-      }
-
-      if (user.isPrivate === '1') {
-        if (!req.user) {
-          throw new ForbiddenException('User is private')
-        }
-
-        const subscriberIds = await user.getSubscriberIds()
-        if (req.user.id !== user.id && !subscriberIds.includes(req.user.id)) {
-          throw new ForbiddenException('User is private')
-        }
-      }
-
-      const subscriptions = await user.getSubscriptions()
-      const jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
-
-      const reducedJsonPromise = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
-        const obj = await jsonPromise
-        const memo = await memoPromise
-
-        const user = obj.subscribers[0]
-
-        memo.subscriptions.push(obj.subscriptions)
-        memo.subscribers[user.id] = user
-
-        return memo
-      }, { subscriptions: [], subscribers: {} })
-
-      const json = await reducedJsonPromise
-      json.subscribers = _.values(json.subscribers)
-
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
+
+    if (user.isPrivate === '1') {
+      if (!ctx.state.user) {
+        throw new ForbiddenException('User is private')
+      }
+
+      const subscriberIds = await user.getSubscriberIds()
+      if (ctx.state.user.id !== user.id && !subscriberIds.includes(ctx.state.user.id)) {
+        throw new ForbiddenException('User is private')
+      }
+    }
+
+    const subscriptions = await user.getSubscriptions()
+    const jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
+
+    const reducedJsonPromise = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
+      const obj = await jsonPromise
+      const memo = await memoPromise
+
+      const user = obj.subscribers[0]
+
+      memo.subscriptions.push(obj.subscriptions)
+      memo.subscribers[user.id] = user
+
+      return memo
+    }, { subscriptions: [], subscribers: {} })
+
+    const json = await reducedJsonPromise
+    json.subscribers = _.values(json.subscribers)
+
+    ctx.body = json
   }
 
-  static async ban(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async ban(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     try {
-      const status = await req.user.ban(req.params.username)
-      res.jsonp({ status })
+      const status = await ctx.state.user.ban(ctx.params.username)
+      ctx.body = { status };
     } catch (e) {
       if (e.code === '23505') {
         // '23505' stands for unique_violation
         // see https://www.postgresql.org/docs/current/static/errcodes-appendix.html
-        reportError(res)(new ForbiddenException("You can't ban user, who's already banned"))
-      } else {
-        reportError(res)(e)
+        throw new ForbiddenException("You can't ban user, who's already banned");
       }
+
+      throw e;
     }
   }
 
-  static async unban(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async unban(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const status = await req.user.unban(req.params.username)
-      res.jsonp({ status })
-    } catch (e) {
-      reportError(res)(e)
-    }
+    const status = await ctx.state.user.unban(ctx.params.username)
+    ctx.body = { status };
   }
 
-  static async subscribe(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async subscribe(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const username = req.params.username
-      const user = await dbAdapter.getFeedOwnerByUsername(username)
+    const username = ctx.params.username
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
 
-      if (null === user) {
-        throw new NotFoundException(`Feed "${username}" is not found`)
-      }
-
-      if (user.isPrivate === '1') {
-        throw new ForbiddenException('You cannot subscribe to private feed')
-      }
-
-      const timelineId = await user.getPostsTimelineId()
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
-      if (isSubscribed) {
-        throw new ForbiddenException('You are already subscribed to that user')
-      }
-
-      const banIds = await req.user.getBanIds()
-      if (banIds.includes(user.id)) {
-        throw new ForbiddenException('You cannot subscribe to a banned user')
-      }
-
-      const theirBanIds = await user.getBanIds()
-      if (theirBanIds.includes(req.user.id)) {
-        throw new ForbiddenException('This user prevented your from subscribing to them')
-      }
-
-      await req.user.subscribeToUsername(username)
-
-      const json = await new MyProfileSerializer(req.user).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`Feed "${username}" is not found`)
     }
+
+    if (user.isPrivate === '1') {
+      throw new ForbiddenException('You cannot subscribe to private feed')
+    }
+
+    const timelineId = await user.getPostsTimelineId()
+    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(ctx.state.user.id, timelineId)
+    if (isSubscribed) {
+      throw new ForbiddenException('You are already subscribed to that user')
+    }
+
+    const banIds = await ctx.state.user.getBanIds()
+    if (banIds.includes(user.id)) {
+      throw new ForbiddenException('You cannot subscribe to a banned user')
+    }
+
+    const theirBanIds = await user.getBanIds()
+    if (theirBanIds.includes(ctx.state.user.id)) {
+      throw new ForbiddenException('This user prevented your from subscribing to them')
+    }
+
+    await ctx.state.user.subscribeToUsername(username)
+
+    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
+    ctx.body = json
   }
 
-  static async unsubscribeUser(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async unsubscribeUser(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const user = await dbAdapter.getUserByUsername(req.params.username)
+    const user = await dbAdapter.getUserByUsername(ctx.params.username)
 
-      if (null === user) {
-        throw new NotFoundException(`User "${req.params.username}" is not found`)
-      }
-
-      const timelineId = await req.user.getPostsTimelineId()
-
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
-      if (!isSubscribed) {
-        throw new ForbiddenException('You are not subscribed to that user')
-      }
-
-      await user.unsubscribeFrom(timelineId)
-
-      const json = await new MyProfileSerializer(req.user).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+    if (null === user) {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
+
+    const timelineId = await ctx.state.user.getPostsTimelineId()
+
+    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
+    if (!isSubscribed) {
+      throw new ForbiddenException('You are not subscribed to that user')
+    }
+
+    await user.unsubscribeFrom(timelineId)
+
+    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
+    ctx.body = json
   }
 
-  static async unsubscribe(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async unsubscribe(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     const timer = monitor.timer('users.unsubscribe-time')
 
     try {
-      const user = await dbAdapter.getFeedOwnerByUsername(req.params.username)
+      const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
 
       if (null === user) {
-        throw new NotFoundException(`Feed "${req.params.username}" is not found`)
+        throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
       }
 
       const timelineId = await user.getPostsTimelineId()
 
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(req.user.id, timelineId)
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(ctx.state.user.id, timelineId)
       if (!isSubscribed) {
         throw new ForbiddenException('You are not subscribed to that user')
       }
@@ -423,82 +387,70 @@ export default class UsersController {
       if ('group' === user.type) {
         const adminIds = await user.getAdministratorIds()
 
-        if (adminIds.includes(req.user.id)) {
+        if (adminIds.includes(ctx.state.user.id)) {
           throw new ForbiddenException('Group administrators cannot unsubscribe from own groups')
         }
       }
-      await req.user.unsubscribeFrom(timelineId)
+      await ctx.state.user.unsubscribeFrom(timelineId)
 
-      const json = await new MyProfileSerializer(req.user).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+      const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
+      ctx.body = json
     } finally {
       timer.stop()
     }
   }
 
-  static async update(req, res) {
-    if (!req.user || req.user.id != req.params.userId) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async update(ctx) {
+    if (!ctx.state.user || ctx.state.user.id != ctx.params.userId) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     const attrs = _.reduce(
       ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences'],
       (acc, key) => {
-        if (key in req.body.user)
-          acc[key] = req.body.user[key]
+        if (key in ctx.request.body.user)
+          acc[key] = ctx.request.body.user[key]
         return acc
       },
       {}
     )
 
-    try {
-      const user = await req.user.update(attrs)
-      const json = await new MyProfileSerializer(user).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
-    }
+    const user = await ctx.state.user.update(attrs)
+    const json = await new MyProfileSerializer(user).promiseToJSON()
+    ctx.body = json
   }
 
-  static async updatePassword(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async updatePassword(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    const currentPassword = req.body.currentPassword || ''
-    try {
-      const valid = await req.user.validPassword(currentPassword)
-      if (!valid)
-        throw new Error('Your old password is not valid')
-      await req.user.updatePassword(req.body.password, req.body.passwordConfirmation)
+    const currentPassword = ctx.request.body.currentPassword || ''
+    const valid = await ctx.state.user.validPassword(currentPassword)
 
-      res.jsonp({ message: 'Your password has been changed' })
-    } catch (e) {
-      reportError(res)(e)
-    }
+    if (!valid)
+      throw new Error('Your old password is not valid')
+
+    await ctx.state.user.updatePassword(ctx.request.body.password, ctx.request.body.passwordConfirmation)
+    ctx.body = { message: 'Your password has been changed' };
   }
 
-  static async updateProfilePicture(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async updateProfilePicture(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    const form = new formidable.IncomingForm()
+    const fileHandlerPromises = Object.values(ctx.request.body.files).map(async (file) => {
+      await ctx.state.user.updateProfilePicture(file)
+      ctx.body = { message: 'Your profile picture has been updated' };
+    });
 
-    form.on('file', async (inputName, file) => {
-      try {
-        await req.user.updateProfilePicture(file)
-        res.jsonp({ message: 'Your profile picture has been updated' })
-      } catch (e) {
-        reportError(res)(e)
-      }
-    })
-
-    form.parse(req)
+    await Promise.all(fileHandlerPromises);
   }
 }

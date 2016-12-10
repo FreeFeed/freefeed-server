@@ -27,6 +27,13 @@ export class BadRequestException {
   }
 }
 
+export class NotAuthorizedException {
+  constructor(message) {
+    this.message = message || 'Unauthorized';
+    this.status = 401;
+  }
+}
+
 export class ForbiddenException {
   constructor(message) {
     this.message = message || 'Forbidden'
