@@ -29,8 +29,13 @@ async function get_next_metric_update_date(metric) {
 
   switch (metric) {
     case 'users':
+    case 'registrations':
+    case 'groups':
+    case 'groups_creates':
       data_type = 'users';
       break;
+    case 'likes':
+    case 'likes_creates':
     case 'posts':
     case 'posts_creates':
     case 'active_users':
@@ -88,6 +93,16 @@ async function main() {
     return res.count;
   });
 
+  await create_metric('registrations', to_date, async (dt) => {
+    const day = dt.format(`YYYY-MM-DD`)
+
+    const sql = pgFormat(`
+        select count (distinct id) from users where type = 'user' and date_trunc('day',created_at) = %L`, day);
+
+    const res = await postgres.raw(sql);
+    return res.rows[0].count;
+  });
+
   await create_metric('posts', to_date, async (dt, next_date) => {
     const res = await postgres('posts').count('id').where('created_at', '<', next_date).first();
     return res.count;
@@ -113,6 +128,36 @@ async function main() {
 
     const sql = pgFormat(`
         select count (distinct id) from comments where date_trunc('day',created_at) = %L`, day);
+
+    const res = await postgres.raw(sql);
+    return res.rows[0].count;
+  });
+
+  await create_metric('likes', to_date, async (dt, next_date) => {
+    const res = await postgres('likes').count('id').where('created_at', '<', next_date).first();
+    return res.count;
+  });
+
+  await create_metric('likes_creates', to_date, async (dt) => {
+    const day = dt.format(`YYYY-MM-DD`)
+
+    const sql = pgFormat(`
+        select count (distinct id) from likes where date_trunc('day',created_at) = %L`, day);
+
+    const res = await postgres.raw(sql);
+    return res.rows[0].count;
+  });
+
+  await create_metric('groups', to_date, async (dt, next_date) => {
+    const res = await postgres('users').count('id').where('created_at', '<', next_date).andWhere('type', 'group').first();
+    return res.count;
+  });
+
+  await create_metric('groups_creates', to_date, async (dt) => {
+    const day = dt.format(`YYYY-MM-DD`)
+
+    const sql = pgFormat(`
+        select count (distinct id) from users where type = 'group' and date_trunc('day',created_at) = %L`, day);
 
     const res = await postgres.raw(sql);
     return res.rows[0].count;
