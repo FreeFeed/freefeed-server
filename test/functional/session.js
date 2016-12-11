@@ -36,9 +36,13 @@ describe('SessionController', () => {
 
     it('should sign in with a valid user', (done) => {
       request
-        .post(`${app.config.host}/v1/session`)
+        .post(`${app.context.config.host}/v1/session`)
         .send({ username: userData.username, password: userData.password })
         .end((err, res) => {
+          if (err) {
+            done(err);
+            return;
+          }
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
@@ -50,7 +54,7 @@ describe('SessionController', () => {
 
     it('should not sign in with an invalid user', (done) => {
       request
-        .post(`${app.config.host}/v1/session`)
+        .post(`${app.context.config.host}/v1/session`)
         .send({ username: 'username', password: userData.password })
         .end((err, res) => {
           res.should.not.be.empty
@@ -63,7 +67,7 @@ describe('SessionController', () => {
 
     it('should not sign in with an invalid password', (done) => {
       request
-        .post(`${app.config.host}/v1/session`)
+        .post(`${app.context.config.host}/v1/session`)
         .send({ username: userData.username, password: 'wrong' })
         .end((err, res) => {
           res.should.not.be.empty
@@ -75,7 +79,7 @@ describe('SessionController', () => {
     })
 
     it('should not sign in with missing username', async () => {
-      const result = await fetch(`${app.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
+      const result = await fetch(`${app.context.config.host}/v1/session`, { method: 'POST', body: 'a=1' })
       const data = await result.json()
 
       data.should.not.have.property('authToken')

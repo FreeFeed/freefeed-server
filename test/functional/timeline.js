@@ -185,7 +185,7 @@ describe('TimelinesController', () => {
 
     it('should return empty likes timeline after un-like', (done) => {
       request
-        .post(`${app.config.host}/v1/posts/${post.id}/unlike`)
+        .post(`${app.context.config.host}/v1/posts/${post.id}/unlike`)
         .send({ authToken: context.authToken })
         .end(() => {
           funcTestHelper.getTimeline(`/v1/timelines/${context.username}/likes`, context.authToken, (err, res) => {

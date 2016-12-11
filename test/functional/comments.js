@@ -40,7 +40,7 @@ describe('CommentsController', () => {
         const body = 'Post body'
 
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [groupName] }, authToken: context.authToken })
           .end((err, res) => {
             res.status.should.eql(200)
@@ -169,7 +169,7 @@ describe('CommentsController', () => {
     it('should update a comment with a valid user', (done) => {
       const newBody = 'New body'
       request
-        .post(`${app.config.host}/v1/comments/${comment.id}`)
+        .post(`${app.context.config.host}/v1/comments/${comment.id}`)
         .send({
           comment:   { body: newBody },
           authToken: lunaContext.authToken,
@@ -188,7 +188,7 @@ describe('CommentsController', () => {
     it('should not update a comment with a invalid user', (done) => {
       const newBody = 'New body'
       request
-        .post(`${app.config.host}/v1/comments/${comment.id}`)
+        .post(`${app.context.config.host}/v1/comments/${comment.id}`)
         .send({
           comment:   { body: newBody },
           '_method': 'put'
@@ -204,7 +204,7 @@ describe('CommentsController', () => {
     it("should not update another user's comment", (done) => {
       const newBody = 'New body'
       request
-        .post(`${app.config.host}/v1/comments/${comment.id}`)
+        .post(`${app.context.config.host}/v1/comments/${comment.id}`)
         .send({
           comment:   { body: newBody },
           authToken: yoleContext.authToken,

@@ -1,4 +1,4 @@
-import {Strategy as LocalStrategy} from 'passport-local'
+import { Strategy as LocalStrategy } from 'passport-local'
 
 import { dbAdapter } from '../../app/models'
 
@@ -13,20 +13,20 @@ export function init(passport) {
 
       if (!user) {
         // db inconsistency. got id, but didn't find object
-        done({ message: "We could not find the nickname you provided." })
+        done({ message: 'We could not find the nickname you provided.' })
         return
       }
 
       const valid = await user.validPassword(clearPassword)
 
       if (!valid) {
-        done({ message: "The password you provided does not match the password in our system." })
+        done({ message: 'The password you provided does not match the password in our system.' })
         return
       }
 
       done(null, user)
     } catch (e) {
-      done({ message: "We could not find the nickname you provided." })
+      done({ message: 'We could not find the nickname you provided.' })
     }
   }))
 }

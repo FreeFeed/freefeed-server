@@ -36,7 +36,7 @@ describe('GroupsController', () => {
 
     it('should reject unauthenticated users', (done) => {
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -48,7 +48,7 @@ describe('GroupsController', () => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName },
           authToken: context.authToken
@@ -68,7 +68,7 @@ describe('GroupsController', () => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName, isPrivate: '1' },
           authToken: context.authToken
@@ -85,7 +85,7 @@ describe('GroupsController', () => {
       const userName = 'Luna';
       const screenName = 'Pepyatka Developers';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName },
           authToken: context.authToken
@@ -101,7 +101,7 @@ describe('GroupsController', () => {
       const userName = 'Lu/na';
       const screenName = 'Pepyatka Developers';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName },
           authToken: context.authToken
@@ -119,7 +119,7 @@ describe('GroupsController', () => {
       const userName = '';
       const screenName = '';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName },
           authToken: context.authToken
@@ -137,7 +137,7 @@ describe('GroupsController', () => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName },
           authToken: context.authToken
@@ -152,7 +152,7 @@ describe('GroupsController', () => {
       const userName = 'pepyatka-dev';
       const screenName = 'Pepyatka Developers';
       request
-        .post(`${app.config.host}/v1/groups`)
+        .post(`${app.context.config.host}/v1/groups`)
         .send({
           group:     { username: userName, screenName },
           authToken: context.authToken
@@ -160,7 +160,7 @@ describe('GroupsController', () => {
         .end((err, res) => {
           const newGroupId = res.body.groups.id
           request
-            .get(`${app.config.host}/v1/users/Luna/subscriptions`)
+            .get(`${app.context.config.host}/v1/users/Luna/subscriptions`)
             .query({ authToken: context.authToken })
             .end((err, res) => {
               res.status.should.not.eql(404)
@@ -193,7 +193,7 @@ describe('GroupsController', () => {
 
     it('should reject unauthenticated users', (done) => {
       request
-        .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/${nonAdminContext.username}/admin`)
+        .post(`${app.context.config.host}/v1/groups/pepyatka-dev/subscribers/${nonAdminContext.username}/admin`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(403)
@@ -203,7 +203,7 @@ describe('GroupsController', () => {
 
     it('should reject nonexisting group', (done) => {
       request
-        .post(`${app.config.host}/v1/groups/foobar/subscribers/${nonAdminContext.uesrname}/admin`)
+        .post(`${app.context.config.host}/v1/groups/foobar/subscribers/${nonAdminContext.uesrname}/admin`)
         .send({ authToken: adminContext.authToken })
         .end((err) => {
           err.should.not.be.empty
@@ -214,7 +214,7 @@ describe('GroupsController', () => {
 
     it('should allow an administrator to add another administrator', (done) => {
       request
-        .post(`${app.config.host}/v1/groups/pepyatka-dev/subscribers/${nonAdminContext.username}/admin`)
+        .post(`${app.context.config.host}/v1/groups/pepyatka-dev/subscribers/${nonAdminContext.username}/admin`)
         .send({ authToken: adminContext.authToken })
         .end((err, res) => {
           res.status.should.eql(200)
@@ -238,7 +238,7 @@ describe('GroupsController', () => {
       const description = 'Mokum Developers'
 
       request
-        .post(`${app.config.host}/v1/users/${group.id}`)
+        .post(`${app.context.config.host}/v1/users/${group.id}`)
         .send({
           authToken: context.authToken,
           user:      { screenName, description },
@@ -346,16 +346,24 @@ describe('GroupsController', () => {
 
     it('should update the profile picture', (done) => {
       request
-        .post(`${app.config.host}/v1/groups/pepyatka-dev/updateProfilePicture`)
+        .post(`${app.context.config.host}/v1/groups/pepyatka-dev/updateProfilePicture`)
         .set('X-Authentication-Token', context.authToken)
         .attach('file', 'test/fixtures/default-userpic-75.gif')
         .end((err, res) => {
+          if (err) {
+            done(err);
+            return;
+          }
           res.status.should.eql(200)
           res.body.should.not.be.empty
           request
-            .get(`${app.config.host}/v1/users/pepyatka-dev`)
+            .get(`${app.context.config.host}/v1/users/pepyatka-dev`)
             .query({ authToken: context.authToken })
             .end((err, res) => {
+              if (err) {
+                done(err);
+                return;
+              }
               res.should.not.be.empty
               res.body.users.profilePictureLargeUrl.should.not.be.empty
               done()
@@ -388,7 +396,7 @@ describe('GroupsController', () => {
 
     it('admins should be able to unsubscribe user from group', (done) => {
       request
-        .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${groupMemberContext.user.username}`)
+        .post(`${app.context.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${groupMemberContext.user.username}`)
         .send({
           authToken: adminContext.authToken,
           '_method': 'post'
@@ -403,7 +411,7 @@ describe('GroupsController', () => {
 
     it('should not allow to unsubscribe admins from group', (done) => {
       request
-        .post(`${app.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${secondAdminContext.user.username}`)
+        .post(`${app.context.config.host}/v1/groups/pepyatka-dev/unsubscribeFromGroup/${secondAdminContext.user.username}`)
         .send({ authToken: adminContext.authToken })
         .end((err) => {
           err.should.not.be.empty
