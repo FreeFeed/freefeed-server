@@ -16,7 +16,6 @@ import { BadRequestException, ForbiddenException, NotFoundException, ValidationE
 import { Attachment, Comment, Post } from '../models'
 
 
-promisifyAll(bcrypt)
 promisifyAll(crypto)
 promisifyAll(gm)
 
@@ -66,7 +65,7 @@ export function addModel(dbAdapter) {
           throw new Error('Password cannot be blank')
         }
 
-        this.hashedPassword = await bcrypt.hashAsync(password, 10)
+        this.hashedPassword = await bcrypt.hash(password, 10)
         password = null
       }
       return this
@@ -189,7 +188,7 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.validPassword = function (clearPassword) {
-    return bcrypt.compareAsync(clearPassword, this.hashedPassword)
+    return bcrypt.compare(clearPassword, this.hashedPassword)
   }
 
   User.prototype.isValidEmail = async function () {
@@ -549,7 +548,7 @@ export function addModel(dbAdapter) {
     const updatedAt = new Date().getTime()
     const payload = {
       updatedAt:      updatedAt.toString(),
-      hashedPassword: await bcrypt.hashAsync(password, 10)
+      hashedPassword: await bcrypt.hash(password, 10)
     }
 
     await dbAdapter.updateUser(this.id, payload)
