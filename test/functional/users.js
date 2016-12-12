@@ -36,7 +36,7 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
         .end((err, res) => {
           res.should.not.be.empty
@@ -57,7 +57,7 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password, email: user.email })
         .end((err, res) => {
           res.should.not.be.empty
@@ -86,14 +86,14 @@ describe('UsersController', () => {
         }
 
         request
-          .post(`${app.config.host}/v1/users`)
+          .post(`${app.context.config.host}/v1/users`)
           .send({ username: user.username, password: user.password })
           .end((err, res) => {
             res.body.should.have.property('authToken')
             const authToken = res.body.authToken
 
             request
-              .get(`${app.config.host}/v1/users/${user.username}/subscriptions`)
+              .get(`${app.context.config.host}/v1/users/${user.username}/subscriptions`)
               .query({ authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
@@ -119,7 +119,7 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
         .end((err, res) => {
           res.should.not.be.empty
@@ -135,7 +135,7 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
         .end((err, res) => {
           res.should.not.be.empty
@@ -149,7 +149,7 @@ describe('UsersController', () => {
       const user = { username: 'Luna' }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
         .end((err, res) => {
           res.should.not.be.empty
@@ -167,7 +167,7 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password, email: user.email })
         .end((err, res) => {
           res.should.not.be.empty
@@ -185,7 +185,7 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password, email: user.email })
         .end((err, res) => {
           res.should.not.be.empty
@@ -203,11 +203,11 @@ describe('UsersController', () => {
       }
 
       request
-        .post(`${app.config.host}/v1/users`)
+        .post(`${app.context.config.host}/v1/users`)
         .send({ username: user.username, password: user.password })
         .end(() => {
           request
-            .post(`${app.config.host}/v1/users`)
+            .post(`${app.context.config.host}/v1/users`)
             .send({ username: user.username, password: user.password })
             .end((err, res) => {
               res.should.not.be.empty
@@ -264,7 +264,7 @@ describe('UsersController', () => {
 
     it('should return current user for a valid user', (done) => {
       request
-        .get(`${app.config.host}/v1/users/whoami`)
+        .get(`${app.context.config.host}/v1/users/whoami`)
         .query({ authToken })
         .end((err, res) => {
           res.should.not.be.empty
@@ -279,7 +279,7 @@ describe('UsersController', () => {
 
     it('should not return user for an invalid user', (done) => {
       request
-        .get(`${app.config.host}/v1/users/whoami`)
+        .get(`${app.context.config.host}/v1/users/whoami`)
         .query({ authToken: 'token' })
         .end((err) => {
           err.should.not.be.empty
@@ -305,7 +305,7 @@ describe('UsersController', () => {
       const body = 'Post body'
 
       request
-        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
+        .post(`${app.context.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .send({ authToken: marsContext.authToken })
         .end((err, res) => {
           res.body.should.not.be.empty
@@ -315,7 +315,7 @@ describe('UsersController', () => {
 
           funcTestHelper.createPost(lunaContext, body)(() => {
             request
-              .get(`${app.config.host}/v1/timelines/home`)
+              .get(`${app.context.config.host}/v1/timelines/home`)
               .query({ authToken: marsContext.authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
@@ -330,7 +330,7 @@ describe('UsersController', () => {
 
     it('should subscribe to a user', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
+        .post(`${app.context.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .send({ authToken: marsContext.authToken })
         .end((err, res) => {
           res.body.should.not.be.empty
@@ -339,7 +339,7 @@ describe('UsersController', () => {
           res.body.users.username.should.eql(marsContext.username.toLowerCase())
 
           request
-            .get(`${app.config.host}/v1/timelines/home`)
+            .get(`${app.context.config.host}/v1/timelines/home`)
             .query({ authToken: marsContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -348,7 +348,7 @@ describe('UsersController', () => {
               res.body.timelines.posts.length.should.eql(1)
 
               request
-                .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
+                .post(`${app.context.config.host}/v1/users/${lunaContext.username}/subscribe`)
                 .send({ authToken: marsContext.authToken })
                 .end((err) => {
                   err.should.not.be.empty
@@ -364,7 +364,7 @@ describe('UsersController', () => {
 
     it('should not subscribe to herself', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
+        .post(`${app.context.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .send({ authToken: lunaContext.authToken })
         .end((err) => {
           err.should.not.be.empty
@@ -375,7 +375,7 @@ describe('UsersController', () => {
 
     it('should require valid user to subscribe to another user', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${lunaContext.username}/subscribe`)
+        .post(`${app.context.config.host}/v1/users/${lunaContext.username}/subscribe`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -404,7 +404,7 @@ describe('UsersController', () => {
 
     it('should return list of subscribers', (done) => {
       request
-        .get(`${app.config.host}/v1/users/${userA.username}/subscribers`)
+        .get(`${app.context.config.host}/v1/users/${userA.username}/subscribers`)
         .query({ authToken: authTokenB })
         .end((err, res) => {
           res.body.should.not.be.empty
@@ -419,7 +419,7 @@ describe('UsersController', () => {
 
     it('should return list of subscribers of public user without authorization', (done) => {
       request
-        .get(`${app.config.host}/v1/users/${userA.username}/subscribers`)
+        .get(`${app.context.config.host}/v1/users/${userA.username}/subscribers`)
         .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscribers')
@@ -450,11 +450,11 @@ describe('UsersController', () => {
 
     it('should unsubscribe to a user', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
+        .post(`${app.context.config.host}/v1/users/${userA.username}/unsubscribe`)
         .send({ authToken: authTokenB })
         .end(() => {
           request
-            .get(`${app.config.host}/v1/timelines/home`)
+            .get(`${app.context.config.host}/v1/timelines/home`)
             .query({ authToken: authTokenB })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -462,7 +462,7 @@ describe('UsersController', () => {
               res.body.timelines.should.not.have.property('posts')
 
               request
-                .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
+                .post(`${app.context.config.host}/v1/users/${userA.username}/unsubscribe`)
                 .send({ authToken: authTokenB })
                 .end((err) => {
                   err.should.not.be.empty
@@ -478,7 +478,7 @@ describe('UsersController', () => {
 
     it('should not unsubscribe to herself', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
+        .post(`${app.context.config.host}/v1/users/${userA.username}/unsubscribe`)
         .send({ authToken: authTokenA })
         .end((err) => {
           err.should.not.be.empty
@@ -489,7 +489,7 @@ describe('UsersController', () => {
 
     it('should require valid user to unsubscribe to another user', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${userA.username}/unsubscribe`)
+        .post(`${app.context.config.host}/v1/users/${userA.username}/unsubscribe`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -520,14 +520,14 @@ describe('UsersController', () => {
 
     it('should not allow admins to unsubscribe from group', (done) => {
       request
-        .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
+        .post(`${app.context.config.host}/v1/users/pepyatka-dev/unsubscribe`)
         .send({ authToken: adminContext.authToken })
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(403)
 
           request
-            .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
+            .post(`${app.context.config.host}/v1/users/pepyatka-dev/unsubscribe`)
             .send({ authToken: secondAdminContext.authToken })
             .end((err) => {
               err.should.not.be.empty
@@ -539,7 +539,7 @@ describe('UsersController', () => {
 
     it('should allow group members to unsubscribe from group', (done) => {
       request
-        .post(`${app.config.host}/v1/users/pepyatka-dev/unsubscribe`)
+        .post(`${app.context.config.host}/v1/users/pepyatka-dev/unsubscribe`)
         .send({ authToken: groupMemberContext.authToken })
         .end((err, res) => {
           res.should.not.be.empty
@@ -567,7 +567,7 @@ describe('UsersController', () => {
 
     it('should return list of subscriptions', (done) => {
       request
-        .get(`${app.config.host}/v1/users/${userB.username}/subscriptions`)
+        .get(`${app.context.config.host}/v1/users/${userB.username}/subscriptions`)
         .query({ authToken: authTokenB })
         .end((err, res) => {
           res.body.should.not.be.empty
@@ -586,7 +586,7 @@ describe('UsersController', () => {
 
     it('should return list of subscriptions of public user without authorization', (done) => {
       request
-        .get(`${app.config.host}/v1/users/${userB.username}/subscriptions`)
+        .get(`${app.context.config.host}/v1/users/${userB.username}/subscriptions`)
         .end((err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('subscriptions')
@@ -611,7 +611,7 @@ describe('UsersController', () => {
         const description = 'The fourth planet from the Sun and the second smallest planet in the Solar System, after Mercury.'
 
         request
-          .post(`${app.config.host}/v1/users/${user.id}`)
+          .post(`${app.context.config.host}/v1/users/${user.id}`)
           .send({
             authToken,
             user:      { screenName, description },
@@ -680,7 +680,7 @@ describe('UsersController', () => {
 
       it('should update privacy settings', (done) => {
         request
-          .post(`${app.config.host}/v1/users/${user.id}`)
+          .post(`${app.context.config.host}/v1/users/${user.id}`)
           .send({
             authToken,
             user:      { isPrivate: '1' },
@@ -701,7 +701,7 @@ describe('UsersController', () => {
 
       it('should update visibility to anonymous', (done) => {
         request
-          .post(`${app.config.host}/v1/users/${user.id}`)
+          .post(`${app.context.config.host}/v1/users/${user.id}`)
           .send({
             authToken,
             user:      { isVisibleToAnonymous: '0' },
@@ -722,7 +722,7 @@ describe('UsersController', () => {
 
       it('should update protection settings', (done) => {
         request
-          .post(`${app.config.host}/v1/users/${user.id}`)
+          .post(`${app.context.config.host}/v1/users/${user.id}`)
           .send({
             authToken,
             user:      { isProtected: '1' },
@@ -745,7 +745,7 @@ describe('UsersController', () => {
         const screenName = 'Mars'
 
         request
-          .post(`${app.config.host}/v1/users/${user.id}`)
+          .post(`${app.context.config.host}/v1/users/${user.id}`)
           .send({
             authToken: 'abc',
             user:      { screenName },
@@ -767,7 +767,7 @@ describe('UsersController', () => {
       _.forEach(invalid, (screenName) => {
         it(`should not allow invalid screen-name: ${screenName}`, (done) => {
           request
-            .post(`${app.config.host}/v1/users/${user.id}`)
+            .post(`${app.context.config.host}/v1/users/${user.id}`)
             .send({
               authToken,
               user:      { screenName },
@@ -793,7 +793,7 @@ describe('UsersController', () => {
       _.forEach(valid, (screenName) => {
         it(`should allow valid screen-name: ${screenName}`, (done) => {
           request
-            .post(`${app.config.host}/v1/users/${user.id}`)
+            .post(`${app.context.config.host}/v1/users/${user.id}`)
             .send({
               authToken,
               user:      { screenName },
@@ -993,7 +993,7 @@ describe('UsersController', () => {
       const password = 'drowssap'
 
       request
-        .post(`${app.config.host}/v1/users/updatePassword`)
+        .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
           currentPassword:      user.password,
@@ -1005,7 +1005,7 @@ describe('UsersController', () => {
           (err === null).should.be.true
 
           request
-            .post(`${app.config.host}/v1/session`)
+            .post(`${app.context.config.host}/v1/session`)
             .send({ username: user.username, password })
             .end((err, res) => {
               res.should.not.be.empty
@@ -1022,7 +1022,7 @@ describe('UsersController', () => {
       const password = 'drowssap'
 
       request
-        .post(`${app.config.host}/v1/users/updatePassword`)
+        .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
           currentPassword:      user.password,
@@ -1034,7 +1034,7 @@ describe('UsersController', () => {
           (err === null).should.be.true
 
           request
-            .post(`${app.config.host}/v1/session`)
+            .post(`${app.context.config.host}/v1/session`)
             .send({ username: user.username, password: user.password })
             .end((err) => {
               err.should.not.be.empty
@@ -1048,7 +1048,7 @@ describe('UsersController', () => {
       const password = 'drowssap'
 
       request
-        .post(`${app.config.host}/v1/users/updatePassword`)
+        .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
           currentPassword:      user.password,
@@ -1069,7 +1069,7 @@ describe('UsersController', () => {
       const password = ''
 
       request
-        .post(`${app.config.host}/v1/users/updatePassword`)
+        .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
           currentPassword:      user.password,
@@ -1090,7 +1090,7 @@ describe('UsersController', () => {
       const password = 'drowssap'
 
       request
-        .post(`${app.config.host}/v1/users/updatePassword`)
+        .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
           currentPassword:      'abc',
@@ -1111,7 +1111,7 @@ describe('UsersController', () => {
       const screenName = 'Mars'
 
       request
-        .post(`${app.config.host}/v1/users/updatePassword`)
+        .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken: 'abc',
           user:      { screenName },
@@ -1139,14 +1139,14 @@ describe('UsersController', () => {
 
     it('should update the profile picture', (done) => {
       request
-        .post(`${app.config.host}/v1/users/updateProfilePicture`)
+        .post(`${app.context.config.host}/v1/users/updateProfilePicture`)
         .set('X-Authentication-Token', authToken)
         .attach('file', 'test/fixtures/default-userpic-75.gif')
         .end((err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           request
-            .get(`${app.config.host}/v1/users/whoami`)
+            .get(`${app.context.config.host}/v1/users/whoami`)
             .query({ authToken })
             .end((err, res) => {
               res.should.not.be.empty
@@ -1158,7 +1158,7 @@ describe('UsersController', () => {
 
     it('should report an error if the profile picture is not an image', (done) => {
       request
-        .post(`${app.config.host}/v1/users/updateProfilePicture`)
+        .post(`${app.context.config.host}/v1/users/updateProfilePicture`)
         .set('X-Authentication-Token', authToken)
         .attach('file', 'README.md')
         .end((err, res) => {
@@ -1201,7 +1201,7 @@ describe('UsersController', () => {
     // Zeus bans Mars, Mars should become unsubscribed from Zeus.
     it('should unsubscribe the user', (done) => {
       request
-        .get(`${app.config.host}/v1/users/${username}/subscriptions`)
+        .get(`${app.context.config.host}/v1/users/${username}/subscriptions`)
         .query({ authToken: marsContext.authToken })
         .end((err, res) => { // Mars has subcriptions to Zeus
           res.body.should.not.be.empty
@@ -1213,12 +1213,12 @@ describe('UsersController', () => {
           }
 
           request
-            .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+            .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
               request
-                .get(`${app.config.host}/v1/users/${username}/subscriptions`)
+                .get(`${app.context.config.host}/v1/users/${username}/subscriptions`)
                 .query({ authToken: marsContext.authToken })
                 .end((err, res) => { // Mars now has NO subcriptions to Zeus
                   res.body.should.not.be.empty
@@ -1240,7 +1240,7 @@ describe('UsersController', () => {
           res.body.should.not.be.empty
 
           request
-            .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+            .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
             .end((err, res) => {
               res.error.should.be.empty
@@ -1254,7 +1254,7 @@ describe('UsersController', () => {
 
                 // Zeus should not see comments in single-post view either
                 request
-                  .get(`${app.config.host}/v1/posts/${postId}`)
+                  .get(`${app.context.config.host}/v1/posts/${postId}`)
                   .query({ authToken: zeusContext.authToken })
                   .end((err, res) => {
                     res.body.should.not.be.empty
@@ -1274,12 +1274,12 @@ describe('UsersController', () => {
         res.body.should.not.be.empty
 
         request
-          .post(`${app.config.host}/v1/posts/${zeusContext.post.id}/like`)
+          .post(`${app.context.config.host}/v1/posts/${zeusContext.post.id}/like`)
           .send({ authToken: marsContext.authToken })
           .end((err) => {
             $should.not.exist(err)
             request
-              .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+              .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
               .send({ authToken: zeusContext.authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
@@ -1292,7 +1292,7 @@ describe('UsersController', () => {
 
                   // Zeus should not see likes in single-post view either
                   request
-                    .get(`${app.config.host}/v1/posts/${zeusContext.post.id}`)
+                    .get(`${app.context.config.host}/v1/posts/${zeusContext.post.id}`)
                     .query({ authToken: zeusContext.authToken })
                     .end((err, res) => {
                       res.body.should.not.be.empty
@@ -1310,7 +1310,7 @@ describe('UsersController', () => {
     it('should ban user posts', (done) => {
       funcTestHelper.createPostForTest(marsContext, 'Post body', () => {
         request
-          .post(`${app.config.host}/v1/posts/${marsContext.post.id}/like`)
+          .post(`${app.context.config.host}/v1/posts/${marsContext.post.id}/like`)
           .send({ authToken: zeusContext.authToken })
           .end(() => {
             // Now Zeus should see this post in his timeline
@@ -1320,7 +1320,7 @@ describe('UsersController', () => {
               res.body.posts.length.should.eql(1)
 
               request
-                .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+                .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
                 .send({ authToken: zeusContext.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
@@ -1345,7 +1345,7 @@ describe('UsersController', () => {
           res.body.posts.length.should.eql(1)
 
           request
-            .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+            .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -1356,7 +1356,7 @@ describe('UsersController', () => {
 
                 // Mars should not see the post in single-post view either
                 request
-                  .get(`${app.config.host}/v1/posts/${zeusContext.post.id}`)
+                  .get(`${app.context.config.host}/v1/posts/${zeusContext.post.id}`)
                   .query({ authToken: marsContext.authToken })
                   .end((err) => {
                     err.should.not.be.empty
@@ -1374,13 +1374,13 @@ describe('UsersController', () => {
     // Zeus bans Mars and Mars could not subscribe again any more
     it('should not let user resubscribe', (done) => {
       request
-        .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+        .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
         .send({ authToken: zeusContext.authToken })
         .end((err, res) => {
           res.body.should.not.be.empty
 
           request
-            .post(`${app.config.host}/v1/users/${username}/subscribe`)
+            .post(`${app.context.config.host}/v1/users/${username}/subscribe`)
             .send({ authToken: marsContext.authToken })
             .end((err) => {
               err.should.not.be.empty
@@ -1432,7 +1432,7 @@ describe('UsersController', () => {
       // ... Zeus bans Mars and should no longer see the post in this group
       it('should ban user posts to group', (done) => {
         request
-          .post(`${app.config.host}/v1/users/${banUsername}/ban`)
+          .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
           .send({ authToken: zeusContext.authToken })
           .end((err, res) => {
             res.body.should.not.be.empty

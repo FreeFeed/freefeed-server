@@ -1,68 +1,62 @@
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
-import { reportError } from '../../../support/exceptions'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
 
 export default class UsersController {
-  static async blockedByMe(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async blockedByMe(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
-    try {
-      const banIds = await req.user.getBanIds()
-      const bannedUsers = await dbAdapter.getUsersByIds(banIds)
-      const profilePicsPromises = bannedUsers.map(async (user) => {
-        const request = _.pick(user, ['id', 'username', 'screenName'])
-        request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()
-        request.profilePictureMediumUrl = await user.getProfilePictureMediumUrl()
-        return request
-      })
-      const result = await Promise.all(profilePicsPromises)
-      res.jsonp(result)
-    } catch (e) {
-      reportError(res)(e)
-    }
+    const banIds = await ctx.state.user.getBanIds()
+    const bannedUsers = await dbAdapter.getUsersByIds(banIds)
+    const profilePicsPromises = bannedUsers.map(async (user) => {
+      const request = _.pick(user, ['id', 'username', 'screenName'])
+      request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()
+      request.profilePictureMediumUrl = await user.getProfilePictureMediumUrl()
+      return request
+    })
+    const result = await Promise.all(profilePicsPromises)
+    ctx.body = result
   }
 
-  static async getUnreadDirectsNumber(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async getUnreadDirectsNumber(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
     const timer = monitor.timer('users.unread-directs')
     try {
-      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(req.user.id)
-      res.jsonp({ unread: unreadDirectsNumber })
+      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(ctx.state.user.id)
+      ctx.body = { unread: unreadDirectsNumber };
       monitor.increment('users.unread-directs-requests')
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop()
     }
   }
 
-  static async markAllDirectsAsRead(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async markAllDirectsAsRead(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
-    try {
-      await dbAdapter.markAllDirectsAsRead(req.user.id)
-      res.jsonp({ message: `Directs are now marked as read for ${req.user.id}` })
-    } catch (e) {
-      reportError(res)(e)
-    }
+
+    await dbAdapter.markAllDirectsAsRead(ctx.state.user.id)
+    ctx.body = { message: `Directs are now marked as read for ${ctx.state.user.id}` };
   }
 
-  static async whoAmI(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' });
+  static async whoAmI(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return;
     }
-    const { user } = req;
+    const user = ctx.state.user;
     const timer = monitor.timer('users.whoami-v2');
     try {
       const [
@@ -112,9 +106,7 @@ export default class UsersController {
           return group;
         });
 
-      res.jsonp({ users, subscribers, subscriptions, requests, managedGroups });
-    } catch (e) {
-      reportError(res)(e);
+      ctx.body = { users, subscribers, subscriptions, requests, managedGroups };
     } finally {
       timer.stop();
     }

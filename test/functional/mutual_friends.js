@@ -42,12 +42,12 @@ describe('MutualFriends', () => {
       it('should not publish liked direct message to home feed of mutual friends', (done) => {
         const body = 'body'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end((err, res) => {
             const post = res.body.posts
             request
-              .post(`${app.config.host}/v1/posts/${post.id}/like`)
+              .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(() => {
                 funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
@@ -64,12 +64,12 @@ describe('MutualFriends', () => {
       it('should not publish liked direct message to likes feed', (done) => {
         const body = 'body'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end((err, res) => {
             const post = res.body.posts
             request
-              .post(`${app.config.host}/v1/posts/${post.id}/like`)
+              .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(() => {
                 funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/likes`, lunaContext.authToken, (err, res) => {
@@ -95,7 +95,7 @@ describe('MutualFriends', () => {
       it('should not publish commented direct message to home feed of mutual friends', (done) => {
         const body = 'body'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end((err, res) => {
             const post = res.body.posts
@@ -118,7 +118,7 @@ describe('MutualFriends', () => {
       it('should not publish commented direct message to comments feed', (done) => {
         const body = 'body'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end((err, res) => {
             const post = res.body.posts
@@ -146,7 +146,7 @@ describe('MutualFriends', () => {
       it('should not comment on direct message unless you are recipient', (done) => {
         const body = 'body'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end((err, res) => {
             const post = res.body.posts
@@ -166,12 +166,12 @@ describe('MutualFriends', () => {
       it('should not like direct message unless you are recipient', (done) => {
         const body = 'body'
         request
-          .post(`${app.config.host}/v1/posts`)
+          .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body }, meta: { feeds: [marsContext.username] }, authToken: lunaContext.authToken })
           .end((err, res) => {
             const post = res.body.posts
             request
-              .post(`${app.config.host}/v1/posts/${post.id}/like`)
+              .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: zeusContext.authToken })
               .end((err, res) => {
                 try {

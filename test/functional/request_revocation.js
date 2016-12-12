@@ -47,7 +47,7 @@ describe('RequestRevocation', () => {
 
     it('should reject unauthenticated users', (done) => {
       request
-        .post(`${app.config.host}/v2/requests/${marsContext.user.username}/revoke`)
+        .post(`${app.context.config.host}/v2/requests/${marsContext.user.username}/revoke`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -57,7 +57,7 @@ describe('RequestRevocation', () => {
 
     it('should reject nonexisting user', (done) => {
       request
-        .post(`${app.config.host}/v2/requests/foobar/revoke`)
+        .post(`${app.context.config.host}/v2/requests/foobar/revoke`)
         .send({ authToken: lunaContext.authToken })
         .end((err) => {
           err.should.not.be.empty
@@ -68,7 +68,7 @@ describe('RequestRevocation', () => {
 
     it('should reject nonexisting subscription request to user', (done) => {
       request
-        .post(`${app.config.host}/v2/requests/${marsContext.user.username}/revoke`)
+        .post(`${app.context.config.host}/v2/requests/${marsContext.user.username}/revoke`)
         .send({ authToken: lunaContext.authToken })
         .end((err) => {
           err.should.not.be.empty
@@ -79,7 +79,7 @@ describe('RequestRevocation', () => {
 
     it('should reject nonexisting subscription request to group', (done) => {
       request
-        .post(`${app.config.host}/v2/requests/pepyatka-dev/revoke`)
+        .post(`${app.context.config.host}/v2/requests/pepyatka-dev/revoke`)
         .send({ authToken: marsContext.authToken })
         .end((err) => {
           err.should.not.be.empty
@@ -90,7 +90,7 @@ describe('RequestRevocation', () => {
 
     it('should remove existing subscription request to group', (done) => {
       request
-        .post(`${app.config.host}/v2/requests/pepyatka-dev/revoke`)
+        .post(`${app.context.config.host}/v2/requests/pepyatka-dev/revoke`)
         .send({ authToken: lunaContext.authToken })
         .end((err, res) => {
           res.should.not.be.empty
@@ -103,7 +103,7 @@ describe('RequestRevocation', () => {
 
     it('should remove existing subscription request to user', (done) => {
       request
-        .post(`${app.config.host}/v2/requests/${zeusContext.user.username}/revoke`)
+        .post(`${app.context.config.host}/v2/requests/${zeusContext.user.username}/revoke`)
         .send({ authToken: lunaContext.authToken })
         .end((err, res) => {
           res.should.not.be.empty

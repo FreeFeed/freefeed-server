@@ -32,7 +32,7 @@ describe('UsersControllerV2', () => {
   describe('#blockedByMe()', () => {
     it('should reject unauthenticated users', (done) => {
       request
-        .get(`${app.config.host}/v2/users/blockedByMe`)
+        .get(`${app.context.config.host}/v2/users/blockedByMe`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -56,12 +56,12 @@ describe('UsersControllerV2', () => {
 
       const userBResponse = await createUserAsync(userB.username, userB.password)
 
-      await fetch(`${app.config.host}/v1/users/${userB.username}/ban`, {
+      await fetch(`${app.context.config.host}/v1/users/${userB.username}/ban`, {
         method:  'POST',
         headers: { 'X-Authentication-Token': userAResponse.authToken }
       })
 
-      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`, { headers: { 'X-Authentication-Token': userAResponse.authToken } })
+      const blockedByMeResponse = await fetch(`${app.context.config.host}/v2/users/blockedbyme`, { headers: { 'X-Authentication-Token': userAResponse.authToken } })
 
       const blockedByMe = await blockedByMeResponse.json()
 
@@ -80,7 +80,7 @@ describe('UsersControllerV2', () => {
   describe('#whoami()', () => {
     it('should reject unauthenticated users', (done) => {
       request
-        .get(`${app.config.host}/v2/users/whoami`)
+        .get(`${app.context.config.host}/v2/users/whoami`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -118,7 +118,7 @@ describe('UsersControllerV2', () => {
       await sendRequestToJoinGroup(mars, selenitesGroup);
       await sendRequestToJoinGroup(pluto, selenitesGroup); // request from non-friend
 
-      const whoAmI = await fetch(`${app.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
+      const whoAmI = await fetch(`${app.context.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
 
       const userSchema = {
         id:                      expect.it('to be a string'),

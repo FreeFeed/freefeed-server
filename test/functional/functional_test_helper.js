@@ -9,7 +9,7 @@ import { getSingleton as initApp } from '../../app/app'
 
 const apiUrl = async (relativeUrl) => {
   const app = await initApp()
-  return `${app.config.host}${relativeUrl}`
+  return `${app.context.config.host}${relativeUrl}`
 }
 
 export function createUser(username, password, attributes, callback) {
@@ -725,9 +725,9 @@ const PromisifiedIO = (host, options, events) => {
 }
 
 export async function createRealtimeConnection(context, callbacks) {
-  const app = await initApp()
+  const app = await initApp();
 
-  const port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'));
+  const port = (process.env.PEPYATKA_SERVER_PORT || app.context.port);
   const options = {
     transports:             ['websocket'],
     'force new connection': true,

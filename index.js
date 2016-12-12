@@ -11,7 +11,7 @@ consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
 
 initApp()
   .then((app) => {
-    app.logger.info(`Server initialization is complete`)
+    app.context.logger.info(`Server initialization is complete`)
   })
   .catch((e) => {
     process.stderr.write(`FATAL ERROR\n`)
