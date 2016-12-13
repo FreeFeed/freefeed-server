@@ -1617,6 +1617,163 @@ export class DbAdapter {
     return res.rows;
   };
 
+  /**
+   * Returns array of objects with the following structure:
+   * {
+   *   post: <Post object>
+   *   destinations: <array of {id (feed UID), name (feed type), user (feed owner UID)}
+   *                 objects of posts' destination timelines>
+   *   attachments: <array of Attachment objects>
+   *   comments: <array of Comments objects>
+   *   omittedComments: <number>
+   *   likes: <array of liker's UIDs>
+   *   omittedLikes: <number>
+   * }
+   */
+  async getPostsWithStuffByIds(postsIds, viewerId = null, params = {}) {
+    if (_.isEmpty(postsIds)) {
+      return [];
+    }
+
+    params = {
+      foldComments:        true,
+      foldLikes:           true,
+      maxUnfoldedComments: 3,
+      maxUnfoldedLikes:    4,
+      visibleFoldedLikes:  3,
+      ...params,
+    };
+
+    const unexistedUID = '00000000-0000-0000-C000-000000000046';
+
+    const uniqPostsIds = _.uniq(postsIds);
+
+    const postFields = _.without(Object.keys(POST_FIELDS), 'comments_count', 'likes_count').map((k) => pgFormat('%I', k));
+    const attFields = Object.keys(ATTACHMENT_FIELDS).map((k) => pgFormat('%I', k));
+    const commentFields = Object.keys(COMMENT_FIELDS).map((k) => pgFormat('%I', k));
+
+    const destinationsSQL = pgFormat(`
+      with posts as (
+        -- unwind all destination_feed_ids from posts
+        select distinct
+          p.uid,
+          unnest(p.destination_feed_ids) as feed_id
+        from 
+          posts p
+        where 
+          p.uid in (%L)
+      )
+      select
+        p.uid as post_id, f.uid as id, f.name, f.user_id as user
+      from 
+        feeds f join posts p on f.id = p.feed_id
+    `, uniqPostsIds);
+
+    const [
+      bannedUsersIds,
+      friendsIds,
+      postsData,
+      attData,
+      { rows: destData },
+    ] = await Promise.all([
+      viewerId ? this.getUserBansIds(viewerId) : [],
+      viewerId ? this.getUserFriendIds(viewerId) : [],
+      this.database.select(...postFields).from('posts').whereIn('uid', uniqPostsIds),
+      this.database.select(...attFields).from('attachments').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
+      this.database.raw(destinationsSQL),
+    ]);
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
+    }
+    if (friendsIds.length === 0) {
+      friendsIds.push(unexistedUID);
+    }
+
+    const allLikesSQL = pgFormat(`
+      select
+        post_id, user_id,
+        rank() over (partition by post_id order by
+          user_id in (%L) desc,
+          user_id in (%L) desc,
+          created_at desc,
+          id desc
+        ),
+        count(*) over (partition by post_id) 
+      from likes
+      where post_id in (%L) and user_id not in (%L)
+    `, [viewerId], friendsIds, uniqPostsIds, bannedUsersIds);
+
+    const likesSQL = `
+      with likes as (${allLikesSQL})
+      select post_id, array_agg(user_id) as likes, count from likes
+      ${params.foldLikes ?
+        pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) :
+        ``}
+      group by post_id, count 
+    `;
+
+    const allCommentsSQL = pgFormat(`
+      select
+        ${commentFields.join(', ')}, id,
+        rank() over (partition by post_id order by created_at, id),
+        count(*) over (partition by post_id) 
+      from comments
+      where post_id in (%L) and user_id not in (%L)
+    `, uniqPostsIds, bannedUsersIds);
+
+    const commentsSQL = `
+      with comments as (${allCommentsSQL})
+      select ${commentFields.join(', ')}, id, count from comments
+      ${params.foldComments ?
+        pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) :
+        ``}
+      order by created_at, id
+    `;
+
+    const [
+      { rows: likesData },
+      { rows: commentsData },
+    ] = await Promise.all([
+      this.database.raw(likesSQL),
+      this.database.raw(commentsSQL),
+    ]);
+
+    const results = {};
+
+    for (const post of postsData) {
+      results[post.uid] = {
+        post:            this.initPostObject(post),
+        destinations:    [],
+        attachments:     [],
+        comments:        [],
+        omittedComments: 0,
+        likes:           [],
+        omittedLikes:    0,
+      };
+    }
+
+    for (const dest of destData) {
+      results[dest.post_id].destinations.push(_.omit(dest, 'post_id'));
+    }
+
+    for (const att of attData) {
+      results[att.post_id].attachments.push(this.initAttachmentObject(att));
+    }
+
+    for (const lk of likesData) {
+      results[lk.post_id].likes = lk.likes;
+      results[lk.post_id].omittedLikes = lk.count - lk.likes.length;
+    }
+
+    for (const comm of commentsData) {
+      results[comm.post_id].comments.push(this.initCommentObject(comm));
+      results[comm.post_id].omittedComments = comm.count <= 3 ? 0 : comm.count - 2;
+    }
+
+    return postsIds.map((id) => results[id] || null);
+  }
+
   ///////////////////////////////////////////////////
   // Subscriptions
   ///////////////////////////////////////////////////
