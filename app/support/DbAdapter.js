@@ -1109,6 +1109,14 @@ export class DbAdapter {
   // Comments
   ///////////////////////////////////////////////////
 
+  initCommentObject = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING);
+    return DbAdapter.initObject(Comment, attrs, attrs.id);
+  };
+
   async createComment(payload) {
     const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
     const res = await this.database('comments').returning('uid').insert(preparedPayload)
@@ -1119,15 +1127,8 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('comments').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-    return DbAdapter.initObject(Comment, attrs, id)
+    const attrs = await this.database('comments').first().where('uid', id)
+    return this.initCommentObject(attrs);
   }
 
   updateComment(commentId, payload) {
@@ -1158,20 +1159,11 @@ export class DbAdapter {
 
     if (viewerUserId) {
       const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId);
-      query = query.where('user_id', 'not in', subquery) ;
+      query = query.where('user_id', 'not in', subquery);
     }
 
-    const responses = await query
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Comment, attrs, attrs.id)
-    })
-
-    return objects
+    const responses = await query;
+    return responses.map(this.initCommentObject);
   }
 
   _deletePostComments(postId) {
