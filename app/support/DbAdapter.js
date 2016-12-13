@@ -861,6 +861,15 @@ export class DbAdapter {
     return res.map((record) => record.user_id);
   }
 
+  async getBannedFeedsIntIds(userId) {
+    return await this.database
+      .pluck('feeds.id')
+      .from('feeds')
+      .innerJoin('bans', 'bans.banned_user_id', 'feeds.user_id')
+      .where('feeds.name', 'Posts')
+      .where('bans.user_id', userId);
+  }
+
   async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId) {
     let res = [];
 
