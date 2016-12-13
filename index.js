@@ -4,8 +4,11 @@ import consoleStamp from 'console-stamp'
 
 import { getSingleton as initApp } from './app/app'
 
-global.Promise = bluebird
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
+global.Promise = bluebird;
+global.Promise.config({ longStackTraces: process.env.NODE_ENV !== 'production' });
+global.Promise.onPossiblyUnhandledRejection((e) => {
+  console.error('Unhandled Exception', e);
+});
 
 consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
 
