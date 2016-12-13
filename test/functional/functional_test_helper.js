@@ -591,12 +591,14 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 
 export async function createMockAttachmentAsync(context) {
   const params = {
-    fileName:  'lion.jpg',
-    fileSize:  12345,
-    userId:    context.user.id,
-    postId:    '',
-    createdAt: (new Date()).getTime(),
-    updatedAt: (new Date()).getTime()
+    mediaType:  'image',
+    fileName:   'lion.jpg',
+    fileSize:   12345,
+    userId:     context.user.id,
+    postId:     '',
+    createdAt:  (new Date()).getTime(),
+    updatedAt:  (new Date()).getTime(),
+    imageSizes: { t: { w: 200, h: 175 }, o: { w: 600, h: 525 } },
   }
 
   const id = await dbAdapter.createAttachment(params)
@@ -666,6 +668,10 @@ export function sendRequestToSubscribe(subscriber, user) {
   return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
 }
 
+export function acceptRequestToSubscribe(subscriber, user) {
+  return postJson(`/v1/users/acceptRequest/${subscriber.username}`, { authToken: user.authToken })
+}
+
 export function sendRequestToJoinGroup(subscriber, group) {
   return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
 }
@@ -676,6 +682,10 @@ export function acceptRequestToJoinGroup(admin, subscriber, group) {
 
 export function banUser(who, whom) {
   return postJson(`/v1/users/${whom.username}/ban`, { authToken: who.authToken })
+}
+
+export function hidePost(postId, user) {
+  return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
 }
 
 /**
