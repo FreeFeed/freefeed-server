@@ -976,6 +976,14 @@ export class DbAdapter {
   // Attachments
   ///////////////////////////////////////////////////
 
+  initAttachmentObject = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING);
+    return DbAdapter.initObject(Attachment, attrs, attrs.id);
+  };
+
   async createAttachment(payload) {
     const preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
     const res = await this.database('attachments').returning('uid').insert(preparedPayload)
@@ -986,29 +994,13 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('attachments').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-    return DbAdapter.initObject(Attachment, attrs, id)
+    const attrs = await this.database('attachments').first().where('uid', id)
+    return this.initAttachmentObject(attrs);
   }
 
   async getAttachmentsByIds(ids) {
     const responses = await this.database('attachments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Attachment, attrs, attrs.id)
-    })
-
-    return objects
+    return responses.map(this.initAttachmentObject)
   }
 
   updateAttachment(attachmentId, payload) {
@@ -1038,15 +1030,7 @@ export class DbAdapter {
 
   async getAttachmentsOfPost(postId) {
     const responses = await this.database('attachments').orderBy('created_at', 'asc').where('post_id', postId)
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Attachment, attrs, attrs.id)
-    })
-
-    return objects
+    return responses.map(this.initAttachmentObject)
   }
 
   ///////////////////////////////////////////////////
