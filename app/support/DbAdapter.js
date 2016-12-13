@@ -1816,11 +1816,7 @@ export class DbAdapter {
   }
 
   async getTimelineSubscribersIds(timelineId) {
-    const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
-    const attrs = res.map((record) => {
-      return record.user_id
-    })
-    return attrs
+    return await this.database('subscriptions').pluck('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
   }
 
   async getTimelineSubscribers(timelineIntId) {
