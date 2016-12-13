@@ -1350,6 +1350,14 @@ export class DbAdapter {
   // Post
   ///////////////////////////////////////////////////
 
+  initPostObject = (attrs, params) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING);
+    return DbAdapter.initObject(Post, attrs, attrs.id, params);
+  }
+
   async createPost(payload, destinationsIntIds) {
     const preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
@@ -1366,28 +1374,13 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('posts').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-    return DbAdapter.initObject(Post, attrs, id, params)
+    const attrs = await this.database('posts').first().where('uid', id)
+    return this.initPostObject(attrs, params)
   }
 
   async getPostsByIds(ids, params) {
     const responses = await this.database('posts').orderBy('updated_at', 'desc').whereIn('uid', ids)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Post, attrs, attrs.id, params)
-    })
-    return objects
+    return responses.map((attrs) => this.initPostObject(attrs, params))
   }
 
   async getUserPostsCount(userId) {
