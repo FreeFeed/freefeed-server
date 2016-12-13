@@ -1497,6 +1497,52 @@ export class DbAdapter {
     return objects
   }
 
+  /**
+   * Returns UIDs of timeline posts
+   */
+  async getTimelinePostsIds(timelineIntId, banedFeedsIntIds, params = {}) {
+    params = {
+      limit:          30,
+      offset:         0,
+      sort:           'updated',
+      viewerId:       null,
+      withLocalBumps: false,
+      ...params,
+    };
+
+    params.withLocalBumps = params.withLocalBumps && params.viewerId && params.sort === 'updated';
+
+    let sql;
+    if (params.withLocalBumps) {
+      sql = pgFormat(`
+        select p.uid
+        from 
+          posts p
+          left join local_bumps b on p.uid = b.post_id and b.user_id = %L
+        where
+          p.feed_ids && %L
+          and not p.destination_feed_ids && %L
+        order by
+          greatest(p.updated_at, b.created_at) desc
+        limit %L offset %L
+      `, params.viewerId, `{${timelineIntId}}`, `{${banedFeedsIntIds.join(',')}}`, params.limit, params.offset);
+    } else {
+      sql = pgFormat(`
+        select uid
+        from 
+          posts
+        where
+          feed_ids && %L
+          and not destination_feed_ids && %L
+        order by
+          %I desc
+        limit %L offset %L
+      `, `{${timelineIntId}}`, `{${banedFeedsIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+    }
+
+    return (await this.database.raw(sql)).rows.map((r) => r.uid);
+  }
+
   // merges posts from "source" into "destination"
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineIds) {
     const transaction = async (trx) => {
