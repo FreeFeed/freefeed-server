@@ -14,8 +14,6 @@ import {
   like,
   createCommentAsync,
   banUser,
-  createMockAttachmentAsync,
-  updatePostAsync,
   goPrivate,
   sendRequestToSubscribe,
   acceptRequestToSubscribe,
@@ -35,7 +33,7 @@ describe('TimelinesControllerV2', () => {
 
   describe('#home()', () => {
     it('should reject unauthenticated users', async () => {
-      const response = await fetch(`${app.config.host}/v2/timelines/home`);
+      const response = await fetch(`${app.context.config.host}/v2/timelines/home`);
       expect(response, 'to satisfy', { status: 401 });
       const data = await response.json();
       expect(data, 'to have key', 'err');
@@ -200,7 +198,7 @@ const timelineSchema = {
 
 async function fetchHomefeed(app, userContext) {
   const response = await fetch(
-    `${app.config.host}/v2/timelines/home`,
+    `${app.context.config.host}/v2/timelines/home`,
     { headers: { 'X-Authentication-Token': userContext.authToken } }
   );
   const homefeed = await response.json();
