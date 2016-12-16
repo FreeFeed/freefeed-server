@@ -254,7 +254,9 @@ const POST_COLUMNS = {
   updatedAt:        'updated_at',
   userId:           'user_id',
   body:             'body',
-  commentsDisabled: 'comments_disabled'
+  commentsDisabled: 'comments_disabled',
+  isPrivate:        'is_private',
+  isProtected:      'is_protected',
 }
 
 const POST_COLUMNS_MAPPING = {
@@ -274,7 +276,9 @@ const POST_COLUMNS_MAPPING = {
       return user_id
     }
     return null
-  }
+  },
+  isPrivate:   (is_private) => {return is_private === '1'},
+  isProtected: (is_protected) => {return is_protected === '1'},
 }
 
 const POST_FIELDS = {
@@ -287,14 +291,18 @@ const POST_FIELDS = {
   feed_ids:             'feedIntIds',
   destination_feed_ids: 'destinationFeedIds',
   comments_count:       'commentsCount',
-  likes_count:          'likesCount'
+  likes_count:          'likesCount',
+  is_private:           'isPrivate',
+  is_protected:         'isProtected',
 }
 
 const POST_FIELDS_MAPPING = {
   created_at:        (time) => { return time.getTime().toString() },
   updated_at:        (time) => { return time.getTime().toString() },
   comments_disabled: (comments_disabled) => {return comments_disabled ? '1' : '0' },
-  user_id:           (user_id) => {return user_id ? user_id : ''}
+  user_id:           (user_id) => {return user_id ? user_id : ''},
+  is_private:        (is_private) => {return is_private ? '1' : '0' },
+  is_protected:      (is_protected) => {return is_protected ? '1' : '0' },
 }
 
 export class DbAdapter {
