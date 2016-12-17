@@ -1518,7 +1518,22 @@ export class DbAdapter {
       ...params,
     };
 
-    params.withLocalBumps = params.withLocalBumps && params.viewerId && params.sort === 'updated';
+    params.withLocalBumps = params.withLocalBumps && !!params.viewerId && params.sort === 'updated';
+
+    // Private feeds viewer can read
+    const visiblePrivateFeedIntIds = [];
+    if (params.viewerId) {
+      const { rows } = await this.database.raw(`
+        select f.id from
+          subscriptions s
+          join feeds f on f.uid = s.feed_id and f.name = 'Posts'
+          join users u on u.uid = f.user_id and u.is_private
+        where s.user_id = ?
+      `, params.viewerId);
+      visiblePrivateFeedIntIds.push(..._.map(rows, 'id'));
+      const directsFeed = await this.getUserNamedFeed(params.viewerId, 'Directs');
+      visiblePrivateFeedIntIds.push(directsFeed.intId);
+    }
 
     let sql;
     if (params.withLocalBumps) {
@@ -1529,11 +1544,19 @@ export class DbAdapter {
           left join local_bumps b on p.uid = b.post_id and b.user_id = %L
         where
           p.feed_ids && %L
-          and not p.destination_feed_ids && %L
+          and not p.destination_feed_ids && %L -- bans
+          and (not is_private or destination_feed_ids && %L) -- privates
         order by
           greatest(p.updated_at, b.created_at) desc
         limit %L offset %L
-      `, params.viewerId, `{${timelineIntId}}`, `{${banedFeedsIntIds.join(',')}}`, params.limit, params.offset);
+        `,
+        params.viewerId,
+        `{${timelineIntId}}`,
+        `{${banedFeedsIntIds.join(',')}}`,
+        `{${visiblePrivateFeedIntIds.join(',')}}`,
+        params.limit,
+        params.offset
+      );
     } else {
       sql = pgFormat(`
         select uid
@@ -1542,6 +1565,10 @@ export class DbAdapter {
         where
           feed_ids && %L
           and not destination_feed_ids && %L
+          and ${params.viewerId ?
+            pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
+            'not is_protected'
+          }
         order by
           %I desc
         limit %L offset %L
