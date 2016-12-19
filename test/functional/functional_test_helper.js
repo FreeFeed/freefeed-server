@@ -463,6 +463,14 @@ export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
 
+export function acceptRequestAsync(subject, requester) {
+  return postJson(`/v1/users/acceptRequest/${requester.username}`, { authToken: subject.authToken })
+}
+
+export function rejectRequestAsync(subject, requester) {
+  return postJson(`/v1/users/rejectRequest/${requester.username}`, { authToken: subject.authToken })
+}
+
 export async function mutualSubscriptions(userContexts) {
   const promises = []
 
