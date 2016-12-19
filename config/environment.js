@@ -5,7 +5,7 @@ import methodOverride from 'koa-methodoverride';
 import morgan from 'koa-morgan';
 import passport from 'koa-passport';
 import winston from 'winston'
-import responseTime from 'response-time'
+import responseTime from 'koa-response-time'
 import { promisify } from 'bluebird';
 
 import { originMiddleware } from './initializers/origin';
@@ -94,14 +94,18 @@ exports.init = async function (app) {
   const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' })
   app.use(morgan('combined', { stream: accessLogStream }))
 
-  if (config.logResponseTime) {
-    app.use(responseTime((req, res, time) => {
-      const val = `${time.toFixed(3)}ms`
-      res.setHeader('X-Response-Time', val)
-      const resource = (req.method + req.url).toLowerCase()
-      app.context.logger.warn(resource, time)
-    }))
+  if (config.logResponseTime) {  // should be located BEFORE responseTime
+    app.use(async (ctx, next) => {
+      await next();
+
+      const time = ctx.response.get('X-Response-Time');
+      const resource = (ctx.request.method + ctx.request.url).toLowerCase();
+
+      app.context.logger.info(resource, time);
+    });
   }
+
+  app.use(responseTime());
 
   return app
 }

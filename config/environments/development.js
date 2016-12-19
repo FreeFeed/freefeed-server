@@ -27,7 +27,7 @@ export function getConfig() {
     appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel:           'warn',
+    logLevel:           'debug',
     logResponseTime:    true,
     // disableRealtime: true,
     onboardingUsername: 'welcome',
