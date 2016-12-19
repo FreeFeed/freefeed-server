@@ -18,6 +18,8 @@ import {
   sendRequestToSubscribe,
   acceptRequestToSubscribe,
   hidePost,
+  createGroupAsync,
+  createAndReturnPostToFeed,
 } from './functional_test_helper'
 import * as schema from './schemaV2-helper';
 
@@ -179,6 +181,28 @@ describe('TimelinesControllerV2', () => {
             expect(homefeed.timelines.posts, 'to have length', 0);
           });
         });
+
+        describe('Luna subscribed to Selenites group and not subscribed to Celestials group', () => {
+          let selenitesPost, celestialsPost;
+
+          beforeEach(async () => {
+            await createGroupAsync(venus, 'selenites');
+            await createGroupAsync(venus, 'celestials');
+            await subscribeToAsync(luna, { username: 'selenites' });
+
+            selenitesPost = await createAndReturnPostToFeed({ username: 'selenites' }, venus, 'Post');
+            celestialsPost = await createAndReturnPostToFeed({ username: 'celestials' }, venus, 'Post');
+          });
+
+          it('should return timeline without posts from Celestials group', async () => {
+            await like(celestialsPost.id, mars.authToken);
+            await like(selenitesPost.id, mars.authToken);
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to equal', selenitesPost.id);
+          });
+        });
       });
     });
   });
@@ -193,11 +217,11 @@ const timelineSchema = {
     posts:       expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
     subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
   }),
-  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.userOrGroup),
+  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
   posts:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.post),
   comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.comment),
   attachments:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.attachment),
-  subscribers:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
+  subscribers:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.userOrGroup),
   subscriptions: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
     id:   expect.it('to satisfy', schema.UUID),
     name: expect.it('to be one of', ['Posts', 'Directs']),

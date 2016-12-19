@@ -121,6 +121,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     allComments.push(...comments.map(serializeComment));
     allAttachments.push(...attachments.map(serializeAttachment));
 
+    allUserIds.add(sPost.createdBy);
     likes.forEach((l) => allUserIds.add(l));
     comments.forEach((c) => allUserIds.add(c.userId));
     destinations.forEach((d) => allUserIds.add(d.user));
@@ -136,10 +137,13 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   allUserIds.add(...timelines.subscribers);
   allSubscribers.push(...timelines.subscribers);
 
-  const usersAssoc = await dbAdapter.getUsersByIdsAssoc([...allUserIds]);
+  const allUsersAssoc = await dbAdapter.getUsersByIdsAssoc([...allUserIds]);
 
-  const users = _.values(usersAssoc).map(serializeUser);
-  const subscribers = _.compact(_.uniq(allSubscribers)).map((id) => usersAssoc[id]).map(serializeUser);
+  const users = _.values(allUsersAssoc).filter((u) => u.type === 'user').map(serializeUser);
+  const subscribers = _.compact(_.uniq(allSubscribers)).map((id) => allUsersAssoc[id]).map(serializeUser);
+
+  const groupIds = subscribers.filter((s) => s.type === 'group').map((g) => g.id);
+  const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(groupIds);
 
   const subscriptions = _.uniqBy(_.compact(allDestinations), 'id');
 
@@ -147,7 +151,12 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     timelines,
     users,
     subscriptions,
-    subscribers,
+    subscribers: subscribers.map((s) => {
+      if (s.type === 'group') {
+        s.administrators = allGroupAdmins[s.id] || [];
+      }
+      return s;
+    }),
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),
