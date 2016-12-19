@@ -254,7 +254,9 @@ const POST_COLUMNS = {
   updatedAt:        'updated_at',
   userId:           'user_id',
   body:             'body',
-  commentsDisabled: 'comments_disabled'
+  commentsDisabled: 'comments_disabled',
+  isPrivate:        'is_private',
+  isProtected:      'is_protected',
 }
 
 const POST_COLUMNS_MAPPING = {
@@ -274,7 +276,9 @@ const POST_COLUMNS_MAPPING = {
       return user_id
     }
     return null
-  }
+  },
+  isPrivate:   (is_private) => {return is_private === '1'},
+  isProtected: (is_protected) => {return is_protected === '1'},
 }
 
 const POST_FIELDS = {
@@ -287,14 +291,18 @@ const POST_FIELDS = {
   feed_ids:             'feedIntIds',
   destination_feed_ids: 'destinationFeedIds',
   comments_count:       'commentsCount',
-  likes_count:          'likesCount'
+  likes_count:          'likesCount',
+  is_private:           'isPrivate',
+  is_protected:         'isProtected',
 }
 
 const POST_FIELDS_MAPPING = {
   created_at:        (time) => { return time.getTime().toString() },
   updated_at:        (time) => { return time.getTime().toString() },
   comments_disabled: (comments_disabled) => {return comments_disabled ? '1' : '0' },
-  user_id:           (user_id) => {return user_id ? user_id : ''}
+  user_id:           (user_id) => {return user_id ? user_id : ''},
+  is_private:        (is_private) => {return is_private ? '1' : '0' },
+  is_protected:      (is_protected) => {return is_protected ? '1' : '0' },
 }
 
 export class DbAdapter {
@@ -861,6 +869,15 @@ export class DbAdapter {
     return res.map((record) => record.user_id);
   }
 
+  async getBannedFeedsIntIds(userId) {
+    return await this.database
+      .pluck('feeds.id')
+      .from('feeds')
+      .innerJoin('bans', 'bans.banned_user_id', 'feeds.user_id')
+      .where('feeds.name', 'Posts')
+      .where('bans.user_id', userId);
+  }
+
   async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId) {
     let res = [];
 
@@ -976,6 +993,14 @@ export class DbAdapter {
   // Attachments
   ///////////////////////////////////////////////////
 
+  initAttachmentObject = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING);
+    return DbAdapter.initObject(Attachment, attrs, attrs.id);
+  };
+
   async createAttachment(payload) {
     const preparedPayload = this._prepareModelPayload(payload, ATTACHMENT_COLUMNS, ATTACHMENT_COLUMNS_MAPPING)
     const res = await this.database('attachments').returning('uid').insert(preparedPayload)
@@ -986,29 +1011,13 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('attachments').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-    return DbAdapter.initObject(Attachment, attrs, id)
+    const attrs = await this.database('attachments').first().where('uid', id)
+    return this.initAttachmentObject(attrs);
   }
 
   async getAttachmentsByIds(ids) {
     const responses = await this.database('attachments').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Attachment, attrs, attrs.id)
-    })
-
-    return objects
+    return responses.map(this.initAttachmentObject)
   }
 
   updateAttachment(attachmentId, payload) {
@@ -1038,15 +1047,7 @@ export class DbAdapter {
 
   async getAttachmentsOfPost(postId) {
     const responses = await this.database('attachments').orderBy('created_at', 'asc').where('post_id', postId)
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Attachment, attrs, attrs.id)
-    })
-
-    return objects
+    return responses.map(this.initAttachmentObject)
   }
 
   ///////////////////////////////////////////////////
@@ -1125,6 +1126,14 @@ export class DbAdapter {
   // Comments
   ///////////////////////////////////////////////////
 
+  initCommentObject = (attrs) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING);
+    return DbAdapter.initObject(Comment, attrs, attrs.id);
+  };
+
   async createComment(payload) {
     const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
     const res = await this.database('comments').returning('uid').insert(preparedPayload)
@@ -1135,15 +1144,8 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('comments').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-    return DbAdapter.initObject(Comment, attrs, id)
+    const attrs = await this.database('comments').first().where('uid', id)
+    return this.initCommentObject(attrs);
   }
 
   updateComment(commentId, payload) {
@@ -1174,20 +1176,11 @@ export class DbAdapter {
 
     if (viewerUserId) {
       const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId);
-      query = query.where('user_id', 'not in', subquery) ;
+      query = query.where('user_id', 'not in', subquery);
     }
 
-    const responses = await query
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Comment, attrs, attrs.id)
-    })
-
-    return objects
+    const responses = await query;
+    return responses.map(this.initCommentObject);
   }
 
   _deletePostComments(postId) {
@@ -1374,6 +1367,14 @@ export class DbAdapter {
   // Post
   ///////////////////////////////////////////////////
 
+  initPostObject = (attrs, params) => {
+    if (!attrs) {
+      return null;
+    }
+    attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING);
+    return DbAdapter.initObject(Post, attrs, attrs.id, params);
+  }
+
   async createPost(payload, destinationsIntIds) {
     const preparedPayload = this._prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
@@ -1390,28 +1391,13 @@ export class DbAdapter {
     if (!validator.isUUID(id, 4)) {
       return null
     }
-    const res = await this.database('posts').where('uid', id)
-    let attrs = res[0]
-
-    if (!attrs) {
-      return null
-    }
-
-    attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-    return DbAdapter.initObject(Post, attrs, id, params)
+    const attrs = await this.database('posts').first().where('uid', id)
+    return this.initPostObject(attrs, params)
   }
 
   async getPostsByIds(ids, params) {
     const responses = await this.database('posts').orderBy('updated_at', 'desc').whereIn('uid', ids)
-
-    const objects = responses.map((attrs) => {
-      if (attrs) {
-        attrs = this._prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING)
-      }
-
-      return DbAdapter.initObject(Post, attrs, attrs.id, params)
-    })
-    return objects
+    return responses.map((attrs) => this.initPostObject(attrs, params))
   }
 
   async getUserPostsCount(userId) {
@@ -1519,6 +1505,79 @@ export class DbAdapter {
     return objects
   }
 
+  /**
+   * Returns UIDs of timeline posts
+   */
+  async getTimelinePostsIds(timelineIntId, banedFeedsIntIds, params = {}) {
+    params = {
+      limit:          30,
+      offset:         0,
+      sort:           'updated',
+      viewerId:       null,
+      withLocalBumps: false,
+      ...params,
+    };
+
+    params.withLocalBumps = params.withLocalBumps && !!params.viewerId && params.sort === 'updated';
+
+    // Private feeds viewer can read
+    const visiblePrivateFeedIntIds = [];
+    if (params.viewerId) {
+      const { rows } = await this.database.raw(`
+        select f.id from
+          subscriptions s
+          join feeds f on f.uid = s.feed_id and f.name = 'Posts'
+          join users u on u.uid = f.user_id and u.is_private
+        where s.user_id = ?
+      `, params.viewerId);
+      visiblePrivateFeedIntIds.push(..._.map(rows, 'id'));
+      const directsFeed = await this.getUserNamedFeed(params.viewerId, 'Directs');
+      visiblePrivateFeedIntIds.push(directsFeed.intId);
+    }
+
+    let sql;
+    if (params.withLocalBumps) {
+      sql = pgFormat(`
+        select p.uid
+        from 
+          posts p
+          left join local_bumps b on p.uid = b.post_id and b.user_id = %L
+        where
+          p.feed_ids && %L
+          and not p.destination_feed_ids && %L -- bans
+          and (not is_private or destination_feed_ids && %L) -- privates
+        order by
+          greatest(p.updated_at, b.created_at) desc
+        limit %L offset %L
+        `,
+        params.viewerId,
+        `{${timelineIntId}}`,
+        `{${banedFeedsIntIds.join(',')}}`,
+        `{${visiblePrivateFeedIntIds.join(',')}}`,
+        params.limit,
+        params.offset
+      );
+    } else {
+      sql = pgFormat(`
+        select uid
+        from 
+          posts
+        where
+          feed_ids && %L
+          and not destination_feed_ids && %L
+          and ${params.viewerId ?
+            pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
+            'not is_protected'
+          }
+        order by
+          %I desc
+        limit %L offset %L
+      `, `{${timelineIntId}}`, `{${banedFeedsIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+    }
+
+    return (await this.database.raw(sql)).rows.map((r) => r.uid);
+  }
+
   // merges posts from "source" into "destination"
   async createMergedPostsTimeline(destinationTimelineId, sourceTimelineIds) {
     const transaction = async (trx) => {
@@ -1593,6 +1652,163 @@ export class DbAdapter {
     return res.rows;
   };
 
+  /**
+   * Returns array of objects with the following structure:
+   * {
+   *   post: <Post object>
+   *   destinations: <array of {id (feed UID), name (feed type), user (feed owner UID)}
+   *                 objects of posts' destination timelines>
+   *   attachments: <array of Attachment objects>
+   *   comments: <array of Comments objects>
+   *   omittedComments: <number>
+   *   likes: <array of liker's UIDs>
+   *   omittedLikes: <number>
+   * }
+   */
+  async getPostsWithStuffByIds(postsIds, viewerId = null, params = {}) {
+    if (_.isEmpty(postsIds)) {
+      return [];
+    }
+
+    params = {
+      foldComments:        true,
+      foldLikes:           true,
+      maxUnfoldedComments: 3,
+      maxUnfoldedLikes:    4,
+      visibleFoldedLikes:  3,
+      ...params,
+    };
+
+    const unexistedUID = '00000000-0000-0000-C000-000000000046';
+
+    const uniqPostsIds = _.uniq(postsIds);
+
+    const postFields = _.without(Object.keys(POST_FIELDS), 'comments_count', 'likes_count').map((k) => pgFormat('%I', k));
+    const attFields = Object.keys(ATTACHMENT_FIELDS).map((k) => pgFormat('%I', k));
+    const commentFields = Object.keys(COMMENT_FIELDS).map((k) => pgFormat('%I', k));
+
+    const destinationsSQL = pgFormat(`
+      with posts as (
+        -- unwind all destination_feed_ids from posts
+        select distinct
+          p.uid,
+          unnest(p.destination_feed_ids) as feed_id
+        from 
+          posts p
+        where 
+          p.uid in (%L)
+      )
+      select
+        p.uid as post_id, f.uid as id, f.name, f.user_id as user
+      from 
+        feeds f join posts p on f.id = p.feed_id
+    `, uniqPostsIds);
+
+    const [
+      bannedUsersIds,
+      friendsIds,
+      postsData,
+      attData,
+      { rows: destData },
+    ] = await Promise.all([
+      viewerId ? this.getUserBansIds(viewerId) : [],
+      viewerId ? this.getUserFriendIds(viewerId) : [],
+      this.database.select(...postFields).from('posts').whereIn('uid', uniqPostsIds),
+      this.database.select(...attFields).from('attachments').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
+      this.database.raw(destinationsSQL),
+    ]);
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
+    }
+    if (friendsIds.length === 0) {
+      friendsIds.push(unexistedUID);
+    }
+
+    const allLikesSQL = pgFormat(`
+      select
+        post_id, user_id,
+        rank() over (partition by post_id order by
+          user_id in (%L) desc,
+          user_id in (%L) desc,
+          created_at desc,
+          id desc
+        ),
+        count(*) over (partition by post_id) 
+      from likes
+      where post_id in (%L) and user_id not in (%L)
+    `, [viewerId], friendsIds, uniqPostsIds, bannedUsersIds);
+
+    const likesSQL = `
+      with likes as (${allLikesSQL})
+      select post_id, array_agg(user_id) as likes, count from likes
+      ${params.foldLikes ?
+        pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) :
+        ``}
+      group by post_id, count 
+    `;
+
+    const allCommentsSQL = pgFormat(`
+      select
+        ${commentFields.join(', ')}, id,
+        rank() over (partition by post_id order by created_at, id),
+        count(*) over (partition by post_id) 
+      from comments
+      where post_id in (%L) and user_id not in (%L)
+    `, uniqPostsIds, bannedUsersIds);
+
+    const commentsSQL = `
+      with comments as (${allCommentsSQL})
+      select ${commentFields.join(', ')}, id, count from comments
+      ${params.foldComments ?
+        pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) :
+        ``}
+      order by created_at, id
+    `;
+
+    const [
+      { rows: likesData },
+      { rows: commentsData },
+    ] = await Promise.all([
+      this.database.raw(likesSQL),
+      this.database.raw(commentsSQL),
+    ]);
+
+    const results = {};
+
+    for (const post of postsData) {
+      results[post.uid] = {
+        post:            this.initPostObject(post),
+        destinations:    [],
+        attachments:     [],
+        comments:        [],
+        omittedComments: 0,
+        likes:           [],
+        omittedLikes:    0,
+      };
+    }
+
+    for (const dest of destData) {
+      results[dest.post_id].destinations.push(_.omit(dest, 'post_id'));
+    }
+
+    for (const att of attData) {
+      results[att.post_id].attachments.push(this.initAttachmentObject(att));
+    }
+
+    for (const lk of likesData) {
+      results[lk.post_id].likes = lk.likes;
+      results[lk.post_id].omittedLikes = lk.count - lk.likes.length;
+    }
+
+    for (const comm of commentsData) {
+      results[comm.post_id].comments.push(this.initCommentObject(comm));
+      results[comm.post_id].omittedComments = comm.count <= 3 ? 0 : comm.count - 2;
+    }
+
+    return postsIds.map((id) => results[id] || null);
+  }
+
   ///////////////////////////////////////////////////
   // Subscriptions
   ///////////////////////////////////////////////////
@@ -1635,11 +1851,7 @@ export class DbAdapter {
   }
 
   async getTimelineSubscribersIds(timelineId) {
-    const res = await this.database('subscriptions').select('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
-    const attrs = res.map((record) => {
-      return record.user_id
-    })
-    return attrs
+    return await this.database('subscriptions').pluck('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
   }
 
   async getTimelineSubscribers(timelineIntId) {

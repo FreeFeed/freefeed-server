@@ -1,4 +1,4 @@
-import { reduce, uniqBy } from 'lodash';
+import { reduce, uniqBy, pick } from 'lodash';
 import { PostSerializer } from '../../models';
 
 export const serializePostsCollection = async (postsObjects) => {
@@ -28,3 +28,47 @@ export const serializePostsCollection = async (postsObjects) => {
 
   return reduce(postsCollection, transformPosts, postsCollectionJson);
 };
+
+export function serializePost(post) {
+  return {
+    ...pick(post, [
+      'id',
+      'body',
+      'commentsDisabled',
+      'createdAt',
+      'updatedAt',
+    ]),
+    createdBy: post.userId,
+  };
+}
+
+export function serializeComment(comment) {
+  return {
+    ...pick(comment, [
+      'id',
+      'body',
+      'createdAt',
+      'updatedAt',
+    ]),
+    createdBy: comment.userId,
+  };
+}
+
+export function serializeAttachment(att) {
+  const result = {
+    ...pick(att, [
+      'id',
+      'fileName',
+      'fileSize',
+      'url',
+      'thumbnailUrl',
+      'imageSizes',
+      'mediaType',
+      'createdAt',
+      'updatedAt',
+      ...(att.mediaType === 'audio' ? ['artist', 'title'] : [])
+    ]),
+    createdBy: att.userId,
+  };
+  return result;
+}
