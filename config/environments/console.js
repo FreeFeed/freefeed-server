@@ -1,14 +1,14 @@
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
 process.env.MONITOR_PREFIX = 'development-console'
 
-var transport = function() {
+const transport = function () {
   return {
-    name: 'minimal',
+    name:    'minimal',
     version: '0.1.0',
-    send: function(mail, callback) {
-      var input = mail.message.createReadStream();
+    send:    function (mail, callback) {
+      const input = mail.message.createReadStream();
       input.pipe(process.stdout);
-      input.on('end', function() {
+      input.on('end', () => {
         callback(null, true)
       })
     }
@@ -16,25 +16,23 @@ var transport = function() {
 }
 
 export function getConfig() {
-  var config = {
-    port: 1337,
+  const config = {
+    port:     1337,
     database: 2,
 
-    secret: 'secret',
-    origin: 'http://localhost:3333',
-    appRoot: '.',
+    secret:                    'secret',
+    origin:                    'http://localhost:3333',
+    appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel: 'warn',
+    logLevel:           'warn',
     onboardingUsername: 'welcome',
-    recaptcha: {
-      enabled: false
-    },
+    recaptcha:          { enabled: false },
 
     frontendPreferencesLimit: 65536
   }
 
-  config.host = 'http://localhost:' + config.port
+  config.host = `http://localhost:${config.port}`
 
   config.application = {
     // Unavailable for registration (reserved for internal use)
@@ -60,7 +58,7 @@ export function getConfig() {
 
   config.media = {
     // Public URL prefix
-    url: config.host + '/', // must have trailing slash
+    url: `${config.host}/`, // must have trailing slash
 
     // File storage
     storage: {
@@ -71,45 +69,45 @@ export function getConfig() {
       rootDir: './public/files/', // must have trailing slash
 
       // Parameters for 's3'
-      accessKeyId: 'ACCESS-KEY-ID',
+      accessKeyId:     'ACCESS-KEY-ID',
       secretAccessKey: 'SECRET-ACCESS-KEY',
-      bucket: 'bucket-name'
+      bucket:          'bucket-name'
     }
   }
   config.attachments = {
-    url: config.media.url,
-    storage: config.media.storage,
-    path: 'attachments/', // must have trailing slash
+    url:           config.media.url,
+    storage:       config.media.storage,
+    path:          'attachments/', // must have trailing slash
     fileSizeLimit: '10mb',
-    imageSizes: {
+    imageSizes:    {
       t: {
-        path: 'attachments/thumbnails/', // must have trailing slash
+        path:   'attachments/thumbnails/', // must have trailing slash
         bounds: { width: 525, height: 175 }
       }
     }
   }
   config.profilePictures = {
     // Profile pictures only support 'fs' for the time being, so we won't use shared values by default
-    url: config.host + '/',
+    url:     `${config.host}/`,
     storage: {
-      type: 'fs',
+      type:    'fs',
       rootDir: config.media.storage.rootDir
     },
     path: 'profilepics/' // must have trailing slash
   }
 
   config.mailer = {
-    transport: transport,
-    fromName: 'Pepyatka',
-    fromEmail: 'mail@pepyatka.com',
+    transport,
+    fromName:                 'Pepyatka',
+    fromEmail:                'mail@pepyatka.com',
     resetPasswordMailSubject: 'Pepyatka password reset',
-    host: config.origin,
-    options: {}
+    host:                     config.origin,
+    options:                  {}
   }
 
   config.redis = {
-    host: 'localhost',
-    port: 6379,
+    host:    'localhost',
+    port:    6379,
     options: {}
   }
 

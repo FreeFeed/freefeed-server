@@ -20,8 +20,8 @@ export default class PubsubListener {
     const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
     const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
 
-    redisPub.on('error', (err) => { app.logger.error('redisPub error', err) })
-    redisSub.on('error', (err) => { app.logger.error('redisSub error', err) })
+    redisPub.on('error', (err) => { app.context.logger.error('redisPub error', err) })
+    redisSub.on('error', (err) => { app.context.logger.error('redisSub error', err) })
 
     this.io = IoServer(server)
     this.io.adapter(redis_adapter({
@@ -29,11 +29,11 @@ export default class PubsubListener {
       subClient: redisSub
     }))
 
-    this.io.sockets.on('error', (err) => { app.logger.error('socket.io error', err) })
+    this.io.sockets.on('error', (err) => { app.context.logger.error('socket.io error', err) })
     this.io.sockets.on('connection', this.onConnect)
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
-    redisClient.on('error', (err) => { app.logger.error('redis error', err) })
+    redisClient.on('error', (err) => { app.context.logger.error('redis error', err) })
     redisClient.subscribe(
       'user:update',
       'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
@@ -48,7 +48,7 @@ export default class PubsubListener {
     const authToken = socket.handshake.query.token
     const config = configLoader()
     const secret = config.secret
-    const logger = this.app.logger
+    const logger = this.app.context.logger
 
     try {
       const decoded = await jwt.verifyAsync(authToken, secret)
@@ -122,11 +122,11 @@ export default class PubsubListener {
     messageRoutes[channel](
       this.io.sockets,
       JSON.parse(msg)
-    ).catch((e) => { this.app.logger.error('onRedisMessage error', e)})
+    ).catch((e) => { this.app.context.logger.error('onRedisMessage error', e)})
   }
 
   async validateAndEmitMessage(sockets, room, type, json, post) {
-    const logger = this.app.logger
+    const logger = this.app.context.logger
 
     if (!(room in sockets.adapter.rooms)) {
       return

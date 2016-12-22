@@ -9,7 +9,7 @@ import { getSingleton as initApp } from '../../app/app'
 
 const apiUrl = async (relativeUrl) => {
   const app = await initApp()
-  return `${app.config.host}${relativeUrl}`
+  return `${app.context.config.host}${relativeUrl}`
 }
 
 export function createUser(username, password, attributes, callback) {
@@ -463,6 +463,14 @@ export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
 
+export function acceptRequestAsync(subject, requester) {
+  return postJson(`/v1/users/acceptRequest/${requester.username}`, { authToken: subject.authToken })
+}
+
+export function rejectRequestAsync(subject, requester) {
+  return postJson(`/v1/users/rejectRequest/${requester.username}`, { authToken: subject.authToken })
+}
+
 export async function mutualSubscriptions(userContexts) {
   const promises = []
 
@@ -591,12 +599,14 @@ export async function createPostViaBookmarklet(userContext, title, comment, imag
 
 export async function createMockAttachmentAsync(context) {
   const params = {
-    fileName:  'lion.jpg',
-    fileSize:  12345,
-    userId:    context.user.id,
-    postId:    '',
-    createdAt: (new Date()).getTime(),
-    updatedAt: (new Date()).getTime()
+    mediaType:  'image',
+    fileName:   'lion.jpg',
+    fileSize:   12345,
+    userId:     context.user.id,
+    postId:     '',
+    createdAt:  (new Date()).getTime(),
+    updatedAt:  (new Date()).getTime(),
+    imageSizes: { t: { w: 200, h: 175 }, o: { w: 600, h: 525 } },
   }
 
   const id = await dbAdapter.createAttachment(params)
@@ -666,6 +676,10 @@ export function sendRequestToSubscribe(subscriber, user) {
   return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
 }
 
+export function acceptRequestToSubscribe(subscriber, user) {
+  return postJson(`/v1/users/acceptRequest/${subscriber.username}`, { authToken: user.authToken })
+}
+
 export function sendRequestToJoinGroup(subscriber, group) {
   return postJson(`/v1/groups/${group.username}/sendRequest`, { authToken: subscriber.authToken })
 }
@@ -676,6 +690,10 @@ export function acceptRequestToJoinGroup(admin, subscriber, group) {
 
 export function banUser(who, whom) {
   return postJson(`/v1/users/${whom.username}/ban`, { authToken: who.authToken })
+}
+
+export function hidePost(postId, user) {
+  return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
 }
 
 /**
@@ -725,9 +743,9 @@ const PromisifiedIO = (host, options, events) => {
 }
 
 export async function createRealtimeConnection(context, callbacks) {
-  const app = await initApp()
+  const app = await initApp();
 
-  const port = (process.env.PEPYATKA_SERVER_PORT || app.get('port'));
+  const port = (process.env.PEPYATKA_SERVER_PORT || app.context.port);
   const options = {
     transports:             ['websocket'],
     'force new connection': true,

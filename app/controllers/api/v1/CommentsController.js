@@ -1,25 +1,26 @@
 import monitor from 'monitor-dog'
 
 import { dbAdapter, CommentSerializer, PubSub } from '../../../models'
-import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class CommentsController {
-  static async create(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async create(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     const timer = monitor.timer('comments.create-time')
 
     try {
-      const post = await dbAdapter.getPostById(req.body.comment.postId)
+      const post = await dbAdapter.getPostById(ctx.request.body.comment.postId)
       if (!post) {
         throw new NotFoundException('Not found')
       }
 
-      const isVisible = await post.canShow(req.user.id)
+      const isVisible = await post.canShow(ctx.state.user.id)
       if (!isVisible) {
         throw new NotFoundException('Not found')
       }
@@ -27,23 +28,23 @@ export default class CommentsController {
       const author = await dbAdapter.getUserById(post.userId);
       const banIds = await author.getBanIds();
 
-      if (banIds.includes(req.user.id)) {
+      if (banIds.includes(ctx.state.user.id)) {
         throw new ForbiddenException('Author of this post has banned you');
       }
 
-      const yourBanIds = await req.user.getBanIds();
+      const yourBanIds = await ctx.state.user.getBanIds();
 
       if (yourBanIds.includes(author.id)) {
         throw new ForbiddenException('You have banned the author of this post');
       }
 
-      if (post.commentsDisabled === '1' && post.userId !== req.user.id) {
+      if (post.commentsDisabled === '1' && post.userId !== ctx.state.user.id) {
         throw new ForbiddenException('Comments disabled')
       }
 
-      const newComment = req.user.newComment({
-        body:   req.body.comment.body,
-        postId: req.body.comment.postId
+      const newComment = ctx.state.user.newComment({
+        body:   ctx.request.body.comment.body,
+        postId: ctx.request.body.comment.postId
       })
 
       const timelines = await newComment.create()
@@ -58,69 +59,67 @@ export default class CommentsController {
       monitor.increment('comments.creates')
 
       const json = await new CommentSerializer(newComment).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+      ctx.body = json
     } finally {
       timer.stop()
     }
   }
 
-  static async update(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async update(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     const timer = monitor.timer('comments.update-time')
 
     try {
-      const comment = await dbAdapter.getCommentById(req.params.commentId)
+      const comment = await dbAdapter.getCommentById(ctx.params.commentId)
 
       if (null === comment) {
         throw new NotFoundException("Can't find comment")
       }
 
-      if (comment.userId != req.user.id) {
+      if (comment.userId != ctx.state.user.id) {
         throw new ForbiddenException(
           "You can't update another user's comment"
         )
       }
 
-      await comment.update({ body: req.body.comment.body })
+      await comment.update({ body: ctx.request.body.comment.body })
       const json = await new CommentSerializer(comment).promiseToJSON()
-      res.jsonp(json)
+      ctx.body = json
       monitor.increment('comments.updates')
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop()
     }
   }
 
-  static async destroy(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
+  static async destroy(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Not found' };
       return
     }
 
     const timer = monitor.timer('comments.destroy-time')
 
     try {
-      const comment = await dbAdapter.getCommentById(req.params.commentId)
+      const comment = await dbAdapter.getCommentById(ctx.params.commentId)
 
       if (null === comment) {
         throw new NotFoundException("Can't find comment")
       }
 
-      if (comment.userId !== req.user.id) {
+      if (comment.userId !== ctx.state.user.id) {
         const post = await dbAdapter.getPostById(comment.postId);
 
         if (null === post) {
           throw new NotFoundException("Can't find post")
         }
 
-        if (post.userId !== req.user.id) {
+        if (post.userId !== ctx.state.user.id) {
           throw new ForbiddenException(
             "You don't have permission to delete this comment"
           )
@@ -129,10 +128,8 @@ export default class CommentsController {
 
       await comment.destroy()
 
-      res.jsonp({})
+      ctx.body = {};
       monitor.increment('comments.destroys')
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop()
     }

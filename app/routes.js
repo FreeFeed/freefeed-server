@@ -1,9 +1,11 @@
 import { promisifyAll } from 'bluebird'
 import jwt from 'jsonwebtoken'
-import express from 'express'
+import koaStatic from 'koa-static';
+import Router from 'koa-router';
 
 import { load as configLoader } from '../config/config'
 import { dbAdapter } from './models'
+import { reportError } from './support/exceptions'
 
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute'
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute'
@@ -26,10 +28,10 @@ const config = configLoader();
 promisifyAll(jwt);
 
 export default function (app) {
-  const findUser = async (req, res, next) => {
-    const authToken = req.headers['x-authentication-token']
-      || req.body.authToken
-      || req.query.authToken;
+  const findUser = async (ctx, next) => {
+    const authToken = ctx.request.get('x-authentication-token')
+      || ctx.request.body.authToken
+      || ctx.request.query.authToken;
 
     if (authToken) {
       try {
@@ -37,41 +39,53 @@ export default function (app) {
         const user = await dbAdapter.getUserById(decoded.userId);
 
         if (user) {
-          req.user = user;
+          ctx.state.user = user;
         }
       } catch (e) {
-        app.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`);
+        ctx.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`);
       }
     }
 
-    next();
+    await next();
   };
 
-  app.use(express.static(`${__dirname}/../${config.attachments.storage.rootDir}`));
+  const router = new Router();
 
   // unauthenticated routes
-  app.options('/*', (req, res) => {
-    res.status(200).send({})
-  });
-  PasswordsRoute(app);
-  SessionRoute(app);
+  PasswordsRoute(router);
+  SessionRoute(router);
 
   // [at least optionally] authenticated routes
-  app.all('/*', findUser);
-  AttachmentsRoute(app);
-  BookmarkletRoute(app);
-  CommentsRoute(app);
-  GroupsRoute(app);
-  PostsRoute(app);
-  TimelinesRoute(app);
-  UsersRoute(app);
-  StatsRouteV2(app);
+  router.use(findUser);
+  AttachmentsRoute(router);
+  BookmarkletRoute(router);
+  CommentsRoute(router);
+  GroupsRoute(router);
+  PostsRoute(router);
+  TimelinesRoute(router);
+  UsersRoute(router);
+  StatsRouteV2(router);
 
-  GroupsRouteV2(app);
-  RequestsRouteV2(app);
-  SearchRoute(app);
-  TimelinesRouteV2(app);
-  UsersRouteV2(app);
+  GroupsRouteV2(router);
+  RequestsRouteV2(router);
+  SearchRoute(router);
+  TimelinesRouteV2(router);
+  UsersRouteV2(router);
 
-  app.all('/v[0-9]+/*', (req, res) => res.status(404).send({ err: `API method not found: '${req.path}'` }));
+  router.use('/v[0-9]+/*', async (ctx) => {
+    ctx.status = 404;
+    ctx.body = { err: `API method not found: '${ctx.req.path}'` }
+  });
+
+  app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
+
+  app.use(async (ctx, next) => {
+    try {
+      await next();
+    } catch (e) {
+      reportError(ctx)(e);
+    }
+  });
+  app.use(router.routes());
+  app.use(router.allowedMethods());
 }

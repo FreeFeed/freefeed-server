@@ -28,7 +28,7 @@ describe('PasswordsController', () => {
 
     it('should require email', async () => {
       const response = await funcTestHelper.sendResetPassword('')
-      response.status.should.equal(200)
+      response.status.should.equal(400)
 
       const data = await response.json()
       data.should.have.property('err')

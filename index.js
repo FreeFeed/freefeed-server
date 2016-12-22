@@ -4,14 +4,17 @@ import consoleStamp from 'console-stamp'
 
 import { getSingleton as initApp } from './app/app'
 
-global.Promise = bluebird
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
+global.Promise = bluebird;
+global.Promise.config({ longStackTraces: process.env.NODE_ENV !== 'production' });
+global.Promise.onPossiblyUnhandledRejection((e) => {
+  console.error('Unhandled Exception', e);
+});
 
 consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
 
 initApp()
   .then((app) => {
-    app.logger.info(`Server initialization is complete`)
+    app.context.logger.info(`Server initialization is complete`)
   })
   .catch((e) => {
     process.stderr.write(`FATAL ERROR\n`)

@@ -15,7 +15,7 @@ import {
   createGroupAsync,
   sendRequestToJoinGroup,
 } from '../functional/functional_test_helper'
-
+import * as schema from './schemaV2-helper';
 
 describe('UsersControllerV2', () => {
   let app
@@ -32,7 +32,7 @@ describe('UsersControllerV2', () => {
   describe('#blockedByMe()', () => {
     it('should reject unauthenticated users', (done) => {
       request
-        .get(`${app.config.host}/v2/users/blockedByMe`)
+        .get(`${app.context.config.host}/v2/users/blockedByMe`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -56,12 +56,12 @@ describe('UsersControllerV2', () => {
 
       const userBResponse = await createUserAsync(userB.username, userB.password)
 
-      await fetch(`${app.config.host}/v1/users/${userB.username}/ban`, {
+      await fetch(`${app.context.config.host}/v1/users/${userB.username}/ban`, {
         method:  'POST',
         headers: { 'X-Authentication-Token': userAResponse.authToken }
       })
 
-      const blockedByMeResponse = await fetch(`${app.config.host}/v2/users/blockedbyme`, { headers: { 'X-Authentication-Token': userAResponse.authToken } })
+      const blockedByMeResponse = await fetch(`${app.context.config.host}/v2/users/blockedbyme`, { headers: { 'X-Authentication-Token': userAResponse.authToken } })
 
       const blockedByMe = await blockedByMeResponse.json()
 
@@ -80,7 +80,7 @@ describe('UsersControllerV2', () => {
   describe('#whoami()', () => {
     it('should reject unauthenticated users', (done) => {
       request
-        .get(`${app.config.host}/v2/users/whoami`)
+        .get(`${app.context.config.host}/v2/users/whoami`)
         .end((err) => {
           err.should.not.be.empty
           err.status.should.eql(401)
@@ -94,11 +94,13 @@ describe('UsersControllerV2', () => {
         mars,
         venus,
         zeus,
+        pluto,
       ] = await Promise.all([
         createUserAsync('luna', 'pw'),
         createUserAsync('mars', 'pw'),
         createUserAsync('venus', 'pw'),
         createUserAsync('zeus', 'pw'),
+        createUserAsync('pluto', 'pw'),
       ]);
 
       const [
@@ -114,65 +116,40 @@ describe('UsersControllerV2', () => {
       ]);
 
       await sendRequestToJoinGroup(mars, selenitesGroup);
+      await sendRequestToJoinGroup(pluto, selenitesGroup); // request from non-friend
 
-      const whoAmI = await fetch(`${app.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
-
-      const userSchema = {
-        id:                      expect.it('to be a string'),
-        username:                expect.it('to be a string'),
-        screenName:              expect.it('to be a string'),
-        isPrivate:               expect.it('to be a string').and('to be one of', ['0', '1']),
-        isProtected:             expect.it('to be a string').and('to be one of', ['0', '1']),
-        isVisibleToAnonymous:    expect.it('to be a string').and('to be one of', ['0', '1']),
-        createdAt:               expect.it('to be a string').and('to match', /^\d+$/),
-        updatedAt:               expect.it('to be a string').and('to match', /^\d+$/),
-        type:                    expect.it('to equal', 'user'),
-        profilePictureLargeUrl:  expect.it('to be a string'),
-        profilePictureMediumUrl: expect.it('to be a string'),
-      };
-
-      const groupSchema = {
-        ...userSchema,
-        isRestricted:   expect.it('to be a string').and('to be one of', ['0', '1']),
-        type:           expect.it('to equal', 'group'),
-        administrators: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
-      };
+      const whoAmI = await fetch(`${app.context.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
 
       const managedGroupSchema = {
-        ...groupSchema,
-        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
-      };
-
-      const userOrGroup = (obj) => {
-        const isGroup = obj && typeof obj === 'object' && obj.type === 'group';
-        return expect(obj, 'to exhaustively satisfy', isGroup ? groupSchema : userSchema);
+        ...schema.group,
+        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
       };
 
       const thisUserSchema = {
-        ...userSchema,
+        ...schema.user,
         email:                       expect.it('to be a string'),
         description:                 expect.it('to be a string'),
         privateMeta:                 expect.it('to be an object'),
         frontendPreferences:         expect.it('to be an object'),
         statistics:                  expect.it('to be an object'),
-        banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
         pendingGroupRequests:        expect.it('to be a boolean'),
-        pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
-        subscriptionRequests:        expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
+        subscriptionRequests:        expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
         unreadDirectsNumber:         expect.it('to be a string').and('to match', /^\d+$/),
-        subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userSchema),
-        subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+        subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
+        subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {
         users:         thisUserSchema,
-        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
+        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.userOrGroup),
         subscriptions: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', {
-          id:   expect.it('to be a string'),
+          id:   expect.it('to satisfy', schema.UUID),
           name: expect.it('to be a string'),
           user: expect.it('to be a string'),
         }),
-        requests:      expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', userOrGroup),
+        requests:      expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.userOrGroup),
         managedGroups: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', managedGroupSchema),
       });
     });

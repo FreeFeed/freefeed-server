@@ -21,6 +21,8 @@ export function addModel(dbAdapter) {
     this.destinationFeedIds = params.destinationFeedIds || []
     this.commentsCount    = params.commentsCount
     this.likesCount       = params.likesCount
+    this.isPrivate        = params.isPrivate || '0';
+    this.isProtected      = params.isProtected || '0';
 
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
@@ -87,6 +89,10 @@ export function addModel(dbAdapter) {
     this.destinationFeedIds = this.feedIntIds.slice()
     // save post to the database
     this.id = await dbAdapter.createPost(payload, this.feedIntIds)
+
+    const newPost = await dbAdapter.getPostById(this.id);
+    this.isPrivate = newPost.isPrivate;
+    this.isProtected = newPost.isProtected;
 
     // save nested resources
     await this.linkAttachments()

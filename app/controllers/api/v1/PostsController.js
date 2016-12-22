@@ -2,31 +2,29 @@ import _ from 'lodash'
 import monitor from 'monitor-dog';
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
-import { reportError, ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { ForbiddenException, NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
 
 
 export default class PostsController {
-  static async create(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
-      return
+  static async create(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
     const timer = monitor.timer('posts.create-time');
 
-    req.body.meta = req.body.meta || {}
+    const meta = ctx.request.body.meta || {}
 
     let feeds = []
-    if (_.isArray(req.body.meta.feeds)) {
-      feeds = req.body.meta.feeds
-    } else if (req.body.meta.feeds) {
-      feeds = [req.body.meta.feeds]
+    if (_.isArray(meta.feeds)) {
+      feeds = meta.feeds
+    } else if (meta.feeds) {
+      feeds = [meta.feeds]
     } else {
-      res.status(401).jsonp({ err: 'Cannot publish post to /dev/null' })
-      return
+      throw new NotAuthorizedException('Cannot publish post to /dev/null');
     }
 
-    const commentsDisabled = (req.body.meta.commentsDisabled ? '1' : '0')
+    const commentsDisabled = (meta.commentsDisabled ? '1' : '0')
 
     try {
       const promises = feeds.map(async (username) => {
@@ -35,13 +33,13 @@ export default class PostsController {
           return null
         }
 
-        await feed.validateCanPost(req.user)
+        await feed.validateCanPost(ctx.state.user)
 
         // we are going to publish this message to posts feed if
         // it's my home feed or group's feed, otherwise this is a
         // private message that goes to its own feed(s)
         if (
-          (feed.isUser() && feed.id == req.user.id) ||
+          (feed.isUser() && feed.id == ctx.state.user.id) ||
           !feed.isUser()
         ) {
           return feed.getPostsTimelineId()
@@ -50,7 +48,7 @@ export default class PostsController {
         // private post goes to sendee and sender
         return await Promise.all([
           feed.getDirectsTimelineId(),
-          req.user.getDirectsTimelineId()
+          ctx.state.user.getDirectsTimelineId()
         ])
       })
       const timelineIds = _.flatten(await Promise.all(promises))
@@ -60,59 +58,52 @@ export default class PostsController {
         }
       })
 
-      const newPost = await req.user.newPost({
-        body:        req.body.post.body,
-        attachments: req.body.post.attachments,
+      const newPost = await ctx.state.user.newPost({
+        body:        ctx.request.body.post.body,
+        attachments: ctx.request.body.post.attachments,
         timelineIds,
         commentsDisabled
       })
 
       await newPost.create()
 
-      const json = await new PostSerializer(newPost).promiseToJSON()
-      res.jsonp(json)
+      const json = new PostSerializer(newPost).promiseToJSON()
+      ctx.body = await json;
 
       monitor.increment('posts.creates');
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop();
     }
   }
 
-  static async update(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
-      return
+  static async update(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
-    try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+    const post = await dbAdapter.getPostById(ctx.params.postId)
 
-      if (post.userId != req.user.id) {
-        throw new ForbiddenException("You can't update another user's post")
-      }
-
-      await post.update({
-        body:        req.body.post.body,
-        attachments: req.body.post.attachments
-      })
-
-      const json = await new PostSerializer(post).promiseToJSON()
-      res.jsonp(json)
-    } catch (e) {
-      reportError(res)(e)
+    if (post.userId != ctx.state.user.id) {
+      throw new ForbiddenException("You can't update another user's post")
     }
+
+    await post.update({
+      body:        ctx.request.body.post.body,
+      attachments: ctx.request.body.post.attachments
+    })
+
+    const json = await new PostSerializer(post).promiseToJSON()
+    ctx.body = json
   }
 
-  static async show(req, res) {
+  static async show(ctx) {
     const timer = monitor.timer('posts.show-time');
 
     try {
-      const userId = req.user ? req.user.id : null
-      const post = await dbAdapter.getPostById(req.params.postId, {
-        maxComments: req.query.maxComments,
-        maxLikes:    req.query.maxLikes,
+      const userId = ctx.state.user ? ctx.state.user.id : null
+      const post = await dbAdapter.getPostById(ctx.params.postId, {
+        maxComments: ctx.request.query.maxComments,
+        maxLikes:    ctx.request.query.maxLikes,
         currentUser: userId
       })
 
@@ -126,39 +117,36 @@ export default class PostsController {
       if (!valid)
         throw new ForbiddenException('Not found')
 
-      if (req.user) {
+      if (ctx.state.user) {
         const banIds = await dbAdapter.getUserBansIds(post.userId)
 
-        if (banIds.includes(req.user.id))
+        if (banIds.includes(ctx.state.user.id))
           throw new ForbiddenException('This user has prevented you from seeing their posts')
 
-        const yourBanIds = await req.user.getBanIds()
+        const yourBanIds = await ctx.state.user.getBanIds()
 
         if (yourBanIds.includes(post.userId))
           throw new ForbiddenException('You have blocked this user and do not want to see their posts')
       }
 
       const json = new PostSerializer(post).promiseToJSON()
-      res.jsonp(await json)
+      ctx.body = await json;
 
       monitor.increment('posts.show-requests');
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop();
     }
   }
 
-  static async like(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not authenticated' })
-      return
+  static async like(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
     const timer = monitor.timer('posts.likes.time');
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(ctx.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
@@ -166,41 +154,42 @@ export default class PostsController {
 
       const authorId = post.userId;
 
-      if (authorId === req.user.id) {
+      if (authorId === ctx.state.user.id) {
         throw new ForbiddenException("You can't like your own post")
       }
 
-      const isVisible = await post.canShow(req.user.id)
+      const isVisible = await post.canShow(ctx.state.user.id)
       if (!isVisible) {
         throw new NotFoundException("Can't find post");
       }
 
       const banIds = await dbAdapter.getUserBansIds(authorId);
 
-      if (banIds.includes(req.user.id)) {
+      if (banIds.includes(ctx.state.user.id)) {
         throw new ForbiddenException('Author of this post has banned you');
       }
 
-      const yourBanIds = await req.user.getBanIds();
+      const yourBanIds = await ctx.state.user.getBanIds();
 
       if (yourBanIds.includes(authorId)) {
         throw new ForbiddenException('You have banned the author of this post');
       }
 
-      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      const userLikedPost = await dbAdapter.hasUserLikedPost(ctx.state.user.id, post.id)
 
       if (userLikedPost) {
         throw new ForbiddenException("You can't like post that you have already liked")
       }
 
       try {
-        const affectedTimelines = await post.addLike(req.user)
+        const affectedTimelines = await post.addLike(ctx.state.user)
 
-        await dbAdapter.statsLikeCreated(req.user.id)
+        await dbAdapter.statsLikeCreated(ctx.state.user.id)
 
-        res.status(200).send({})
+        ctx.status = 200;
+        ctx.body = {};
 
-        await pubSub.newLike(post, req.user.id, affectedTimelines)
+        await pubSub.newLike(post, ctx.state.user.id, affectedTimelines)
 
         monitor.increment('posts.likes');
         monitor.increment('posts.reactions');
@@ -213,183 +202,154 @@ export default class PostsController {
 
         throw e;
       }
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop();
     }
   }
 
-  static async unlike(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
-      return
+  static async unlike(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
     const timer = monitor.timer('posts.unlikes.time');
 
     try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+      const post = await dbAdapter.getPostById(ctx.params.postId)
 
       if (null === post) {
         throw new NotFoundException("Can't find post");
       }
 
-      if (post.userId === req.user.id) {
+      if (post.userId === ctx.state.user.id) {
         throw new ForbiddenException("You can't un-like your own post")
       }
 
       const author = await dbAdapter.getUserById(post.userId);
       const banIds = await author.getBanIds();
 
-      if (banIds.includes(req.user.id)) {
+      if (banIds.includes(ctx.state.user.id)) {
         throw new ForbiddenException('Author of this post has blocked you');
       }
 
-      const yourBanIds = await req.user.getBanIds();
+      const yourBanIds = await ctx.state.user.getBanIds();
 
       if (yourBanIds.includes(author.id)) {
         throw new ForbiddenException('You have blocked the author of this post');
       }
 
-      const userLikedPost = await dbAdapter.hasUserLikedPost(req.user.id, post.id)
+      const userLikedPost = await dbAdapter.hasUserLikedPost(ctx.state.user.id, post.id)
       if (!userLikedPost) {
         throw new ForbiddenException("You can't un-like post that you haven't yet liked")
       }
 
-      const valid = await post.canShow(req.user.id)
+      const valid = await post.canShow(ctx.state.user.id)
       if (!valid) {
         throw new Error('Not found')
       }
 
-      await post.removeLike(req.user.id)
+      await post.removeLike(ctx.state.user.id)
 
-      await dbAdapter.statsLikeDeleted(req.user.id)
+      await dbAdapter.statsLikeDeleted(ctx.state.user.id)
 
-      res.status(200).send({})
+      ctx.status = 200;
+      ctx.body = {};
 
       monitor.increment('posts.unlikes');
       monitor.increment('posts.unreactions');
-    } catch (e) {
-      reportError(res)(e)
     } finally {
       timer.stop();
     }
   }
 
-  static async destroy(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
-      return
+  static async destroy(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
-    try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+    const post = await dbAdapter.getPostById(ctx.params.postId)
 
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      if (post.userId != req.user.id) {
-        throw new ForbiddenException("You can't delete another user's post")
-      }
-
-      await post.destroy()
-      res.jsonp({})
-
-      monitor.increment('posts.destroys');
-    } catch (e) {
-      reportError(res)(e)
+    if (null === post) {
+      throw new NotFoundException("Can't find post");
     }
+
+    if (post.userId != ctx.state.user.id) {
+      throw new ForbiddenException("You can't delete another user's post")
+    }
+
+    await post.destroy()
+    ctx.body = {};
+
+    monitor.increment('posts.destroys');
   }
 
-  static async hide(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
-      return
+  static async hide(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
-    try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+    const post = await dbAdapter.getPostById(ctx.params.postId)
 
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      await post.hide(req.user.id)
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === post) {
+      throw new NotFoundException("Can't find post");
     }
+
+    await post.hide(ctx.state.user.id)
+    ctx.body = {};
   }
 
-  static async unhide(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Not found' })
-      return
+  static async unhide(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
-    try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+    const post = await dbAdapter.getPostById(ctx.params.postId)
 
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      await post.unhide(req.user.id)
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === post) {
+      throw new NotFoundException("Can't find post");
     }
+
+    await post.unhide(ctx.state.user.id)
+    ctx.body = {};
   }
 
-  static async disableComments(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized' })
-      return
+  static async disableComments(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
-    try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+    const post = await dbAdapter.getPostById(ctx.params.postId)
 
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      if (post.userId != req.user.id) {
-        throw new ForbiddenException("You can't disable comments for another user's post")
-      }
-
-      await post.setCommentsDisabled('1')
-
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === post) {
+      throw new NotFoundException("Can't find post");
     }
+
+    if (post.userId != ctx.state.user.id) {
+      throw new ForbiddenException("You can't disable comments for another user's post")
+    }
+
+    await post.setCommentsDisabled('1')
+
+    ctx.body = {};
   }
 
-  static async enableComments(req, res) {
-    if (!req.user) {
-      res.status(401).jsonp({ err: 'Unauthorized' })
-      return
+  static async enableComments(ctx) {
+    if (!ctx.state.user) {
+      throw new NotAuthorizedException();
     }
 
-    try {
-      const post = await dbAdapter.getPostById(req.params.postId)
+    const post = await dbAdapter.getPostById(ctx.params.postId)
 
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      if (post.userId != req.user.id) {
-        throw new ForbiddenException("You can't enable comments for another user's post")
-      }
-
-      await post.setCommentsDisabled('0')
-
-      res.jsonp({})
-    } catch (e) {
-      reportError(res)(e)
+    if (null === post) {
+      throw new NotFoundException("Can't find post");
     }
+
+    if (post.userId != ctx.state.user.id) {
+      throw new ForbiddenException("You can't enable comments for another user's post")
+    }
+
+    await post.setCommentsDisabled('0')
+
+    ctx.body = {};
   }
 }
