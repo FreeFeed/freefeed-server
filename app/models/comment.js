@@ -103,19 +103,17 @@ export function addModel(dbAdapter) {
     await dbAdapter.statsCommentDeleted(this.userId)
     await pubSub.destroyComment(this.id, this.postId)
 
-    // look for comment from this user in this post
-    // if this is was the last one remove this post from user's comments timeline
+    // Look for other comments from this user in the post:
+    // if this was the last one then remove the post from "user's comments" timeline
     const post = await dbAdapter.getPostById(this.postId)
     const comments = await post.getComments()
 
-    if (_.some(comments, ['userId', this.userId])) {
-      return
+    if (!_.some(comments, ['userId', this.userId])) {
+      const user = await dbAdapter.getUserById(this.userId)
+      const timelineId = await user.getCommentsTimelineIntId()
+
+      await dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
     }
-
-    const user = await dbAdapter.getUserById(this.userId)
-    const timelineId = await user.getCommentsTimelineIntId()
-
-    await dbAdapter.withdrawPostFromFeeds([timelineId], this.postId)
   }
 
   Comment.prototype.getCreatedBy = function () {
