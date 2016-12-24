@@ -14,6 +14,8 @@ import { Attachment, Comment, Group, Post, Timeline, User } from '../models'
 promisifyAll(redis.RedisClient.prototype);
 promisifyAll(redis.Multi.prototype);
 
+const unexistedUID = '00000000-0000-0000-C000-000000000046';
+
 const USER_COLUMNS = {
   username:               'username',
   screenName:             'screen_name',
@@ -1529,31 +1531,58 @@ export class DbAdapter {
   /**
    * Returns UIDs of timeline posts
    */
-  async getTimelinePostsIds(timelineIntId, banedFeedsIntIds, params = {}) {
+  async getTimelinePostsIds(timelineIntId, viewerId = null, params = {}) {
     params = {
       limit:          30,
       offset:         0,
       sort:           'updated',
-      viewerId:       null,
       withLocalBumps: false,
       ...params,
     };
 
-    params.withLocalBumps = params.withLocalBumps && !!params.viewerId && params.sort === 'updated';
+    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'updated';
 
     // Private feeds viewer can read
     const visiblePrivateFeedIntIds = [];
-    if (params.viewerId) {
-      const { rows } = await this.database.raw(`
+    // Users who banned viewer or banned by viewer (viewer should not see their posts)
+    const bannedUsersIds = [];
+
+    if (viewerId) {
+      const privateSQL = `
         select f.id from
           subscriptions s
           join feeds f on f.uid = s.feed_id and f.name = 'Posts'
           join users u on u.uid = f.user_id and u.is_private
-        where s.user_id = ?
-      `, params.viewerId);
-      visiblePrivateFeedIntIds.push(..._.map(rows, 'id'));
-      const directsFeed = await this.getUserNamedFeed(params.viewerId, 'Directs');
+        where s.user_id = :viewerId
+      `;
+
+      const bansSQL = `
+        select
+          distinct coalesce( nullif( user_id, :viewerId ), banned_user_id ) as id
+        from
+          bans 
+        where
+          user_id = :viewerId
+          or banned_user_id = :viewerId
+      `;
+      const [
+        { rows: privateRows },
+        { rows: banRows },
+        directsFeed,
+      ] = await Promise.all([
+        this.database.raw(privateSQL, { viewerId }),
+        this.database.raw(bansSQL, { viewerId }),
+        this.getUserNamedFeed(viewerId, 'Directs'),
+      ]);
+
+      visiblePrivateFeedIntIds.push(..._.map(privateRows, 'id'));
       visiblePrivateFeedIntIds.push(directsFeed.intId);
+
+      bannedUsersIds.push(..._.map(banRows, 'id'));
+    }
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
     }
 
     let sql;
@@ -1565,15 +1594,15 @@ export class DbAdapter {
           left join local_bumps b on p.uid = b.post_id and b.user_id = %L
         where
           p.feed_ids && %L
-          and not p.destination_feed_ids && %L -- bans
+          and not p.user_id in (%L) -- bans
           and (not is_private or destination_feed_ids && %L) -- privates
         order by
           greatest(p.updated_at, b.created_at) desc
         limit %L offset %L
         `,
-        params.viewerId,
+        viewerId,
         `{${timelineIntId}}`,
-        `{${banedFeedsIntIds.join(',')}}`,
+        bannedUsersIds,
         `{${visiblePrivateFeedIntIds.join(',')}}`,
         params.limit,
         params.offset
@@ -1585,15 +1614,15 @@ export class DbAdapter {
           posts
         where
           feed_ids && %L
-          and not destination_feed_ids && %L
-          and ${params.viewerId ?
+          and not p.user_id in (%L) -- bans
+          and ${viewerId ?
             pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
             'not is_protected'
           }
         order by
           %I desc
         limit %L offset %L
-      `, `{${timelineIntId}}`, `{${banedFeedsIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+      `, `{${timelineIntId}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
     }
 
     return (await this.database.raw(sql)).rows.map((r) => r.uid);
@@ -1699,8 +1728,6 @@ export class DbAdapter {
       visibleFoldedLikes:  3,
       ...params,
     };
-
-    const unexistedUID = '00000000-0000-0000-C000-000000000046';
 
     const uniqPostsIds = _.uniq(postsIds);
 

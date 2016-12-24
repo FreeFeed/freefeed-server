@@ -89,15 +89,9 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   const allDestinations = [];
   const allSubscribers = [];
 
-  const [
-    bannedFeedsIds,
-    { intId: hidesFeedId },
-  ] = await Promise.all([
-    viewerId ? dbAdapter.getBannedFeedsIntIds(viewerId) : [],
-    params.withHides ? dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 },
-  ]);
+  const { intId: hidesFeedId } = params.withHides ? await dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 };
 
-  const postsIds = await dbAdapter.getTimelinePostsIds(timeline.intId, bannedFeedsIds, { ...params, viewerId });
+  const postsIds = await dbAdapter.getTimelinePostsIds(timeline.intId, viewerId, { ...params });
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
