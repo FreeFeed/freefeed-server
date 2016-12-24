@@ -144,6 +144,19 @@ describe('TimelinesControllerV2', () => {
           expect(homefeed.timelines.posts[1], 'to be', post2.id);
         });
 
+        it('should return timeline without post of user who is banned viewer', async () => {
+          const post1 = await createAndReturnPost(venus, 'Venus post');
+          const post2 = await createAndReturnPost(mars, 'Mars post');
+          const post3 = await createAndReturnPost(luna, 'Luna post');
+          await like(post1.id, mars.authToken);
+          await banUser(luna, venus);
+
+          const homefeed = await fetchHomefeed(app, luna);
+          expect(homefeed.timelines.posts, 'to have length', 2);
+          expect(homefeed.timelines.posts[0], 'to be', post3.id);
+          expect(homefeed.timelines.posts[1], 'to be', post2.id);
+        });
+
         it('hidden posts should have a isHidden property', async () => {
           const post1 = await createAndReturnPost(mars, 'Mars post');
           const post2 = await createAndReturnPost(luna, 'Luna post');

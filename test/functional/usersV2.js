@@ -131,7 +131,6 @@ describe('UsersControllerV2', () => {
         description:                 expect.it('to be a string'),
         privateMeta:                 expect.it('to be an object'),
         frontendPreferences:         expect.it('to be an object'),
-        statistics:                  expect.it('to be an object'),
         banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
         pendingGroupRequests:        expect.it('to be a boolean'),
         pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),

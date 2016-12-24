@@ -18,6 +18,7 @@ export const user = {
   type:                    expect.it('to equal', 'user'),
   profilePictureLargeUrl:  expect.it('to be a string'),
   profilePictureMediumUrl: expect.it('to be a string'),
+  statistics:              expect.it('to be an object'),
 };
 
 export const group = {
