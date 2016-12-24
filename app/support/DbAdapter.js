@@ -660,6 +660,27 @@ export class DbAdapter {
     return this._prepareModelPayload(userStats, USER_STATS_FIELDS, {})
   }
 
+  /**
+   * Returns plain object with user ids as keys and user stats as values
+   */
+  async getUsersStatsAssoc(ids) {
+    const idToStat = {};
+    if (_.isEmpty(ids)) {
+      return idToStat;
+    }
+    const uniqIds = _.compact(_.uniq(ids));
+    const cachedStats = await Promise.all(uniqIds.map((id) => this.statsCache.getAsync(id)));
+
+    const notFoundIds = _.compact(cachedStats.map((stat, i) => stat ? null : uniqIds[i]));
+    const dbStats = notFoundIds.length === 0 ? [] : await this.database('user_stats').whereIn('user_id', notFoundIds);
+
+    await Promise.all(dbStats.map((stat) => this.statsCache.setAsync(stat.user_id, stat)));
+
+    _.compact(cachedStats).forEach((stat) => idToStat[stat.user_id] = this._prepareModelPayload(stat, USER_STATS_FIELDS, {}));
+    dbStats.forEach((stat) => idToStat[stat.user_id] = this._prepareModelPayload(stat, USER_STATS_FIELDS, {}));
+    return idToStat;
+  }
+
   async calculateUserStats(userId) {
     const userFeeds = await this.database('users').select('subscribed_feed_ids').where('uid', userId)
     const readableFeedsIds = userFeeds[0].subscribed_feed_ids
