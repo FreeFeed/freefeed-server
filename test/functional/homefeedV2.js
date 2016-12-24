@@ -217,6 +217,33 @@ describe('TimelinesControllerV2', () => {
           });
         });
       });
+
+      describe('Luna blocked Mars, their are both in group Selenites', () => {
+        let mars;
+        let venus;
+        beforeEach(async () => {
+          mars = await createUserAsync('mars', 'pw');
+          venus = await createUserAsync('venus', 'pw');
+          await createGroupAsync(venus, 'selenites');
+          await subscribeToAsync(luna, { username: 'selenites' });
+          await subscribeToAsync(mars, { username: 'selenites' });
+          await banUser(mars, luna);
+        });
+
+        it('should return timeline without posts of Mars in Selenites group', async () => {
+          await createAndReturnPostToFeed({ username: 'selenites' }, mars, 'Post');
+
+          const homefeed = await fetchHomefeed(app, luna);
+          expect(homefeed.posts, 'to be empty');
+        });
+
+        it('should return Mars timeline without posts of Luna in Selenites group', async () => {
+          await createAndReturnPostToFeed({ username: 'selenites' }, luna, 'Post');
+
+          const homefeed = await fetchHomefeed(app, mars);
+          expect(homefeed.posts, 'to be empty');
+        });
+      });
     });
   });
 });
