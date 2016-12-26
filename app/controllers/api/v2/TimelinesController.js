@@ -89,15 +89,9 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   const allDestinations = [];
   const allSubscribers = [];
 
-  const [
-    bannedFeedsIds,
-    { intId: hidesFeedId },
-  ] = await Promise.all([
-    viewerId ? dbAdapter.getBannedFeedsIntIds(viewerId) : [],
-    params.withHides ? dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 },
-  ]);
+  const { intId: hidesFeedId } = params.withHides ? await dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 };
 
-  const postsIds = await dbAdapter.getTimelinePostsIds(timeline.intId, bannedFeedsIds, { ...params, viewerId });
+  const postsIds = await dbAdapter.getTimelinePostsIds(timeline.intId, viewerId, { ...params });
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
@@ -137,13 +131,22 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   allUserIds.add(...timelines.subscribers);
   allSubscribers.push(...timelines.subscribers);
 
-  const allUsersAssoc = await dbAdapter.getUsersByIdsAssoc([...allUserIds]);
+  const [
+    allUsersAssoc,
+    allStatsAssoc,
+  ] = await Promise.all([
+    dbAdapter.getUsersByIdsAssoc([...allUserIds]),
+    dbAdapter.getUsersStatsAssoc([...allUserIds]),
+  ]);
 
-  const users = _.values(allUsersAssoc).filter((u) => u.type === 'user').map(serializeUser);
-  const subscribers = _.compact(_.uniq(allSubscribers)).map((id) => allUsersAssoc[id]).map(serializeUser);
-
-  const groupIds = subscribers.filter((s) => s.type === 'group').map((g) => g.id);
+  const uniqSubscribers = _.compact(_.uniq(allSubscribers));
+  const groupIds = uniqSubscribers.filter((id) => allUsersAssoc[id].type === 'group');
   const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(groupIds);
+
+  const fillUser = getUserFiller(allUsersAssoc, allStatsAssoc, allGroupAdmins);
+
+  const users = Object.keys(allUsersAssoc).map(fillUser).filter((u) => u.type === 'user');
+  const subscribers = uniqSubscribers.map(fillUser);
 
   const subscriptions = _.uniqBy(_.compact(allDestinations), 'id');
 
@@ -151,14 +154,31 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     timelines,
     users,
     subscriptions,
-    subscribers: subscribers.map((s) => {
-      if (s.type === 'group') {
-        s.administrators = allGroupAdmins[s.id] || [];
-      }
-      return s;
-    }),
+    subscribers,
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),
+  };
+}
+
+const defaultStats = {
+  posts:         '0',
+  likes:         '0',
+  comments:      '0',
+  subscribers:   '0',
+  subscriptions: '0',
+};
+
+function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
+  return (id) => {
+    const obj = serializeUser(allUsers[id]);
+    obj.statistics = allStats[id] || defaultStats;
+    if (obj.type === 'group') {
+      if (!obj.isVisibleToAnonymous) {
+        obj.isVisibleToAnonymous = (obj.isProtected === '1') ? '0' : '1';
+      }
+      obj.administrators = allGroupAdmins[obj.id] || [];
+    }
+    return obj;
   };
 }

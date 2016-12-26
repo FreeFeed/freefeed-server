@@ -11,7 +11,8 @@ class Session {
   context = {};
 
   static async create(userContext = { authToken: '' }) {
-    const port = (process.env.PEPYATKA_SERVER_PORT || (await initApp()).get('port'));
+    const app = await initApp();
+    const port = (process.env.PEPYATKA_SERVER_PORT || app.context.config.port);
     const options = {
       transports:             ['websocket'],
       'force new connection': true,
