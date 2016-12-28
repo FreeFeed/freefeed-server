@@ -90,19 +90,28 @@ export default class UsersController {
         groupRequestersUIDs,
       );
 
-      const allUsers = await dbAdapter.getUsersByIdsAssoc(allUIDs);
+      const [
+        allUsers,
+        allStats,
+      ] = await Promise.all([
+        dbAdapter.getUsersByIdsAssoc(allUIDs),
+        dbAdapter.getUsersStatsAssoc(allUIDs),
+      ]);
       const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'));
+
+      const fillUser = getUserFiller(allUsers, allStats, allGroupAdmins);
 
       users.pendingGroupRequests = groupRequestersUIDs.length > 0;
       users.pendingSubscriptionRequests = pendingSubscriptionRequestsUIDs;
       users.subscriptionRequests = subscriptionRequestsUIDs;
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
-      users.subscribers = usersFromUIDs(subscribersUIDs, allUsers, allGroupAdmins);
-      const subscribers = usersFromUIDs(subscriptionsUIDs, allUsers, allGroupAdmins);
-      const requests = usersFromUIDs(_.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs), allUsers, allGroupAdmins);
-      const managedGroups = usersFromUIDs(managedGroupUIDs, allUsers, allGroupAdmins)
+      users.subscribers = subscribersUIDs.map(fillUser);
+      const subscribers = subscriptionsUIDs.map(fillUser);
+      const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map(fillUser);
+      const managedGroups = managedGroupUIDs
+        .map(fillUser)
         .map((group) => {
-          group.requests = usersFromUIDs(pendingGroupRequests[group.id] || [], allUsers);
+          group.requests = (pendingGroupRequests[group.id] || []).map(fillUser);
           return group;
         });
 
@@ -113,9 +122,18 @@ export default class UsersController {
   }
 }
 
-function usersFromUIDs(uids, allUsers, allGroupAdmins = {}) {
-  return uids.map((id) => {
+const defaultStats = {
+  posts:         '0',
+  likes:         '0',
+  comments:      '0',
+  subscribers:   '0',
+  subscriptions: '0',
+};
+
+function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
+  return (id) => {
     const obj = serializeUser(allUsers[id]);
+    obj.statistics = allStats[id] || defaultStats;
     if (obj.type === 'group') {
       if (!obj.isVisibleToAnonymous) {
         obj.isVisibleToAnonymous = (obj.isProtected === '1') ? '0' : '1';
@@ -123,5 +141,5 @@ function usersFromUIDs(uids, allUsers, allGroupAdmins = {}) {
       obj.administrators = allGroupAdmins[obj.id] || [];
     }
     return obj;
-  });
+  };
 }

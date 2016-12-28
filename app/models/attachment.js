@@ -144,6 +144,21 @@ export function addModel(dbAdapter) {
     return this
   }
 
+  Reflect.defineProperty(Attachment.prototype, 'url', {
+    get: function () {
+      return config.attachments.url + config.attachments.path + this.getFilename()
+    }
+  })
+
+  Reflect.defineProperty(Attachment.prototype, 'thumbnailUrl', {
+    get: function () {
+      if (this.noThumbnail === '1') {
+        return this.url
+      }
+      return this.getResizedImageUrl('t')
+    }
+  })
+
   // Get user who created the attachment (via Promise, for serializer)
   Attachment.prototype.getCreatedBy = function () {
     return dbAdapter.getUserById(this.userId)
