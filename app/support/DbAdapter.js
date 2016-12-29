@@ -1614,7 +1614,7 @@ export class DbAdapter {
           posts
         where
           feed_ids && %L
-          and not p.user_id in (%L) -- bans
+          and not user_id in (%L) -- bans
           and ${viewerId ?
             pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
             'not is_protected'
