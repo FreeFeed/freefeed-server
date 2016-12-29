@@ -171,6 +171,38 @@ describe('TimelinesControllerV2', () => {
           expect(marsPost.isHidden, 'to be', true);
         });
 
+        describe('Luna have a private feed', () => {
+          beforeEach(async () => {
+            await goPrivate(luna);
+          });
+
+          it('should return timeline with her own post', async () => {
+            const post = await createAndReturnPost(luna, 'Luna post');
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to be', post.id);
+          });
+
+          it('should return timeline with post liked by Luna', async () => {
+            const post = await createAndReturnPost(venus, 'Venus post');
+            await like(post.id, luna.authToken);
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to be', post.id);
+          });
+
+          it('should return timeline with post commented by Luna', async () => {
+            const post = await createAndReturnPost(venus, 'Venus post');
+            await createCommentAsync(luna, post.id, 'Comment');
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to be', post.id);
+          });
+        });
+
         describe('Venus have a private feed, Mars is subscribed to Venus', () => {
           beforeEach(async () => {
             await goPrivate(venus);
