@@ -1550,10 +1550,10 @@ export class DbAdapter {
     if (viewerId) {
       const privateSQL = `
         select f.id from
-          subscriptions s
-          join feeds f on f.uid = s.feed_id and f.name = 'Posts'
+          feeds f
+          join subscriptions s on f.uid = s.feed_id or f.user_id = :viewerId -- viewer's own feed is always visible 
           join users u on u.uid = f.user_id and u.is_private
-        where s.user_id = :viewerId
+        where s.user_id = :viewerId and f.name = 'Posts'
       `;
 
       const bansSQL = `
