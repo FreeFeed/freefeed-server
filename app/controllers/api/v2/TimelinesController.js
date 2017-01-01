@@ -28,20 +28,55 @@ export default class TimelinesController {
     ctx.body = postsCollectionJson;
   });
 
-  home = monitored('timelines.home-v2-time', async (ctx) => {
+  home = authRequired(monitored('timelines.home-v2-time', async (ctx) => {
     const user = ctx.state.user;
-    if (!user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Unauthorized' };
-      return;
-    }
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'RiverOfNews');
     ctx.body = await genericTimeline(timeline, user.id, {
       withHides:      true,
       withLocalBumps: true,
       ...limitOffsetSort(ctx.request.query),
     });
+  }));
+
+  myDiscussions = authRequired(monitored('timelines.my_discussions-v2-time', async (ctx) => {
+    const user = ctx.state.user;
+    const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
+    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+  }));
+
+  directs = authRequired(monitored('timelines.directs-v2-time', async (ctx) => {
+    const user = ctx.state.user;
+    const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
+    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+  }));
+
+  userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2-time`, async (ctx) => {
+    const username = ctx.params.username
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
+    if (!user || user.hashedPassword === '') {
+      ctx.status = 404;
+      ctx.body = { err: `User "${username}" is not found` };
+      return;
+    }
+    const viewer = ctx.state.user || null;
+    const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+    ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
+      sort: (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
+      ...limitOffsetSort(ctx.request.query),
+    });
   });
+}
+
+function authRequired(handlerFunc) {
+  return async (ctx) => {
+    const user = ctx.state.user;
+    if (!user) {
+      ctx.status = 401;
+      ctx.body = { err: 'Unauthorized' };
+      return;
+    }
+    await handlerFunc(ctx);
+  };
 }
 
 function monitored(monitorName, handlerFunc) {
@@ -91,7 +126,35 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
 
   const { intId: hidesFeedId } = params.withHides ? await dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 };
 
-  const postsIds = await dbAdapter.getTimelinePostsIds(timeline.intId, viewerId, { ...params });
+  const timelineIds = [timeline.intId];
+  const owner = await timeline.getUser();
+  let canViewPosts = true;
+
+  if (timeline.name === 'MyDiscussions') {
+    const srcIds = await Promise.all([
+      owner.getCommentsTimelineIntId(),
+      owner.getLikesTimelineIntId(),
+    ]);
+    timelineIds.length = 0;
+    timelineIds.push(...srcIds);
+  } else if (['Posts', 'Comments', 'Likes'].includes(timeline.name)) {
+    // Checking access rights for viewer
+    if (!viewerId) {
+      canViewPosts = (owner.isProtected === '0');
+    } else if (viewerId !== owner.id) {
+      if (owner.isPrivate === '1') {
+        const subscribers = await dbAdapter.getUserSubscribersIds(owner.id);
+        canViewPosts = subscribers.includes(viewerId);
+      }
+      if (canViewPosts) {
+        // Viewer cannot see feeds of users in ban relations with him
+        const banIds = await dbAdapter.getBansAndBannersOfUser(viewerId);
+        canViewPosts = !banIds.includes(owner.id);
+      }
+    }
+  }
+
+  const postsIds = canViewPosts ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params }) : [];
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
