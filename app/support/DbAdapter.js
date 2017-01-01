@@ -524,20 +524,14 @@ export class DbAdapter {
     return feed
   }
 
-  async getUserSubscribers(id) {
-    if (!validator.isUUID(id, 4)) {
-      return null;
-    }
-
-    const sql = `
-      select user_id from subscriptions
-        where feed_id in (
-          select uid from feeds where user_id = ? and name = 'Posts'
-        )
-        order by created_at`;
-
-    const res = await this.database.raw(sql, id);
-    return res.rows;
+  async getUserSubscribersIds(userId) {
+    return await this.database
+      .pluck('s.user_id')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 'f.uid', 's.feed_id')
+      .where('f.name', 'Posts')
+      .where('f.user_id', userId)
+      .orderBy('s.created_at', 'desc');
   }
 
   ///////////////////////////////////////////////////
