@@ -61,7 +61,8 @@ export default class TimelinesController {
     const viewer = ctx.state.user || null;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
-      sort: (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
+      sort:           (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
+      withoutDirects: (feedName !== 'Posts'),
       ...limitOffsetSort(ctx.request.query),
     });
   });
@@ -111,6 +112,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     sort:           ORD_UPDATED,
     withHides:      false,
     withLocalBumps: false,
+    withoutDirects: false,
     ...params,
   };
 

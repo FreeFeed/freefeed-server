@@ -1560,6 +1560,8 @@ export class DbAdapter {
     const visiblePrivateFeedIntIds = [];
     // Users who banned viewer or banned by viewer (viewer should not see their posts)
     const bannedUsersIds = [];
+    // Additional condition for params.withoutDirects option
+    let noDirectsSQL = 'true';
 
     if (viewerId) {
       const privateSQL = `
@@ -1584,6 +1586,11 @@ export class DbAdapter {
       visiblePrivateFeedIntIds.push(directsFeed.intId);
 
       bannedUsersIds.push(...banIds);
+
+      if (params.withoutDirects) {
+        // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
+        noDirectsSQL = `not (destination_feed_ids && '{${directsFeed.intId}}' and array_length(destination_feed_ids, 1) = 2)`;
+      }
     }
 
     if (bannedUsersIds.length === 0) {
@@ -1601,6 +1608,7 @@ export class DbAdapter {
           p.feed_ids && %L
           and not p.user_id in (%L)  -- bans
           and (not is_private or destination_feed_ids && %L)  -- privates
+          and ${noDirectsSQL}
         order by
           greatest(p.updated_at, b.created_at) desc
         limit %L offset %L
@@ -1624,12 +1632,12 @@ export class DbAdapter {
             pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
             'not is_protected'
           }
+          and ${noDirectsSQL}
         order by
           %I desc
         limit %L offset %L
       `, `{${timelineIntIds.join(',')}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
     }
-
     return (await this.database.raw(sql)).rows.map((r) => r.uid);
   }
 
