@@ -381,6 +381,7 @@ describe('TimelinesControllerV2', () => {
         createUserAsync('mars', 'pw'),
         createUserAsync('venus', 'pw'),
       ]);
+      await subscribeToAsync(venus, mars);
       postCreatedByMars = await createAndReturnPost(mars, 'Post');
       postCommentedByMars = await createAndReturnPost(venus, 'Post');
       postLikedByMars = await createAndReturnPost(venus, 'Post');
@@ -394,6 +395,8 @@ describe('TimelinesControllerV2', () => {
         const feed = await fetchUserTimeline('Posts', mars, app, viewer);
         expect(feed.timelines.posts, 'to have length', 1);
         expect(feed.timelines.posts[0], 'to equal', postCreatedByMars.id);
+        expect(feed.timelines.subscribers, 'to be non-empty');
+        expect(feed.timelines.subscribers, 'to contain', venus.user.id);
       }
       {
         const feed = await fetchUserTimeline('Comments', mars, app, viewer);
@@ -412,6 +415,7 @@ describe('TimelinesControllerV2', () => {
       {
         const feed = await fetchUserTimeline('Posts', mars, app, viewer);
         expect(feed.timelines.posts, 'to be empty');
+        expect(feed.timelines.subscribers, 'to be empty');
       }
       {
         const feed = await fetchUserTimeline('Comments', mars, app, viewer);
@@ -479,6 +483,7 @@ const timelineSchema = {
     subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
   }),
   users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
+  admins:        expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
   posts:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.post),
   comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.comment),
   attachments:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.attachment),

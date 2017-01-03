@@ -130,7 +130,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
 
   const timelineIds = [timeline.intId];
   const owner = await timeline.getUser();
-  let canViewPosts = true;
+  let canViewUser = true;
 
   if (timeline.name === 'MyDiscussions') {
     const srcIds = await Promise.all([
@@ -142,21 +142,21 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   } else if (['Posts', 'Comments', 'Likes'].includes(timeline.name)) {
     // Checking access rights for viewer
     if (!viewerId) {
-      canViewPosts = (owner.isProtected === '0');
+      canViewUser = (owner.isProtected === '0');
     } else if (viewerId !== owner.id) {
       if (owner.isPrivate === '1') {
         const subscribers = await dbAdapter.getUserSubscribersIds(owner.id);
-        canViewPosts = subscribers.includes(viewerId);
+        canViewUser = subscribers.includes(viewerId);
       }
-      if (canViewPosts) {
+      if (canViewUser) {
         // Viewer cannot see feeds of users in ban relations with him
         const banIds = await dbAdapter.getBansAndBannersOfUser(viewerId);
-        canViewPosts = !banIds.includes(owner.id);
+        canViewUser = !banIds.includes(owner.id);
       }
     }
   }
 
-  const postsIds = canViewPosts ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params }) : [];
+  const postsIds = canViewUser ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params }) : [];
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
@@ -189,12 +189,13 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   const timelines = _.pick(timeline, ['id', 'name']);
   timelines.user = timeline.userId;
   timelines.posts = postsIds;
-  timelines.subscribers = await dbAdapter.getTimelineSubscribersIds(timeline.id);
-  allUserIds.add(timeline.userId);
+  timelines.subscribers = canViewUser ? await dbAdapter.getTimelineSubscribersIds(timeline.id) : [];
   allSubscribers.push(timeline.userId);
-
-  allUserIds.add(...timelines.subscribers);
   allSubscribers.push(...timelines.subscribers);
+  allSubscribers.forEach((s) => allUserIds.add(s));
+
+  const allGroupAdmins = canViewUser ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds]) : {};
+  _.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
   const [
     allUsersAssoc,
@@ -205,21 +206,22 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   ]);
 
   const uniqSubscribers = _.compact(_.uniq(allSubscribers));
-  const groupIds = uniqSubscribers.filter((id) => allUsersAssoc[id].type === 'group');
-  const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(groupIds);
 
   const fillUser = getUserFiller(allUsersAssoc, allStatsAssoc, allGroupAdmins);
 
-  const users = Object.keys(allUsersAssoc).map(fillUser).filter((u) => u.type === 'user');
-  const subscribers = uniqSubscribers.map(fillUser);
+  const users = Object.keys(allUsersAssoc).map(fillUser).filter((u) => u.type === 'user' || u.id === timeline.userId);
+  const subscribers = canViewUser ? uniqSubscribers.map(fillUser) : [];
 
-  const subscriptions = _.uniqBy(_.compact(allDestinations), 'id');
+  const subscriptions = canViewUser ? _.uniqBy(_.compact(allDestinations), 'id') : [];
+
+  const admins = canViewUser ? (allGroupAdmins[timeline.userId] || []).map(fillUser) : [];
 
   return {
     timelines,
     users,
     subscriptions,
     subscribers,
+    admins,
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),
