@@ -15,11 +15,13 @@ import {
   createCommentAsync,
   banUser,
   goPrivate,
+  goProtected,
   sendRequestToSubscribe,
   acceptRequestToSubscribe,
   hidePost,
   createGroupAsync,
   createAndReturnPostToFeed,
+  mutualSubscriptions,
 } from './functional_test_helper'
 import * as schema from './schemaV2-helper';
 
@@ -33,7 +35,7 @@ describe('TimelinesControllerV2', () => {
 
   beforeEach(async () => await knexCleaner.clean($pg_database));
 
-  describe('#home()', () => {
+  describe('#home', () => {
     it('should reject unauthenticated users', async () => {
       const response = await fetch(`${app.context.config.host}/v2/timelines/home`);
       expect(response, 'to satisfy', { status: 401 });
@@ -157,6 +159,18 @@ describe('TimelinesControllerV2', () => {
           expect(homefeed.timelines.posts[1], 'to be', post2.id);
         });
 
+        it('should return timeline without comment and like of banned user', async () => {
+          const post = await createAndReturnPost(mars, 'Mars post');
+          await banUser(luna, venus);
+          await createCommentAsync(venus, post.id, 'Comment');
+          await like(post.id, venus.authToken);
+
+          const homefeed = await fetchHomefeed(app, luna);
+          expect(homefeed.posts, 'to have length', 1);
+          expect(homefeed.posts[0].comments, 'to be empty');
+          expect(homefeed.posts[0].likes, 'to be empty');
+        });
+
         it('hidden posts should have a isHidden property', async () => {
           const post1 = await createAndReturnPost(mars, 'Mars post');
           const post2 = await createAndReturnPost(luna, 'Luna post');
@@ -169,6 +183,38 @@ describe('TimelinesControllerV2', () => {
           const marsPost = homefeed.posts.find((p) => p.id === post1.id);
           expect(marsPost, 'to have key', 'isHidden');
           expect(marsPost.isHidden, 'to be', true);
+        });
+
+        describe('Luna have a private feed', () => {
+          beforeEach(async () => {
+            await goPrivate(luna);
+          });
+
+          it('should return timeline with her own post', async () => {
+            const post = await createAndReturnPost(luna, 'Luna post');
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to be', post.id);
+          });
+
+          it('should return timeline with post liked by Luna', async () => {
+            const post = await createAndReturnPost(venus, 'Venus post');
+            await like(post.id, luna.authToken);
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to be', post.id);
+          });
+
+          it('should return timeline with post commented by Luna', async () => {
+            const post = await createAndReturnPost(venus, 'Venus post');
+            await createCommentAsync(luna, post.id, 'Comment');
+
+            const homefeed = await fetchHomefeed(app, luna);
+            expect(homefeed.timelines.posts, 'to have length', 1);
+            expect(homefeed.timelines.posts[0], 'to be', post.id);
+          });
         });
 
         describe('Venus have a private feed, Mars is subscribed to Venus', () => {
@@ -246,6 +292,185 @@ describe('TimelinesControllerV2', () => {
       });
     });
   });
+
+
+  describe('#discussions', () => {
+    it('should reject unauthenticated users', async () => {
+      const response = await fetch(`${app.context.config.host}/v2/timelines/filter/discussions`);
+      expect(response, 'to satisfy', { status: 401 });
+      const data = await response.json();
+      expect(data, 'to have key', 'err');
+    });
+
+    describe('Viewer Luna', () => {
+      let luna, mars;
+      let post1, post2;
+      beforeEach(async () => {
+        luna = await createUserAsync('luna', 'pw');
+        mars = await createUserAsync('mars', 'pw');
+        post1 = await createAndReturnPost(mars, 'Mars post 1');
+        post2 = await createAndReturnPost(mars, 'Mars post 2');
+        await createCommentAsync(luna, post1.id, 'Comment');
+        await like(post2.id, luna.authToken);
+      });
+
+      it('should return timeline with posts commented or liked by Luna', async () => {
+        const feed = await fetchMyDiscussions(app, luna);
+        expect(feed.timelines.posts, 'to have length', 2);
+      });
+
+      describe('Mars going private', () => {
+        beforeEach(async () => {
+          await goPrivate(mars);
+        });
+
+        it('should return timeline without private posts commented or liked by Luna', async () => {
+          const feed = await fetchMyDiscussions(app, luna);
+          expect(feed.timelines.posts, 'to be empty');
+        });
+      });
+    });
+  });
+
+  describe('#directs', () => {
+    it('should reject unauthenticated users', async () => {
+      const response = await fetch(`${app.context.config.host}/v2/timelines/filter/directs`);
+      expect(response, 'to satisfy', { status: 401 });
+      const data = await response.json();
+      expect(data, 'to have key', 'err');
+    });
+
+    describe('Luna is a friend of Mars', () => {
+      let luna, mars;
+      let postLunaToMars, postMarsToLuna;
+      beforeEach(async () => {
+        luna = await createUserAsync('luna', 'pw');
+        mars = await createUserAsync('mars', 'pw');
+        await mutualSubscriptions([luna, mars]);
+        postLunaToMars = await createAndReturnPostToFeed({ username: 'mars' }, luna, 'Post');
+        postMarsToLuna = await createAndReturnPostToFeed({ username: 'luna' }, mars, 'Post');
+      });
+
+      it('should return timeline with directs from Luna and to Luna', async () => {
+        const feed = await fetchDirects(app, luna);
+        expect(feed.timelines.posts, 'to have length', 2);
+        expect(feed.timelines.posts[0], 'to equal', postMarsToLuna.id);
+        expect(feed.timelines.posts[1], 'to equal', postLunaToMars.id);
+      });
+
+      describe('Mars blocked Luna', () => {
+        beforeEach(async () => {
+          await banUser(luna, mars);
+        });
+
+        it('should return timeline without posts from banned user', async () => {
+          const feed = await fetchDirects(app, luna);
+          expect(feed.timelines.posts, 'to have length', 1);
+          expect(feed.timelines.posts[0], 'to equal', postLunaToMars.id);
+        });
+      });
+    });
+  });
+
+  describe('#user\'s timelines', () => {
+    let luna, mars, venus;
+    let postCreatedByMars, postCommentedByMars, postLikedByMars;
+    beforeEach(async () => {
+      [luna, mars, venus] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw'),
+        createUserAsync('venus', 'pw'),
+      ]);
+      await subscribeToAsync(venus, mars);
+      postCreatedByMars = await createAndReturnPost(mars, 'Post');
+      postCommentedByMars = await createAndReturnPost(venus, 'Post');
+      postLikedByMars = await createAndReturnPost(venus, 'Post');
+      await createCommentAsync(mars, postCommentedByMars.id, 'Comment');
+      await like(postLikedByMars.id, mars.authToken);
+    });
+
+    const nonEmptyExpected = (anonymous = true) => async () => {
+      const viewer = anonymous ? null : luna;
+      {
+        const feed = await fetchUserTimeline('Posts', mars, app, viewer);
+        expect(feed.timelines.posts, 'to have length', 1);
+        expect(feed.timelines.posts[0], 'to equal', postCreatedByMars.id);
+        expect(feed.timelines.subscribers, 'to be non-empty');
+        expect(feed.timelines.subscribers, 'to contain', venus.user.id);
+      }
+      {
+        const feed = await fetchUserTimeline('Comments', mars, app, viewer);
+        expect(feed.timelines.posts, 'to have length', 1);
+        expect(feed.timelines.posts[0], 'to equal', postCommentedByMars.id);
+      }
+      {
+        const feed = await fetchUserTimeline('Likes', mars, app, viewer);
+        expect(feed.timelines.posts, 'to have length', 1);
+        expect(feed.timelines.posts[0], 'to equal', postLikedByMars.id);
+      }
+    };
+
+    const emptyExpected = (anonymous = true) => async () => {
+      const viewer = anonymous ? null : luna;
+      {
+        const feed = await fetchUserTimeline('Posts', mars, app, viewer);
+        expect(feed.timelines.posts, 'to be empty');
+        expect(feed.timelines.subscribers, 'to be empty');
+      }
+      {
+        const feed = await fetchUserTimeline('Comments', mars, app, viewer);
+        expect(feed.timelines.posts, 'to be empty');
+      }
+      {
+        const feed = await fetchUserTimeline('Likes', mars, app, viewer);
+        expect(feed.timelines.posts, 'to be empty');
+      }
+    };
+
+    describe('Mars is a public user', () => {
+      it('should return Mars timelines with posts to anonymous', nonEmptyExpected());
+      it('should return Mars timelines with posts to Luna', nonEmptyExpected(false));
+    });
+
+    describe('Mars is a private user', () => {
+      beforeEach(async () => {
+        await goPrivate(mars);
+      });
+      it('should return Mars timelines without posts to anonymous', emptyExpected());
+      it('should return Mars timelines without posts to Luna', emptyExpected(false));
+    });
+
+    describe('Mars is a protected user', () => {
+      beforeEach(async () => {
+        await goProtected(mars);
+      });
+      it('should return Mars timelines without posts to anonymous', emptyExpected());
+      it('should return Mars timelines with posts to Luna', nonEmptyExpected(false));
+    });
+
+    describe('Mars is a private user and Luna subscribed to him', () => {
+      beforeEach(async () => {
+        await goPrivate(mars);
+        await sendRequestToSubscribe(luna, mars);
+        await acceptRequestToSubscribe(luna, mars);
+      });
+      it('should return Mars timelines with posts to Luna', nonEmptyExpected(false));
+    });
+
+    describe('Mars is a public user but bans Luna', () => {
+      beforeEach(async () => {
+        await banUser(mars, luna);
+      });
+      it('should return Mars timelines without posts to Luna', emptyExpected(false));
+    });
+
+    describe('Mars is a public user but was banned by Luna', () => {
+      beforeEach(async () => {
+        await banUser(luna, mars);
+      });
+      it('should return Mars timelines without posts to Luna', emptyExpected(false));
+    });
+  });
 });
 
 
@@ -258,6 +483,7 @@ const timelineSchema = {
     subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
   }),
   users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
+  admins:        expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
   posts:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.post),
   comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.comment),
   attachments:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.attachment),
@@ -269,14 +495,32 @@ const timelineSchema = {
   }),
 };
 
-async function fetchHomefeed(app, userContext) {
-  const response = await fetch(
-    `${app.context.config.host}/v2/timelines/home`,
-    { headers: { 'X-Authentication-Token': userContext.authToken } }
-  );
-  const homefeed = await response.json();
-  // console.log(homefeed);
-  expect(response.status, 'to be', 200);
-  expect(homefeed, 'to exhaustively satisfy', timelineSchema);
-  return homefeed;
-}
+const fetchTimeline = (path) => async (app, viewerContext = null) => {
+  const headers = {};
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const response = await fetch(`${app.context.config.host}/v2/timelines/${path}`, { headers });
+  const feed = await response.json();
+  // console.log(feed);
+  if (response.status !== 200) {
+    expect.fail('HTTP error (code {0}): {1}', response.status, feed.err);
+  }
+  expect(feed, 'to exhaustively satisfy', timelineSchema);
+  return feed;
+};
+
+const fetchHomefeed = fetchTimeline('home');
+const fetchMyDiscussions = fetchTimeline('filter/discussions');
+const fetchDirects = fetchTimeline('filter/directs');
+
+const fetchUserTimeline = async (name, userContext, app, viewerContext = null) => {
+  let path = userContext.username;
+  if (name === 'Comments') {
+    path = `${path}/comments`;
+  }
+  if (name === 'Likes') {
+    path = `${path}/likes`;
+  }
+  return await fetchTimeline(path)(app, viewerContext);
+};
