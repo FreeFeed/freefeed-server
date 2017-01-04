@@ -455,6 +455,10 @@ export function goPublic(userContext) {
   return updateUserAsync(userContext, { isPrivate: '0' });
 }
 
+export function goProtected(userContext) {
+  return updateUserAsync(userContext, { isPrivate: '0', isProtected: '1' });
+}
+
 export function groupToPrivate(group, userContext) {
   return updateGroupAsync(group, userContext, { isPrivate: '1' });
 }
