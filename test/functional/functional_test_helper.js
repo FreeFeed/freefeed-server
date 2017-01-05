@@ -331,6 +331,18 @@ export async function getSubscribersAsync(username, userContext) {
   return fetch(url)
 }
 
+export async function getSubscriptionsAsync(username, userContext) {
+  const relativeUrl = `/v1/users/${username}/subscriptions`
+  let url = await apiUrl(relativeUrl)
+
+  if (!_.isUndefined(userContext)) {
+    const encodedToken = encodeURIComponent(userContext.authToken)
+    url = `${url}?authToken=${encodedToken}`
+  }
+
+  return fetch(url)
+}
+
 export function getSubscriptions(username, authToken, callback) {
   return function (done) {
     const sendParams = {};

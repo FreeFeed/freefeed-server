@@ -197,10 +197,11 @@ export default class UsersController {
       throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
     }
 
+    if (!ctx.state.user && user.isProtected === '1') {
+      throw new ForbiddenException('User is protected')
+    }
+
     if (user.isPrivate === '1') {
-      if (!ctx.state.user) {
-        throw new ForbiddenException('User is private')
-      }
       const subscriberIds = await user.getSubscriberIds()
       if (ctx.state.user.id !== user.id && !subscriberIds.includes(ctx.state.user.id)) {
         throw new ForbiddenException('User is private')
@@ -231,11 +232,11 @@ export default class UsersController {
       throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
 
-    if (user.isPrivate === '1') {
-      if (!ctx.state.user) {
-        throw new ForbiddenException('User is private')
-      }
+    if (!ctx.state.user && user.isProtected === '1') {
+      throw new ForbiddenException('User is protected')
+    }
 
+    if (user.isPrivate === '1') {
       const subscriberIds = await user.getSubscriberIds()
       if (ctx.state.user.id !== user.id && !subscriberIds.includes(ctx.state.user.id)) {
         throw new ForbiddenException('User is private')
