@@ -32,7 +32,7 @@
     "bcrypt": "1.0.2",
     "bluebird": "3.4.7",
     "cache-manager": "2.3.0",
-    "cache-manager-redis": "0.3.2",
+    "cache-manager-redis": "0.4.0",
     "console-stamp": "0.2.5",
     "ejs": "2.5.5",
     "gm": "1.23.0",

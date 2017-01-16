@@ -568,7 +568,7 @@ export class DbAdapter {
   };
 
   getCachedUserAttrs = async (id) => {
-    return this.fixCachedUserAttrs(await this.cache.getAsync(`user_${id}`))
+    return this.fixCachedUserAttrs(await this.cache.get(`user_${id}`))
   };
 
   async fetchUser(id) {
@@ -577,7 +577,7 @@ export class DbAdapter {
       // Cache miss, read from the database
       attrs = await this.database('users').first().where('uid', id) || null;
       if (attrs) {
-        await this.cache.setAsync(`user_${id}`, attrs);
+        await this.cache.set(`user_${id}`, attrs);
       }
     }
     return attrs;
@@ -609,7 +609,7 @@ export class DbAdapter {
     const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
     const dbUsers = notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
 
-    await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
+    await Promise.all(dbUsers.map((attrs) => this.cache.set(`user_${attrs.uid}`, attrs)));
 
     _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
     dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
@@ -1244,7 +1244,7 @@ export class DbAdapter {
     const cacheKey = `timelines_user_${userId}`;
 
     // Check the cache first
-    const cachedTimelines = await this.memoryCache.getAsync(cacheKey);
+    const cachedTimelines = await this.memoryCache.get(cacheKey);
 
     if (typeof cachedTimelines != 'undefined' && cachedTimelines) {
       // Cache hit
@@ -1279,7 +1279,7 @@ export class DbAdapter {
 
     if (res.length) {
       // Don not cache empty feeds lists
-      await this.memoryCache.setAsync(cacheKey, timelines);
+      await this.memoryCache.set(cacheKey, timelines);
     }
 
     return timelines;
