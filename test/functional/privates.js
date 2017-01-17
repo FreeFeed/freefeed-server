@@ -98,6 +98,34 @@ describe('Privates', () => {
       })
     })
 
+    describe('can protect protected users', () => {
+      beforeEach(async () => {
+        await funcTestHelper.goProtected(lunaContext)
+      });
+
+      it('should protect subscribers of protected user', async () => {
+        const lunaSubscribersViewedByAnonymous = await funcTestHelper.getSubscribersAsync(lunaContext.username)
+        lunaSubscribersViewedByAnonymous.status.should.equal(403)
+        const viewedByAnonymous = await lunaSubscribersViewedByAnonymous.json()
+        viewedByAnonymous.should.have.property('err')  // anonymous doesn't have access
+
+        const lunaSubscribersViewedByMars = await funcTestHelper.getSubscribersAsync(lunaContext.username, marsContext)
+        const viewedByMars = await lunaSubscribersViewedByMars.json()
+        viewedByMars.should.not.have.property('err')  // mars has access
+      });
+
+      it('should protect subscriptions of protected user', async () => {
+        const lunaSubscriptionsViewedByAnonymous = await funcTestHelper.getSubscriptionsAsync(lunaContext.username)
+        lunaSubscriptionsViewedByAnonymous.status.should.equal(403)
+        const viewedByAnonymous = await lunaSubscriptionsViewedByAnonymous.json()
+        viewedByAnonymous.should.have.property('err')  // anonymous doesn't have access
+
+        const lunaSubscriptionsViewedByMars = await funcTestHelper.getSubscriptionsAsync(lunaContext.username, marsContext)
+        const viewedByMars = await lunaSubscriptionsViewedByMars.json()
+        viewedByMars.should.not.have.property('err')  // mars has access
+      });
+    });
+
     describe('can protect private posts', () => {
       let herculesContext = {}
       let post = {}

@@ -524,20 +524,14 @@ export class DbAdapter {
     return feed
   }
 
-  async getUserSubscribers(id) {
-    if (!validator.isUUID(id, 4)) {
-      return null;
-    }
-
-    const sql = `
-      select user_id from subscriptions
-        where feed_id in (
-          select uid from feeds where user_id = ? and name = 'Posts'
-        )
-        order by created_at`;
-
-    const res = await this.database.raw(sql, id);
-    return res.rows;
+  async getUserSubscribersIds(userId) {
+    return await this.database
+      .pluck('s.user_id')
+      .from('subscriptions as s')
+      .innerJoin('feeds as f', 'f.uid', 's.feed_id')
+      .where('f.name', 'Posts')
+      .where('f.user_id', userId)
+      .orderBy('s.created_at', 'desc');
   }
 
   ///////////////////////////////////////////////////
@@ -574,7 +568,7 @@ export class DbAdapter {
   };
 
   getCachedUserAttrs = async (id) => {
-    return this.fixCachedUserAttrs(await this.cache.getAsync(`user_${id}`))
+    return this.fixCachedUserAttrs(await this.cache.get(`user_${id}`))
   };
 
   async fetchUser(id) {
@@ -583,7 +577,7 @@ export class DbAdapter {
       // Cache miss, read from the database
       attrs = await this.database('users').first().where('uid', id) || null;
       if (attrs) {
-        await this.cache.setAsync(`user_${id}`, attrs);
+        await this.cache.set(`user_${id}`, attrs);
       }
     }
     return attrs;
@@ -615,7 +609,7 @@ export class DbAdapter {
     const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
     const dbUsers = notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
 
-    await Promise.all(dbUsers.map((attrs) => this.cache.setAsync(`user_${attrs.uid}`, attrs)));
+    await Promise.all(dbUsers.map((attrs) => this.cache.set(`user_${attrs.uid}`, attrs)));
 
     _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
     dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
@@ -1250,7 +1244,7 @@ export class DbAdapter {
     const cacheKey = `timelines_user_${userId}`;
 
     // Check the cache first
-    const cachedTimelines = await this.memoryCache.getAsync(cacheKey);
+    const cachedTimelines = await this.memoryCache.get(cacheKey);
 
     if (typeof cachedTimelines != 'undefined' && cachedTimelines) {
       // Cache hit
@@ -1285,7 +1279,7 @@ export class DbAdapter {
 
     if (res.length) {
       // Don not cache empty feeds lists
-      await this.memoryCache.setAsync(cacheKey, timelines);
+      await this.memoryCache.set(cacheKey, timelines);
     }
 
     return timelines;
@@ -1529,9 +1523,29 @@ export class DbAdapter {
   }
 
   /**
-   * Returns UIDs of timeline posts
+   * Returns uids of users who banned this user or banned by this user.
+   * It is useful for posts visibility check.
+   * @param userId {String}
+   * @return {Array.<String>}
    */
-  async getTimelinePostsIds(timelineIntId, viewerId = null, params = {}) {
+  async getBansAndBannersOfUser(userId) {
+    const sql = `
+      select
+        distinct coalesce( nullif( user_id, :userId ), banned_user_id ) as id
+      from
+        bans 
+      where
+        user_id = :userId
+        or banned_user_id = :userId
+    `;
+    const { rows } = await this.database.raw(sql, { userId });
+    return _.map(rows, 'id');
+  }
+
+  /**
+   * Returns UIDs of timelines posts
+   */
+  async getTimelinePostsIds(timelineIntIds, viewerId = null, params = {}) {
     params = {
       limit:          30,
       offset:         0,
@@ -1546,39 +1560,37 @@ export class DbAdapter {
     const visiblePrivateFeedIntIds = [];
     // Users who banned viewer or banned by viewer (viewer should not see their posts)
     const bannedUsersIds = [];
+    // Additional condition for params.withoutDirects option
+    let noDirectsSQL = 'true';
 
     if (viewerId) {
       const privateSQL = `
         select f.id from
           feeds f
-          join subscriptions s on f.uid = s.feed_id or f.user_id = :viewerId -- viewer's own feed is always visible 
+          join subscriptions s on f.uid = s.feed_id or f.user_id = :viewerId  -- viewer's own feed is always visible 
           join users u on u.uid = f.user_id and u.is_private
         where s.user_id = :viewerId and f.name = 'Posts'
       `;
 
-      const bansSQL = `
-        select
-          distinct coalesce( nullif( user_id, :viewerId ), banned_user_id ) as id
-        from
-          bans 
-        where
-          user_id = :viewerId
-          or banned_user_id = :viewerId
-      `;
       const [
         { rows: privateRows },
-        { rows: banRows },
+        banIds,
         directsFeed,
       ] = await Promise.all([
         this.database.raw(privateSQL, { viewerId }),
-        this.database.raw(bansSQL, { viewerId }),
+        this.getBansAndBannersOfUser(viewerId),
         this.getUserNamedFeed(viewerId, 'Directs'),
       ]);
 
       visiblePrivateFeedIntIds.push(..._.map(privateRows, 'id'));
       visiblePrivateFeedIntIds.push(directsFeed.intId);
 
-      bannedUsersIds.push(..._.map(banRows, 'id'));
+      bannedUsersIds.push(...banIds);
+
+      if (params.withoutDirects) {
+        // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
+        noDirectsSQL = `not (destination_feed_ids && '{${directsFeed.intId}}' and array_length(destination_feed_ids, 1) = 2)`;
+      }
     }
 
     if (bannedUsersIds.length === 0) {
@@ -1594,14 +1606,15 @@ export class DbAdapter {
           left join local_bumps b on p.uid = b.post_id and b.user_id = %L
         where
           p.feed_ids && %L
-          and not p.user_id in (%L) -- bans
-          and (not is_private or destination_feed_ids && %L) -- privates
+          and not p.user_id in (%L)  -- bans
+          and (not is_private or destination_feed_ids && %L)  -- privates
+          and ${noDirectsSQL}
         order by
           greatest(p.updated_at, b.created_at) desc
         limit %L offset %L
         `,
         viewerId,
-        `{${timelineIntId}}`,
+        `{${timelineIntIds.join(',')}}`,
         bannedUsersIds,
         `{${visiblePrivateFeedIntIds.join(',')}}`,
         params.limit,
@@ -1614,17 +1627,17 @@ export class DbAdapter {
           posts
         where
           feed_ids && %L
-          and not user_id in (%L) -- bans
+          and not user_id in (%L)  -- bans
           and ${viewerId ?
             pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
             'not is_protected'
           }
+          and ${noDirectsSQL}
         order by
           %I desc
         limit %L offset %L
-      `, `{${timelineIntId}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
+      `, `{${timelineIntIds.join(',')}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
     }
-
     return (await this.database.raw(sql)).rows.map((r) => r.uid);
   }
 
