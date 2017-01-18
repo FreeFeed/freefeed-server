@@ -92,6 +92,19 @@ function monitored(monitorName, handlerFunc) {
   };
 }
 
+/**
+ * Fetch parameters from the URL query object
+ *
+ * @param {object} query                 - Query object
+ * @param {string} [query.limit]         - Number of posts returned (default: 30)
+ * @param {string} [query.offset]        - Number of posts to skip (default: 0)
+ * @param {string} [query.sort]          - Sort mode ('created' or 'updated')
+ * @param {string} [query.with-my-posts] - For filter/discussions only: return viewer's own
+ *                                         posts even without his likes or comments (default: no)
+ * @param {string} defaultSort           - Default sort mode
+ * @return {object}                      - Object with the following sructure:
+ *                                         { limit:number, offset:number, sort:string, withMyPosts:boolean }
+ */
 function getQueryParams(query, defaultSort = ORD_UPDATED) {
   let limit = parseInt(query.limit, 10);
   if (isNaN(limit) || limit < 0 || limit > 120) {
@@ -111,10 +124,10 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     limit:          30,
     offset:         0,
     sort:           ORD_UPDATED,
-    withHides:      false,
-    withLocalBumps: false,
-    withoutDirects: false,
-    withMyPosts:    false,
+    withHides:      false,  // consider viewer Hides feed (for RiverOfNews)
+    withLocalBumps: false,  // consider viewer local bumps (for RiverOfNews)
+    withoutDirects: false,  // do not show direct messages (for Likes and Comments)
+    withMyPosts:    false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
     ...params,
   };
 
