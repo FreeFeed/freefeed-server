@@ -14,7 +14,7 @@ export default class TimelinesController {
     this.app = app;
   }
 
-  bestOf = monitored('timelines.bestof-time', async (ctx) => {
+  bestOf = monitored('timelines.bestof', async (ctx) => {
     const DEFAULT_LIMIT = 30;
 
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
@@ -28,7 +28,7 @@ export default class TimelinesController {
     ctx.body = postsCollectionJson;
   });
 
-  home = authRequired(monitored('timelines.home-v2-time', async (ctx) => {
+  home = authRequired(monitored('timelines.home-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'RiverOfNews');
     ctx.body = await genericTimeline(timeline, user.id, {
@@ -38,19 +38,19 @@ export default class TimelinesController {
     });
   }));
 
-  myDiscussions = authRequired(monitored('timelines.my_discussions-v2-time', async (ctx) => {
+  myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
     ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
   }));
 
-  directs = authRequired(monitored('timelines.directs-v2-time', async (ctx) => {
+  directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
     ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
   }));
 
-  userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2-time`, async (ctx) => {
+  userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
     const username = ctx.params.username
     const user = await dbAdapter.getFeedOwnerByUsername(username)
     if (!user || user.hashedPassword === '') {
@@ -82,12 +82,12 @@ function authRequired(handlerFunc) {
 
 function monitored(monitorName, handlerFunc) {
   return async (ctx) => {
-    const timer = monitor.timer(monitorName)
+    const timer = monitor.timer(`${monitorName}-time`);
     try {
       await handlerFunc(ctx);
-      monitor.increment(monitorName)
+      monitor.increment(`${monitorName}-requests`);
     } finally {
-      timer.stop()
+      timer.stop();
     }
   };
 }
