@@ -312,19 +312,34 @@ describe('TimelinesControllerV2', () => {
 
     describe('Viewer Luna', () => {
       let luna, mars;
-      let post1, post2;
+      let marsPostLikedByLuna,
+        marsPostCommentedByLuna,
+        lunaPost;
       beforeEach(async () => {
         luna = await createUserAsync('luna', 'pw');
         mars = await createUserAsync('mars', 'pw');
-        post1 = await createAndReturnPost(mars, 'Mars post 1');
-        post2 = await createAndReturnPost(mars, 'Mars post 2');
-        await createCommentAsync(luna, post1.id, 'Comment');
-        await like(post2.id, luna.authToken);
+        marsPostLikedByLuna = await createAndReturnPost(mars, 'Mars post 1');
+        marsPostCommentedByLuna = await createAndReturnPost(mars, 'Mars post 2');
+        lunaPost = await createAndReturnPost(luna, 'Luna post');
+        await createCommentAsync(luna, marsPostCommentedByLuna.id, 'Comment');
+        await like(marsPostLikedByLuna.id, luna.authToken);
       });
 
       it('should return timeline with posts commented or liked by Luna', async () => {
         const feed = await fetchMyDiscussions(app, luna);
-        expect(feed.timelines.posts, 'to have length', 2);
+        expect(feed.timelines.posts, 'to equal', [
+          marsPostCommentedByLuna.id,
+          marsPostLikedByLuna.id,
+        ]);
+      });
+
+      it('should return timeline with posts authored, commented or liked by Luna', async () => {
+        const feed = await fetchMyDiscussionsWithMyPosts(app, luna);
+        expect(feed.timelines.posts, 'to equal', [
+          marsPostCommentedByLuna.id,
+          lunaPost.id,
+          marsPostLikedByLuna.id,
+        ]);
       });
 
       describe('Mars going private', () => {
@@ -335,6 +350,13 @@ describe('TimelinesControllerV2', () => {
         it('should return timeline without private posts commented or liked by Luna', async () => {
           const feed = await fetchMyDiscussions(app, luna);
           expect(feed.timelines.posts, 'to be empty');
+        });
+
+        it('should return timeline with posts authored by Luna', async () => {
+          const feed = await fetchMyDiscussionsWithMyPosts(app, luna);
+          expect(feed.timelines.posts, 'to equal', [
+            lunaPost.id,
+          ]);
         });
       });
     });
@@ -520,6 +542,7 @@ const fetchTimeline = (path) => async (app, viewerContext = null) => {
 
 const fetchHomefeed = fetchTimeline('home');
 const fetchMyDiscussions = fetchTimeline('filter/discussions');
+const fetchMyDiscussionsWithMyPosts = fetchTimeline('filter/discussions?with-my-posts=yes');
 const fetchDirects = fetchTimeline('filter/directs');
 
 const fetchUserTimeline = async (name, userContext, app, viewerContext = null) => {

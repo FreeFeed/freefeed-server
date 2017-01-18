@@ -101,8 +101,9 @@ function limitOffsetSort(query, defaultSort = ORD_UPDATED) {
   if (isNaN(offset) || offset < 0) {
     offset = 0;
   }
+  const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
-  return { limit, offset, sort };
+  return { limit, offset, sort, withMyPosts };
 }
 
 async function genericTimeline(timeline, viewerId = null, params = {}) {
@@ -113,11 +114,13 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     withHides:      false,
     withLocalBumps: false,
     withoutDirects: false,
+    withMyPosts:    false,
     ...params,
   };
 
   params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === ORD_UPDATED;
   params.withHides = params.withHides && !!viewerId;
+  params.withMyPosts = params.withMyPosts && timeline.name === 'MyDiscussions';
 
   const allUserIds = new Set();
   const allPosts = [];
