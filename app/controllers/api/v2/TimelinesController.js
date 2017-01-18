@@ -34,20 +34,20 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, user.id, {
       withHides:      true,
       withLocalBumps: true,
-      ...limitOffsetSort(ctx.request.query),
+      ...getQueryParams(ctx.request.query),
     });
   }));
 
   myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
-    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
   }));
 
   directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
-    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
   }));
 
   userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
@@ -63,7 +63,7 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
       sort:           (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
       withoutDirects: (feedName !== 'Posts'),
-      ...limitOffsetSort(ctx.request.query),
+      ...getQueryParams(ctx.request.query),
     });
   });
 }
@@ -92,7 +92,7 @@ function monitored(monitorName, handlerFunc) {
   };
 }
 
-function limitOffsetSort(query, defaultSort = ORD_UPDATED) {
+function getQueryParams(query, defaultSort = ORD_UPDATED) {
   let limit = parseInt(query.limit, 10);
   if (isNaN(limit) || limit < 0 || limit > 120) {
     limit = 30;
