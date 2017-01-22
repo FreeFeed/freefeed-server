@@ -16,6 +16,7 @@ export const user = {
   createdAt:               expect.it('to satisfy', timeStampString),
   updatedAt:               expect.it('to satisfy', timeStampString),
   type:                    expect.it('to equal', 'user'),
+  description:             expect.it('to be a string'),
   profilePictureLargeUrl:  expect.it('to be a string'),
   profilePictureMediumUrl: expect.it('to be a string'),
   statistics:              expect.it('to be an object'),

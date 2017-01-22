@@ -10,6 +10,7 @@ const commonUserFields = [
   'createdAt',
   'updatedAt',
   'type',
+  'description',
   'profilePictureLargeUrl',
   'profilePictureMediumUrl',
 ];
@@ -21,7 +22,6 @@ const commonGroupFields = [
 
 const selfUserFields = [
   ...commonUserFields,
-  'description',
   'email',
   'frontendPreferences',
   'privateMeta',
