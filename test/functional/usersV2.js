@@ -128,7 +128,6 @@ describe('UsersControllerV2', () => {
       const thisUserSchema = {
         ...schema.user,
         email:                       expect.it('to be a string'),
-        description:                 expect.it('to be a string'),
         privateMeta:                 expect.it('to be an object'),
         frontendPreferences:         expect.it('to be an object'),
         banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
