@@ -1567,29 +1567,29 @@ export class DbAdapter {
       const privateSQL = `
         select f.id from
           feeds f
-          join subscriptions s on f.uid = s.feed_id or f.user_id = :viewerId  -- viewer's own feed is always visible 
+          join subscriptions s on f.uid = s.feed_id
           join users u on u.uid = f.user_id and u.is_private
         where s.user_id = :viewerId and f.name = 'Posts'
+        union  -- viewer's own Posts and Directs are always visible 
+          select id from feeds where user_id = :viewerId and name in ('Posts', 'Directs')
       `;
 
       const [
         { rows: privateRows },
         banIds,
-        directsFeed,
       ] = await Promise.all([
         this.database.raw(privateSQL, { viewerId }),
         this.getBansAndBannersOfUser(viewerId),
-        this.getUserNamedFeed(viewerId, 'Directs'),
       ]);
 
       visiblePrivateFeedIntIds.push(..._.map(privateRows, 'id'));
-      visiblePrivateFeedIntIds.push(directsFeed.intId);
 
       bannedUsersIds.push(...banIds);
 
       if (params.withoutDirects) {
         // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
-        noDirectsSQL = `not (destination_feed_ids && '{${directsFeed.intId}}' and array_length(destination_feed_ids, 1) = 2)`;
+        const [directsIntId] = await this.database.pluck('id').from('feeds').where({ user_id: viewerId, name: 'Directs' });
+        noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
       }
     }
 
