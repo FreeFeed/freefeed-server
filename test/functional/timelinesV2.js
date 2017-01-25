@@ -65,6 +65,14 @@ describe('TimelinesControllerV2', () => {
         expect(homefeed.posts[0].id, 'to be', post.id);
       });
 
+      it('should return timeline with one private viewer\'s post', async () => {
+        await goPrivate(luna);
+        const post = await createAndReturnPost(luna, 'Luna post');
+        const homefeed = await fetchHomefeed(app, luna);
+        expect(homefeed.posts, 'to have length', 1);
+        expect(homefeed.posts[0].id, 'to be', post.id);
+      });
+
       describe('Luna subscribed to Mars and not subscribed to Venus', () => {
         let mars;
         let venus;
