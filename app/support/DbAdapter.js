@@ -1525,8 +1525,8 @@ export class DbAdapter {
   /**
    * Returns uids of users who banned this user or banned by this user.
    * It is useful for posts visibility check.
-   * @param userId {String}
-   * @return {Array.<String>}
+   * @param {String} userId   - UID of user
+   * @return {Array.<String>} - UIDs of users
    */
   async getBansAndBannersOfUser(userId) {
     const sql = `
