@@ -34,20 +34,20 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, user.id, {
       withHides:      true,
       withLocalBumps: true,
-      ...limitOffsetSort(ctx.request.query),
+      ...getQueryParams(ctx.request.query),
     });
   }));
 
   myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
-    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
   }));
 
   directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
-    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
   }));
 
   userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
@@ -63,7 +63,7 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
       sort:           (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
       withoutDirects: (feedName !== 'Posts'),
-      ...limitOffsetSort(ctx.request.query),
+      ...getQueryParams(ctx.request.query),
     });
   });
 }
@@ -92,7 +92,20 @@ function monitored(monitorName, handlerFunc) {
   };
 }
 
-function limitOffsetSort(query, defaultSort = ORD_UPDATED) {
+/**
+ * Fetch parameters from the URL query object
+ *
+ * @param {object} query                 - Query object
+ * @param {string} [query.limit]         - Number of posts returned (default: 30)
+ * @param {string} [query.offset]        - Number of posts to skip (default: 0)
+ * @param {string} [query.sort]          - Sort mode ('created' or 'updated')
+ * @param {string} [query.with-my-posts] - For filter/discussions only: return viewer's own
+ *                                         posts even without his likes or comments (default: no)
+ * @param {string} defaultSort           - Default sort mode
+ * @return {object}                      - Object with the following sructure:
+ *                                         { limit:number, offset:number, sort:string, withMyPosts:boolean }
+ */
+function getQueryParams(query, defaultSort = ORD_UPDATED) {
   let limit = parseInt(query.limit, 10);
   if (isNaN(limit) || limit < 0 || limit > 120) {
     limit = 30;
@@ -101,8 +114,9 @@ function limitOffsetSort(query, defaultSort = ORD_UPDATED) {
   if (isNaN(offset) || offset < 0) {
     offset = 0;
   }
+  const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
-  return { limit, offset, sort };
+  return { limit, offset, sort, withMyPosts };
 }
 
 async function genericTimeline(timeline, viewerId = null, params = {}) {
@@ -110,14 +124,16 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     limit:          30,
     offset:         0,
     sort:           ORD_UPDATED,
-    withHides:      false,
-    withLocalBumps: false,
-    withoutDirects: false,
+    withHides:      false,  // consider viewer Hides feed (for RiverOfNews)
+    withLocalBumps: false,  // consider viewer local bumps (for RiverOfNews)
+    withoutDirects: false,  // do not show direct messages (for Likes and Comments)
+    withMyPosts:    false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
     ...params,
   };
 
   params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === ORD_UPDATED;
   params.withHides = params.withHides && !!viewerId;
+  params.withMyPosts = params.withMyPosts && timeline.name === 'MyDiscussions';
 
   const allUserIds = new Set();
   const allPosts = [];

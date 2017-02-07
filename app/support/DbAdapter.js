@@ -1551,6 +1551,7 @@ export class DbAdapter {
       offset:         0,
       sort:           'updated',
       withLocalBumps: false,
+      withMyPosts:    false,
       ...params,
     };
 
@@ -1562,6 +1563,7 @@ export class DbAdapter {
     const bannedUsersIds = [];
     // Additional condition for params.withoutDirects option
     let noDirectsSQL = 'true';
+    let myPostsSQL = 'false';
 
     if (viewerId) {
       const privateSQL = `
@@ -1591,6 +1593,11 @@ export class DbAdapter {
         const [directsIntId] = await this.database.pluck('id').from('feeds').where({ user_id: viewerId, name: 'Directs' });
         noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
       }
+
+      if (params.withMyPosts) {
+        // Show viewer own posts
+        myPostsSQL = pgFormat('p.user_id = %L', viewerId);
+      }
     }
 
     if (bannedUsersIds.length === 0) {
@@ -1605,9 +1612,9 @@ export class DbAdapter {
           posts p
           left join local_bumps b on p.uid = b.post_id and b.user_id = %L
         where
-          p.feed_ids && %L
+          (p.feed_ids && %L or ${myPostsSQL})
           and not p.user_id in (%L)  -- bans
-          and (not is_private or destination_feed_ids && %L)  -- privates
+          and (not p.is_private or p.destination_feed_ids && %L)  -- privates
           and ${noDirectsSQL}
         order by
           greatest(p.updated_at, b.created_at) desc
@@ -1622,19 +1629,19 @@ export class DbAdapter {
       );
     } else {
       sql = pgFormat(`
-        select uid
+        select p.uid
         from 
-          posts
+          posts p
         where
-          feed_ids && %L
-          and not user_id in (%L)  -- bans
+          (p.feed_ids && %L or ${myPostsSQL})
+          and not p.user_id in (%L)  -- bans
           and ${viewerId ?
-            pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
-            'not is_protected'
+            pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
+            'not p.is_protected'
           }
           and ${noDirectsSQL}
         order by
-          %I desc
+          p.%I desc
         limit %L offset %L
       `, `{${timelineIntIds.join(',')}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
     }
