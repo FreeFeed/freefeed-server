@@ -1543,6 +1543,26 @@ export class DbAdapter {
   }
 
   /**
+   * Returns integer ids of private feeds that user can view
+   * @param {String} userId   - UID of user
+   * @return {Array.<Number>} - ids of feeds
+   */
+  async getVisiblePrivateFeedIntIds(userId) {
+    const sql = `
+      select f.id from 
+        feeds f 
+        join subscriptions s on f.uid = s.feed_id 
+        join users u on u.uid = f.user_id and u.is_private 
+      where s.user_id = :userId and f.name = 'Posts' 
+      union  -- viewer's own Posts and Directs are always visible  
+        select id from feeds where user_id = :userId and name in ('Posts', 'Directs') 
+    `;
+
+    const { rows } = await this.database.raw(sql, { userId });
+    return _.map(rows, 'id');
+  }
+
+  /**
    * Returns UIDs of timelines posts
    */
   async getTimelinePostsIds(timelineIntIds, viewerId = null, params = {}) {
@@ -1558,35 +1578,21 @@ export class DbAdapter {
     params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'updated';
 
     // Private feeds viewer can read
-    const visiblePrivateFeedIntIds = [];
+    let visiblePrivateFeedIntIds = [];
     // Users who banned viewer or banned by viewer (viewer should not see their posts)
-    const bannedUsersIds = [];
+    let  bannedUsersIds = [];
     // Additional condition for params.withoutDirects option
     let noDirectsSQL = 'true';
     let myPostsSQL = 'false';
 
     if (viewerId) {
-      const privateSQL = `
-        select f.id from
-          feeds f
-          join subscriptions s on f.uid = s.feed_id
-          join users u on u.uid = f.user_id and u.is_private
-        where s.user_id = :viewerId and f.name = 'Posts'
-        union  -- viewer's own Posts and Directs are always visible 
-          select id from feeds where user_id = :viewerId and name in ('Posts', 'Directs')
-      `;
-
-      const [
-        { rows: privateRows },
-        banIds,
+      [
+        visiblePrivateFeedIntIds,
+        bannedUsersIds,
       ] = await Promise.all([
-        this.database.raw(privateSQL, { viewerId }),
+        this.getVisiblePrivateFeedIntIds(viewerId),
         this.getBansAndBannersOfUser(viewerId),
       ]);
-
-      visiblePrivateFeedIntIds.push(..._.map(privateRows, 'id'));
-
-      bannedUsersIds.push(...banIds);
 
       if (params.withoutDirects) {
         // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
