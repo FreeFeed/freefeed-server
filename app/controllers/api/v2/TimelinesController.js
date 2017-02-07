@@ -1,8 +1,7 @@
-import monitor from 'monitor-dog';
 import _ from 'lodash';
 import { dbAdapter } from '../../../models';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
-import { serializeUser } from '../../../serializers/v2/user';
+import { monitored, authRequired, userSerializerFunction } from './helpers';
 
 const ORD_UPDATED = 'updated'; // eslint-disable-line no-unused-vars
 const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
@@ -66,30 +65,6 @@ export default class TimelinesController {
       ...getQueryParams(ctx.request.query),
     });
   });
-}
-
-function authRequired(handlerFunc) {
-  return async (ctx) => {
-    const user = ctx.state.user;
-    if (!user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Unauthorized' };
-      return;
-    }
-    await handlerFunc(ctx);
-  };
-}
-
-function monitored(monitorName, handlerFunc) {
-  return async (ctx) => {
-    const timer = monitor.timer(`${monitorName}-time`);
-    try {
-      await handlerFunc(ctx);
-      monitor.increment(`${monitorName}-requests`);
-    } finally {
-      timer.stop();
-    }
-  };
 }
 
 /**
@@ -223,14 +198,14 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
 
   const uniqSubscribers = _.compact(_.uniq(allSubscribers));
 
-  const fillUser = getUserFiller(allUsersAssoc, allStatsAssoc, allGroupAdmins);
+  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
 
-  const users = Object.keys(allUsersAssoc).map(fillUser).filter((u) => u.type === 'user' || u.id === timeline.userId);
-  const subscribers = canViewUser ? uniqSubscribers.map(fillUser) : [];
+  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user' || u.id === timeline.userId);
+  const subscribers = canViewUser ? uniqSubscribers.map(serializeUser) : [];
 
   const subscriptions = canViewUser ? _.uniqBy(_.compact(allDestinations), 'id') : [];
 
-  const admins = canViewUser ? (allGroupAdmins[timeline.userId] || []).map(fillUser) : [];
+  const admins = canViewUser ? (allGroupAdmins[timeline.userId] || []).map(serializeUser) : [];
 
   return {
     timelines,
@@ -241,27 +216,5 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),
-  };
-}
-
-const defaultStats = {
-  posts:         '0',
-  likes:         '0',
-  comments:      '0',
-  subscribers:   '0',
-  subscriptions: '0',
-};
-
-function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
-  return (id) => {
-    const obj = serializeUser(allUsers[id]);
-    obj.statistics = allStats[id] || defaultStats;
-    if (obj.type === 'group') {
-      if (!obj.isVisibleToAnonymous) {
-        obj.isVisibleToAnonymous = (obj.isProtected === '1') ? '0' : '1';
-      }
-      obj.administrators = allGroupAdmins[obj.id] || [];
-    }
-    return obj;
   };
 }
