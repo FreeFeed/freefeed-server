@@ -1872,12 +1872,12 @@ export class DbAdapter {
 
     for (const lk of likesData) {
       results[lk.post_id].likes = lk.likes;
-      results[lk.post_id].omittedLikes = lk.count - lk.likes.length;
+      results[lk.post_id].omittedLikes = params.foldLikes ? lk.count - lk.likes.length : 0;
     }
 
     for (const comm of commentsData) {
       results[comm.post_id].comments.push(this.initCommentObject(comm));
-      results[comm.post_id].omittedComments = comm.count <= 3 ? 0 : comm.count - 2;
+      results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
     }
 
     return postsIds.map((id) => results[id] || null);
