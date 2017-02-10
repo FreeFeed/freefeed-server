@@ -1,8 +1,7 @@
-import monitor from 'monitor-dog';
 import _ from 'lodash';
 import { dbAdapter } from '../../../models';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
-import { serializeUser } from '../../../serializers/v2/user';
+import { monitored, authRequired, userSerializerFunction } from './helpers';
 
 const ORD_UPDATED = 'updated'; // eslint-disable-line no-unused-vars
 const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
@@ -34,20 +33,20 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, user.id, {
       withHides:      true,
       withLocalBumps: true,
-      ...limitOffsetSort(ctx.request.query),
+      ...getQueryParams(ctx.request.query),
     });
   }));
 
   myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
-    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
   }));
 
   directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
-    ctx.body = await genericTimeline(timeline, user.id, { ...limitOffsetSort(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
   }));
 
   userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
@@ -63,36 +62,25 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
       sort:           (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
       withoutDirects: (feedName !== 'Posts'),
-      ...limitOffsetSort(ctx.request.query),
+      ...getQueryParams(ctx.request.query),
     });
   });
 }
 
-function authRequired(handlerFunc) {
-  return async (ctx) => {
-    const user = ctx.state.user;
-    if (!user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Unauthorized' };
-      return;
-    }
-    await handlerFunc(ctx);
-  };
-}
-
-function monitored(monitorName, handlerFunc) {
-  return async (ctx) => {
-    const timer = monitor.timer(`${monitorName}-time`);
-    try {
-      await handlerFunc(ctx);
-      monitor.increment(`${monitorName}-requests`);
-    } finally {
-      timer.stop();
-    }
-  };
-}
-
-function limitOffsetSort(query, defaultSort = ORD_UPDATED) {
+/**
+ * Fetch parameters from the URL query object
+ *
+ * @param {object} query                 - Query object
+ * @param {string} [query.limit]         - Number of posts returned (default: 30)
+ * @param {string} [query.offset]        - Number of posts to skip (default: 0)
+ * @param {string} [query.sort]          - Sort mode ('created' or 'updated')
+ * @param {string} [query.with-my-posts] - For filter/discussions only: return viewer's own
+ *                                         posts even without his likes or comments (default: no)
+ * @param {string} defaultSort           - Default sort mode
+ * @return {object}                      - Object with the following sructure:
+ *                                         { limit:number, offset:number, sort:string, withMyPosts:boolean }
+ */
+function getQueryParams(query, defaultSort = ORD_UPDATED) {
   let limit = parseInt(query.limit, 10);
   if (isNaN(limit) || limit < 0 || limit > 120) {
     limit = 30;
@@ -101,8 +89,9 @@ function limitOffsetSort(query, defaultSort = ORD_UPDATED) {
   if (isNaN(offset) || offset < 0) {
     offset = 0;
   }
+  const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
-  return { limit, offset, sort };
+  return { limit, offset, sort, withMyPosts };
 }
 
 async function genericTimeline(timeline, viewerId = null, params = {}) {
@@ -110,14 +99,16 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     limit:          30,
     offset:         0,
     sort:           ORD_UPDATED,
-    withHides:      false,
-    withLocalBumps: false,
-    withoutDirects: false,
+    withHides:      false,  // consider viewer Hides feed (for RiverOfNews)
+    withLocalBumps: false,  // consider viewer local bumps (for RiverOfNews)
+    withoutDirects: false,  // do not show direct messages (for Likes and Comments)
+    withMyPosts:    false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
     ...params,
   };
 
   params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === ORD_UPDATED;
   params.withHides = params.withHides && !!viewerId;
+  params.withMyPosts = params.withMyPosts && timeline.name === 'MyDiscussions';
 
   const allUserIds = new Set();
   const allPosts = [];
@@ -156,7 +147,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     }
   }
 
-  const postsIds = canViewUser ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params }) : [];
+  const postsIds = canViewUser ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, params) : [];
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
@@ -207,14 +198,14 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
 
   const uniqSubscribers = _.compact(_.uniq(allSubscribers));
 
-  const fillUser = getUserFiller(allUsersAssoc, allStatsAssoc, allGroupAdmins);
+  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
 
-  const users = Object.keys(allUsersAssoc).map(fillUser).filter((u) => u.type === 'user' || u.id === timeline.userId);
-  const subscribers = canViewUser ? uniqSubscribers.map(fillUser) : [];
+  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user' || u.id === timeline.userId);
+  const subscribers = canViewUser ? uniqSubscribers.map(serializeUser) : [];
 
   const subscriptions = canViewUser ? _.uniqBy(_.compact(allDestinations), 'id') : [];
 
-  const admins = canViewUser ? (allGroupAdmins[timeline.userId] || []).map(fillUser) : [];
+  const admins = canViewUser ? (allGroupAdmins[timeline.userId] || []).map(serializeUser) : [];
 
   return {
     timelines,
@@ -225,27 +216,5 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),
-  };
-}
-
-const defaultStats = {
-  posts:         '0',
-  likes:         '0',
-  comments:      '0',
-  subscribers:   '0',
-  subscriptions: '0',
-};
-
-function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
-  return (id) => {
-    const obj = serializeUser(allUsers[id]);
-    obj.statistics = allStats[id] || defaultStats;
-    if (obj.type === 'group') {
-      if (!obj.isVisibleToAnonymous) {
-        obj.isVisibleToAnonymous = (obj.isProtected === '1') ? '0' : '1';
-      }
-      obj.administrators = allGroupAdmins[obj.id] || [];
-    }
-    return obj;
   };
 }

@@ -1525,8 +1525,8 @@ export class DbAdapter {
   /**
    * Returns uids of users who banned this user or banned by this user.
    * It is useful for posts visibility check.
-   * @param userId {String}
-   * @return {Array.<String>}
+   * @param {String} userId   - UID of user
+   * @return {Array.<String>} - UIDs of users
    */
   async getBansAndBannersOfUser(userId) {
     const sql = `
@@ -1543,6 +1543,26 @@ export class DbAdapter {
   }
 
   /**
+   * Returns integer ids of private feeds that user can view
+   * @param {String} userId   - UID of user
+   * @return {Array.<Number>} - ids of feeds
+   */
+  async getVisiblePrivateFeedIntIds(userId) {
+    const sql = `
+      select f.id from 
+        feeds f 
+        join subscriptions s on f.uid = s.feed_id 
+        join users u on u.uid = f.user_id and u.is_private 
+      where s.user_id = :userId and f.name = 'Posts' 
+      union  -- viewer's own Posts and Directs are always visible  
+        select id from feeds where user_id = :userId and name in ('Posts', 'Directs') 
+    `;
+
+    const { rows } = await this.database.raw(sql, { userId });
+    return _.map(rows, 'id');
+  }
+
+  /**
    * Returns UIDs of timelines posts
    */
   async getTimelinePostsIds(timelineIntIds, viewerId = null, params = {}) {
@@ -1551,45 +1571,38 @@ export class DbAdapter {
       offset:         0,
       sort:           'updated',
       withLocalBumps: false,
+      withMyPosts:    false,
       ...params,
     };
 
     params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'updated';
 
     // Private feeds viewer can read
-    const visiblePrivateFeedIntIds = [];
+    let visiblePrivateFeedIntIds = [];
     // Users who banned viewer or banned by viewer (viewer should not see their posts)
-    const bannedUsersIds = [];
+    let  bannedUsersIds = [];
     // Additional condition for params.withoutDirects option
     let noDirectsSQL = 'true';
+    let myPostsSQL = 'false';
 
     if (viewerId) {
-      const privateSQL = `
-        select f.id from
-          feeds f
-          join subscriptions s on f.uid = s.feed_id or f.user_id = :viewerId  -- viewer's own feed is always visible 
-          join users u on u.uid = f.user_id and u.is_private
-        where s.user_id = :viewerId and f.name = 'Posts'
-      `;
-
-      const [
-        { rows: privateRows },
-        banIds,
-        directsFeed,
+      [
+        visiblePrivateFeedIntIds,
+        bannedUsersIds,
       ] = await Promise.all([
-        this.database.raw(privateSQL, { viewerId }),
+        this.getVisiblePrivateFeedIntIds(viewerId),
         this.getBansAndBannersOfUser(viewerId),
-        this.getUserNamedFeed(viewerId, 'Directs'),
       ]);
-
-      visiblePrivateFeedIntIds.push(..._.map(privateRows, 'id'));
-      visiblePrivateFeedIntIds.push(directsFeed.intId);
-
-      bannedUsersIds.push(...banIds);
 
       if (params.withoutDirects) {
         // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
-        noDirectsSQL = `not (destination_feed_ids && '{${directsFeed.intId}}' and array_length(destination_feed_ids, 1) = 2)`;
+        const [directsIntId] = await this.database.pluck('id').from('feeds').where({ user_id: viewerId, name: 'Directs' });
+        noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
+      }
+
+      if (params.withMyPosts) {
+        // Show viewer own posts
+        myPostsSQL = pgFormat('p.user_id = %L', viewerId);
       }
     }
 
@@ -1605,9 +1618,9 @@ export class DbAdapter {
           posts p
           left join local_bumps b on p.uid = b.post_id and b.user_id = %L
         where
-          p.feed_ids && %L
+          (p.feed_ids && %L or ${myPostsSQL})
           and not p.user_id in (%L)  -- bans
-          and (not is_private or destination_feed_ids && %L)  -- privates
+          and (not p.is_private or p.destination_feed_ids && %L)  -- privates
           and ${noDirectsSQL}
         order by
           greatest(p.updated_at, b.created_at) desc
@@ -1622,19 +1635,19 @@ export class DbAdapter {
       );
     } else {
       sql = pgFormat(`
-        select uid
+        select p.uid
         from 
-          posts
+          posts p
         where
-          feed_ids && %L
-          and not user_id in (%L)  -- bans
+          (p.feed_ids && %L or ${myPostsSQL})
+          and not p.user_id in (%L)  -- bans
           and ${viewerId ?
-            pgFormat(`(not is_private or destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
-            'not is_protected'
+            pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
+            'not p.is_protected'
           }
           and ${noDirectsSQL}
         order by
-          %I desc
+          p.%I desc
         limit %L offset %L
       `, `{${timelineIntIds.join(',')}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
     }
@@ -1859,12 +1872,12 @@ export class DbAdapter {
 
     for (const lk of likesData) {
       results[lk.post_id].likes = lk.likes;
-      results[lk.post_id].omittedLikes = lk.count - lk.likes.length;
+      results[lk.post_id].omittedLikes = params.foldLikes ? lk.count - lk.likes.length : 0;
     }
 
     for (const comm of commentsData) {
       results[comm.post_id].comments.push(this.initCommentObject(comm));
-      results[comm.post_id].omittedComments = comm.count <= 3 ? 0 : comm.count - 2;
+      results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
     }
 
     return postsIds.map((id) => results[id] || null);

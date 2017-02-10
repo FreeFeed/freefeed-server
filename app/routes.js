@@ -23,6 +23,7 @@ import SearchRoute from './routes/api/v2/SearchRoute'
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
 import StatsRouteV2 from './routes/api/v2/Stats'
+import PostsRouteV2 from './routes/api/v2/PostsRoute'
 
 const config = configLoader();
 promisifyAll(jwt);
@@ -71,6 +72,7 @@ export default function (app) {
   SearchRoute(router);
   TimelinesRouteV2(router);
   UsersRouteV2(router);
+  PostsRouteV2(router);
 
   router.use('/v[0-9]+/*', async (ctx) => {
     ctx.status = 404;
