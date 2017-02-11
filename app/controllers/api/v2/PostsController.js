@@ -1,8 +1,10 @@
-import _ from 'lodash'
+import _ from 'lodash';
+import escape from 'escape-html';
 import { dbAdapter } from '../../../models';
-import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { NotFoundException, ForbiddenException } from '../../../support/exceptions';
 import { serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, userSerializerFunction } from './helpers';
+
 
 export default class TimelinesController {
   /**
@@ -103,5 +105,41 @@ export default class TimelinesController {
       comments,
       attachments,
     };
+  });
+
+  opengraph = monitored('posts.opengraph-v2', async (ctx) => {
+    const post = await dbAdapter.getPostById(ctx.params.postId);
+
+    // OpenGraph is available for public posts that are not protected
+    if (!post || post.isPrivate === '1' || post.isProtected === '1') {
+      return;
+    }
+
+    const body = escape(post.body);
+
+    // The first image attachement is used
+    const attachments = await dbAdapter.getAttachmentsOfPost(post.id).map(serializeAttachment);
+
+    let image = null;
+
+    for (const item of attachments) {
+      if (item.mediaType === 'image') {
+        image = item.url;
+        break;
+      }
+    }
+
+    let og = `<meta property="og:title" content="${body}" />
+      <meta property="og:type" content="article" />
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:title" content="${body}" />
+      <meta name="twitter:description" content="" />`;
+
+    if (image) {
+      og += `<meta property="og:image" content="${image}" />
+        <meta name="twitter:image" content=="${image}" />`;
+    }
+
+    ctx.body = og;
   });
 }
