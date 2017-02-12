@@ -20,11 +20,15 @@ export default class TimelinesController {
     const offset = parseInt(ctx.request.query.offset, 10) || 0;
     const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
 
-    const foundPosts = await dbAdapter.bestPosts(ctx.state.user, offset, limit);
+    const foundPosts = await dbAdapter.bestPosts(ctx.state.user, offset, limit + 1);
+    const isLastPage = foundPosts.length <= limit;
+    if (!isLastPage) {
+      foundPosts.length = limit;
+    }
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
     const postsCollectionJson = await serializePostsCollection(postsObjects);
 
-    ctx.body = postsCollectionJson;
+    ctx.body = { ...postsCollectionJson, isLastPage };
   });
 
   home = authRequired(monitored('timelines.home-v2', async (ctx) => {
