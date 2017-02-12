@@ -147,7 +147,15 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     }
   }
 
-  const postsIds = canViewUser ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, params) : [];
+  const postsIds = canViewUser ?
+    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, limit: params.limit + 1 }) :
+    [];
+
+  const isLastPage = postsIds.length <= params.limit;
+  if (!isLastPage) {
+    postsIds.length = params.limit;
+  }
+
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
@@ -213,6 +221,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     subscriptions,
     subscribers,
     admins,
+    isLastPage,
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),
