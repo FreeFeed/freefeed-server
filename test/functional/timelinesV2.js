@@ -501,6 +501,32 @@ describe('TimelinesControllerV2', () => {
       it('should return Mars timelines without posts to Luna', emptyExpected(false));
     });
   });
+
+  describe('#pagination', () => {
+    let luna;
+    beforeEach(async () => {
+      luna = await createUserAsync('luna', 'pw');
+      // Luna creates 10 posts
+      for (let i = 0; i < 10; i++) {
+        await createAndReturnPost(luna, 'Post');  // eslint-disable-line babel/no-await-in-loop
+      }
+    });
+
+    it('should return first page with isLastPage = false', async () => {
+      const timeline = await fetchTimeline('luna?limit=5&offset=0')(app);
+      expect(timeline.isLastPage, 'to equal', false);
+    });
+
+    it('should return last page with isLastPage = true', async () => {
+      const timeline = await fetchTimeline('luna?limit=5&offset=5')(app);
+      expect(timeline.isLastPage, 'to equal', true);
+    });
+
+    it('should return the only page with isLastPage = true', async () => {
+      const timeline = await fetchTimeline('luna?limit=15&offset=0')(app);
+      expect(timeline.isLastPage, 'to equal', true);
+    });
+  });
 });
 
 
@@ -523,6 +549,7 @@ const timelineSchema = {
     name: expect.it('to be one of', ['Posts', 'Directs']),
     user: expect.it('to satisfy', schema.UUID),
   }),
+  isLastPage: expect.it('to be a boolean'),
 };
 
 const fetchTimeline = (path) => async (app, viewerContext = null) => {
