@@ -475,6 +475,18 @@ export class DbAdapter {
     return this.initUserObject(attrs);
   }
 
+  async _getUserIntIdByUUID(userUUID) {
+    if (!validator.isUUID(userUUID, 4)) {
+      return null;
+    }
+
+    const res = await this.database('users').returning('id').first().where('uid', userUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
   async getFeedOwnerById(id) {
     if (!validator.isUUID(id, 4)) {
       return null
@@ -1163,6 +1175,18 @@ export class DbAdapter {
     }
     const attrs = await this.database('comments').first().where('uid', id)
     return this.initCommentObject(attrs);
+  }
+
+  async _getCommentIntIdByUUID(commentUUID) {
+    if (!validator.isUUID(commentUUID, 4)) {
+      return null;
+    }
+
+    const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
   }
 
   updateComment(commentId, payload) {
@@ -2510,5 +2534,55 @@ export class DbAdapter {
 
     const res = await this.database.raw(sql);
     return res.rows;
+  }
+
+  ///////////////////////////////////////////////////
+  // Comment likes
+  ///////////////////////////////////////////////////
+
+  async createCommentLike(commentUUID, likerUUID) {
+    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
+
+    const payload = {
+      comment_id: commentId,
+      user_id:    userId
+    };
+
+    await this.database('comment_likes').insert(payload);
+    return this.getCommentLikes(commentId);
+  }
+
+  async _getCommentAndUserIntId(commentUUID, likerUUID) {
+    const [commentId, userId] = await Promise.all([
+      this._getCommentIntIdByUUID(commentUUID),
+      this._getUserIntIdByUUID(likerUUID),
+    ]);
+
+    return [commentId, userId];
+  }
+
+  async getCommentLikes(commentIntId) {
+    // TODO: sort likes
+    const commentLikesData = await this.database
+      .select('users.uid', 'comment_likes.created_at')
+      .from('comment_likes')
+      .innerJoin('users', 'users.id', 'comment_likes.user_id')
+      .where('comment_likes.comment_id', commentIntId);
+
+    return commentLikesData.map((commentLikeData) => {
+      return {
+        userId:    commentLikeData.uid,
+        createdAt: commentLikeData.created_at
+      };
+    });
+  }
+
+  async hasUserLikedComment(commentUUID, userUUID) {
+    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, userUUID);
+    const [{ 'count': res }] = await this.database('comment_likes').where({
+      comment_id: commentId,
+      user_id:    userId
+    }).count();
+    return parseInt(res) != 0;
   }
 }
