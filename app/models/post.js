@@ -1,7 +1,7 @@
 import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
-import twitter from 'twitter-text'
 
+import { extractHashtags } from '../support/hashtags'
 import { Timeline, PubSub as pubSub } from '../models'
 
 
@@ -599,7 +599,7 @@ export function addModel(dbAdapter) {
   };
 
   Post.prototype.processHashtagsOnCreate = async function () {
-    const postTags = _.uniq(twitter.extractHashtags(this.body.toLowerCase()))
+    const postTags = _.uniq(extractHashtags(this.body.toLowerCase()))
 
     if (!postTags || postTags.length == 0) {
       return
@@ -611,7 +611,7 @@ export function addModel(dbAdapter) {
     const linkedPostHashtags = await dbAdapter.getPostHashtags(this.id)
 
     const presentTags    = _.sortBy(linkedPostHashtags.map((t) => t.name))
-    const newTags        = _.sortBy(_.uniq(twitter.extractHashtags(this.body.toLowerCase())))
+    const newTags        = _.sortBy(_.uniq(extractHashtags(this.body.toLowerCase())))
     const notChangedTags = _.intersection(presentTags, newTags)
     const tagsToUnlink   = _.difference(presentTags, notChangedTags)
     const tagsToLink     = _.difference(newTags, notChangedTags)
