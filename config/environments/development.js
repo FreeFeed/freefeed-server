@@ -32,6 +32,7 @@ export function getConfig() {
     // disableRealtime: true,
     onboardingUsername: 'welcome',
     recaptcha:          { enabled: false },
+    // sentryDsn: '',
 
     frontendPreferencesLimit: 65536
   }

@@ -2,8 +2,9 @@ import { promisifyAll } from 'bluebird'
 import jwt from 'jsonwebtoken'
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
+import Raven from 'raven';
 
-import { load as configLoader } from '../config/config'
+import { load as configLoader } from '../config/config';
 import { dbAdapter } from './models'
 import { reportError } from './support/exceptions'
 
@@ -25,8 +26,14 @@ import UsersRouteV2 from './routes/api/v2/UsersRoute'
 import StatsRouteV2 from './routes/api/v2/Stats'
 import PostsRouteV2 from './routes/api/v2/PostsRoute'
 
-const config = configLoader();
 promisifyAll(jwt);
+
+const config = configLoader();
+const sentryIsEnabled = 'sentryDsn' in config;
+
+if (sentryIsEnabled) {
+  Raven.config(config.sentryDsn).install();
+}
 
 export default function (app) {
   const findUser = async (ctx, next) => {
@@ -85,6 +92,11 @@ export default function (app) {
     try {
       await next();
     } catch (e) {
+      if (sentryIsEnabled) {
+        const kw = Raven.parsers.parseRequest(ctx.request);
+        Raven.captureException(e, kw);
+      }
+
       reportError(ctx)(e);
     }
   });
