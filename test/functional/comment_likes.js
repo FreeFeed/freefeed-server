@@ -108,6 +108,34 @@ describe('Comment likes', () => {
             expect(res2, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like comment that you have already liked"));
           });
 
+          describe('comment likes sorting', () => {
+            let pluto;
+
+            beforeEach(async () => {
+              pluto = await createUserAsync('pluto', 'pw');
+            });
+
+            it('should sort comment likes chronologically descending (except viewer)', async () => {
+              const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
+              let res = await likeComment(lunaComment.id, mars);
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(mars));
+              await likeComment(lunaComment.id, jupiter);
+              res = await likeComment(lunaComment.id, pluto);
+
+              expect(res, 'to satisfy', { status: 200 });
+              const responseJson = await res.json();
+
+              expect(responseJson, 'to satisfy', {
+                likes: expect.it('to be an array').and('to be non-empty').and('to have length', 3),
+                users: expect.it('to be an array').and('to have items satisfying', schema.user)
+              });
+
+              expect(responseJson.likes[0].userId, 'to be', pluto.user.id);
+              expect(responseJson.likes[1].userId, 'to be', jupiter.user.id);
+              expect(responseJson.likes[2].userId, 'to be', mars.user.id);
+            });
+          });
+
           describe('when Luna bans Mars and stranger Pluto', () => {
             let pluto;
             let plutoPost;
@@ -155,6 +183,16 @@ describe('Comment likes', () => {
               const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
               const res = await likeComment(jupiterComment.id, pluto);
               expect(res, 'to satisfy', commentHavingOneLikeExpectation(pluto));
+            });
+
+            it('should not display Luna comment likes of Pluto and Mars', async () => {
+              const jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
+              const jupiterComment = await writeComment(jupiter, jupiterPost.id, 'Jupiter comment');
+              let res = await likeComment(jupiterComment.id, pluto);
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(pluto));
+              await likeComment(jupiterComment.id, mars);
+              res = await likeComment(jupiterComment.id, luna);
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
             });
           });
 

@@ -2549,7 +2549,7 @@ export class DbAdapter {
     };
 
     await this.database('comment_likes').insert(payload);
-    return this.getCommentLikes(commentId);
+    return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
   }
 
   async _getCommentAndUserIntId(commentUUID, likerUUID) {
@@ -2561,20 +2561,28 @@ export class DbAdapter {
     return [commentId, userId];
   }
 
-  async getCommentLikes(commentIntId) {
-    // TODO: sort likes
-    const commentLikesData = await this.database
-      .select('users.uid', 'comment_likes.created_at')
+  async getCommentLikesWithoutBannedUsers(commentIntId, viewerUserUUID = null) {
+    let query = this.database
+      .select('users.uid as userId', 'comment_likes.created_at as createdAt')
       .from('comment_likes')
       .innerJoin('users', 'users.id', 'comment_likes.user_id')
+      .orderBy('comment_likes.created_at', 'desc')
       .where('comment_likes.comment_id', commentIntId);
 
-    return commentLikesData.map((commentLikeData) => {
-      return {
-        userId:    commentLikeData.uid,
-        createdAt: commentLikeData.created_at
-      };
-    });
+    if (viewerUserUUID) {
+      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserUUID);
+      query = query.where('users.uid', 'not in', subquery);
+    }
+    let commentLikesData = await query;
+
+    if (viewerUserUUID) {
+      commentLikesData = commentLikesData.sort((a, b) => {
+        if (a == viewerUserUUID) return -1;
+        if (b == viewerUserUUID) return 1;
+        return 0;
+      });
+    }
+    return commentLikesData;
   }
 
   async hasUserLikedComment(commentUUID, userUUID) {
