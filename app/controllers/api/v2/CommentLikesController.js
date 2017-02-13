@@ -1,5 +1,6 @@
 import { dbAdapter } from '../../../models'
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { userSerializerFunction } from './helpers';
 
 export default class CommentLikesController {
   static async like(ctx) {
@@ -39,8 +40,29 @@ export default class CommentLikesController {
       throw new ForbiddenException("You can't like comment that you have already liked");
     }
 
-    const actualLikersIds = await dbAdapter.createCommentLike(comment.id, ctx.state.user.id);
+    const actualCommentLikes = await dbAdapter.createCommentLike(comment.id, ctx.state.user.id);
+    const users = await CommentLikesController._serializeLikers(actualCommentLikes);
 
-    ctx.body = { likes: actualLikersIds };
+    ctx.body = {
+      likes: actualCommentLikes,
+      users
+    };
+  }
+
+  static async _serializeLikers(commentLikesData) {
+    const userIds = commentLikesData.map((l) => l.userId);
+
+    //
+    const [allUsersAssoc, allStatsAssoc] = await Promise.all([
+      dbAdapter.getUsersByIdsAssoc(userIds),
+      dbAdapter.getUsersStatsAssoc(userIds),
+    ]);
+
+    const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc);
+
+    const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user');
+    //
+
+    return users;
   }
 }

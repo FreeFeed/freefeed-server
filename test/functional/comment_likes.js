@@ -5,6 +5,7 @@ import fetch from 'node-fetch'
 import knexCleaner from 'knex-cleaner'
 import expect from 'unexpected'
 import uuid from 'uuid'
+import validator from 'validator'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -20,6 +21,7 @@ import {
   mutualSubscriptions,
   sendRequestToJoinGroup
 } from './functional_test_helper'
+import * as schema from './schemaV2-helper'
 
 
 describe('Comment likes', () => {
@@ -90,39 +92,19 @@ describe('Comment likes', () => {
           it("should allow Luna to like Mars' comment to Luna's post", async () => {
             const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
             const res = await likeComment(marsComment.id, luna);
-            expect(res.status, 'to be', 200);
-            const json = await res.json();
-
-            expect(json, 'to have key', 'likes');
-            expect(json.likes, 'to be an', 'array');
-            expect(json.likes.length, 'to be', 1);
-            expect(json.likes[0].userId, 'to be', luna.user.id);
-
-            // TODO: check users
+            expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
           });
 
           it("should allow Luna to like Mars' comment to Mars' post", async () => {
             const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
             const res = await likeComment(marsComment.id, luna);
-            expect(res.status, 'to be', 200);
-            const json = await res.json();
-
-            expect(json, 'to have key', 'likes');
-            expect(json.likes, 'to be an', 'array');
-            expect(json.likes.length, 'to be', 1);
-            expect(json.likes[0].userId, 'to be', luna.user.id);
+            expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
           });
 
           it("should allow Jupiter to like Mars' comment to Luna's post", async () => {
             const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
             const res = await likeComment(marsComment.id, jupiter);
-            expect(res.status, 'to be', 200);
-            const json = await res.json();
-
-            expect(json, 'to have key', 'likes');
-            expect(json.likes, 'to be an', 'array');
-            expect(json.likes.length, 'to be', 1);
-            expect(json.likes[0].userId, 'to be', jupiter.user.id);
+            expect(res, 'to satisfy', commentHavingOneLikeExpectation(jupiter));
           });
 
           it('should not allow to like comment more than one time', async () => {
@@ -176,41 +158,19 @@ describe('Comment likes', () => {
             it("should allow Mars to like Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               const res = await likeComment(lunaComment.id, mars);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', mars.user.id);
-
-              // TODO: check users
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(mars));
             });
 
             it("should allow Pluto to like Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               const res = await likeComment(lunaComment.id, pluto);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', pluto.user.id);
-
-              // TODO: check users
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(pluto));
             });
 
             it("should allow Pluto to like Jupiter's comment to Luna's post", async () => {
               const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
               const res = await likeComment(jupiterComment.id, pluto);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', pluto.user.id);
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(pluto));
             });
           });
 
@@ -240,43 +200,19 @@ describe('Comment likes', () => {
             it('should allow any user to like comment in a public group', async () => {
               const marsComment = await writeComment(mars, dubhePost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', jupiter.user.id);
-
-              // TODO: check users
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(jupiter));
             });
 
             it('should allow any user to like comment in a public restricted group', async () => {
               const marsComment = await writeComment(mars, merakPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', jupiter.user.id);
-
-              // TODO: check users
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(jupiter));
             });
 
             it('should allow members to like comment in a private group', async () => {
               const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, luna);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', luna.user.id);
-
-              // TODO: check users
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
             });
 
             it('should not allow non-members to like comment in a private group', async () => {
@@ -291,15 +227,7 @@ describe('Comment likes', () => {
             it('should allow members to like comment in a private restricted group', async () => {
               const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, luna);
-              expect(res.status, 'to be', 200);
-              const json = await res.json();
-
-              expect(json, 'to have key', 'likes');
-              expect(json.likes, 'to be an', 'array');
-              expect(json.likes.length, 'to be', 1);
-              expect(json.likes[0].userId, 'to be', luna.user.id);
-
-              // TODO: check users
+              expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
             });
 
             it('should not allow non-members to like comment in a private restricted group', async () => {
@@ -330,4 +258,20 @@ const createComment = () => async (userContext, postId, body) => {
   const response = await createCommentAsync(userContext, postId, body);
   const commentData = await response.json();
   return commentData.comments;
+};
+
+const commentHavingOneLikeExpectation = (liker) => async (obj) => {
+  expect(obj, 'to satisfy', { status: 200 });
+  const responseJson = await obj.json();
+
+  expect(responseJson, 'to satisfy', {
+    likes: expect.it('to be an array')
+             .and('to be non-empty')
+             .and('to have length', 1)
+             .and('to have items satisfying', {
+               userId:    expect.it('to satisfy', schema.UUID).and('to be', liker.user.id),
+               createdAt: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true)
+             }),
+    users: expect.it('to be an array').and('to have items satisfying', schema.user)
+  });
 };
