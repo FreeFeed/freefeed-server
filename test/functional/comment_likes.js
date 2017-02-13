@@ -43,9 +43,7 @@ describe('Comment likes', () => {
     describe('#like', () => {
       it('should reject unauthenticated users', async () => {
         const res = await likeComment(uuid.v4());
-        expect(res.status, 'to be', 403);
-        const json = await res.json();
-        expect(json.err, 'to be', 'Unauthorized');
+        expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
       });
 
       describe('for authenticated users', () => {
@@ -68,25 +66,19 @@ describe('Comment likes', () => {
 
           it('should not allow to like nonexisting comment', async () => {
             const res = await likeComment(uuid.v4(), luna);
-            expect(res.status, 'to be', 404);
-            const json = await res.json();
-            expect(json.err, 'to be', "Can't find comment");
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find comment"));
           });
 
           it('should not allow to like own comments to own post', async () => {
             const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
             const res = await likeComment(lunaComment.id, luna);
-            expect(res.status, 'to be', 403);
-            const json = await res.json();
-            expect(json.err, 'to be', "You can't like your own comment");
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like your own comment"));
           });
 
           it('should not allow to like own comments to other user post', async () => {
             const lunaComment = await writeComment(luna, marsPost.id, 'Luna comment');
             const res = await likeComment(lunaComment.id, luna);
-            expect(res.status, 'to be', 403);
-            const json = await res.json();
-            expect(json.err, 'to be', "You can't like your own comment");
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like your own comment"));
           });
 
           it("should allow Luna to like Mars' comment to Luna's post", async () => {
@@ -113,9 +105,7 @@ describe('Comment likes', () => {
             expect(res1.status, 'to be', 200);
 
             const res2 = await likeComment(marsComment.id, luna);
-            expect(res2.status, 'to be', 403);
-            const json = await res2.json();
-            expect(json.err, 'to be', "You can't like comment that you have already liked");
+            expect(res2, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like comment that you have already liked"));
           });
 
           describe('when Luna bans Mars and stranger Pluto', () => {
@@ -134,25 +124,19 @@ describe('Comment likes', () => {
             it("should not allow Luna to like Mars' comment to Mars' post", async () => {
               const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, luna);
-              expect(res.status, 'to be', 403);
-              const json = await res.json();
-              expect(json.err, 'to be', 'You have banned the author of this comment');
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
             });
 
             it("should not allow Luna to like Pluto's comment to Pluto's post", async () => {
               const plutoComment = await writeComment(pluto, plutoPost.id, 'Pluto comment');
               const res = await likeComment(plutoComment.id, luna);
-              expect(res.status, 'to be', 403);
-              const json = await res.json();
-              expect(json.err, 'to be', 'You have banned the author of this comment');
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
             });
 
             it("should not allow Luna to like Pluto's comment to Mars' post", async () => {
               const plutoComment = await writeComment(pluto, marsPost.id, 'Pluto comment');
               const res = await likeComment(plutoComment.id, luna);
-              expect(res.status, 'to be', 403);
-              const json = await res.json();
-              expect(json.err, 'to be', 'You have banned the author of this comment');
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
             });
 
             it("should allow Mars to like Luna's comment to Luna's post", async () => {
@@ -218,10 +202,7 @@ describe('Comment likes', () => {
             it('should not allow non-members to like comment in a private group', async () => {
               const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res.status, 'to be', 404);
-              const json = await res.json();
-
-              expect(json.err, 'to be', "Can't find post");
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
             });
 
             it('should allow members to like comment in a private restricted group', async () => {
@@ -233,10 +214,7 @@ describe('Comment likes', () => {
             it('should not allow non-members to like comment in a private restricted group', async () => {
               const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res.status, 'to be', 404);
-              const json = await res.json();
-
-              expect(json.err, 'to be', "Can't find post");
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
             });
           });
         });
@@ -274,4 +252,10 @@ const commentHavingOneLikeExpectation = (liker) => async (obj) => {
              }),
     users: expect.it('to be an array').and('to have items satisfying', schema.user)
   });
+};
+
+const apiErrorExpectation = (code, message) => async (obj) => {
+  expect(obj, 'to satisfy', { status: code });
+  const responseJson = await obj.json();
+  expect(responseJson, 'to satisfy', { err: message });
 };
