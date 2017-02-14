@@ -4,7 +4,7 @@ import { NotFoundException, ForbiddenException } from '../../../support/exceptio
 import { serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, userSerializerFunction } from './helpers';
 
-export default class TimelinesController {
+export default class PostsController {
   /**
    * Viewer CAN NOT see post if:
    * - viwer is anonymous and post is not public or
