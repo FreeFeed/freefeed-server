@@ -29,6 +29,9 @@ export default class SearchController {
     if (limit < 0)
       limit = DEFAULT_LIMIT
 
+    const requestedLimit = limit;
+    limit++;
+
     const bannedUserIds = ctx.state.user ? await ctx.state.user.getBanIds() : [];
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
     const isAnonymous = !ctx.state.user;
@@ -87,9 +90,14 @@ export default class SearchController {
         }
     }
 
-    const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
-    const postsCollectionJson = serializePostsCollection(postsObjects);
+    const isLastPage = foundPosts.length <= requestedLimit;
+    if (!isLastPage) {
+      foundPosts.length = requestedLimit;
+    }
 
-    ctx.body = await postsCollectionJson;
+    const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
+    const postsCollectionJson = await serializePostsCollection(postsObjects, isLastPage);
+
+    ctx.body = { ...postsCollectionJson, isLastPage };
   };
 }
