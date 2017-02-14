@@ -11,6 +11,9 @@ finder.withHashTags = true;
  * @return {{hashtag: string, indices: number[]}[]}
  */
 export function extractHashtagsWithIndices(text) {
+  if (typeof text !== 'string' || text === '') {
+    return [];
+  }
   const parsed = finder.parse(text);
   const hashtags = [];
   let pos = 0;
