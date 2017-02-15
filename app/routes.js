@@ -31,10 +31,6 @@ promisifyAll(jwt);
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 
-if (sentryIsEnabled) {
-  Raven.config(config.sentryDsn, { autoBreadcrumbs: true }).install();
-}
-
 export default function (app) {
   const findUser = async (ctx, next) => {
     const authToken = ctx.request.get('x-authentication-token')

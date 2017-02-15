@@ -7,6 +7,7 @@ import passport from 'koa-passport';
 import winston from 'winston'
 import responseTime from 'koa-response-time'
 import { promisify } from 'bluebird';
+import Raven from 'raven';
 
 import { originMiddleware } from './initializers/origin';
 import { load as configLoader } from './config';
@@ -15,7 +16,13 @@ import { configure as configurePostgres } from './postgres'
 import { init as passportInit } from './initializers/passport'
 
 
-const config = configLoader()
+const config = configLoader();
+const sentryIsEnabled = 'sentryDsn' in config;
+
+if (sentryIsEnabled) {
+  Raven.config(config.sentryDsn, { autoBreadcrumbs: true }).install();
+}
+
 const env = process.env.NODE_ENV || 'development'
 
 passportInit(passport)
