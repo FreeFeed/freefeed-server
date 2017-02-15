@@ -32,7 +32,7 @@ const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 
 if (sentryIsEnabled) {
-  Raven.config(config.sentryDsn).install();
+  Raven.config(config.sentryDsn, { autoBreadcrumbs: true }).install();
 }
 
 export default function (app) {
