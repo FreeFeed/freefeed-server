@@ -7,6 +7,7 @@ import passport from 'koa-passport';
 import winston from 'winston'
 import responseTime from 'koa-response-time'
 import { promisify } from 'bluebird';
+import Raven from 'raven';
 
 import { originMiddleware } from './initializers/origin';
 import { load as configLoader } from './config';
@@ -15,7 +16,13 @@ import { configure as configurePostgres } from './postgres'
 import { init as passportInit } from './initializers/passport'
 
 
-const config = configLoader()
+const config = configLoader();
+const sentryIsEnabled = 'sentryDsn' in config;
+
+if (sentryIsEnabled) {
+  Raven.config(config.sentryDsn, { autoBreadcrumbs: true }).install();
+}
+
 const env = process.env.NODE_ENV || 'development'
 
 passportInit(passport)
@@ -83,9 +90,9 @@ exports.init = async function (app) {
   app.use(methodOverride((req) => {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
       // look in urlencoded POST bodies and delete it
-      const method = req.body._method
-      delete req.body._method
-      return method
+      const method = req.body._method;
+      Reflect.deleteProperty(req.body, '_method');
+      return method;
     }
 
     return undefined;  // otherwise, no need to override

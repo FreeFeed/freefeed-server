@@ -1,7 +1,7 @@
 #!/usr/bin/env babel-node
 import bluebird from 'bluebird'
 import _ from 'lodash'
-import twitter from 'twitter-text'
+import { extractHashtags } from '../app/support/hashtags'
 import { postgres, dbAdapter } from '../app/models'
 
 global.Promise = bluebird
@@ -13,7 +13,7 @@ async function processPost(post){
   const postUUID = post.uid
     , postBody   = post.body
   try{
-    const postTags = _.uniq(twitter.extractHashtags(postBody))
+    const postTags = _.uniq(extractHashtags(postBody))
 
     if (!postTags || postTags.length == 0) {
       return
@@ -31,7 +31,7 @@ async function processComment(comment){
   const commentUUID = comment.uid
     , commentBody   = comment.body
   try{
-    const commentTags = _.uniq(twitter.extractHashtags(commentBody))
+    const commentTags = _.uniq(extractHashtags(commentBody))
 
     if (!commentTags || commentTags.length == 0) {
       return

@@ -70,5 +70,26 @@ describe('SearchController', () => {
       response.should.have.property('posts')
       response.posts.length.should.be.eql(2)
     })
+
+    it('should return first page with isLastPage = false', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 0 })
+      response.should.not.be.empty
+      response.should.have.property('isLastPage')
+      response.isLastPage.should.be.eql(false)
+    })
+
+    it('should return last page with isLastPage = true', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 2 })
+      response.should.not.be.empty
+      response.should.have.property('isLastPage')
+      response.isLastPage.should.be.eql(true)
+    })
+
+    it('should return the only page with isLastPage = true', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna')
+      response.should.not.be.empty
+      response.should.have.property('isLastPage')
+      response.isLastPage.should.be.eql(true)
+    })
   })
 });

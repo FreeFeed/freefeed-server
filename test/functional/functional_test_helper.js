@@ -112,9 +112,15 @@ export function resetPassword(token) {
   }
 }
 
-export async function performSearch(context, query) {
+export async function performSearch(context, query, params = {}) {
+  params = {
+    limit:  30,
+    offset: 0,
+    ...params,
+  };
+
   const response = await postJson(
-    `/v2/search?qs=${encodeURIComponent(query)}`,
+    `/v2/search?qs=${encodeURIComponent(query)}&limit=${params.limit}&offset=${params.offset}`,
     {
       authToken: context.authToken,
       '_method': 'get'

@@ -20,11 +20,15 @@ export default class TimelinesController {
     const offset = parseInt(ctx.request.query.offset, 10) || 0;
     const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
 
-    const foundPosts = await dbAdapter.bestPosts(ctx.state.user, offset, limit);
+    const foundPosts = await dbAdapter.bestPosts(ctx.state.user, offset, limit + 1);
+    const isLastPage = foundPosts.length <= limit;
+    if (!isLastPage) {
+      foundPosts.length = limit;
+    }
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
     const postsCollectionJson = await serializePostsCollection(postsObjects);
 
-    ctx.body = postsCollectionJson;
+    ctx.body = { ...postsCollectionJson, isLastPage };
   });
 
   home = authRequired(monitored('timelines.home-v2', async (ctx) => {
@@ -147,7 +151,15 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     }
   }
 
-  const postsIds = canViewUser ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, params) : [];
+  const postsIds = canViewUser ?
+    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, limit: params.limit + 1 }) :
+    [];
+
+  const isLastPage = postsIds.length <= params.limit;
+  if (!isLastPage) {
+    postsIds.length = params.limit;
+  }
+
   const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
@@ -213,6 +225,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     subscriptions,
     subscribers,
     admins,
+    isLastPage,
     posts:       allPosts,
     comments:    _.compact(allComments),
     attachments: _.compact(allAttachments),

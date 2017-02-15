@@ -1,5 +1,5 @@
 import { flow } from 'lodash';
-import twitter from 'twitter-text'
+import { extractHashtagsWithIndices } from './hashtags'
 import { SEARCH_SCOPES } from './SearchConstants'
 
 const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
@@ -88,7 +88,7 @@ export class SearchQueryParser {
   }
 
   static extractHashtags(queryObject) {
-    const hashtags = twitter.extractHashtagsWithIndices(queryObject.query.toLowerCase())
+    const hashtags = extractHashtagsWithIndices(queryObject.query.toLowerCase())
     const indices = hashtags.map((h) => h.indices)
     let query = queryObject.query
 
