@@ -18,10 +18,10 @@ export function extractHashtagsWithIndices(text) {
   const hashtags = [];
   let pos = 0;
   for (const p of parsed) {
-    if (p.type === 'hashtag') {
+    if (p.type === 'hashTag') {
       hashtags.push({
         hashtag: p.hashTag,
-        indices: [pos + 1, pos + p.text.length],
+        indices: [pos, pos + p.text.length],
       });
     }
     pos += p.text.length
