@@ -2593,4 +2593,14 @@ export class DbAdapter {
     }).count();
     return parseInt(res) != 0;
   }
+
+  async deleteCommentLike(commentUUID, likerUUID) {
+    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
+
+    await this.database('comment_likes').where({
+      comment_id: commentId,
+      user_id:    userId
+    }).delete();
+    return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
+  }
 }
