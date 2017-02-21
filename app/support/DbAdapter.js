@@ -2577,8 +2577,8 @@ export class DbAdapter {
 
     if (viewerUserUUID) {
       commentLikesData = commentLikesData.sort((a, b) => {
-        if (a == viewerUserUUID) return -1;
-        if (b == viewerUserUUID) return 1;
+        if (a.userId == viewerUserUUID) return -1;
+        if (b.userId == viewerUserUUID) return 1;
         return 0;
       });
     }
