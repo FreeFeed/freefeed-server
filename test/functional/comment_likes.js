@@ -26,11 +26,12 @@ import * as schema from './schemaV2-helper'
 
 describe('Comment likes', () => {
   let app;
-  let likeComment, writeComment;
+  let likeComment, unlikeComment, writeComment;
 
   before(async () => {
     app = await getSingleton();
     likeComment = createCommentLike(app);
+    unlikeComment = deleteCommentLike(app);
     writeComment = createComment();
     PubSub.setPublisher(new DummyPublisher());
   });
@@ -258,6 +259,254 @@ describe('Comment likes', () => {
         });
       });
     });
+
+    describe('#unlike', () => {
+      it('should reject unauthenticated users', async () => {
+        const res = await unlikeComment(uuid.v4());
+        expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
+      });
+
+      describe('for authenticated users', () => {
+        describe('public users Luna, Mars and stranger Jupiter', () => {
+          let luna, mars, jupiter;
+          let lunaPost, marsPost;
+
+          beforeEach(async () => {
+            [luna, mars, jupiter] = await Promise.all([
+              createUserAsync('luna', 'pw'),
+              createUserAsync('mars', 'pw'),
+              createUserAsync('jupiter', 'pw'),
+            ]);
+            [lunaPost, marsPost] = await Promise.all([
+              createAndReturnPost(luna, 'Luna post'),
+              createAndReturnPost(mars, 'Mars post')
+            ]);
+            await mutualSubscriptions([luna, mars]);
+          });
+
+          it('should not allow to unlike nonexisting comment', async () => {
+            const res = await unlikeComment(uuid.v4(), luna);
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find comment"));
+          });
+
+          it('should not allow to unlike own comments to own post', async () => {
+            const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
+            const res = await unlikeComment(lunaComment.id, luna);
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like your own comment"));
+          });
+
+          it('should not allow to unlike own comments to other user post', async () => {
+            const lunaComment = await writeComment(luna, marsPost.id, 'Luna comment');
+            const res = await unlikeComment(lunaComment.id, luna);
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like your own comment"));
+          });
+
+          it("should allow Luna to unlike Mars' comment to Luna's post", async () => {
+            const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
+            await likeComment(marsComment.id, luna);
+            const res = await unlikeComment(marsComment.id, luna);
+            expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+          });
+
+          it("should allow Luna to unlike Mars' comment to Mars' post", async () => {
+            const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
+            await likeComment(marsComment.id, luna);
+            const res = await unlikeComment(marsComment.id, luna);
+            expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+          });
+
+          it("should allow Jupiter to unlike Mars' comment to Luna's post", async () => {
+            const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
+            await likeComment(marsComment.id, jupiter);
+            const res = await unlikeComment(marsComment.id, jupiter);
+            expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+          });
+
+          it("should not allow to unlike comment that haven't been liked", async () => {
+            const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
+            const res = await unlikeComment(marsComment.id, luna);
+            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like comment that you haven't yet liked"));
+          });
+
+          it('should not allow to unlike comment more than one time', async () => {
+            const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
+            await likeComment(marsComment.id, luna);
+            const res1 = await unlikeComment(marsComment.id, luna);
+            expect(res1, 'to satisfy', commentHavingNoLikesExpectation);
+
+            const res2 = await unlikeComment(marsComment.id, luna);
+            expect(res2, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like comment that you haven't yet liked"));
+          });
+
+          describe('comment likes sorting', () => {
+            let pluto;
+
+            beforeEach(async () => {
+              pluto = await createUserAsync('pluto', 'pw');
+            });
+
+            it('should sort comment likes chronologically descending', async () => {
+              const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
+              await likeComment(lunaComment.id, mars);
+              await likeComment(lunaComment.id, jupiter);
+              await likeComment(lunaComment.id, pluto);
+              const res = await unlikeComment(lunaComment.id, pluto);
+
+              expect(res, 'to satisfy', { status: 200 });
+              const responseJson = await res.json();
+
+              expect(responseJson, 'to satisfy', {
+                likes: expect.it('to be an array').and('to be non-empty').and('to have length', 2),
+                users: expect.it('to be an array').and('to have items satisfying', schema.user)
+              });
+
+              expect(responseJson.likes[0].userId, 'to be', jupiter.user.id);
+              expect(responseJson.likes[1].userId, 'to be', mars.user.id);
+            });
+          });
+
+          describe('when Luna bans Mars and stranger Pluto', () => {
+            let pluto;
+            let plutoPost;
+
+            beforeEach(async () => {
+              pluto = await createUserAsync('pluto', 'pw');
+              plutoPost = await createAndReturnPost(pluto, 'Pluto post');
+              await Promise.all([
+                banUser(luna, mars),
+                banUser(luna, pluto)
+              ]);
+            });
+
+            it("should not allow Luna to unlike Mars' comment to Mars' post", async () => {
+              const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
+              const res = await unlikeComment(marsComment.id, luna);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+            });
+
+            it("should not allow Luna to unlike Pluto's comment to Pluto's post", async () => {
+              const plutoComment = await writeComment(pluto, plutoPost.id, 'Pluto comment');
+              const res = await unlikeComment(plutoComment.id, luna);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+            });
+
+            it("should not allow Luna to unlike Pluto's comment to Mars' post", async () => {
+              const plutoComment = await writeComment(pluto, marsPost.id, 'Pluto comment');
+              const res = await unlikeComment(plutoComment.id, luna);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+            });
+
+            it("should allow Mars to unlike Luna's comment to Luna's post", async () => {
+              const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
+              await likeComment(lunaComment.id, mars);
+              const res = await unlikeComment(lunaComment.id, mars);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it("should allow Pluto to unlike Luna's comment to Luna's post", async () => {
+              const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
+              await likeComment(lunaComment.id, pluto);
+              const res = await unlikeComment(lunaComment.id, pluto);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it("should allow Pluto to unlike Jupiter's comment to Luna's post", async () => {
+              const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+              await likeComment(jupiterComment.id, pluto);
+              const res = await unlikeComment(jupiterComment.id, pluto);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it('should not display Luna comment likes of Pluto and Mars', async () => {
+              const jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
+              const jupiterComment = await writeComment(jupiter, jupiterPost.id, 'Jupiter comment');
+              await likeComment(jupiterComment.id, pluto);
+              await likeComment(jupiterComment.id, mars);
+              await likeComment(jupiterComment.id, luna);
+              const res = await unlikeComment(jupiterComment.id, luna);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            describe('when Luna bans Jupiter after liking his comment', () => {
+              it("should not allow Luna to unlike Jupiter's comment to Jupiter's post", async () => {
+                const jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
+                const jupiterComment = await writeComment(jupiter, jupiterPost.id, 'Jupiter comment');
+                await likeComment(jupiterComment.id, luna);
+
+                await banUser(luna, jupiter);
+
+                const res = await unlikeComment(jupiterComment.id, luna);
+                expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              });
+            });
+          });
+
+          describe('public group Dubhe, public restricted group Merak, private group Phad, private restricted group Alkaid', () => {
+            let dubhe, merak, phad, alkaid;
+            let dubhePost, merakPost, phadPost, alkaidPost;
+            beforeEach(async () => {
+              [dubhe, merak, phad, alkaid] = await Promise.all([
+                createGroupAsync(luna, 'dubhe',  'Dubhe',  false, false),
+                createGroupAsync(luna, 'merak',  'Merak',  false, true),
+                createGroupAsync(luna, 'phad',   'Phad',   true,  false),
+                createGroupAsync(luna, 'alkaid', 'Alkaid', true,  true),
+              ]);
+
+              [dubhePost, merakPost, phadPost, alkaidPost] = await Promise.all([
+                createAndReturnPostToFeed(dubhe,  luna, 'Dubhe post'),
+                createAndReturnPostToFeed(merak,  luna, 'Merak post'),
+                createAndReturnPostToFeed(phad,   luna, 'Phad post'),
+                createAndReturnPostToFeed(alkaid, luna, 'Alkaid post')
+              ]);
+              await sendRequestToJoinGroup(mars, phad);
+              await acceptRequestToJoinGroup(luna, mars, phad);
+              await sendRequestToJoinGroup(mars, alkaid);
+              await acceptRequestToJoinGroup(luna, mars, alkaid);
+            });
+
+            it('should allow any user to unlike comment in a public group', async () => {
+              const marsComment = await writeComment(mars, dubhePost.id, 'Mars comment');
+              await likeComment(marsComment.id, jupiter);
+              const res = await unlikeComment(marsComment.id, jupiter);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it('should allow any user to unlike comment in a public restricted group', async () => {
+              const marsComment = await writeComment(mars, merakPost.id, 'Mars comment');
+              await likeComment(marsComment.id, jupiter);
+              const res = await unlikeComment(marsComment.id, jupiter);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it('should allow members to unlike comment in a private group', async () => {
+              const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
+              await likeComment(marsComment.id, luna);
+              const res = await unlikeComment(marsComment.id, luna);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it('should not allow non-members to unlike comment in a private group', async () => {
+              const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
+              const res = await unlikeComment(marsComment.id, jupiter);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+            });
+
+            it('should allow members to unlike comment in a private restricted group', async () => {
+              const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
+              await likeComment(marsComment.id, luna);
+              const res = await unlikeComment(marsComment.id, luna);
+              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+            });
+
+            it('should not allow non-members to unlike comment in a private restricted group', async () => {
+              const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
+              const res = await unlikeComment(marsComment.id, jupiter);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+            });
+          });
+        });
+      });
+    });
   });
 });
 
@@ -267,6 +516,15 @@ const createCommentLike = (app) => async (commentId, likerContext = null) => {
     headers['X-Authentication-Token'] = likerContext.authToken;
   }
   const response = await fetch(`${app.context.config.host}/v2/comments/${commentId}/like`, { method: 'POST', headers });
+  return response;
+};
+
+const deleteCommentLike = (app) => async (commentId, unlikerContext = null) => {
+  const headers = {} ;
+  if (unlikerContext) {
+    headers['X-Authentication-Token'] = unlikerContext.authToken;
+  }
+  const response = await fetch(`${app.context.config.host}/v2/comments/${commentId}/unlike`, { method: 'POST', headers });
   return response;
 };
 
@@ -289,6 +547,16 @@ const commentHavingOneLikeExpectation = (liker) => async (obj) => {
                createdAt: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true)
              }),
     users: expect.it('to be an array').and('to have items satisfying', schema.user)
+  });
+};
+
+const commentHavingNoLikesExpectation = async (obj) => {
+  expect(obj, 'to satisfy', { status: 200 });
+  const responseJson = await obj.json();
+
+  expect(responseJson, 'to satisfy', {
+    likes: expect.it('to be an array').and('to be empty'),
+    users: expect.it('to be an array').and('to be empty')
   });
 };
 
