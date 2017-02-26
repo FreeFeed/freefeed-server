@@ -1154,5 +1154,17 @@ export function addModel(dbAdapter) {
     return dbAdapter.userHavePendingGroupRequests(this.id);
   }
 
+  /**
+   * Returns array of comment's hideType's which should not be visible by user
+   * @return {string[]}
+   */
+  User.prototype.getHiddenCommentTypes = function () {
+    let t = _.get(this.frontendPreferences, ['net.freefeed', 'hiddenCommentTypes']);
+    if (!_.isArray(t)) {
+      t = [];
+    }
+    return t.filter((v) => _.isInteger(v) && v > 0);  // exclude Comment.VISIBLE
+  }
+
   return User
 }
