@@ -14,6 +14,7 @@ export function addModel(dbAdapter) {
     this.body = params.body
     this.userId = params.userId
     this.postId = params.postId
+    this.hideType = params.hideType || Comment.VISIBLE
     if (parseInt(params.createdAt, 10))
       this.createdAt = params.createdAt
     if (parseInt(params.updatedAt, 10))
@@ -22,6 +23,26 @@ export function addModel(dbAdapter) {
 
   Comment.className = Comment
   Comment.namespace = 'comment'
+
+  Comment.VISIBLE         = 0;
+  Comment.DELETED         = 1;
+  Comment.HIDDEN_BANNED   = 2;
+  Comment.HIDDEN_ARCHIVED = 3;
+
+  /**
+   * Default comment body for hide type
+   * @param {string} hideType
+   * @return {string}
+   */
+  Comment.hiddenBody = (hideType) => {
+    switch (hideType) {
+      case Comment.VISIBLE:         return 'Visible comment';
+      case Comment.DELETED:         return 'Deleted comment';
+      case Comment.HIDDEN_BANNED:   return 'Hidden comment';
+      case Comment.HIDDEN_ARCHIVED: return 'Archived comment';
+      default:                      return 'Hidden comment';
+    }
+  };
 
   Reflect.defineProperty(Comment.prototype, 'body', {
     get: function () { return this.body_ },
@@ -60,7 +81,8 @@ export function addModel(dbAdapter) {
       'userId':    this.userId,
       'postId':    this.postId,
       'createdAt': this.createdAt.toString(),
-      'updatedAt': this.updatedAt.toString()
+      'updatedAt': this.updatedAt.toString(),
+      'hideType':  this.hideType,
     }
 
     this.id = await dbAdapter.createComment(payload)

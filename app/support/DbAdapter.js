@@ -182,7 +182,8 @@ const COMMENT_COLUMNS = {
   updatedAt: 'updated_at',
   body:      'body',
   postId:    'post_id',
-  userId:    'user_id'
+  userId:    'user_id',
+  hideType:  'hide_type',
 }
 
 const COMMENT_COLUMNS_MAPPING = {
@@ -204,7 +205,8 @@ const COMMENT_FIELDS = {
   updated_at: 'updatedAt',
   body:       'body',
   user_id:    'userId',
-  post_id:    'postId'
+  post_id:    'postId',
+  hide_type:  'hideType',
 }
 
 const COMMENT_FIELDS_MAPPING = {
