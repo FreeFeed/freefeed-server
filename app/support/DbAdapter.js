@@ -1762,6 +1762,7 @@ export class DbAdapter {
       maxUnfoldedComments: 3,
       maxUnfoldedLikes:    4,
       visibleFoldedLikes:  3,
+      hiddenCommentTypes:  [],
       ...params,
     };
 
@@ -1802,7 +1803,8 @@ export class DbAdapter {
       this.database.raw(destinationsSQL),
     ]);
 
-    if (bannedUsersIds.length === 0) {
+    const nobodyIsBanned = bannedUsersIds.length === 0;
+    if (nobodyIsBanned) {
       bannedUsersIds.push(unexistedUID);
     }
     if (friendsIds.length === 0) {
@@ -1832,14 +1834,26 @@ export class DbAdapter {
       group by post_id, count 
     `;
 
+    // Don't show comments that viewer don't want to see
+    let hideCommentsSQL = 'true';
+    if (params.hiddenCommentTypes.length > 0) {
+      if (params.hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && !nobodyIsBanned) {
+        hideCommentsSQL = pgFormat('user_id not in (%L)', bannedUsersIds);
+      }
+      const ht = params.hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+      if (ht.length > 0) {
+        hideCommentsSQL += pgFormat(' and hide_type not in (%L)', ht);
+      }
+    }
+
     const allCommentsSQL = pgFormat(`
       select
         ${commentFields.join(', ')}, id,
         rank() over (partition by post_id order by created_at, id),
         count(*) over (partition by post_id) 
       from comments
-      where post_id in (%L) and user_id not in (%L)
-    `, uniqPostsIds, bannedUsersIds);
+      where post_id in (%L) and (${hideCommentsSQL})
+    `, uniqPostsIds);
 
     const commentsSQL = `
       with comments as (${allCommentsSQL})
@@ -1886,6 +1900,11 @@ export class DbAdapter {
     }
 
     for (const comm of commentsData) {
+      if (!nobodyIsBanned && bannedUsersIds.includes(comm.user_id)) {
+        comm.user_id = results[comm.post_id].post.userId;
+        comm.hide_type = Comment.HIDDEN_BANNED;
+        comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+      }
       results[comm.post_id].comments.push(this.initCommentObject(comm));
       results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
     }
