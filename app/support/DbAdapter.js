@@ -1201,13 +1201,40 @@ export class DbAdapter {
   async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
     let query = this.database('comments').orderBy('created_at', 'asc').where('post_id', postId);
 
+    const [
+      viewer,
+      bannedUsersIds,
+      [postAuthorId],
+    ] = await Promise.all([
+      viewerUserId ? this.getUserById(viewerUserId) : null,
+      viewerUserId ? this.getUserBansIds(viewerUserId) : [],
+      this.database.pluck('user_id').from('posts').where({ uid: postId }),
+    ]);
+
     if (viewerUserId) {
-      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId);
-      query = query.where('user_id', 'not in', subquery);
+      const hiddenCommentTypes = viewer.getHiddenCommentTypes();
+      if (hiddenCommentTypes.length > 0) {
+        if (hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && bannedUsersIds.length > 0) {
+          query = query.where('user_id', 'not in', bannedUsersIds);
+        }
+        const ht = hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+        if (ht.length > 0) {
+          query = query.where('hide_type', 'not in', ht);
+        }
+      }
     }
 
     const responses = await query;
-    return responses.map(this.initCommentObject);
+    const comments = responses
+      .map((comm) => {
+        if (bannedUsersIds.includes(comm.user_id)) {
+          comm.user_id = postAuthorId;
+          comm.hide_type = Comment.HIDDEN_BANNED;
+          comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+        }
+        return comm;
+      });
+    return comments.map(this.initCommentObject);
   }
 
   _deletePostComments(postId) {
