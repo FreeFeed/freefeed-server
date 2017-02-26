@@ -3,7 +3,7 @@ import request  from 'superagent'
 import _ from 'lodash'
 import SocketIO from 'socket.io-client';
 
-import { dbAdapter } from '../../app/models'
+import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
 
 
@@ -405,6 +405,13 @@ export async function createUserAsync(username, password, attributes) {
 
   const userData = data.users
   userData.password = password
+
+  // User does't want to view banned comments by default
+  // (for compatibility with old tests)
+  await updateUserAsync(
+    { user: userData, authToken: data.authToken },
+    { frontendPreferences: { 'net.freefeed': { hiddenCommentTypes: [Comment.HIDDEN_BANNED] } } },
+  );
 
   return {
     authToken: data.authToken,
