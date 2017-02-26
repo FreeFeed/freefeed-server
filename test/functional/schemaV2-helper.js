@@ -66,6 +66,7 @@ export const comment = {
   createdAt: expect.it('to satisfy', timeStampString),
   updatedAt: expect.it('to satisfy', timeStampString),
   createdBy: expect.it('to satisfy', UUID),
+  hideType:  expect.it('to be greater than or equal to', 0),
 };
 
 const attachmentCommons = {
