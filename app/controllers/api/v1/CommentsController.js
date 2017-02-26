@@ -1,6 +1,6 @@
 import monitor from 'monitor-dog'
 
-import { dbAdapter, CommentSerializer, PubSub } from '../../../models'
+import { dbAdapter, CommentSerializer, PubSub, Comment } from '../../../models'
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -81,6 +81,12 @@ export default class CommentsController {
         throw new NotFoundException("Can't find comment")
       }
 
+      if (comment.hideType !== Comment.VISIBLE) {
+        throw new ForbiddenException(
+          "You can't update deleted or hidden comment"
+        )
+      }
+
       if (comment.userId != ctx.state.user.id) {
         throw new ForbiddenException(
           "You can't update another user's comment"
@@ -110,6 +116,12 @@ export default class CommentsController {
 
       if (null === comment) {
         throw new NotFoundException("Can't find comment")
+      }
+
+      if (comment.hideType !== Comment.VISIBLE) {
+        throw new ForbiddenException(
+          "You can't destroy deleted or hidden comment"
+        )
       }
 
       if (comment.userId !== ctx.state.user.id) {
