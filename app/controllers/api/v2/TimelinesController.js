@@ -37,20 +37,20 @@ export default class TimelinesController {
     ctx.body = await genericTimeline(timeline, user.id, {
       withHides:      true,
       withLocalBumps: true,
-      ...getQueryParams(ctx.request.query),
+      ...getCommonParams(ctx),
     });
   }));
 
   myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
-    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, getCommonParams(ctx));
   }));
 
   directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
     const user = ctx.state.user;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
-    ctx.body = await genericTimeline(timeline, user.id, { ...getQueryParams(ctx.request.query) });
+    ctx.body = await genericTimeline(timeline, user.id, getCommonParams(ctx));
   }));
 
   userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
@@ -64,27 +64,29 @@ export default class TimelinesController {
     const viewer = ctx.state.user || null;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
-      sort:           (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED,
       withoutDirects: (feedName !== 'Posts'),
-      ...getQueryParams(ctx.request.query),
+      ...getCommonParams(ctx, (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED),
     });
   });
 }
 
 /**
- * Fetch parameters from the URL query object
+ * Fetch common timelines parameters from the request
  *
- * @param {object} query                 - Query object
- * @param {string} [query.limit]         - Number of posts returned (default: 30)
- * @param {string} [query.offset]        - Number of posts to skip (default: 0)
- * @param {string} [query.sort]          - Sort mode ('created' or 'updated')
- * @param {string} [query.with-my-posts] - For filter/discussions only: return viewer's own
- *                                         posts even without his likes or comments (default: no)
- * @param {string} defaultSort           - Default sort mode
- * @return {object}                      - Object with the following sructure:
- *                                         { limit:number, offset:number, sort:string, withMyPosts:boolean }
+ * @param {object} ctx                               - request context object
+ * @param {string} [ctx.request.query.limit]         - Number of posts returned (default: 30)
+ * @param {string} [ctx.request.query.offset]        - Number of posts to skip (default: 0)
+ * @param {string} [ctx.request.query.sort]          - Sort mode ('created' or 'updated')
+ * @param {string} [ctx.request.query.with-my-posts] - For filter/discussions only: return viewer's own
+ *                                                     posts even without his likes or comments (default: no)
+ * @param {string} defaultSort                       - Default sort mode
+ * @return {object}                                  - Object with the following sructure:
+ *                                                     { limit:number, offset:number, sort:string, withMyPosts:boolean, hiddenCommentTypes: array }
  */
-function getQueryParams(query, defaultSort = ORD_UPDATED) {
+function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
+  const query = ctx.request.query;
+  const viewer = ctx.state.user;
+
   let limit = parseInt(query.limit, 10);
   if (isNaN(limit) || limit < 0 || limit > 120) {
     limit = 30;
@@ -95,18 +97,20 @@ function getQueryParams(query, defaultSort = ORD_UPDATED) {
   }
   const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
-  return { limit, offset, sort, withMyPosts };
+  const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
+  return { limit, offset, sort, withMyPosts, hiddenCommentTypes };
 }
 
 async function genericTimeline(timeline, viewerId = null, params = {}) {
   params = {
-    limit:          30,
-    offset:         0,
-    sort:           ORD_UPDATED,
-    withHides:      false,  // consider viewer Hides feed (for RiverOfNews)
-    withLocalBumps: false,  // consider viewer local bumps (for RiverOfNews)
-    withoutDirects: false,  // do not show direct messages (for Likes and Comments)
-    withMyPosts:    false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
+    limit:              30,
+    offset:             0,
+    sort:               ORD_UPDATED,
+    withHides:          false,  // consider viewer Hides feed (for RiverOfNews)
+    withLocalBumps:     false,  // consider viewer local bumps (for RiverOfNews)
+    withoutDirects:     false,  // do not show direct messages (for Likes and Comments)
+    withMyPosts:        false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
+    hiddenCommentTypes: [],     // dont show hidden/deleted comments of these hide_type's
     ...params,
   };
 
@@ -160,7 +164,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     postsIds.length = params.limit;
   }
 
-  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId);
+  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId, params);
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
     const sPost = {
