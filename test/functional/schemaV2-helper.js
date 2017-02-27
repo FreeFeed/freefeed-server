@@ -66,6 +66,7 @@ export const comment = {
   createdAt: expect.it('to satisfy', timeStampString),
   updatedAt: expect.it('to satisfy', timeStampString),
   createdBy: expect.it('to satisfy', UUID),
+  hideType:  expect.it('to be greater than or equal to', 0),
 };
 
 const attachmentCommons = {
@@ -117,3 +118,38 @@ export const attachment = (obj) =>
     }
     return null;
   });
+
+export const postResponse = {
+  posts:         expect.it('to satisfy', post),
+  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
+  comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', comment),
+  attachments:   expect.it('to be an array').and('to be empty').or('to have items satisfying', attachment),
+  subscribers:   expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
+  subscriptions: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    id:   expect.it('to satisfy', UUID),
+    name: expect.it('to be one of', ['Posts', 'Directs']),
+    user: expect.it('to satisfy', UUID),
+  }),
+};
+
+export const timelineResponse = {
+  timelines: expect.it('to exhaustively satisfy', {
+    id:          expect.it('to satisfy', UUID),
+    name:        expect.it('to be one of', ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']),
+    user:        expect.it('to satisfy', UUID),
+    posts:       expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+    subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  }),
+  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
+  admins:        expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
+  posts:         expect.it('to be an array').and('to be empty').or('to have items satisfying', post),
+  comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', comment),
+  attachments:   expect.it('to be an array').and('to be empty').or('to have items satisfying', attachment),
+  subscribers:   expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
+  subscriptions: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    id:   expect.it('to satisfy', UUID),
+    name: expect.it('to be one of', ['Posts', 'Directs']),
+    user: expect.it('to satisfy', UUID),
+  }),
+  isLastPage: expect.it('to be a boolean'),
+};

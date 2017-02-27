@@ -51,8 +51,13 @@ export default class PostsController {
 
     const foldComments = ctx.request.query.maxComments !== 'all';
     const foldLikes = ctx.request.query.maxLikes !== 'all';
+    const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
 
-    const [postWithStuff] = await dbAdapter.getPostsWithStuffByIds([post.id], viewer ? viewer.id : null, { foldComments, foldLikes });
+    const [postWithStuff] = await dbAdapter.getPostsWithStuffByIds(
+      [post.id],
+      viewer ? viewer.id : null,
+      { foldComments, foldLikes, hiddenCommentTypes },
+    );
 
     // The following code is mostly copied from ./TimelinesControlloer.js
 
