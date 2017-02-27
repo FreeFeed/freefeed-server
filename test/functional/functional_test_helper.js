@@ -411,7 +411,7 @@ export async function createUserAsync(username, password, attributes) {
   // (for compatibility with old tests)
   await updateUserAsync(
     { user: userData, authToken: data.authToken },
-    { frontendPreferences: { 'net.freefeed': { hiddenCommentTypes: [Comment.HIDDEN_BANNED] } } },
+    { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
   );
 
   return {

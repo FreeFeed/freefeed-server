@@ -1159,7 +1159,7 @@ export function addModel(dbAdapter) {
    * @return {string[]}
    */
   User.prototype.getHiddenCommentTypes = function () {
-    let t = _.get(this.frontendPreferences, ['net.freefeed', 'hiddenCommentTypes']);
+    let t = _.get(this.frontendPreferences, ['net.freefeed', 'comments', 'hiddenTypes']);
     if (!_.isArray(t)) {
       t = [];
     }
