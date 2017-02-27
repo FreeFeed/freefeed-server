@@ -39,7 +39,7 @@ describe('Hidden comments', () => {
       await createCommentAsync(luna, post.id, 'Comment from Luna');
     });
 
-    describe('Luna want to see comments from baned users', () => {
+    describe('Luna want to see comments from banned users', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
@@ -86,7 +86,7 @@ describe('Hidden comments', () => {
       });
     });
 
-    describe('Luna doesn\'t want to see comments from baned users', () => {
+    describe('Luna doesn\'t want to see comments from banned users', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
