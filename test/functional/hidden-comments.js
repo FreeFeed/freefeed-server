@@ -43,7 +43,7 @@ describe('Hidden comments', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
-          { frontendPreferences: { 'net.freefeed': { hiddenCommentTypes: [] } } },
+          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [] } } } },
         );
       });
 
@@ -90,7 +90,7 @@ describe('Hidden comments', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
-          { frontendPreferences: { 'net.freefeed': { hiddenCommentTypes: [Comment.HIDDEN_BANNED] } } },
+          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
         );
       });
 
