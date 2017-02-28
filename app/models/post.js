@@ -77,8 +77,9 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.create = async function () {
-    this.createdAt = new Date().getTime()
-    this.updatedAt = new Date().getTime()
+    this.createdAt = new Date().getTime();
+    this.updatedAt = new Date().getTime();
+    this.bumpedAt = new Date().getTime();
 
     await this.validate()
 
@@ -87,6 +88,7 @@ export function addModel(dbAdapter) {
       'userId':           this.userId,
       'createdAt':        this.createdAt.toString(),
       'updatedAt':        this.updatedAt.toString(),
+      'bumpedAt':         this.updatedAt.toString(),
       'commentsDisabled': this.commentsDisabled
     }
     this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)
@@ -340,7 +342,7 @@ export function addModel(dbAdapter) {
     const now = new Date();
 
     const promises = [
-      dbAdapter.setPostUpdatedAt(this.id, now.getTime()),
+      dbAdapter.setPostBumpedAt(this.id, now.getTime()),
       dbAdapter.setUpdatedAtInGroupsByIds(timelineOwnersIds, now.getTime())
     ];
 
