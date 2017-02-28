@@ -254,6 +254,7 @@ const FEED_FIELDS_MAPPING = {
 const POST_COLUMNS = {
   createdAt:        'created_at',
   updatedAt:        'updated_at',
+  bumpedAt:         'bumped_at',
   userId:           'user_id',
   body:             'body',
   commentsDisabled: 'comments_disabled',
@@ -287,6 +288,7 @@ const POST_FIELDS = {
   uid:                  'id',
   created_at:           'createdAt',
   updated_at:           'updatedAt',
+  bumped_at:            'bumpedAt',
   user_id:              'userId',
   body:                 'body',
   comments_disabled:    'commentsDisabled',
@@ -301,6 +303,7 @@ const POST_FIELDS = {
 const POST_FIELDS_MAPPING = {
   created_at:        (time) => { return time.getTime().toString() },
   updated_at:        (time) => { return time.getTime().toString() },
+  bumped_at:         (time) => { return time.getTime().toString() },
   comments_disabled: (comments_disabled) => {return comments_disabled ? '1' : '0' },
   user_id:           (user_id) => {return user_id ? user_id : ''},
   is_private:        (is_private) => {return is_private ? '1' : '0' },

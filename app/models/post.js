@@ -32,6 +32,10 @@ export function addModel(dbAdapter) {
       this.updatedAt = params.updatedAt
     }
 
+    if (parseInt(params.bumpedAt, 10)) {
+      this.bumpedAt = params.bumpedAt;
+    }
+
     if (params.maxComments != 'all') {
       this.maxComments = parseInt(params.maxComments, 10) || 2
     } else {
