@@ -1577,13 +1577,13 @@ export class DbAdapter {
     params = {
       limit:          30,
       offset:         0,
-      sort:           'updated',
+      sort:           'bumped',
       withLocalBumps: false,
       withMyPosts:    false,
       ...params,
     };
 
-    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'updated';
+    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'bumped';
 
     // Private feeds viewer can read
     let visiblePrivateFeedIntIds = [];
