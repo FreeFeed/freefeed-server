@@ -1846,18 +1846,28 @@ export class DbAdapter {
       group by post_id, count 
     `;
 
+    const viewerIntId = viewerId ? await this._getUserIntIdByUUID(viewerId) : null;
+
     const allCommentsSQL = pgFormat(`
       select
         ${commentFields.join(', ')}, id,
         rank() over (partition by post_id order by created_at, id),
-        count(*) over (partition by post_id) 
+        count(*) over (partition by post_id),
+        (select coalesce(count(*), '0') from comment_likes cl
+          where cl.comment_id = comments.id
+            and cl.user_id not in (select id from users where uid in (%L))
+        ) as c_likes,
+        (select count(*) = 1 from comment_likes cl
+          where cl.comment_id = comments.id
+            and cl.user_id = %L
+        ) as has_own_like
       from comments
       where post_id in (%L) and user_id not in (%L)
-    `, uniqPostsIds, bannedUsersIds);
+    `, bannedUsersIds, viewerIntId, uniqPostsIds, bannedUsersIds);
 
     const commentsSQL = `
       with comments as (${allCommentsSQL})
-      select ${commentFields.join(', ')}, id, count from comments
+      select ${commentFields.join(', ')}, id, count, c_likes, has_own_like from comments
       ${params.foldComments ?
         pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) :
         ``}
@@ -1900,7 +1910,10 @@ export class DbAdapter {
     }
 
     for (const comm of commentsData) {
-      results[comm.post_id].comments.push(this.initCommentObject(comm));
+      const comment = this.initCommentObject(comm);
+      comment.likes       = comm.c_likes;
+      comment.hasOwnLike  = comm.has_own_like;
+      results[comm.post_id].comments.push(comment);
       results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
     }
 

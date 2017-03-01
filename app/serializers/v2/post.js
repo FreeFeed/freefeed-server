@@ -49,6 +49,8 @@ export function serializeComment(comment) {
       'body',
       'createdAt',
       'updatedAt',
+      'likes',
+      'hasOwnLike'
     ]),
     createdBy: comment.userId,
   };
