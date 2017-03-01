@@ -2616,4 +2616,34 @@ export class DbAdapter {
     }).delete();
     return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
   }
+
+  async getLikesInfoForComments(commentsUUIDs, viewerUUID) {
+    if (_.isEmpty(commentsUUIDs)) {
+      return [];
+    }
+
+    const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
+    const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
+    }
+
+    const commentLikesSQL = pgFormat(`
+      select uid,
+            (select coalesce(count(*), '0') from comment_likes cl
+              where cl.comment_id = comments.id
+                and cl.user_id not in (select id from users where uid in (%L))
+            ) as c_likes,
+            (select count(*) = 1 from comment_likes cl
+              where cl.comment_id = comments.id
+                and cl.user_id = %L
+            ) as has_own_like
+      from comments
+      where uid in (%L) and user_id not in (%L)`,
+    bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds);
+
+    const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
+    return commentLikes;
+  }
 }

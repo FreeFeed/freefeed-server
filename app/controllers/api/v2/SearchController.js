@@ -96,7 +96,7 @@ export default class SearchController {
     }
 
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
-    const postsCollectionJson = await serializePostsCollection(postsObjects, isLastPage);
+    const postsCollectionJson = await serializePostsCollection(postsObjects, currentUserId);
 
     ctx.body = { ...postsCollectionJson, isLastPage };
   };
