@@ -260,6 +260,14 @@ describe('PostBubbling', () => {
           await homeFeedEqualTo(luna, expectedContent, luna.id)
         })
 
+        it('should not change order of posts after edits', async () => {
+          const expectedContent = [...marsPostsContent].reverse().concat([...lunaPostsContent].reverse());
+          await homeFeedEqualTo(luna, expectedContent, luna.id);  // sanity check
+
+          await marsPosts[0].update({ body: marsPosts[0].body });  // empty change, we're interested in metadata
+          await homeFeedEqualTo(luna, expectedContent, luna.id);
+        });
+
         it('each comment moves the post to the top', async () => {
           let expectedContent
 
