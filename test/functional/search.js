@@ -17,7 +17,7 @@ describe('SearchController', () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', () => {
+  describe('#search()', () => {
     let lunaContext = {}
     let marsContext = {}
     const anonContext = {}
