@@ -121,10 +121,13 @@ export default class TimelinesController {
     const attachments = await dbAdapter.getAttachmentsOfPost(post.id).map(serializeAttachment);
 
     let image = null;
+    let image_h, image_w;
 
     for (const item of attachments) {
       if (item.mediaType === 'image') {
-        image = item.url;
+        image = item.imageSizes[`t2`].url;
+        image_h = item.imageSizes[`t2`].h;
+        image_w = item.imageSizes[`t2`].w;
         break;
       }
     }
@@ -137,7 +140,9 @@ export default class TimelinesController {
 
     if (image) {
       og += `<meta property="og:image" content="${image}" />
-        <meta name="twitter:image" content=="${image}" />`;
+        <meta property="og:image:width" content="${image_w}" />
+        <meta property="og:image:height" content="${image_h}" />
+        <meta name="twitter:image" content="${image}" />`;
     }
 
     ctx.body = og;
