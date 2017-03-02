@@ -110,6 +110,7 @@ export default class PostsController {
 
     // OpenGraph is available for public posts that are not protected
     if (!post || post.isPrivate === '1' || post.isProtected === '1') {
+      ctx.body = '';
       return;
     }
 
