@@ -60,7 +60,7 @@ export function addModel(dbAdapter) {
 
     const allSubscribedTimelineIds = _.flatten(await Promise.all(promises))
     const allTimelines = _.uniq(_.union(post.feedIntIds, allSubscribedTimelineIds))
-    await dbAdapter.setPostUpdatedAt(post.id, currentTime)
+    await dbAdapter.setPostBumpedAt(post.id, currentTime)
     await dbAdapter.insertPostIntoFeeds(allTimelines, post.id)
     await pubSub.newPost(post.id)
   }
@@ -175,7 +175,7 @@ export function addModel(dbAdapter) {
     if (reader && this.name == 'RiverOfNews') {
       let oldestPostTime
       if (posts[posts.length - 1]) {
-        oldestPostTime = posts[posts.length - 1].updatedAt
+        oldestPostTime = posts[posts.length - 1].bumpedAt;
       }
 
       const localBumps = await dbAdapter.getUserLocalBumps(reader.id, oldestPostTime)
@@ -193,21 +193,16 @@ export function addModel(dbAdapter) {
       for (const p of posts) {
         if (localBumpedPostIds.includes(p.id)) {
           const bump = localBumps.find((b) => b.postId === p.id);
-          p.bumpedAt = bump.bumpedAt
+          p.locallyBumpedAt = bump.bumpedAt;
         }
       }
     }
 
     posts.sort((p1, p2) => {
-      let t1 = p1.updatedAt
-      let t2 = p2.updatedAt
-      if (p1.bumpedAt) {
-        t1 = p1.bumpedAt
-      }
-      if (p2.bumpedAt) {
-        t2 = p2.bumpedAt
-      }
-      return t2 - t1
+      const t1 = Math.max(p1.locallyBumpedAt || 0, p1.bumpedAt);
+      const t2 = Math.max(p2.locallyBumpedAt || 0, p2.bumpedAt);
+
+      return t2 - t1;
     })
 
     posts = posts.slice(offset, offset + limit)
@@ -410,7 +405,7 @@ export function addModel(dbAdapter) {
     } else {
       await Promise.all([
         dbAdapter.insertPostIntoFeeds([this.intId], postId),
-        dbAdapter.setPostUpdatedAt(postId, currentTime)
+        dbAdapter.setPostBumpedAt(postId, currentTime)
       ])
     }
 

@@ -254,6 +254,7 @@ const FEED_FIELDS_MAPPING = {
 const POST_COLUMNS = {
   createdAt:        'created_at',
   updatedAt:        'updated_at',
+  bumpedAt:         'bumped_at',
   userId:           'user_id',
   body:             'body',
   commentsDisabled: 'comments_disabled',
@@ -268,6 +269,11 @@ const POST_COLUMNS_MAPPING = {
     return d.toISOString()
   },
   updatedAt: (timestamp) => {
+    const d = new Date()
+    d.setTime(timestamp)
+    return d.toISOString()
+  },
+  bumpedAt: (timestamp) => {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
@@ -287,6 +293,7 @@ const POST_FIELDS = {
   uid:                  'id',
   created_at:           'createdAt',
   updated_at:           'updatedAt',
+  bumped_at:            'bumpedAt',
   user_id:              'userId',
   body:                 'body',
   comments_disabled:    'commentsDisabled',
@@ -301,6 +308,7 @@ const POST_FIELDS = {
 const POST_FIELDS_MAPPING = {
   created_at:        (time) => { return time.getTime().toString() },
   updated_at:        (time) => { return time.getTime().toString() },
+  bumped_at:         (time) => { return time.getTime().toString() },
   comments_disabled: (comments_disabled) => {return comments_disabled ? '1' : '0' },
   user_id:           (user_id) => {return user_id ? user_id : ''},
   is_private:        (is_private) => {return is_private ? '1' : '0' },
@@ -1413,7 +1421,7 @@ export class DbAdapter {
   }
 
   async getPostsByIds(ids, params) {
-    const responses = await this.database('posts').orderBy('updated_at', 'desc').whereIn('uid', ids)
+    const responses = await this.database('posts').orderBy('bumped_at', 'desc').whereIn('uid', ids)
     return responses.map((attrs) => this.initPostObject(attrs, params))
   }
 
@@ -1422,11 +1430,11 @@ export class DbAdapter {
     return parseInt(res[0].count)
   }
 
-  setPostUpdatedAt(postId, time) {
-    const d = new Date()
-    d.setTime(time)
-    const payload = { updated_at: d.toISOString() }
-    return this.database('posts').where('uid', postId).update(payload)
+  setPostBumpedAt(postId, time) {
+    const d = new Date();
+    d.setTime(time);
+    const payload = { bumped_at: d.toISOString() };
+    return this.database('posts').where('uid', postId).update(payload);
   }
 
   async deletePost(postId) {
@@ -1468,7 +1476,7 @@ export class DbAdapter {
   }
 
   async getTimelinePostsRange(timelineId, offset, limit) {
-    const res = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[timelineId]])
+    const res = await this.database('posts').select('uid', 'updated_at').orderBy('bumped_at', 'desc').offset(offset).limit(limit).whereRaw('feed_ids && ?', [[timelineId]])
     const postIds = res.map((record) => {
       return record.uid
     })
@@ -1477,8 +1485,8 @@ export class DbAdapter {
 
   async getFeedsPostsRange(timelineIds, offset, limit, params) {
     const responses = await this.database('posts')
-      .select('uid', 'created_at', 'updated_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids')
-      .orderBy('updated_at', 'desc')
+      .select('uid', 'created_at', 'updated_at', 'bumped_at', 'user_id', 'body', 'comments_disabled', 'feed_ids', 'destination_feed_ids')
+      .orderBy('bumped_at', 'desc')
       .offset(offset).limit(limit)
       .whereRaw('feed_ids && ?', [timelineIds]);
 
@@ -1569,13 +1577,13 @@ export class DbAdapter {
     params = {
       limit:          30,
       offset:         0,
-      sort:           'updated',
+      sort:           'bumped',
       withLocalBumps: false,
       withMyPosts:    false,
       ...params,
     };
 
-    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'updated';
+    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'bumped';
 
     // Private feeds viewer can read
     let visiblePrivateFeedIntIds = [];
@@ -1623,7 +1631,7 @@ export class DbAdapter {
           and (not p.is_private or p.destination_feed_ids && %L)  -- privates
           and ${noDirectsSQL}
         order by
-          greatest(p.updated_at, b.created_at) desc
+          greatest(p.bumped_at, b.created_at) desc
         limit %L offset %L
         `,
         viewerId,
@@ -1667,12 +1675,12 @@ export class DbAdapter {
   }
 
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
-    const res1 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
+    const res1 = await this.database('posts').select('uid', 'updated_at').orderBy('bumped_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
     const postIds1 = res1.map((record) => {
       return record.uid
     })
 
-    const res2 = await this.database('posts').select('uid', 'updated_at').orderBy('updated_at', 'desc').whereRaw('feed_ids && ?', [[timelineId2]])
+    const res2 = await this.database('posts').select('uid', 'updated_at').orderBy('bumped_at', 'desc').whereRaw('feed_ids && ?', [[timelineId2]])
     const postIds2 = res2.map((record) => {
       return record.uid
     })
@@ -1721,7 +1729,7 @@ export class DbAdapter {
         "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS} AND "posts"."created_at" > (current_date - ${MAX_DAYS} * interval '1 day')
         ${bannedUsersFilter}
         ${usersWhoBannedMeFilter}
-      ORDER BY "posts"."updated_at" DESC
+      ORDER BY "posts"."bumped_at" DESC
       OFFSET ${offset} LIMIT ${limit}`;
 
     const res = await this.database.raw(sql);
@@ -2099,7 +2107,7 @@ export class DbAdapter {
     }
 
     const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
@@ -2145,7 +2153,7 @@ export class DbAdapter {
     }
 
     const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts where found_posts.user_id='${targetUserId}' order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+      `select * from (${subQueries.join(' union ')}) as found_posts where found_posts.user_id='${targetUserId}' order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
@@ -2195,7 +2203,7 @@ export class DbAdapter {
     }
 
     const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.updated_at desc offset ${offset} limit ${limit}`
+      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     )
     return res.rows
   }
