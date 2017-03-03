@@ -30,7 +30,8 @@ export async function up(knex) {
   });
 
   await knex.schema.createTable('archive_via', (table) => {
-    table.text('url').notNullable().primary();
+    table.increments('id').notNullable().primary();
+    table.text('url').notNullable().unique();
     table.text('title').notNullable();
   });
 
