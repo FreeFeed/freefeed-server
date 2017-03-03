@@ -210,10 +210,10 @@ const COMMENT_FIELDS = {
 }
 
 const COMMENT_FIELDS_MAPPING = {
-  created_at: (time) => { return time.getTime().toString() },
-  updated_at: (time) => { return time.getTime().toString() },
-  post_id:    (post_id) => {return post_id ? post_id : ''},
-  user_id:    (user_id) => {return user_id ? user_id : ''}
+  updated_at: (time) => time.getTime().toString(),
+  created_at: (time) => time.getTime().toString(),
+  post_id:    (post_id) => post_id ? post_id : null,
+  user_id:    (user_id) => user_id ? user_id : null,
 }
 
 
@@ -1204,11 +1204,9 @@ export class DbAdapter {
     const [
       viewer,
       bannedUsersIds,
-      [postAuthorId],
     ] = await Promise.all([
       viewerUserId ? this.getUserById(viewerUserId) : null,
       viewerUserId ? this.getUserBansIds(viewerUserId) : [],
-      this.database.pluck('user_id').from('posts').where({ uid: postId }),
     ]);
 
     if (viewerUserId) {
@@ -1228,7 +1226,7 @@ export class DbAdapter {
     const comments = responses
       .map((comm) => {
         if (bannedUsersIds.includes(comm.user_id)) {
-          comm.user_id = postAuthorId;
+          comm.user_id = null;
           comm.hide_type = Comment.HIDDEN_BANNED;
           comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
         }
@@ -1928,7 +1926,7 @@ export class DbAdapter {
 
     for (const comm of commentsData) {
       if (!nobodyIsBanned && bannedUsersIds.includes(comm.user_id)) {
-        comm.user_id = results[comm.post_id].post.userId;
+        comm.user_id = null;
         comm.hide_type = Comment.HIDDEN_BANNED;
         comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
       }
