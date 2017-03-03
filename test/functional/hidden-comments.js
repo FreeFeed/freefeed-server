@@ -52,7 +52,7 @@ describe('Hidden comments', () => {
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === reply.posts.comments[0]);
         const lunaComment =  reply.comments.find((c) => c.id === reply.posts.comments[1]);
-        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED, createdBy: post.createdBy });
+        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
         expect(lunaComment,  'to satisfy', { hideType: Comment.VISIBLE });
       });
 
@@ -62,7 +62,7 @@ describe('Hidden comments', () => {
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === postInReply.comments[0]);
         const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
-        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED, createdBy: post.createdBy });
+        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
         expect(lunaComment,  'to satisfy', { hideType: Comment.VISIBLE });
       });
 
@@ -71,7 +71,7 @@ describe('Hidden comments', () => {
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === reply.posts.comments[0]);
         const lunaComment =  reply.comments.find((c) => c.id === reply.posts.comments[1]);
-        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED, createdBy: post.createdBy });
+        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
         expect(lunaComment,  'to not have key', 'hideType');
       });
 
@@ -81,7 +81,7 @@ describe('Hidden comments', () => {
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === postInReply.comments[0]);
         const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
-        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED, createdBy: post.createdBy });
+        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
         expect(lunaComment,  'to not have key', 'hideType');
       });
     });

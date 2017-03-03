@@ -1,5 +1,7 @@
 import expect from 'unexpected'
 
+import { Comment } from '../../app/models'
+
 export const boolString = (v) => expect(v, 'to be a string').and('to be one of', ['0', '1']);
 
 export const timeStampString = (v) => expect(v, 'to be a string').and('to match', /^\d+$/);
@@ -60,13 +62,21 @@ export const post = (obj) => {
   });
 };
 
-export const comment = {
+const commentBasic = {
   id:        expect.it('to satisfy', UUID),
   body:      expect.it('to be a string'),
   createdAt: expect.it('to satisfy', timeStampString),
   updatedAt: expect.it('to satisfy', timeStampString),
-  createdBy: expect.it('to satisfy', UUID),
-  hideType:  expect.it('to be greater than or equal to', 0),
+  hideType:  expect.it('to be greater than or equal to', Comment.VISIBLE),
+};
+
+export const comment = (obj) => {
+  const isHidden = obj && typeof obj === 'object' && obj.hideType !== Comment.VISIBLE;
+  const createdByExpectation = isHidden ? expect.it('to be null') : expect.it('to satisfy', UUID);
+  return expect(obj, 'to exhaustively satisfy', {
+    ...commentBasic,
+    createdBy: createdByExpectation,
+  });
 };
 
 const attachmentCommons = {
