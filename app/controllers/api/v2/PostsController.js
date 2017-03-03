@@ -115,8 +115,9 @@ export default class PostsController {
     }
 
     const body = _.escape(post.body);
+    const author = await dbAdapter.getUserById(post.userId);
 
-    // The first image attachement is used
+    // The first image attachment is used
     const attachments = await dbAdapter.getAttachmentsOfPost(post.id).map(serializeAttachment);
 
     let image = null;
@@ -131,19 +132,16 @@ export default class PostsController {
       }
     }
 
-    let og = `<meta property="og:title" content="${body}" />
-      <meta property="og:type" content="article" />
-      <meta name="twitter:card" content="summary" />
-      <meta name="twitter:title" content="${body}" />
-      <meta name="twitter:description" content="" />`;
+    let og = `<meta property="og:title" content="FreeFeed.net/${author.username}" />
+      <meta property="og:description" content="${body}" />
+      <meta property="og:type" content="article" />`;
 
     if (image) {
-      og += `<meta property="og:image" content="${image}" />
+      og += `
+        <meta property="og:image" content="${image}" />
         <meta property="og:image:width" content="${image_w}" />
-        <meta property="og:image:height" content="${image_h}" />
-        <meta name="twitter:image" content="${image}" />`;
+        <meta property="og:image:height" content="${image_h}" />`;
     }
-
     ctx.body = og;
   });
 }
