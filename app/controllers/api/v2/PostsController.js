@@ -114,23 +114,25 @@ export default class PostsController {
       return;
     }
 
-    const body = _.escape(post.body);
-    const author = await dbAdapter.getUserById(post.userId);
-
-    // The first image attachment is used
-    const attachments = await dbAdapter.getAttachmentsOfPost(post.id).map(serializeAttachment);
-
     let image = null;
     let image_h, image_w;
 
-    for (const item of attachments) {
-      if (item.mediaType === 'image') {
-        image = item.imageSizes[`t2`].url;
-        image_h = item.imageSizes[`t2`].h;
-        image_w = item.imageSizes[`t2`].w;
-        break;
+    // The first image attachment is used
+    const attachments = await dbAdapter.getAttachmentsOfPost(post.id);
+
+    if (attachments.length > 0) {
+      for (const item of attachments.map(serializeAttachment)) {
+        if (item.mediaType === 'image') {
+          image = item.imageSizes[`t2`].url;
+          image_h = item.imageSizes[`t2`].h;
+          image_w = item.imageSizes[`t2`].w;
+          break;
+        }
       }
     }
+
+    const author = await dbAdapter.getUserById(post.userId);
+    const body = _.escape(post.body);
 
     let og = `<meta property="og:title" content="FreeFeed.net/${author.username}" />
       <meta property="og:description" content="${body}" />
