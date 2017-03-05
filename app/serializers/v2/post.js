@@ -57,6 +57,8 @@ export function serializePost(post) {
       'commentsDisabled',
       'createdAt',
       'updatedAt',
+      'commentLikes',
+      'ownCommentLikes'
     ]),
     createdBy: post.userId,
   };

@@ -1884,6 +1884,8 @@ export class DbAdapter {
 
     const results = {};
 
+    const postsCommentLikes = await this.getLikesInfoForPosts(uniqPostsIds, viewerId);
+
     for (const post of postsData) {
       results[post.uid] = {
         post:            this.initPostObject(post),
@@ -1894,6 +1896,13 @@ export class DbAdapter {
         likes:           [],
         omittedLikes:    0,
       };
+      results[post.uid].post.commentLikes = 0;
+      results[post.uid].post.ownCommentLikes = 0;
+      const commentLikesForPost = postsCommentLikes.find((el) => el.uid === post.uid);
+      if (commentLikesForPost) {
+        results[post.uid].post.commentLikes = commentLikesForPost.post_c_likes_count;
+        results[post.uid].post.ownCommentLikes = commentLikesForPost.own_c_likes_count;
+      }
     }
 
     for (const dest of destData) {
@@ -2645,5 +2654,42 @@ export class DbAdapter {
 
     const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
     return commentLikes;
+  }
+
+  async getLikesInfoForPosts(postsUUIDs, viewerUUID) {
+    if (_.isEmpty(postsUUIDs)) {
+      return [];
+    }
+
+    const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
+    const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
+    }
+
+    const commentLikesSQL = pgFormat(`
+      select  p.uid,
+              (select count(cl.*)
+                from comment_likes cl join comments c
+                  on c.id = cl.comment_id
+                where c.post_id = p.uid and
+                      c.user_id not in (%L) and
+                      cl.user_id not in (select id from users where uid in (%L))
+              ) as post_c_likes_count,
+              (select count(cl.*)
+                from comment_likes cl join comments c
+                  on c.id = cl.comment_id
+                where c.post_id = p.uid and
+                      c.user_id not in (%L) and
+                      cl.user_id = %L
+              ) as own_c_likes_count
+        from
+          posts p
+        where p.uid in (%L)`,
+      bannedUsersIds, bannedUsersIds, bannedUsersIds, viewerIntId, postsUUIDs);
+
+    const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
+    return postsCommentLikes;
   }
 }
