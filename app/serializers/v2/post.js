@@ -32,12 +32,26 @@ export const serializePostsCollection = async (postsObjects, viewerUUID = null) 
 };
 
 async function insertCommentLikesInfo(postsPayload, viewerUUID) {
+  const postIds = map(postsPayload.posts, 'id');
   const commentIds = map(postsPayload.comments, 'id');
-  const commentLikes = await dbAdapter.getLikesInfoForComments(commentIds, viewerUUID);
+  const [commentLikes, postCommentLikesInfo] = await Promise.all([
+    dbAdapter.getLikesInfoForComments(commentIds, viewerUUID),
+    dbAdapter.getLikesInfoForPosts(postIds, viewerUUID)
+  ]);
+
+  for (const post of postsPayload.posts) {
+    post.commentLikes = 0;
+    post.ownCommentLikes = 0;
+    const commentLikesForPost = postCommentLikesInfo.find((el) => el.uid === post.id);
+    if (commentLikesForPost) {
+      post.commentLikes = commentLikesForPost.post_c_likes_count;
+      post.ownCommentLikes = commentLikesForPost.own_c_likes_count;
+    }
+  }
 
   for (const comment of postsPayload.comments) {
     let [likesCount, hasOwnLike] = [0, false];
-    const likeInfo = find(commentLikes, { 'uid': comment.id });
+    const likeInfo = commentLikes.find((el) => el.uid === comment.id);
 
     if (likeInfo) {
       likesCount = likeInfo.c_likes;
