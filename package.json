@@ -8,9 +8,10 @@
   "scripts": {
     "start": "babel-node profiled.js",
     "travis": "run-s -c test lint",
-    "test": "run-s reset-test-db mocha",
+    "test": "run-s reset-test-db test-rollback mocha",
     "lint": "eslint app config test",
     "reset-test-db": "./bin/clean_test_db && knex --env test migrate:latest",
+    "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
     "mocha": "NODE_ENV=test mocha --opts test/mocha.opts test/unit test/functional",
     "console": "babel-node bin/console",
     "coverage": "NODE_ENV=test istanbul cover _mocha -- -R spec",
