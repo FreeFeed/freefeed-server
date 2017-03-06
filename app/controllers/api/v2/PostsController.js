@@ -126,17 +126,20 @@ export default class PostsController {
           let image_size;
 
           // Image fallback: thumbnail 2 (t2) => thumbnail (t) => original (o) => none
+          // Posts created in older versions of FreeFeed had only one thumbnail (t)
           if (`t2` in item.imageSizes) {
-            image_size = `t2`;
+            image_size = `t2`; // Use high-res thumbnail
+            image = item.imageSizes[image_size].url;
           } else if (`t` in item.imageSizes) {
-            image_size = `t`;
+            image_size = `t`;  // Use thumbnail
+            image = item.thumbnailUrl;
           } else if (`o` in item.imageSizes) {
-            image_size = `o`;
+            image_size = `o`; // Use original image if there are no thumbnails present
+            image = item.url;
           } else {
             break;
           }
 
-          image = item.imageSizes[image_size].url;
           image_h = item.imageSizes[image_size].h;
           image_w = item.imageSizes[image_size].w;
           break;
