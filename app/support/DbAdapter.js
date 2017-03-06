@@ -1924,6 +1924,24 @@ export class DbAdapter {
       comment.hasOwnLike  = comm.has_own_like;
       results[comm.post_id].comments.push(comment);
       results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
+
+      if (params.foldComments && results[comm.post_id].omittedComments > 0) {
+        let omittedCLikes = results[comm.post_id].post.hasOwnProperty('omittedCommentLikes') ?
+          results[comm.post_id].post.omittedCommentLikes :
+          results[comm.post_id].post.commentLikes;
+
+        let omittedOwnCLikes = results[comm.post_id].post.hasOwnProperty('omittedOwnCommentLikes') ?
+          results[comm.post_id].post.omittedOwnCommentLikes :
+          results[comm.post_id].post.ownCommentLikes;
+
+        omittedCLikes -= comment.likes;
+        omittedOwnCLikes -= comment.hasOwnLike ? 1 : 0;
+        results[comm.post_id].post.omittedCommentLikes = omittedCLikes;
+        results[comm.post_id].post.omittedOwnCommentLikes = omittedOwnCLikes;
+      } else {
+        results[comm.post_id].post.omittedCommentLikes = 0;
+        results[comm.post_id].post.omittedOwnCommentLikes = 0;
+      }
     }
 
     return postsIds.map((id) => results[id] || null);

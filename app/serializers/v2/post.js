@@ -1,4 +1,4 @@
-import { reduce, uniqBy, pick, map, find } from 'lodash';
+import { reduce, uniqBy, pick, map } from 'lodash';
 import { PostSerializer, dbAdapter } from '../../models';
 
 export const serializePostsCollection = async (postsObjects, viewerUUID = null) => {
@@ -72,7 +72,9 @@ export function serializePost(post) {
       'createdAt',
       'updatedAt',
       'commentLikes',
-      'ownCommentLikes'
+      'ownCommentLikes',
+      'omittedCommentLikes',
+      'omittedOwnCommentLikes'
     ]),
     createdBy: post.userId,
   };
