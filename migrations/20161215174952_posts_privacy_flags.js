@@ -124,7 +124,7 @@ export function down(knex) {
       table.dropIndex('', 'posts_is_private_idx');
       table.dropIndex('', 'posts_is_protected_idx');
     })
-    .raw('alter table users drop constraint posts_is_protected_check')
+    .raw('alter table posts drop constraint posts_is_protected_check')
     .raw('DROP TRIGGER trg_set_posts_privacy_on_user_update ON users')
     .raw('DROP TRIGGER trg_set_post_privacy_on_insert_update ON posts')
     .raw('DROP FUNCTION trgfun_set_post_privacy_on_insert_update()')
