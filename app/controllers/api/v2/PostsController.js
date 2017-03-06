@@ -123,9 +123,22 @@ export default class PostsController {
     if (attachments.length > 0) {
       for (const item of attachments.map(serializeAttachment)) {
         if (item.mediaType === 'image') {
-          image = item.imageSizes[`t2`].url;
-          image_h = item.imageSizes[`t2`].h;
-          image_w = item.imageSizes[`t2`].w;
+          let image_size;
+
+          // Image fallback: thumbnail 2 (t2) => thumbnail (t) => original (o) => none
+          if (`t2` in item.imageSizes) {
+            image_size = `t2`;
+          } else if (`t` in item.imageSizes) {
+            image_size = `t`;
+          } else if (`o` in item.imageSizes) {
+            image_size = `o`;
+          } else {
+            break;
+          }
+
+          image = item.imageSizes[image_size].url;
+          image_h = item.imageSizes[image_size].h;
+          image_w = item.imageSizes[image_size].w;
           break;
         }
       }
