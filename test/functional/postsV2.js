@@ -20,11 +20,12 @@ import * as schema from './schemaV2-helper';
 
 describe('TimelinesControllerV2', () => {
   let app;
-  let fetchPost;
+  let fetchPost, fetchPostOpenGraph;
 
   before(async () => {
     app = await getSingleton();
     fetchPost = postFetcher(app);
+    fetchPostOpenGraph = postOpenGraphFetcher(app);
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -164,6 +165,52 @@ describe('TimelinesControllerV2', () => {
           expect(post.posts.id, 'to be', lunaPost.id);
         });
       });
+
+      describe('Open Graph test', async () => {
+        let lunaPostWithSpecialCharacters, lunaPostWithNewLines;
+
+        beforeEach(async () => {
+          lunaPostWithSpecialCharacters = await createAndReturnPost(luna, 'Test with tags <br>');
+          lunaPostWithNewLines = await createAndReturnPost(luna, 'A\nB\nC');
+        });
+
+        describe('Luna is a public user', () => {
+          it('should return information for a public post', async () => {
+            const response = await fetchPostOpenGraph(lunaPost.id);
+            response.should.include('og:title');
+            response.should.include('luna');
+            response.should.include('<meta property="og:description" content="Luna post" />');
+          });
+
+          it('should escape special characters', async () => {
+            const response = await fetchPostOpenGraph(lunaPostWithSpecialCharacters.id);
+            response.should.include('<meta property="og:description" content="Test with tags &lt;br&gt;" />');
+          });
+
+          it('should support new lines', async () => {
+            const response = await fetchPostOpenGraph(lunaPostWithNewLines.id);
+            response.should.include('<meta property="og:description" content="A\nB\nC" />');
+          });
+        });
+
+        describe('Luna is a protected user', async () => {
+          beforeEach(async () => await goProtected(luna));
+
+          it('should not return any information for a protected post', async () => {
+            const response = await fetchPostOpenGraph(lunaPost.id);
+            response.should.be.empty;
+          });
+        });
+
+        describe('Luna is a private user', async () => {
+          beforeEach(async () => await goPrivate(luna));
+
+          it('should not return any information for a private post', async () => {
+            const response = await fetchPostOpenGraph(lunaPost.id);
+            response.should.be.empty;
+          });
+        });
+      });
     });
   });
 });
@@ -206,4 +253,14 @@ const postFetcher = (app) => async (postId, viewerContext = null, params = {}) =
   }
   expect(post, 'to exhaustively satisfy', postSchema);
   return post;
+};
+
+const postOpenGraphFetcher = (app) => async (postId) => {
+  const res = await fetch(`${app.context.config.host}/v2/posts-opengraph/${postId}`);
+
+  if (res.status !== 200) {
+    expect.fail('HTTP error (code {0})', res.status);
+  }
+
+  return await res.text();
 };

@@ -3,7 +3,7 @@ import { dbAdapter } from '../../../models';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, authRequired, userSerializerFunction } from './helpers';
 
-const ORD_UPDATED = 'updated'; // eslint-disable-line no-unused-vars
+const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
 const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
 
 export default class TimelinesController {
@@ -77,7 +77,7 @@ export default class TimelinesController {
  * @param {object} query                 - Query object
  * @param {string} [query.limit]         - Number of posts returned (default: 30)
  * @param {string} [query.offset]        - Number of posts to skip (default: 0)
- * @param {string} [query.sort]          - Sort mode ('created' or 'updated')
+ * @param {string} [query.sort]          - Sort mode ('created' or 'bumped')
  * @param {string} [query.with-my-posts] - For filter/discussions only: return viewer's own
  *                                         posts even without his likes or comments (default: no)
  * @param {string} defaultSort           - Default sort mode
