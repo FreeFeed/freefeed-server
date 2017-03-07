@@ -27,7 +27,7 @@ import * as schema from './schemaV2-helper'
 
 describe('Comment likes', () => {
   let app;
-  let likeComment, unlikeComment, writeComment, getLikes;
+  let likeComment, unlikeComment, writeComment, getLikes, getPost;
 
   before(async () => {
     app = await getSingleton();
@@ -35,6 +35,7 @@ describe('Comment likes', () => {
     unlikeComment = deleteCommentLike(app);
     getLikes = getCommentLikes(app);
     writeComment = createComment();
+    getPost = fetchPost(app);
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -723,6 +724,292 @@ describe('Comment likes', () => {
       });
     });
   });
+
+  describe('PostsControllerV2', () => {
+    describe('comment likes fields', () => {
+      let luna, mars, jupiter, pluto;
+      let lunaPost;
+
+      const expectCommentLikesCountToBe = async (postId, viewer = null, all, own, omitted, omittedOwn, allComments = false) => {
+        const res = await getPost(postId, viewer, allComments);
+
+        expect(res, 'to satisfy', { status: 200 });
+        const responseJson = await res.json();
+
+        expect(responseJson, 'to satisfy', {
+          posts: {
+            commentLikes:           all,
+            ownCommentLikes:        own,
+            omittedCommentLikes:    omitted,
+            omittedOwnCommentLikes: omittedOwn
+          }
+        });
+      };
+
+      beforeEach(async () => {
+        [luna, mars, jupiter, pluto] = await Promise.all([
+          createUserAsync('luna', 'pw'),
+          createUserAsync('mars', 'pw'),
+          createUserAsync('jupiter', 'pw'),
+          createUserAsync('pluto', 'pw'),
+        ]);
+        lunaPost = await createAndReturnPost(luna, 'Luna post');
+        await mutualSubscriptions([luna, mars]);
+      });
+
+      describe('should be zeroes for post without comments', () => {
+        it('for anonymous user', async () => {
+          await expectCommentLikesCountToBe(lunaPost.id, null, 0, 0, 0, 0);
+          await expectCommentLikesCountToBe(lunaPost.id, null, 0, 0, 0, 0, true);
+        });
+
+        it('for post author', async () => {
+          await expectCommentLikesCountToBe(lunaPost.id, luna, 0, 0, 0, 0);
+          await expectCommentLikesCountToBe(lunaPost.id, luna, 0, 0, 0, 0, true);
+        });
+
+        it('for any user', async () => {
+          await expectCommentLikesCountToBe(lunaPost.id, mars, 0, 0, 0, 0);
+          await expectCommentLikesCountToBe(lunaPost.id, jupiter, 0, 0, 0, 0, true);
+        });
+      });
+
+      describe('should contain actual comment likes count for post with', () => {
+        describe('1 comment', () => {
+          beforeEach(async () => {
+            const comment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+            await likeComment(comment.id, pluto);
+            await likeComment(comment.id, mars);
+            await likeComment(comment.id, luna);
+          });
+
+          it('for anonymous user', async () => await expectCommentLikesCountToBe(lunaPost.id, null, 3, 0, 0, 0));
+          it('for comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 3, 1, 0, 0));
+          it('for comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 3, 0, 0, 0));
+        });
+
+        describe('2 comments', () => {
+          beforeEach(async () => {
+            const comment1 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+            const comment2 = await writeComment(luna, lunaPost.id, 'Luna comment');
+            await likeComment(comment1.id, pluto);
+            await likeComment(comment1.id, mars);
+            await likeComment(comment1.id, luna);
+            await likeComment(comment2.id, pluto);
+            await likeComment(comment2.id, mars);
+          });
+
+          it('for anonymous user', async () => await expectCommentLikesCountToBe(lunaPost.id, null, 5, 0, 0, 0));
+          it('for comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 5, 1, 0, 0));
+          it('for other comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 5, 2, 0, 0));
+          it('for comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 5, 0, 0, 0));
+        });
+
+        describe('3 comments', () => {
+          beforeEach(async () => {
+            const comment1 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+            await writeComment(luna, lunaPost.id, 'Luna comment');
+            const comment3 = await writeComment(mars, lunaPost.id, 'Mars comment');
+            await likeComment(comment1.id, pluto);
+            await likeComment(comment1.id, mars);
+            await likeComment(comment1.id, luna);
+            await likeComment(comment3.id, pluto);
+            await likeComment(comment3.id, luna);
+          });
+
+          it('for anonymous user', async () => await expectCommentLikesCountToBe(lunaPost.id, null, 5, 0, 0, 0));
+          it('for comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 5, 2, 0, 0));
+          it('for other comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 5, 2, 0, 0));
+          it('for comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 5, 0, 0, 0));
+          it('for other comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 5, 1, 0, 0));
+        });
+
+        describe('4 comments', () => {
+          beforeEach(async () => {
+            const comment1 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+            const comment2 = await writeComment(luna, lunaPost.id, 'Luna comment');
+            const comment3 = await writeComment(mars, lunaPost.id, 'Mars comment');
+            const comment4 = await writeComment(mars, lunaPost.id, 'Mars comment');
+            await likeComment(comment1.id, pluto);
+            await likeComment(comment2.id, mars);
+            await likeComment(comment3.id, jupiter);
+            await likeComment(comment4.id, luna);
+          });
+
+          describe('with comment folding', () => {
+            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
+            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 2, 0));
+            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
+            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 2, 1));
+            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 2, 0));
+          });
+
+          describe('without comment folding', () => {
+            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
+            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 0, 0, true));
+            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
+            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 0, 0, true));
+            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 0, 0, true));
+          });
+        });
+
+        describe('5 comments', () => {
+          beforeEach(async () => {
+            const comment1 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+            const comment2 = await writeComment(luna, lunaPost.id, 'Luna comment');
+            const comment3 = await writeComment(mars, lunaPost.id, 'Mars comment');
+            await writeComment(mars, lunaPost.id, 'Mars comment');
+            const comment5 = await writeComment(pluto, lunaPost.id, 'Pluto comment');
+            await likeComment(comment1.id, pluto);
+            await likeComment(comment2.id, mars);
+            await likeComment(comment3.id, jupiter);
+            await likeComment(comment5.id, luna);
+          });
+
+          describe('with comment folding', () => {
+            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
+            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 2, 0));
+            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
+            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 2, 1));
+            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 2, 0));
+          });
+
+          describe('without comment folding', () => {
+            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
+            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 0, 0, true));
+            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
+            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 0, 0, true));
+            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 0, 0, true));
+          });
+        });
+      });
+
+      describe("should exclude banned user's comment likes", () => {
+        beforeEach(async () => {
+          const comment1 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+          const comment2 = await writeComment(luna, lunaPost.id, 'Luna comment');
+          const comment3 = await writeComment(mars, lunaPost.id, 'Mars comment');
+          await writeComment(mars, lunaPost.id, 'Mars comment');
+          const comment5 = await writeComment(pluto, lunaPost.id, 'Pluto comment');
+          await likeComment(comment1.id, pluto);
+          await likeComment(comment2.id, mars);
+          await likeComment(comment3.id, jupiter);
+          await likeComment(comment5.id, luna);
+
+          await Promise.all([
+            banUser(luna, jupiter),
+            banUser(luna, pluto)
+          ]);
+        });
+
+        describe('with comment folding', () => {
+          it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
+          it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
+          it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 1, 0, 0, 0));
+        });
+
+        describe('without comment folding', () => {
+          it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
+          it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
+          it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 1, 0, 0, 0, true));
+        });
+      });
+
+      describe('should be present in comment payload', () => {
+        beforeEach(async () => {
+          const comment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+          await likeComment(comment.id, pluto);
+          await likeComment(comment.id, mars);
+          await likeComment(comment.id, luna);
+        });
+
+        it('for anonymous user', async () => {
+          const res = await getPost(lunaPost.id);
+
+          expect(res, 'to satisfy', { status: 200 });
+          const responseJson = await res.json();
+
+          expect(responseJson, 'to satisfy', {
+            comments: expect.it('to be an array')
+                        .and('to be non-empty')
+                        .and('to have length', 1)
+                        .and('to have items satisfying', {
+                          likes:      3,
+                          hasOwnLike: false
+                        })
+          });
+        });
+
+        it('for Luna', async () => {
+          const res = await getPost(lunaPost.id, luna);
+
+          expect(res, 'to satisfy', { status: 200 });
+          const responseJson = await res.json();
+
+          expect(responseJson, 'to satisfy', {
+            comments: expect.it('to be an array')
+                        .and('to be non-empty')
+                        .and('to have length', 1)
+                        .and('to have items satisfying', {
+                          likes:      3,
+                          hasOwnLike: true
+                        })
+          });
+        });
+
+        it('for Mars', async () => {
+          const res = await getPost(lunaPost.id, mars);
+
+          expect(res, 'to satisfy', { status: 200 });
+          const responseJson = await res.json();
+
+          expect(responseJson, 'to satisfy', {
+            comments: expect.it('to be an array')
+                        .and('to be non-empty')
+                        .and('to have length', 1)
+                        .and('to have items satisfying', {
+                          likes:      3,
+                          hasOwnLike: true
+                        })
+          });
+        });
+
+        it('for Pluto', async () => {
+          const res = await getPost(lunaPost.id, pluto);
+
+          expect(res, 'to satisfy', { status: 200 });
+          const responseJson = await res.json();
+
+          expect(responseJson, 'to satisfy', {
+            comments: expect.it('to be an array')
+                        .and('to be non-empty')
+                        .and('to have length', 1)
+                        .and('to have items satisfying', {
+                          likes:      3,
+                          hasOwnLike: true
+                        })
+          });
+        });
+
+        it('for Jupiter', async () => {
+          const res = await getPost(lunaPost.id, jupiter);
+
+          expect(res, 'to satisfy', { status: 200 });
+          const responseJson = await res.json();
+
+          expect(responseJson, 'to satisfy', {
+            comments: expect.it('to be an array')
+                        .and('to be non-empty')
+                        .and('to have length', 1)
+                        .and('to have items satisfying', {
+                          likes:      3,
+                          hasOwnLike: false
+                        })
+          });
+        });
+      });
+    });
+  });
 });
 
 const createCommentLike = (app) => async (commentId, likerContext = null) => {
@@ -756,6 +1043,15 @@ const createComment = () => async (userContext, postId, body) => {
   const response = await createCommentAsync(userContext, postId, body);
   const commentData = await response.json();
   return commentData.comments;
+};
+
+const fetchPost = (app) => async (postId, viewerContext = null, allComments = false) => {
+  const headers = {};
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const response = await fetch(`${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`, { method: 'GET', headers });
+  return response;
 };
 
 const commentHavingOneLikeExpectation = (liker) => async (obj) => {
