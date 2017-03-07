@@ -1944,6 +1944,13 @@ export class DbAdapter {
       }
     }
 
+    for (const post of postsData) {
+      if (!results[post.uid].post.hasOwnProperty('omittedCommentLikes')) {
+        results[post.uid].post.omittedCommentLikes = 0;
+        results[post.uid].post.omittedOwnCommentLikes = 0;
+      }
+    }
+
     return postsIds.map((id) => results[id] || null);
   }
 
