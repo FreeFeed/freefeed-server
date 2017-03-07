@@ -46,14 +46,14 @@ async function insertCommentLikesInfo(postsPayload, viewerUUID) {
     post.omittedOwnCommentLikes = 0;
     const commentLikesForPost = postCommentLikesInfo.find((el) => el.uid === post.id);
     if (commentLikesForPost) {
-      post.commentLikes = commentLikesForPost.post_c_likes_count;
-      post.ownCommentLikes = commentLikesForPost.own_c_likes_count;
+      post.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
+      post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
       post.omittedCommentLikes = post.commentLikes;
       post.omittedOwnCommentLikes = post.ownCommentLikes;
       for (const commentId in post.comments) {
         const likeInfo = commentLikes.find((el) => el.uid === commentId);
         if (likeInfo) {
-          post.omittedCommentLikes -= likeInfo.c_likes;
+          post.omittedCommentLikes -= parseInt(likeInfo.c_likes);
           post.omittedOwnCommentLikes -= likeInfo.has_own_like ? 1 : 0;
         }
       }
@@ -65,7 +65,7 @@ async function insertCommentLikesInfo(postsPayload, viewerUUID) {
     const likeInfo = commentLikes.find((el) => el.uid === comment.id);
 
     if (likeInfo) {
-      likesCount = likeInfo.c_likes;
+      likesCount = parseInt(likeInfo.c_likes);
       hasOwnLike = likeInfo.has_own_like;
     }
     comment.likes = likesCount;

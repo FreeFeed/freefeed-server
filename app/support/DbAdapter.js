@@ -1900,8 +1900,8 @@ export class DbAdapter {
       results[post.uid].post.ownCommentLikes = 0;
       const commentLikesForPost = postsCommentLikes.find((el) => el.uid === post.uid);
       if (commentLikesForPost) {
-        results[post.uid].post.commentLikes = commentLikesForPost.post_c_likes_count;
-        results[post.uid].post.ownCommentLikes = commentLikesForPost.own_c_likes_count;
+        results[post.uid].post.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
+        results[post.uid].post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
       }
     }
 
@@ -1920,7 +1920,7 @@ export class DbAdapter {
 
     for (const comm of commentsData) {
       const comment = this.initCommentObject(comm);
-      comment.likes       = comm.c_likes;
+      comment.likes       = parseInt(comm.c_likes);
       comment.hasOwnLike  = comm.has_own_like;
       results[comm.post_id].comments.push(comment);
       results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
