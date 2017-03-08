@@ -18,6 +18,7 @@ import {
   createCommentAsync,
   createGroupAsync,
   createUserAsync,
+  like,
   mutualSubscriptions,
   sendRequestToJoinGroup,
   performSearch,
@@ -1115,6 +1116,51 @@ describe('Comment likes', () => {
 
           await expectFeedCommentLikesCountsToBe('home', luna, 3, 1, 2, 1);
           await expectFeedCommentLikesCountsToBe('home', jupiter, 5, 0, 3, 0);
+        });
+      });
+    });
+
+    describe('#bestOf', () => {
+      beforeEach(async () => {
+        const neptune = await createUserAsync('neptune', 'pw');
+
+        await Promise.all([
+          writeComment(jupiter, lunaPost.id, 'Jupiter comment2'),
+          writeComment(jupiter, lunaPost.id, 'Jupiter comment3'),
+          writeComment(pluto, lunaPost.id, 'Pluto comment1'),
+          writeComment(pluto, lunaPost.id, 'Pluto comment2'),
+          writeComment(pluto, lunaPost.id, 'Pluto comment3'),
+          writeComment(mars, lunaPost.id, 'Mars comment1'),
+          writeComment(mars, lunaPost.id, 'Mars comment2'),
+          writeComment(mars, lunaPost.id, 'Mars comment3'),
+          writeComment(luna, lunaPost.id, 'Luna comment1'),
+          writeComment(luna, lunaPost.id, 'Luna comment2'),
+          writeComment(luna, lunaPost.id, 'Luna comment3'),
+          writeComment(neptune, lunaPost.id, 'Neptune comment1'),
+          writeComment(neptune, lunaPost.id, 'Neptune comment2'),
+          writeComment(neptune, lunaPost.id, 'Neptune comment3'),
+        ]);
+
+        const promises = [];
+        for (let n = 0; n < 6; n++) {
+          promises.push(createUserAsync(`username${n + 1}`, 'pw'));
+        }
+        const users = await Promise.all(promises);
+        users.push(...[jupiter, pluto, mars, neptune]);
+        await Promise.all(users.map((u) => like(lunaPost.id, u.authToken)));
+      });
+
+      it('comment likes fields should be present and contain correct counts', async () => {
+        const headers = { 'X-Authentication-Token': luna.authToken };
+        const response = await fetch(`${app.context.config.host}/v2/bestof`, { headers });
+        const responseJson = await response.json();
+        expect(responseJson, 'to satisfy', {
+          posts: [{
+            commentLikes:           2,
+            ownCommentLikes:        0,
+            omittedCommentLikes:    0,
+            omittedOwnCommentLikes: 0
+          }]
         });
       });
     });
