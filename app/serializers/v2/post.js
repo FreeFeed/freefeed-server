@@ -50,7 +50,7 @@ async function insertCommentLikesInfo(postsPayload, viewerUUID) {
       post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
       post.omittedCommentLikes = post.commentLikes;
       post.omittedOwnCommentLikes = post.ownCommentLikes;
-      for (const commentId in post.comments) {
+      for (const commentId of post.comments) {
         const likeInfo = commentLikes.find((el) => el.uid === commentId);
         if (likeInfo) {
           post.omittedCommentLikes -= parseInt(likeInfo.c_likes);
