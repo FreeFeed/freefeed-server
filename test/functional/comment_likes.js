@@ -27,7 +27,7 @@ import * as schema from './schemaV2-helper'
 
 describe('Comment likes', () => {
   let app;
-  let likeComment, unlikeComment, writeComment, getLikes, getPost;
+  let likeComment, unlikeComment, writeComment, getLikes, getPost, getFeed;
 
   before(async () => {
     app = await getSingleton();
@@ -36,6 +36,7 @@ describe('Comment likes', () => {
     getLikes = getCommentLikes(app);
     writeComment = createComment();
     getPost = fetchPost(app);
+    getFeed = fetchTimeline(app);
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -1010,6 +1011,113 @@ describe('Comment likes', () => {
       });
     });
   });
+
+  describe('TimelinesControllerV2', () => {
+    let luna, mars, jupiter, pluto;
+    let lunaPost, comment;
+
+    const expectFeedCommentLikesCountsToBe = async (feedName, viewer, all, own, omitted, omittedOwn) => {
+      const response = await getFeed(feedName, viewer);
+      const responseJson = await response.json();
+      expect(responseJson, 'to satisfy', {
+        posts: [{
+          commentLikes:           all,
+          ownCommentLikes:        own,
+          omittedCommentLikes:    omitted,
+          omittedOwnCommentLikes: omittedOwn
+        }]
+      });
+    };
+
+    beforeEach(async () => {
+      [luna, mars, jupiter, pluto] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw'),
+        createUserAsync('jupiter', 'pw'),
+        createUserAsync('pluto', 'pw'),
+      ]);
+      lunaPost = await createAndReturnPost(luna, 'Luna post');
+      await mutualSubscriptions([luna, mars]);
+
+      comment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+      await likeComment(comment.id, pluto);
+      await likeComment(comment.id, mars);
+    });
+
+    describe('comment likes fields should be present', () => {
+      it("at Luna's home feed", async () => await expectFeedCommentLikesCountsToBe('home', luna, 2, 0, 0, 0));
+      it("at Mars's home feed", async () => await expectFeedCommentLikesCountsToBe('home', mars, 2, 1, 0, 0));
+      it("at Luna's discussions feed", async () => await expectFeedCommentLikesCountsToBe('filter/discussions?with-my-posts=yes', luna, 2, 0, 0, 0));
+
+      it("at Mars' directs feed", async () => {
+        const luna2marsDirectPost = await createAndReturnPost({ username: 'mars', authToken: luna.authToken }, 'Luna direct');
+        const directComment = await writeComment(mars, luna2marsDirectPost.id, 'Mars direct comment');
+        await likeComment(directComment.id, luna);
+        await expectFeedCommentLikesCountsToBe('filter/directs', mars, 1, 0, 0, 0);
+      });
+      it("at Luna's posts feed", async () => await expectFeedCommentLikesCountsToBe('luna', luna, 2, 0, 0, 0));
+      it("at Jupiter's comments feed", async () => await expectFeedCommentLikesCountsToBe('jupiter/comments', jupiter, 2, 0, 0, 0));
+    });
+
+    describe('for post with folded comments', () => {
+      describe('comments likes fields should contain correct counts', () => {
+        let comment2, comment3, comment4, comment5;
+        beforeEach(async () => {
+          comment2 = await writeComment(mars, lunaPost.id, 'Mars comment');
+          comment3 = await writeComment(pluto, lunaPost.id, 'Pluto comment');
+          comment4 = await writeComment(luna, lunaPost.id, 'Luna comment');
+          comment5 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
+        });
+        it('when only first comment is liked', async () => await expectFeedCommentLikesCountsToBe('home', luna, 2, 0, 0, 0));
+
+        it('when one of folded comments is liked', async () => {
+          await likeComment(comment2.id, pluto);
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 0, 1, 0);
+        });
+
+        it('when one of folded comments is liked', async () => {
+          await likeComment(comment3.id, mars);
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 0, 1, 0);
+        });
+
+        it('when one of folded comments is liked', async () => {
+          await likeComment(comment4.id, pluto);
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 0, 1, 0);
+        });
+
+        it('when first and last comments are liked', async () => {
+          await likeComment(comment5.id, pluto);
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 0, 0, 0);
+        });
+
+        it('when first comment is liked by viewer', async () => {
+          await likeComment(comment.id, luna);
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 1, 0, 0);
+        });
+
+        it('when one of folded comments is liked by viewer', async () => {
+          await likeComment(comment2.id, luna);
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 1, 1, 1);
+          await likeComment(comment3.id, luna);
+          await expectFeedCommentLikesCountsToBe('home', luna, 4, 2, 2, 2);
+          await likeComment(comment4.id, pluto);
+          await expectFeedCommentLikesCountsToBe('home', luna, 5, 2, 3, 2);
+        });
+
+        it('when one of comment likers is banned by viewer', async () => {
+          await likeComment(comment2.id, luna);
+          await likeComment(comment3.id, luna);
+          await likeComment(comment4.id, pluto);
+          await expectFeedCommentLikesCountsToBe('home', luna, 5, 2, 3, 2);
+
+          await banUser(luna, mars);
+
+          await expectFeedCommentLikesCountsToBe('home', luna, 3, 1, 2, 1);
+          await expectFeedCommentLikesCountsToBe('home', jupiter, 5, 0, 3, 0);
+        });
+      });
+    });
+  });
 });
 
 const createCommentLike = (app) => async (commentId, likerContext = null) => {
@@ -1051,6 +1159,15 @@ const fetchPost = (app) => async (postId, viewerContext = null, allComments = fa
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
   const response = await fetch(`${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`, { method: 'GET', headers });
+  return response;
+};
+
+const fetchTimeline = (app) => async (path, viewerContext = null) => {
+  const headers = {};
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const response = await fetch(`${app.context.config.host}/v2/timelines/${path}`, { headers });
   return response;
 };
 
