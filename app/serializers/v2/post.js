@@ -27,7 +27,7 @@ export const serializePostsCollection = async (postsObjects, viewerUUID = null) 
   };
 
   let postsPayload = reduce(postsCollection, transformPosts, postsCollectionJson);
-  postsPayload = insertCommentLikesInfo(postsPayload, viewerUUID);
+  postsPayload = await insertCommentLikesInfo(postsPayload, viewerUUID);
   return postsPayload;
 };
 
@@ -48,13 +48,16 @@ async function insertCommentLikesInfo(postsPayload, viewerUUID) {
     if (commentLikesForPost) {
       post.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
       post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
-      post.omittedCommentLikes = post.commentLikes;
-      post.omittedOwnCommentLikes = post.ownCommentLikes;
-      for (const commentId of post.comments) {
-        const likeInfo = commentLikes.find((el) => el.uid === commentId);
-        if (likeInfo) {
-          post.omittedCommentLikes -= parseInt(likeInfo.c_likes);
-          post.omittedOwnCommentLikes -= likeInfo.has_own_like ? 1 : 0;
+      if (post.commentLikes > 0) {
+        post.omittedCommentLikes = post.commentLikes;
+        post.omittedOwnCommentLikes = post.ownCommentLikes;
+
+        for (const commentId of post.comments) {
+          const likeInfo = commentLikes.find((el) => el.uid === commentId);
+          if (likeInfo) {
+            post.omittedCommentLikes -= parseInt(likeInfo.c_likes);
+            post.omittedOwnCommentLikes -= likeInfo.has_own_like ? 1 : 0;
+          }
         }
       }
     }
