@@ -122,8 +122,12 @@ export function addModel(dbAdapter) {
 
   Comment.prototype.destroy = async function () {
     await dbAdapter.deleteComment(this.id, this.postId);
-    await dbAdapter.statsCommentDeleted(this.userId);
     await pubSub.destroyComment(this.id, this.postId);
+    if (!this.userId) {
+      // there was hidden comment
+      return;
+    }
+    await dbAdapter.statsCommentDeleted(this.userId);
 
     // Look for other comments from this user in the post:
     // if this was the last one then remove the post from "user's comments" timeline
