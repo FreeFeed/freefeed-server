@@ -87,8 +87,23 @@ export function installInto(expect) {
     }
   });
 
+  expect.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
+    const session = await Session.create(viewer);
+    session.send('subscribe', { 'post': [postId] });
+    try {
+      return await expect.shift(session);
+    } finally {
+      session.disconnect();
+    }
+  });
+
   expect.addAssertion('<realtimeSession> with post having id <string> <assertion>', (expect, session, postId) => {
     session.context.postId = postId;
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> with comment having id <string> <assertion>', (expect, session, commentId) => {
+    session.context.commentId = commentId;
     return expect.shift(session);
   });
 
@@ -169,6 +184,19 @@ export function installInto(expect) {
     await Promise.all([
       funcTestHelper.like(postId, publisher),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'like:new'),
+    ]);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get comment_like:new event from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'commentId');
+    const commentId = session.context.commentId;
+
+    await Promise.all([
+      funcTestHelper.likeComment(commentId, publisher),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:new'),
     ]);
   });
 }
