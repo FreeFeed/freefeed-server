@@ -16,8 +16,11 @@ import {
   createAndReturnPost,
   createAndReturnPostToFeed,
   createCommentAsync,
+  likeComment,
   createGroupAsync,
   createUserAsync,
+  unlikeComment,
+  getCommentLikes,
   like,
   mutualSubscriptions,
   sendRequestToJoinGroup,
@@ -29,13 +32,10 @@ import * as schema from './schemaV2-helper'
 
 describe('Comment likes', () => {
   let app;
-  let likeComment, unlikeComment, writeComment, getLikes, getPost, getFeed;
+  let writeComment, getPost, getFeed;
 
   before(async () => {
     app = await getSingleton();
-    likeComment = createCommentLike(app);
-    unlikeComment = deleteCommentLike(app);
-    getLikes = getCommentLikes(app);
     writeComment = createComment();
     getPost = fetchPost(app);
     getFeed = fetchTimeline(app);
@@ -536,66 +536,66 @@ describe('Comment likes', () => {
       });
 
       it('should not allow to show likes of nonexisting comment', async () => {
-        const res = await getLikes(uuid.v4(), luna);
+        const res = await getCommentLikes(uuid.v4(), luna);
         expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find comment"));
       });
 
       describe('for unauthenticated users', () => {
         it('should display comment likes for public post', async () => {
-          const res = await getLikes(marsComment.id);
+          const res = await getCommentLikes(marsComment.id);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
         });
 
         it("should display no comment likes for public post's comment that has no likes", async () => {
-          const res = await getLikes(lunaComment.id);
+          const res = await getCommentLikes(lunaComment.id);
           expect(res, 'to satisfy', commentHavingNoLikesExpectation);
         });
 
         it('should not display comment likes for protected post', async () => {
           await updateUserAsync(luna, { isProtected: '1' });
-          const res = await getLikes(marsComment.id);
+          const res = await getCommentLikes(marsComment.id);
           expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Please sign in to view this post'));
         });
 
         it('should not display comment likes for private post', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
-          const res = await getLikes(marsComment.id);
+          const res = await getCommentLikes(marsComment.id);
           expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You cannot see this post'));
         });
       });
 
       describe('for authenticated users', () => {
         it('should display comment likes for public post', async () => {
-          const res = await getLikes(marsComment.id, luna);
+          const res = await getCommentLikes(marsComment.id, luna);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
         });
 
         it("should display no comment likes for public post's comment that has no likes", async () => {
-          const res = await getLikes(lunaComment.id, luna);
+          const res = await getCommentLikes(lunaComment.id, luna);
           expect(res, 'to satisfy', commentHavingNoLikesExpectation);
         });
 
         it('should display comment likes for protected post for all users', async () => {
           await updateUserAsync(luna, { isProtected: '1' });
-          let res = await getLikes(marsComment.id, luna);
+          let res = await getCommentLikes(marsComment.id, luna);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
-          res = await getLikes(marsComment.id, mars);
+          res = await getCommentLikes(marsComment.id, mars);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
-          res = await getLikes(marsComment.id, jupiter);
+          res = await getCommentLikes(marsComment.id, jupiter);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
         });
 
         it('should display comment likes to subscribers of private user', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
-          let res = await getLikes(marsComment.id, luna);
+          let res = await getCommentLikes(marsComment.id, luna);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
-          res = await getLikes(marsComment.id, mars);
+          res = await getCommentLikes(marsComment.id, mars);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
         });
 
         it('should not display comment likes to non-subscribers of private user', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
-          const res = await getLikes(marsComment.id, jupiter);
+          const res = await getCommentLikes(marsComment.id, jupiter);
           expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
         });
       });
@@ -610,7 +610,7 @@ describe('Comment likes', () => {
         });
 
         it('should sort comment likes chronologically descending (except viewer)', async () => {
-          const res = await getLikes(marsComment.id, luna);
+          const res = await getCommentLikes(marsComment.id, luna);
           expect(res, 'to satisfy', { status: 200 });
           const responseJson = await res.json();
 
@@ -625,7 +625,7 @@ describe('Comment likes', () => {
         });
 
         it('should sort comment likes chronologically descending for authenticated viewer', async () => {
-          const res = await getLikes(marsComment.id, mars);
+          const res = await getCommentLikes(marsComment.id, mars);
           expect(res, 'to satisfy', { status: 200 });
           const responseJson = await res.json();
 
@@ -640,7 +640,7 @@ describe('Comment likes', () => {
         });
 
         it('should sort comment likes chronologically descending for anonymous viewer', async () => {
-          const res = await getLikes(marsComment.id);
+          const res = await getCommentLikes(marsComment.id);
           expect(res, 'to satisfy', { status: 200 });
           const responseJson = await res.json();
 
@@ -672,32 +672,32 @@ describe('Comment likes', () => {
         });
 
         it("should not show Luna Mars' comment likes", async () => {
-          const res = await getLikes(marsComment.id, luna);
+          const res = await getCommentLikes(marsComment.id, luna);
           expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
         });
 
         it("should not show Luna Pluto's comment likes", async () => {
-          const res = await getLikes(plutoComment.id, luna);
+          const res = await getCommentLikes(plutoComment.id, luna);
           expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
         });
 
         it("should not show Luna Pluto's likes to Jupiter's comment", async () => {
-          const res = await getLikes(jupiterComment.id, luna);
+          const res = await getCommentLikes(jupiterComment.id, luna);
           expect(res, 'to satisfy', commentHavingNoLikesExpectation);
         });
 
         it("should show Mars Luna's comment likes", async () => {
-          const res = await getLikes(marsComment.id, mars);
+          const res = await getCommentLikes(marsComment.id, mars);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
         });
 
         it("should show Pluto Luna's comment likes", async () => {
-          const res = await getLikes(marsComment.id, pluto);
+          const res = await getCommentLikes(marsComment.id, pluto);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
         });
 
         it("should show Pluto Jupiter's comment likes", async () => {
-          const res = await getLikes(plutoComment.id, pluto);
+          const res = await getCommentLikes(plutoComment.id, pluto);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(jupiter));
         });
 
@@ -709,10 +709,10 @@ describe('Comment likes', () => {
           await likeComment(jupiterComment2.id, mars);
           await likeComment(jupiterComment2.id, luna);
 
-          let res = await getLikes(jupiterComment2.id, luna);
+          let res = await getCommentLikes(jupiterComment2.id, luna);
           expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
 
-          res = await getLikes(jupiterComment2.id, pluto);
+          res = await getCommentLikes(jupiterComment2.id, pluto);
           const responseJson = await res.json();
 
           expect(responseJson, 'to satisfy', {
@@ -1263,33 +1263,6 @@ describe('Comment likes', () => {
     });
   });
 });
-
-const createCommentLike = (app) => async (commentId, likerContext = null) => {
-  const headers = {} ;
-  if (likerContext) {
-    headers['X-Authentication-Token'] = likerContext.authToken;
-  }
-  const response = await fetch(`${app.context.config.host}/v2/comments/${commentId}/like`, { method: 'POST', headers });
-  return response;
-};
-
-const deleteCommentLike = (app) => async (commentId, unlikerContext = null) => {
-  const headers = {} ;
-  if (unlikerContext) {
-    headers['X-Authentication-Token'] = unlikerContext.authToken;
-  }
-  const response = await fetch(`${app.context.config.host}/v2/comments/${commentId}/unlike`, { method: 'POST', headers });
-  return response;
-};
-
-const getCommentLikes = (app) => async (commentId, viewerContext = null) => {
-  const headers = {} ;
-  if (viewerContext) {
-    headers['X-Authentication-Token'] = viewerContext.authToken;
-  }
-  const response = await fetch(`${app.context.config.host}/v2/comments/${commentId}/likes`, { method: 'GET', headers });
-  return response;
-};
 
 const createComment = () => async (userContext, postId, body) => {
   const response = await createCommentAsync(userContext, postId, body);
