@@ -1,4 +1,4 @@
-import { reduce, uniqBy, pick, map } from 'lodash';
+import { reduce, uniqBy, pick, map, keyBy } from 'lodash';
 import { PostSerializer, dbAdapter } from '../../models';
 
 export const serializePostsCollection = async (postsObjects, viewerUUID = null) => {
@@ -84,38 +84,17 @@ export function serializeAttachment(att) {
 async function _insertCommentLikesInfo(postsPayload, viewerUUID) {
   const postIds = map(postsPayload.posts, 'id');
   const commentIds = map(postsPayload.comments, 'id');
-  const [commentLikes, postCommentLikesInfo] = await Promise.all([
+  const [commentLikesData, postCommentLikesData] = await Promise.all([
     dbAdapter.getLikesInfoForComments(commentIds, viewerUUID),
     dbAdapter.getLikesInfoForPosts(postIds, viewerUUID)
   ]);
 
-  for (const post of postsPayload.posts) {
-    post.commentLikes = 0;
-    post.ownCommentLikes = 0;
-    post.omittedCommentLikes = 0;
-    post.omittedOwnCommentLikes = 0;
-    const commentLikesForPost = postCommentLikesInfo.find((el) => el.uid === post.id);
-    if (commentLikesForPost) {
-      post.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
-      post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
-      if (post.commentLikes > 0) {
-        post.omittedCommentLikes = post.commentLikes;
-        post.omittedOwnCommentLikes = post.ownCommentLikes;
+  const commentLikes = keyBy(commentLikesData, 'uid');
+  const postCommentLikes = keyBy(postCommentLikesData, 'uid');
 
-        for (const commentId of post.comments) {
-          const likeInfo = commentLikes.find((el) => el.uid === commentId);
-          if (likeInfo) {
-            post.omittedCommentLikes -= parseInt(likeInfo.c_likes);
-            post.omittedOwnCommentLikes -= likeInfo.has_own_like ? 1 : 0;
-          }
-        }
-      }
-    }
-  }
-
-  for (const comment of postsPayload.comments) {
+  postsPayload.comments = map(postsPayload.comments, (comment) => {
     let [likesCount, hasOwnLike] = [0, false];
-    const likeInfo = commentLikes.find((el) => el.uid === comment.id);
+    const likeInfo = commentLikes[comment.id];
 
     if (likeInfo) {
       likesCount = parseInt(likeInfo.c_likes);
@@ -123,6 +102,41 @@ async function _insertCommentLikesInfo(postsPayload, viewerUUID) {
     }
     comment.likes = likesCount;
     comment.hasOwnLike = hasOwnLike;
-  }
+    return comment;
+  });
+
+  postsPayload.posts = _modifyPostsPayload(postsPayload.posts, postCommentLikes, commentLikes);
+
   return postsPayload;
+}
+
+function _modifyPostsPayload(postsPayload, postCLikesDict, commentLikesDict) {
+  return map(postsPayload, (post) => {
+    let [allLikes, ownLikes, omittedLikes, omittedOwn] = [0, 0, 0, 0];
+    const commentLikesForPost = postCLikesDict[post.id];
+    if (commentLikesForPost) {
+      allLikes = parseInt(commentLikesForPost.post_c_likes_count);
+      ownLikes = parseInt(commentLikesForPost.own_c_likes_count);
+      if (allLikes > 0) {
+        omittedLikes = allLikes;
+        omittedOwn = ownLikes;
+
+        for (const commentId of post.comments) {
+          const likeInfo = commentLikesDict[commentId];
+          if (likeInfo) {
+            omittedLikes -= parseInt(likeInfo.c_likes);
+            omittedOwn -= likeInfo.has_own_like * 1;
+          }
+        }
+      }
+    }
+
+    return {
+      ...post,
+      commentLikes:           allLikes,
+      ownCommentLikes:        ownLikes,
+      omittedCommentLikes:    omittedLikes,
+      omittedOwnCommentLikes: omittedOwn
+    };
+  });
 }
