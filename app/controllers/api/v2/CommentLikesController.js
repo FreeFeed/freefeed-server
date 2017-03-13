@@ -1,4 +1,4 @@
-import { dbAdapter } from '../../../models'
+import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 import { userSerializerFunction } from './helpers';
 
@@ -41,6 +41,7 @@ export default class CommentLikesController {
     }
 
     const actualCommentLikes = await dbAdapter.createCommentLike(comment.id, ctx.state.user.id);
+    await pubSub.newCommentLike(comment.id, post.id, ctx.state.user.id);
     const users = await CommentLikesController._serializeLikers(actualCommentLikes);
 
     ctx.body = {
@@ -87,6 +88,7 @@ export default class CommentLikesController {
     }
 
     const actualCommentLikes = await dbAdapter.deleteCommentLike(comment.id, ctx.state.user.id);
+    await pubSub.removeCommentLike(comment.id, post.id, ctx.state.user.id);
     const users = await CommentLikesController._serializeLikers(actualCommentLikes);
 
     ctx.body = {

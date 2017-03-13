@@ -13,6 +13,8 @@ export class DummyPublisher {
   likeRemoved() {}
   postHidden() {}
   postUnhidden() {}
+  commentLikeAdded() {}
+  commentLikeRemoved() {}
 }
 
 export default class pubSub {
@@ -91,5 +93,15 @@ export default class pubSub {
 
     const payload = JSON.stringify({ timelineId, postId })
     await this.publisher.postUnhidden(payload)
+  }
+
+  async newCommentLike(commentId, postId, likerUUID) {
+    const payload = JSON.stringify({ commentId, postId, likerUUID });
+    await this.publisher.commentLikeAdded(payload);
+  }
+
+  async removeCommentLike(commentId, postId, unlikerUUID) {
+    const payload = JSON.stringify({ commentId, postId, unlikerUUID });
+    await this.publisher.commentLikeRemoved(payload);
   }
 }

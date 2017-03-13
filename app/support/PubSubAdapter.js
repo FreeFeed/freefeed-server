@@ -1,15 +1,17 @@
 const CHANNEL_NAMES = {
-  USER_UPDATE:       'user:update',
-  POST_CREATED:      'post:new',
-  POST_UPDATED:      'post:update',
-  POST_DESTROYED:    'post:destroy',
-  POST_HIDDEN:       'post:hide',
-  POST_UNHIDDEN:     'post:unhide',
-  COMMENT_CREATED:   'comment:new',
-  COMMENT_UPDATED:   'comment:update',
-  COMMENT_DESTROYED: 'comment:destroy',
-  LIKE_ADDED:        'like:new',
-  LIKE_REMOVED:      'like:remove'
+  USER_UPDATE:          'user:update',
+  POST_CREATED:         'post:new',
+  POST_UPDATED:         'post:update',
+  POST_DESTROYED:       'post:destroy',
+  POST_HIDDEN:          'post:hide',
+  POST_UNHIDDEN:        'post:unhide',
+  COMMENT_CREATED:      'comment:new',
+  COMMENT_UPDATED:      'comment:update',
+  COMMENT_DESTROYED:    'comment:destroy',
+  LIKE_ADDED:           'like:new',
+  LIKE_REMOVED:         'like:remove',
+  COMMENT_LIKE_ADDED:   'comment_like:new',
+  COMMENT_LIKE_REMOVED: 'comment_like:remove',
 }
 
 export class PubSubAdapter {
@@ -67,6 +69,16 @@ export class PubSubAdapter {
 
   likeRemoved(payload) {
     return this._publish(CHANNEL_NAMES.LIKE_REMOVED, payload)
+  }
+
+  ///////////////////////////////////////////////////
+
+  commentLikeAdded(payload) {
+    return this._publish(CHANNEL_NAMES.COMMENT_LIKE_ADDED, payload);
+  }
+
+  commentLikeRemoved(payload) {
+    return this._publish(CHANNEL_NAMES.COMMENT_LIKE_REMOVED, payload);
   }
 
   ///////////////////////////////////////////////////
