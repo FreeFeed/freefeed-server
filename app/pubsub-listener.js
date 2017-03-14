@@ -125,7 +125,7 @@ export default class PubsubListener {
     ).catch((e) => { this.app.context.logger.error('onRedisMessage error', e)})
   }
 
-  async validateAndEmitMessage(sockets, room, type, json, post) {
+  async validateAndEmitMessage(sockets, room, type, json, post, emitter = null) {
     const logger = this.app.context.logger
 
     if (!(room in sockets.adapter.rooms)) {
@@ -179,7 +179,11 @@ export default class PubsubListener {
         }
       }
 
-      socket.emit(type, json)
+      if (emitter) {
+        await emitter(socket, type, json);
+      } else {
+        socket.emit(type, json);
+      }
     }))
   }
 
