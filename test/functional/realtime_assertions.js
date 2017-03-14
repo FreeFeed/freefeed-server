@@ -194,9 +194,11 @@ export function installInto(expect) {
     expect(session.context, 'to have key', 'commentId');
     const commentId = session.context.commentId;
 
-    await Promise.all([
+    const res = await Promise.all([
       funcTestHelper.likeComment(commentId, publisher),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:new'),
     ]);
+    session.context.commentLikeRealtimeMsg = res[1];
+    return expect.shift(session);
   });
 }
