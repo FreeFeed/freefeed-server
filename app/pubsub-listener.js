@@ -422,10 +422,18 @@ export default class PubsubListener {
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
     json.comments.userId = data.likerUUID;
 
-    // getPostUsagesInTimelines
+    let room;
+    const feeds = await post.getTimelines();
+    await Promise.all(feeds.map(async (feed) => {
+      if (await post.isHiddenIn(feed)) {
+        return null;
+      }
 
-    const room = `post:${data.postId}`;
+      room = `timeline:${feed.id}`;
+      return this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
+    }));
 
+    room = `post:${data.postId}`;
     await this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
   };
 
