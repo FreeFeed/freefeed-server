@@ -128,6 +128,16 @@ describe('Realtime (Socket.io)', () => {
     let lunaPost;
     let lunaComment, marsComment, jupiterComment;
 
+    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => async (obj) => {
+      expect(obj, 'to satisfy', {
+        comments: {
+          likes:      nLikes,
+          hasOwnLike: hasOwn,
+          userId:     likerId
+        }
+      });
+    };
+
     beforeEach(async () => {
       jupiter = await funcTestHelper.createUserAsync('jupiter', 'pw');
       lunaPost = await funcTestHelper.createAndReturnPost(lunaContext, 'Luna post');
@@ -145,12 +155,190 @@ describe('Realtime (Socket.io)', () => {
       await funcTestHelper.mutualSubscriptions([lunaContext, marsContext]);
     });
 
-    it('Luna gets notifications about comment likes to own post', () =>
-      expect(lunaContext,
-        'when subscribed to post', lunaPost.id,
-        'with comment having id', lunaComment.id,
-        'to get comment_like:new event from', marsContext
-      )
-    );
+    describe('for public post', () => {
+      describe('via post channel', () => {
+        it('Anonymous user gets notifications about comment likes', async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(anonContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', lunaComment.id,
+            'to get comment_like:new event from', marsContext
+          );
+          expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, marsContext.user.id));
+        });
+
+        it('Luna gets notifications about comment likes to own comment', async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', lunaComment.id,
+            'to get comment_like:new event from', marsContext
+          );
+          expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, marsContext.user.id));
+        });
+
+        it("Luna gets notifications about comment likes to Mars' comment", async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', marsComment.id,
+            'to get comment_like:new event from', jupiter
+          );
+          expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, jupiter.user.id));
+        });
+
+        it("Luna gets notifications about comment likes to Mars' comment", async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', marsComment.id,
+            'to get comment_like:new event from', lunaContext
+          );
+          expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, lunaContext.user.id));
+        });
+
+        it("Mars gets notifications about comment likes to Luna's comment", async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', lunaComment.id,
+            'to get comment_like:new event from', marsContext
+          );
+          expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, marsContext.user.id));
+        });
+
+        describe('when post is hidden', () => {
+          beforeEach(async () => {
+            await funcTestHelper.hidePost(lunaPost.id, marsContext);
+          });
+
+          it("Mars gets notifications about comment likes to Luna's comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', lunaComment.id,
+              'to get comment_like:new event from', marsContext
+            );
+            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, marsContext.user.id));
+          });
+        });
+
+        describe('when Jupiter is banned by Luna', () => {
+          beforeEach(async () => {
+            await funcTestHelper.banUser(lunaContext, jupiter);
+            await funcTestHelper.likeComment(lunaComment.id, marsContext);
+          });
+
+          it("Luna doesn't get notifications about comment likes to Jupiter comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', jupiterComment.id,
+              'not to get comment_like:new event from', marsContext
+            );
+            expect(msg, 'to be', null);
+          });
+
+          it("Mars gets notifications about comment likes to Jupiter's comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', jupiterComment.id,
+              'to get comment_like:new event from', marsContext
+            );
+            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, marsContext.user.id));
+          });
+
+          it("Luna doesn't get notifications about Jupiter's comment likes to own comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', lunaComment.id,
+              'not to get comment_like:new event from', jupiter
+            );
+            expect(msg, 'to be', null);
+          });
+
+          it("Jupiter doesn't get notifications about own comment likes to Luna's comment to Luna's post", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', lunaComment.id,
+              'not to get comment_like:new event from', jupiter
+            );
+            expect(msg, 'to be', null);
+          });
+        });
+
+        describe('when Jupiter is banned by Mars', () => {
+          beforeEach(async () => {
+            await funcTestHelper.banUser(marsContext, jupiter);
+            await funcTestHelper.likeComment(lunaComment.id, marsContext);
+          });
+
+          it("Mars doesn't get notifications about Jupiter's comment likes to Luna comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', lunaComment.id,
+              'not to get comment_like:new event from', jupiter
+            );
+            expect(msg, 'to be', null);
+          });
+
+          it("Mars doesn't get notifications about comment likes to Jupiter's comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', jupiterComment.id,
+              'not to get comment_like:new event from', lunaContext
+            );
+            expect(msg, 'to be', null);
+          });
+
+          it('Jupiter gets notifications about comment likes to own comment', async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', jupiterComment.id,
+              'to get comment_like:new event from', lunaContext
+            );
+            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, lunaContext.user.id));
+          });
+
+          it("Jupiter gets notifications about comment likes to Mars' comment", async () => {
+            const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
+              'when subscribed to post', lunaPost.id,
+              'with comment having id', marsComment.id,
+              'to get comment_like:new event from', lunaContext
+            );
+            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, lunaContext.user.id));
+          });
+        });
+      });
+    });
+
+    describe('for private post', () => {
+      describe('via post channel', () => {
+        beforeEach(async () => {
+          await funcTestHelper.mutualSubscriptions([lunaContext, marsContext]);
+          await funcTestHelper.goPrivate(lunaContext);
+        });
+
+        it("Anonymous user doesn't get notifications about comment likes", async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(anonContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', lunaComment.id,
+            'not to get comment_like:new event from', marsContext
+          );
+          expect(msg, 'to be', null);
+        });
+
+        it("Mars gets notifications about comment likes to Jupiter's comment", async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', jupiterComment.id,
+            'to get comment_like:new event from', lunaContext
+          );
+          expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, lunaContext.user.id));
+        });
+
+        it("Jupiter doesn't get notifications about comment likes to own comment to Luna's post", async () => {
+          const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
+            'when subscribed to post', lunaPost.id,
+            'with comment having id', lunaComment.id,
+            'not to get comment_like:new event from', marsContext
+          );
+          expect(msg, 'to be', null);
+        });
+      });
+    });
   });
 });

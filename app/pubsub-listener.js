@@ -415,6 +415,10 @@ export default class PubsubListener {
     const comment = await dbAdapter.getCommentById(data.commentId);
     const post = await dbAdapter.getPostById(data.postId);
 
+    if (!comment || !post) {
+      return;
+    }
+
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
     json.comments.userId = data.likerUUID;
 
@@ -422,7 +426,7 @@ export default class PubsubListener {
 
     const room = `post:${data.postId}`;
 
-    return this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
+    await this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
   };
 
   async _commentLikeEventEmitter(socket, type, json) {
