@@ -38,7 +38,7 @@ export default class PubsubListener {
       'user:update',
       'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
       'comment:new', 'comment:update', 'comment:destroy',
-      'like:new', 'like:remove'
+      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove'
     )
 
     redisClient.on('message', this.onRedisMessage)
@@ -115,8 +115,10 @@ export default class PubsubListener {
       'comment:update':  this.onCommentUpdate,
       'comment:destroy': this.onCommentDestroy,
 
-      'like:new':    this.onLikeNew,
-      'like:remove': this.onLikeRemove
+      'like:new':            this.onLikeNew,
+      'like:remove':         this.onLikeRemove,
+      'comment_like:new':    this.onCommentLikeNew,
+      'comment_like:remove': this.onCommentLikeRemove,
     }
 
     messageRoutes[channel](
@@ -173,6 +175,20 @@ export default class PubsubListener {
             const uid = json.users.id;
 
             if (banIds.includes(uid)) {
+              return;
+            }
+          }
+
+          if (type === 'comment_like:new' || type === 'comment_like:remove') {
+            const commentAuthorUUID = json.comments.createdBy;
+
+            if (banIds.includes(commentAuthorUUID)) {
+              return;
+            }
+
+            const likerUUID = json.comments.userId;
+
+            if (banIds.includes(likerUUID)) {
               return;
             }
           }
@@ -385,5 +401,37 @@ export default class PubsubListener {
     // event won't leak any personal information
     const json = { meta: { postId: data.postId } }
     sockets.in(`timeline:${data.timelineId}`).emit('post:unhide', json)
+  }
+
+  onCommentLikeNew = async (sockets, data) => {
+    await this._sendCommentLikeMsg(sockets, data, 'comment_like:new');
+  };
+
+  onCommentLikeRemove = async (sockets, data) => {
+    await this._sendCommentLikeMsg(sockets, data, 'comment_like:remove');
+  };
+
+  _sendCommentLikeMsg = async (sockets, data, msgType) => {
+    const comment = await dbAdapter.getCommentById(data.commentId);
+    const post = await dbAdapter.getPostById(data.postId);
+
+    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
+    json.comments.userId = data.likerUUID;
+
+    // getPostUsagesInTimelines
+
+    const room = `post:${data.postId}`;
+
+    return this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
+  };
+
+  async _commentLikeEventEmitter(socket, type, json) {
+    const commentUUID = json.comments.id;
+    const viewer = socket.user;
+    const [commentLikesData] = await dbAdapter.getLikesInfoForComments([commentUUID], viewer.id);
+    json.comments.likes = parseInt(commentLikesData.c_likes);
+    json.comments.hasOwnLike = commentLikesData.has_own_like;
+
+    socket.emit(type, json);
   }
 }
