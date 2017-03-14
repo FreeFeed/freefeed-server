@@ -420,7 +420,11 @@ export default class PubsubListener {
     }
 
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
-    json.comments.userId = data.likerUUID;
+    if (msgType === 'comment_like:new') {
+      json.comments.userId = data.likerUUID;
+    } else {
+      json.comments.userId = data.unlikerUUID;
+    }
 
     let room;
     const feeds = await post.getTimelines();

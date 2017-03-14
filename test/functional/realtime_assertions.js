@@ -201,4 +201,19 @@ export function installInto(expect) {
     session.context.commentLikeRealtimeMsg = res[1];
     return expect.shift(session);
   });
+
+  expect.addAssertion('<realtimeSession> [not] to get comment_like:remove event from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'commentId');
+    const commentId = session.context.commentId;
+
+    const res = await Promise.all([
+      funcTestHelper.unlikeComment(commentId, publisher),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:remove'),
+    ]);
+    session.context.commentLikeRealtimeMsg = res[1];
+    return expect.shift(session);
+  });
 }
