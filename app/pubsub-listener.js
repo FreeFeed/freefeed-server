@@ -295,13 +295,13 @@ export default class PubsubListener {
 
     const promises = actualTimelineIds.map((timelineId) => {
       room = `timeline:${timelineId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post)
+      return this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
     })
 
     await Promise.all(promises)
 
     room = `post:${post.id}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    await this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
   }
 
   onCommentUpdate = async (sockets, data) => {
@@ -311,12 +311,12 @@ export default class PubsubListener {
 
     const type = 'comment:update'
     let room = `post:${post.id}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    await this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
 
     const timelineIds = await post.getTimelineIds()
     const promises = timelineIds.map(async (timelineId) => {
       room = `timeline:${timelineId}`
-      await this.validateAndEmitMessage(sockets, room, type, json, post)
+      await this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
     })
     await Promise.all(promises)
   }

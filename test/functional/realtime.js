@@ -1204,5 +1204,43 @@ describe('Realtime (Socket.io)', () => {
         });
       });
     });
+
+    describe('when comment created or updated', () => {
+      it('Mars gets notifications about new comments with comment likes fields', async () => {
+        const { context: { commentRealtimeMsg: msg } } = await expect(marsContext,
+          'when subscribed to timeline', lunaTimeline,
+          'with post having id', lunaPost.id,
+          'to get comment:* events from', lunaContext
+        );
+
+        expect(msg, 'to satisfy', {
+          comments: {
+            likes:      0,
+            hasOwnLike: false
+          }
+        });
+        expect(msg.comments, 'not to have key', 'userId');
+      });
+
+      it('Mars gets notifications about updated comments with comment likes fields', async () => {
+        const lunaCommentRes = await funcTestHelper.createCommentAsync(lunaContext, lunaPost.id, 'Luna comment');
+        lunaComment = (await lunaCommentRes.json()).comments;
+        await funcTestHelper.likeComment(lunaComment.id, marsContext);
+
+        const { context: { commentRealtimeMsg: msg } } = await expect(marsContext,
+          'when subscribed to timeline', lunaTimeline,
+          'with comment having id', lunaComment.id,
+          'to get comment:update events from', lunaContext
+        );
+
+        expect(msg, 'to satisfy', {
+          comments: {
+            likes:      1,
+            hasOwnLike: true
+          }
+        });
+        expect(msg.comments, 'not to have key', 'userId');
+      });
+    });
   });
 });

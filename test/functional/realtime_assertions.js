@@ -168,10 +168,27 @@ export function installInto(expect) {
     expect(session.context, 'to have key', 'postId');
     const { postId } = session.context;
 
-    await Promise.all([
+    const res = await Promise.all([
       funcTestHelper.createCommentAsync(publisher, postId, 'reply'),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment:new'),
     ]);
+    session.context.commentRealtimeMsg = res[1];
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get comment:update events from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'commentId');
+    const { commentId } = session.context;
+
+    const res = await Promise.all([
+      funcTestHelper.updateCommentAsync(publisher, commentId, 'changed reply'),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment:update'),
+    ]);
+    session.context.commentRealtimeMsg = res[1];
+    return expect.shift(session);
   });
 
   expect.addAssertion('<realtimeSession> [not] to get like:* events from <userContext>', async (expect, session, publisher) => {

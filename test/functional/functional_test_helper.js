@@ -536,6 +536,10 @@ export function createCommentAsync(userContext, postId, body) {
   return postJson('/v1/comments', { comment: { body, postId }, authToken: userContext.authToken })
 }
 
+export function updateCommentAsync(userContext, commentId, body) {
+  return postJson(`/v1/comments/${commentId}`, { comment: { body }, authToken: userContext.authToken, '_method': 'put' });
+}
+
 const getTimelineAsync = async (relativeUrl, userContext) => {
   let url = await apiUrl(relativeUrl)
 
