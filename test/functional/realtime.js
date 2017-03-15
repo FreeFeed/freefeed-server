@@ -1242,5 +1242,51 @@ describe('Realtime (Socket.io)', () => {
         expect(msg.comments, 'not to have key', 'userId');
       });
     });
+
+    describe('when post created or updated', () => {
+      it('Mars gets notifications about new posts with comment likes fields', async () => {
+        const { context: { newPostRealtimeMsg: msg } } = await expect(marsContext,
+          'when subscribed to timeline', lunaTimeline,
+          'with post having id', lunaPost.id,
+          'to get post:* events from', lunaContext
+        );
+
+        expect(msg, 'to satisfy', {
+          posts: {
+            commentLikes:           0,
+            ownCommentLikes:        0,
+            omittedCommentLikes:    0,
+            omittedOwnCommentLikes: 0
+          },
+        });
+        expect(msg, 'not to have key', 'comments');
+        expect(msg.posts, 'not to have key', 'comments');
+      });
+
+      it('Mars gets notifications about updated posts with comment likes fields', async () => {
+        const lunaCommentRes = await funcTestHelper.createCommentAsync(lunaContext, lunaPost.id, 'Luna comment');
+        lunaComment = (await lunaCommentRes.json()).comments;
+        await funcTestHelper.likeComment(lunaComment.id, marsContext);
+
+        const { context: { postUpdateRealtimeMsg: msg } } = await expect(marsContext,
+          'when subscribed to timeline', lunaTimeline,
+          'with post having id', lunaPost.id,
+          'to get post:update events from', lunaContext
+        );
+
+        expect(msg, 'to satisfy', {
+          posts: {
+            commentLikes:           1,
+            ownCommentLikes:        1,
+            omittedCommentLikes:    0,
+            omittedOwnCommentLikes: 0
+          },
+          comments: [{
+            likes:      1,
+            hasOwnLike: true
+          }]
+        });
+      });
+    });
   });
 });

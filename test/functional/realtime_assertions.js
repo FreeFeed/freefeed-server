@@ -139,6 +139,7 @@ export function installInto(expect) {
       expect(session, 'to receive event', 'post:new'),
     ]);
     expect(newPostEvent.posts.id, 'to be', postId);
+    session.context.newPostRealtimeMsg = newPostEvent;
 
     // Delete post
     const [
@@ -149,6 +150,23 @@ export function installInto(expect) {
       expect(session, 'to receive event', 'post:destroy'),
     ]);
     expect(destroyPostEvent.meta.postId, 'to be', postId);
+    session.context.destroyPostRealtimeMsg = destroyPostEvent;
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get post:update events from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'postId');
+    const { postId } = session.context;
+
+    const res = await Promise.all([
+      funcTestHelper.updatePostAsync({ post: { id: postId }, authToken: publisher.authToken }, { body: 'Updated post body' }),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'post:update'),
+    ]);
+    session.context.postUpdateRealtimeMsg = res[1];
+    return expect.shift(session);
   });
 
   expect.addAssertion('<realtimeSession> not to get post:* events from <userContext>', async (expect, session, publisher) => {

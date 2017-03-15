@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { compact, isArray, isPlainObject } from 'lodash'
+import { compact, isArray, isPlainObject, keyBy } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -245,7 +245,7 @@ export default class PubsubListener {
     const type = 'post:new'
     const promises = feedIds.map((feedId) => {
       const room = `timeline:${feedId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post)
+      return this.validateAndEmitMessage(sockets, room, type, json, post, this._postEventEmitter);
     })
     await Promise.all(promises)
   }
@@ -260,12 +260,12 @@ export default class PubsubListener {
 
     const promises = timelineIds.map(async (timelineId) => {
       room = `timeline:${timelineId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post)
+      return this.validateAndEmitMessage(sockets, room, type, json, post, this._postEventEmitter);
     })
     await Promise.all(promises)
 
     room = `post:${data.postId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    await this.validateAndEmitMessage(sockets, room, type, json, post, this._postEventEmitter);
   }
 
   onCommentNew = async (sockets, data) => {
@@ -449,5 +449,54 @@ export default class PubsubListener {
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 
     socket.emit(type, json);
+  }
+
+  _postEventEmitter = async (socket, type, json) => {
+    const viewer = socket.user;
+    json = await this._insertCommentLikesInfo(json, viewer.id);
+    socket.emit(type, json);
+  }
+
+  async _insertCommentLikesInfo(postPayload, viewerUUID) {
+    postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
+
+    const commentIds = postPayload.posts.comments;
+    if (!commentIds || commentIds.length == 0) {
+      return postPayload;
+    }
+
+    const [commentLikesData, [commentLikesForPost]] = await Promise.all([
+      dbAdapter.getLikesInfoForComments(commentIds, viewerUUID),
+      dbAdapter.getLikesInfoForPosts([postPayload.posts.id], viewerUUID)
+    ]);
+
+    const commentLikes = keyBy(commentLikesData, 'uid');
+    postPayload.comments = postPayload.comments.map((comment) => {
+      comment.likes      = 0;
+      comment.hasOwnLike = false;
+
+      if (commentLikes[comment.id]) {
+        comment.likes      = parseInt(commentLikes[comment.id].c_likes);
+        comment.hasOwnLike = commentLikes[comment.id].has_own_like;
+      }
+      return comment;
+    });
+
+    postPayload.posts.commentLikes    = parseInt(commentLikesForPost.post_c_likes_count);
+    postPayload.posts.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
+
+    if (postPayload.posts.commentLikes == 0) {
+      return postPayload;
+    }
+
+    postPayload.posts.omittedCommentLikes    = postPayload.posts.commentLikes;
+    postPayload.posts.omittedOwnCommentLikes = postPayload.posts.ownCommentLikes;
+
+    for (const comment of postPayload.comments) {
+      postPayload.posts.omittedCommentLikes     -= comment.likes;
+      postPayload.posts.omittedOwnCommentLikes  -= comment.hasOwnLike * 1;
+    }
+
+    return postPayload;
   }
 }
