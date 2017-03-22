@@ -800,7 +800,7 @@ export function addModel(dbAdapter) {
 
     await dbAdapter.deleteUserBan(this.id, user.id)
     monitor.increment('users.unbans')
-
+    await EventService.onUserUnbanned(this.intId, user.intId);
     return 1;
   }
 
