@@ -28,6 +28,7 @@ export function addModel(dbAdapter) {
   const User = function (params) {
     let password = null
 
+    this.intId = params.intId;
     this.id = params.id
     this.username = params.username
     this.screenName = params.screenName

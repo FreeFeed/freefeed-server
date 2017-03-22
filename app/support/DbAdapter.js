@@ -64,6 +64,7 @@ const USER_COLUMNS_MAPPING = {
 }
 
 const USER_FIELDS = {
+  id:                        'intId',
   uid:                       'id',
   username:                  'username',
   screen_name:               'screenName',
