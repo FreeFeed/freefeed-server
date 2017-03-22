@@ -2544,6 +2544,10 @@ export class DbAdapter {
     return this.database('events').insert(payload);
   }
 
+  getUserEvents(userIntId) {
+    return this.database('events').where('user_id', userIntId);
+  }
+
   async _getGroupIntIdByUUID(groupUUID) {
     const res = await this.database('users').returning('id').first().where('uid', groupUUID).andWhere('type', 'group');
     if (!res) {
