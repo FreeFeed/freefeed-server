@@ -2520,4 +2520,52 @@ export class DbAdapter {
     const res = await this.database.raw(sql);
     return res.rows;
   }
+
+  ///////////////////////////////////////////////////
+  // Events
+  ///////////////////////////////////////////////////
+
+  async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
+                    groupId = null, postId = null, commentId = null) {
+    const groupIntId = groupId ? await this._getGroupIntIdByUUID(groupId) : null;
+    const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
+    const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
+
+    const payload = {
+      user_id:            recipientIntId,
+      event_type:         eventType,
+      created_by_user_id: createdByUserIntId,
+      target_user_id:     targetUserIntId,
+      group_id:           groupIntId,
+      post_id:            postIntId,
+      comment_id:         commentIntId
+    };
+
+    return this.database('events').insert(payload);
+  }
+
+  async _getGroupIntIdByUUID(groupUUID) {
+    const res = await this.database('users').returning('id').first().where('uid', groupUUID).andWhere('type', 'group');
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
+  async _getPostIntIdByUUID(postUUID) {
+    const res = await this.database('posts').returning('id').first().where('uid', postUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
+  // TODO: replace with the same method from comment_likes branch.
+  async _getCommentIntIdByUUID(commentUUID) {
+    const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
 }

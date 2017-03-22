@@ -14,6 +14,7 @@ import uuid from 'uuid'
 import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
+import { EventService } from '../support/EventService'
 
 
 promisifyAll(crypto)
@@ -786,6 +787,7 @@ export function addModel(dbAdapter) {
     await Promise.all(promises)
     monitor.increment('users.bans')
 
+    await EventService.onUserBanned(this.intId, user.intId);
     return 1
   }
 
