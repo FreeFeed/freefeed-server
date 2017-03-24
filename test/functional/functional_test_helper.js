@@ -714,6 +714,10 @@ export function banUser(who, whom) {
   return postJson(`/v1/users/${whom.username}/ban`, { authToken: who.authToken })
 }
 
+export function unbanUser(who, whom) {
+  return postJson(`/v1/users/${whom.username}/unban`, { authToken: who.authToken });
+}
+
 export function hidePost(postId, user) {
   return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
 }
