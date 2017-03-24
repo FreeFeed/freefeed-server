@@ -2545,7 +2545,7 @@ export class DbAdapter {
   }
 
   getUserEvents(userIntId) {
-    return this.database('events').where('user_id', userIntId);
+    return this.database('events').where('user_id', userIntId).orderBy('created_at', 'desc');
   }
 
   async _getGroupIntIdByUUID(groupUUID) {
