@@ -26,13 +26,17 @@ describe('EventService', () => {
     let luna, mars, jupiter, pluto;
     let lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel;
 
-    const expectUserEventsToBe = async (user, expectedEvents) => {
-      const userEvents = await dbAdapter.getUserEvents(user.intId);
+    const expectUserEventsToBe = async (user, expectedEvents, requestedEventTypes = null) => {
+      const userEvents = await dbAdapter.getUserEvents(user.intId, requestedEventTypes);
       expect(userEvents, 'to be an', 'array');
       expect(userEvents, 'to have length', expectedEvents.length);
       for (const i in userEvents) {
         expect(userEvents[i], 'to satisfy', expectedEvents[i]);
       }
+    };
+
+    const expectBanEvents = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['banned_user', 'unbanned_user', 'banned_by_user', 'unbanned_by_user']);
     };
 
     beforeEach(async () => {
@@ -56,7 +60,7 @@ describe('EventService', () => {
 
     it('should create banned_user event for banner', async () => {
       await banUser(luna, mars);
-      await expectUserEventsToBe(lunaUserModel, [{
+      await expectBanEvents(lunaUserModel, [{
         user_id:            lunaUserModel.intId,
         event_type:         'banned_user',
         created_by_user_id: lunaUserModel.intId,
@@ -66,7 +70,7 @@ describe('EventService', () => {
 
     it('should create event for banned friend', async () => {
       await banUser(luna, mars);
-      await expectUserEventsToBe(marsUserModel, [{
+      await expectBanEvents(marsUserModel, [{
         user_id:            marsUserModel.intId,
         event_type:         'banned_by_user',
         created_by_user_id: lunaUserModel.intId,
@@ -76,7 +80,7 @@ describe('EventService', () => {
 
     it('should create event for banned subscriber', async () => {
       await banUser(luna, jupiter);
-      await expectUserEventsToBe(jupiterUserModel, [{
+      await expectBanEvents(jupiterUserModel, [{
         user_id:            jupiterUserModel.intId,
         event_type:         'banned_by_user',
         created_by_user_id: lunaUserModel.intId,
@@ -86,7 +90,7 @@ describe('EventService', () => {
 
     it('should create event for arbitrary banned user', async () => {
       await banUser(luna, pluto);
-      await expectUserEventsToBe(plutoUserModel, [{
+      await expectBanEvents(plutoUserModel, [{
         user_id:            plutoUserModel.intId,
         event_type:         'banned_by_user',
         created_by_user_id: lunaUserModel.intId,
@@ -98,7 +102,7 @@ describe('EventService', () => {
       it('should create unbanned_user event for unbanner', async () => {
         await banUser(luna, mars);
         await unbanUser(luna, mars);
-        await expectUserEventsToBe(lunaUserModel, [{
+        await expectBanEvents(lunaUserModel, [{
           user_id:            lunaUserModel.intId,
           event_type:         'unbanned_user',
           created_by_user_id: lunaUserModel.intId,
@@ -109,7 +113,7 @@ describe('EventService', () => {
       it('should create event for unbanned friend', async () => {
         await banUser(luna, mars);
         await unbanUser(luna, mars);
-        await expectUserEventsToBe(marsUserModel, [{
+        await expectBanEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'unbanned_by_user',
           created_by_user_id: lunaUserModel.intId,
@@ -120,7 +124,7 @@ describe('EventService', () => {
       it('should create event for unbanned subscriber', async () => {
         await banUser(luna, jupiter);
         await unbanUser(luna, jupiter);
-        await expectUserEventsToBe(jupiterUserModel, [{
+        await expectBanEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'unbanned_by_user',
           created_by_user_id: lunaUserModel.intId,
@@ -131,7 +135,7 @@ describe('EventService', () => {
       it('should create event for arbitrary unbanned user', async () => {
         await banUser(luna, pluto);
         await unbanUser(luna, pluto);
-        await expectUserEventsToBe(plutoUserModel, [{
+        await expectBanEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'unbanned_by_user',
           created_by_user_id: lunaUserModel.intId,

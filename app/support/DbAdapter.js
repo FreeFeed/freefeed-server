@@ -2544,8 +2544,12 @@ export class DbAdapter {
     return this.database('events').insert(payload);
   }
 
-  getUserEvents(userIntId) {
-    return this.database('events').where('user_id', userIntId).orderBy('created_at', 'desc');
+  getUserEvents(userIntId, eventTypes = null) {
+    let query = this.database('events').where('user_id', userIntId)
+    if (eventTypes && eventTypes.length > 0) {
+      query = query.whereIn('event_type', eventTypes);
+    }
+    return query.orderBy('created_at', 'desc');
   }
 
   async _getGroupIntIdByUUID(groupUUID) {
