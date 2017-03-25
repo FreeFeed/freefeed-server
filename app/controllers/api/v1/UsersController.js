@@ -4,6 +4,7 @@ import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 
@@ -331,7 +332,9 @@ export default class UsersController {
     }
 
     await ctx.state.user.subscribeToUsername(username)
-
+    if ('user' === user.type) {
+      await EventService.onUserSubscribed(ctx.state.user.intId, user.intId);
+    }
     const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
     ctx.body = json
   }
@@ -358,6 +361,7 @@ export default class UsersController {
 
     await user.unsubscribeFrom(timelineId)
 
+    await EventService.onUserUnsubscribed(user.intId, ctx.state.user.intId);
     const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
     ctx.body = json
   }
@@ -393,7 +397,9 @@ export default class UsersController {
         }
       }
       await ctx.state.user.unsubscribeFrom(timelineId)
-
+      if ('user' === user.type) {
+        await EventService.onUserUnsubscribed(ctx.state.user.intId, user.intId);
+      }
       const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
       ctx.body = json
     } finally {

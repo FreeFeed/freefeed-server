@@ -773,10 +773,13 @@ export function addModel(dbAdapter) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
+    const myPostsFeedId = await this.getPostsTimelineId();
+    const bannedUserWasSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, myPostsFeedId);
+
     await dbAdapter.createUserBan(this.id, user.id);
 
     const promises = [
-      user.unsubscribeFrom(await this.getPostsTimelineId())
+      user.unsubscribeFrom(myPostsFeedId)
     ]
 
     // reject if and only if there is a pending request
@@ -787,7 +790,7 @@ export function addModel(dbAdapter) {
     await Promise.all(promises)
     monitor.increment('users.bans')
 
-    await EventService.onUserBanned(this.intId, user.intId);
+    await EventService.onUserBanned(this.intId, user.intId, bannedUserWasSubscribed);
     return 1
   }
 
