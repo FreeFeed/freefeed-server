@@ -485,6 +485,14 @@ export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
 
+export function unsubscribeFromAsync(unsubscriber, victim) {
+  return postJson(`/v1/users/${victim.username}/unsubscribe`, { authToken: unsubscriber.authToken });
+}
+
+export function unsubscribeUserFromMeAsync(user, victim) {
+  return postJson(`/v1/users/${victim.username}/unsubscribeFromMe`, { authToken: user.authToken });
+}
+
 export function acceptRequestAsync(subject, requester) {
   return postJson(`/v1/users/acceptRequest/${requester.username}`, { authToken: subject.authToken })
 }
