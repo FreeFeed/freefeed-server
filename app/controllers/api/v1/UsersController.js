@@ -110,6 +110,7 @@ export default class UsersController {
     }
 
     await ctx.state.user.sendSubscriptionRequest(user.id)
+    await EventService.onSubscriptionRequestCreated(ctx.state.user.intId, user.intId);
 
     ctx.body = {};
   }
@@ -132,7 +133,7 @@ export default class UsersController {
       throw new Error('Invalid')
     }
     await ctx.state.user.acceptSubscriptionRequest(user.id)
-
+    await EventService.onSubscriptionRequestApproved(user.intId, ctx.state.user.intId);
     ctx.body = {};
   }
 
@@ -154,7 +155,7 @@ export default class UsersController {
       throw new Error('Invalid')
     }
     await ctx.state.user.rejectSubscriptionRequest(user.id)
-
+    await EventService.onSubscriptionRequestRejected(user.intId, ctx.state.user.intId);
     ctx.body = {};
   }
 

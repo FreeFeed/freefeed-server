@@ -784,13 +784,16 @@ export function addModel(dbAdapter) {
 
     // reject if and only if there is a pending request
     const requestIds = await this.getSubscriptionRequestIds()
-    if (requestIds.includes(user.id))
+    let bannedUserHasRequestedSubscription = false;
+    if (requestIds.includes(user.id)) {
+      bannedUserHasRequestedSubscription = true;
       promises.push(this.rejectSubscriptionRequest(user.id))
+    }
 
     await Promise.all(promises)
     monitor.increment('users.bans')
 
-    await EventService.onUserBanned(this.intId, user.intId, bannedUserWasSubscribed);
+    await EventService.onUserBanned(this.intId, user.intId, bannedUserWasSubscribed, bannedUserHasRequestedSubscription);
     return 1
   }
 

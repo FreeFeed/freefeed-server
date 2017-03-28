@@ -6,10 +6,14 @@ import expect from 'unexpected'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, dbAdapter } from '../../app/models'
 import {
+  acceptRequestAsync,
   banUser,
   createUserAsync,
   createGroupAsync,
+  goPrivate,
   mutualSubscriptions,
+  rejectRequestAsync,
+  sendRequestToSubscribe,
   subscribeToAsync,
   unsubscribeFromAsync,
   unsubscribeUserFromMeAsync,
@@ -296,6 +300,95 @@ describe('EventService', () => {
       await unsubscribeFromAsync(mars, dubhe);
       await expectSubscriptionEvents(lunaUserModel, []);
       await expectSubscriptionEvents(marsUserModel, []);
+    });
+  });
+
+  describe('subscription requests', () => {
+    let luna, mars;
+    let lunaUserModel, marsUserModel;
+
+    const expectSubsRequestEvents = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['subscription_requested', 'subscription_request_approved', 'subscription_request_rejected']);
+    };
+
+    beforeEach(async () => {
+      [luna, mars] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw'),
+      ]);
+
+      [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
+        luna.user.id,
+        mars.user.id
+      ]);
+      await goPrivate(luna);
+    });
+
+    it('should create subscription_requested event when subscription request is sent', async () => {
+      await sendRequestToSubscribe(mars, luna);
+      await expectUserEventsToBe(lunaUserModel, [{
+        user_id:            lunaUserModel.intId,
+        event_type:         'subscription_requested',
+        created_by_user_id: marsUserModel.intId,
+        target_user_id:     lunaUserModel.intId,
+      }]);
+    });
+
+    it('should create subscription_request_approved event when subscription request is approved', async () => {
+      await sendRequestToSubscribe(mars, luna);
+      await acceptRequestAsync(luna, mars);
+      await expectSubsRequestEvents(marsUserModel, [{
+        user_id:            marsUserModel.intId,
+        event_type:         'subscription_request_approved',
+        created_by_user_id: lunaUserModel.intId,
+        target_user_id:     marsUserModel.intId,
+      }]);
+    });
+
+    it('should create user_subscribed event when subscription request is approved', async () => {
+      await sendRequestToSubscribe(mars, luna);
+      await acceptRequestAsync(luna, mars);
+      await expectUserEventsToBe(lunaUserModel, [
+        {
+          user_id:            lunaUserModel.intId,
+          event_type:         'user_subscribed',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        },
+        {
+          user_id:            lunaUserModel.intId,
+          event_type:         'subscription_requested',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }
+      ]);
+    });
+
+    it('should create subscription_request_rejected event when subscription request is rejected', async () => {
+      await sendRequestToSubscribe(mars, luna);
+      await rejectRequestAsync(luna, mars);
+      await expectSubsRequestEvents(marsUserModel, [{
+        user_id:            marsUserModel.intId,
+        event_type:         'subscription_request_rejected',
+        created_by_user_id: lunaUserModel.intId,
+        target_user_id:     marsUserModel.intId,
+      }]);
+    });
+
+    it('should create subscription_request_rejected event for banned requester', async () => {
+      await sendRequestToSubscribe(mars, luna);
+      await banUser(luna, mars);
+      await expectSubsRequestEvents(marsUserModel, [{
+        user_id:            marsUserModel.intId,
+        event_type:         'subscription_request_rejected',
+        created_by_user_id: lunaUserModel.intId,
+        target_user_id:     marsUserModel.intId,
+      }]);
+    });
+
+    it('should not create subscription request events for banned arbitrary user', async () => {
+      await banUser(luna, mars);
+      await expectSubsRequestEvents(marsUserModel, []);
     });
   });
 });
