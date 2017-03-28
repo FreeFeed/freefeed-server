@@ -702,6 +702,13 @@ export function demoteFromAdmin(group, existingAdminContext, victimAdminContext)
   )
 }
 
+export function kickOutUserFromGroup(group, adminContext, victim) {
+  return postJson(
+    `/v1/groups/${group.username}/unsubscribeFromGroup/${victim.user.username}`,
+    { authToken: adminContext.authToken }
+  )
+}
+
 export function sendRequestToSubscribe(subscriber, user) {
   return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
 }
