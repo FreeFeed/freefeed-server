@@ -333,7 +333,10 @@ export function addModel(dbAdapter) {
       'hashedPassword':      this.hashedPassword,
       'frontendPreferences': JSON.stringify({})
     }
-    this.id = await dbAdapter.createUser(payload)
+    const ids = await dbAdapter.createUser(payload);
+    this.id = ids[0];
+    this.intId = ids[1];
+
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
     timer.stop() // @todo finally {}
     monitor.increment('users.creates')

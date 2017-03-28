@@ -364,10 +364,9 @@ export class DbAdapter {
 
   async createUser(payload) {
     const preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
-    const res = await this.database('users').returning('uid').insert(preparedPayload)
-    const uid = res[0]
+    const [{ uid: uid, id: intId }] = await this.database('users').returning(['uid', 'id']).insert(preparedPayload);
     await this.createUserStats(uid)
-    return uid
+    return [uid, intId];
   }
 
   updateUser(userId, payload) {
