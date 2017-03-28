@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 import { dbAdapter, Group, GroupSerializer } from '../../../models'
+import { EventService } from '../../../support/EventService'
 import { BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
@@ -22,7 +23,7 @@ export default class GroupsController {
 
     const group = new Group(params)
     await group.create(ctx.state.user.id, false)
-
+    await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
     const json = await new GroupSerializer(group).promiseToJSON()
     ctx.body = json;
   }

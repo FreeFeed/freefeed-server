@@ -391,4 +391,38 @@ describe('EventService', () => {
       await expectSubsRequestEvents(marsUserModel, []);
     });
   });
+
+  describe('groups', () => {
+    let luna, mars;
+    let lunaUserModel, marsUserModel;
+
+    const expectGroupEvents = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['group_created']);
+    };
+
+    beforeEach(async () => {
+      [luna, mars] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw'),
+      ]);
+
+      [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
+        luna.user.id,
+        mars.user.id
+      ]);
+    });
+
+    describe('creation', () => {
+      it('should create group_created event for group owner', async () => {
+        const dubhe = await createGroupAsync(luna, 'dubhe');
+        const dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+        await expectGroupEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'group_created',
+          created_by_user_id: lunaUserModel.intId,
+          group_id:           dubheGroupModel.intId,
+        }]);
+      });
+    });
+  });
 });

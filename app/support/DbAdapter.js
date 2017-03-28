@@ -2525,8 +2525,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
-                    groupId = null, postId = null, commentId = null) {
-    const groupIntId = groupId ? await this._getGroupIntIdByUUID(groupId) : null;
+                    groupIntId = null, postId = null, commentId = null) {
     const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
     const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
 

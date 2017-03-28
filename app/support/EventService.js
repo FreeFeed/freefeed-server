@@ -10,6 +10,7 @@ const EVENT_TYPES = {
   SUBSCRIPTION_REQUESTED:        'subscription_requested',
   SUBSCRIPTION_REQUEST_APPROVED: 'subscription_request_approved',
   SUBSCRIPTION_REQUEST_REJECTED: 'subscription_request_rejected',
+  GROUP_CREATED:                 'group_created',
 };
 
 export class EventService {
@@ -48,5 +49,9 @@ export class EventService {
 
   static async onSubscriptionRequestRejected(fromUserIntId, toUserIntId) {
     await dbAdapter.createEvent(fromUserIntId, EVENT_TYPES.SUBSCRIPTION_REQUEST_REJECTED, toUserIntId, fromUserIntId);
+  }
+
+  static async onGroupCreated(ownerIntId, groupIntId) {
+    await dbAdapter.createEvent(ownerIntId, EVENT_TYPES.GROUP_CREATED, ownerIntId, null, groupIntId);
   }
 }
