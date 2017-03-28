@@ -11,7 +11,9 @@ import {
   createUserAsync,
   createGroupAsync,
   goPrivate,
+  kickOutUserFromGroup,
   mutualSubscriptions,
+  promoteToAdmin,
   rejectRequestAsync,
   sendRequestToSubscribe,
   subscribeToAsync,
@@ -393,22 +395,26 @@ describe('EventService', () => {
   });
 
   describe('groups', () => {
-    let luna, mars;
-    let lunaUserModel, marsUserModel;
+    let luna, mars, jupiter, pluto;
+    let lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel;
 
     const expectGroupEvents = (user, expectedEvents) => {
-      return expectUserEventsToBe(user, expectedEvents, ['group_created']);
+      return expectUserEventsToBe(user, expectedEvents, ['group_created', 'group_subscribed', 'group_unsubscribed']);
     };
 
     beforeEach(async () => {
-      [luna, mars] = await Promise.all([
+      [luna, mars, jupiter, pluto] = await Promise.all([
         createUserAsync('luna', 'pw'),
         createUserAsync('mars', 'pw'),
+        createUserAsync('jupiter', 'pw'),
+        createUserAsync('pluto', 'pw'),
       ]);
 
-      [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
+      [lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel] = await dbAdapter.getUsersByIds([
         luna.user.id,
-        mars.user.id
+        mars.user.id,
+        jupiter.user.id,
+        pluto.user.id,
       ]);
     });
 
@@ -422,6 +428,131 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           group_id:           dubheGroupModel.intId,
         }]);
+      });
+    });
+
+    describe('subscription/unsubscription', () => {
+      let dubhe, dubheGroupModel;
+
+      beforeEach(async () => {
+        dubhe = await createGroupAsync(luna, 'dubhe');
+        dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+      });
+
+      it('should create group_subscribed event on group subscription', async () => {
+        await subscribeToAsync(jupiter, dubhe);
+        await expectGroupEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_subscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_created' }
+        ]);
+      });
+
+      it('should create group_subscribed event on group subscription for each group admin', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await subscribeToAsync(jupiter, dubhe);
+        await expectGroupEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_subscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_created' }
+        ]);
+        await expectGroupEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'group_subscribed',
+          created_by_user_id: jupiterUserModel.intId,
+          group_id:           dubheGroupModel.intId,
+        }]);
+      });
+
+      it('should not create group_subscribed event for newly added group admin', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await subscribeToAsync(jupiter, dubhe);
+        await promoteToAdmin(dubhe, luna, pluto);
+        await expectGroupEvents(plutoUserModel, []);
+      });
+
+      it('should create group_unsubscribed event on group unsubscription', async () => {
+        await subscribeToAsync(jupiter, dubhe);
+        await unsubscribeFromAsync(jupiter, dubhe);
+        await expectGroupEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_unsubscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_subscribed' }, { event_type: 'group_created' }
+        ]);
+      });
+
+      it('should create group_unsubscribed event on group unsubscription for each group admin', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await subscribeToAsync(jupiter, dubhe);
+        await unsubscribeFromAsync(jupiter, dubhe);
+        await expectGroupEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_unsubscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_subscribed' }, { event_type: 'group_created' }
+        ]);
+        await expectGroupEvents(marsUserModel, [
+          {
+            user_id:            marsUserModel.intId,
+            event_type:         'group_unsubscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_subscribed' }
+        ]);
+      });
+
+      it('should not create group_subscribed event for newly added group admin', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await subscribeToAsync(jupiter, dubhe);
+        await unsubscribeFromAsync(jupiter, dubhe);
+        await promoteToAdmin(dubhe, luna, pluto);
+        await expectGroupEvents(plutoUserModel, []);
+      });
+
+      it('should create group_unsubscribed event on kicking out user from group', async () => {
+        await subscribeToAsync(jupiter, dubhe);
+        await kickOutUserFromGroup(dubhe, luna, jupiter);
+        await expectGroupEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_unsubscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_subscribed' }, { event_type: 'group_created' }
+        ]);
+      });
+
+      it('should create group_unsubscribed event on kicking out user from group for each group admin', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await subscribeToAsync(jupiter, dubhe);
+        await kickOutUserFromGroup(dubhe, luna, jupiter);
+        await expectGroupEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_unsubscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_subscribed' }, { event_type: 'group_created' }
+        ]);
+        await expectGroupEvents(marsUserModel, [
+          {
+            user_id:            marsUserModel.intId,
+            event_type:         'group_unsubscribed',
+            created_by_user_id: jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, { event_type: 'group_subscribed' }
+        ]);
       });
     });
   });

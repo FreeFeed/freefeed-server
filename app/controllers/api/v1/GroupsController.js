@@ -294,6 +294,7 @@ export default class GroupsController {
     }
 
     await user.unsubscribeFrom(timelineId)
+    await EventService.onGroupUnsubscribed(user.intId, group);
 
     ctx.body = { err: null, status: 'success' };
   }

@@ -335,6 +335,8 @@ export default class UsersController {
     await ctx.state.user.subscribeToUsername(username)
     if ('user' === user.type) {
       await EventService.onUserSubscribed(ctx.state.user.intId, user.intId);
+    } else {
+      await EventService.onGroupSubscribed(ctx.state.user.intId, user);
     }
     const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
     ctx.body = json
@@ -400,6 +402,8 @@ export default class UsersController {
       await ctx.state.user.unsubscribeFrom(timelineId)
       if ('user' === user.type) {
         await EventService.onUserUnsubscribed(ctx.state.user.intId, user.intId);
+      } else {
+        await EventService.onGroupUnsubscribed(ctx.state.user.intId, user);
       }
       const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
       ctx.body = json

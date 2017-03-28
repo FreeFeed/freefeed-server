@@ -11,6 +11,8 @@ const EVENT_TYPES = {
   SUBSCRIPTION_REQUEST_APPROVED: 'subscription_request_approved',
   SUBSCRIPTION_REQUEST_REJECTED: 'subscription_request_rejected',
   GROUP_CREATED:                 'group_created',
+  GROUP_SUBSCRIBED:              'group_subscribed',
+  GROUP_UNSUBSCRIBED:            'group_unsubscribed',
 };
 
 export class EventService {
@@ -53,5 +55,25 @@ export class EventService {
 
   static async onGroupCreated(ownerIntId, groupIntId) {
     await dbAdapter.createEvent(ownerIntId, EVENT_TYPES.GROUP_CREATED, ownerIntId, null, groupIntId);
+  }
+
+  static async onGroupSubscribed(initiatorIntId, subscribedGroup) {
+    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(subscribedGroup.id);
+    const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+
+    const promises = admins.map((adminUser) => {
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIBED, initiatorIntId, null, subscribedGroup.intId);
+    });
+    await Promise.all(promises);
+  }
+
+  static async onGroupUnsubscribed(initiatorIntId, unsubscribedGroup) {
+    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(unsubscribedGroup.id);
+    const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+
+    const promises = admins.map((adminUser) => {
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_UNSUBSCRIBED, initiatorIntId, null, unsubscribedGroup.intId);
+    });
+    await Promise.all(promises);
   }
 }
