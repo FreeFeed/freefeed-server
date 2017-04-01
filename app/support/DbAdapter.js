@@ -544,6 +544,30 @@ export class DbAdapter {
       .orderBy('s.created_at', 'desc');
   }
 
+  // Insert record to 'archives' table for the test purposes.
+  // 'params' should hold optional 'archives' fields.
+  async setUserArchiveParams(userId, oldUsername, params = {}) {
+    return await this.database('archives').insert({ ...params, user_id: userId, old_username: oldUsername });
+  }
+
+  // Return data from 'archives' table for the 'whoami' response
+  async getUserArchiveParams(userId) {
+    return await this.database('archives')
+      .first('old_username', 'has_archive', 'via_sources', 'recovery_status', 'restore_comments_and_likes')
+      .where({ user_id: userId });
+  }
+
+  async startArchiveRestoration(userId, params = {}) {
+    params = {
+      disable_comments:      false,
+      restore_self_comments: true,
+      via_restore:           [],
+      ...params,
+      recovery_status:       1,
+    };
+    await this.database('archives').where('user_id', userId).update(params);
+  }
+
   ///////////////////////////////////////////////////
   // User's attributes caching
   ///////////////////////////////////////////////////
