@@ -3,6 +3,7 @@ import expect from 'unexpected';
 import Mailer from '../../../../lib/mailer'
 import { load as configLoader } from '../../../../config/config'
 import { dbAdapter } from '../../../models';
+import { ForbiddenException } from '../../../support/exceptions';
 import { monitored, authRequired } from './helpers';
 
 const config = configLoader();
@@ -12,14 +13,13 @@ export default class ArchivesController {
     const user = ctx.state.user;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
     if (!archParams) {
-      ctx.status = 403;
-      ctx.body = { err: `You have no archive record` };
-      return;
+      throw new ForbiddenException('You have no archive record');
+    }
+    if (!archParams.has_archive) {
+      throw new ForbiddenException('You have not Clio archive');
     }
     if (archParams.recovery_status != 0) {
-      ctx.status = 403;
-      ctx.body = { err: `Archive restoration is already in progress or finished` };
-      return;
+      throw new ForbiddenException('Archive restoration is already in progress or finished');
     }
 
     const params = {
@@ -40,9 +40,7 @@ export default class ArchivesController {
         via_restore:           expect.it('to be an array').and('to have items satisfying', 'to be a string'),
       });
     } catch (e) {
-      ctx.status = 403;
-      ctx.body = { err: `Invalid data format` };
-      return;
+      throw new ForbiddenException('Invalid data format');
     }
 
     await dbAdapter.startArchiveRestoration(user.id, params);
@@ -55,5 +53,6 @@ export default class ArchivesController {
     )
 
     ctx.status = 202;
+    ctx.body = {};
   }));
 }
