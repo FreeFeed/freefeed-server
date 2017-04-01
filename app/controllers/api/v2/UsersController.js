@@ -67,6 +67,7 @@ export default class UsersController {
         subscriptionRequestsUIDs,
         managedGroupUIDs,
         pendingGroupRequests,
+        archiveParams,
       ] = await Promise.all([
         serializeSelfUser(user),
         dbAdapter.getTimelinesUserSubscribed(user.id, 'Posts'),
@@ -75,7 +76,12 @@ export default class UsersController {
         user.getSubscriptionRequestIds(),
         dbAdapter.getManagedGroupIds(user.id),
         dbAdapter.getPendingGroupRequests(user.id),
+        dbAdapter.getUserArchiveParams(user.id),
       ]);
+
+      if (archiveParams) {
+        users.privateMeta.archives = archiveParams;
+      }
 
       const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
       const subscriptionsUIDs = _.map(subscriptions, 'user'); // UIDs of users our user subscribed to
