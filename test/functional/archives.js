@@ -37,11 +37,13 @@ describe('Archives', () => {
       luna = await testHelper.createUserAsync('luna', 'pw');
       mars = await testHelper.createUserAsync('mars', 'pw');
       venus = await testHelper.createUserAsync('venus', 'pw');
-      dbAdapter.setUserArchiveParams(luna.user.id, 'oldluna', {
-        has_archive: true,
-        via_sources: JSON.stringify(viaSources),
-      });
-      dbAdapter.setUserArchiveParams(mars.user.id, 'oldmars', { has_archive: false });
+      await Promise.all([
+        dbAdapter.setUserArchiveParams(luna.user.id, 'oldluna', {
+          has_archive: true,
+          via_sources: JSON.stringify(viaSources),
+        }),
+        dbAdapter.setUserArchiveParams(mars.user.id, 'oldmars', { has_archive: false }),
+      ]);
     });
 
     it('should return \'archive\' field in whoami for Luna', async () => {
@@ -97,14 +99,45 @@ describe('Archives', () => {
     });
 
     it('should not start archive restoration for anonymous', async () => {
-      const resp = await fetch(
-        `${app.context.config.host}/v2/archives/start`,
-        {
-          method: 'POST',
-          body:   JSON.stringify({}),
-        }
-      );
+      const resp = await postStart(app);
       expect(resp.status, 'to equal', 401);
+    });
+
+    it('should allow Luna to restore activities', async () => {
+      const resp = await putActivities(app, luna);
+      expect(resp.status, 'to equal', 202);
+
+      const whoAmI = await getWhoAmI(app, luna);
+      expect(whoAmI.users.privateMeta.archives, 'to satisfy', { restore_comments_and_likes: true });
+    });
+
+    it('should allow Mars to restore activities', async () => {
+      const resp = await putActivities(app, mars);
+      expect(resp.status, 'to equal', 202);
+
+      const whoAmI = await getWhoAmI(app, mars);
+      expect(whoAmI.users.privateMeta.archives, 'to satisfy', { restore_comments_and_likes: true });
+    });
+
+    it('should not allow Venus to restore activities', async () => {
+      const resp = await putActivities(app, venus);
+      expect(resp.status, 'to equal', 403);
+    });
+
+    it('should not allow anonymous to restore activities', async () => {
+      const resp = await putActivities(app);
+      expect(resp.status, 'to equal', 401);
+    });
+
+    it('should not allow Luna to cancel activities restoration', async () => {
+      const resp = await putActivities(app, luna);
+      expect(resp.status, 'to equal', 202);
+
+      const resp2 = await putActivities(app, luna, false);
+      expect(resp2.status, 'to equal', 403);
+
+      const whoAmI = await getWhoAmI(app, luna);
+      expect(whoAmI.users.privateMeta.archives, 'to satisfy', { restore_comments_and_likes: true });
     });
   });
 });
@@ -127,6 +160,21 @@ async function postStart(app, user = null, body = {}) {
       method: 'POST',
       headers,
       body:   JSON.stringify(body),
+    }
+  );
+}
+
+async function putActivities(app, user = null, restore = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (user) {
+    headers['X-Authentication-Token'] = user.authToken;
+  }
+  return await fetch(
+    `${app.context.config.host}/v2/archives/activities`,
+    {
+      method: 'PUT',
+      headers,
+      body:   JSON.stringify({ restore }),
     }
   );
 }
