@@ -1965,6 +1965,22 @@ export class DbAdapter {
     return postsIds.map((id) => results[id] || null);
   }
 
+  // Insert record to 'archive_post_names' table for the test purposes.
+  async setOldPostName(postId, oldName) {
+    return await this.database('archive_post_names').insert({ post_id: postId, old_post_name: oldName });
+  }
+
+  // Return new post's UID by its old name
+  async getPostIdByOldName(oldName) {
+    const rec = await this.database('archive_post_names')
+      .first('post_id')
+      .where({ old_post_name: oldName });
+    if (rec) {
+      return rec.post_id;
+    }
+    return null;
+  }
+
   ///////////////////////////////////////////////////
   // Subscriptions
   ///////////////////////////////////////////////////

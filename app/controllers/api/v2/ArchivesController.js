@@ -3,7 +3,7 @@ import expect from 'unexpected';
 import Mailer from '../../../../lib/mailer'
 import { load as configLoader } from '../../../../config/config'
 import { dbAdapter } from '../../../models';
-import { ForbiddenException } from '../../../support/exceptions';
+import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
 import { monitored, authRequired } from './helpers';
 
 const config = configLoader();
@@ -76,4 +76,14 @@ export default class ArchivesController {
     ctx.status = 202;
     ctx.body = {};
   }));
+
+  postByOldName = monitored('archives.postByOldName', async (ctx) => {
+    const { name } = ctx.params;
+    const postId = await dbAdapter.getPostIdByOldName(name);
+    if (!postId) {
+      throw new NotFoundException('Post not found');
+    }
+
+    ctx.body = { postId };
+  });
 }

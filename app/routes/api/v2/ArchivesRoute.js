@@ -5,4 +5,5 @@ export default function addRoutes(app) {
 
   app.post('/v2/archives/start', controller.start);
   app.put('/v2/archives/activities', controller.activities);
+  app.get('/v2/archives/post-by-old-name/:name', controller.postByOldName);
 }
