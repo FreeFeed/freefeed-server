@@ -4,4 +4,5 @@ export default function addRoutes(app) {
   const controller = new ArchivesController(app);
 
   app.post('/v2/archives/start', controller.start);
+  app.put('/v2/archives/activities', controller.activities);
 }

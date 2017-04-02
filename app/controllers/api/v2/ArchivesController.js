@@ -55,4 +55,25 @@ export default class ArchivesController {
     ctx.status = 202;
     ctx.body = {};
   }));
+
+  activities = authRequired(monitored('archives.start', async (ctx) => {
+    const user = ctx.state.user;
+    const archParams = await dbAdapter.getUserArchiveParams(user.id);
+    if (!archParams) {
+      throw new ForbiddenException('You have no archive record');
+    }
+
+    try {
+      await expect(ctx.request.body, 'to exhaustively satisfy', { restore: true });
+    } catch (e) {
+      throw new ForbiddenException('Invalid data format');
+    }
+
+    if (!archParams.restore_comments_and_likes) {
+      await dbAdapter.enableArchivedActivitiesRestoration(user.id);
+    }
+
+    ctx.status = 202;
+    ctx.body = {};
+  }));
 }

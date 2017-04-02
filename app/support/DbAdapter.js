@@ -568,6 +568,10 @@ export class DbAdapter {
     await this.database('archives').where('user_id', userId).update(params);
   }
 
+  async enableArchivedActivitiesRestoration(userId) {
+    await this.database('archives').where('user_id', userId).update({ restore_comments_and_likes: true });
+  }
+
   ///////////////////////////////////////////////////
   // User's attributes caching
   ///////////////////////////////////////////////////
