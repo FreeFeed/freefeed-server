@@ -140,6 +140,29 @@ describe('Archives', () => {
       expect(whoAmI.users.privateMeta.archives, 'to satisfy', { restore_comments_and_likes: true });
     });
   });
+
+  describe('Luna has a restored post', () => {
+    const oldName = 'deadbeef';
+    const badName = 'baddbeef';
+    let luna, post;
+    beforeEach(async () => {
+      luna = await testHelper.createUserAsync('luna', 'pw');
+      post = await testHelper.createAndReturnPost(luna, 'Luna post');
+      await dbAdapter.setOldPostName(post.id, oldName)
+    });
+
+    it('should return new post UID by it\'s old name', async () => {
+      const resp = await fetch(`${app.context.config.host}/v2/archives/post-by-old-name/${encodeURIComponent(oldName)}`);
+      expect(resp.status, 'to equal', 200);
+
+      expect(await resp.json(), 'to exhaustively satisfy', { postId: post.id });
+    });
+
+    it('should not return new post UID by bad old name', async () => {
+      const resp = await fetch(`${app.context.config.host}/v2/archives/post-by-old-name/${encodeURIComponent(badName)}`);
+      expect(resp.status, 'to equal', 404);
+    });
+  });
 });
 
 async function getWhoAmI(app, user) {
