@@ -725,6 +725,10 @@ export function acceptRequestToJoinGroup(admin, subscriber, group) {
   return postJson(`/v1/groups/${group.username}/acceptRequest/${subscriber.user.username}`, { authToken: admin.authToken })
 }
 
+export function rejectSubscriptionRequestToGroup(admin, subscriber, group) {
+  return postJson(`/v1/groups/${group.username}/rejectRequest/${subscriber.user.username}`, { authToken: admin.authToken });
+}
+
 export function banUser(who, whom) {
   return postJson(`/v1/users/${whom.username}/ban`, { authToken: who.authToken })
 }
