@@ -111,8 +111,10 @@ export default class GroupsController {
 
     if (newStatus) {
       await group.addAdministrator(newAdmin.id)
+      await EventService.onGroupAdminPromoted(ctx.state.user.intId, group, newAdmin.intId);
     } else {
       await group.removeAdministrator(newAdmin.id)
+      await EventService.onGroupAdminDemoted(ctx.state.user.intId, group, newAdmin.intId);
     }
 
     ctx.body = { err: null, status: 'success' };

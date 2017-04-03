@@ -10,6 +10,7 @@ import {
   banUser,
   createUserAsync,
   createGroupAsync,
+  demoteFromAdmin,
   goPrivate,
   kickOutUserFromGroup,
   mutualSubscriptions,
@@ -402,6 +403,10 @@ describe('EventService', () => {
       return expectUserEventsToBe(user, expectedEvents, ['group_created', 'group_subscribed', 'group_unsubscribed']);
     };
 
+    const expectGroupAdminEvents = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['group_admin_promoted', 'group_admin_demoted']);
+    };
+
     beforeEach(async () => {
       [luna, mars, jupiter, pluto] = await Promise.all([
         createUserAsync('luna', 'pw'),
@@ -553,6 +558,125 @@ describe('EventService', () => {
             group_id:           dubheGroupModel.intId,
           }, { event_type: 'group_subscribed' }
         ]);
+      });
+    });
+
+    describe('admins promoting/demoting', () => {
+      let dubhe, dubheGroupModel;
+
+      beforeEach(async () => {
+        dubhe           = await createGroupAsync(luna, 'dubhe');
+        dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+      });
+
+      it('should create group_admin_promoted event when user becomes group admin', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await expectGroupAdminEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+      });
+
+      it('should create group_admin_promoted event when user becomes group admin for each group admin except new one', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await promoteToAdmin(dubhe, mars, jupiter);
+        await expectGroupAdminEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+
+        await expectGroupAdminEvents(marsUserModel, [
+          {
+            user_id:            marsUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+
+        await expectGroupAdminEvents(jupiterUserModel, []);
+      });
+
+      it('should create group_admin_demoted event when group admin demoted', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await demoteFromAdmin(dubhe, luna, mars);
+        await expectGroupAdminEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_demoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+      });
+
+      it('should create group_admin_demoted event when group admin demoted for each group admin except demoted one', async () => {
+        await promoteToAdmin(dubhe, luna, mars);
+        await promoteToAdmin(dubhe, mars, jupiter);
+        await demoteFromAdmin(dubhe, luna, jupiter);
+        await expectGroupAdminEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_demoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+
+        await expectGroupAdminEvents(marsUserModel, [
+          {
+            user_id:            marsUserModel.intId,
+            event_type:         'group_admin_demoted',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, {
+            user_id:            marsUserModel.intId,
+            event_type:         'group_admin_promoted',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+
+        await expectGroupAdminEvents(jupiterUserModel, []);
       });
     });
   });

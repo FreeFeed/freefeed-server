@@ -13,6 +13,8 @@ const EVENT_TYPES = {
   GROUP_CREATED:                 'group_created',
   GROUP_SUBSCRIBED:              'group_subscribed',
   GROUP_UNSUBSCRIBED:            'group_unsubscribed',
+  GROUP_ADMIN_PROMOTED:          'group_admin_promoted',
+  GROUP_ADMIN_DEMOTED:           'group_admin_demoted',
 };
 
 export class EventService {
@@ -74,6 +76,36 @@ export class EventService {
     const promises = admins.map((adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_UNSUBSCRIBED, initiatorIntId, null, unsubscribedGroup.intId);
     });
+    await Promise.all(promises);
+  }
+
+  static async onGroupAdminPromoted(initiatorIntId, group, newAdminIntId) {
+    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
+    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+
+    admins = admins.filter((el) => {
+      return el.intId != newAdminIntId;
+    });
+
+    const promises = admins.map((adminUser) => {
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_PROMOTED, initiatorIntId, newAdminIntId, group.intId);
+    });
+
+    await Promise.all(promises);
+  }
+
+  static async onGroupAdminDemoted(initiatorIntId, group, formerAdminIntId) {
+    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
+    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+
+    admins = admins.filter((el) => {
+      return el.intId != formerAdminIntId;
+    });
+
+    const promises = admins.map((adminUser) => {
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_DEMOTED, initiatorIntId, formerAdminIntId, group.intId);
+    });
+
     await Promise.all(promises);
   }
 }
