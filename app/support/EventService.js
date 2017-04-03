@@ -63,87 +63,63 @@ export class EventService {
   }
 
   static async onGroupSubscribed(initiatorIntId, subscribedGroup) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(subscribedGroup.id);
-    const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(subscribedGroup, (adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIBED, initiatorIntId, null, subscribedGroup.intId);
     });
-    await Promise.all(promises);
   }
 
   static async onGroupUnsubscribed(initiatorIntId, unsubscribedGroup) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(unsubscribedGroup.id);
-    const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(unsubscribedGroup, (adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_UNSUBSCRIBED, initiatorIntId, null, unsubscribedGroup.intId);
     });
-    await Promise.all(promises);
   }
 
   static async onGroupAdminPromoted(initiatorIntId, group, newAdminIntId) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
-    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    admins = admins.filter((el) => {
-      return el.intId != newAdminIntId;
-    });
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(group, (adminUser) => {
+      if (adminUser.intId === newAdminIntId) {
+        return null;
+      }
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_PROMOTED, initiatorIntId, newAdminIntId, group.intId);
     });
-
-    await Promise.all(promises);
   }
 
   static async onGroupAdminDemoted(initiatorIntId, group, formerAdminIntId) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
-    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    admins = admins.filter((el) => {
-      return el.intId != formerAdminIntId;
-    });
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(group, (adminUser) => {
+      if (adminUser.intId === formerAdminIntId) {
+        return null;
+      }
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_DEMOTED, initiatorIntId, formerAdminIntId, group.intId);
     });
-
-    await Promise.all(promises);
   }
 
   static async onGroupSubscriptionRequestCreated(initiatorIntId, group) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
-    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(group, (adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_REQUEST, initiatorIntId, initiatorIntId, group.intId);
     });
-
-    await Promise.all(promises);
   }
 
   static async onGroupSubscriptionRequestApproved(adminIntId, group, requesterIntId) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
-    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(group, (adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
     });
-
-    await Promise.all(promises);
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
   }
 
   static async onGroupSubscriptionRequestRejected(adminIntId, group, requesterIntId) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
-    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
-
-    const promises = admins.map((adminUser) => {
+    await this._notifyGroupAdmins(group, (adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
     });
-
-    await Promise.all(promises);
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, null, requesterIntId, group.intId);
+  }
+
+
+  static async _notifyGroupAdmins(group, adminNotifier) {
+    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
+    const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+
+    const promises = admins.map((adminUser) => {
+      return adminNotifier(adminUser);
+    });
+    await Promise.all(promises);
   }
 }
