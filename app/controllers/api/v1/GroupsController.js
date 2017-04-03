@@ -223,6 +223,7 @@ export default class GroupsController {
     }
 
     await group.acceptSubscriptionRequest(user.id)
+    await EventService.onGroupSubscriptionRequestApproved(ctx.state.user.intId, group, user.intId);
 
     ctx.body = { err: null, status: 'success' };
   }
@@ -258,6 +259,7 @@ export default class GroupsController {
     }
 
     await group.rejectSubscriptionRequest(user.id)
+    await EventService.onGroupSubscriptionRequestRejected(ctx.state.user.intId, group, user.intId);
 
     ctx.body = { err: null, status: 'success' };
   }
