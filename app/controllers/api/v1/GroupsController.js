@@ -187,6 +187,7 @@ export default class GroupsController {
     }
 
     await ctx.state.user.sendPrivateGroupSubscriptionRequest(group.id)
+    await EventService.onGroupSubscriptionRequestCreated(ctx.state.user.intId, group);
 
     ctx.body = { err: null, status: 'success' };
   }

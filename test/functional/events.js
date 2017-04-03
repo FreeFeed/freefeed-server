@@ -17,6 +17,7 @@ import {
   promoteToAdmin,
   rejectRequestAsync,
   sendRequestToSubscribe,
+  sendRequestToJoinGroup,
   subscribeToAsync,
   unsubscribeFromAsync,
   unsubscribeUserFromMeAsync,
@@ -407,6 +408,10 @@ describe('EventService', () => {
       return expectUserEventsToBe(user, expectedEvents, ['group_admin_promoted', 'group_admin_demoted']);
     };
 
+    const expectGroupRequestEvents = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested']);
+    };
+
     beforeEach(async () => {
       [luna, mars, jupiter, pluto] = await Promise.all([
         createUserAsync('luna', 'pw'),
@@ -677,6 +682,51 @@ describe('EventService', () => {
         ]);
 
         await expectGroupAdminEvents(jupiterUserModel, []);
+      });
+    });
+
+    describe('subscription requests', () => {
+      let dubhe, dubheGroupModel;
+
+      beforeEach(async () => {
+        dubhe           = await createGroupAsync(luna, 'dubhe', 'Dubhe', true);
+        dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+      });
+
+      it('should create group_subscription_requested event when user sends join request to group', async () => {
+        await sendRequestToJoinGroup(mars, dubhe);
+        await expectGroupRequestEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_subscription_requested',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+      });
+
+      it('should create group_subscription_requested event when user sends join request to group for each group admin', async () => {
+        await promoteToAdmin(dubhe, luna, jupiter);
+        await sendRequestToJoinGroup(mars, dubhe);
+        await expectGroupRequestEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_subscription_requested',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+        await expectGroupRequestEvents(jupiterUserModel, [
+          {
+            user_id:            jupiterUserModel.intId,
+            event_type:         'group_subscription_requested',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
       });
     });
   });

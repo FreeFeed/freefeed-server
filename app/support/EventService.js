@@ -13,6 +13,7 @@ const EVENT_TYPES = {
   GROUP_CREATED:                 'group_created',
   GROUP_SUBSCRIBED:              'group_subscribed',
   GROUP_UNSUBSCRIBED:            'group_unsubscribed',
+  GROUP_SUBSCRIPTION_REQUEST:    'group_subscription_requested',
   GROUP_ADMIN_PROMOTED:          'group_admin_promoted',
   GROUP_ADMIN_DEMOTED:           'group_admin_demoted',
 };
@@ -104,6 +105,17 @@ export class EventService {
 
     const promises = admins.map((adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_DEMOTED, initiatorIntId, formerAdminIntId, group.intId);
+    });
+
+    await Promise.all(promises);
+  }
+
+  static async onGroupSubscriptionRequestCreated(initiatorIntId, group) {
+    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
+    let admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+
+    const promises = admins.map((adminUser) => {
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_REQUEST, initiatorIntId, initiatorIntId, group.intId);
     });
 
     await Promise.all(promises);
