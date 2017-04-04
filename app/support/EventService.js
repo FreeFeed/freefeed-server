@@ -18,6 +18,7 @@ const EVENT_TYPES = {
   GROUP_SUBSCRIPTION_REJECTED:   'group_subscription_rejected',
   GROUP_ADMIN_PROMOTED:          'group_admin_promoted',
   GROUP_ADMIN_DEMOTED:           'group_admin_demoted',
+  DIRECT_CREATED:                'direct',
 };
 
 export class EventService {
@@ -112,6 +113,31 @@ export class EventService {
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, null, requesterIntId, group.intId);
   }
 
+  static async onPostCreated(post, destinationFeedIds, author) {
+    await this._processDirectMessagesForPost(post, destinationFeedIds, author);
+  }
+
+
+  ////////////////////////////////////////////
+
+  static async _processDirectMessagesForPost(post, destinationFeedIds, author) {
+    const feeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
+    const directFeeds = feeds.filter((f) => {
+      return f.isDirects() && f.userId !== author.id;
+    });
+
+    if (directFeeds.length > 0) {
+      const directReceiversIds = directFeeds.map((f) => {
+        return f.userId;
+      });
+
+      const directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
+      const promises = directReceivers.map((receiver) => {
+        return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_CREATED, author.intId, receiver.intId, null, post.id);
+      });
+      await Promise.all(promises);
+    }
+  }
 
   static async _notifyGroupAdmins(group, adminNotifier) {
     const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);

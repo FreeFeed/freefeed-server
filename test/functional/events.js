@@ -9,6 +9,7 @@ import {
   acceptRequestAsync,
   acceptRequestToJoinGroup,
   banUser,
+  createAndReturnPostToFeed,
   createUserAsync,
   createGroupAsync,
   demoteFromAdmin,
@@ -833,6 +834,83 @@ describe('EventService', () => {
             group_id:           dubheGroupModel.intId,
           }
         ]);
+      });
+    });
+  });
+
+  describe('direct', () => {
+    let luna, mars, jupiter, pluto;
+    let lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel;
+
+    const expectPostEvents = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['direct']);
+    };
+
+    beforeEach(async () => {
+      [luna, mars, jupiter, pluto] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw'),
+        createUserAsync('jupiter', 'pw'),
+        createUserAsync('pluto', 'pw'),
+      ]);
+
+      [lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel] = await dbAdapter.getUsersByIds([
+        luna.user.id,
+        mars.user.id,
+        jupiter.user.id,
+        pluto.user.id,
+      ]);
+
+      await mutualSubscriptions([luna, mars, jupiter, pluto]);
+    });
+
+    describe('posts', () => {
+      it('should create direct event on direct post creation for direct receiver', async () => {
+        await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+      });
+
+      it('should not create direct event on direct post creation for direct sender', async () => {
+        await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await expectPostEvents(lunaUserModel, []);
+      });
+
+      it('should create direct event on direct post creation for all direct receivers', async () => {
+        await createAndReturnPostToFeed({ username: [mars.username, jupiter.username, pluto.username] }, luna, 'Direct');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+        await expectPostEvents(jupiterUserModel, [{
+          user_id:            jupiterUserModel.intId,
+          event_type:         'direct',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     jupiterUserModel.intId,
+        }]);
+        await expectPostEvents(plutoUserModel, [{
+          user_id:            plutoUserModel.intId,
+          event_type:         'direct',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     plutoUserModel.intId,
+        }]);
+      });
+
+      it('should not create direct event on semi-direct post (copy to own post feed) creation for direct sender', async () => {
+        await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+        await expectPostEvents(lunaUserModel, []);
       });
     });
   });
