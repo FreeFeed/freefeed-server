@@ -18,7 +18,8 @@
     "data_transfer": "babel-node bin/data_transfer",
     "reindex_hashtags": "babel-node bin/reindex_hashtags",
     "count_stats": "babel-node bin/count_stats",
-    "count-daily-stats": "babel-node bin/count-daily-stats"
+    "count-daily-stats": "babel-node bin/count-daily-stats",
+    "import_clikes": "babel-node bin/import_clikes"
   },
   "repository": {
     "type": "git",
@@ -74,7 +75,7 @@
     "underscore.string": "3.3.4",
     "url": "0.11.0",
     "uuid": "3.0.1",
-    "validator": "3.40.1",
+    "validator": "6.2.1",
     "winston": "1.1.2"
   },
   "devDependencies": {

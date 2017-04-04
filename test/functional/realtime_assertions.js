@@ -87,8 +87,23 @@ export function installInto(expect) {
     }
   });
 
+  expect.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
+    const session = await Session.create(viewer);
+    session.send('subscribe', { 'post': [postId] });
+    try {
+      return await expect.shift(session);
+    } finally {
+      session.disconnect();
+    }
+  });
+
   expect.addAssertion('<realtimeSession> with post having id <string> <assertion>', (expect, session, postId) => {
     session.context.postId = postId;
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> with comment having id <string> <assertion>', (expect, session, commentId) => {
+    session.context.commentId = commentId;
     return expect.shift(session);
   });
 
@@ -124,6 +139,7 @@ export function installInto(expect) {
       expect(session, 'to receive event', 'post:new'),
     ]);
     expect(newPostEvent.posts.id, 'to be', postId);
+    session.context.newPostRealtimeMsg = newPostEvent;
 
     // Delete post
     const [
@@ -134,6 +150,23 @@ export function installInto(expect) {
       expect(session, 'to receive event', 'post:destroy'),
     ]);
     expect(destroyPostEvent.meta.postId, 'to be', postId);
+    session.context.destroyPostRealtimeMsg = destroyPostEvent;
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get post:update events from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'postId');
+    const { postId } = session.context;
+
+    const res = await Promise.all([
+      funcTestHelper.updatePostAsync({ post: { id: postId }, authToken: publisher.authToken }, { body: 'Updated post body' }),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'post:update'),
+    ]);
+    session.context.postUpdateRealtimeMsg = res[1];
+    return expect.shift(session);
   });
 
   expect.addAssertion('<realtimeSession> not to get post:* events from <userContext>', async (expect, session, publisher) => {
@@ -153,10 +186,27 @@ export function installInto(expect) {
     expect(session.context, 'to have key', 'postId');
     const { postId } = session.context;
 
-    await Promise.all([
+    const res = await Promise.all([
       funcTestHelper.createCommentAsync(publisher, postId, 'reply'),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment:new'),
     ]);
+    session.context.commentRealtimeMsg = res[1];
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get comment:update events from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'commentId');
+    const { commentId } = session.context;
+
+    const res = await Promise.all([
+      funcTestHelper.updateCommentAsync(publisher, commentId, 'changed reply'),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment:update'),
+    ]);
+    session.context.commentRealtimeMsg = res[1];
+    return expect.shift(session);
   });
 
   expect.addAssertion('<realtimeSession> [not] to get like:* events from <userContext>', async (expect, session, publisher) => {
@@ -170,5 +220,35 @@ export function installInto(expect) {
       funcTestHelper.like(postId, publisher),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'like:new'),
     ]);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get comment_like:new event from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'commentId');
+    const commentId = session.context.commentId;
+
+    const res = await Promise.all([
+      funcTestHelper.likeComment(commentId, publisher),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:new'),
+    ]);
+    session.context.commentLikeRealtimeMsg = res[1];
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get comment_like:remove event from <userContext>', async (expect, session, publisher) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'commentId');
+    const commentId = session.context.commentId;
+
+    const res = await Promise.all([
+      funcTestHelper.unlikeComment(commentId, publisher),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:remove'),
+    ]);
+    session.context.commentLikeRealtimeMsg = res[1];
+    return expect.shift(session);
   });
 }
