@@ -17,7 +17,7 @@ describe('SearchController', () => {
     await knexCleaner.clean($pg_database)
   })
 
-  describe('#create()', () => {
+  describe('#search()', () => {
     let lunaContext = {}
     let marsContext = {}
     const anonContext = {}
@@ -91,5 +91,27 @@ describe('SearchController', () => {
       response.should.have.property('isLastPage')
       response.isLastPage.should.be.eql(true)
     })
+
+    describe('Luna is private', () => {
+      beforeEach(async () => {
+        await funcTestHelper.goPrivate(lunaContext);
+      });
+
+      it(`should search user's posts`, async () => {
+        const response = await funcTestHelper.performSearch(lunaContext, 'from:luna hello');
+        response.should.not.be.empty;
+        response.should.have.property('posts');
+        response.posts.length.should.be.eql(1);
+        response.posts[0].body.should.be.eql('hello from luna');
+      });
+
+      it('should search own posts with from:me', async () => {
+        const response = await funcTestHelper.performSearch(lunaContext, 'from:me hello');
+        response.should.not.be.empty;
+        response.should.have.property('posts');
+        response.posts.length.should.be.eql(1);
+        response.posts[0].body.should.be.eql('hello from luna');
+      });
+    });
   })
 });

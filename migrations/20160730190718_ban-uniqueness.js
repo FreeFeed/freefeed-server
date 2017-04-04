@@ -8,7 +8,7 @@ export async function up(knex) {
 }
 
 export async function down(knex) {
-  await knex.schema.table('likes', (table) => {
+  await knex.schema.table('bans', (table) => {
     table.dropUnique('', 'bans_post_id_user_id_unique_idx');
     table.index(['user_id', 'banned_user_id'], 'bans_user_id_banned_id_idx', 'btree');
   });

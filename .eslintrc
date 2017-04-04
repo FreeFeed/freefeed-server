@@ -76,6 +76,7 @@
     "no-useless-computed-key": 2,
     "no-var": 2,
     "no-warning-comments": 1,
+    "nonblock-statement-body-position": [2, "below"],
     "object-curly-newline": [2, { "multiline": true }],
     "babel/object-curly-spacing": [2, "always"],
     "object-shorthand": [2, "properties"],

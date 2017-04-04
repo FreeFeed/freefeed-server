@@ -35,7 +35,7 @@ export default class SearchController {
     const bannedUserIds = ctx.state.user ? await ctx.state.user.getBanIds() : [];
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
     const isAnonymous = !ctx.state.user;
-    const visibleFeedIds = ctx.state.user ? ctx.state.user.subscribedFeedIds : [];
+    const visibleFeedIds = ctx.state.user ? [await ctx.state.user.getPostsTimelineIntId(), ...ctx.state.user.subscribedFeedIds] : [];
 
     switch (preparedQuery.scope) {
       case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
