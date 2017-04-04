@@ -10,6 +10,7 @@ import {
   acceptRequestToJoinGroup,
   banUser,
   createAndReturnPostToFeed,
+  createCommentAsync,
   createUserAsync,
   createGroupAsync,
   demoteFromAdmin,
@@ -843,7 +844,7 @@ describe('EventService', () => {
     let lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel;
 
     const expectPostEvents = (user, expectedEvents) => {
-      return expectUserEventsToBe(user, expectedEvents, ['direct']);
+      return expectUserEventsToBe(user, expectedEvents, ['direct', 'direct_comment']);
     };
 
     beforeEach(async () => {
@@ -911,6 +912,125 @@ describe('EventService', () => {
           target_user_id:     marsUserModel.intId,
         }]);
         await expectPostEvents(lunaUserModel, []);
+      });
+    });
+
+    describe('comments', () => {
+      it("should create direct_comment event on sender's comment creation for direct receiver", async () => {
+        const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }, { event_type: 'direct' }]);
+      });
+
+      it("should create direct_comment event on receiver's comment creation for direct sender", async () => {
+        const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }, { event_type: 'direct' }]);
+      });
+
+      it('should not create direct_comment event on comment creation for comment author', async () => {
+        const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, []);
+      });
+
+      it('should not create direct_comment event on comment creation for comment author', async () => {
+        const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await createCommentAsync(mars, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{ event_type: 'direct' }]);
+      });
+
+      it('should create direct_comment event on comment creation for all direct receivers except comment author', async () => {
+        const post = await createAndReturnPostToFeed({ username: [mars.username, jupiter.username, pluto.username] }, luna, 'Direct');
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }, { event_type: 'direct' }]);
+        await expectPostEvents(jupiterUserModel, [{
+          user_id:            jupiterUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     jupiterUserModel.intId,
+        }, { event_type: 'direct' }]);
+        await expectPostEvents(plutoUserModel, [{
+          user_id:            plutoUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     plutoUserModel.intId,
+        }, { event_type: 'direct' }]);
+      });
+
+      it('should not create direct_comment event on comment to semi-direct post (copy to own post feed) creation for comment author', async () => {
+        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, []);
+      });
+
+      it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation', async () => {
+        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }, { event_type: 'direct' }]);
+      });
+
+      it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation', async () => {
+        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await createCommentAsync(mars, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
+        await expectPostEvents(marsUserModel, [{ event_type: 'direct' }]);
+      });
+
+      it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation by arbitrary user', async () => {
+        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await createCommentAsync(jupiter, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: jupiterUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
+        await expectPostEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'direct_comment',
+          created_by_user_id: jupiterUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }, { event_type: 'direct' }]);
+      });
+
+      it("should not create direct_comment event on sender's comment creation for direct receiver when receiver banned sender", async () => {
+        const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await banUser(mars, luna);
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{ event_type: 'direct' }]);
+      });
+
+      it("should not create direct_comment event on sender's comment creation for direct receiver when receiver banned sender", async () => {
+        const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
+        await banUser(luna, mars);
+        await createCommentAsync(luna, post.id, 'Comment');
+        await expectPostEvents(marsUserModel, [{ event_type: 'direct' }]);
       });
     });
   });

@@ -19,6 +19,7 @@ const EVENT_TYPES = {
   GROUP_ADMIN_PROMOTED:          'group_admin_promoted',
   GROUP_ADMIN_DEMOTED:           'group_admin_demoted',
   DIRECT_CREATED:                'direct',
+  DIRECT_COMMENT_CREATED:        'direct_comment',
 };
 
 export class EventService {
@@ -117,6 +118,10 @@ export class EventService {
     await this._processDirectMessagesForPost(post, destinationFeedIds, author);
   }
 
+  static async onCommentCreated(comment, post, commentAuthor) {
+    await this._processDirectMessagesForComment(comment, post, commentAuthor);
+  }
+
 
   ////////////////////////////////////////////
 
@@ -134,6 +139,35 @@ export class EventService {
       const directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
       const promises = directReceivers.map((receiver) => {
         return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_CREATED, author.intId, receiver.intId, null, post.id);
+      });
+      await Promise.all(promises);
+    }
+  }
+
+  static async _processDirectMessagesForComment(comment, post, commentAuthor) {
+    const feeds = await post.getPostedTo();
+    const directFeeds = feeds.filter((f) => {
+      return f.isDirects() && f.userId !== commentAuthor.id;
+    });
+
+    if (directFeeds.length > 0) {
+      const directReceiversIds = directFeeds.map((f) => {
+        return f.userId;
+      });
+
+      let directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
+
+      const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
+      directReceivers = directReceivers.filter((r) => {
+        return !usersBannedByCommentAuthor.includes(r.id);
+      });
+
+      const promises = directReceivers.map(async (receiver) => {
+        const usersBannedByReceiver = await receiver.getBanIds();
+        if (usersBannedByReceiver.includes(commentAuthor.id)) {
+          return null;
+        }
+        return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_COMMENT_CREATED, commentAuthor.intId, receiver.intId, null, post.id, comment.id);
       });
       await Promise.all(promises);
     }
