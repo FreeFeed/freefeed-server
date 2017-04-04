@@ -35,18 +35,22 @@ export const userOrGroup = (obj) => {
 };
 
 const postBasic = {
-  id:               expect.it('to satisfy', UUID),
-  body:             expect.it('to be a string'),
-  commentsDisabled: expect.it('to satisfy', boolString),
-  createdAt:        expect.it('to satisfy', timeStampString),
-  updatedAt:        expect.it('to satisfy', timeStampString),
-  createdBy:        expect.it('to satisfy', UUID),
-  postedTo:         expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  attachments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  comments:         expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  likes:            expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  omittedComments:  expect.it('to be a number'),
-  omittedLikes:     expect.it('to be a number'),
+  id:                     expect.it('to satisfy', UUID),
+  body:                   expect.it('to be a string'),
+  commentsDisabled:       expect.it('to satisfy', boolString),
+  createdAt:              expect.it('to satisfy', timeStampString),
+  updatedAt:              expect.it('to satisfy', timeStampString),
+  createdBy:              expect.it('to satisfy', UUID),
+  postedTo:               expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  attachments:            expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  comments:               expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  likes:                  expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  omittedComments:        expect.it('to be a number'),
+  omittedLikes:           expect.it('to be a number'),
+  commentLikes:           expect.it('to be a number'),
+  ownCommentLikes:        expect.it('to be a number'),
+  omittedCommentLikes:    expect.it('to be a number'),
+  omittedOwnCommentLikes: expect.it('to be a number'),
 };
 
 export const post = (obj) => {
@@ -61,11 +65,13 @@ export const post = (obj) => {
 };
 
 export const comment = {
-  id:        expect.it('to satisfy', UUID),
-  body:      expect.it('to be a string'),
-  createdAt: expect.it('to satisfy', timeStampString),
-  updatedAt: expect.it('to satisfy', timeStampString),
-  createdBy: expect.it('to satisfy', UUID),
+  id:         expect.it('to satisfy', UUID),
+  body:       expect.it('to be a string'),
+  createdAt:  expect.it('to satisfy', timeStampString),
+  updatedAt:  expect.it('to satisfy', timeStampString),
+  createdBy:  expect.it('to satisfy', UUID),
+  likes:      expect.it('to be a number'),
+  hasOwnLike: expect.it('to be a boolean'),
 };
 
 const attachmentCommons = {
