@@ -1,6 +1,8 @@
 import { dbAdapter } from '../models'
+import { extractMentions } from './mentions'
 
 const EVENT_TYPES = {
+  MENTION_IN_POST:               'mention_in_post',
   USER_BANNED:                   'banned_user',
   USER_UNBANNED:                 'unbanned_user',
   BANNED_BY:                     'banned_by_user',
@@ -116,6 +118,7 @@ export class EventService {
 
   static async onPostCreated(post, destinationFeedIds, author) {
     await this._processDirectMessagesForPost(post, destinationFeedIds, author);
+    await this._processMentionsInPost(post, destinationFeedIds, author);
   }
 
   static async onCommentCreated(comment, post, commentAuthor) {
@@ -142,6 +145,38 @@ export class EventService {
       });
       await Promise.all(promises);
     }
+  }
+
+  static async _processMentionsInPost(post, destinationFeedIds, author) {
+    const mentionedUsernames = extractMentions(post.body);
+    const usersBannedByPostAuthor = await author.getBanIds();
+    const promises = mentionedUsernames.map(async (username) => {
+      const user = await dbAdapter.getFeedOwnerByUsername(username);
+      if (!user || user.type !== 'user') {
+        return null;
+      }
+
+      if (author.id === user.id) {
+        return null;
+      }
+
+      if (usersBannedByPostAuthor.includes(user.id)) {
+        return null;
+      }
+
+      const usersBannedByCurrentUser = await user.getBanIds();
+      if (usersBannedByCurrentUser.includes(author.id)) {
+        return null;
+      }
+
+      const isVisible = await post.canShow(user.id);
+      if (!isVisible) {
+        return null;
+      }
+
+      return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, null, post.id);
+    });
+    await Promise.all(promises);
   }
 
   static async _processDirectMessagesForComment(comment, post, commentAuthor) {
