@@ -165,6 +165,15 @@ export class EventService {
 
   static async _processMentionsInPost(post, destinationFeedIds, author) {
     const mentionedUsernames = _.uniq(extractMentions(post.body));
+    let postGroupIntId = null;
+    if (destinationFeedIds.length === 1) {
+      const postFeed = await dbAdapter.getTimelineById(destinationFeedIds[0]);
+      const feedOwner = await postFeed.getUser();
+      if (feedOwner.type === 'group') {
+        postGroupIntId = feedOwner.intId;
+      }
+    }
+
     const usersBannedByPostAuthor = await author.getBanIds();
     const promises = mentionedUsernames.map(async (username) => {
       const user = await dbAdapter.getFeedOwnerByUsername(username);
@@ -190,7 +199,7 @@ export class EventService {
         return null;
       }
 
-      return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, null, post.id);
+      return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, postGroupIntId, post.id);
     });
     await Promise.all(promises);
   }
@@ -226,6 +235,15 @@ export class EventService {
 
   static async _processMentionsInComment(comment, post, commentAuthor) {
     let mentions = extractMentionsWithIndices(comment.body);
+
+    let  postGroupIntId = null;
+    const feeds = await post.getPostedTo();
+    if (feeds.length === 1) {
+      const feedOwner = await feeds[0].getUser();
+      if (feedOwner.type === 'group') {
+        postGroupIntId = feedOwner.intId;
+      }
+    }
 
     const replyToUser = mentions.find((m) => { return m.indices[0] === 0; });
 
@@ -264,9 +282,9 @@ export class EventService {
       }
 
       if (m.indices[0] === 0) {
-        return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_COMMENT_TO, commentAuthor.intId, mentionedUser.intId, null, post.id, comment.id);
+        return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_COMMENT_TO, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id);
       }
-      return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_IN_COMMENT, commentAuthor.intId, mentionedUser.intId, null, post.id, comment.id);
+      return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_IN_COMMENT, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id);
     });
     await Promise.all(promises);
   }

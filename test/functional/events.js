@@ -1150,6 +1150,19 @@ describe('EventService', () => {
         await expectNoEventsOfTypes(['mention_in_post']);
       });
 
+      it('should create mention_in_post event with proper group_id for post in group', async () => {
+        const dubhe = await createGroupAsync(luna, 'dubhe');
+        const dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+        await createAndReturnPostToFeed(dubhe, luna, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_post',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+          group_id:           dubheGroupModel.intId,
+        }]);
+      });
+
       it('should not create mention_in_post event for not-existent user', async () => {
         await createAndReturnPostToFeed(luna, luna, 'Mentioning @notexistent');
         await expectNoEventsOfTypes(['mention_in_post']);
@@ -1261,6 +1274,34 @@ describe('EventService', () => {
         await createGroupAsync(luna, 'dubhe');
         await createCommentAsync(luna, post.id, 'Mentioning @dubhe');
         await expectNoEventsOfTypes(['mention_in_comment']);
+      });
+
+      it('should create mention_in_comment event with proper group_id for comment to post in group', async () => {
+        const dubhe = await createGroupAsync(luna, 'dubhe');
+        const dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+        const privatePost = await createAndReturnPostToFeed(dubhe, luna, 'Group post');
+        await createCommentAsync(luna, privatePost.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+          group_id:           dubheGroupModel.intId,
+        }]);
+      });
+
+      it('should create mention_comment_to event with proper group_id for comment to post in group', async () => {
+        const dubhe = await createGroupAsync(luna, 'dubhe');
+        const dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+        const privatePost = await createAndReturnPostToFeed(dubhe, luna, 'Group post');
+        await createCommentAsync(luna, privatePost.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+          group_id:           dubheGroupModel.intId,
+        }]);
       });
 
       it('should not create mention_in_comment event for not-existent user', async () => {
