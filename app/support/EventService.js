@@ -1,9 +1,11 @@
 import _ from 'lodash'
 import { dbAdapter } from '../models'
-import { extractMentions } from './mentions'
+import { extractMentions, extractMentionsWithIndices } from './mentions'
 
 const EVENT_TYPES = {
   MENTION_IN_POST:               'mention_in_post',
+  MENTION_IN_COMMENT:            'mention_in_comment',
+  MENTION_COMMENT_TO:            'mention_comment_to',
   USER_BANNED:                   'banned_user',
   USER_UNBANNED:                 'unbanned_user',
   BANNED_BY:                     'banned_by_user',
@@ -124,6 +126,7 @@ export class EventService {
 
   static async onCommentCreated(comment, post, commentAuthor) {
     await this._processDirectMessagesForComment(comment, post, commentAuthor);
+    await this._processMentionsInComment(comment, post, commentAuthor);
   }
 
 
@@ -208,6 +211,54 @@ export class EventService {
       await Promise.all(promises);
     }
   }
+
+  static async _processMentionsInComment(comment, post, commentAuthor) {
+    let mentions = extractMentionsWithIndices(comment.body);
+
+    const replyToUser = mentions.find((m) => { return m.indices[0] === 0; });
+
+    if (replyToUser) {
+      _.remove(mentions, (m) => { return m.username == replyToUser.username && m.indices[0] != 0; });
+    }
+    mentions = _.uniqBy(mentions, 'username');
+
+    const postAuthor = await dbAdapter.getUserById(post.userId);
+    const usersBannedByPostAuthor = await postAuthor.getBanIds();
+    const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
+
+    const promises = mentions.map(async (m) => {
+      const username = m.username;
+      const mentionedUser = await dbAdapter.getFeedOwnerByUsername(username);
+      if (!mentionedUser || mentionedUser.type !== 'user') {
+        return null;
+      }
+
+      if (commentAuthor.id === mentionedUser.id) {
+        return null;
+      }
+
+      if (usersBannedByPostAuthor.includes(mentionedUser.id) || usersBannedByCommentAuthor.includes(mentionedUser.id)) {
+        return null;
+      }
+
+      const usersBannedByCurrentUser = await mentionedUser.getBanIds();
+      if (usersBannedByCurrentUser.includes(commentAuthor.id) || usersBannedByCurrentUser.includes(postAuthor.id)) {
+        return null;
+      }
+
+      const isVisible = await post.canShow(mentionedUser.id);
+      if (!isVisible) {
+        return null;
+      }
+
+      if (m.indices[0] === 0) {
+        return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_COMMENT_TO, commentAuthor.intId, mentionedUser.intId, null, post.id, comment.id);
+      }
+      return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_IN_COMMENT, commentAuthor.intId, mentionedUser.intId, null, post.id, comment.id);
+    });
+    await Promise.all(promises);
+  }
+
 
   static async _notifyGroupAdmins(group, adminNotifier) {
     const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);

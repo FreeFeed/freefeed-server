@@ -1040,7 +1040,7 @@ describe('EventService', () => {
     let lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel;
 
     const expectMentionEvents = (user, expectedEvents) => {
-      return expectUserEventsToBe(user, expectedEvents, ['mention_in_post']);
+      return expectUserEventsToBe(user, expectedEvents, ['mention_in_post', 'mention_in_comment', 'mention_comment_to']);
     };
 
     const expectNoEventsOfTypes = async (eventTypes) => {
@@ -1146,6 +1146,136 @@ describe('EventService', () => {
         await expectMentionEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'mention_in_post',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+      });
+    });
+
+    describe('in comments', () => {
+      let post;
+
+      beforeEach(async () => {
+        post = await createAndReturnPostToFeed(luna, luna, 'Test post');
+      });
+
+      it('should create mention_in_comment event for mentioned user', async () => {
+        await createCommentAsync(luna, post.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+        await expectMentionEvents(lunaUserModel, []);
+      });
+
+      it('should create mention_comment_to event for reply to user', async () => {
+        await createCommentAsync(luna, post.id, '@mars comment for you');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_comment_to',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+        await expectMentionEvents(lunaUserModel, []);
+      });
+
+      it('should create mention_in_comment event for mentioned post author', async () => {
+        await createCommentAsync(mars, post.id, 'Mentioning @luna');
+        await expectMentionEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
+      });
+
+      it('should not create mention_in_comment event for mentioned comment author', async () => {
+        await createCommentAsync(luna, post.id, '@luna @luna');
+        await expectMentionEvents(lunaUserModel, []);
+      });
+
+      it('should create mention_in_comment event for each mentioned user', async () => {
+        await createCommentAsync(luna, post.id, 'Mentioning @mars, @jupiter, @pluto');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+        await expectMentionEvents(jupiterUserModel, [{
+          user_id:            jupiterUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     jupiterUserModel.intId,
+        }]);
+        await expectMentionEvents(plutoUserModel, [{
+          user_id:            plutoUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     plutoUserModel.intId,
+        }]);
+      });
+
+      it('should not create mention_in_comment event for group', async () => {
+        await createGroupAsync(luna, 'dubhe');
+        await createCommentAsync(luna, post.id, 'Mentioning @dubhe');
+        await expectNoEventsOfTypes(['mention_in_comment']);
+      });
+
+      it('should not create mention_in_comment event for not-existent user', async () => {
+        await createCommentAsync(luna, post.id, 'Mentioning @notexistent');
+        await expectNoEventsOfTypes(['mention_in_comment']);
+      });
+
+      it('should not create mention_in_comment event for mentioned user who banned post author', async () => {
+        await banUser(mars, luna);
+        await createCommentAsync(luna, post.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, []);
+        await expectMentionEvents(lunaUserModel, []);
+      });
+
+      it('should not create mention_in_comment event for mentioned user who banned comment author', async () => {
+        await banUser(mars, jupiter);
+        await createCommentAsync(jupiter, post.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, []);
+        await expectMentionEvents(lunaUserModel, []);
+        await expectMentionEvents(jupiterUserModel, []);
+      });
+
+      it('should not create mention_in_comment event for mentioned user banned by post author', async () => {
+        await banUser(luna, mars);
+        await createCommentAsync(luna, post.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, []);
+        await expectMentionEvents(lunaUserModel, []);
+      });
+
+      it('should not create mention_in_comment event for mentioned user banned by comment author', async () => {
+        await banUser(jupiter, mars);
+        await createCommentAsync(jupiter, post.id, 'Mentioning @mars');
+        await expectMentionEvents(marsUserModel, []);
+        await expectMentionEvents(lunaUserModel, []);
+        await expectMentionEvents(jupiterUserModel, []);
+      });
+
+      it('should not create mention_in_comment event for user who was mentioned in comment to private post of non-friend', async () => {
+        const privatePost = await createAndReturnPostToFeed(jupiter, jupiter, 'Private post');
+        await createCommentAsync(jupiter, privatePost.id, 'Mentioning @mars, @luna');
+        await expectMentionEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: jupiterUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
+        await expectMentionEvents(marsUserModel, []);
+      });
+
+      it('should create only one mention_in_comment event for mentioned user for one post', async () => {
+        await createCommentAsync(luna, post.id, 'Mentioning @mars, @mars, @mars @mars @mars @mars @mars @mars @mars!11');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
         }]);
