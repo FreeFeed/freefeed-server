@@ -13,12 +13,14 @@ const EVENT_TYPES = {
   USER_SUBSCRIBED:               'user_subscribed',
   USER_UNSUBSCRIBED:             'user_unsubscribed',
   SUBSCRIPTION_REQUESTED:        'subscription_requested',
+  SUBSCRIPTION_REQUEST_REVOKED:  'subscription_request_revoked',
   SUBSCRIPTION_REQUEST_APPROVED: 'subscription_request_approved',
   SUBSCRIPTION_REQUEST_REJECTED: 'subscription_request_rejected',
   GROUP_CREATED:                 'group_created',
   GROUP_SUBSCRIBED:              'group_subscribed',
   GROUP_UNSUBSCRIBED:            'group_unsubscribed',
   GROUP_SUBSCRIPTION_REQUEST:    'group_subscription_requested',
+  GROUP_REQUEST_REVOKED:         'group_subscription_request_revoked',
   GROUP_SUBSCRIPTION_APPROVED:   'group_subscription_approved',
   GROUP_SUBSCRIPTION_REJECTED:   'group_subscription_rejected',
   GROUP_ADMIN_PROMOTED:          'group_admin_promoted',
@@ -54,6 +56,10 @@ export class EventService {
 
   static async onSubscriptionRequestCreated(fromUserIntId, toUserIntId) {
     await dbAdapter.createEvent(toUserIntId, EVENT_TYPES.SUBSCRIPTION_REQUESTED, fromUserIntId, toUserIntId);
+  }
+
+  static async onSubscriptionRequestRevoked(fromUserIntId, toUserIntId) {
+    await dbAdapter.createEvent(toUserIntId, EVENT_TYPES.SUBSCRIPTION_REQUEST_REVOKED, fromUserIntId, toUserIntId);
   }
 
   static async onSubscriptionRequestApproved(fromUserIntId, toUserIntId) {
@@ -102,6 +108,12 @@ export class EventService {
   static async onGroupSubscriptionRequestCreated(initiatorIntId, group) {
     await this._notifyGroupAdmins(group, (adminUser) => {
       return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_REQUEST, initiatorIntId, initiatorIntId, group.intId);
+    });
+  }
+
+  static async onGroupSubscriptionRequestRevoked(initiatorIntId, group) {
+    await this._notifyGroupAdmins(group, (adminUser) => {
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_REQUEST_REVOKED, initiatorIntId, initiatorIntId, group.intId);
     });
   }
 

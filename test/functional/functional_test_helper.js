@@ -713,6 +713,10 @@ export function sendRequestToSubscribe(subscriber, user) {
   return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
 }
 
+export function revokeSubscriptionRequest(subscriber, user) {
+  return postJson(`/v2/requests/${user.username}/revoke`, { authToken: subscriber.authToken })
+}
+
 export function acceptRequestToSubscribe(subscriber, user) {
   return postJson(`/v1/users/acceptRequest/${subscriber.username}`, { authToken: user.authToken })
 }

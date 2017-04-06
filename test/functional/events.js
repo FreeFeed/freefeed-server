@@ -20,6 +20,7 @@ import {
   promoteToAdmin,
   rejectRequestAsync,
   rejectSubscriptionRequestToGroup,
+  revokeSubscriptionRequest,
   sendRequestToSubscribe,
   sendRequestToJoinGroup,
   subscribeToAsync,
@@ -342,6 +343,24 @@ describe('EventService', () => {
       }]);
     });
 
+    it('should create subscription_request_revoked event when subscription request is revoked', async () => {
+      await sendRequestToSubscribe(mars, luna);
+      await revokeSubscriptionRequest(mars, luna);
+      await expectUserEventsToBe(lunaUserModel, [
+        {
+          user_id:            lunaUserModel.intId,
+          event_type:         'subscription_request_revoked',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }, {
+          user_id:            lunaUserModel.intId,
+          event_type:         'subscription_requested',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }
+      ]);
+    });
+
     it('should create subscription_request_approved event when subscription request is approved', async () => {
       await sendRequestToSubscribe(mars, luna);
       await acceptRequestAsync(luna, mars);
@@ -413,7 +432,7 @@ describe('EventService', () => {
     };
 
     const expectGroupRequestEvents = (user, expectedEvents) => {
-      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested', 'group_subscription_approved', 'group_subscription_rejected']);
+      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested', 'group_subscription_request_revoked', 'group_subscription_approved', 'group_subscription_rejected']);
     };
 
     beforeEach(async () => {
@@ -701,6 +720,26 @@ describe('EventService', () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_subscription_requested',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }
+        ]);
+      });
+
+      it('should create group_subscription_request_revoked event when user revokes join request to group', async () => {
+        await sendRequestToJoinGroup(mars, dubhe);
+        await revokeSubscriptionRequest(mars, dubhe);
+        await expectGroupRequestEvents(lunaUserModel, [
+          {
+            user_id:            lunaUserModel.intId,
+            event_type:         'group_subscription_request_revoked',
+            created_by_user_id: marsUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            group_id:           dubheGroupModel.intId,
+          }, {
             user_id:            lunaUserModel.intId,
             event_type:         'group_subscription_requested',
             created_by_user_id: marsUserModel.intId,
