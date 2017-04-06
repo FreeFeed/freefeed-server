@@ -1140,6 +1140,16 @@ describe('EventService', () => {
         }]);
         await expectMentionEvents(marsUserModel, []);
       });
+
+      it('should create only one mention_in_post event for mentioned user for one post', async () => {
+        await createAndReturnPostToFeed(luna, luna, 'Mentioning @mars, @mars, @mars @mars @mars @mars @mars @mars @mars!11');
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_post',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+      });
     });
   });
 });

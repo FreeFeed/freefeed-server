@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import { dbAdapter } from '../models'
 import { extractMentions } from './mentions'
 
@@ -148,7 +149,7 @@ export class EventService {
   }
 
   static async _processMentionsInPost(post, destinationFeedIds, author) {
-    const mentionedUsernames = extractMentions(post.body);
+    const mentionedUsernames = _.uniq(extractMentions(post.body));
     const usersBannedByPostAuthor = await author.getBanIds();
     const promises = mentionedUsernames.map(async (username) => {
       const user = await dbAdapter.getFeedOwnerByUsername(username);
