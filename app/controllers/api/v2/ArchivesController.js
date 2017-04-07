@@ -9,7 +9,7 @@ import { monitored, authRequired } from './helpers';
 const config = configLoader();
 
 export default class ArchivesController {
-  start = authRequired(monitored('archives.start', async (ctx) => {
+  restoration = authRequired(monitored('archives.restoration', async (ctx) => {
     const user = ctx.state.user;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
     if (!archParams) {

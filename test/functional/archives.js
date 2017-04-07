@@ -77,7 +77,7 @@ describe('Archives', () => {
     });
 
     it('should start archive restoration for Luna', async () => {
-      const resp = await postStart(app, luna, {
+      const resp = await postRestoration(app, luna, {
         disable_comments:      false,
         restore_self_comments: true,
         via_restore:           ['http://friendfeed.com'],
@@ -89,17 +89,17 @@ describe('Archives', () => {
     });
 
     it('should not start archive restoration for Mars', async () => {
-      const resp = await postStart(app, mars, {});
+      const resp = await postRestoration(app, mars, {});
       expect(resp.status, 'to equal', 403);
     });
 
     it('should not start archive restoration for Venus', async () => {
-      const resp = await postStart(app, venus);
+      const resp = await postRestoration(app, venus);
       expect(resp.status, 'to equal', 403);
     });
 
     it('should not start archive restoration for anonymous', async () => {
-      const resp = await postStart(app);
+      const resp = await postRestoration(app);
       expect(resp.status, 'to equal', 401);
     });
 
@@ -172,13 +172,13 @@ async function getWhoAmI(app, user) {
   ).then((r) => r.json());
 }
 
-async function postStart(app, user = null, body = {}) {
+async function postRestoration(app, user = null, body = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (user) {
     headers['X-Authentication-Token'] = user.authToken;
   }
   return await fetch(
-    `${app.context.config.host}/v2/archives/start`,
+    `${app.context.config.host}/v2/archives/restoration`,
     {
       method: 'POST',
       headers,
