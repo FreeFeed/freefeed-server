@@ -2,7 +2,7 @@ import _ from 'lodash'
 import { dbAdapter } from '../models'
 import { extractMentions, extractMentionsWithIndices } from './mentions'
 
-const EVENT_TYPES = {
+export const EVENT_TYPES = {
   MENTION_IN_POST:               'mention_in_post',
   MENTION_IN_COMMENT:            'mention_in_comment',
   MENTION_COMMENT_TO:            'mention_comment_to',
