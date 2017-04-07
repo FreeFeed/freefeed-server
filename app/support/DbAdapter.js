@@ -498,6 +498,10 @@ export class DbAdapter {
     return _.mapValues(await this.fetchUsersAssoc(ids), this.initUserObject);
   }
 
+  getUsersIdsByIntIds(intIds) {
+    return this.database('users').select('id', 'uid').whereIn('id', intIds);
+  }
+
   async getFeedOwnerByUsername(username) {
     const attrs = await this.database('users').first().where('username', username.toLowerCase())
     return this.initUserObject(attrs);
@@ -1173,6 +1177,10 @@ export class DbAdapter {
     return this.initCommentObject(attrs);
   }
 
+  getCommentsIdsByIntIds(intIds) {
+    return this.database('comments').select('id', 'uid').whereIn('id', intIds);
+  }
+
   updateComment(commentId, payload) {
     const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
 
@@ -1423,6 +1431,10 @@ export class DbAdapter {
   async getPostsByIds(ids, params) {
     const responses = await this.database('posts').orderBy('bumped_at', 'desc').whereIn('uid', ids)
     return responses.map((attrs) => this.initPostObject(attrs, params))
+  }
+
+  getPostsIdsByIntIds(intIds) {
+    return this.database('posts').select('id', 'uid').whereIn('id', intIds);
   }
 
   async getUserPostsCount(userId) {
