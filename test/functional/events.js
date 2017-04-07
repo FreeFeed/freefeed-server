@@ -14,6 +14,7 @@ import {
   createUserAsync,
   createGroupAsync,
   demoteFromAdmin,
+  getUserEvents,
   goPrivate,
   kickOutUserFromGroup,
   mutualSubscriptions,
@@ -1359,6 +1360,205 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
         }]);
+      });
+    });
+  });
+});
+
+describe('EventsController', () => {
+  before(async () => {
+    PubSub.setPublisher(new DummyPublisher());
+  });
+
+  beforeEach(async () => {
+    await knexCleaner.clean($pg_database);
+  });
+
+  describe('myEvents', () => {
+    let luna, mars, lunaUserModel, marsUserModel;
+
+    beforeEach(async () => {
+      [luna, mars] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw')
+      ]);
+
+      [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
+        luna.user.id,
+        mars.user.id
+      ]);
+
+      await mutualSubscriptions([luna, mars]);
+    });
+
+    it('should return user events', async () => {
+      await dbAdapter.createEvent(lunaUserModel.intId, 'banned_user', lunaUserModel.intId, marsUserModel.intId);
+      let res = await getUserEvents(luna);
+      expect(res, 'to satisfy', {
+        Notifications: [
+          {
+            event_type:       'banned_user',
+            created_user_id:  luna.user.id,
+            affected_user_id: mars.user.id,
+          }, {
+            event_type:       'user_subscribed',
+            created_user_id:  mars.user.id,
+            affected_user_id: luna.user.id,
+          }
+        ]
+      });
+      res = await getUserEvents(mars);
+      expect(res, 'to satisfy', {
+        Notifications: [
+          {
+            event_type:       'user_subscribed',
+            created_user_id:  luna.user.id,
+            affected_user_id: mars.user.id,
+          }
+        ]
+      });
+    });
+
+    xit('should filter events by type');
+
+    it('should not return banned_by_user and unbanned_by_user events', async () => {
+      await dbAdapter.createEvent(lunaUserModel.intId, 'banned_by_user', lunaUserModel.intId, marsUserModel.intId);
+      await dbAdapter.createEvent(lunaUserModel.intId, 'unbanned_by_user', lunaUserModel.intId, marsUserModel.intId);
+      const res = await getUserEvents(luna);
+      expect(res, 'to satisfy', {
+        Notifications: [
+          {
+            event_type:       'user_subscribed',
+            created_user_id:  mars.user.id,
+            affected_user_id: luna.user.id,
+          }
+        ]
+      });
+    });
+
+    describe('events pagination', () => {
+      beforeEach(async () => {
+        const promises = [];
+        for (let i = 0; i < 40; i++) {
+          promises.push(dbAdapter.createEvent(lunaUserModel.intId, 'banned_user', lunaUserModel.intId, marsUserModel.intId));
+        }
+        await Promise.all(promises);
+      });
+
+      it('should paginate events with default page size 30', async () => {
+        let res = await getUserEvents(luna);
+        let events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 30);
+        for (let i = 0; i < 30; i++) {
+          expect(events[i], 'to satisfy', {
+            event_type:       'banned_user',
+            created_user_id:  luna.user.id,
+            affected_user_id: mars.user.id,
+          });
+        }
+        expect(res, 'to satisfy', { isLastPage: false });
+
+        res = await getUserEvents(luna, null, null, 30);
+        events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 11);
+        for (let i = 0; i < 10; i++) {
+          expect(events[i], 'to satisfy', {
+            event_type:       'banned_user',
+            created_user_id:  luna.user.id,
+            affected_user_id: mars.user.id,
+          });
+        }
+        expect(events[10], 'to satisfy', {
+          event_type:       'user_subscribed',
+          created_user_id:  mars.user.id,
+          affected_user_id: luna.user.id,
+        });
+        expect(res, 'to satisfy', { isLastPage: true });
+      });
+
+      it('should support custom page sizes', async () => {
+        let res = await getUserEvents(luna, null, 40);
+        let events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 40);
+        expect(res, 'to satisfy', { isLastPage: false });
+
+        res = await getUserEvents(luna, null, 40, 40);
+        events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 1);
+        expect(res, 'to satisfy', { isLastPage: true });
+
+        res = await getUserEvents(luna, null, 40, 20);
+        events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 21);
+        expect(res, 'to satisfy', { isLastPage: true });
+
+        res = await getUserEvents(luna, null, 10, 0);
+        events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 10);
+        expect(res, 'to satisfy', { isLastPage: false });
+      });
+    });
+
+    describe('date filtering', () => {
+      beforeEach(async () => {
+        await dbAdapter.database('events').insert({
+          user_id:            lunaUserModel.intId,
+          created_at:         new Date('2015-01-01 00:00'),
+          event_type:         'banned_user',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId
+        });
+      });
+
+      it('should filter out entries older than startDate', async () => {
+        const res = await getUserEvents(luna, null, null, null, (new Date('2017-01-01')).toISOString());
+        const events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 1);
+        expect(res, 'to satisfy', { isLastPage: true });
+        expect(events[0], 'to satisfy', {
+          event_type:       'user_subscribed',
+          created_user_id:  mars.user.id,
+          affected_user_id: luna.user.id,
+        });
+      });
+
+      it('should filter out entries newer than endDate', async () => {
+        const res = await getUserEvents(luna, null, null, null, null, (new Date('2017-01-01')).toISOString());
+        const events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 1);
+        expect(res, 'to satisfy', { isLastPage: true });
+        expect(events[0], 'to satisfy', {
+          event_type:       'banned_user',
+          created_user_id:  luna.user.id,
+          affected_user_id: mars.user.id,
+        });
+      });
+
+      it('should return only entries that match specified interval', async () => {
+        let res = await getUserEvents(luna, null, null, null, (new Date('2014-12-31 23:55')).toISOString(), (new Date('2015-01-01 00:05')).toISOString());
+        let events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 1);
+        expect(res, 'to satisfy', { isLastPage: true });
+        expect(events[0], 'to satisfy', {
+          event_type:       'banned_user',
+          created_user_id:  luna.user.id,
+          affected_user_id: mars.user.id,
+        });
+
+        res = await getUserEvents(luna, null, null, null, (new Date('2015-01-01 00:05')).toISOString(), (new Date('2015-01-01 00:06')).toISOString());
+        events = res['Notifications'];
+        expect(events, 'to be an array');
+        expect(events, 'to have length', 0);
+        expect(res, 'to satisfy', { isLastPage: true });
       });
     });
   });

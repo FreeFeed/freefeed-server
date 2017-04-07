@@ -745,6 +745,21 @@ export function hidePost(postId, user) {
   return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
 }
 
+export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
+  const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`) : '';
+  const limitQS = limit ? `limit=${limit}&` : '';
+  const offsetQS = offset ? `offset=${offset}&` : '';
+  const startDateQS = startDate ? `startDate=${startDate}&` : '';
+  const endDateQS = endDate ? `endDate=${endDate}` : '';
+  const queryString = `/v2/notifications?${eventTypesQS}${limitQS}${offsetQS}${startDateQS}${endDateQS}`;
+
+  const response = await postJson(queryString, {
+    authToken: userContext.authToken,
+    '_method': 'get'
+  });
+  return await response.json();
+}
+
 /**
  * Async-friendly wrapper around Socket.IO client.
  * Convenient for testing

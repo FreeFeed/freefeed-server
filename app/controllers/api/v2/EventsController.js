@@ -18,22 +18,27 @@ export default class EventsController {
     const events = await dbAdapter.getUserEvents(
       ctx.state.user.intId,
       params.eventTypes,
-      params.limit,
+      params.limit + 1,
       params.offset,
       params.startDate,
       params.endDate
     );
 
+    const isLastPage = events.length <= params.limit;
+    if (!isLastPage) {
+      events.length = params.limit;
+    }
+
     const serializedEvents = await serializeEvents(events);
 
-    ctx.body = { Notifications: serializedEvents };
+    ctx.body = { Notifications: serializedEvents, isLastPage };
   }
 }
 
 function getQueryParams(ctx) {
   const offset = parseInt(ctx.request.query.offset, 10) || 0;
   const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_EVENTS_LIMIT;
-  let eventTypes = _(ctx.request.query.filter || []).intersection(ALLOWED_EVENT_TYPES).uniq().value();
+  let eventTypes = _(ctx.request.query.filter || ALLOWED_EVENT_TYPES).intersection(ALLOWED_EVENT_TYPES).uniq().value();
   if (eventTypes.length === 0) {
     eventTypes = null;
   }
@@ -56,7 +61,7 @@ async function serializeEvents(events) {
     return {
       id:               e.id,
       eventId:          null,
-      date:             e.created_at.toString(),
+      date:             e.created_at.toISOString(),
       created_user_id:  userIdsMapping[e.created_by_user_id] || null,
       affected_user_id: userIdsMapping[e.target_user_id] || null,
       event_type:       e.event_type,
