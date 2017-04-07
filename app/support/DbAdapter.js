@@ -2542,10 +2542,26 @@ export class DbAdapter {
     return this.database('events').insert(payload);
   }
 
-  getUserEvents(userIntId, eventTypes = null) {
+  getUserEvents(userIntId, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
     let query = this.database('events').where('user_id', userIntId)
     if (eventTypes && eventTypes.length > 0) {
       query = query.whereIn('event_type', eventTypes);
+    }
+
+    if (startDate) {
+      query = query.where('created_at', '>=', startDate.toISOString());
+    }
+
+    if (endDate) {
+      query = query.where('created_at', '<=', endDate.toISOString());
+    }
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    if (offset) {
+      query = query.offset(offset);
     }
     return query.orderBy('created_at', 'desc');
   }
