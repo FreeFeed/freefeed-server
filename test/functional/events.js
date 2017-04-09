@@ -1419,7 +1419,77 @@ describe('EventsController', () => {
       });
     });
 
-    xit('should filter events by type');
+    describe('type filtering', () => {
+      beforeEach(async () => {
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'mention_in_post' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'mention_in_comment' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'mention_comment_to' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_user' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_user' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_by_user' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_by_user' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'user_subscribed' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'user_unsubscribed' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'subscription_requested' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'subscription_request_revoked' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'subscription_request_approved' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'subscription_request_rejected' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_created' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscribed' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_unsubscribed' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_requested' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_request_revoked' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_approved' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_rejected' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_admin_promoted' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_admin_demoted' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct_comment' });
+      });
+
+      it('should filter events by type', async () => {
+        let res = await getUserEvents(luna, ['mentions']);
+        expect(res, 'to satisfy', {
+          Notifications: [
+            { event_type: 'mention_comment_to' },
+            { event_type: 'mention_in_comment' },
+            { event_type: 'mention_in_post' },
+          ]
+        });
+
+        res = await getUserEvents(luna, ['bans']);
+        expect(res, 'to satisfy', {
+          Notifications: [
+            { event_type: 'unbanned_user' },
+            { event_type: 'banned_user' },
+          ]
+        });
+
+        res = await getUserEvents(luna, ['subscriptions']);
+        expect(res['Notifications'], 'to have length', 7);
+
+        res = await getUserEvents(luna, ['groups']);
+        expect(res['Notifications'], 'to have length', 9);
+
+        res = await getUserEvents(luna, ['directs']);
+        expect(res, 'to satisfy', {
+          Notifications: [
+            { event_type: 'direct_comment' },
+            { event_type: 'direct' },
+          ]
+        });
+
+        res = await getUserEvents(luna, ['bans', 'directs']);
+        expect(res, 'to satisfy', {
+          Notifications: [
+            { event_type: 'direct_comment' },
+            { event_type: 'direct' },
+            { event_type: 'unbanned_user' },
+            { event_type: 'banned_user' },
+          ]
+        });
+      });
+    });
 
     it('should not return banned_by_user and unbanned_by_user events', async () => {
       await dbAdapter.createEvent(lunaUserModel.intId, 'banned_by_user', lunaUserModel.intId, marsUserModel.intId);

@@ -746,7 +746,7 @@ export function hidePost(postId, user) {
 }
 
 export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
-  const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`) : '';
+  const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`).join('') : '';
   const limitQS = limit ? `limit=${limit}&` : '';
   const offsetQS = offset ? `offset=${offset}&` : '';
   const startDateQS = startDate ? `startDate=${startDate}&` : '';
