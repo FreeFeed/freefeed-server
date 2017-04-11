@@ -100,7 +100,7 @@ async function serializeEvents(events) {
   const serializedEvents = events.map((e) => {
     return {
       id:               e.id,
-      eventId:          null,
+      eventId:          e.uid,
       date:             e.created_at.toISOString(),
       created_user_id:  userIdsMapping[e.created_by_user_id] || null,
       affected_user_id: userIdsMapping[e.target_user_id] || null,

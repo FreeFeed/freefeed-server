@@ -31,6 +31,7 @@ import {
   unsubscribeUserFromMeAsync,
   unbanUser
 } from '../functional/functional_test_helper'
+import * as schema from './schemaV2-helper'
 
 describe('EventService', () => {
   before(async () => {
@@ -1489,10 +1490,12 @@ describe('EventsController', () => {
       expect(res, 'to satisfy', {
         Notifications: [
           {
+            eventId:          schema.UUID,
             event_type:       'banned_user',
             created_user_id:  luna.user.id,
             affected_user_id: mars.user.id,
           }, {
+            eventId:          schema.UUID,
             event_type:       'user_subscribed',
             created_user_id:  mars.user.id,
             affected_user_id: luna.user.id,
@@ -1503,6 +1506,7 @@ describe('EventsController', () => {
       expect(res, 'to satisfy', {
         Notifications: [
           {
+            eventId:          schema.UUID,
             event_type:       'user_subscribed',
             created_user_id:  luna.user.id,
             affected_user_id: mars.user.id,
