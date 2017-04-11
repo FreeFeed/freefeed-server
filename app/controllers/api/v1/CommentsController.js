@@ -56,8 +56,10 @@ export default class CommentsController {
         }
       }))
 
-      await PubSub.newComment(newComment, timelines)
-      await EventService.onCommentCreated(newComment, post, ctx.state.user);
+      await Promise.all([
+        PubSub.newComment(newComment, timelines),
+        EventService.onCommentCreated(newComment, post, ctx.state.user)
+      ]);
       monitor.increment('comments.creates')
 
       const json = await new CommentSerializer(newComment).promiseToJSON()
