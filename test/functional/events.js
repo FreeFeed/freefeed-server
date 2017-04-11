@@ -13,6 +13,7 @@ import {
   createCommentAsync,
   createUserAsync,
   createGroupAsync,
+  deletePostAsync,
   demoteFromAdmin,
   getUserEvents,
   goPrivate,
@@ -21,6 +22,7 @@ import {
   promoteToAdmin,
   rejectRequestAsync,
   rejectSubscriptionRequestToGroup,
+  removeCommentAsync,
   revokeSubscriptionRequest,
   sendRequestToSubscribe,
   sendRequestToJoinGroup,
@@ -1360,6 +1362,96 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
         }]);
+      });
+    });
+  });
+
+  describe('cascading', () => {
+    let luna, mars;
+    let lunaUserModel, marsUserModel;
+
+    beforeEach(async () => {
+      [luna, mars] = await Promise.all([
+        createUserAsync('luna', 'pw'),
+        createUserAsync('mars', 'pw'),
+      ]);
+
+      [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
+        luna.user.id,
+        mars.user.id,
+      ]);
+    });
+
+    describe("event shouldn't be deleted when", () => {
+      it('related post deleted', async () => {
+        const post = await createAndReturnPostToFeed(luna, luna, 'Mentioning @mars');
+        await deletePostAsync(luna, post.id);
+        await expectUserEventsToBe(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_post',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+      });
+
+      it('related comment deleted', async () => {
+        const post = await createAndReturnPostToFeed(luna, luna, 'Test post');
+        const comment = await createCommentAsync(luna, post.id, 'Mentioning @mars');
+        await removeCommentAsync(luna, comment.id);
+        await expectUserEventsToBe(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+      });
+
+      it('related group deleted', async () => {
+        const dubhe = await createGroupAsync(luna, 'dubhe');
+        const dubheGroupModel = await dbAdapter.getGroupById(dubhe.group.id);
+        await dbAdapter.deleteUser(dubhe.group.id);
+        await expectUserEventsToBe(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'group_created',
+          created_by_user_id: lunaUserModel.intId,
+          group_id:           dubheGroupModel.intId,
+        }]);
+      });
+
+      it('related target_user deleted', async () => {
+        await banUser(luna, mars);
+        await dbAdapter.deleteUser(mars.user.id);
+        await expectUserEventsToBe(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'banned_user',
+          created_by_user_id: lunaUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+        }]);
+      });
+
+      it('related created_by_user deleted', async () => {
+        await subscribeToAsync(mars, luna);
+        await dbAdapter.deleteUser(mars.user.id);
+        await expectUserEventsToBe(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'user_subscribed',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
+      });
+    });
+
+    describe('event should be deleted when', () => {
+      it('recipient user deleted', async () => {
+        await subscribeToAsync(mars, luna);
+        await expectUserEventsToBe(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
+          event_type:         'user_subscribed',
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
+        await dbAdapter.deleteUser(luna.user.id);
+        await expectUserEventsToBe(lunaUserModel, []);
       });
     });
   });
