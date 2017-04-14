@@ -559,11 +559,10 @@ export class DbAdapter {
 
   async startArchiveRestoration(userId, params = {}) {
     params = {
-      disable_comments:      false,
-      restore_self_comments: true,
-      via_restore:           [],
+      disable_comments: false,
+      via_restore:      [],
       ...params,
-      recovery_status:       1,
+      recovery_status:  1,
     };
     await this.database('archives').where('user_id', userId).update(params);
   }

@@ -78,9 +78,8 @@ describe('Archives', () => {
 
     it('should start archive restoration for Luna', async () => {
       const resp = await postRestoration(app, luna, {
-        disable_comments:      false,
-        restore_self_comments: true,
-        via_restore:           ['http://friendfeed.com'],
+        disable_comments: false,
+        via_restore:      ['http://friendfeed.com'],
       });
       expect(resp.status, 'to equal', 202);
 

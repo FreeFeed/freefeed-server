@@ -23,9 +23,8 @@ export default class ArchivesController {
     }
 
     const params = {
-      disable_comments:      false,
-      restore_self_comments: true,
-      via_restore:           [],
+      disable_comments: false,
+      via_restore:      [],
       ...ctx.request.body,
     };
 
@@ -35,9 +34,8 @@ export default class ArchivesController {
 
     try {
       await expect(params, 'to exhaustively satisfy', {
-        disable_comments:      expect.it('to be a boolean'),
-        restore_self_comments: expect.it('to be a boolean'),
-        via_restore:           expect.it('to be an array').and('to have items satisfying', 'to be a string'),
+        disable_comments: expect.it('to be a boolean'),
+        via_restore:      expect.it('to be an array').and('to have items satisfying', 'to be a string'),
       });
     } catch (e) {
       throw new ForbiddenException('Invalid data format');

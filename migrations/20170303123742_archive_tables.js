@@ -50,7 +50,6 @@ export async function up(knex) {
     table.jsonb('via_sources').notNullable().defaultTo('[]');
     table.integer('recovery_status').notNullable().defaultTo(0);
     table.boolean('disable_comments').notNullable().defaultTo(false);
-    table.boolean('restore_self_comments').notNullable().defaultTo(true);
     table.boolean('restore_comments_and_likes').notNullable().defaultTo(false);
     table.specificType('via_restore', 'text[]').notNullable().defaultTo('{}');
   });
