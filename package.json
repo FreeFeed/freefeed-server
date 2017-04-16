@@ -27,9 +27,9 @@
   "dependencies": {
     "await-lock": "1.1.2",
     "aws-sdk": "2.22.0",
-    "babel-cli": "6.23.0",
+    "babel-cli": "6.24.1",
     "babel-preset-es2015-node6": "0.4.0",
-    "babel-preset-stage-1": "6.22.0",
+    "babel-preset-stage-1": "6.24.1",
     "bcrypt": "1.0.2",
     "bluebird": "3.5.0",
     "cache-manager": "2.4.0",
@@ -79,7 +79,7 @@
   },
   "devDependencies": {
     "babel-eslint": "7.1.1",
-    "babel-register": "6.23.0",
+    "babel-register": "6.24.1",
     "chai": "3.5.0",
     "chai-fs": "~1.0.0",
     "eslint": "3.17.0",
