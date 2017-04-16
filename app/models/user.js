@@ -16,6 +16,7 @@ import { BadRequestException, ForbiddenException, NotFoundException, ValidationE
 import { Attachment, Comment, Post } from '../models'
 
 
+aws.config.setPromisesDependency(Promise);
 promisifyAll(crypto)
 promisifyAll(gm)
 
@@ -980,16 +981,15 @@ export function addModel(dbAdapter) {
     const s3 = new aws.S3({
       'accessKeyId':     subConfig.storage.accessKeyId || null,
       'secretAccessKey': subConfig.storage.secretAccessKey || null
-    })
-    const putObject = promisify(s3.putObject, { context: s3 })
-    await putObject({
+    });
+    await s3.putObject({
       ACL:                'public-read',
       Bucket:             subConfig.storage.bucket,
       Key:                subConfig.path + destFile,
       Body:               fs.createReadStream(sourceFile),
       ContentType:        'image/jpeg',
       ContentDisposition: 'inline'
-    })
+    }).promise();
   }
 
   User.prototype.getProfilePicturePath = function (uuid, size) {
