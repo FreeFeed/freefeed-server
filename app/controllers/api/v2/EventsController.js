@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import { dbAdapter } from '../../../models';
 import { EVENT_TYPES } from '../../../support/EventService'
+import { userSerializerFunction } from './helpers'
 
 const FORBIDDEN_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user'];
 const ALLOWED_EVENT_TYPES = _.difference(_.values(EVENT_TYPES), FORBIDDEN_EVENT_TYPES);
@@ -53,9 +54,14 @@ export default class EventsController {
       events.length = params.limit;
     }
 
-    const serializedEvents = await serializeEvents(events);
+    const serializedData = await serializeEvents(events);
 
-    ctx.body = { Notifications: serializedEvents, isLastPage };
+    ctx.body = {
+      Notifications: serializedData.events,
+      users:         serializedData.users,
+      groups:        serializedData.groups,
+      isLastPage
+    };
   }
 }
 
@@ -111,7 +117,25 @@ async function serializeEvents(events) {
     };
   });
 
-  return serializedEvents;
+  const allUserIds = new Set();
+  _.values(userIdsMapping).forEach((id) => allUserIds.add(id));
+  const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
+  _.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+
+  const [allUsersAssoc, allStatsAssoc] = await Promise.all([
+    dbAdapter.getUsersByIdsAssoc([...allUserIds]),
+    dbAdapter.getUsersStatsAssoc([...allUserIds]),
+  ]);
+
+  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
+  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user');
+  const groups = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'group');
+
+  return {
+    events: serializedEvents,
+    users,
+    groups
+  };
 }
 
 async function getIntIdsMappings(events) {

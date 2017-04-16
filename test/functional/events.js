@@ -1502,6 +1502,9 @@ describe('EventsController', () => {
           }
         ]
       });
+      expect(res.users, 'to have length', 2);
+      expect(res.users, 'to have an item satisfying', { id: luna.user.id });
+      expect(res.users, 'to have an item satisfying', { id: mars.user.id });
       res = await getUserEvents(mars);
       expect(res, 'to satisfy', {
         Notifications: [
@@ -1513,6 +1516,20 @@ describe('EventsController', () => {
           }
         ]
       });
+      expect(res.users, 'to have length', 2);
+      expect(res.users, 'to have an item satisfying', { id: luna.user.id });
+      expect(res.users, 'to have an item satisfying', { id: mars.user.id });
+    });
+
+    it('response should include user and group payload', async () => {
+      const dubhe = await createGroupAsync(luna, 'dubhe');
+      await subscribeToAsync(mars, dubhe);
+      const res = await getUserEvents(luna);
+      expect(res.users, 'to have length', 2);
+      expect(res.users, 'to have an item satisfying', { id: luna.user.id });
+      expect(res.users, 'to have an item satisfying', { id: mars.user.id });
+      expect(res.groups, 'to have length', 1);
+      expect(res.groups, 'to have an item satisfying', { id: dubhe.group.id });
     });
 
     describe('type filtering', () => {
