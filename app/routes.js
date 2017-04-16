@@ -26,6 +26,7 @@ import UsersRouteV2 from './routes/api/v2/UsersRoute'
 import StatsRouteV2 from './routes/api/v2/Stats'
 import PostsRouteV2 from './routes/api/v2/PostsRoute'
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute'
+import ArchivesRoute from './routes/api/v2/ArchivesRoute'
 
 promisifyAll(jwt);
 
@@ -78,6 +79,7 @@ export default function (app) {
   UsersRouteV2(router);
   PostsRouteV2(router);
   CommentLikesRoute(router);
+  ArchivesRoute(router);
 
   router.use('/v[0-9]+/*', async (ctx) => {
     ctx.status = 404;

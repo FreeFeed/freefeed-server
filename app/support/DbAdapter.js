@@ -182,7 +182,8 @@ const COMMENT_COLUMNS = {
   updatedAt: 'updated_at',
   body:      'body',
   postId:    'post_id',
-  userId:    'user_id'
+  userId:    'user_id',
+  hideType:  'hide_type',
 }
 
 const COMMENT_COLUMNS_MAPPING = {
@@ -204,14 +205,15 @@ const COMMENT_FIELDS = {
   updated_at: 'updatedAt',
   body:       'body',
   user_id:    'userId',
-  post_id:    'postId'
+  post_id:    'postId',
+  hide_type:  'hideType',
 }
 
 const COMMENT_FIELDS_MAPPING = {
-  created_at: (time) => { return time.getTime().toString() },
-  updated_at: (time) => { return time.getTime().toString() },
-  post_id:    (post_id) => {return post_id ? post_id : ''},
-  user_id:    (user_id) => {return user_id ? user_id : ''}
+  updated_at: (time) => time.getTime().toString(),
+  created_at: (time) => time.getTime().toString(),
+  post_id:    (post_id) => post_id ? post_id : null,
+  user_id:    (user_id) => user_id ? user_id : null,
 }
 
 
@@ -552,6 +554,33 @@ export class DbAdapter {
       .where('f.name', 'Posts')
       .where('f.user_id', userId)
       .orderBy('s.created_at', 'desc');
+  }
+
+  // Insert record to 'archives' table for the test purposes.
+  // 'params' should hold optional 'archives' fields.
+  async setUserArchiveParams(userId, oldUsername, params = {}) {
+    return await this.database('archives').insert({ ...params, user_id: userId, old_username: oldUsername });
+  }
+
+  // Return data from 'archives' table for the 'whoami' response
+  async getUserArchiveParams(userId) {
+    return await this.database('archives')
+      .first('old_username', 'has_archive', 'via_sources', 'recovery_status', 'restore_comments_and_likes')
+      .where({ user_id: userId });
+  }
+
+  async startArchiveRestoration(userId, params = {}) {
+    params = {
+      disable_comments: false,
+      via_restore:      [],
+      ...params,
+      recovery_status:  1,
+    };
+    await this.database('archives').where('user_id', userId).update(params);
+  }
+
+  async enableArchivedActivitiesRestoration(userId) {
+    await this.database('archives').where('user_id', userId).update({ restore_comments_and_likes: true });
   }
 
   ///////////////////////////////////////////////////
@@ -1223,13 +1252,38 @@ export class DbAdapter {
   async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
     let query = this.database('comments').orderBy('created_at', 'asc').where('post_id', postId);
 
+    const [
+      viewer,
+      bannedUsersIds,
+    ] = await Promise.all([
+      viewerUserId ? this.getUserById(viewerUserId) : null,
+      viewerUserId ? this.getUserBansIds(viewerUserId) : [],
+    ]);
+
     if (viewerUserId) {
-      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserId);
-      query = query.where('user_id', 'not in', subquery);
+      const hiddenCommentTypes = viewer.getHiddenCommentTypes();
+      if (hiddenCommentTypes.length > 0) {
+        if (hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && bannedUsersIds.length > 0) {
+          query = query.where('user_id', 'not in', bannedUsersIds);
+        }
+        const ht = hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+        if (ht.length > 0) {
+          query = query.where('hide_type', 'not in', ht);
+        }
+      }
     }
 
     const responses = await query;
-    return responses.map(this.initCommentObject);
+    const comments = responses
+      .map((comm) => {
+        if (bannedUsersIds.includes(comm.user_id)) {
+          comm.user_id = null;
+          comm.hide_type = Comment.HIDDEN_BANNED;
+          comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+        }
+        return comm;
+      });
+    return comments.map(this.initCommentObject);
   }
 
   _deletePostComments(postId) {
@@ -1784,6 +1838,7 @@ export class DbAdapter {
       maxUnfoldedComments: 3,
       maxUnfoldedLikes:    4,
       visibleFoldedLikes:  3,
+      hiddenCommentTypes:  [],
       ...params,
     };
 
@@ -1811,12 +1866,14 @@ export class DbAdapter {
     `, uniqPostsIds);
 
     const [
+      viewerIntId,
       bannedUsersIds,
       friendsIds,
       postsData,
       attData,
       { rows: destData },
     ] = await Promise.all([
+      viewerId ? this._getUserIntIdByUUID(viewerId) : null,
       viewerId ? this.getUserBansIds(viewerId) : [],
       viewerId ? this.getUserFriendIds(viewerId) : [],
       this.database.select(...postFields).from('posts').whereIn('uid', uniqPostsIds),
@@ -1824,7 +1881,8 @@ export class DbAdapter {
       this.database.raw(destinationsSQL),
     ]);
 
-    if (bannedUsersIds.length === 0) {
+    const nobodyIsBanned = bannedUsersIds.length === 0;
+    if (nobodyIsBanned) {
       bannedUsersIds.push(unexistedUID);
     }
     if (friendsIds.length === 0) {
@@ -1854,7 +1912,17 @@ export class DbAdapter {
       group by post_id, count 
     `;
 
-    const viewerIntId = viewerId ? await this._getUserIntIdByUUID(viewerId) : null;
+    // Don't show comments that viewer don't want to see
+    let hideCommentsSQL = 'true';
+    if (params.hiddenCommentTypes.length > 0) {
+      if (params.hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && !nobodyIsBanned) {
+        hideCommentsSQL = pgFormat('user_id not in (%L)', bannedUsersIds);
+      }
+      const ht = params.hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+      if (ht.length > 0) {
+        hideCommentsSQL += pgFormat(' and hide_type not in (%L)', ht);
+      }
+    }
 
     const allCommentsSQL = pgFormat(`
       select
@@ -1870,7 +1938,7 @@ export class DbAdapter {
             and cl.user_id = %L
         ) as has_own_like
       from comments
-      where post_id in (%L) and user_id not in (%L)
+      where post_id in (%L) and user_id not in (%L) and (${hideCommentsSQL})
     `, bannedUsersIds, viewerIntId, uniqPostsIds, bannedUsersIds);
 
     const commentsSQL = `
@@ -1927,6 +1995,11 @@ export class DbAdapter {
     }
 
     for (const comm of commentsData) {
+      if (!nobodyIsBanned && bannedUsersIds.includes(comm.user_id)) {
+        comm.user_id = null;
+        comm.hide_type = Comment.HIDDEN_BANNED;
+        comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+      }
       const comment = this.initCommentObject(comm);
       comment.likes       = parseInt(comm.c_likes);
       comment.hasOwnLike  = comm.has_own_like;
@@ -1960,6 +2033,22 @@ export class DbAdapter {
     }
 
     return postsIds.map((id) => results[id] || null);
+  }
+
+  // Insert record to 'archive_post_names' table for the test purposes.
+  async setOldPostName(postId, oldName) {
+    return await this.database('archive_post_names').insert({ post_id: postId, old_post_name: oldName });
+  }
+
+  // Return new post's UID by its old name
+  async getPostIdByOldName(oldName) {
+    const rec = await this.database('archive_post_names')
+      .first('post_id')
+      .where({ old_post_name: oldName });
+    if (rec) {
+      return rec.post_id;
+    }
+    return null;
   }
 
   ///////////////////////////////////////////////////
@@ -2065,7 +2154,7 @@ export class DbAdapter {
   async executeSerizlizableTransaction(transaction) {
     while (true) {  // eslint-disable-line no-constant-condition
       try {
-        await this.database.transaction(async (trx) => {  // eslint-disable-line babel/no-await-in-loop
+        await this.database.transaction(async (trx) => {  // eslint-disable-line no-await-in-loop
           await trx.raw('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
           return transaction(trx);
         });

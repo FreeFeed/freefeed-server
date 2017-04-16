@@ -406,7 +406,7 @@ describe('Post', () => {
 
     it('should be possible to get all likes', async () => {
       for (let i = 0; i < 10; i++) {
-        await post.addLike(users[i]);  // eslint-disable-line babel/no-await-in-loop
+        await post.addLike(users[i]);  // eslint-disable-line no-await-in-loop
       }
 
       post.maxLikes = 'all'
@@ -424,7 +424,7 @@ describe('Post', () => {
 
     it('should be possible to get some likes (properly sorted)', async () => {
       for (let i = 0; i < 10; i++) {
-        await post.addLike(users[i]);  // eslint-disable-line babel/no-await-in-loop
+        await post.addLike(users[i]);  // eslint-disable-line no-await-in-loop
       }
 
       post.maxLikes = 3
@@ -447,7 +447,7 @@ describe('Post', () => {
 
       // 2 likes -> 2 open
       for (i = 0; i < 2; i++) {
-        await post.addLike(users[i]);  // eslint-disable-line babel/no-await-in-loop
+        await post.addLike(users[i]);  // eslint-disable-line no-await-in-loop
       }
 
       {
@@ -654,7 +654,7 @@ describe('Post', () => {
           postId: post.id
         }
         comments[i] = userA.newComment(commentAttrs)
-        await comments[i].create()  // eslint-disable-line babel/no-await-in-loop
+        await comments[i].create()  // eslint-disable-line no-await-in-loop
       }
     })
 

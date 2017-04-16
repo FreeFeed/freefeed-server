@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 
 import bcrypt from 'bcrypt'
-import { promisify, promisifyAll } from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import aws from 'aws-sdk'
 import gm from 'gm'
 import GraphemeBreaker from 'grapheme-breaker'
@@ -16,6 +16,7 @@ import { BadRequestException, ForbiddenException, NotFoundException, ValidationE
 import { Attachment, Comment, Post } from '../models'
 
 
+aws.config.setPromisesDependency(Promise);
 promisifyAll(crypto)
 promisifyAll(gm)
 
@@ -440,7 +441,7 @@ export function addModel(dbAdapter) {
     // and then all comments in user's timeline, we could make it more
     // efficient when introduce Entries table with meta column (post to
     // timelines many-to-many over Entries)
-    /* eslint-disable babel/no-await-in-loop */
+    /* eslint-disable no-await-in-loop */
 
     const timeline = await this.getPostsTimeline({ currentUser: this.id })
     const posts = await timeline.getPosts(0, -1)
@@ -491,11 +492,11 @@ export function addModel(dbAdapter) {
 
       await Promise.all(promises)
     }
-    /* eslint-enable babel/no-await-in-loop */
+    /* eslint-enable no-await-in-loop */
   }
 
   User.prototype.unsubscribeNonFriends = async function () {
-    /* eslint-disable babel/no-await-in-loop */
+    /* eslint-disable no-await-in-loop */
     const subscriberIds = await this.getSubscriberIds()
     const timeline = await this.getPostsTimeline()
 
@@ -533,7 +534,7 @@ export function addModel(dbAdapter) {
       const actions = chunk.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
       await Promise.all(actions)
     }
-    /* eslint-enable babel/no-await-in-loop */
+    /* eslint-enable no-await-in-loop */
   }
 
   User.prototype.updatePassword = async function (password, passwordConfirmation) {
@@ -980,16 +981,15 @@ export function addModel(dbAdapter) {
     const s3 = new aws.S3({
       'accessKeyId':     subConfig.storage.accessKeyId || null,
       'secretAccessKey': subConfig.storage.secretAccessKey || null
-    })
-    const putObject = promisify(s3.putObject, { context: s3 })
-    await putObject({
+    });
+    await s3.putObject({
       ACL:                'public-read',
       Bucket:             subConfig.storage.bucket,
       Key:                subConfig.path + destFile,
       Body:               fs.createReadStream(sourceFile),
       ContentType:        'image/jpeg',
       ContentDisposition: 'inline'
-    })
+    }).promise();
   }
 
   User.prototype.getProfilePicturePath = function (uuid, size) {
@@ -1152,6 +1152,18 @@ export function addModel(dbAdapter) {
 
   User.prototype.getPendingGroupRequests = function () {
     return dbAdapter.userHavePendingGroupRequests(this.id);
+  }
+
+  /**
+   * Returns array of comment's hideType's which should not be visible by user
+   * @return {string[]}
+   */
+  User.prototype.getHiddenCommentTypes = function () {
+    let t = _.get(this.frontendPreferences, ['net.freefeed', 'comments', 'hiddenTypes']);
+    if (!_.isArray(t)) {
+      t = [];
+    }
+    return t.filter((v) => _.isInteger(v) && v > 0);  // exclude Comment.VISIBLE
   }
 
   return User

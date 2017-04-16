@@ -8,6 +8,7 @@ import mmm from 'mmmagic'
 import _ from 'lodash'
 import mv from 'mv';
 
+aws.config.setPromisesDependency(Promise);
 import { load as configLoader } from '../../config/config'
 
 
@@ -273,7 +274,7 @@ export function addModel(dbAdapter) {
         for (const sizeId in config.attachments.imageSizes) {
           if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
             const sizeConfig = config.attachments.imageSizes[sizeId]
-            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)  // eslint-disable-line babel/no-await-in-loop
+            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)  // eslint-disable-line no-await-in-loop
           }
         }
       }
@@ -349,16 +350,15 @@ export function addModel(dbAdapter) {
     const s3 = new aws.S3({
       'accessKeyId':     config.attachments.storage.accessKeyId || null,
       'secretAccessKey': config.attachments.storage.secretAccessKey || null
-    })
-    const putObject = promisify(s3.putObject, { context: s3 })
-    await putObject({
+    });
+    await s3.putObject({
       ACL:                'public-read',
       Bucket:             config.attachments.storage.bucket,
       Key:                destPath + this.getFilename(),
       Body:               fs.createReadStream(sourceFile),
       ContentType:        this.mimeType,
       ContentDisposition: this.getContentDisposition()
-    })
+    }).promise();
   }
 
   // Get cross-browser Content-Disposition header for attachment
