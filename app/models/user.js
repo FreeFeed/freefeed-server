@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 
 import bcrypt from 'bcrypt'
-import { promisify, promisifyAll } from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import aws from 'aws-sdk'
 import gm from 'gm'
 import GraphemeBreaker from 'grapheme-breaker'
