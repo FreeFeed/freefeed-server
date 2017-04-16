@@ -440,7 +440,7 @@ export function addModel(dbAdapter) {
     // and then all comments in user's timeline, we could make it more
     // efficient when introduce Entries table with meta column (post to
     // timelines many-to-many over Entries)
-    /* eslint-disable babel/no-await-in-loop */
+    /* eslint-disable no-await-in-loop */
 
     const timeline = await this.getPostsTimeline({ currentUser: this.id })
     const posts = await timeline.getPosts(0, -1)
@@ -491,11 +491,11 @@ export function addModel(dbAdapter) {
 
       await Promise.all(promises)
     }
-    /* eslint-enable babel/no-await-in-loop */
+    /* eslint-enable no-await-in-loop */
   }
 
   User.prototype.unsubscribeNonFriends = async function () {
-    /* eslint-disable babel/no-await-in-loop */
+    /* eslint-disable no-await-in-loop */
     const subscriberIds = await this.getSubscriberIds()
     const timeline = await this.getPostsTimeline()
 
@@ -533,7 +533,7 @@ export function addModel(dbAdapter) {
       const actions = chunk.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
       await Promise.all(actions)
     }
-    /* eslint-enable babel/no-await-in-loop */
+    /* eslint-enable no-await-in-loop */
   }
 
   User.prototype.updatePassword = async function (password, passwordConfirmation) {

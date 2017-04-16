@@ -1994,7 +1994,7 @@ export class DbAdapter {
   async executeSerizlizableTransaction(transaction) {
     while (true) {  // eslint-disable-line no-constant-condition
       try {
-        await this.database.transaction(async (trx) => {  // eslint-disable-line babel/no-await-in-loop
+        await this.database.transaction(async (trx) => {  // eslint-disable-line no-await-in-loop
           await trx.raw('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
           return transaction(trx);
         });

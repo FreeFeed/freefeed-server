@@ -507,9 +507,7 @@ describe('TimelinesControllerV2', () => {
     beforeEach(async () => {
       luna = await createUserAsync('luna', 'pw');
       // Luna creates 10 posts
-      for (let i = 0; i < 10; i++) {
-        await createAndReturnPost(luna, 'Post');  // eslint-disable-line babel/no-await-in-loop
-      }
+      await Promise.all([...new Array(10)].map(() => createAndReturnPost(luna, 'Post')));
     });
 
     it('should return first page with isLastPage = false', async () => {
