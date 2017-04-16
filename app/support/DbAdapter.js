@@ -1938,8 +1938,8 @@ export class DbAdapter {
             and cl.user_id = %L
         ) as has_own_like
       from comments
-      where post_id in (%L) and user_id not in (%L) and (${hideCommentsSQL})
-    `, bannedUsersIds, viewerIntId, uniqPostsIds, bannedUsersIds);
+      where post_id in (%L) and (${hideCommentsSQL})
+    `, bannedUsersIds, viewerIntId, uniqPostsIds);
 
     const commentsSQL = `
       with comments as (${allCommentsSQL})
