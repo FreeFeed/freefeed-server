@@ -2,10 +2,11 @@ import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
 import SocketIO from 'socket.io-client';
+import expect from 'unexpected';
 
-import { dbAdapter } from '../../app/models'
+import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
-
+import * as schema from './schemaV2-helper';
 
 const apiUrl = async (relativeUrl) => {
   const app = await initApp()
@@ -406,6 +407,13 @@ export async function createUserAsync(username, password, attributes) {
   const userData = data.users
   userData.password = password
 
+  // User does't want to view banned comments by default
+  // (for compatibility with old tests)
+  await updateUserAsync(
+    { user: userData, authToken: data.authToken },
+    { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
+  );
+
   return {
     authToken: data.authToken,
     user:      userData,
@@ -775,4 +783,53 @@ export async function createRealtimeConnection(context, callbacks) {
   };
 
   return PromisifiedIO(`http://localhost:${port}/`, options, callbacks);
+}
+
+export async function fetchPost(postId, viewerContext = null, params = {}) {
+  params = {
+    returnError: false,
+    allComments: false,
+    allLikes:    false,
+    apiVersion:  'v2',
+    ...params,
+  };
+  const headers = {};
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const response = await fetch(
+    await apiUrl(`/${params.apiVersion}/posts/${postId}?maxComments=${params.allComments ? 'all' : ''}&maxLikes=${params.allLikes ? 'all' : ''}`),
+    { headers }
+  );
+  const post = await response.json();
+  if (response.status !== 200) {
+    if (params.returnError) {
+      return response;
+    }
+    expect.fail('HTTP error (code {0}): {1}', response.status, post.err);
+  }
+  if (params.apiVersion === 'v2') {
+    expect(post, 'to exhaustively satisfy', schema.postResponse);
+  }
+  return post;
+}
+
+export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2') {
+  const headers = {};
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const response = await fetch(
+    await apiUrl(`/${apiVersion}/timelines/${path}`),
+    { headers }
+  );
+  const feed = await response.json();
+  // console.log(feed);
+  if (response.status !== 200) {
+    expect.fail('HTTP error (code {0}): {1}', response.status, feed.err);
+  }
+  if (apiVersion === 'v2') {
+    expect(feed, 'to exhaustively satisfy', schema.timelineResponse);
+  }
+  return feed;
 }
