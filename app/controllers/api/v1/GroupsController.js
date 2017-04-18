@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 import { dbAdapter, Group, GroupSerializer } from '../../../models'
+import { EventService } from '../../../support/EventService'
 import { BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
 
@@ -22,7 +23,7 @@ export default class GroupsController {
 
     const group = new Group(params)
     await group.create(ctx.state.user.id, false)
-
+    await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
     const json = await new GroupSerializer(group).promiseToJSON()
     ctx.body = json;
   }
@@ -110,8 +111,10 @@ export default class GroupsController {
 
     if (newStatus) {
       await group.addAdministrator(newAdmin.id)
+      await EventService.onGroupAdminPromoted(ctx.state.user.intId, group, newAdmin.intId);
     } else {
       await group.removeAdministrator(newAdmin.id)
+      await EventService.onGroupAdminDemoted(ctx.state.user.intId, group, newAdmin.intId);
     }
 
     ctx.body = { err: null, status: 'success' };
@@ -184,6 +187,7 @@ export default class GroupsController {
     }
 
     await ctx.state.user.sendPrivateGroupSubscriptionRequest(group.id)
+    await EventService.onGroupSubscriptionRequestCreated(ctx.state.user.intId, group);
 
     ctx.body = { err: null, status: 'success' };
   }
@@ -219,6 +223,7 @@ export default class GroupsController {
     }
 
     await group.acceptSubscriptionRequest(user.id)
+    await EventService.onGroupSubscriptionRequestApproved(ctx.state.user.intId, group, user.intId);
 
     ctx.body = { err: null, status: 'success' };
   }
@@ -254,6 +259,7 @@ export default class GroupsController {
     }
 
     await group.rejectSubscriptionRequest(user.id)
+    await EventService.onGroupSubscriptionRequestRejected(ctx.state.user.intId, group, user.intId);
 
     ctx.body = { err: null, status: 'success' };
   }
@@ -293,6 +299,7 @@ export default class GroupsController {
     }
 
     await user.unsubscribeFrom(timelineId)
+    await EventService.onGroupUnsubscribed(user.intId, group);
 
     ctx.body = { err: null, status: 'success' };
   }

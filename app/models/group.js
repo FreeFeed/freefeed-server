@@ -13,6 +13,7 @@ export function addModel(dbAdapter) {
    */
   const Group = function (params) {
     this.id = params.id
+    this.intId = params.intId;
     this.username = params.username
     this.screenName = params.screenName
     this.description = params.description || ''
@@ -106,7 +107,9 @@ export function addModel(dbAdapter) {
       'isProtected':  this.isProtected,
       'isRestricted': this.isRestricted
     }
-    this.id = await dbAdapter.createUser(payload)
+    const ids = await dbAdapter.createUser(payload);
+    this.id = ids[0];
+    this.intId = ids[1];
 
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 
