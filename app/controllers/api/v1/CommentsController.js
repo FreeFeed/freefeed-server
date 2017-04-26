@@ -1,6 +1,7 @@
 import monitor from 'monitor-dog'
 
 import { dbAdapter, CommentSerializer, PubSub } from '../../../models'
+import { EventService } from '../../../support/EventService'
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -55,7 +56,10 @@ export default class CommentsController {
         }
       }))
 
-      await PubSub.newComment(newComment, timelines)
+      await Promise.all([
+        PubSub.newComment(newComment, timelines),
+        EventService.onCommentCreated(newComment, post, ctx.state.user)
+      ]);
       monitor.increment('comments.creates')
 
       const json = await new CommentSerializer(newComment).promiseToJSON()
