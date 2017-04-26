@@ -64,6 +64,7 @@ const USER_COLUMNS_MAPPING = {
 }
 
 const USER_FIELDS = {
+  id:                        'intId',
   uid:                       'id',
   username:                  'username',
   screen_name:               'screenName',
@@ -365,10 +366,9 @@ export class DbAdapter {
 
   async createUser(payload) {
     const preparedPayload = this._prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
-    const res = await this.database('users').returning('uid').insert(preparedPayload)
-    const uid = res[0]
+    const [{ uid: uid, id: intId }] = await this.database('users').returning(['uid', 'id']).insert(preparedPayload);
     await this.createUserStats(uid)
-    return uid
+    return [uid, intId];
   }
 
   updateUser(userId, payload) {
@@ -510,6 +510,10 @@ export class DbAdapter {
 
   async getUsersByIdsAssoc(ids) {
     return _.mapValues(await this.fetchUsersAssoc(ids), this.initUserObject);
+  }
+
+  getUsersIdsByIntIds(intIds) {
+    return this.database('users').select('id', 'uid').whereIn('id', intIds);
   }
 
   async getFeedOwnerByUsername(username) {
@@ -1226,6 +1230,10 @@ export class DbAdapter {
     return res.id;
   }
 
+  getCommentsIdsByIntIds(intIds) {
+    return this.database('comments').select('id', 'uid').whereIn('id', intIds);
+  }
+
   updateComment(commentId, payload) {
     const preparedPayload = this._prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
 
@@ -1501,6 +1509,10 @@ export class DbAdapter {
   async getPostsByIds(ids, params) {
     const responses = await this.database('posts').orderBy('bumped_at', 'desc').whereIn('uid', ids)
     return responses.map((attrs) => this.initPostObject(attrs, params))
+  }
+
+  getPostsIdsByIntIds(intIds) {
+    return this.database('posts').select('id', 'uid').whereIn('id', intIds);
   }
 
   async getUserPostsCount(userId) {
@@ -2815,5 +2827,67 @@ export class DbAdapter {
 
     const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
     return postsCommentLikes;
+  }
+
+  ///////////////////////////////////////////////////
+  // Events
+  ///////////////////////////////////////////////////
+
+  async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
+                    groupIntId = null, postId = null, commentId = null) {
+    const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
+    const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
+
+    const payload = {
+      user_id:            recipientIntId,
+      event_type:         eventType,
+      created_by_user_id: createdByUserIntId,
+      target_user_id:     targetUserIntId,
+      group_id:           groupIntId,
+      post_id:            postIntId,
+      comment_id:         commentIntId
+    };
+
+    return this.database('events').insert(payload);
+  }
+
+  getUserEvents(userIntId, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
+    let query = this.database('events').where('user_id', userIntId)
+    if (eventTypes && eventTypes.length > 0) {
+      query = query.whereIn('event_type', eventTypes);
+    }
+
+    if (startDate) {
+      query = query.where('created_at', '>=', startDate.toISOString());
+    }
+
+    if (endDate) {
+      query = query.where('created_at', '<=', endDate.toISOString());
+    }
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    if (offset) {
+      query = query.offset(offset);
+    }
+    return query.orderBy('created_at', 'desc');
+  }
+
+  async _getGroupIntIdByUUID(groupUUID) {
+    const res = await this.database('users').returning('id').first().where('uid', groupUUID).andWhere('type', 'group');
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
+  async _getPostIntIdByUUID(postUUID) {
+    const res = await this.database('posts').returning('id').first().where('uid', postUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
   }
 }

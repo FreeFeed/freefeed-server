@@ -493,6 +493,14 @@ export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
 
+export function unsubscribeFromAsync(unsubscriber, victim) {
+  return postJson(`/v1/users/${victim.username}/unsubscribe`, { authToken: unsubscriber.authToken });
+}
+
+export function unsubscribeUserFromMeAsync(user, victim) {
+  return postJson(`/v1/users/${victim.username}/unsubscribeFromMe`, { authToken: user.authToken });
+}
+
 export function acceptRequestAsync(subject, requester) {
   return postJson(`/v1/users/acceptRequest/${requester.username}`, { authToken: subject.authToken })
 }
@@ -706,8 +714,19 @@ export function demoteFromAdmin(group, existingAdminContext, victimAdminContext)
   )
 }
 
+export function kickOutUserFromGroup(group, adminContext, victim) {
+  return postJson(
+    `/v1/groups/${group.username}/unsubscribeFromGroup/${victim.user.username}`,
+    { authToken: adminContext.authToken }
+  )
+}
+
 export function sendRequestToSubscribe(subscriber, user) {
   return postJson(`/v1/users/${user.username}/sendRequest`, { authToken: subscriber.authToken })
+}
+
+export function revokeSubscriptionRequest(subscriber, user) {
+  return postJson(`/v2/requests/${user.username}/revoke`, { authToken: subscriber.authToken })
 }
 
 export function acceptRequestToSubscribe(subscriber, user) {
@@ -722,8 +741,16 @@ export function acceptRequestToJoinGroup(admin, subscriber, group) {
   return postJson(`/v1/groups/${group.username}/acceptRequest/${subscriber.user.username}`, { authToken: admin.authToken })
 }
 
+export function rejectSubscriptionRequestToGroup(admin, subscriber, group) {
+  return postJson(`/v1/groups/${group.username}/rejectRequest/${subscriber.user.username}`, { authToken: admin.authToken });
+}
+
 export function banUser(who, whom) {
   return postJson(`/v1/users/${whom.username}/ban`, { authToken: who.authToken })
+}
+
+export function unbanUser(who, whom) {
+  return postJson(`/v1/users/${whom.username}/unban`, { authToken: who.authToken });
 }
 
 export function hidePost(postId, user) {
@@ -760,6 +787,21 @@ export async function getCommentLikes(commentId, viewerContext = null) {
   }
   const url = await apiUrl(`/v2/comments/${commentId}/likes`);
   return fetch(url, { method: 'GET', headers });
+}
+
+export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
+  const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`).join('') : '';
+  const limitQS = limit ? `limit=${limit}&` : '';
+  const offsetQS = offset ? `offset=${offset}&` : '';
+  const startDateQS = startDate ? `startDate=${startDate}&` : '';
+  const endDateQS = endDate ? `endDate=${endDate}` : '';
+  const queryString = `/v2/notifications?${eventTypesQS}${limitQS}${offsetQS}${startDateQS}${endDateQS}`;
+
+  const response = await postJson(queryString, {
+    authToken: userContext.authToken,
+    '_method': 'get'
+  });
+  return await response.json();
 }
 
 /**
