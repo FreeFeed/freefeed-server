@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { execFile } from 'child_process';
 
 import aws from 'aws-sdk'
 import { promisify, promisifyAll } from 'bluebird'
@@ -7,6 +8,8 @@ import meta from 'musicmetadata'
 import mmm from 'mmmagic'
 import _ from 'lodash'
 import mv from 'mv';
+import gifsicle from 'gifsicle';
+import imageSize from 'image-size';
 
 aws.config.setPromisesDependency(Promise);
 import { load as configLoader } from '../../config/config'
@@ -21,6 +24,9 @@ const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 
 const magic = new mmm.Magic()
 const detectFile = promisify(magic.detectFile, { context: magic })
+
+const execFileAsync = promisify(execFile);
+const imageSizeAsync = promisify(imageSize);
 
 async function detectMimetype(filename) {
   const mimeType = await detectMime(filename)
@@ -233,51 +239,10 @@ export function addModel(dbAdapter) {
 
     if (supportedImageTypes[this.mimeType]) {
       // Set media properties for 'image' type
-      this.mediaType = 'image'
-      this.fileExtension = supportedImageTypes[this.mimeType]
-      this.noThumbnail = '1' // this may be overriden below
-
-      let originalImage = promisifyAll(gm(tmpAttachmentFile))
-
-      // Fix EXIF orientation for original image, if JPEG
-      if (this.mimeType === 'image/jpeg') {
-        // orientation() returns a string. Possible values are:
-        // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
-        // The first three options are fine, the rest should be fixed.
-        const orientation = await originalImage.orientationAsync()
-
-        if (!['unknown', 'Unknown', 'TopLeft'].includes(orientation)) {
-          const img = originalImage
-            .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
-            .autoOrient()
-            .quality(95)
-
-          await img.writeAsync(tmpAttachmentFile)
-
-          originalImage = promisifyAll(gm(tmpAttachmentFile))
-        }
-      }
-
-      // Store original image size
-      const originalSize = await originalImage.sizeAsync()
-      this.imageSizes.o = {
-        w:   originalSize.width,
-        h:   originalSize.height,
-        url: await this.getUrl()
-      }
-
-      // Create resized images, unless SVG
-      // (SVG is a vector image, so doesn't need resizing)
-      if (this.mimeType !== 'image/svg+xml') {
-        // Iterate over image sizes old-fashioned (and very synchronous) way
-        // because gm is acting up weirdly when writing files in parallel mode
-        for (const sizeId in config.attachments.imageSizes) {
-          if (config.attachments.imageSizes.hasOwnProperty(sizeId)) {
-            const sizeConfig = config.attachments.imageSizes[sizeId]
-            await this.resizeAndSaveImage(originalImage, originalSize, sizeConfig, sizeId)  // eslint-disable-line no-await-in-loop
-          }
-        }
-      }
+      this.mediaType = 'image';
+      this.fileExtension = supportedImageTypes[this.mimeType];
+      this.noThumbnail = '1';  // this may be overriden below
+      await this.handleImage(tmpAttachmentFile);
     } else if (supportedAudioTypes[this.mimeType]) {
       // Set media properties for 'audio' type
       this.mediaType = 'audio'
@@ -311,37 +276,121 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Attachment.prototype.resizeAndSaveImage = async function (originalImage, originalSize, sizeConfig, sizeId) {
-    if (originalSize.width > sizeConfig.bounds.width || originalSize.height > sizeConfig.bounds.height) {
-      const tmpImageFile = `${this.file.path}.resized.${sizeId}`
+  const fitIntoBounds = (size, bounds) => {
+    let width, height;
+    if (size.width * bounds.height > size.height * bounds.width) {
+      width  = bounds.width;
+      height = Math.max(1, Math.round(size.height * bounds.width / size.width));
+    } else {
+      width  = Math.max(1, Math.round(size.width * bounds.height / size.height));
+      height = bounds.height;
+    }
+    return { width, height };
+  }
 
-      // Resize image
-      const img = originalImage
-        .resize(sizeConfig.bounds.width, sizeConfig.bounds.height)
-        .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
-        .autoOrient()
-        .quality(95)
+  /**
+   * @param {string} originalFile
+   */
+  Attachment.prototype.handleImage = async function (originalFile) {
+    const tmpResizedFile = (sizeId) => `${this.file.path}.resized.${sizeId}`;
 
-      // Save image (temporarily)
-      await img.writeAsync(tmpImageFile)
+    // Store original image size
+    let originalSize = await imageSizeAsync(originalFile);
+    this.imageSizes.o = {
+      w:   originalSize.width,
+      h:   originalSize.height,
+      url: await this.getUrl(),
+    }
 
-      // Get image size
-      const resizedImage = promisifyAll(gm(tmpImageFile))
-      const resizedImageSize = await resizedImage.sizeAsync()
+    if (this.mimeType === 'image/svg+xml') {
+      return;
+    }
+
+    // Reserved for GM-style object
+    let originalImage = null;
+
+    // Fix EXIF orientation for original image, if JPEG
+    if (this.mimeType === 'image/jpeg') {
+      originalImage = promisifyAll(gm(originalFile));
+      // orientation() returns a string. Possible values are:
+      // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
+      // The first three options are fine, the rest should be fixed.
+      const orientation = await originalImage.orientationAsync();
+      if (!['unknown', 'Unknown', 'TopLeft'].includes(orientation)) {
+        const img = originalImage
+          .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
+          .autoOrient()
+          .quality(95);
+        await img.writeAsync(originalFile);
+        originalImage = promisifyAll(gm(originalFile));
+        originalSize = await imageSizeAsync(originalFile);
+        this.imageSizes.o.w = originalSize.width;
+        this.imageSizes.o.h = originalSize.height;
+      }
+    }
+
+    const thumbIds = [];
+    for (const sizeId of Object.keys(config.attachments.imageSizes)) {
+      const { bounds } = config.attachments.imageSizes[sizeId];
+      if (originalSize.width <= bounds.width && originalSize.height <= bounds.height) {
+        continue;
+      }
+      const size = fitIntoBounds(originalSize, bounds);
       this.imageSizes[sizeId] = {
-        w:   resizedImageSize.width,
-        h:   resizedImageSize.height,
-        url: this.getResizedImageUrl(sizeId)
+        w:   size.width,
+        h:   size.height,
+        url: this.getResizedImageUrl(sizeId),
       }
-      this.noThumbnail = '0'
+      thumbIds.push(sizeId);
+    }
 
-      // Save image (permanently)
-      if (config.attachments.storage.type === 's3') {
-        await this.uploadToS3(tmpImageFile, sizeConfig.path)
-        await fs.unlinkAsync(tmpImageFile)
-      } else {
-        await mvAsync(tmpImageFile, this.getResizedImagePath(sizeId), {})
+    if (thumbIds.length === 0) {
+      // No thumbnails
+      return;
+    }
+    this.noThumbnail = '0';
+
+    if (this.mimeType === 'image/gif') {
+      // Resize gif using gifsicle
+      await Promise.all(thumbIds.map(async (sizeId) => {
+        const { w, h } = this.imageSizes[sizeId];
+        await execFileAsync(gifsicle, [
+          '--resize', `${w}x${h}`,
+          '--resize-colors', '128',
+          '-o', tmpResizedFile(sizeId),
+          originalFile,
+        ]);
+      }));
+    } else {
+      // Iterate over image sizes old-fashioned (and very synchronous) way
+      // because gm is acting up weirdly when writing files in parallel mode
+      if (originalImage === null) {
+        originalImage = promisifyAll(gm(originalFile));
       }
+      for (const sizeId of thumbIds) {
+        const { w, h } = this.imageSizes[sizeId];
+        await originalImage  // eslint-disable-line no-await-in-loop
+          .resizeExact(w, h)
+          .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
+          .autoOrient()
+          .quality(95)
+          .writeAsync(tmpResizedFile(sizeId));
+      }
+    }
+
+    // Save image (permanently)
+    if (config.attachments.storage.type === 's3') {
+      await Promise.all(thumbIds.map(async (sizeId) => {
+        const { path } = config.attachments.imageSizes[sizeId];
+        const file = tmpResizedFile(sizeId);
+        await this.uploadToS3(file, path);
+        await fs.unlinkAsync(file);
+      }));
+    } else {
+      await Promise.all(thumbIds.map(async (sizeId) => {
+        const file = tmpResizedFile(sizeId);
+        await mvAsync(file, this.getResizedImagePath(sizeId), {})
+      }));
     }
   }
 

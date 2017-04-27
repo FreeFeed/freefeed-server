@@ -68,7 +68,13 @@ describe('Attachment', () => {
         path: '/tmp/upload_12345678901234567890123456789012_6',
         name: 'test-image-sgrb.png',
         type: 'image/png'
-      }
+      },
+      animated: {
+        size: 128467,
+        path: '/tmp/upload_12345678901234567890123456789012_7',
+        name: 'test-image-animated.gif',
+        type: 'image/gif'
+      },
     }
 
     const createAndCheckAttachment = async (file, post, user) => {
@@ -142,7 +148,8 @@ describe('Attachment', () => {
         'test-image.1500x1000.png':            '3',
         'test-image.3000x2000.png':            '4',
         'test-image-exif-rotated.900x300.jpg': '5',
-        'test-image-sgrb.png':                 '6'
+        'test-image-sgrb.png':                 '6',
+        'test-image-animated.gif':             '7',
       };
 
       const srcPrefix = path.resolve(__dirname, '../fixtures');
@@ -306,6 +313,32 @@ describe('Attachment', () => {
         buffer[1].should.be.within(191, 193)
         buffer[2].should.be.within(127, 129)
       }
+    })
+
+    it('should create a gif attachment', async () => {
+      const newAttachment = await createAndCheckAttachment(files.animated, post, user)
+
+      newAttachment.should.have.a.property('noThumbnail')
+      newAttachment.noThumbnail.should.be.equal('0')
+
+      newAttachment.should.have.property('imageSizes')
+      newAttachment.imageSizes.should.be.deep.equal({
+        o: {
+          w:   774,
+          h:   392,
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`
+        },
+        t: {
+          w:   346,
+          h:   175,
+          url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`
+        },
+        t2: {
+          w:   691,
+          h:   350,
+          url: `${config.attachments.url}${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`
+        }
+      })
     })
   })
 })
