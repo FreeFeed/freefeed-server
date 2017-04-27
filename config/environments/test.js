@@ -70,8 +70,13 @@ export function getConfig() {
   }
 
   config.mailer = {
-    transport: stubTransport,
-    options:   {}
+    transport:                stubTransport,
+    fromName:                 'Pepyatka',
+    fromEmail:                'mail@pepyatka.com',
+    resetPasswordMailSubject: 'Pepyatka password reset',
+    host:                     config.origin,
+    options:                  {},
+    adminRecipient:           { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' },
   }
 
   config.redis = {

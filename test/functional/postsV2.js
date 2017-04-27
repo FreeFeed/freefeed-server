@@ -15,16 +15,14 @@ import {
   goPrivate,
   goProtected,
   mutualSubscriptions,
+  fetchPost,
 } from './functional_test_helper'
-import * as schema from './schemaV2-helper';
 
 describe('TimelinesControllerV2', () => {
   let app;
-  let fetchPost, fetchPostOpenGraph;
-
+  let fetchPostOpenGraph;
   before(async () => {
     app = await getSingleton();
-    fetchPost = postFetcher(app);
     fetchPostOpenGraph = postOpenGraphFetcher(app);
     PubSub.setPublisher(new DummyPublisher());
   });
@@ -214,46 +212,6 @@ describe('TimelinesControllerV2', () => {
     });
   });
 });
-
-const postSchema = {
-  posts:         expect.it('to satisfy', schema.post),
-  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
-  comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.comment),
-  attachments:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.attachment),
-  subscribers:   expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.userOrGroup),
-  subscriptions: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
-    id:   expect.it('to satisfy', schema.UUID),
-    name: expect.it('to be one of', ['Posts', 'Directs']),
-    user: expect.it('to satisfy', schema.UUID),
-  }),
-};
-
-const postFetcher = (app) => async (postId, viewerContext = null, params = {}) => {
-  params = {
-    viewer:      null,
-    returnError: false,
-    allComments: false,
-    allLikes:    false,
-    ...params,
-  };
-  const headers = {};
-  if (viewerContext) {
-    headers['X-Authentication-Token'] = viewerContext.authToken;
-  }
-  const response = await fetch(
-    `${app.context.config.host}/v2/posts/${postId}?maxComments=${params.allComments ? 'all' : ''}&maxLikes=${params.allLikes ? 'all' : ''}`,
-    { headers }
-  );
-  const post = await response.json();
-  if (response.status !== 200) {
-    if (params.returnError) {
-      return response;
-    }
-    expect.fail('HTTP error (code {0}): {1}', response.status, post.err);
-  }
-  expect(post, 'to exhaustively satisfy', postSchema);
-  return post;
-};
 
 const postOpenGraphFetcher = (app) => async (postId) => {
   const res = await fetch(`${app.context.config.host}/v2/posts-opengraph/${postId}`);
