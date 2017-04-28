@@ -65,7 +65,7 @@ export default class TimelinesController {
     const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
       withoutDirects: (feedName !== 'Posts'),
-      ...getCommonParams(ctx, (feedName === 'Posts' && user.type === 'user') ? ORD_CREATED : ORD_UPDATED),
+      ...getCommonParams(ctx),
     });
   });
 }
