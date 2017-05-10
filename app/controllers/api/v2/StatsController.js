@@ -3,9 +3,9 @@ import { dbAdapter } from '../../../models';
 
 export default class StatsController {
   static async stats(ctx) {
-    const MIN_START_DATE = '2015-05-04';
-    const DEFAULT_END_DATE = moment().format('YYYY-MM-DD');
     const MAX_STATS_PERIOD = 365 * 2; // 2 years
+    const MIN_START_DATE = moment().subtract(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+    const DEFAULT_END_DATE = moment().format('YYYY-MM-DD');
 
     const data = ctx.request.query.data || 'users';
     const start_date = ctx.request.query.start_date || MIN_START_DATE;
