@@ -24,6 +24,7 @@ import SearchRoute from './routes/api/v2/SearchRoute'
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
 import StatsRouteV2 from './routes/api/v2/Stats'
+import ArchivesStatsRouteV2 from './routes/api/v2/ArchivesStats'
 import PostsRouteV2 from './routes/api/v2/PostsRoute'
 import ArchivesRoute from './routes/api/v2/ArchivesRoute'
 
@@ -78,6 +79,7 @@ export default function (app) {
   UsersRouteV2(router);
   PostsRouteV2(router);
   ArchivesRoute(router);
+  ArchivesStatsRouteV2(router);
 
   router.use('/v[0-9]+/*', async (ctx) => {
     ctx.status = 404;
