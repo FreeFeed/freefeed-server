@@ -93,8 +93,7 @@ export default function (app) {
       await next();
     } catch (e) {
       if (sentryIsEnabled) {
-        const kw = Raven.parsers.parseRequest(ctx.request);
-        Raven.captureException(e, kw);
+        Raven.captureException(e, { req: ctx.request });
       }
 
       reportError(ctx)(e);
