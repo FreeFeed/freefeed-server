@@ -2616,12 +2616,16 @@ export class DbAdapter {
     const FREEFEED_START_DATE = '2015-05-04';
 
     const restored_posts = await this.database('posts').count('id').where('created_at', '<', FREEFEED_START_DATE);
+    const restored_comments = await this.database('comments').count('id').where('created_at', '<', FREEFEED_START_DATE);
+    const hidden_comments = await this.database('hidden_comments').count('comment_id');
     const restore_requests_completed = await this.database('archives').count('user_id').where('recovery_status', '=', 2);
     const restore_requests_pending = await this.database('archives').count('user_id').where('recovery_status', '=', 1);
     const users_with_restored_comments = await this.database('archives').count('user_id').where('restore_comments_and_likes', true);
 
     return [{
       'restored_posts':               restored_posts[0].count,
+      'restored_comments':            restored_comments[0].count,
+      'hidden_comments':              hidden_comments[0].count,
       'restore_requests_completed':   restore_requests_completed[0].count,
       'restore_requests_pending':     restore_requests_pending[0].count,
       'users_with_restored_comments': users_with_restored_comments[0].count
