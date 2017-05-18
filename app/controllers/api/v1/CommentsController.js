@@ -118,9 +118,9 @@ export default class CommentsController {
         throw new NotFoundException("Can't find comment")
       }
 
-      if (comment.hideType !== Comment.VISIBLE) {
+      if (!comment.canBeDestroyed()) {
         throw new ForbiddenException(
-          "You can't destroy deleted or hidden comment"
+          "You can't destroy deleted comment"
         )
       }
 
