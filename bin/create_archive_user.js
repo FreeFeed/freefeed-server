@@ -6,44 +6,42 @@ import bluebird from 'bluebird'
 global.Promise = bluebird;
 global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
 
-import { load as configLoader } from '../config/config.js';
 
-const config = configLoader()
+const host = 'https://freefeed.net';
+
+const args = process.argv.slice(2);
+
+if (args.length !== 4) {
+  process.stdout.write(`Usage: create_archive_user.js <freefeed_username> <friendfeed_username> <public or private> <password>\n`);
+  process.exit(1);
+}
+
+const freefeed_username = args[0];
+const friendfeed_username = args[1];
+const password = args[3];
+let is_private;
+
+if (args[2] === 'public') {
+  is_private = 0;
+} else if (args[2] === 'private') {
+  is_private = 1;
+} else {
+  process.stdout.write(`Unexpected ${args[2]}, expected 'public' or 'private'\n`);
+  process.exit(1);
+}
 
 async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length !== 4) {
-    process.stdout.write(`Usage: create_archive_user.js <freefeed_username> <friendfeed_username> <public or private> <password>\n`);
-    return;
-  }
-
-  const freefeed_username = args[0];
-  const friendfeed_username = args[1];
-  const password = args[3];
-  let is_private;
-
-  if (args[2] === 'public') {
-    is_private = 0;
-  } else if (args[2] === 'private') {
-    is_private = 1;
-  } else {
-    process.stdout.write(`Unexpected ${args[2]}, expected 'public' or 'private'\n`);
-    process.exit(1);
-  }
-
-
   const email =  `freefeed.net+${freefeed_username}@gmail.com`;
   let auth_token = ``;
   let user_id = ``;
 
 
   process.stdout.write(`Creating a placeholder account @${freefeed_username} for @${friendfeed_username} comments from FriendFeed\n`);
-  process.stdout.write(`Host: ${config.host}\n\n`);
+  process.stdout.write(`Host: ${host}\n\n`);
 
   // Create user
   await request
-    .post(`${config.host}/v1/users/sudo`)
+    .post(`${host}/v1/users/sudo`)
     .send({ username: freefeed_username, password, email })
     .then((res) => {
       auth_token = res.body.authToken;
@@ -59,7 +57,7 @@ async function main() {
   // Update description
   const description = `This is a placeholder account for @${friendfeed_username} comments from FriendFeed.com archives. Archives FAQ: https://dev.freefeed.net/w/archives-faq/`;
   await request
-    .put(`${config.host}/v1/users/${user_id}`)
+    .put(`${host}/v1/users/${user_id}`)
     .set(`X-Authentication-Token`, auth_token)
     .send({ user: { isPrivate: is_private, isProtected: is_private, description } })
     .then(() => {
@@ -74,7 +72,7 @@ async function main() {
   // Update privacy
   if (is_private) {
     await request
-      .put(`${config.host}/v1/users/${user_id}`)
+      .put(`${host}/v1/users/${user_id}`)
       .set(`X-Authentication-Token`, auth_token)
       .send({ user: { isPrivate: `1`, isProtected: `1` } })
       .then(() => {
@@ -91,7 +89,7 @@ async function main() {
 
   // Update profile pic
   await request
-    .post(`${config.host}/v1/users/updateProfilePicture`)
+    .post(`${host}/v1/users/updateProfilePicture`)
     .set(`X-Authentication-Token`, auth_token)
     .attach(`image`, `bin/friendfeed.png`)
     .then(() => {
