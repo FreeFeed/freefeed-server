@@ -14,6 +14,7 @@ import uuid from 'uuid'
 import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
+import { EventService } from '../support/EventService'
 
 
 aws.config.setPromisesDependency(Promise);
@@ -29,6 +30,7 @@ export function addModel(dbAdapter) {
   const User = function (params) {
     let password = null
 
+    this.intId = params.intId;
     this.id = params.id
     this.username = params.username
     this.screenName = params.screenName
@@ -332,7 +334,10 @@ export function addModel(dbAdapter) {
       'hashedPassword':      this.hashedPassword,
       'frontendPreferences': JSON.stringify({})
     }
-    this.id = await dbAdapter.createUser(payload)
+    const ids = await dbAdapter.createUser(payload);
+    this.id = ids[0];
+    this.intId = ids[1];
+
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
     timer.stop() // @todo finally {}
     monitor.increment('users.creates')
@@ -772,20 +777,27 @@ export function addModel(dbAdapter) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
+    const myPostsFeedId = await this.getPostsTimelineId();
+    const bannedUserWasSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, myPostsFeedId);
+
     await dbAdapter.createUserBan(this.id, user.id);
 
     const promises = [
-      user.unsubscribeFrom(await this.getPostsTimelineId())
+      user.unsubscribeFrom(myPostsFeedId)
     ]
 
     // reject if and only if there is a pending request
     const requestIds = await this.getSubscriptionRequestIds()
-    if (requestIds.includes(user.id))
+    let bannedUserHasRequestedSubscription = false;
+    if (requestIds.includes(user.id)) {
+      bannedUserHasRequestedSubscription = true;
       promises.push(this.rejectSubscriptionRequest(user.id))
+    }
 
     await Promise.all(promises)
     monitor.increment('users.bans')
 
+    await EventService.onUserBanned(this.intId, user.intId, bannedUserWasSubscribed, bannedUserHasRequestedSubscription);
     return 1
   }
 
@@ -798,7 +810,7 @@ export function addModel(dbAdapter) {
 
     await dbAdapter.deleteUserBan(this.id, user.id)
     monitor.increment('users.unbans')
-
+    await EventService.onUserUnbanned(this.intId, user.intId);
     return 1;
   }
 

@@ -15,4 +15,4 @@ export UsersControllerV2 from './controllers/api/v2/UsersController'
 export StatsControllerV2 from './controllers/api/v2/StatsController'
 export ArchivesStatsControllerV2 from './controllers/api/v2/ArchivesStatsController'
 export SearchController from './controllers/api/v2/SearchController'
-
+export EventsController from './controllers/api/v2/EventsController'
