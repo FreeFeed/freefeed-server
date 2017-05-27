@@ -24,6 +24,10 @@ export function addModel(dbAdapter) {
     this.isPrivate        = params.isPrivate || '0';
     this.isProtected      = params.isProtected || '0';
 
+    if (params.friendfeedUrl) {
+      this.friendfeedUrl = params.friendfeedUrl;
+    }
+
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
     }

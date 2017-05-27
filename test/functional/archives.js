@@ -143,11 +143,17 @@ describe('Archives', () => {
   describe('Luna has a restored post', () => {
     const oldName = 'deadbeef';
     const badName = 'baddbeef';
+    const oldUrl  = `http://friendfeed.com/oldluna/${oldName}`;
     let luna, post;
     beforeEach(async () => {
       luna = await testHelper.createUserAsync('luna', 'pw');
       post = await testHelper.createAndReturnPost(luna, 'Luna post');
-      await dbAdapter.setOldPostName(post.id, oldName)
+      await dbAdapter.setOldPostName(post.id, oldName, oldUrl)
+    });
+
+    it('should return post object with old URL', async () => {
+      const resp = await testHelper.fetchPost(post.id);
+      expect(resp, 'to satisfy', { posts: { friendfeedUrl: oldUrl } });
     });
 
     it('should return new post UID by it\'s old name', async () => {

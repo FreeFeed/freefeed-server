@@ -306,6 +306,7 @@ const POST_FIELDS = {
   likes_count:          'likesCount',
   is_private:           'isPrivate',
   is_protected:         'isProtected',
+  friendfeed_url:       'friendfeedUrl',
 }
 
 const POST_FIELDS_MAPPING = {
@@ -1832,7 +1833,7 @@ export class DbAdapter {
 
     const uniqPostsIds = _.uniq(postsIds);
 
-    const postFields = _.without(Object.keys(POST_FIELDS), 'comments_count', 'likes_count').map((k) => pgFormat('%I', k));
+    const postFields = _.without(Object.keys(POST_FIELDS), 'comments_count', 'likes_count', 'friendfeed_url').map((k) => pgFormat('p.%I', k));
     const attFields = Object.keys(ATTACHMENT_FIELDS).map((k) => pgFormat('%I', k));
     const commentFields = Object.keys(COMMENT_FIELDS).map((k) => pgFormat('%I', k));
 
@@ -1862,7 +1863,8 @@ export class DbAdapter {
     ] = await Promise.all([
       viewerId ? this.getUserBansIds(viewerId) : [],
       viewerId ? this.getUserFriendIds(viewerId) : [],
-      this.database.select(...postFields).from('posts').whereIn('uid', uniqPostsIds),
+      this.database.select('a.old_url as friendfeed_url', ...postFields).from('posts as p')
+        .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id').whereIn('p.uid', uniqPostsIds),
       this.database.select(...attFields).from('attachments').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
       this.database.raw(destinationsSQL),
     ]);
@@ -1977,8 +1979,8 @@ export class DbAdapter {
   }
 
   // Insert record to 'archive_post_names' table for the test purposes.
-  async setOldPostName(postId, oldName) {
-    return await this.database('archive_post_names').insert({ post_id: postId, old_post_name: oldName });
+  async setOldPostName(postId, oldName, oldUrl) {
+    return await this.database('archive_post_names').insert({ post_id: postId, old_post_name: oldName, old_url: oldUrl });
   }
 
   // Return new post's UID by its old name
