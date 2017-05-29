@@ -9,7 +9,7 @@ import mmm from 'mmmagic'
 import _ from 'lodash'
 import mv from 'mv';
 import gifsicle from 'gifsicle';
-import imageSize from 'image-size';
+import probe from 'probe-image-size';
 
 aws.config.setPromisesDependency(Promise);
 import { load as configLoader } from '../../config/config'
@@ -26,7 +26,6 @@ const magic = new mmm.Magic()
 const detectFile = promisify(magic.detectFile, { context: magic })
 
 const execFileAsync = promisify(execFile);
-const imageSizeAsync = promisify(imageSize);
 
 async function detectMimetype(filename) {
   const mimeType = await detectMime(filename)
@@ -295,7 +294,7 @@ export function addModel(dbAdapter) {
     const tmpResizedFile = (sizeId) => `${this.file.path}.resized.${sizeId}`;
 
     // Store original image size
-    let originalSize = await imageSizeAsync(originalFile);
+    let originalSize = await getImageSize(originalFile);
     this.imageSizes.o = {
       w:   originalSize.width,
       h:   originalSize.height,
@@ -323,7 +322,7 @@ export function addModel(dbAdapter) {
           .quality(95);
         await img.writeAsync(originalFile);
         originalImage = promisifyAll(gm(originalFile));
-        originalSize = await imageSizeAsync(originalFile);
+        originalSize = await getImageSize(originalFile);
         this.imageSizes.o.w = originalSize.width;
         this.imageSizes.o.h = originalSize.height;
       }
@@ -423,4 +422,14 @@ export function addModel(dbAdapter) {
   }
 
   return Attachment
+}
+
+async function getImageSize(fileName) {
+  const input = fs.createReadStream(fileName);
+  try {
+    const { width, height } = await probe(input);
+    return { width, height };
+  } finally {
+    input.destroy();
+  }
 }
