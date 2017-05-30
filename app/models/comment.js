@@ -120,6 +120,10 @@ export function addModel(dbAdapter) {
     return dbAdapter.getPostById(this.postId)
   }
 
+  Comment.prototype.canBeDestroyed = function () {
+    return this.hideType !== Comment.DELETED;
+  }
+
   Comment.prototype.destroy = async function () {
     await dbAdapter.deleteComment(this.id, this.postId);
     await pubSub.destroyComment(this.id, this.postId);

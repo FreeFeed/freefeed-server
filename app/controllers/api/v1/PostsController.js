@@ -2,6 +2,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog';
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
+import { EventService } from '../../../support/EventService'
 import { ForbiddenException, NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
 
 
@@ -66,6 +67,7 @@ export default class PostsController {
       })
 
       await newPost.create()
+      await EventService.onPostCreated(newPost, timelineIds, ctx.state.user);
 
       const json = new PostSerializer(newPost).promiseToJSON()
       ctx.body = await json;

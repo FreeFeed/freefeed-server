@@ -37,6 +37,7 @@ export function serializePost(post) {
       'commentsDisabled',
       'createdAt',
       'updatedAt',
+      'friendfeedUrl',
     ]),
     createdBy: post.userId,
   };
