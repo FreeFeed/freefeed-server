@@ -49,18 +49,17 @@ const postBasic = {
   likes:            expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
   omittedComments:  expect.it('to be a number'),
   omittedLikes:     expect.it('to be a number'),
-  friendfeedUrl:    expect.it('to be a string').or('to be undefined'),
 };
 
 export const post = (obj) => {
-  const isHidden = obj && typeof obj === 'object' && obj.isHidden;
-  if (!isHidden) {
-    return expect(obj, 'to exhaustively satisfy', postBasic);
+  const tpl = { ...postBasic };
+  if (obj && typeof obj === 'object' && obj.isHidden) {
+    tpl.isHidden = expect.it('to be', true);
   }
-  return expect(obj, 'to exhaustively satisfy', {
-    ...postBasic,
-    isHidden: expect.it('to be', true),
-  });
+  if (obj && typeof obj === 'object' && obj.friendfeedUrl) {
+    tpl.friendfeedUrl = expect.it('to be a string');
+  }
+  return expect(obj, 'to exhaustively satisfy', tpl);
 };
 
 const commentBasic = {
