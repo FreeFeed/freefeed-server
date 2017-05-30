@@ -557,9 +557,22 @@ export class DbAdapter {
 
   // Return data from 'archives' table for the 'whoami' response
   async getUserArchiveParams(userId) {
-    return await this.database('archives')
+    const params = await this.database('archives')
       .first('old_username', 'has_archive', 'via_sources', 'recovery_status', 'restore_comments_and_likes')
       .where({ user_id: userId });
+    if (!params) {
+      return null;
+    }
+    params.hidden_comments_count = 0;
+    if (!params.restore_comments_and_likes) {
+      const sql = `select count(*) from
+        hidden_comments h
+        join comments c on c.uid = h.comment_id
+        where c.hide_type = :hideType and (h.user_id = :userId or h.old_username = :oldUsername)`;
+      const res = await this.database.raw(sql, { hideType: Comment.HIDDEN_ARCHIVED, userId, oldUsername: params.old_username });
+      params.hidden_comments_count = parseInt(res.rows[0].count);
+    }
+    return params;
   }
 
   async startArchiveRestoration(userId, params = {}) {
@@ -1275,6 +1288,46 @@ export class DbAdapter {
     return this.database('comments').where({ post_id: postId }).delete()
   }
 
+  // Create hidden comment for tests
+  async createHiddenComment(params) {
+    params = {
+      body:        null,
+      postId:      null,
+      userId:      null,
+      oldUsername: null,
+      hideType:    Comment.DELETED,
+      ...params,
+    };
+    if (params.postId === null) {
+      throw new Error(`Undefined postId of comment`);
+    }
+    if (params.hideType !== Comment.DELETED && params.hideType !== Comment.HIDDEN_ARCHIVED) {
+      throw new Error(`Invalid hideType of comment: ${params.hideType}`);
+    }
+    if (params.hideType === Comment.HIDDEN_ARCHIVED && !params.userId === null && params.oldUsername === null) {
+      throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
+    }
+    if (params.hideType === Comment.HIDDEN_ARCHIVED && params.body === null) {
+      throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
+    }
+
+    const uid = (await this.database('comments').returning('uid').insert({
+      post_id:   params.postId,
+      hide_type: params.hideType,
+      body:      Comment.hiddenBody(params.hideType),
+    }))[0];
+
+    if (params.hideType === Comment.HIDDEN_ARCHIVED) {
+      await this.database('hidden_comments').insert({
+        comment_id:   uid,
+        body:         params.body,
+        user_id:      params.userId,
+        old_username: params.oldUsername,
+      });
+    }
+
+    return uid;
+  }
 
   ///////////////////////////////////////////////////
   // Feeds

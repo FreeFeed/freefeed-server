@@ -6,7 +6,7 @@ import expect from 'unexpected';
 
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub, dbAdapter } from '../../app/models';
+import { PubSub, dbAdapter, Comment } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
 
 describe('Archives', () => {
@@ -55,6 +55,7 @@ describe('Archives', () => {
         via_sources:                viaSources,
         recovery_status:            0,
         restore_comments_and_likes: false,
+        hidden_comments_count:      0,
       });
     });
 
@@ -67,6 +68,7 @@ describe('Archives', () => {
         via_sources:                [],
         recovery_status:            0,
         restore_comments_and_likes: false,
+        hidden_comments_count:      0,
       });
     });
 
@@ -137,6 +139,37 @@ describe('Archives', () => {
 
       const whoAmI = await getWhoAmI(app, luna);
       expect(whoAmI.users.privateMeta.archives, 'to satisfy', { restore_comments_and_likes: true });
+    });
+
+    describe('Luna has some hidden comments', () => {
+      beforeEach(async () => {
+        const post = await testHelper.createAndReturnPost(luna, 'Luna post');
+        await dbAdapter.createHiddenComment({
+          postId:      post.id,
+          body:        'Comment 1',
+          oldUsername: 'oldluna',
+          hideType:    Comment.HIDDEN_ARCHIVED,
+        });
+        await dbAdapter.createHiddenComment({
+          postId:   post.id,
+          body:     'Comment 2',
+          userId:   luna.user.id,
+          hideType: Comment.HIDDEN_ARCHIVED,
+        });
+      });
+
+      it('should return \'archive\' field with proper hidden_comments_count in whoami for Luna', async () => {
+        const whoAmI = await getWhoAmI(app, luna);
+        expect(whoAmI, 'to satisfy', { users: { privateMeta: { archives: {} } } });
+        expect(whoAmI.users.privateMeta.archives, 'to exhaustively satisfy', {
+          old_username:               'oldluna',
+          has_archive:                true,
+          via_sources:                viaSources,
+          recovery_status:            0,
+          restore_comments_and_likes: false,
+          hidden_comments_count:      2,
+        });
+      });
     });
   });
 
