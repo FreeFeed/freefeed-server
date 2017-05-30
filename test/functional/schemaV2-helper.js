@@ -49,6 +49,7 @@ const postBasic = {
   likes:            expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
   omittedComments:  expect.it('to be a number'),
   omittedLikes:     expect.it('to be a number'),
+  friendfeedUrl:    expect.it('to be a string').or('to be undefined'),
 };
 
 export const post = (obj) => {
