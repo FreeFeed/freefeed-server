@@ -1700,6 +1700,8 @@ export class DbAdapter {
       sort:           'bumped',
       withLocalBumps: false,
       withMyPosts:    false,
+      createdBefore:  null,
+      createdAfter:   null,
       ...params,
     };
 
@@ -1738,6 +1740,15 @@ export class DbAdapter {
       bannedUsersIds.push(unexistedUID);
     }
 
+    const createdAtParts = [];
+    if (params.createdBefore) {
+      createdAtParts.push(pgFormat('p.created_at < %L', params.createdBefore));
+    }
+    if (params.createdAfter) {
+      createdAtParts.push(pgFormat('p.created_at > %L', params.createdAfter));
+    }
+    const createdAtSQL = createdAtParts.length === 0 ? 'true' : createdAtParts.join(' and ');
+
     let sql;
     if (params.withLocalBumps) {
       sql = pgFormat(`
@@ -1750,6 +1761,7 @@ export class DbAdapter {
           and not p.user_id in (%L)  -- bans
           and (not p.is_private or p.destination_feed_ids && %L)  -- privates
           and ${noDirectsSQL}
+          and ${createdAtSQL}
         order by
           greatest(p.bumped_at, b.created_at) desc
         limit %L offset %L
@@ -1774,6 +1786,7 @@ export class DbAdapter {
             'not p.is_protected'
           }
           and ${noDirectsSQL}
+          and ${createdAtSQL}
         order by
           p.%I desc
         limit %L offset %L
