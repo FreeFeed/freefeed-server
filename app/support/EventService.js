@@ -236,6 +236,10 @@ export class EventService {
   static async _processMentionsInComment(comment, post, commentAuthor) {
     let mentions = extractMentionsWithIndices(comment.body);
 
+    if (mentions.length == 0) {
+      return;
+    }
+
     let  postGroupIntId = null;
     const feeds = await post.getPostedTo();
     if (feeds.length === 1) {
