@@ -436,7 +436,11 @@ describe('EventService', () => {
     };
 
     const expectGroupRequestEvents = (user, expectedEvents) => {
-      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested', 'group_subscription_request_revoked', 'group_subscription_approved', 'group_subscription_rejected']);
+      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested', 'group_subscription_request_revoked', 'managed_group_subscription_approved', 'managed_group_subscription_rejected']);
+    };
+
+    const expectGroupRequestEventsForUser = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_approved', 'group_subscription_rejected']);
     };
 
     beforeEach(async () => {
@@ -776,13 +780,13 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_approved event when user subscription request is accepted', async () => {
+      it('should create managed_group_subscription_approved event when user subscription request is accepted', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await acceptRequestToJoinGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_approved',
+            event_type:         'managed_group_subscription_approved',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -790,14 +794,14 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_approved event when user subscription request is accepted for each group admin', async () => {
+      it('should create managed_group_subscription_approved event when user subscription request is accepted for each group admin', async () => {
         await promoteToAdmin(dubhe, luna, jupiter);
         await sendRequestToJoinGroup(mars, dubhe);
         await acceptRequestToJoinGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_approved',
+            event_type:         'managed_group_subscription_approved',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -806,7 +810,7 @@ describe('EventService', () => {
         await expectGroupRequestEvents(jupiterUserModel, [
           {
             user_id:            jupiterUserModel.intId,
-            event_type:         'group_subscription_approved',
+            event_type:         'managed_group_subscription_approved',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -817,7 +821,7 @@ describe('EventService', () => {
       it('should create group_subscription_approved event for requester when subscription request is accepted', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await acceptRequestToJoinGroup(luna, mars, dubhe);
-        await expectGroupRequestEvents(marsUserModel, [
+        await expectGroupRequestEventsForUser(marsUserModel, [
           {
             user_id:            marsUserModel.intId,
             event_type:         'group_subscription_approved',
@@ -828,13 +832,13 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_rejected event when user subscription request is rejected', async () => {
+      it('should create managed_group_subscription_rejected event when user subscription request is rejected', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await rejectSubscriptionRequestToGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_rejected',
+            event_type:         'managed_group_subscription_rejected',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -842,14 +846,14 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_rejected event when user subscription request is rejected for each group admin', async () => {
+      it('should create managed_group_subscription_rejected event when user subscription request is rejected for each group admin', async () => {
         await promoteToAdmin(dubhe, luna, jupiter);
         await sendRequestToJoinGroup(mars, dubhe);
         await rejectSubscriptionRequestToGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_rejected',
+            event_type:         'managed_group_subscription_rejected',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -858,7 +862,7 @@ describe('EventService', () => {
         await expectGroupRequestEvents(jupiterUserModel, [
           {
             user_id:            jupiterUserModel.intId,
-            event_type:         'group_subscription_rejected',
+            event_type:         'managed_group_subscription_rejected',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -869,7 +873,7 @@ describe('EventService', () => {
       it('should create group_subscription_rejected event for requester when subscription request is rejected', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await rejectSubscriptionRequestToGroup(luna, mars, dubhe);
-        await expectGroupRequestEvents(marsUserModel, [
+        await expectGroupRequestEventsForUser(marsUserModel, [
           {
             user_id:            marsUserModel.intId,
             event_type:         'group_subscription_rejected',
