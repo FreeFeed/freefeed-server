@@ -73,15 +73,17 @@ export default class TimelinesController {
 /**
  * Fetch common timelines parameters from the request
  *
- * @param {object} ctx                               - request context object
- * @param {string} [ctx.request.query.limit]         - Number of posts returned (default: 30)
- * @param {string} [ctx.request.query.offset]        - Number of posts to skip (default: 0)
- * @param {string} [ctx.request.query.sort]          - Sort mode ('created' or 'updated')
- * @param {string} [ctx.request.query.with-my-posts] - For filter/discussions only: return viewer's own
- *                                                     posts even without his likes or comments (default: no)
- * @param {string} defaultSort                       - Default sort mode
- * @return {object}                                  - Object with the following sructure:
- *                                                     { limit:number, offset:number, sort:string, withMyPosts:boolean, hiddenCommentTypes: array }
+ * @param {object} ctx                                - request context object
+ * @param {string} [ctx.request.query.limit]          - Number of posts returned (default: 30)
+ * @param {string} [ctx.request.query.offset]         - Number of posts to skip (default: 0)
+ * @param {string} [ctx.request.query.sort]           - Sort mode ('created' or 'updated')
+ * @param {string} [ctx.request.query.with-my-posts]  - For filter/discussions only: return viewer's own
+ *                                                      posts even without his likes or comments (default: no)
+ * @param {string} [ctx.request.query.created-before] - Show only posts created before this datetime (ISO 8601)
+ * @param {string} [ctx.request.query.created-after]  - Show only posts created after this datetime (ISO 8601)
+ * @param {string} defaultSort                        - Default sort mode
+ * @return {object}                                   - Object with the following sructure:
+ *                                                      { limit:number, offset:number, sort:string, withMyPosts:boolean, hiddenCommentTypes: array }
  */
 function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   const query = ctx.request.query;
@@ -95,10 +97,18 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   if (isNaN(offset) || offset < 0) {
     offset = 0;
   }
+  let createdBefore = new Date(query['created-before']);
+  if (isNaN(createdBefore)) {
+    createdBefore = null;
+  }
+  let createdAfter = new Date(query['created-after']);
+  if (isNaN(createdAfter)) {
+    createdAfter = null;
+  }
   const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
   const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
-  return { limit, offset, sort, withMyPosts, hiddenCommentTypes };
+  return { limit, offset, sort, withMyPosts, hiddenCommentTypes, createdBefore, createdAfter };
 }
 
 async function genericTimeline(timeline, viewerId = null, params = {}) {
@@ -111,6 +121,8 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     withoutDirects:     false,  // do not show direct messages (for Likes and Comments)
     withMyPosts:        false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
     hiddenCommentTypes: [],     // dont show hidden/deleted comments of these hide_type's
+    createdBefore:      null,
+    createdAfter:       null,
     ...params,
   };
 
