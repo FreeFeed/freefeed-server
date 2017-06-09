@@ -124,7 +124,6 @@ export function addModel(dbAdapter) {
     // Calculate changes in attachments
     const oldAttachments = await this.getAttachmentIds() || []
     const newAttachments = params.attachments || []
-    const addedAttachments = newAttachments.filter((i) => !oldAttachments.includes(i))
     const removedAttachments = oldAttachments.filter((i) => !newAttachments.includes(i))
 
     // Update post body in DB
@@ -136,7 +135,7 @@ export function addModel(dbAdapter) {
 
     // Update post attachments in DB
     await Promise.all([
-      this.linkAttachments(addedAttachments),
+      this.linkAttachments(newAttachments),
       this.unlinkAttachments(removedAttachments)
     ])
 
@@ -404,7 +403,7 @@ export function addModel(dbAdapter) {
     const attachmentPromises = attachments.filter((attachment) => {
       // Filter out invalid attachments
       return attachment.fileSize !== undefined
-    }).map((attachment) => {
+    }).map((attachment, ord) => {
       if (this.attachments) {
         const pos = this.attachments.indexOf(attachment.id)
 
@@ -417,7 +416,7 @@ export function addModel(dbAdapter) {
 
       // Update connections in DB
 
-      return dbAdapter.linkAttachmentToPost(attachment.id, this.id)
+      return dbAdapter.linkAttachmentToPost(attachment.id, this.id, ord)
     })
 
     await Promise.all(attachmentPromises)

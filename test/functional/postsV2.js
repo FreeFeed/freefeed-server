@@ -16,6 +16,8 @@ import {
   goProtected,
   mutualSubscriptions,
   fetchPost,
+  createMockAttachmentAsync,
+  updatePostAsync,
 } from './functional_test_helper'
 
 describe('TimelinesControllerV2', () => {
@@ -208,6 +210,61 @@ describe('TimelinesControllerV2', () => {
             response.should.be.empty;
           });
         });
+      });
+    });
+    describe('Luna wrote post and 3 attachments', () => {
+      let luna;
+      let attId1, attId2, attId3;
+      beforeEach(async () => {
+        luna = await createUserAsync('luna', 'pw');
+        luna.post = await createAndReturnPost(luna, 'Luna post');
+        attId1 = (await createMockAttachmentAsync(luna)).id;
+        attId2 = (await createMockAttachmentAsync(luna)).id;
+        attId3 = (await createMockAttachmentAsync(luna)).id;
+      });
+
+      it('should return post with [1, 2, 3] attachments in the correct order', async () => {
+        const postData = {
+          body:        luna.post.body,
+          attachments: [attId1, attId2, attId3],
+        };
+        await updatePostAsync(luna, postData);
+        const { posts } = await fetchPost(luna.post.id);
+        expect(posts.attachments, 'to equal', postData.attachments);
+      });
+
+      it('should return post with [3, 1, 2] attachments in the correct order', async () => {
+        const postData = {
+          body:        luna.post.body,
+          attachments: [attId3, attId1, attId2],
+        };
+        await updatePostAsync(luna, postData);
+        const { posts } = await fetchPost(luna.post.id);
+        expect(posts.attachments, 'to equal', postData.attachments);
+      });
+
+      it('should return post after attachment deletion with attachments in the correct order', async () => {
+        const postData = {
+          body:        luna.post.body,
+          attachments: [attId3, attId1, attId2],
+        };
+        await updatePostAsync(luna, postData);
+        postData.attachments = [attId3, attId2];
+        await updatePostAsync(luna, postData);
+        const { posts } = await fetchPost(luna.post.id);
+        expect(posts.attachments, 'to equal', postData.attachments);
+      });
+
+      it('should return post after attachment addition with attachments in the correct order', async () => {
+        const postData = {
+          body:        luna.post.body,
+          attachments: [attId1, attId2],
+        };
+        await updatePostAsync(luna, postData);
+        postData.attachments = [attId3, attId2, attId1];
+        await updatePostAsync(luna, postData);
+        const { posts } = await fetchPost(luna.post.id);
+        expect(posts.attachments, 'to equal', postData.attachments);
       });
     });
   });
