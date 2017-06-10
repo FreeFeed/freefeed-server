@@ -644,7 +644,7 @@ export async function createMockAttachmentAsync(context) {
     postId:     '',
     createdAt:  (new Date()).getTime(),
     updatedAt:  (new Date()).getTime(),
-    imageSizes: { t: { w: 200, h: 175 }, o: { w: 600, h: 525 } },
+    imageSizes: { t: { w: 200, h: 175, url: '' }, o: { w: 600, h: 525, url: '' } },
   }
 
   const id = await dbAdapter.createAttachment(params)
