@@ -1588,7 +1588,9 @@ describe('EventsController', () => {
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_requested' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_request_revoked' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_approved' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'managed_group_subscription_approved' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_rejected' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'managed_group_subscription_rejected' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_admin_promoted' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_admin_demoted' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct' });
@@ -1617,7 +1619,7 @@ describe('EventsController', () => {
         expect(res['Notifications'], 'to have length', 7);
 
         res = await getUserEvents(luna, ['groups']);
-        expect(res['Notifications'], 'to have length', 9);
+        expect(res['Notifications'], 'to have length', 11);
 
         res = await getUserEvents(luna, ['directs']);
         expect(res, 'to satisfy', {
