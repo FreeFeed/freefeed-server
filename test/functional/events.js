@@ -972,13 +972,13 @@ describe('EventService', () => {
 
       it("should create direct_comment event on receiver's comment creation for direct sender", async () => {
         const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
-        await createCommentAsync(luna, post.id, 'Comment');
-        await expectPostEvents(marsUserModel, [{
-          user_id:            marsUserModel.intId,
+        await createCommentAsync(mars, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
           event_type:         'direct_comment',
-          created_by_user_id: lunaUserModel.intId,
-          target_user_id:     marsUserModel.intId,
-        }, { event_type: 'direct' }]);
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+        }]);
       });
 
       it('should not create direct_comment event on comment creation for comment author', async () => {
