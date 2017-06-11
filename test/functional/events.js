@@ -916,6 +916,7 @@ describe('EventService', () => {
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -931,18 +932,21 @@ describe('EventService', () => {
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -953,6 +957,7 @@ describe('EventService', () => {
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(lunaUserModel, []);
       });
@@ -967,18 +972,20 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
       it("should create direct_comment event on receiver's comment creation for direct sender", async () => {
         const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
-        await createCommentAsync(luna, post.id, 'Comment');
-        await expectPostEvents(marsUserModel, [{
-          user_id:            marsUserModel.intId,
+        await createCommentAsync(mars, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
           event_type:         'direct_comment',
-          created_by_user_id: lunaUserModel.intId,
-          target_user_id:     marsUserModel.intId,
-        }, { event_type: 'direct' }]);
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
+        }]);
       });
 
       it('should not create direct_comment event on comment creation for comment author', async () => {
@@ -1001,18 +1008,21 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
         await expectPostEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
         await expectPostEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
@@ -1030,6 +1040,7 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
@@ -1041,6 +1052,7 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: marsUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(marsUserModel, [{ event_type: 'direct' }]);
       });
@@ -1053,12 +1065,14 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'direct_comment',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
@@ -1117,6 +1131,7 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(lunaUserModel, []);
       });
@@ -1133,18 +1148,21 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1164,6 +1182,7 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
           group_id:           dubheGroupModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1193,6 +1212,7 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     jupiterUserModel.intId,
         }]);
         await expectMentionEvents(marsUserModel, []);
       });
@@ -1204,6 +1224,7 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
     });
@@ -1222,6 +1243,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(lunaUserModel, []);
       });
@@ -1233,6 +1255,7 @@ describe('EventService', () => {
           event_type:         'mention_comment_to',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(lunaUserModel, []);
       });
@@ -1244,6 +1267,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: marsUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1259,18 +1283,21 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1291,6 +1318,7 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
           group_id:           dubheGroupModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1305,6 +1333,7 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
           group_id:           dubheGroupModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1351,6 +1380,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     jupiterUserModel.intId,
         }]);
         await expectMentionEvents(marsUserModel, []);
       });
@@ -1362,6 +1392,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
     });

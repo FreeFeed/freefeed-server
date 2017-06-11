@@ -2717,7 +2717,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
-                    groupIntId = null, postId = null, commentId = null) {
+                    groupIntId = null, postId = null, commentId = null, postAuthorIntId = null) {
     const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
     const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
 
@@ -2728,7 +2728,8 @@ export class DbAdapter {
       target_user_id:     targetUserIntId,
       group_id:           groupIntId,
       post_id:            postIntId,
-      comment_id:         commentIntId
+      comment_id:         commentIntId,
+      post_author_id:     postAuthorIntId
     };
 
     return this.database('events').insert(payload);
