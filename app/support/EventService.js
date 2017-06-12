@@ -140,8 +140,9 @@ export class EventService {
   }
 
   static async onCommentCreated(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
-    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor);
-    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor);
+    const postDestinationFeeds = await post.getPostedTo();
+    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds);
+    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds);
   }
 
 
@@ -207,8 +208,8 @@ export class EventService {
     await Promise.all(promises);
   }
 
-  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
-    const feeds = await post.getPostedTo();
+  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds) {
+    const feeds = postDestinationFeeds;
     const directFeeds = feeds.filter((f) => {
       return f.isDirects() && f.userId !== commentAuthor.id;
     });
@@ -245,7 +246,7 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
+  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds) {
     let mentions = extractMentionsWithIndices(comment.body);
 
     if (mentions.length == 0) {
@@ -253,7 +254,7 @@ export class EventService {
     }
 
     let  postGroupIntId = null;
-    const feeds = await post.getPostedTo();
+    const feeds = postDestinationFeeds;
     if (feeds.length === 1) {
       const feedOwner = await feeds[0].getUser();
       if (feedOwner.type === 'group') {
