@@ -139,9 +139,9 @@ export class EventService {
     await this._processMentionsInPost(post, destinationFeedIds, author);
   }
 
-  static async onCommentCreated(comment, post, commentAuthor, postAuthor) {
-    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor);
-    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor);
+  static async onCommentCreated(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
+    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor);
+    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor);
   }
 
 
@@ -207,7 +207,7 @@ export class EventService {
     await Promise.all(promises);
   }
 
-  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor) {
+  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
     const feeds = await post.getPostedTo();
     const directFeeds = feeds.filter((f) => {
       return f.isDirects() && f.userId !== commentAuthor.id;
@@ -220,13 +220,22 @@ export class EventService {
 
       let directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
 
-      const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
       directReceivers = directReceivers.filter((r) => {
         return !usersBannedByCommentAuthor.includes(r.id);
       });
 
       const promises = directReceivers.map(async (receiver) => {
-        const usersBannedByReceiver = await receiver.getBanIds();
+        let usersBannedByReceiver = [];
+        if (receiver.id === commentAuthor.id) {
+          usersBannedByReceiver = usersBannedByCommentAuthor;
+        } else {
+          if (receiver.id === postAuthor.id) {
+            usersBannedByReceiver = usersBannedByPostAuthor;
+          } else {
+            usersBannedByReceiver = await receiver.getBanIds();
+          }
+        }
+
         if (usersBannedByReceiver.includes(commentAuthor.id)) {
           return null;
         }
@@ -236,7 +245,7 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor) {
+  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
     let mentions = extractMentionsWithIndices(comment.body);
 
     if (mentions.length == 0) {
@@ -258,9 +267,6 @@ export class EventService {
       _.remove(mentions, (m) => { return m.username == replyToUser.username && m.indices[0] != 0; });
     }
     mentions = _.uniqBy(mentions, 'username');
-
-    const usersBannedByPostAuthor = await postAuthor.getBanIds();
-    const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
 
     const promises = mentions.map(async (m) => {
       const username = m.username;
