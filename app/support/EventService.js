@@ -27,6 +27,9 @@ export const EVENT_TYPES = {
   GROUP_ADMIN_DEMOTED:           'group_admin_demoted',
   DIRECT_CREATED:                'direct',
   DIRECT_COMMENT_CREATED:        'direct_comment',
+
+  MANAGED_GROUP_SUBSCRIPTION_APPROVED: 'managed_group_subscription_approved',
+  MANAGED_GROUP_SUBSCRIPTION_REJECTED: 'managed_group_subscription_rejected',
 };
 
 export class EventService {
@@ -119,14 +122,14 @@ export class EventService {
 
   static async onGroupSubscriptionRequestApproved(adminIntId, group, requesterIntId) {
     await this._notifyGroupAdmins(group, (adminUser) => {
-      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
     });
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
   }
 
   static async onGroupSubscriptionRequestRejected(adminIntId, group, requesterIntId) {
     await this._notifyGroupAdmins(group, (adminUser) => {
-      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
     });
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, null, requesterIntId, group.intId);
   }
