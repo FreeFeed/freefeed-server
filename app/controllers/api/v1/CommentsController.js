@@ -58,7 +58,7 @@ export default class CommentsController {
 
       await Promise.all([
         PubSub.newComment(newComment, timelines),
-        EventService.onCommentCreated(newComment, post, ctx.state.user)
+        EventService.onCommentCreated(newComment, post, ctx.state.user, author)
       ]);
       monitor.increment('comments.creates')
 

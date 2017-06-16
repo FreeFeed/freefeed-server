@@ -1099,8 +1099,8 @@ export class DbAdapter {
   }
 
 
-  linkAttachmentToPost(attachmentId, postId) {
-    const payload = { post_id: postId }
+  linkAttachmentToPost(attachmentId, postId, ord = 0) {
+    const payload = { post_id: postId, ord }
     return this.database('attachments').where('uid', attachmentId).update(payload)
   }
 
@@ -1110,7 +1110,7 @@ export class DbAdapter {
   }
 
   async getPostAttachments(postId) {
-    const res = await this.database('attachments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
+    const res = await this.database('attachments').select('uid').orderBy('ord', 'asc').orderBy('created_at', 'asc').where('post_id', postId)
     const attrs = res.map((record) => {
       return record.uid
     })
@@ -1118,7 +1118,7 @@ export class DbAdapter {
   }
 
   async getAttachmentsOfPost(postId) {
-    const responses = await this.database('attachments').orderBy('created_at', 'asc').where('post_id', postId)
+    const responses = await this.database('attachments').orderBy('ord', 'asc').orderBy('created_at', 'asc').where('post_id', postId)
     return responses.map(this.initAttachmentObject)
   }
 
@@ -1931,7 +1931,7 @@ export class DbAdapter {
       viewerId ? this.getUserFriendIds(viewerId) : [],
       this.database.select('a.old_url as friendfeed_url', ...postFields).from('posts as p')
         .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id').whereIn('p.uid', uniqPostsIds),
-      this.database.select(...attFields).from('attachments').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
+      this.database.select(...attFields).from('attachments').orderBy('ord', 'asc').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
       this.database.raw(destinationsSQL),
     ]);
 
@@ -2717,7 +2717,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
 
   async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
-                    groupIntId = null, postId = null, commentId = null) {
+                    groupIntId = null, postId = null, commentId = null, postAuthorIntId = null) {
     const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
     const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
 
@@ -2728,7 +2728,8 @@ export class DbAdapter {
       target_user_id:     targetUserIntId,
       group_id:           groupIntId,
       post_id:            postIntId,
-      comment_id:         commentIntId
+      comment_id:         commentIntId,
+      post_author_id:     postAuthorIntId
     };
 
     return this.database('events').insert(payload);
