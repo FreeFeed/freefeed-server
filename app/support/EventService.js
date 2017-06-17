@@ -262,6 +262,12 @@ export class EventService {
       }
     }
 
+    const postDestinationsFeedsOwners = feeds.map((f) => f.userId);
+    const nonDirectFeeds = feeds.filter((f) => !f.isDirects());
+    const nonDirectFeedsIds = nonDirectFeeds.map((f) => f.id);
+    const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
+    const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
+
     const replyToUser = mentions.find((m) => { return m.indices[0] === 0; });
 
     if (replyToUser) {
@@ -289,9 +295,16 @@ export class EventService {
         return null;
       }
 
-      const isVisible = await post.canShow(mentionedUser.id);
-      if (!isVisible) {
-        return null;
+      if (!postDestinationsFeedsOwners.includes(mentionedUser.id)) {
+        if (nonDirectFeeds.length === 0) {
+          return null;
+        }
+
+        if (!postIsPublic) {
+          if (!(await dbAdapter.isUserSubscribedToOneOfTimelines(mentionedUser.id, nonDirectFeedsIds))) {
+            return null;
+          }
+        }
       }
 
       if (m.indices[0] === 0) {
