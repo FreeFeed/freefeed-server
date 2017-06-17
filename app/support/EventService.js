@@ -275,9 +275,9 @@ export class EventService {
     }
     mentions = _.uniqBy(mentions, 'username');
 
+    const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentions.map((m) => m.username));
     const promises = mentions.map(async (m) => {
-      const username = m.username;
-      const mentionedUser = await dbAdapter.getFeedOwnerByUsername(username);
+      const mentionedUser = mentionedUsers.find((u) => u.username === m.username);
       if (!mentionedUser || mentionedUser.type !== 'user') {
         return null;
       }

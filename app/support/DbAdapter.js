@@ -510,6 +510,11 @@ export class DbAdapter {
     return this.initUserObject(attrs);
   }
 
+  async getFeedOwnersByUsernames(usernames) {
+    usernames = usernames.map((u) => u.toLowerCase());
+    const users = await this.database('users').whereIn('username', usernames);
+    return users.map(this.initUserObject);
+  }
 
   async getGroupById(id) {
     const user = await this.getFeedOwnerById(id)
