@@ -276,6 +276,10 @@ export class EventService {
     mentions = _.uniqBy(mentions, 'username');
 
     const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentions.map((m) => m.username));
+    let usersSubscriptionsStatus = [];
+    if (!postIsPublic) {
+      usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(mentionedUsers.map((u) => u.id), nonDirectFeedsIds);
+    }
     const promises = mentions.map(async (m) => {
       const mentionedUser = mentionedUsers.find((u) => u.username === m.username);
       if (!mentionedUser || mentionedUser.type !== 'user') {
@@ -301,7 +305,8 @@ export class EventService {
         }
 
         if (!postIsPublic) {
-          if (!(await dbAdapter.isUserSubscribedToOneOfTimelines(mentionedUser.id, nonDirectFeedsIds))) {
+          const subscriptionStatus = usersSubscriptionsStatus.find((u) => u.uid === mentionedUser.id);
+          if (!subscriptionStatus.is_subscribed) {
             return null;
           }
         }

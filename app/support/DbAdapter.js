@@ -2106,6 +2106,24 @@ export class DbAdapter {
     return res.rows[0].cnt > 0;
   }
 
+  async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {
+    if (userIds.length === 0 || timelineIds.length === 0){
+      return [];
+    }
+
+    const q = pgFormat(`
+      SELECT users.uid, (
+        SELECT COUNT(*) > 0 FROM "subscriptions"
+        WHERE "user_id"= users.uid
+          and "feed_id" IN (%L)
+      ) as is_subscribed FROM users
+      WHERE users.uid IN (%L)
+    `, timelineIds, userIds);
+    const res = await this.database.raw(q);
+
+    return res.rows;
+  }
+
   async getTimelineSubscribersIds(timelineId) {
     return await this.database('subscriptions').pluck('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
   }
