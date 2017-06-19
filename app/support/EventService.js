@@ -169,6 +169,11 @@ export class EventService {
 
   static async _processMentionsInPost(post, destinationFeedIds, author) {
     const mentionedUsernames = _.uniq(extractMentions(post.body));
+
+    if (mentionedUsernames.length === 0) {
+      return;
+    }
+
     let postGroupIntId = null;
     if (destinationFeedIds.length === 1) {
       const postFeed = await dbAdapter.getTimelineById(destinationFeedIds[0]);
@@ -179,8 +184,8 @@ export class EventService {
     }
 
     const usersBannedByPostAuthor = await author.getBanIds();
-    const promises = mentionedUsernames.map(async (username) => {
-      const user = await dbAdapter.getFeedOwnerByUsername(username);
+    const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentionedUsernames);
+    const promises = mentionedUsers.map(async (user) => {
       if (!user || user.type !== 'user') {
         return null;
       }
