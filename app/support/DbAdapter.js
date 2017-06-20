@@ -2107,7 +2107,7 @@ export class DbAdapter {
   }
 
   async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {
-    if (userIds.length === 0 || timelineIds.length === 0){
+    if (userIds.length === 0 || timelineIds.length === 0) {
       return [];
     }
 

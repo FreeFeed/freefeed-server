@@ -255,11 +255,7 @@ export class EventService {
         if (receiver.id === commentAuthor.id) {
           usersBannedByReceiver = usersBannedByCommentAuthor;
         } else {
-          if (receiver.id === postAuthor.id) {
-            usersBannedByReceiver = usersBannedByPostAuthor;
-          } else {
-            usersBannedByReceiver = await receiver.getBanIds();
-          }
+          usersBannedByReceiver = receiver.id === postAuthor.id ? usersBannedByPostAuthor : (await receiver.getBanIds());
         }
 
         if (usersBannedByReceiver.includes(commentAuthor.id)) {
