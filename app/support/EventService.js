@@ -135,8 +135,9 @@ export class EventService {
   }
 
   static async onPostCreated(post, destinationFeedIds, author) {
-    await this._processDirectMessagesForPost(post, destinationFeedIds, author);
-    await this._processMentionsInPost(post, destinationFeedIds, author);
+    const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
+    await this._processDirectMessagesForPost(post, destinationFeeds, author);
+    await this._processMentionsInPost(post, destinationFeeds, author);
   }
 
   static async onCommentCreated(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
@@ -148,9 +149,8 @@ export class EventService {
 
   ////////////////////////////////////////////
 
-  static async _processDirectMessagesForPost(post, destinationFeedIds, author) {
-    const feeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
-    const directFeeds = feeds.filter((f) => {
+  static async _processDirectMessagesForPost(post, destinationFeeds, author) {
+    const directFeeds = destinationFeeds.filter((f) => {
       return f.isDirects() && f.userId !== author.id;
     });
 
@@ -167,7 +167,7 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInPost(post, destinationFeedIds, author) {
+  static async _processMentionsInPost(post, destinationFeeds, author) {
     const mentionedUsernames = _.uniq(extractMentions(post.body));
 
     if (mentionedUsernames.length === 0) {
@@ -175,8 +175,8 @@ export class EventService {
     }
 
     let postGroupIntId = null;
-    if (destinationFeedIds.length === 1) {
-      const postFeed = await dbAdapter.getTimelineById(destinationFeedIds[0]);
+    if (destinationFeeds.length === 1) {
+      const postFeed = destinationFeeds[0];
       const feedOwner = await postFeed.getUser();
       if (feedOwner.type === 'group') {
         postGroupIntId = feedOwner.intId;
