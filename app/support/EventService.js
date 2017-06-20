@@ -183,8 +183,20 @@ export class EventService {
       }
     }
 
+    const postDestinationsFeedsOwners = destinationFeeds.map((f) => f.userId);
+    const nonDirectFeeds = destinationFeeds.filter((f) => !f.isDirects());
+    const nonDirectFeedsIds = nonDirectFeeds.map((f) => f.id);
+    const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
+    const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
+
     const usersBannedByPostAuthor = await author.getBanIds();
     const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentionedUsernames);
+
+    let usersSubscriptionsStatus = [];
+    if (!postIsPublic) {
+      usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(mentionedUsers.map((u) => u.id), nonDirectFeedsIds);
+    }
+
     const promises = mentionedUsers.map(async (user) => {
       if (!user || user.type !== 'user') {
         return null;
@@ -203,9 +215,17 @@ export class EventService {
         return null;
       }
 
-      const isVisible = await post.canShow(user.id);
-      if (!isVisible) {
-        return null;
+      if (!postDestinationsFeedsOwners.includes(user.id)) {
+        if (nonDirectFeeds.length === 0) {
+          return null;
+        }
+
+        if (!postIsPublic) {
+          const subscriptionStatus = usersSubscriptionsStatus.find((u) => u.uid === user.id);
+          if (!subscriptionStatus.is_subscribed) {
+            return null;
+          }
+        }
       }
 
       return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, postGroupIntId, post.id, null, author.intId);
