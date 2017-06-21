@@ -1,10 +1,8 @@
 import _ from 'lodash'
 import { dbAdapter } from '../../../models';
-import { EVENT_TYPES } from '../../../support/EventService'
+import { ALLOWED_EVENT_TYPES } from '../../../support/EventService'
 import { userSerializerFunction } from './helpers'
 
-const FORBIDDEN_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user'];
-const ALLOWED_EVENT_TYPES = _.difference(_.values(EVENT_TYPES), FORBIDDEN_EVENT_TYPES);
 const EVENT_GROUPS = {
   mentions:      ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
   bans:          ['banned_user', 'unbanned_user'],
