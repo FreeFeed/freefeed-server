@@ -81,6 +81,7 @@ const USER_FIELDS = {
   created_at:                'createdAt',
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
+  notifications_read_at:     'notificationsReadAt',
   is_private:                'isPrivate',
   is_protected:              'isProtected',
   is_restricted:             'isRestricted',
@@ -2787,5 +2788,31 @@ export class DbAdapter {
       return null;
     }
     return res.id;
+  }
+
+  ///////////////////////////////////////////////////
+  // Unread events counter
+  ///////////////////////////////////////////////////
+
+  markAllEventsAsRead(userId) {
+    const currentTime = new Date().toISOString();
+
+    const payload = { notifications_read_at: currentTime };
+
+    return this.database('users').where('uid', userId).update(payload);
+  }
+
+  async getUnreadEventsNumber(userId, eventTypes) {
+    const user = await this.getUserById(userId);
+    const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
+
+    let res = await this.database('events')
+      .where('user_id', user.intId)
+      .whereIn('event_type', eventTypes)
+      .where('created_at', '>=', notificationsLastReadTime)
+      .count();
+
+
+    return parseInt(res[0].count, 10) || 0;
   }
 }
