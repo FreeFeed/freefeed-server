@@ -768,6 +768,22 @@ export async function getUserEvents(userContext, eventTypes = null, limit = null
   return await response.json();
 }
 
+export async function getUnreadNotificationsNumber(user) {
+  const response = await postJson('/v2/users/getUnreadNotificationsNumber', {
+    authToken: user.authToken,
+    '_method': 'get'
+  });
+  return response;
+}
+
+export async function markAllNotificationsAsRead(user) {
+  const response = await postJson('/v2/users/markAllNotificationsAsRead', {
+    authToken: user.authToken,
+    '_method': 'post'
+  });
+  return response;
+}
+
 /**
  * Async-friendly wrapper around Socket.IO client.
  * Convenient for testing

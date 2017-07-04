@@ -2794,11 +2794,12 @@ export class DbAdapter {
   // Unread events counter
   ///////////////////////////////////////////////////
 
-  markAllEventsAsRead(userId) {
+  async markAllEventsAsRead(userId) {
     const currentTime = new Date().toISOString();
 
     const payload = { notifications_read_at: currentTime };
 
+    await this.cacheFlushUser(userId);
     return this.database('users').where('uid', userId).update(payload);
   }
 

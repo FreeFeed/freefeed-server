@@ -16,8 +16,10 @@ import {
   deletePostAsync,
   demoteFromAdmin,
   getUserEvents,
+  getUnreadNotificationsNumber,
   goPrivate,
   kickOutUserFromGroup,
+  markAllNotificationsAsRead,
   mutualSubscriptions,
   promoteToAdmin,
   rejectRequestAsync,
@@ -29,7 +31,8 @@ import {
   subscribeToAsync,
   unsubscribeFromAsync,
   unsubscribeUserFromMeAsync,
-  unbanUser
+  unbanUser,
+  whoami
 } from '../functional/functional_test_helper'
 import * as schema from './schemaV2-helper'
 
@@ -1781,5 +1784,102 @@ describe('EventsController', () => {
         expect(res, 'to satisfy', { isLastPage: true });
       });
     });
+  });
+});
+
+describe('Unread events counter', () => {
+  before(async () => {
+    PubSub.setPublisher(new DummyPublisher());
+  });
+
+  let luna, mars, lunaUserModel, marsUserModel;
+
+  beforeEach(async () => {
+    await knexCleaner.clean($pg_database);
+    [luna, mars] = await Promise.all([
+      createUserAsync('luna', 'pw'),
+      createUserAsync('mars', 'pw')
+    ]);
+
+    [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
+      luna.user.id,
+      mars.user.id
+    ]);
+  });
+
+  const getUnreadEventsCountFromWhoAmI = async (user) => {
+    const res = await whoami(user.authToken);
+    const data = await res.json();
+    return data.users.unreadNotificationsNumber;
+  };
+
+
+  it('should display 0 notifications when no events in DB', async () => {
+    const count = await getUnreadEventsCountFromWhoAmI(luna);
+    expect(count, 'to be', 0);
+  });
+
+  it('should not count not allowed event types', async () => {
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_user' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_user' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_by_user' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_by_user' });
+    const count = await getUnreadEventsCountFromWhoAmI(luna);
+    expect(count, 'to be', 2);
+  });
+
+  it('should count allowed event types', async () => {
+    await subscribeToAsync(luna, mars);
+    const count = await getUnreadEventsCountFromWhoAmI(mars);
+    expect(count, 'to be', 1);
+  });
+
+  it('getUnreadNotificationsNumber() should match counter from whoAmI', async () => {
+    await subscribeToAsync(luna, mars);
+    const count1 = await getUnreadEventsCountFromWhoAmI(mars);
+    expect(count1, 'to be', 1);
+    const res2 = await getUnreadNotificationsNumber(mars);
+    const res2json = await res2.json();
+    expect(res2json, 'to exhaustively satisfy', { unread: 1 });
+  });
+
+  it('should be 0 after markAllNotificationsAsRead()', async () => {
+    await subscribeToAsync(luna, mars);
+
+    const res = await markAllNotificationsAsRead(mars);
+    expect(res.status, 'to be', 200);
+
+    const count1 = await getUnreadEventsCountFromWhoAmI(mars);
+    expect(count1, 'to be', 0);
+
+    const res2 = await getUnreadNotificationsNumber(mars);
+    const res2json = await res2.json();
+    expect(res2json, 'to exhaustively satisfy', { unread: 0 });
+  });
+
+  it('should count allowed notifications again after markAllNotificationsAsRead()', async () => {
+    await subscribeToAsync(luna, mars);
+
+    const res = await markAllNotificationsAsRead(mars);
+    expect(res.status, 'to be', 200);
+
+    let count = await getUnreadEventsCountFromWhoAmI(mars);
+    expect(count, 'to be', 0);
+
+    await subscribeToAsync(mars, luna);
+    await createAndReturnPostToFeed(mars, luna, 'Direct');
+
+    count = await getUnreadEventsCountFromWhoAmI(mars);
+    expect(count, 'to be', 1);
+  });
+
+  it('markAllNotificationsAsRead() should require auth', async () => {
+    const res = await markAllNotificationsAsRead({authToken: null});
+    expect(res.status, 'to be', 403);
+  });
+
+  it('getUnreadNotificationsNumber() should require auth', async () => {
+    const res = await getUnreadNotificationsNumber({authToken: null});
+    expect(res.status, 'to be', 403);
   });
 });
