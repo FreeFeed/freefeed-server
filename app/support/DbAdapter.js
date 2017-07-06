@@ -2807,7 +2807,7 @@ export class DbAdapter {
     const user = await this.getUserById(userId);
     const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
 
-    let res = await this.database('events')
+    const res = await this.database('events')
       .where('user_id', user.intId)
       .whereIn('event_type', eventTypes)
       .where('created_at', '>=', notificationsLastReadTime)

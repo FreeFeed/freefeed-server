@@ -1792,7 +1792,7 @@ describe('Unread events counter', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  let luna, mars, lunaUserModel, marsUserModel;
+  let luna, mars, lunaUserModel;
 
   beforeEach(async () => {
     await knexCleaner.clean($pg_database);
@@ -1801,10 +1801,7 @@ describe('Unread events counter', () => {
       createUserAsync('mars', 'pw')
     ]);
 
-    [lunaUserModel, marsUserModel] = await dbAdapter.getUsersByIds([
-      luna.user.id,
-      mars.user.id
-    ]);
+    [lunaUserModel] = await dbAdapter.getUsersByIds([luna.user.id]);
   });
 
   const getUnreadEventsCountFromWhoAmI = async (user) => {
@@ -1874,12 +1871,12 @@ describe('Unread events counter', () => {
   });
 
   it('markAllNotificationsAsRead() should require auth', async () => {
-    const res = await markAllNotificationsAsRead({authToken: null});
+    const res = await markAllNotificationsAsRead({ authToken: null });
     expect(res.status, 'to be', 403);
   });
 
   it('getUnreadNotificationsNumber() should require auth', async () => {
-    const res = await getUnreadNotificationsNumber({authToken: null});
+    const res = await getUnreadNotificationsNumber({ authToken: null });
     expect(res.status, 'to be', 403);
   });
 });
