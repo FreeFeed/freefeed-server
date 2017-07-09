@@ -38,56 +38,54 @@ export default class SearchController {
     const visibleFeedIds = ctx.state.user ? [await ctx.state.user.getPostsTimelineIntId(), ...ctx.state.user.subscribedFeedIds] : [];
 
     switch (preparedQuery.scope) {
-      case SEARCH_SCOPES.ALL_VISIBLE_POSTS:
-        {
-          foundPosts = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, offset, limit)
-          break
+      case SEARCH_SCOPES.ALL_VISIBLE_POSTS: {
+        foundPosts = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, offset, limit)
+        break
+      }
+
+      case SEARCH_SCOPES.VISIBLE_USER_POSTS: {
+        if (preparedQuery.username === 'me') {
+          throw new NotFoundException(`Please sign in to use 'from:me' operator`)
         }
 
-      case SEARCH_SCOPES.VISIBLE_USER_POSTS:
-        {
-          if (preparedQuery.username === 'me') {
-            throw new NotFoundException(`Please sign in to use 'from:me' operator`)
-          }
-
-          targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
-          if (!targetUser) {
-            throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
-          }
-
-          if (isAnonymous && targetUser.isProtected === '1') {
-            throw new ForbiddenException(`Please sign in to view user "${preparedQuery.username}"`)
-          }
-
-          if (targetUser.id != currentUserId) {
-            const userPostsFeedId = await targetUser.getPostsTimelineId()
-            isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(currentUserId, userPostsFeedId)
-            if (!isSubscribed && targetUser.isPrivate == '1') {
-              throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
-            }
-          }
-
-          foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, offset, limit)
-
-          break
+        targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
+        if (!targetUser) {
+          throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
         }
-      case SEARCH_SCOPES.VISIBLE_GROUP_POSTS:
-        {
-          targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group)
-          if (!targetGroup) {
-            throw new NotFoundException(`Group "${preparedQuery.group}" is not found`)
-          }
 
-          const groupPostsFeedId = await targetGroup.getPostsTimelineId()
-          isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId)
-          if (!isSubscribed && targetGroup.isPrivate == '1') {
-            throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
-          }
-
-          foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, visibleFeedIds, bannedUserIds, offset, limit)
-
-          break
+        if (isAnonymous && targetUser.isProtected === '1') {
+          throw new ForbiddenException(`Please sign in to view user "${preparedQuery.username}"`)
         }
+
+        if (targetUser.id != currentUserId) {
+          const userPostsFeedId = await targetUser.getPostsTimelineId()
+          isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(currentUserId, userPostsFeedId)
+          if (!isSubscribed && targetUser.isPrivate == '1') {
+            throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
+          }
+        }
+
+        foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, offset, limit)
+
+        break
+      }
+
+      case SEARCH_SCOPES.VISIBLE_GROUP_POSTS: {
+        targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group)
+        if (!targetGroup) {
+          throw new NotFoundException(`Group "${preparedQuery.group}" is not found`)
+        }
+
+        const groupPostsFeedId = await targetGroup.getPostsTimelineId()
+        isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId)
+        if (!isSubscribed && targetGroup.isPrivate == '1') {
+          throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
+        }
+
+        foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, visibleFeedIds, bannedUserIds, offset, limit)
+
+        break
+      }
     }
 
     const isLastPage = foundPosts.length <= requestedLimit;

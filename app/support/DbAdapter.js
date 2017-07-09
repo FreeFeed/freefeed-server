@@ -1775,7 +1775,8 @@ export class DbAdapter {
 
     let sql;
     if (params.withLocalBumps) {
-      sql = pgFormat(`
+      sql = pgFormat(
+        `
         select p.uid
         from 
           posts p
@@ -1788,16 +1789,17 @@ export class DbAdapter {
           and ${createdAtSQL}
         order by
           greatest(p.bumped_at, b.created_at) desc
-        limit %L offset %L
-        `,
+        limit %L offset %L`,
         viewerId,
-        `{${timelineIntIds.join(',')}}`,
+        `{${timelineIntIds.join(',')}}
+        `,
         bannedUsersIds,
         `{${visiblePrivateFeedIntIds.join(',')}}`,
         params.limit,
         params.offset
       );
     } else {
+      const privacyCondition = viewerId ? pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) : 'not p.is_protected';
       sql = pgFormat(`
         select p.uid
         from 
@@ -1805,10 +1807,7 @@ export class DbAdapter {
         where
           (p.feed_ids && %L or ${myPostsSQL})
           and not p.user_id in (%L)  -- bans
-          and ${viewerId ?
-            pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
-            'not p.is_protected'
-          }
+          and ${privacyCondition}
           and ${noDirectsSQL}
           and ${createdAtSQL}
         order by
@@ -1981,12 +1980,11 @@ export class DbAdapter {
       where post_id in (%L) and user_id not in (%L)
     `, [viewerId], friendsIds, uniqPostsIds, bannedUsersIds);
 
+    const foldLikesSql = params.foldLikes ? pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) : ``;
     const likesSQL = `
       with likes as (${allLikesSQL})
       select post_id, array_agg(user_id) as likes, count from likes
-      ${params.foldLikes ?
-        pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) :
-        ``}
+      ${foldLikesSql}
       group by post_id, count 
     `;
 
@@ -2022,12 +2020,11 @@ export class DbAdapter {
       where post_id in (%L) and (${hideCommentsSQL})
     `, bannedUsersIds, viewerIntId, uniqPostsIds);
 
+    const foldCommentsSql = params.foldComments ? pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) : ``;
     const commentsSQL = `
       with comments as (${allCommentsSQL})
       select ${commentFields.join(', ')}, id, count, c_likes, has_own_like from comments
-      ${params.foldComments ?
-        pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) :
-        ``}
+      ${foldCommentsSql}
       order by created_at, id
     `;
 
@@ -2412,12 +2409,12 @@ export class DbAdapter {
     }
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
-      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
       'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
-      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
       'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
       `where
           posts.uid in (
@@ -2428,12 +2425,12 @@ export class DbAdapter {
 
     if (visibleFeedIds && visibleFeedIds.length > 0) {
       const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
 
       const visiblePrivatePostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where
           posts.uid in (
@@ -2789,8 +2786,10 @@ export class DbAdapter {
   // Events
   ///////////////////////////////////////////////////
 
-  async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
-                    groupIntId = null, postId = null, commentId = null, postAuthorIntId = null) {
+  async createEvent(
+    recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
+    groupIntId = null, postId = null, commentId = null, postAuthorIntId = null
+  ) {
     const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
     const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
 
@@ -2942,7 +2941,8 @@ export class DbAdapter {
             ) as has_own_like
       from comments
       where uid in (%L) and user_id not in (%L)`,
-    bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds);
+      bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds
+    );
 
     const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
     return commentLikes;

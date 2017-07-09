@@ -933,13 +933,14 @@ describe('Comment likes', () => {
           const responseJson = await res.json();
 
           expect(responseJson, 'to satisfy', {
-            comments: expect.it('to be an array')
-                        .and('to be non-empty')
-                        .and('to have length', 1)
-                        .and('to have items satisfying', {
-                          likes:      3,
-                          hasOwnLike: false
-                        })
+            comments: expect
+              .it('to be an array')
+              .and('to be non-empty')
+              .and('to have length', 1)
+              .and('to have items satisfying', {
+                likes:      3,
+                hasOwnLike: false
+              })
           });
         });
 
@@ -950,13 +951,14 @@ describe('Comment likes', () => {
           const responseJson = await res.json();
 
           expect(responseJson, 'to satisfy', {
-            comments: expect.it('to be an array')
-                        .and('to be non-empty')
-                        .and('to have length', 1)
-                        .and('to have items satisfying', {
-                          likes:      3,
-                          hasOwnLike: true
-                        })
+            comments: expect
+              .it('to be an array')
+              .and('to be non-empty')
+              .and('to have length', 1)
+              .and('to have items satisfying', {
+                likes:      3,
+                hasOwnLike: true
+              })
           });
         });
 
@@ -967,13 +969,14 @@ describe('Comment likes', () => {
           const responseJson = await res.json();
 
           expect(responseJson, 'to satisfy', {
-            comments: expect.it('to be an array')
-                        .and('to be non-empty')
-                        .and('to have length', 1)
-                        .and('to have items satisfying', {
-                          likes:      3,
-                          hasOwnLike: true
-                        })
+            comments: expect
+              .it('to be an array')
+              .and('to be non-empty')
+              .and('to have length', 1)
+              .and('to have items satisfying', {
+                likes:      3,
+                hasOwnLike: true
+              })
           });
         });
 
@@ -984,13 +987,14 @@ describe('Comment likes', () => {
           const responseJson = await res.json();
 
           expect(responseJson, 'to satisfy', {
-            comments: expect.it('to be an array')
-                        .and('to be non-empty')
-                        .and('to have length', 1)
-                        .and('to have items satisfying', {
-                          likes:      3,
-                          hasOwnLike: true
-                        })
+            comments: expect
+              .it('to be an array')
+              .and('to be non-empty')
+              .and('to have length', 1)
+              .and('to have items satisfying', {
+                likes:      3,
+                hasOwnLike: true
+              })
           });
         });
 
@@ -1001,13 +1005,14 @@ describe('Comment likes', () => {
           const responseJson = await res.json();
 
           expect(responseJson, 'to satisfy', {
-            comments: expect.it('to be an array')
-                        .and('to be non-empty')
-                        .and('to have length', 1)
-                        .and('to have items satisfying', {
-                          likes:      3,
-                          hasOwnLike: false
-                        })
+            comments: expect
+              .it('to be an array')
+              .and('to be non-empty')
+              .and('to have length', 1)
+              .and('to have items satisfying', {
+                likes:      3,
+                hasOwnLike: false
+              })
           });
         });
       });
@@ -1293,13 +1298,14 @@ const commentHavingOneLikeExpectation = (liker) => async (obj) => {
   const responseJson = await obj.json();
 
   expect(responseJson, 'to satisfy', {
-    likes: expect.it('to be an array')
-             .and('to be non-empty')
-             .and('to have length', 1)
-             .and('to have items satisfying', {
-               userId:    expect.it('to satisfy', schema.UUID).and('to be', liker.user.id),
-               createdAt: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true)
-             }),
+    likes: expect
+      .it('to be an array')
+      .and('to be non-empty')
+      .and('to have length', 1)
+      .and('to have items satisfying', {
+        userId:    expect.it('to satisfy', schema.UUID).and('to be', liker.user.id),
+        createdAt: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true)
+      }),
     users: expect.it('to be an array').and('to have items satisfying', schema.user)
   });
 };

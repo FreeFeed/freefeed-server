@@ -113,12 +113,14 @@ AbstractSerializer.prototype = {
       const objectIds = objects.map((e) => e.id)
       const strategy = serializer.strategy[field]
 
-      await serializer.processMultiObjectsWithRoot(strategy.model || field,
-                                             objects,
-                                             strategy,
-                                             strategy.through,
-                                             root,
-                                             level)
+      await serializer.processMultiObjectsWithRoot(
+        strategy.model || field,
+        objects,
+        strategy,
+        strategy.through,
+        root,
+        level
+      );
 
       return one ? objectIds[0] : objectIds;
     }
