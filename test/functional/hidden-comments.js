@@ -14,6 +14,7 @@ import {
   createCommentAsync,
   banUser,
   updateUserAsync,
+  removeCommentAsync,
 } from './functional_test_helper';
 
 describe('Hidden comments', () => {
@@ -116,6 +117,31 @@ describe('Hidden comments', () => {
         const reply = await fetchTimeline('mars', luna, 'v1');
         expect(reply.comments, 'to have length', 1);
         expect(reply.comments[0],  'to not have key', 'hideType');
+      });
+    });
+
+    describe('Delete hidden comment', () => {
+      beforeEach(async () => {
+        await banUser(mars, venus);
+        await updateUserAsync(
+          mars,
+          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [] } } } },
+        );
+      });
+
+      it('Mars should be able to delete hidden Venus comment', async () => {
+        const reply1 = await fetchPost(post.id, mars);
+        expect(reply1.comments, 'to have length', 2);
+        const venusComment = reply1.comments.find((c) => c.id === reply1.posts.comments[0]);
+        expect(venusComment,  'to satisfy', { hideType: Comment.HIDDEN_BANNED });
+
+        const delReply = await removeCommentAsync(mars, venusComment.id)
+        delReply.status.should.eql(200)
+
+        const reply2 = await fetchPost(post.id, mars);
+        expect(reply2.comments, 'to have length', 1);
+        const lunaComment =  reply2.comments.find((c) => c.id === reply2.posts.comments[0]);
+        expect(lunaComment,  'to satisfy', { hideType: Comment.VISIBLE });
       });
     });
   });

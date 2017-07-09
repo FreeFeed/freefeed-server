@@ -648,7 +648,7 @@ export async function createMockAttachmentAsync(context) {
     postId:     '',
     createdAt:  (new Date()).getTime(),
     updatedAt:  (new Date()).getTime(),
-    imageSizes: { t: { w: 200, h: 175 }, o: { w: 600, h: 525 } },
+    imageSizes: { t: { w: 200, h: 175, url: '' }, o: { w: 600, h: 525, url: '' } },
   }
 
   const id = await dbAdapter.createAttachment(params)
@@ -757,6 +757,20 @@ export function hidePost(postId, user) {
   return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
 }
 
+export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
+  const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`).join('') : '';
+  const limitQS = limit ? `limit=${limit}&` : '';
+  const offsetQS = offset ? `offset=${offset}&` : '';
+  const startDateQS = startDate ? `startDate=${startDate}&` : '';
+  const endDateQS = endDate ? `endDate=${endDate}` : '';
+  const queryString = `/v2/notifications?${eventTypesQS}${limitQS}${offsetQS}${startDateQS}${endDateQS}`;
+
+  const response = await postJson(queryString, {
+    authToken: userContext.authToken,
+    '_method': 'get'
+  });
+  return await response.json();
+}
 
 // ************************
 // Comment likes
@@ -787,21 +801,6 @@ export async function getCommentLikes(commentId, viewerContext = null) {
   }
   const url = await apiUrl(`/v2/comments/${commentId}/likes`);
   return fetch(url, { method: 'GET', headers });
-}
-
-export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
-  const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`).join('') : '';
-  const limitQS = limit ? `limit=${limit}&` : '';
-  const offsetQS = offset ? `offset=${offset}&` : '';
-  const startDateQS = startDate ? `startDate=${startDate}&` : '';
-  const endDateQS = endDate ? `endDate=${endDate}` : '';
-  const queryString = `/v2/notifications?${eventTypesQS}${limitQS}${offsetQS}${startDateQS}${endDateQS}`;
-
-  const response = await postJson(queryString, {
-    authToken: userContext.authToken,
-    '_method': 'get'
-  });
-  return await response.json();
 }
 
 /**

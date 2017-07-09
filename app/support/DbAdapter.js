@@ -306,6 +306,7 @@ const POST_FIELDS = {
   likes_count:          'likesCount',
   is_private:           'isPrivate',
   is_protected:         'isProtected',
+  friendfeed_url:       'friendfeedUrl',
 }
 
 const POST_FIELDS_MAPPING = {
@@ -568,9 +569,22 @@ export class DbAdapter {
 
   // Return data from 'archives' table for the 'whoami' response
   async getUserArchiveParams(userId) {
-    return await this.database('archives')
+    const params = await this.database('archives')
       .first('old_username', 'has_archive', 'via_sources', 'recovery_status', 'restore_comments_and_likes')
       .where({ user_id: userId });
+    if (!params) {
+      return null;
+    }
+    params.hidden_comments_count = 0;
+    if (!params.restore_comments_and_likes) {
+      const sql = `select count(*) from
+        hidden_comments h
+        join comments c on c.uid = h.comment_id
+        where c.hide_type = :hideType and (h.user_id = :userId or h.old_username = :oldUsername)`;
+      const res = await this.database.raw(sql, { hideType: Comment.HIDDEN_ARCHIVED, userId, oldUsername: params.old_username });
+      params.hidden_comments_count = parseInt(res.rows[0].count);
+    }
+    return params;
   }
 
   async startArchiveRestoration(userId, params = {}) {
@@ -1097,8 +1111,8 @@ export class DbAdapter {
   }
 
 
-  linkAttachmentToPost(attachmentId, postId) {
-    const payload = { post_id: postId }
+  linkAttachmentToPost(attachmentId, postId, ord = 0) {
+    const payload = { post_id: postId, ord }
     return this.database('attachments').where('uid', attachmentId).update(payload)
   }
 
@@ -1108,7 +1122,7 @@ export class DbAdapter {
   }
 
   async getPostAttachments(postId) {
-    const res = await this.database('attachments').select('uid').orderBy('created_at', 'asc').where('post_id', postId)
+    const res = await this.database('attachments').select('uid').orderBy('ord', 'asc').orderBy('created_at', 'asc').where('post_id', postId)
     const attrs = res.map((record) => {
       return record.uid
     })
@@ -1116,7 +1130,7 @@ export class DbAdapter {
   }
 
   async getAttachmentsOfPost(postId) {
-    const responses = await this.database('attachments').orderBy('created_at', 'asc').where('post_id', postId)
+    const responses = await this.database('attachments').orderBy('ord', 'asc').orderBy('created_at', 'asc').where('post_id', postId)
     return responses.map(this.initAttachmentObject)
   }
 
@@ -1218,6 +1232,10 @@ export class DbAdapter {
     return this.initCommentObject(attrs);
   }
 
+  getCommentsIdsByIntIds(intIds) {
+    return this.database('comments').select('id', 'uid').whereIn('id', intIds);
+  }
+
   async _getCommentIntIdByUUID(commentUUID) {
     if (!validator.isUUID(commentUUID, 4)) {
       return null;
@@ -1228,10 +1246,6 @@ export class DbAdapter {
       return null;
     }
     return res.id;
-  }
-
-  getCommentsIdsByIntIds(intIds) {
-    return this.database('comments').select('id', 'uid').whereIn('id', intIds);
   }
 
   updateComment(commentId, payload) {
@@ -1298,6 +1312,46 @@ export class DbAdapter {
     return this.database('comments').where({ post_id: postId }).delete()
   }
 
+  // Create hidden comment for tests
+  async createHiddenComment(params) {
+    params = {
+      body:        null,
+      postId:      null,
+      userId:      null,
+      oldUsername: null,
+      hideType:    Comment.DELETED,
+      ...params,
+    };
+    if (params.postId === null) {
+      throw new Error(`Undefined postId of comment`);
+    }
+    if (params.hideType !== Comment.DELETED && params.hideType !== Comment.HIDDEN_ARCHIVED) {
+      throw new Error(`Invalid hideType of comment: ${params.hideType}`);
+    }
+    if (params.hideType === Comment.HIDDEN_ARCHIVED && !params.userId === null && params.oldUsername === null) {
+      throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
+    }
+    if (params.hideType === Comment.HIDDEN_ARCHIVED && params.body === null) {
+      throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
+    }
+
+    const uid = (await this.database('comments').returning('uid').insert({
+      post_id:   params.postId,
+      hide_type: params.hideType,
+      body:      Comment.hiddenBody(params.hideType),
+    }))[0];
+
+    if (params.hideType === Comment.HIDDEN_ARCHIVED) {
+      await this.database('hidden_comments').insert({
+        comment_id:   uid,
+        body:         params.body,
+        user_id:      params.userId,
+        old_username: params.oldUsername,
+      });
+    }
+
+    return uid;
+  }
 
   ///////////////////////////////////////////////////
   // Feeds
@@ -1670,6 +1724,8 @@ export class DbAdapter {
       sort:           'bumped',
       withLocalBumps: false,
       withMyPosts:    false,
+      createdBefore:  null,
+      createdAfter:   null,
       ...params,
     };
 
@@ -1708,9 +1764,19 @@ export class DbAdapter {
       bannedUsersIds.push(unexistedUID);
     }
 
+    const createdAtParts = [];
+    if (params.createdBefore) {
+      createdAtParts.push(pgFormat('p.created_at < %L', params.createdBefore));
+    }
+    if (params.createdAfter) {
+      createdAtParts.push(pgFormat('p.created_at > %L', params.createdAfter));
+    }
+    const createdAtSQL = createdAtParts.length === 0 ? 'true' : createdAtParts.join(' and ');
+
     let sql;
     if (params.withLocalBumps) {
-      sql = pgFormat(`
+      sql = pgFormat(
+        `
         select p.uid
         from 
           posts p
@@ -1720,18 +1786,20 @@ export class DbAdapter {
           and not p.user_id in (%L)  -- bans
           and (not p.is_private or p.destination_feed_ids && %L)  -- privates
           and ${noDirectsSQL}
+          and ${createdAtSQL}
         order by
           greatest(p.bumped_at, b.created_at) desc
-        limit %L offset %L
-        `,
+        limit %L offset %L`,
         viewerId,
-        `{${timelineIntIds.join(',')}}`,
+        `{${timelineIntIds.join(',')}}
+        `,
         bannedUsersIds,
         `{${visiblePrivateFeedIntIds.join(',')}}`,
         params.limit,
         params.offset
       );
     } else {
+      const privacyCondition = viewerId ? pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) : 'not p.is_protected';
       sql = pgFormat(`
         select p.uid
         from 
@@ -1739,11 +1807,9 @@ export class DbAdapter {
         where
           (p.feed_ids && %L or ${myPostsSQL})
           and not p.user_id in (%L)  -- bans
-          and ${viewerId ?
-            pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) :
-            'not p.is_protected'
-          }
+          and ${privacyCondition}
           and ${noDirectsSQL}
+          and ${createdAtSQL}
         order by
           p.%I desc
         limit %L offset %L
@@ -1856,7 +1922,7 @@ export class DbAdapter {
 
     const uniqPostsIds = _.uniq(postsIds);
 
-    const postFields = _.without(Object.keys(POST_FIELDS), 'comments_count', 'likes_count').map((k) => pgFormat('%I', k));
+    const postFields = _.without(Object.keys(POST_FIELDS), 'comments_count', 'likes_count', 'friendfeed_url').map((k) => pgFormat('p.%I', k));
     const attFields = Object.keys(ATTACHMENT_FIELDS).map((k) => pgFormat('%I', k));
     const commentFields = Object.keys(COMMENT_FIELDS).map((k) => pgFormat('%I', k));
 
@@ -1878,18 +1944,17 @@ export class DbAdapter {
     `, uniqPostsIds);
 
     const [
-      viewerIntId,
       bannedUsersIds,
       friendsIds,
       postsData,
       attData,
       { rows: destData },
     ] = await Promise.all([
-      viewerId ? this._getUserIntIdByUUID(viewerId) : null,
       viewerId ? this.getUserBansIds(viewerId) : [],
       viewerId ? this.getUserFriendIds(viewerId) : [],
-      this.database.select(...postFields).from('posts').whereIn('uid', uniqPostsIds),
-      this.database.select(...attFields).from('attachments').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
+      this.database.select('a.old_url as friendfeed_url', ...postFields).from('posts as p')
+        .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id').whereIn('p.uid', uniqPostsIds),
+      this.database.select(...attFields).from('attachments').orderBy('ord', 'asc').orderBy('created_at', 'asc').whereIn('post_id', uniqPostsIds),
       this.database.raw(destinationsSQL),
     ]);
 
@@ -1915,12 +1980,11 @@ export class DbAdapter {
       where post_id in (%L) and user_id not in (%L)
     `, [viewerId], friendsIds, uniqPostsIds, bannedUsersIds);
 
+    const foldLikesSql = params.foldLikes ? pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) : ``;
     const likesSQL = `
       with likes as (${allLikesSQL})
       select post_id, array_agg(user_id) as likes, count from likes
-      ${params.foldLikes ?
-        pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) :
-        ``}
+      ${foldLikesSql}
       group by post_id, count 
     `;
 
@@ -1935,6 +1999,9 @@ export class DbAdapter {
         hideCommentsSQL += pgFormat(' and hide_type not in (%L)', ht);
       }
     }
+
+    const viewerIntId = viewerId ? await this._getUserIntIdByUUID(viewerId) : null;
+
 
     const allCommentsSQL = pgFormat(`
       select
@@ -1953,12 +2020,11 @@ export class DbAdapter {
       where post_id in (%L) and (${hideCommentsSQL})
     `, bannedUsersIds, viewerIntId, uniqPostsIds);
 
+    const foldCommentsSql = params.foldComments ? pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) : ``;
     const commentsSQL = `
       with comments as (${allCommentsSQL})
       select ${commentFields.join(', ')}, id, count, c_likes, has_own_like from comments
-      ${params.foldComments ?
-        pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) :
-        ``}
+      ${foldCommentsSql}
       order by created_at, id
     `;
 
@@ -2012,6 +2078,7 @@ export class DbAdapter {
         comm.hide_type = Comment.HIDDEN_BANNED;
         comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
       }
+
       const comment = this.initCommentObject(comm);
       comment.likes       = parseInt(comm.c_likes);
       comment.hasOwnLike  = comm.has_own_like;
@@ -2048,8 +2115,8 @@ export class DbAdapter {
   }
 
   // Insert record to 'archive_post_names' table for the test purposes.
-  async setOldPostName(postId, oldName) {
-    return await this.database('archive_post_names').insert({ post_id: postId, old_post_name: oldName });
+  async setOldPostName(postId, oldName, oldUrl) {
+    return await this.database('archive_post_names').insert({ post_id: postId, old_post_name: oldName, old_url: oldUrl });
   }
 
   // Return new post's UID by its old name
@@ -2342,12 +2409,12 @@ export class DbAdapter {
     }
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
-      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
       'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
-      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+      `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
       'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
       `where
           posts.uid in (
@@ -2358,12 +2425,12 @@ export class DbAdapter {
 
     if (visibleFeedIds && visibleFeedIds.length > 0) {
       const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where ${searchCondition} and "feeds"."id" in (${visibleFeedIds}) ${bannedUsersFilter}`;
 
       const visiblePrivatePostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
-        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' and feeds.uid='${groupFeedId}' ` +
+        `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
         `where
           posts.uid in (
@@ -2693,6 +2760,94 @@ export class DbAdapter {
   }
 
   ///////////////////////////////////////////////////
+  // Archives Stats
+  ///////////////////////////////////////////////////
+  async getArchivesStats() {
+    const FREEFEED_START_DATE = '2015-05-04';
+
+    const restored_posts = await this.database('posts').count('id').where('created_at', '<', FREEFEED_START_DATE);
+    const restored_comments = await this.database('comments').count('id').where('created_at', '<', FREEFEED_START_DATE);
+    const hidden_comments = await this.database('hidden_comments').count('comment_id');
+    const restore_requests_completed = await this.database('archives').count('user_id').where('recovery_status', '=', 2);
+    const restore_requests_pending = await this.database('archives').count('user_id').where('recovery_status', '=', 1);
+    const users_with_restored_comments = await this.database('archives').count('user_id').where('restore_comments_and_likes', true);
+
+    return [{
+      'restored_posts':               restored_posts[0].count,
+      'restored_comments':            restored_comments[0].count,
+      'hidden_comments':              hidden_comments[0].count,
+      'restore_requests_completed':   restore_requests_completed[0].count,
+      'restore_requests_pending':     restore_requests_pending[0].count,
+      'users_with_restored_comments': users_with_restored_comments[0].count
+    }];
+  }
+
+  ///////////////////////////////////////////////////
+  // Events
+  ///////////////////////////////////////////////////
+
+  async createEvent(
+    recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
+    groupIntId = null, postId = null, commentId = null, postAuthorIntId = null
+  ) {
+    const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
+    const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
+
+    const payload = {
+      user_id:            recipientIntId,
+      event_type:         eventType,
+      created_by_user_id: createdByUserIntId,
+      target_user_id:     targetUserIntId,
+      group_id:           groupIntId,
+      post_id:            postIntId,
+      comment_id:         commentIntId,
+      post_author_id:     postAuthorIntId
+    };
+
+    return this.database('events').insert(payload);
+  }
+
+  getUserEvents(userIntId, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
+    let query = this.database('events').where('user_id', userIntId)
+    if (eventTypes && eventTypes.length > 0) {
+      query = query.whereIn('event_type', eventTypes);
+    }
+
+    if (startDate) {
+      query = query.where('created_at', '>=', startDate.toISOString());
+    }
+
+    if (endDate) {
+      query = query.where('created_at', '<=', endDate.toISOString());
+    }
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    if (offset) {
+      query = query.offset(offset);
+    }
+    return query.orderBy('created_at', 'desc');
+  }
+
+  async _getGroupIntIdByUUID(groupUUID) {
+    const res = await this.database('users').returning('id').first().where('uid', groupUUID).andWhere('type', 'group');
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
+  async _getPostIntIdByUUID(postUUID) {
+    const res = await this.database('posts').returning('id').first().where('uid', postUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
+  ///////////////////////////////////////////////////
   // Comment likes
   ///////////////////////////////////////////////////
 
@@ -2786,7 +2941,8 @@ export class DbAdapter {
             ) as has_own_like
       from comments
       where uid in (%L) and user_id not in (%L)`,
-    bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds);
+      bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds
+    );
 
     const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
     return commentLikes;
@@ -2827,67 +2983,5 @@ export class DbAdapter {
 
     const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
     return postsCommentLikes;
-  }
-
-  ///////////////////////////////////////////////////
-  // Events
-  ///////////////////////////////////////////////////
-
-  async createEvent(recipientIntId, eventType, createdByUserIntId, targetUserIntId = null,
-                    groupIntId = null, postId = null, commentId = null) {
-    const postIntId = postId ? await this._getPostIntIdByUUID(postId) : null;
-    const commentIntId = commentId ? await this._getCommentIntIdByUUID(commentId) : null;
-
-    const payload = {
-      user_id:            recipientIntId,
-      event_type:         eventType,
-      created_by_user_id: createdByUserIntId,
-      target_user_id:     targetUserIntId,
-      group_id:           groupIntId,
-      post_id:            postIntId,
-      comment_id:         commentIntId
-    };
-
-    return this.database('events').insert(payload);
-  }
-
-  getUserEvents(userIntId, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
-    let query = this.database('events').where('user_id', userIntId)
-    if (eventTypes && eventTypes.length > 0) {
-      query = query.whereIn('event_type', eventTypes);
-    }
-
-    if (startDate) {
-      query = query.where('created_at', '>=', startDate.toISOString());
-    }
-
-    if (endDate) {
-      query = query.where('created_at', '<=', endDate.toISOString());
-    }
-
-    if (limit) {
-      query = query.limit(limit);
-    }
-
-    if (offset) {
-      query = query.offset(offset);
-    }
-    return query.orderBy('created_at', 'desc');
-  }
-
-  async _getGroupIntIdByUUID(groupUUID) {
-    const res = await this.database('users').returning('id').first().where('uid', groupUUID).andWhere('type', 'group');
-    if (!res) {
-      return null;
-    }
-    return res.id;
-  }
-
-  async _getPostIntIdByUUID(postUUID) {
-    const res = await this.database('posts').returning('id').first().where('uid', postUUID);
-    if (!res) {
-      return null;
-    }
-    return res.id;
   }
 }

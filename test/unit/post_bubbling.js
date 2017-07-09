@@ -45,8 +45,8 @@ describe('PostBubbling', () => {
 
 
   describe('public users Luna, Mars and stranger Jupiter', () => {
-    const lunaPostsContent = ['A', 'B', 'C']
-        , marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
+    const lunaPostsContent = ['A', 'B', 'C'],
+      marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'];
     let luna
       , mars
       , jupiter
@@ -380,9 +380,9 @@ describe('PostBubbling', () => {
   })
 
   describe('public users Luna, Mars, Pluto and stranger Jupiter', () => {
-    const lunaPostsContent = ['A', 'B', 'C']
-        , marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
-        , plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta']
+    const lunaPostsContent = ['A', 'B', 'C'],
+      marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'],
+      plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta'];
     let luna
       , mars
       , pluto

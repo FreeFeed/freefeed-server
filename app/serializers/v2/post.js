@@ -39,6 +39,7 @@ export function serializePost(post) {
       'commentsDisabled',
       'createdAt',
       'updatedAt',
+      'friendfeedUrl',
       'commentLikes',
       'ownCommentLikes',
       'omittedCommentLikes',

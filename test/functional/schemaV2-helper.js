@@ -56,14 +56,14 @@ const postBasic = {
 };
 
 export const post = (obj) => {
-  const isHidden = obj && typeof obj === 'object' && obj.isHidden;
-  if (!isHidden) {
-    return expect(obj, 'to exhaustively satisfy', postBasic);
+  const tpl = { ...postBasic };
+  if (obj && typeof obj === 'object' && obj.isHidden) {
+    tpl.isHidden = expect.it('to be', true);
   }
-  return expect(obj, 'to exhaustively satisfy', {
-    ...postBasic,
-    isHidden: expect.it('to be', true),
-  });
+  if (obj && typeof obj === 'object' && obj.friendfeedUrl) {
+    tpl.friendfeedUrl = expect.it('to be a string');
+  }
+  return expect(obj, 'to exhaustively satisfy', tpl);
 };
 
 const commentBasic = {
@@ -125,15 +125,15 @@ export const attachmentGeneral = {
 
 export const attachment = (obj) =>
   expect(obj, 'to be an object')
-  .and('to satisfy', attachmentCommons)
-  .and('to satisfy', (obj) => {
-    switch (obj.mediaType) {
-      case 'image':   return expect(obj, 'to exhaustively satisfy', attachmentImage);
-      case 'audio':   return expect(obj, 'to exhaustively satisfy', attachmentAudio);
-      case 'general': return expect(obj, 'to exhaustively satisfy', attachmentGeneral);
-    }
-    return null;
-  });
+    .and('to satisfy', attachmentCommons)
+    .and('to satisfy', (obj) => {
+      switch (obj.mediaType) {
+        case 'image':   return expect(obj, 'to exhaustively satisfy', attachmentImage);
+        case 'audio':   return expect(obj, 'to exhaustively satisfy', attachmentAudio);
+        case 'general': return expect(obj, 'to exhaustively satisfy', attachmentGeneral);
+      }
+      return null;
+    });
 
 export const postResponse = {
   posts:         expect.it('to satisfy', post),

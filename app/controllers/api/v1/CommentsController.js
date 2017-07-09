@@ -58,7 +58,7 @@ export default class CommentsController {
 
       await Promise.all([
         PubSub.newComment(newComment, timelines),
-        EventService.onCommentCreated(newComment, post, ctx.state.user)
+        EventService.onCommentCreated(newComment, post, ctx.state.user, author)
       ]);
       monitor.increment('comments.creates')
 
@@ -122,9 +122,9 @@ export default class CommentsController {
         throw new NotFoundException("Can't find comment")
       }
 
-      if (comment.hideType !== Comment.VISIBLE) {
+      if (!comment.canBeDestroyed()) {
         throw new ForbiddenException(
-          "You can't destroy deleted or hidden comment"
+          "You can't destroy deleted comment"
         )
       }
 

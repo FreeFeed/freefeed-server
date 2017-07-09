@@ -27,6 +27,9 @@ export const EVENT_TYPES = {
   GROUP_ADMIN_DEMOTED:           'group_admin_demoted',
   DIRECT_CREATED:                'direct',
   DIRECT_COMMENT_CREATED:        'direct_comment',
+
+  MANAGED_GROUP_SUBSCRIPTION_APPROVED: 'managed_group_subscription_approved',
+  MANAGED_GROUP_SUBSCRIPTION_REJECTED: 'managed_group_subscription_rejected',
 };
 
 export class EventService {
@@ -119,14 +122,14 @@ export class EventService {
 
   static async onGroupSubscriptionRequestApproved(adminIntId, group, requesterIntId) {
     await this._notifyGroupAdmins(group, (adminUser) => {
-      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
     });
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
   }
 
   static async onGroupSubscriptionRequestRejected(adminIntId, group, requesterIntId) {
     await this._notifyGroupAdmins(group, (adminUser) => {
-      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
+      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
     });
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, null, requesterIntId, group.intId);
   }
@@ -136,9 +139,9 @@ export class EventService {
     await this._processMentionsInPost(post, destinationFeedIds, author);
   }
 
-  static async onCommentCreated(comment, post, commentAuthor) {
-    await this._processDirectMessagesForComment(comment, post, commentAuthor);
-    await this._processMentionsInComment(comment, post, commentAuthor);
+  static async onCommentCreated(comment, post, commentAuthor, postAuthor) {
+    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor);
+    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor);
   }
 
 
@@ -157,7 +160,7 @@ export class EventService {
 
       const directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
       const promises = directReceivers.map((receiver) => {
-        return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_CREATED, author.intId, receiver.intId, null, post.id);
+        return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_CREATED, author.intId, receiver.intId, null, post.id, null, author.intId);
       });
       await Promise.all(promises);
     }
@@ -199,12 +202,12 @@ export class EventService {
         return null;
       }
 
-      return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, postGroupIntId, post.id);
+      return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, postGroupIntId, post.id, null, author.intId);
     });
     await Promise.all(promises);
   }
 
-  static async _processDirectMessagesForComment(comment, post, commentAuthor) {
+  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor) {
     const feeds = await post.getPostedTo();
     const directFeeds = feeds.filter((f) => {
       return f.isDirects() && f.userId !== commentAuthor.id;
@@ -227,14 +230,18 @@ export class EventService {
         if (usersBannedByReceiver.includes(commentAuthor.id)) {
           return null;
         }
-        return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_COMMENT_CREATED, commentAuthor.intId, receiver.intId, null, post.id, comment.id);
+        return dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_COMMENT_CREATED, commentAuthor.intId, receiver.intId, null, post.id, comment.id, postAuthor.intId);
       });
       await Promise.all(promises);
     }
   }
 
-  static async _processMentionsInComment(comment, post, commentAuthor) {
+  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor) {
     let mentions = extractMentionsWithIndices(comment.body);
+
+    if (mentions.length == 0) {
+      return;
+    }
 
     let  postGroupIntId = null;
     const feeds = await post.getPostedTo();
@@ -252,7 +259,6 @@ export class EventService {
     }
     mentions = _.uniqBy(mentions, 'username');
 
-    const postAuthor = await dbAdapter.getUserById(post.userId);
     const usersBannedByPostAuthor = await postAuthor.getBanIds();
     const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
 
@@ -282,9 +288,9 @@ export class EventService {
       }
 
       if (m.indices[0] === 0) {
-        return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_COMMENT_TO, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id);
+        return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_COMMENT_TO, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id, postAuthor.intId);
       }
-      return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_IN_COMMENT, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id);
+      return dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_IN_COMMENT, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id, postAuthor.intId);
     });
     await Promise.all(promises);
   }

@@ -7,7 +7,7 @@ import _ from 'lodash'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
+import { PubSub, dbAdapter } from '../../app/models'
 import {
   createUserAsync,
   createAndReturnPost,
@@ -503,6 +503,32 @@ describe('TimelinesControllerV2', () => {
     });
   });
 
+
+  describe('#user\'s timelines sorting', () => {
+    let luna;
+    let post1, post2;
+    beforeEach(async () => {
+      luna = await createUserAsync('luna', 'pw');
+      post1 = await createAndReturnPost(luna, 'Post');
+      post2 = await createAndReturnPost(luna, 'Post');
+    });
+
+    it('should return uncommented Luna posts in creation order', async () => {
+      const feed = await fetchUserTimeline('Posts', luna);
+      expect(feed.timelines.posts, 'to have length', 2);
+      expect(feed.timelines.posts[0], 'to equal', post2.id);
+      expect(feed.timelines.posts[1], 'to equal', post1.id);
+    });
+
+    it('should return commented Luna posts in bump order', async () => {
+      await createCommentAsync(luna, post1.id, 'Comment');
+      const feed = await fetchUserTimeline('Posts', luna);
+      expect(feed.timelines.posts, 'to have length', 2);
+      expect(feed.timelines.posts[0], 'to equal', post1.id);
+      expect(feed.timelines.posts[1], 'to equal', post2.id);
+    });
+  });
+
   describe('#pagination', () => {
     let luna;
     beforeEach(async () => {
@@ -524,6 +550,40 @@ describe('TimelinesControllerV2', () => {
     it('should return the only page with isLastPage = true', async () => {
       const timeline = await fetchTimeline('luna?limit=15&offset=0');
       expect(timeline.isLastPage, 'to equal', true);
+    });
+  });
+
+  describe('#user\'s timelines filter by date', () => {
+    let luna;
+    let post1, post2, post3;
+    beforeEach(async () => {
+      luna = await createUserAsync('luna', 'pw');
+      post1 = await createAndReturnPost(luna, 'Post');
+      post2 = await createAndReturnPost(luna, 'Post');
+      post3 = await createAndReturnPost(luna, 'Post');
+      await dbAdapter.database('posts').where('uid', post1.id).update({ created_at: '2017-05-01T09:00:00Z' });
+      await dbAdapter.database('posts').where('uid', post2.id).update({ created_at: '2017-05-02T09:00:00Z' });
+      await dbAdapter.database('posts').where('uid', post3.id).update({ created_at: '2017-05-03T09:00:00Z' });
+    });
+
+    it('should return posts created before date', async () => {
+      const feed = await fetchTimeline('luna?created-before=2017-05-03T00:00:00Z');
+      expect(feed.timelines.posts, 'to have length', 2);
+      expect(feed.timelines.posts[0], 'to equal', post2.id);
+      expect(feed.timelines.posts[1], 'to equal', post1.id);
+    });
+
+    it('should return posts created after date', async () => {
+      const feed = await fetchTimeline('luna?created-after=2017-05-02T00:00:00Z');
+      expect(feed.timelines.posts, 'to have length', 2);
+      expect(feed.timelines.posts[0], 'to equal', post3.id);
+      expect(feed.timelines.posts[1], 'to equal', post2.id);
+    });
+
+    it('should return posts created before and after date', async () => {
+      const feed = await fetchTimeline('luna?created-before=2017-05-03T00:00:00Z&created-after=2017-05-02T00:00:00Z');
+      expect(feed.timelines.posts, 'to have length', 1);
+      expect(feed.timelines.posts[0], 'to equal', post2.id);
     });
   });
 });

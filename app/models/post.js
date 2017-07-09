@@ -24,6 +24,10 @@ export function addModel(dbAdapter) {
     this.isPrivate        = params.isPrivate || '0';
     this.isProtected      = params.isProtected || '0';
 
+    if (params.friendfeedUrl) {
+      this.friendfeedUrl = params.friendfeedUrl;
+    }
+
     if (parseInt(params.createdAt, 10)) {
       this.createdAt = params.createdAt
     }
@@ -120,7 +124,6 @@ export function addModel(dbAdapter) {
     // Calculate changes in attachments
     const oldAttachments = await this.getAttachmentIds() || []
     const newAttachments = params.attachments || []
-    const addedAttachments = newAttachments.filter((i) => !oldAttachments.includes(i))
     const removedAttachments = oldAttachments.filter((i) => !newAttachments.includes(i))
 
     // Update post body in DB
@@ -132,7 +135,7 @@ export function addModel(dbAdapter) {
 
     // Update post attachments in DB
     await Promise.all([
-      this.linkAttachments(addedAttachments),
+      this.linkAttachments(newAttachments),
       this.unlinkAttachments(removedAttachments)
     ])
 
@@ -161,7 +164,7 @@ export function addModel(dbAdapter) {
   Post.prototype.destroy = async function () {
     await dbAdapter.statsPostDeleted(this.userId, this.id)  // needs data in DB
 
-// remove all comments
+    // remove all comments
     const comments = await this.getComments()
     await Promise.all(comments.map((comment) => comment.destroy()))
 
@@ -400,7 +403,7 @@ export function addModel(dbAdapter) {
     const attachmentPromises = attachments.filter((attachment) => {
       // Filter out invalid attachments
       return attachment.fileSize !== undefined
-    }).map((attachment) => {
+    }).map((attachment, ord) => {
       if (this.attachments) {
         const pos = this.attachments.indexOf(attachment.id)
 
@@ -413,7 +416,7 @@ export function addModel(dbAdapter) {
 
       // Update connections in DB
 
-      return dbAdapter.linkAttachmentToPost(attachment.id, this.id)
+      return dbAdapter.linkAttachmentToPost(attachment.id, this.id, ord)
     })
 
     await Promise.all(attachmentPromises)

@@ -24,10 +24,11 @@ import SearchRoute from './routes/api/v2/SearchRoute'
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
 import StatsRouteV2 from './routes/api/v2/Stats'
+import ArchivesStatsRouteV2 from './routes/api/v2/ArchivesStats'
 import PostsRouteV2 from './routes/api/v2/PostsRoute'
-import CommentLikesRoute from './routes/api/v2/CommentLikesRoute'
 import ArchivesRoute from './routes/api/v2/ArchivesRoute'
 import NotificationsRoute from './routes/api/v2/NotificationsRoute'
+import CommentLikesRoute from './routes/api/v2/CommentLikesRoute'
 
 promisifyAll(jwt);
 
@@ -79,9 +80,10 @@ export default function (app) {
   TimelinesRouteV2(router);
   UsersRouteV2(router);
   PostsRouteV2(router);
-  CommentLikesRoute(router);
   ArchivesRoute(router);
+  ArchivesStatsRouteV2(router);
   NotificationsRoute(router);
+  CommentLikesRoute(router);
 
   router.use('/v[0-9]+/*', async (ctx) => {
     ctx.status = 404;
@@ -95,8 +97,7 @@ export default function (app) {
       await next();
     } catch (e) {
       if (sentryIsEnabled) {
-        const kw = Raven.parsers.parseRequest(ctx.request);
-        Raven.captureException(e, kw);
+        Raven.captureException(e, { req: ctx.request });
       }
 
       reportError(ctx)(e);

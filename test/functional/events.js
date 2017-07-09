@@ -436,7 +436,11 @@ describe('EventService', () => {
     };
 
     const expectGroupRequestEvents = (user, expectedEvents) => {
-      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested', 'group_subscription_request_revoked', 'group_subscription_approved', 'group_subscription_rejected']);
+      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_requested', 'group_subscription_request_revoked', 'managed_group_subscription_approved', 'managed_group_subscription_rejected']);
+    };
+
+    const expectGroupRequestEventsForUser = (user, expectedEvents) => {
+      return expectUserEventsToBe(user, expectedEvents, ['group_subscription_approved', 'group_subscription_rejected']);
     };
 
     beforeEach(async () => {
@@ -776,13 +780,13 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_approved event when user subscription request is accepted', async () => {
+      it('should create managed_group_subscription_approved event when user subscription request is accepted', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await acceptRequestToJoinGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_approved',
+            event_type:         'managed_group_subscription_approved',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -790,14 +794,14 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_approved event when user subscription request is accepted for each group admin', async () => {
+      it('should create managed_group_subscription_approved event when user subscription request is accepted for each group admin', async () => {
         await promoteToAdmin(dubhe, luna, jupiter);
         await sendRequestToJoinGroup(mars, dubhe);
         await acceptRequestToJoinGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_approved',
+            event_type:         'managed_group_subscription_approved',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -806,7 +810,7 @@ describe('EventService', () => {
         await expectGroupRequestEvents(jupiterUserModel, [
           {
             user_id:            jupiterUserModel.intId,
-            event_type:         'group_subscription_approved',
+            event_type:         'managed_group_subscription_approved',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -817,7 +821,7 @@ describe('EventService', () => {
       it('should create group_subscription_approved event for requester when subscription request is accepted', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await acceptRequestToJoinGroup(luna, mars, dubhe);
-        await expectGroupRequestEvents(marsUserModel, [
+        await expectGroupRequestEventsForUser(marsUserModel, [
           {
             user_id:            marsUserModel.intId,
             event_type:         'group_subscription_approved',
@@ -828,13 +832,13 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_rejected event when user subscription request is rejected', async () => {
+      it('should create managed_group_subscription_rejected event when user subscription request is rejected', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await rejectSubscriptionRequestToGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_rejected',
+            event_type:         'managed_group_subscription_rejected',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -842,14 +846,14 @@ describe('EventService', () => {
         ]);
       });
 
-      it('should create group_subscription_rejected event when user subscription request is rejected for each group admin', async () => {
+      it('should create managed_group_subscription_rejected event when user subscription request is rejected for each group admin', async () => {
         await promoteToAdmin(dubhe, luna, jupiter);
         await sendRequestToJoinGroup(mars, dubhe);
         await rejectSubscriptionRequestToGroup(luna, mars, dubhe);
         await expectGroupRequestEvents(lunaUserModel, [
           {
             user_id:            lunaUserModel.intId,
-            event_type:         'group_subscription_rejected',
+            event_type:         'managed_group_subscription_rejected',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -858,7 +862,7 @@ describe('EventService', () => {
         await expectGroupRequestEvents(jupiterUserModel, [
           {
             user_id:            jupiterUserModel.intId,
-            event_type:         'group_subscription_rejected',
+            event_type:         'managed_group_subscription_rejected',
             created_by_user_id: lunaUserModel.intId,
             target_user_id:     marsUserModel.intId,
             group_id:           dubheGroupModel.intId,
@@ -869,7 +873,7 @@ describe('EventService', () => {
       it('should create group_subscription_rejected event for requester when subscription request is rejected', async () => {
         await sendRequestToJoinGroup(mars, dubhe);
         await rejectSubscriptionRequestToGroup(luna, mars, dubhe);
-        await expectGroupRequestEvents(marsUserModel, [
+        await expectGroupRequestEventsForUser(marsUserModel, [
           {
             user_id:            marsUserModel.intId,
             event_type:         'group_subscription_rejected',
@@ -916,6 +920,7 @@ describe('EventService', () => {
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -931,18 +936,21 @@ describe('EventService', () => {
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -953,6 +961,7 @@ describe('EventService', () => {
           event_type:         'direct',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(lunaUserModel, []);
       });
@@ -967,18 +976,20 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
       it("should create direct_comment event on receiver's comment creation for direct sender", async () => {
         const post = await createAndReturnPostToFeed(mars, luna, 'Direct');
-        await createCommentAsync(luna, post.id, 'Comment');
-        await expectPostEvents(marsUserModel, [{
-          user_id:            marsUserModel.intId,
+        await createCommentAsync(mars, post.id, 'Comment');
+        await expectPostEvents(lunaUserModel, [{
+          user_id:            lunaUserModel.intId,
           event_type:         'direct_comment',
-          created_by_user_id: lunaUserModel.intId,
-          target_user_id:     marsUserModel.intId,
-        }, { event_type: 'direct' }]);
+          created_by_user_id: marsUserModel.intId,
+          target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
+        }]);
       });
 
       it('should not create direct_comment event on comment creation for comment author', async () => {
@@ -1001,18 +1012,21 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
         await expectPostEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
         await expectPostEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
@@ -1030,6 +1044,7 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
@@ -1041,6 +1056,7 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: marsUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(marsUserModel, [{ event_type: 'direct' }]);
       });
@@ -1053,12 +1069,14 @@ describe('EventService', () => {
           event_type:         'direct_comment',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'direct_comment',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }, { event_type: 'direct' }]);
       });
 
@@ -1117,6 +1135,7 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(lunaUserModel, []);
       });
@@ -1133,18 +1152,21 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1164,6 +1186,7 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
           group_id:           dubheGroupModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1193,6 +1216,7 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     jupiterUserModel.intId,
         }]);
         await expectMentionEvents(marsUserModel, []);
       });
@@ -1204,6 +1228,7 @@ describe('EventService', () => {
           event_type:         'mention_in_post',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
     });
@@ -1222,6 +1247,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(lunaUserModel, []);
       });
@@ -1233,6 +1259,7 @@ describe('EventService', () => {
           event_type:         'mention_comment_to',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(lunaUserModel, []);
       });
@@ -1244,6 +1271,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: marsUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1259,18 +1287,21 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(jupiterUserModel, [{
           user_id:            jupiterUserModel.intId,
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     jupiterUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
         await expectMentionEvents(plutoUserModel, [{
           user_id:            plutoUserModel.intId,
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     plutoUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1291,6 +1322,7 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
           group_id:           dubheGroupModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1305,6 +1337,7 @@ describe('EventService', () => {
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
           group_id:           dubheGroupModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
 
@@ -1351,6 +1384,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: jupiterUserModel.intId,
           target_user_id:     lunaUserModel.intId,
+          post_author_id:     jupiterUserModel.intId,
         }]);
         await expectMentionEvents(marsUserModel, []);
       });
@@ -1362,6 +1396,7 @@ describe('EventService', () => {
           event_type:         'mention_in_comment',
           created_by_user_id: lunaUserModel.intId,
           target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
         }]);
       });
     });
@@ -1553,7 +1588,9 @@ describe('EventsController', () => {
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_requested' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_request_revoked' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_approved' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'managed_group_subscription_approved' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_subscription_rejected' });
+        await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'managed_group_subscription_rejected' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_admin_promoted' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_admin_demoted' });
         await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct' });
@@ -1582,7 +1619,7 @@ describe('EventsController', () => {
         expect(res['Notifications'], 'to have length', 7);
 
         res = await getUserEvents(luna, ['groups']);
-        expect(res['Notifications'], 'to have length', 9);
+        expect(res['Notifications'], 'to have length', 11);
 
         res = await getUserEvents(luna, ['directs']);
         expect(res, 'to satisfy', {

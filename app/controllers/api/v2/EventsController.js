@@ -23,7 +23,9 @@ const EVENT_GROUPS = {
     'group_subscription_requested',
     'group_subscription_request_revoked',
     'group_subscription_approved',
+    'managed_group_subscription_approved',
     'group_subscription_rejected',
+    'managed_group_subscription_rejected',
     'group_admin_promoted',
     'group_admin_demoted',
   ],
@@ -113,7 +115,8 @@ async function serializeEvents(events) {
       event_type:       e.event_type,
       group_id:         userIdsMapping[e.group_id] || null,
       post_id:          postIdsMapping[e.post_id] || null,
-      comment_id:       commentIdsMapping[e.comment_id] || null
+      comment_id:       commentIdsMapping[e.comment_id] || null,
+      post_author_id:   userIdsMapping[e.post_author_id] || null
     };
   });
 
@@ -143,7 +146,7 @@ async function getIntIdsMappings(events) {
   let postsIntIds = [];
   let commentsIntIds = [];
   for (const e of events) {
-    usersIntIds.push(e.user_id, e.created_by_user_id, e.target_user_id, e.group_id);
+    usersIntIds.push(e.user_id, e.created_by_user_id, e.target_user_id, e.group_id, e.post_author_id);
     postsIntIds.push(e.post_id);
     commentsIntIds.push(e.comment_id);
   }
