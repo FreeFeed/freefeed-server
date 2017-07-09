@@ -28,6 +28,7 @@ import ArchivesStatsRouteV2 from './routes/api/v2/ArchivesStats'
 import PostsRouteV2 from './routes/api/v2/PostsRoute'
 import ArchivesRoute from './routes/api/v2/ArchivesRoute'
 import NotificationsRoute from './routes/api/v2/NotificationsRoute'
+import CommentLikesRoute from './routes/api/v2/CommentLikesRoute'
 
 promisifyAll(jwt);
 
@@ -82,6 +83,7 @@ export default function (app) {
   ArchivesRoute(router);
   ArchivesStatsRouteV2(router);
   NotificationsRoute(router);
+  CommentLikesRoute(router);
 
   router.use('/v[0-9]+/*', async (ctx) => {
     ctx.status = 404;

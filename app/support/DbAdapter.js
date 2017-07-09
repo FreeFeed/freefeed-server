@@ -486,6 +486,18 @@ export class DbAdapter {
     return this.initUserObject(attrs);
   }
 
+  async _getUserIntIdByUUID(userUUID) {
+    if (!validator.isUUID(userUUID, 4)) {
+      return null;
+    }
+
+    const res = await this.database('users').returning('id').first().where('uid', userUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
+  }
+
   async getFeedOwnerById(id) {
     if (!validator.isUUID(id, 4)) {
       return null
@@ -1222,6 +1234,18 @@ export class DbAdapter {
 
   getCommentsIdsByIntIds(intIds) {
     return this.database('comments').select('id', 'uid').whereIn('id', intIds);
+  }
+
+  async _getCommentIntIdByUUID(commentUUID) {
+    if (!validator.isUUID(commentUUID, 4)) {
+      return null;
+    }
+
+    const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
+    if (!res) {
+      return null;
+    }
+    return res.id;
   }
 
   updateComment(commentId, payload) {
@@ -1978,18 +2002,29 @@ export class DbAdapter {
       }
     }
 
+    const viewerIntId = viewerId ? await this._getUserIntIdByUUID(viewerId) : null;
+
+
     const allCommentsSQL = pgFormat(`
       select
         ${commentFields.join(', ')}, id,
         rank() over (partition by post_id order by created_at, id),
-        count(*) over (partition by post_id) 
+        count(*) over (partition by post_id),
+        (select coalesce(count(*), '0') from comment_likes cl
+          where cl.comment_id = comments.id
+            and cl.user_id not in (select id from users where uid in (%L))
+        ) as c_likes,
+        (select count(*) = 1 from comment_likes cl
+          where cl.comment_id = comments.id
+            and cl.user_id = %L
+        ) as has_own_like
       from comments
       where post_id in (%L) and (${hideCommentsSQL})
-    `, uniqPostsIds);
+    `, bannedUsersIds, viewerIntId, uniqPostsIds);
 
     const commentsSQL = `
       with comments as (${allCommentsSQL})
-      select ${commentFields.join(', ')}, id, count from comments
+      select ${commentFields.join(', ')}, id, count, c_likes, has_own_like from comments
       ${params.foldComments ?
         pgFormat(`where count <= %L or rank = 1 or rank = count`, params.maxUnfoldedComments) :
         ``}
@@ -2006,6 +2041,8 @@ export class DbAdapter {
 
     const results = {};
 
+    const postsCommentLikes = await this.getLikesInfoForPosts(uniqPostsIds, viewerId);
+
     for (const post of postsData) {
       results[post.uid] = {
         post:            this.initPostObject(post),
@@ -2016,6 +2053,13 @@ export class DbAdapter {
         likes:           [],
         omittedLikes:    0,
       };
+      results[post.uid].post.commentLikes = 0;
+      results[post.uid].post.ownCommentLikes = 0;
+      const commentLikesForPost = postsCommentLikes.find((el) => el.uid === post.uid);
+      if (commentLikesForPost) {
+        results[post.uid].post.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
+        results[post.uid].post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
+      }
     }
 
     for (const dest of destData) {
@@ -2037,8 +2081,37 @@ export class DbAdapter {
         comm.hide_type = Comment.HIDDEN_BANNED;
         comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
       }
-      results[comm.post_id].comments.push(this.initCommentObject(comm));
+
+      const comment = this.initCommentObject(comm);
+      comment.likes       = parseInt(comm.c_likes);
+      comment.hasOwnLike  = comm.has_own_like;
+      results[comm.post_id].comments.push(comment);
       results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
+
+      if (params.foldComments && results[comm.post_id].omittedComments > 0) {
+        let omittedCLikes = results[comm.post_id].post.hasOwnProperty('omittedCommentLikes') ?
+          results[comm.post_id].post.omittedCommentLikes :
+          results[comm.post_id].post.commentLikes;
+
+        let omittedOwnCLikes = results[comm.post_id].post.hasOwnProperty('omittedOwnCommentLikes') ?
+          results[comm.post_id].post.omittedOwnCommentLikes :
+          results[comm.post_id].post.ownCommentLikes;
+
+        omittedCLikes -= comment.likes;
+        omittedOwnCLikes -= comment.hasOwnLike ? 1 : 0;
+        results[comm.post_id].post.omittedCommentLikes = omittedCLikes;
+        results[comm.post_id].post.omittedOwnCommentLikes = omittedOwnCLikes;
+      } else {
+        results[comm.post_id].post.omittedCommentLikes = 0;
+        results[comm.post_id].post.omittedOwnCommentLikes = 0;
+      }
+    }
+
+    for (const post of postsData) {
+      if (!results[post.uid].post.hasOwnProperty('omittedCommentLikes')) {
+        results[post.uid].post.omittedCommentLikes = 0;
+        results[post.uid].post.omittedOwnCommentLikes = 0;
+      }
     }
 
     return postsIds.map((id) => results[id] || null);
@@ -2775,11 +2848,140 @@ export class DbAdapter {
     return res.id;
   }
 
-  async _getCommentIntIdByUUID(commentUUID) {
-    const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
-    if (!res) {
-      return null;
+  ///////////////////////////////////////////////////
+  // Comment likes
+  ///////////////////////////////////////////////////
+
+  async createCommentLike(commentUUID, likerUUID) {
+    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
+
+    const payload = {
+      comment_id: commentId,
+      user_id:    userId
+    };
+
+    await this.database('comment_likes').insert(payload);
+    return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
+  }
+
+  async _getCommentAndUserIntId(commentUUID, likerUUID) {
+    const [commentId, userId] = await Promise.all([
+      this._getCommentIntIdByUUID(commentUUID),
+      this._getUserIntIdByUUID(likerUUID),
+    ]);
+
+    return [commentId, userId];
+  }
+
+  async getCommentLikesWithoutBannedUsers(commentIntId, viewerUserUUID = null) {
+    let query = this.database
+      .select('users.uid as userId', 'comment_likes.created_at as createdAt')
+      .from('comment_likes')
+      .innerJoin('users', 'users.id', 'comment_likes.user_id')
+      .orderBy('comment_likes.created_at', 'desc')
+      .where('comment_likes.comment_id', commentIntId);
+
+    if (viewerUserUUID) {
+      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserUUID);
+      query = query.where('users.uid', 'not in', subquery);
     }
-    return res.id;
+    let commentLikesData = await query;
+
+    if (viewerUserUUID) {
+      commentLikesData = commentLikesData.sort((a, b) => {
+        if (a.userId == viewerUserUUID)
+          return -1;
+        if (b.userId == viewerUserUUID)
+          return 1;
+        return 0;
+      });
+    }
+    return commentLikesData;
+  }
+
+  async hasUserLikedComment(commentUUID, userUUID) {
+    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, userUUID);
+    const [{ 'count': res }] = await this.database('comment_likes').where({
+      comment_id: commentId,
+      user_id:    userId
+    }).count();
+    return parseInt(res) != 0;
+  }
+
+  async deleteCommentLike(commentUUID, likerUUID) {
+    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
+
+    await this.database('comment_likes').where({
+      comment_id: commentId,
+      user_id:    userId
+    }).delete();
+    return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
+  }
+
+  async getLikesInfoForComments(commentsUUIDs, viewerUUID) {
+    if (_.isEmpty(commentsUUIDs)) {
+      return [];
+    }
+
+    const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
+    const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
+    }
+
+    const commentLikesSQL = pgFormat(`
+      select uid,
+            (select coalesce(count(*), '0') from comment_likes cl
+              where cl.comment_id = comments.id
+                and cl.user_id not in (select id from users where uid in (%L))
+            ) as c_likes,
+            (select count(*) = 1 from comment_likes cl
+              where cl.comment_id = comments.id
+                and cl.user_id = %L
+            ) as has_own_like
+      from comments
+      where uid in (%L) and user_id not in (%L)`,
+    bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds);
+
+    const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
+    return commentLikes;
+  }
+
+  async getLikesInfoForPosts(postsUUIDs, viewerUUID) {
+    if (_.isEmpty(postsUUIDs)) {
+      return [];
+    }
+
+    const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
+    const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+
+    if (bannedUsersIds.length === 0) {
+      bannedUsersIds.push(unexistedUID);
+    }
+
+    const commentLikesSQL = pgFormat(`
+      select  p.uid,
+              (select count(cl.*)
+                from comment_likes cl join comments c
+                  on c.id = cl.comment_id
+                where c.post_id = p.uid and
+                      c.user_id not in (%L) and
+                      cl.user_id not in (select id from users where uid in (%L))
+              ) as post_c_likes_count,
+              (select count(cl.*)
+                from comment_likes cl join comments c
+                  on c.id = cl.comment_id
+                where c.post_id = p.uid and
+                      c.user_id not in (%L) and
+                      cl.user_id = %L
+              ) as own_c_likes_count
+        from
+          posts p
+        where p.uid in (%L)`,
+      bannedUsersIds, bannedUsersIds, bannedUsersIds, viewerIntId, postsUUIDs);
+
+    const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
+    return postsCommentLikes;
   }
 }
