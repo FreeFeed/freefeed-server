@@ -552,6 +552,10 @@ export function createCommentAsync(userContext, postId, body) {
   return postJson('/v1/comments', { comment: { body, postId }, authToken: userContext.authToken })
 }
 
+export function updateCommentAsync(userContext, commentId, body) {
+  return postJson(`/v1/comments/${commentId}`, { comment: { body }, authToken: userContext.authToken, '_method': 'put' });
+}
+
 const getTimelineAsync = async (relativeUrl, userContext) => {
   let url = await apiUrl(relativeUrl)
 
@@ -766,6 +770,37 @@ export async function getUserEvents(userContext, eventTypes = null, limit = null
     '_method': 'get'
   });
   return await response.json();
+}
+
+// ************************
+// Comment likes
+// ************************
+
+export async function likeComment(commentId, likerContext = null) {
+  const headers = {} ;
+  if (likerContext) {
+    headers['X-Authentication-Token'] = likerContext.authToken;
+  }
+  const url = await apiUrl(`/v2/comments/${commentId}/like`);
+  return fetch(url, { method: 'POST', headers });
+}
+
+export async function unlikeComment(commentId, unlikerContext = null) {
+  const headers = {} ;
+  if (unlikerContext) {
+    headers['X-Authentication-Token'] = unlikerContext.authToken;
+  }
+  const url = await apiUrl(`/v2/comments/${commentId}/unlike`);
+  return fetch(url, { method: 'POST', headers });
+}
+
+export async function getCommentLikes(commentId, viewerContext = null) {
+  const headers = {} ;
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const url = await apiUrl(`/v2/comments/${commentId}/likes`);
+  return fetch(url, { method: 'GET', headers });
 }
 
 /**

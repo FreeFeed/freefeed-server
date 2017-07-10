@@ -164,7 +164,7 @@ export function addModel(dbAdapter) {
   Post.prototype.destroy = async function () {
     await dbAdapter.statsPostDeleted(this.userId, this.id)  // needs data in DB
 
-// remove all comments
+    // remove all comments
     const comments = await this.getComments()
     await Promise.all(comments.map((comment) => comment.destroy()))
 

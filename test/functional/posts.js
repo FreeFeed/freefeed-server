@@ -666,7 +666,7 @@ describe('PostsController', () => {
     describe('Interaction with banned user', () => {
       let postOfMars;
 
-      beforeEach(async() => {
+      beforeEach(async () => {
         postOfMars = await funcTestHelper.createAndReturnPost(marsCtx, 'I am mars!');
         await funcTestHelper.banUser(context, marsCtx);
       });

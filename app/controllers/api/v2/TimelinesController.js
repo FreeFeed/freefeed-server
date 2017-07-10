@@ -26,7 +26,7 @@ export default class TimelinesController {
       foundPosts.length = limit;
     }
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
-    const postsCollectionJson = await serializePostsCollection(postsObjects);
+    const postsCollectionJson = await serializePostsCollection(postsObjects, currentUserId);
 
     ctx.body = { ...postsCollectionJson, isLastPage };
   });
