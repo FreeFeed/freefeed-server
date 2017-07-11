@@ -14,7 +14,8 @@ import uuid from 'uuid'
 import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
-import { EventService, ALLOWED_EVENT_TYPES } from '../support/EventService'
+import { EventService } from '../support/EventService';
+import { ALLOWED_EVENT_TYPES } from '../support/EventTypes';
 
 
 aws.config.setPromisesDependency(Promise);

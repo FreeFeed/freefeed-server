@@ -2,7 +2,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
-import { ALLOWED_EVENT_TYPES } from '../../../support/EventService';
+import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 
 export default class UsersController {
   static async blockedByMe(ctx) {
