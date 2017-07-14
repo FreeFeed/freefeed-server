@@ -26,6 +26,7 @@ const USER_COLUMNS = {
   createdAt:              'created_at',
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
+  notificationsReadAt:    'notifications_read_at',
   isPrivate:              'is_private',
   isProtected:            'is_protected',
   isRestricted:           'is_restricted',
@@ -53,6 +54,11 @@ const USER_COLUMNS_MAPPING = {
     d.setTime(timestamp)
     return d.toISOString()
   },
+  notificationsReadAt: (timestamp) => {
+    const d = new Date();
+    d.setTime(timestamp);
+    return d.toISOString();
+  },
   isPrivate:           (is_private) => {return is_private === '1'},
   isProtected:         (is_protected) => {return is_protected === '1'},
   isRestricted:        (is_restricted) => {return is_restricted === '1'},
@@ -75,6 +81,7 @@ const USER_FIELDS = {
   created_at:                'createdAt',
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
+  notifications_read_at:     'notificationsReadAt',
   is_private:                'isPrivate',
   is_protected:              'isProtected',
   is_restricted:             'isRestricted',
@@ -522,6 +529,11 @@ export class DbAdapter {
     return this.initUserObject(attrs);
   }
 
+  async getFeedOwnersByUsernames(usernames) {
+    usernames = usernames.map((u) => u.toLowerCase());
+    const users = await this.database('users').whereIn('username', usernames);
+    return users.map(this.initUserObject);
+  }
 
   async getGroupById(id) {
     const user = await this.getFeedOwnerById(id)
@@ -2171,6 +2183,24 @@ export class DbAdapter {
     return res.rows[0].cnt > 0;
   }
 
+  async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {
+    if (userIds.length === 0 || timelineIds.length === 0) {
+      return [];
+    }
+
+    const q = pgFormat(`
+      SELECT users.uid, (
+        SELECT COUNT(*) > 0 FROM "subscriptions"
+        WHERE "user_id"= users.uid
+          and "feed_id" IN (%L)
+      ) as is_subscribed FROM users
+      WHERE users.uid IN (%L)
+    `, timelineIds, userIds);
+    const res = await this.database.raw(q);
+
+    return res.rows;
+  }
+
   async getTimelineSubscribersIds(timelineId) {
     return await this.database('subscriptions').pluck('user_id').orderBy('created_at', 'desc').where('feed_id', timelineId)
   }
@@ -2728,7 +2758,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
   async getStats(data, start_date, end_date) {
     const supported_metrics = ['comments', 'comments_creates', 'posts', 'posts_creates', 'users', 'registrations',
-      'active_users', 'likes', 'likes_creates', 'groups', 'groups_creates'];
+      'active_users', 'likes', 'likes_creates', 'comment_likes', 'comment_likes_creates', 'groups', 'groups_creates'];
 
     const metrics = data.split(',').sort();
 
@@ -2983,5 +3013,32 @@ export class DbAdapter {
 
     const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
     return postsCommentLikes;
+  }
+
+  ///////////////////////////////////////////////////
+  // Unread events counter
+  ///////////////////////////////////////////////////
+
+  async markAllEventsAsRead(userId) {
+    const currentTime = new Date().toISOString();
+
+    const payload = { notifications_read_at: currentTime };
+
+    await this.cacheFlushUser(userId);
+    return this.database('users').where('uid', userId).update(payload);
+  }
+
+  async getUnreadEventsNumber(userId, eventTypes) {
+    const user = await this.getUserById(userId);
+    const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
+
+    const res = await this.database('events')
+      .where('user_id', user.intId)
+      .whereIn('event_type', eventTypes)
+      .where('created_at', '>=', notificationsLastReadTime)
+      .count();
+
+
+    return parseInt(res[0].count, 10) || 0;
   }
 }

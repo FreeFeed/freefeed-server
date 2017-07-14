@@ -26,13 +26,31 @@ async function main() {
     process.stdout.write(`Processing clikes: ${parseInt(i) + 1} of ${clikesCount}\r`);
     const [commentId, userId] = await dbAdapter._getCommentAndUserIntId(clike.comment_id, clike.user_id);
 
+    if (!commentId) {
+      process.stderr.write(`Can't find comment "${clike.comment_id}": SKIP\n`);
+      continue;
+    }
+
+    if (!userId) {
+      process.stderr.write(`Can't find user "${clike.user_id}": SKIP\n`);
+      continue;
+    }
+
     const payload = {
       comment_id: commentId,
       user_id:    userId,
       created_at: clike.date
     };
 
-    await postgres('comment_likes').insert(payload);
+    try {
+      await postgres('comment_likes').insert(payload);
+    } catch (e) {
+      if (e.message.includes('duplicate key value')) {
+        continue;
+      }
+
+      throw e;
+    }
   }
   process.stdout.write(`\n`);
 }

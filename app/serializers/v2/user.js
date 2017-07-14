@@ -33,10 +33,12 @@ export async function serializeSelfUser(user) {
   [
     result.banIds,
     result.unreadDirectsNumber,
+    result.unreadNotificationsNumber,
     result.statistics,
   ] = await Promise.all([
     user.getBanIds(),
     user.getUnreadDirectsNumber(),
+    user.getUnreadNotificationsNumber(),
     user.getStatistics(),
   ]);
 

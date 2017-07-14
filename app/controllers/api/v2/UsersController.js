@@ -2,6 +2,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
+import { ALLOWED_EVENT_TYPES } from '../../../support/EventService';
 
 export default class UsersController {
   static async blockedByMe(ctx) {
@@ -39,6 +40,17 @@ export default class UsersController {
     }
   }
 
+  static async getUnreadNotificationsNumber(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 403;
+      ctx.body = { err: 'Unauthorized' };
+      return;
+    }
+
+    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(ctx.state.user.id, ALLOWED_EVENT_TYPES);
+    ctx.body = { unread: unreadNotificationsNumber };
+  }
+
   static async markAllDirectsAsRead(ctx) {
     if (!ctx.state.user) {
       ctx.status = 401;
@@ -48,6 +60,17 @@ export default class UsersController {
 
     await dbAdapter.markAllDirectsAsRead(ctx.state.user.id)
     ctx.body = { message: `Directs are now marked as read for ${ctx.state.user.id}` };
+  }
+
+  static async markAllNotificationsAsRead(ctx) {
+    if (!ctx.state.user) {
+      ctx.status = 403;
+      ctx.body = { err: 'Unauthorized' };
+      return;
+    }
+
+    await dbAdapter.markAllEventsAsRead(ctx.state.user.id);
+    ctx.body = { message: `Notifications are now marked as read for ${ctx.state.user.id}` };
   }
 
   static async whoAmI(ctx) {
