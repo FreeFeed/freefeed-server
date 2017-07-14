@@ -26,6 +26,7 @@ const USER_COLUMNS = {
   createdAt:              'created_at',
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
+  notificationsReadAt:    'notifications_read_at',
   isPrivate:              'is_private',
   isProtected:            'is_protected',
   isRestricted:           'is_restricted',
@@ -53,6 +54,11 @@ const USER_COLUMNS_MAPPING = {
     d.setTime(timestamp)
     return d.toISOString()
   },
+  notificationsReadAt: (timestamp) => {
+    const d = new Date();
+    d.setTime(timestamp);
+    return d.toISOString();
+  },
   isPrivate:           (is_private) => {return is_private === '1'},
   isProtected:         (is_protected) => {return is_protected === '1'},
   isRestricted:        (is_restricted) => {return is_restricted === '1'},
@@ -75,6 +81,7 @@ const USER_FIELDS = {
   created_at:                'createdAt',
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
+  notifications_read_at:     'notificationsReadAt',
   is_private:                'isPrivate',
   is_protected:              'isProtected',
   is_restricted:             'isRestricted',
@@ -2983,5 +2990,32 @@ export class DbAdapter {
 
     const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
     return postsCommentLikes;
+  }
+
+  ///////////////////////////////////////////////////
+  // Unread events counter
+  ///////////////////////////////////////////////////
+
+  async markAllEventsAsRead(userId) {
+    const currentTime = new Date().toISOString();
+
+    const payload = { notifications_read_at: currentTime };
+
+    await this.cacheFlushUser(userId);
+    return this.database('users').where('uid', userId).update(payload);
+  }
+
+  async getUnreadEventsNumber(userId, eventTypes) {
+    const user = await this.getUserById(userId);
+    const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
+
+    const res = await this.database('events')
+      .where('user_id', user.intId)
+      .whereIn('event_type', eventTypes)
+      .where('created_at', '>=', notificationsLastReadTime)
+      .count();
+
+
+    return parseInt(res[0].count, 10) || 0;
   }
 }

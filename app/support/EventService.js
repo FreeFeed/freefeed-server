@@ -32,6 +32,9 @@ export const EVENT_TYPES = {
   MANAGED_GROUP_SUBSCRIPTION_REJECTED: 'managed_group_subscription_rejected',
 };
 
+export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user'];
+export const ALLOWED_EVENT_TYPES = _.difference(_.values(EVENT_TYPES), INVISIBLE_EVENT_TYPES);
+
 export class EventService {
   static async onUserBanned(initiatorIntId, bannedUserIntId, wasSubscribed = false, hasRequestedSubscription = false) {
     await dbAdapter.createEvent(initiatorIntId, EVENT_TYPES.USER_BANNED, initiatorIntId, bannedUserIntId);
