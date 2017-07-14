@@ -138,21 +138,22 @@ export class EventService {
   }
 
   static async onPostCreated(post, destinationFeedIds, author) {
-    await this._processDirectMessagesForPost(post, destinationFeedIds, author);
-    await this._processMentionsInPost(post, destinationFeedIds, author);
+    const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
+    await this._processDirectMessagesForPost(post, destinationFeeds, author);
+    await this._processMentionsInPost(post, destinationFeeds, author);
   }
 
-  static async onCommentCreated(comment, post, commentAuthor, postAuthor) {
-    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor);
-    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor);
+  static async onCommentCreated(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
+    const postDestinationFeeds = await post.getPostedTo();
+    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds);
+    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds);
   }
 
 
   ////////////////////////////////////////////
 
-  static async _processDirectMessagesForPost(post, destinationFeedIds, author) {
-    const feeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
-    const directFeeds = feeds.filter((f) => {
+  static async _processDirectMessagesForPost(post, destinationFeeds, author) {
+    const directFeeds = destinationFeeds.filter((f) => {
       return f.isDirects() && f.userId !== author.id;
     });
 
@@ -169,20 +170,37 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInPost(post, destinationFeedIds, author) {
+  static async _processMentionsInPost(post, destinationFeeds, author) {
     const mentionedUsernames = _.uniq(extractMentions(post.body));
+
+    if (mentionedUsernames.length === 0) {
+      return;
+    }
+
     let postGroupIntId = null;
-    if (destinationFeedIds.length === 1) {
-      const postFeed = await dbAdapter.getTimelineById(destinationFeedIds[0]);
+    if (destinationFeeds.length === 1) {
+      const postFeed = destinationFeeds[0];
       const feedOwner = await postFeed.getUser();
       if (feedOwner.type === 'group') {
         postGroupIntId = feedOwner.intId;
       }
     }
 
+    const postDestinationsFeedsOwners = destinationFeeds.map((f) => f.userId);
+    const nonDirectFeeds = destinationFeeds.filter((f) => !f.isDirects());
+    const nonDirectFeedsIds = nonDirectFeeds.map((f) => f.id);
+    const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
+    const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
+
     const usersBannedByPostAuthor = await author.getBanIds();
-    const promises = mentionedUsernames.map(async (username) => {
-      const user = await dbAdapter.getFeedOwnerByUsername(username);
+    const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentionedUsernames);
+
+    let usersSubscriptionsStatus = [];
+    if (!postIsPublic) {
+      usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(mentionedUsers.map((u) => u.id), nonDirectFeedsIds);
+    }
+
+    const promises = mentionedUsers.map(async (user) => {
       if (!user || user.type !== 'user') {
         return null;
       }
@@ -200,9 +218,17 @@ export class EventService {
         return null;
       }
 
-      const isVisible = await post.canShow(user.id);
-      if (!isVisible) {
-        return null;
+      if (!postDestinationsFeedsOwners.includes(user.id)) {
+        if (nonDirectFeeds.length === 0) {
+          return null;
+        }
+
+        if (!postIsPublic) {
+          const subscriptionStatus = usersSubscriptionsStatus.find((u) => u.uid === user.id);
+          if (!subscriptionStatus.is_subscribed) {
+            return null;
+          }
+        }
       }
 
       return dbAdapter.createEvent(user.intId, EVENT_TYPES.MENTION_IN_POST, author.intId, user.intId, postGroupIntId, post.id, null, author.intId);
@@ -210,8 +236,8 @@ export class EventService {
     await Promise.all(promises);
   }
 
-  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor) {
-    const feeds = await post.getPostedTo();
+  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds) {
+    const feeds = postDestinationFeeds;
     const directFeeds = feeds.filter((f) => {
       return f.isDirects() && f.userId !== commentAuthor.id;
     });
@@ -223,13 +249,18 @@ export class EventService {
 
       let directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
 
-      const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
       directReceivers = directReceivers.filter((r) => {
         return !usersBannedByCommentAuthor.includes(r.id);
       });
 
       const promises = directReceivers.map(async (receiver) => {
-        const usersBannedByReceiver = await receiver.getBanIds();
+        let usersBannedByReceiver = [];
+        if (receiver.id === commentAuthor.id) {
+          usersBannedByReceiver = usersBannedByCommentAuthor;
+        } else {
+          usersBannedByReceiver = receiver.id === postAuthor.id ? usersBannedByPostAuthor : (await receiver.getBanIds());
+        }
+
         if (usersBannedByReceiver.includes(commentAuthor.id)) {
           return null;
         }
@@ -239,7 +270,7 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor) {
+  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds) {
     let mentions = extractMentionsWithIndices(comment.body);
 
     if (mentions.length == 0) {
@@ -247,13 +278,19 @@ export class EventService {
     }
 
     let  postGroupIntId = null;
-    const feeds = await post.getPostedTo();
+    const feeds = postDestinationFeeds;
     if (feeds.length === 1) {
       const feedOwner = await feeds[0].getUser();
       if (feedOwner.type === 'group') {
         postGroupIntId = feedOwner.intId;
       }
     }
+
+    const postDestinationsFeedsOwners = feeds.map((f) => f.userId);
+    const nonDirectFeeds = feeds.filter((f) => !f.isDirects());
+    const nonDirectFeedsIds = nonDirectFeeds.map((f) => f.id);
+    const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
+    const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
 
     const replyToUser = mentions.find((m) => { return m.indices[0] === 0; });
 
@@ -262,12 +299,13 @@ export class EventService {
     }
     mentions = _.uniqBy(mentions, 'username');
 
-    const usersBannedByPostAuthor = await postAuthor.getBanIds();
-    const usersBannedByCommentAuthor = await commentAuthor.getBanIds();
-
+    const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentions.map((m) => m.username));
+    let usersSubscriptionsStatus = [];
+    if (!postIsPublic) {
+      usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(mentionedUsers.map((u) => u.id), nonDirectFeedsIds);
+    }
     const promises = mentions.map(async (m) => {
-      const username = m.username;
-      const mentionedUser = await dbAdapter.getFeedOwnerByUsername(username);
+      const mentionedUser = mentionedUsers.find((u) => u.username === m.username);
       if (!mentionedUser || mentionedUser.type !== 'user') {
         return null;
       }
@@ -285,9 +323,17 @@ export class EventService {
         return null;
       }
 
-      const isVisible = await post.canShow(mentionedUser.id);
-      if (!isVisible) {
-        return null;
+      if (!postDestinationsFeedsOwners.includes(mentionedUser.id)) {
+        if (nonDirectFeeds.length === 0) {
+          return null;
+        }
+
+        if (!postIsPublic) {
+          const subscriptionStatus = usersSubscriptionsStatus.find((u) => u.uid === mentionedUser.id);
+          if (!subscriptionStatus.is_subscribed) {
+            return null;
+          }
+        }
       }
 
       if (m.indices[0] === 0) {

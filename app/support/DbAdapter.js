@@ -529,6 +529,11 @@ export class DbAdapter {
     return this.initUserObject(attrs);
   }
 
+  async getFeedOwnersByUsernames(usernames) {
+    usernames = usernames.map((u) => u.toLowerCase());
+    const users = await this.database('users').whereIn('username', usernames);
+    return users.map(this.initUserObject);
+  }
 
   async getGroupById(id) {
     const user = await this.getFeedOwnerById(id)
@@ -2176,6 +2181,24 @@ export class DbAdapter {
     const res = await this.database.raw(q, [currentUserId]);
 
     return res.rows[0].cnt > 0;
+  }
+
+  async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {
+    if (userIds.length === 0 || timelineIds.length === 0) {
+      return [];
+    }
+
+    const q = pgFormat(`
+      SELECT users.uid, (
+        SELECT COUNT(*) > 0 FROM "subscriptions"
+        WHERE "user_id"= users.uid
+          and "feed_id" IN (%L)
+      ) as is_subscribed FROM users
+      WHERE users.uid IN (%L)
+    `, timelineIds, userIds);
+    const res = await this.database.raw(q);
+
+    return res.rows;
   }
 
   async getTimelineSubscribersIds(timelineId) {
