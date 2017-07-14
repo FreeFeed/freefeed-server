@@ -43,6 +43,8 @@ async function get_next_metric_update_date(metric) {
       break;
     case 'comments':
     case 'comments_creates':
+    case 'comment_likes':
+    case 'comment_likes_creates':
       data_type = 'comments';
       break;
     default:
@@ -143,6 +145,21 @@ async function main() {
 
     const sql = pgFormat(`
         select count (distinct id) from likes where date_trunc('day',created_at) = %L`, day);
+
+    const res = await postgres.raw(sql);
+    return res.rows[0].count;
+  });
+
+  await create_metric('comment_likes', to_date, async (dt, next_date) => {
+    const res = await postgres('comment_likes').count('id').where('created_at', '<', next_date).first();
+    return res.count;
+  });
+
+  await create_metric('comment_likes_creates', to_date, async (dt) => {
+    const day = dt.format(`YYYY-MM-DD`)
+
+    const sql = pgFormat(`
+        select count (distinct id) from comment_likes where date_trunc('day',created_at) = %L`, day);
 
     const res = await postgres.raw(sql);
     return res.rows[0].count;
