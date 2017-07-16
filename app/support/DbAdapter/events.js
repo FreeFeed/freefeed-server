@@ -1,4 +1,4 @@
-import { ALLOWED_EVENT_TYPES } from '../EventTypes';
+import { COUNTABLE_EVENT_TYPES } from '../EventTypes';
 
 ///////////////////////////////////////////////////
 // Events
@@ -85,7 +85,7 @@ const eventsTrait = (superClass) => class extends superClass {
 
     const res = await this.database('events')
       .where('user_id', user.intId)
-      .whereIn('event_type', ALLOWED_EVENT_TYPES)
+      .whereIn('event_type', COUNTABLE_EVENT_TYPES)
       .where('created_at', '>=', notificationsLastReadTime)
       .count();
 

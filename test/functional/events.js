@@ -1822,7 +1822,7 @@ describe('Unread events counter', () => {
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_by_user' });
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_by_user' });
     const count = await getUnreadEventsCountFromWhoAmI(luna);
-    expect(count, 'to be', 2);
+    expect(count, 'to be', 0);
   });
 
   it('should count allowed event types', async () => {
