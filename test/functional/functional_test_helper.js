@@ -926,3 +926,16 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
   }
   return feed;
 }
+
+/**
+ * Returns checker for the should.satisfy that checks
+ * that the given object has not property `name` or
+ * this property is an empty array.
+ * 
+ * @param {String} name 
+ */
+export function noFieldOrEmptyArray(name) {
+  return function (obj) {
+    return !(name in obj) || _.isArray(obj[name]) && obj[name].length === 0;
+  };
+}
