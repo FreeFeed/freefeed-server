@@ -459,7 +459,7 @@ describe('UsersController', () => {
             .end((err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
-              res.body.timelines.should.not.have.property('posts')
+              res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'));
 
               request
                 .post(`${app.context.config.host}/v1/users/${userA.username}/unsubscribe`)
@@ -1250,7 +1250,7 @@ describe('UsersController', () => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 const post = res.body.posts[0]
-                post.should.not.have.property('comments')
+                post.should.satisfy(funcTestHelper.noFieldOrEmptyArray('comments'))
 
                 // Zeus should not see comments in single-post view either
                 request
@@ -1288,7 +1288,7 @@ describe('UsersController', () => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   const post = res.body.posts[0]
-                  post.should.not.have.property('likes')
+                  post.should.satisfy(funcTestHelper.noFieldOrEmptyArray('likes'))
 
                   // Zeus should not see likes in single-post view either
                   request
@@ -1297,7 +1297,7 @@ describe('UsersController', () => {
                     .end((err, res) => {
                       res.body.should.not.be.empty
                       res.body.should.have.property('posts')
-                      res.body.posts.should.not.have.property('likes')
+                      res.body.posts.should.satisfy(funcTestHelper.noFieldOrEmptyArray('likes'))
                       done()
                     })
                 })
@@ -1326,7 +1326,7 @@ describe('UsersController', () => {
                   res.body.should.not.be.empty
                   funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
                     res.body.should.not.be.empty
-                    res.body.should.not.have.property('posts')
+                    res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                     done()
                   })
                 })
@@ -1352,7 +1352,7 @@ describe('UsersController', () => {
               // Now Mars doesn't see post in his timeline
               funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
-                res.body.should.not.have.property('posts')
+                res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
 
                 // Mars should not see the post in single-post view either
                 request

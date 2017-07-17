@@ -358,8 +358,8 @@ describe('Privates', () => {
                             res.body.should.have.property('timelines')
                             res.body.timelines.should.have.property('name')
                             res.body.timelines.name.should.eql('RiverOfNews')
-                            res.body.timelines.should.not.have.property('posts')
-                            res.body.should.not.have.property('posts')
+                            res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
+                            res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                             done()
                           })
                         })
@@ -588,8 +588,8 @@ describe('Privates', () => {
             res.body.should.have.property('timelines')
             res.body.timelines.should.have.property('name')
             res.body.timelines.name.should.eql('RiverOfNews')
-            res.body.timelines.should.not.have.property('posts')
-            res.body.should.not.have.property('posts')
+            res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
+            res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
             done()
           })
         })
@@ -770,7 +770,7 @@ describe('Privates', () => {
           funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
             done()
           })
         })
@@ -884,7 +884,7 @@ describe('Privates', () => {
           funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
             done()
           })
         })
