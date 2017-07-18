@@ -54,7 +54,7 @@ describe('MutualFriends', () => {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
                   res.body.timelines.name.should.eql('RiverOfNews')
-                  res.body.should.not.have.property('posts')
+                  res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                   done()
                 })
               })
@@ -105,7 +105,7 @@ describe('MutualFriends', () => {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
                   res.body.timelines.name.should.eql('RiverOfNews')
-                  res.body.should.not.have.property('posts')
+                  res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                   done()
                 } catch (e) {
                   done(e)

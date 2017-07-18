@@ -135,6 +135,7 @@ describe('UsersControllerV2', () => {
         pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
         subscriptionRequests:        expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
         unreadDirectsNumber:         expect.it('to be a string').and('to match', /^\d+$/),
+        unreadNotificationsNumber:   expect.it('to be a number'),
         subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
         subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
       };

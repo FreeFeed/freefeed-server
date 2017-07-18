@@ -772,6 +772,22 @@ export async function getUserEvents(userContext, eventTypes = null, limit = null
   return await response.json();
 }
 
+export async function getUnreadNotificationsNumber(user) {
+  const response = await postJson('/v2/users/getUnreadNotificationsNumber', {
+    authToken: user.authToken,
+    '_method': 'get'
+  });
+  return response;
+}
+
+export async function markAllNotificationsAsRead(user) {
+  const response = await postJson('/v2/users/markAllNotificationsAsRead', {
+    authToken: user.authToken,
+    '_method': 'post'
+  });
+  return response;
+}
+
 // ************************
 // Comment likes
 // ************************
@@ -795,7 +811,7 @@ export async function unlikeComment(commentId, unlikerContext = null) {
 }
 
 export async function getCommentLikes(commentId, viewerContext = null) {
-  const headers = {} ;
+  const headers = {};
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
@@ -909,4 +925,17 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
     expect(feed, 'to exhaustively satisfy', schema.timelineResponse);
   }
   return feed;
+}
+
+/**
+ * Returns checker for the should.satisfy that checks
+ * that the given object has not property `name` or
+ * this property is an empty array.
+ * 
+ * @param {String} name 
+ */
+export function noFieldOrEmptyArray(name) {
+  return function (obj) {
+    return !(name in obj) || _.isArray(obj[name]) && obj[name].length === 0;
+  };
 }

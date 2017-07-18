@@ -26,6 +26,7 @@ const USER_COLUMNS = {
   createdAt:              'created_at',
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
+  notificationsReadAt:    'notifications_read_at',
   isPrivate:              'is_private',
   isProtected:            'is_protected',
   isRestricted:           'is_restricted',
@@ -53,6 +54,11 @@ const USER_COLUMNS_MAPPING = {
     d.setTime(timestamp)
     return d.toISOString()
   },
+  notificationsReadAt: (timestamp) => {
+    const d = new Date();
+    d.setTime(timestamp);
+    return d.toISOString();
+  },
   isPrivate:           (is_private) => {return is_private === '1'},
   isProtected:         (is_protected) => {return is_protected === '1'},
   isRestricted:        (is_restricted) => {return is_restricted === '1'},
@@ -75,6 +81,7 @@ const USER_FIELDS = {
   created_at:                'createdAt',
   updated_at:                'updatedAt',
   directs_read_at:           'directsReadAt',
+  notifications_read_at:     'notificationsReadAt',
   is_private:                'isPrivate',
   is_protected:              'isProtected',
   is_restricted:             'isRestricted',
@@ -522,6 +529,11 @@ export class DbAdapter {
     return this.initUserObject(attrs);
   }
 
+  async getFeedOwnersByUsernames(usernames) {
+    usernames = usernames.map((u) => u.toLowerCase());
+    const users = await this.database('users').whereIn('username', usernames);
+    return users.map(this.initUserObject);
+  }
 
   async getGroupById(id) {
     const user = await this.getFeedOwnerById(id)
@@ -1760,10 +1772,6 @@ export class DbAdapter {
       }
     }
 
-    if (bannedUsersIds.length === 0) {
-      bannedUsersIds.push(unexistedUID);
-    }
-
     const createdAtParts = [];
     if (params.createdBefore) {
       createdAtParts.push(pgFormat('p.created_at < %L', params.createdBefore));
@@ -1772,50 +1780,107 @@ export class DbAdapter {
       createdAtParts.push(pgFormat('p.created_at > %L', params.createdAfter));
     }
     const createdAtSQL = createdAtParts.length === 0 ? 'true' : createdAtParts.join(' and ');
+    const privacyCondition = viewerId ?
+      pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`)
+      : 'not p.is_protected';
+    const bansSQL = bannedUsersIds.length > 0 ?
+      pgFormat(`(not p.user_id in (%L))`, bannedUsersIds)
+      : 'true';
 
-    let sql;
-    if (params.withLocalBumps) {
-      sql = pgFormat(
-        `
-        select p.uid
-        from 
-          posts p
-          left join local_bumps b on p.uid = b.post_id and b.user_id = %L
-        where
-          (p.feed_ids && %L or ${myPostsSQL})
-          and not p.user_id in (%L)  -- bans
-          and (not p.is_private or p.destination_feed_ids && %L)  -- privates
-          and ${noDirectsSQL}
-          and ${createdAtSQL}
-        order by
-          greatest(p.bumped_at, b.created_at) desc
-        limit %L offset %L`,
-        viewerId,
-        `{${timelineIntIds.join(',')}}
-        `,
-        bannedUsersIds,
-        `{${visiblePrivateFeedIntIds.join(',')}}`,
-        params.limit,
-        params.offset
-      );
-    } else {
-      const privacyCondition = viewerId ? pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) : 'not p.is_protected';
-      sql = pgFormat(`
+    const restrictionsSQL = [bansSQL, privacyCondition, noDirectsSQL, createdAtSQL].join(' and ');
+
+    const maxOffsetWithLocalBumps = 1000;
+
+    if (!params.withLocalBumps || params.offset > maxOffsetWithLocalBumps) {
+      // without local bumps
+      const sql = pgFormat(`
         select p.uid
         from 
           posts p
         where
           (p.feed_ids && %L or ${myPostsSQL})
-          and not p.user_id in (%L)  -- bans
-          and ${privacyCondition}
-          and ${noDirectsSQL}
-          and ${createdAtSQL}
+          and ${restrictionsSQL}
         order by
           p.%I desc
         limit %L offset %L
-      `, `{${timelineIntIds.join(',')}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
+      `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+      return (await this.database.raw(sql)).rows.map((r) => r.uid);
     }
-    return (await this.database.raw(sql)).rows.map((r) => r.uid);
+
+    // with local bumps
+    const fullCount = params.limit + params.offset;
+    const postsSQL = pgFormat(`
+        select p.uid, p.bumped_at as date
+        from 
+          posts p
+        where
+          (p.feed_ids && %L or ${myPostsSQL})
+          and ${restrictionsSQL}
+        order by
+          p.bumped_at desc
+        limit %L
+    `, `{${timelineIntIds.join(',')}}`, fullCount);
+    const localBumpsSQL = pgFormat(`
+        select b.post_id as uid, b.created_at as date
+        from
+          local_bumps b
+          join posts p on p.uid = b.post_id and b.user_id = %L
+        where
+          (p.feed_ids && %L or ${myPostsSQL})
+          and ${restrictionsSQL}
+        order by b.created_at desc
+        limit %L
+    `, viewerId, `{${timelineIntIds.join(',')}}`, fullCount);
+
+    const [
+      { rows: postsData },
+      { rows: localBumpsData },
+    ] = await Promise.all([
+      this.database.raw(postsSQL),
+      this.database.raw(localBumpsSQL),
+    ]);
+
+    // merge these two sorted arrays
+    const result = [];
+    {
+      const idsCounted = new Set();
+      let i = 0, j = 0;
+      while (i < postsData.length && j < localBumpsData.length) {
+        if (postsData[i].date > localBumpsData[j].date) {
+          const { uid } = postsData[i];
+          if (!idsCounted.has(uid)) {
+            result.push(uid);
+            idsCounted.add(uid);
+          }
+          i++;
+        } else {
+          const { uid } = localBumpsData[j];
+          if (!idsCounted.has(uid)) {
+            result.push(uid);
+            idsCounted.add(uid);
+          }
+          j++;
+        }
+      }
+      while (i < postsData.length) {
+        const { uid } = postsData[i];
+        if (!idsCounted.has(uid)) {
+          result.push(uid);
+          idsCounted.add(uid);
+        }
+        i++;
+      }
+      while (j < localBumpsData.length) {
+        const { uid } = localBumpsData[j];
+        if (!idsCounted.has(uid)) {
+          result.push(uid);
+          idsCounted.add(uid);
+        }
+        j++;
+      }
+    }
+
+    return result.slice(params.offset, fullCount);
   }
 
   // merges posts from "source" into "destination"
@@ -2169,6 +2234,24 @@ export class DbAdapter {
     const res = await this.database.raw(q, [currentUserId]);
 
     return res.rows[0].cnt > 0;
+  }
+
+  async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {
+    if (userIds.length === 0 || timelineIds.length === 0) {
+      return [];
+    }
+
+    const q = pgFormat(`
+      SELECT users.uid, (
+        SELECT COUNT(*) > 0 FROM "subscriptions"
+        WHERE "user_id"= users.uid
+          and "feed_id" IN (%L)
+      ) as is_subscribed FROM users
+      WHERE users.uid IN (%L)
+    `, timelineIds, userIds);
+    const res = await this.database.raw(q);
+
+    return res.rows;
   }
 
   async getTimelineSubscribersIds(timelineId) {
@@ -2728,7 +2811,7 @@ export class DbAdapter {
   ///////////////////////////////////////////////////
   async getStats(data, start_date, end_date) {
     const supported_metrics = ['comments', 'comments_creates', 'posts', 'posts_creates', 'users', 'registrations',
-      'active_users', 'likes', 'likes_creates', 'groups', 'groups_creates'];
+      'active_users', 'likes', 'likes_creates', 'comment_likes', 'comment_likes_creates', 'groups', 'groups_creates'];
 
     const metrics = data.split(',').sort();
 
@@ -2983,5 +3066,32 @@ export class DbAdapter {
 
     const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
     return postsCommentLikes;
+  }
+
+  ///////////////////////////////////////////////////
+  // Unread events counter
+  ///////////////////////////////////////////////////
+
+  async markAllEventsAsRead(userId) {
+    const currentTime = new Date().toISOString();
+
+    const payload = { notifications_read_at: currentTime };
+
+    await this.cacheFlushUser(userId);
+    return this.database('users').where('uid', userId).update(payload);
+  }
+
+  async getUnreadEventsNumber(userId, eventTypes) {
+    const user = await this.getUserById(userId);
+    const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
+
+    const res = await this.database('events')
+      .where('user_id', user.intId)
+      .whereIn('event_type', eventTypes)
+      .where('created_at', '>=', notificationsLastReadTime)
+      .count();
+
+
+    return parseInt(res[0].count, 10) || 0;
   }
 }
