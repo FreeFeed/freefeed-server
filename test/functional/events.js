@@ -1,5 +1,5 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import knexCleaner from 'knex-cleaner'
 import origExpect from 'unexpected';
 
@@ -1886,19 +1886,19 @@ describe('Unread events counter', () => {
   });
 });
 
-describe('111Unread events counter realtime updates for ', () => {
+describe('Unread events counter realtime updates for ', () => {
   before(async () => {
     await getSingleton();
     const pubsubAdapter = new PubSubAdapter($database);
     PubSub.setPublisher(pubsubAdapter);
   });
 
-  let luna, mars, lunaUserModel;
+  let luna, mars;
 
   const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => async (obj) => {
     expect(obj, 'to satisfy', {
       user: {
-        id: userId,
+        id:                        userId,
         unreadNotificationsNumber: unreadCount
       }
     });
@@ -1910,15 +1910,13 @@ describe('111Unread events counter realtime updates for ', () => {
       createUserAsync('luna', 'pw'),
       createUserAsync('mars', 'pw')
     ]);
-
-    [lunaUserModel] = await dbAdapter.getUsersByIds([luna.user.id]);
   });
 
   describe('user_subscribed event', () => {
     it('user should receive counter update', async () => {
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return subscribeToAsync(mars, luna);
         }
       );
@@ -1932,7 +1930,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await subscribeToAsync(mars, luna);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return unsubscribeFromAsync(mars, luna);
         }
       );
@@ -1945,7 +1943,7 @@ describe('111Unread events counter realtime updates for ', () => {
     it('user should not receive counter update', async () => {
       await expect(luna,
         'when subscribed to user', luna.user.id,
-        'not to get user:update event when called', (id) => {
+        'not to get user:update event when called', () => {
           return banUser(luna, mars);
         }
       );
@@ -1956,7 +1954,7 @@ describe('111Unread events counter realtime updates for ', () => {
     it('user should not receive counter update', async () => {
       await expect(luna,
         'when subscribed to user', luna.user.id,
-        'not to get user:update event when called', (id) => {
+        'not to get user:update event when called', () => {
           return banUser(mars, luna);
         }
       );
@@ -1968,7 +1966,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await banUser(luna, mars);
       await expect(luna,
         'when subscribed to user', luna.user.id,
-        'not to get user:update event when called', (id) => {
+        'not to get user:update event when called', () => {
           return unbanUser(luna, mars);
         }
       );
@@ -1980,7 +1978,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await banUser(mars, luna);
       await expect(luna,
         'when subscribed to user', luna.user.id,
-        'not to get user:update event when called', (id) => {
+        'not to get user:update event when called', () => {
           return unbanUser(mars, luna);
         }
       );
@@ -1992,7 +1990,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await goPrivate(luna);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return sendRequestToSubscribe(mars, luna);
         }
       );
@@ -2007,7 +2005,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToSubscribe(mars, luna);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return revokeSubscriptionRequest(mars, luna);
         }
       );
@@ -2022,7 +2020,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToSubscribe(luna, mars);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return acceptRequestAsync(mars, luna);
         }
       );
@@ -2037,7 +2035,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToSubscribe(luna, mars);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return rejectRequestAsync(mars, luna);
         }
       );
@@ -2050,7 +2048,7 @@ describe('111Unread events counter realtime updates for ', () => {
     it('user should not receive counter update', async () => {
       await expect(luna,
         'when subscribed to user', luna.user.id,
-        'not to get user:update event when called', (id) => {
+        'not to get user:update event when called', () => {
           return createGroupAsync(luna, 'events');
         }
       );
@@ -2062,7 +2060,7 @@ describe('111Unread events counter realtime updates for ', () => {
       const group = await createGroupAsync(luna, 'events');
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return subscribeToAsync(mars, group);
         }
       );
@@ -2077,7 +2075,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await subscribeToAsync(mars, group);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return unsubscribeFromAsync(mars, group);
         }
       );
@@ -2091,7 +2089,7 @@ describe('111Unread events counter realtime updates for ', () => {
       const group = await createGroupAsync(luna, 'events', 'Events Group', true);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return sendRequestToJoinGroup(mars, group);
         }
       );
@@ -2106,7 +2104,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToJoinGroup(mars, group);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return revokeSubscriptionRequest(mars, group);
         }
       );
@@ -2121,7 +2119,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToJoinGroup(luna, group);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return acceptRequestToJoinGroup(mars, luna, group);
         }
       );
@@ -2138,12 +2136,12 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToJoinGroup(mars, group);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return acceptRequestToJoinGroup(jupiter, mars, group);
         }
       );
 
-      /// TODO: check
+      // TODO: check
       expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(3, luna.user.id));
     });
   });
@@ -2154,7 +2152,7 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToJoinGroup(luna, group);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return rejectSubscriptionRequestToGroup(mars, luna, group);
         }
       );
@@ -2171,12 +2169,12 @@ describe('111Unread events counter realtime updates for ', () => {
       await sendRequestToJoinGroup(mars, group);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return rejectSubscriptionRequestToGroup(jupiter, mars, group);
         }
       );
 
-      /// TODO: check
+      // TODO: check
       expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(3, luna.user.id));
     });
   });
@@ -2188,12 +2186,12 @@ describe('111Unread events counter realtime updates for ', () => {
       await promoteToAdmin(group, luna, jupiter);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return promoteToAdmin(group, jupiter, mars);
         }
       );
 
-      /// TODO: check
+      // TODO: check
       expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
     });
   });
@@ -2206,12 +2204,12 @@ describe('111Unread events counter realtime updates for ', () => {
       await promoteToAdmin(group, jupiter, mars);
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return demoteFromAdmin(group, jupiter, mars);
         }
       );
 
-      /// TODO: check
+      // TODO: check
       expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(3, luna.user.id));
     });
   });
@@ -2220,7 +2218,7 @@ describe('111Unread events counter realtime updates for ', () => {
     it('user should receive counter update', async () => {
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return createAndReturnPostToFeed(mars, mars, 'Mentioning @luna');
         }
       );
@@ -2234,7 +2232,7 @@ describe('111Unread events counter realtime updates for ', () => {
       const post = await createAndReturnPostToFeed(luna, luna, 'Test post');
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return createCommentAsync(mars, post.id, 'Mentioning @luna');
         }
       );
@@ -2248,7 +2246,7 @@ describe('111Unread events counter realtime updates for ', () => {
       const post = await createAndReturnPostToFeed(luna, luna, 'Test post');
       const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', (id) => {
+        'to get user:update event when called', () => {
           return createCommentAsync(mars, post.id, '@luna hello!');
         }
       );

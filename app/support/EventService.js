@@ -80,6 +80,7 @@ export class EventService {
       if (adminUser.intId !== initiatorIntId) {
         await pubSub.updateUnreadNotifications(adminUser.intId);
       }
+      return null;
     });
   }
 
@@ -92,6 +93,7 @@ export class EventService {
       if (adminUser.intId !== initiatorIntId) {
         await pubSub.updateUnreadNotifications(adminUser.intId);
       }
+      return null;
     });
   }
 

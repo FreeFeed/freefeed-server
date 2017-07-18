@@ -80,7 +80,7 @@ export function installInto(expect) {
     name:     'method',
     base:     'function',
     identify: (m) => m !== null && typeof m === 'function',
-    inspect:  (method, depth, output, inspect) => output.text('method'),
+    inspect:  (method, depth, output) => output.text('method'),
   });
 
   // Pre-conditions
