@@ -121,10 +121,14 @@ export class EventService {
   }
 
   static async onGroupSubscriptionRequestRejected(adminIntId, group, requesterIntId) {
-    await this._notifyGroupAdmins(group, (adminUser) => {
-      return dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
+    await this._notifyGroupAdmins(group, async (adminUser) => {
+      await dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
+      if (adminUser.intId !== adminIntId) {
+        await pubSub.updateUnreadNotifications(adminUser.intId);
+      }
     });
     await dbAdapter.createEvent(requesterIntId, EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED, null, requesterIntId, group.intId);
+    return pubSub.updateUnreadNotifications(requesterIntId);
   }
 
   static async onPostCreated(post, destinationFeedIds, author) {
