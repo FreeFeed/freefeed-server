@@ -36,8 +36,8 @@ describe('TimelinesController', () => {
         res.body.should.have.property('timelines')
         res.body.timelines.should.have.property('name')
         res.body.timelines.name.should.eql('RiverOfNews')
-        res.body.timelines.should.not.have.property('posts')
-        res.body.should.not.have.property('posts')
+        res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'));
+        res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'));
         done()
       })
     })

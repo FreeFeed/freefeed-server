@@ -458,7 +458,7 @@ describe('PostsController', () => {
               .end((err, res) => {
                 res.status.should.eql(200)
                 funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
-                  res.body.should.not.have.property('posts')
+                  res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                   done()
                 })
               })
@@ -484,7 +484,7 @@ describe('PostsController', () => {
                   .send({ authToken: ctx.authToken })
                   .end(() => {
                     funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
-                      res.body.should.not.have.property('posts')
+                      res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                       done()
                     })
                   })

@@ -1772,10 +1772,6 @@ export class DbAdapter {
       }
     }
 
-    if (bannedUsersIds.length === 0) {
-      bannedUsersIds.push(unexistedUID);
-    }
-
     const createdAtParts = [];
     if (params.createdBefore) {
       createdAtParts.push(pgFormat('p.created_at < %L', params.createdBefore));
@@ -1784,50 +1780,107 @@ export class DbAdapter {
       createdAtParts.push(pgFormat('p.created_at > %L', params.createdAfter));
     }
     const createdAtSQL = createdAtParts.length === 0 ? 'true' : createdAtParts.join(' and ');
+    const privacyCondition = viewerId ?
+      pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`)
+      : 'not p.is_protected';
+    const bansSQL = bannedUsersIds.length > 0 ?
+      pgFormat(`(not p.user_id in (%L))`, bannedUsersIds)
+      : 'true';
 
-    let sql;
-    if (params.withLocalBumps) {
-      sql = pgFormat(
-        `
-        select p.uid
-        from 
-          posts p
-          left join local_bumps b on p.uid = b.post_id and b.user_id = %L
-        where
-          (p.feed_ids && %L or ${myPostsSQL})
-          and not p.user_id in (%L)  -- bans
-          and (not p.is_private or p.destination_feed_ids && %L)  -- privates
-          and ${noDirectsSQL}
-          and ${createdAtSQL}
-        order by
-          greatest(p.bumped_at, b.created_at) desc
-        limit %L offset %L`,
-        viewerId,
-        `{${timelineIntIds.join(',')}}
-        `,
-        bannedUsersIds,
-        `{${visiblePrivateFeedIntIds.join(',')}}`,
-        params.limit,
-        params.offset
-      );
-    } else {
-      const privacyCondition = viewerId ? pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`) : 'not p.is_protected';
-      sql = pgFormat(`
+    const restrictionsSQL = [bansSQL, privacyCondition, noDirectsSQL, createdAtSQL].join(' and ');
+
+    const maxOffsetWithLocalBumps = 1000;
+
+    if (!params.withLocalBumps || params.offset > maxOffsetWithLocalBumps) {
+      // without local bumps
+      const sql = pgFormat(`
         select p.uid
         from 
           posts p
         where
           (p.feed_ids && %L or ${myPostsSQL})
-          and not p.user_id in (%L)  -- bans
-          and ${privacyCondition}
-          and ${noDirectsSQL}
-          and ${createdAtSQL}
+          and ${restrictionsSQL}
         order by
           p.%I desc
         limit %L offset %L
-      `, `{${timelineIntIds.join(',')}}`, bannedUsersIds, `${params.sort}_at`, params.limit, params.offset);
+      `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+      return (await this.database.raw(sql)).rows.map((r) => r.uid);
     }
-    return (await this.database.raw(sql)).rows.map((r) => r.uid);
+
+    // with local bumps
+    const fullCount = params.limit + params.offset;
+    const postsSQL = pgFormat(`
+        select p.uid, p.bumped_at as date
+        from 
+          posts p
+        where
+          (p.feed_ids && %L or ${myPostsSQL})
+          and ${restrictionsSQL}
+        order by
+          p.bumped_at desc
+        limit %L
+    `, `{${timelineIntIds.join(',')}}`, fullCount);
+    const localBumpsSQL = pgFormat(`
+        select b.post_id as uid, b.created_at as date
+        from
+          local_bumps b
+          join posts p on p.uid = b.post_id and b.user_id = %L
+        where
+          (p.feed_ids && %L or ${myPostsSQL})
+          and ${restrictionsSQL}
+        order by b.created_at desc
+        limit %L
+    `, viewerId, `{${timelineIntIds.join(',')}}`, fullCount);
+
+    const [
+      { rows: postsData },
+      { rows: localBumpsData },
+    ] = await Promise.all([
+      this.database.raw(postsSQL),
+      this.database.raw(localBumpsSQL),
+    ]);
+
+    // merge these two sorted arrays
+    const result = [];
+    {
+      const idsCounted = new Set();
+      let i = 0, j = 0;
+      while (i < postsData.length && j < localBumpsData.length) {
+        if (postsData[i].date > localBumpsData[j].date) {
+          const { uid } = postsData[i];
+          if (!idsCounted.has(uid)) {
+            result.push(uid);
+            idsCounted.add(uid);
+          }
+          i++;
+        } else {
+          const { uid } = localBumpsData[j];
+          if (!idsCounted.has(uid)) {
+            result.push(uid);
+            idsCounted.add(uid);
+          }
+          j++;
+        }
+      }
+      while (i < postsData.length) {
+        const { uid } = postsData[i];
+        if (!idsCounted.has(uid)) {
+          result.push(uid);
+          idsCounted.add(uid);
+        }
+        i++;
+      }
+      while (j < localBumpsData.length) {
+        const { uid } = localBumpsData[j];
+        if (!idsCounted.has(uid)) {
+          result.push(uid);
+          idsCounted.add(uid);
+        }
+        j++;
+      }
+    }
+
+    return result.slice(params.offset, fullCount);
   }
 
   // merges posts from "source" into "destination"
