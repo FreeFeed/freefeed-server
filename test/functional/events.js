@@ -2141,8 +2141,7 @@ describe('Unread events counter realtime updates for ', () => {
         }
       );
 
-      // TODO: check
-      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(3, luna.user.id));
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
     });
   });
 
@@ -2174,8 +2173,7 @@ describe('Unread events counter realtime updates for ', () => {
         }
       );
 
-      // TODO: check
-      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(3, luna.user.id));
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
     });
   });
 
@@ -2191,8 +2189,7 @@ describe('Unread events counter realtime updates for ', () => {
         }
       );
 
-      // TODO: check
-      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
     });
   });
 
@@ -2209,8 +2206,7 @@ describe('Unread events counter realtime updates for ', () => {
         }
       );
 
-      // TODO: check
-      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(3, luna.user.id));
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
     });
   });
 

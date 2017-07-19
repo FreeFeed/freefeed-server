@@ -85,6 +85,7 @@ const eventsTrait = (superClass) => class extends superClass {
 
     const res = await this.database('events')
       .where('user_id', user.intId)
+      .whereRaw('("created_by_user_id" IS NULL OR "user_id" <> "created_by_user_id")')
       .whereIn('event_type', COUNTABLE_EVENT_TYPES)
       .where('created_at', '>=', notificationsLastReadTime)
       .count();
