@@ -234,11 +234,11 @@ export function addModel(dbAdapter) {
   }
 
   User.prototype.screenNameIsValid = function (screenName) {
-    if (!screenName) {
+    if (typeof screenName !== 'string') {
       return false
     }
 
-    const len = GraphemeBreaker.countBreaks(screenName)
+    const len = GraphemeBreaker.countBreaks(screenName.trim())
 
     if (len < 3 || len > 25) {
       return false
