@@ -858,7 +858,9 @@ const PromisifiedIO = (host, options, events) => {
             args.push(client);
             const result = events[k](...args);
             if (result instanceof Promise) {
-              result.catch((e) => { reject(e); })
+              result.catch((e) => {
+                reject(e);
+              })
             }
           } catch (e) {
             reject(e);

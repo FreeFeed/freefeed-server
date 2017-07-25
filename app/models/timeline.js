@@ -191,7 +191,7 @@ export function addModel(dbAdapter) {
       }
 
       const localBumps = await dbAdapter.getUserLocalBumps(reader.id, oldestPostTime)
-      const localBumpedPostIds = localBumps.map((bump) => { return bump.postId })
+      const localBumpedPostIds = localBumps.map((bump) => bump.postId);
 
       const absentPostIds = _.difference(localBumpedPostIds, postIds)
       if (absentPostIds.length > 0) {

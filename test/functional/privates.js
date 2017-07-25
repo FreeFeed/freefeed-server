@@ -720,10 +720,14 @@ describe('Privates', () => {
 
       describe('with commented post', () => {
         beforeEach((done) => {
-          funcTestHelper.createComment('mars comment', post.id, marsContext.authToken, () => { done() })
+          funcTestHelper.createComment('mars comment', post.id, marsContext.authToken, () => {
+            done();
+          });
         })
         beforeEach((done) => {
-          funcTestHelper.createComment('zeus comment', post.id, zeusContext.authToken, () => { done() })
+          funcTestHelper.createComment('zeus comment', post.id, zeusContext.authToken, () => {
+            done();
+          });
         })
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
@@ -1029,8 +1033,12 @@ describe('Privates', () => {
     describe('given we have 2 posts by luna', () => {
       let post1, post2
 
-      beforeEach(async () => {post1 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 1')})
-      beforeEach(async () => {post2 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 2')})
+      beforeEach(async () => {
+        post1 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 1');
+      });
+      beforeEach(async () => {
+        post2 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 2');
+      });
 
       it('should bump posts correctly, if someone comments them', async () => {
         await funcTestHelper.createCommentAsync(marsContext, post1.id, 'comment1')

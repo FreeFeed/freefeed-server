@@ -20,8 +20,12 @@ export default class PubsubListener {
     const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
     const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
 
-    redisPub.on('error', (err) => { app.context.logger.error('redisPub error', err) })
-    redisSub.on('error', (err) => { app.context.logger.error('redisSub error', err) })
+    redisPub.on('error', (err) => {
+      app.context.logger.error('redisPub error', err);
+    });
+    redisSub.on('error', (err) => {
+      app.context.logger.error('redisSub error', err);
+    });
 
     this.io = IoServer(server)
     this.io.adapter(redis_adapter({
@@ -29,11 +33,15 @@ export default class PubsubListener {
       subClient: redisSub
     }))
 
-    this.io.sockets.on('error', (err) => { app.context.logger.error('socket.io error', err) })
+    this.io.sockets.on('error', (err) => {
+      app.context.logger.error('socket.io error', err);
+    });
     this.io.sockets.on('connection', this.onConnect)
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
-    redisClient.on('error', (err) => { app.context.logger.error('redis error', err) })
+    redisClient.on('error', (err) => {
+      app.context.logger.error('redis error', err);
+    });
     redisClient.subscribe(
       'user:update',
       'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
