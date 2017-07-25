@@ -25,6 +25,7 @@
     "arrow-spacing": 2,
     "brace-style": [2, "1tbs", { "allowSingleLine": true }],
     "comma-spacing": 2,
+    "comma-style": 2,
     "consistent-return": 2,
     "curly": 2,
     "eol-last": 2,

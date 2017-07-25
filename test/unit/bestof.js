@@ -12,10 +12,7 @@ describe('BestOf', () => {
   })
 
   describe('best of', () => {
-    let users
-      , popularPost
-      , unpopularPost
-      , bestPosts
+    let users, popularPost, unpopularPost, bestPosts;
 
     beforeEach(async () => {
       // eleven users from 0 to 10

@@ -180,8 +180,7 @@ describe('GroupsController', () => {
   })
 
   describe('#admin', () => {
-    let adminContext = {}
-      , nonAdminContext = {}
+    let adminContext = {}, nonAdminContext = {};
 
     beforeEach(async () => {
       [adminContext, nonAdminContext] = await Promise.all([
@@ -224,8 +223,8 @@ describe('GroupsController', () => {
   })
 
   describe('#update', () => {
-    let context = {}
-      , group
+    let context = {};
+    let group;
 
     beforeEach(async () => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')

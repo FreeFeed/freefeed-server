@@ -10,8 +10,7 @@ describe('Post', () => {
   })
 
   describe('#update()', () => {
-    let userA
-      , post
+    let userA, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -272,9 +271,7 @@ describe('Post', () => {
   })
 
   describe('#getTimelineIds()', () => {
-    let userA
-      , userB
-      , post
+    let userA, userB, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -312,8 +309,7 @@ describe('Post', () => {
   })
 
   describe('#setCommentsDisabled()', () => {
-    let user
-      , post
+    let user, post;
 
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' })
@@ -331,11 +327,7 @@ describe('Post', () => {
   })
 
   describe('#addLike()', () => {
-    let userA
-      , userB
-      , userC
-      , users
-      , post
+    let userA, userB, userC, users, post;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })
@@ -507,10 +499,7 @@ describe('Post', () => {
   })
 
   describe('#removeLike()', () => {
-    let userA
-      , userB
-      , userC
-      , post
+    let userA, userB, userC, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -573,10 +562,7 @@ describe('Post', () => {
   })
 
   describe('#addComment()', () => {
-    let userA
-      , userB
-      , userC
-      , post
+    let userA, userB, userC, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -636,8 +622,7 @@ describe('Post', () => {
   })
 
   describe('#getComments()', () => {
-    let userA
-      , post
+    let userA, post;
     const comments = []
 
     beforeEach(async () => {
@@ -690,8 +675,7 @@ describe('Post', () => {
   })
 
   describe('#destroy()', () => {
-    let user
-      , timelineId
+    let user, timelineId;
 
     beforeEach(async () => {
       user = new User({

@@ -385,9 +385,7 @@ describe('UsersController', () => {
   })
 
   describe('#subscribers()', () => {
-    let userA
-      , userB
-      , authTokenB
+    let userA, userB, authTokenB;
 
     beforeEach(async () => {
       [userA, userB] = await Promise.all([
@@ -429,10 +427,7 @@ describe('UsersController', () => {
   })
 
   describe('#unsubscribe()', () => {
-    let userA
-      , userB
-      , authTokenA
-      , authTokenB
+    let userA, userB, authTokenA, authTokenB;
 
     beforeEach(async () => {
       [userA, userB] = await Promise.all([
@@ -550,9 +545,7 @@ describe('UsersController', () => {
   })
 
   describe('#subscriptions()', () => {
-    let userA
-      , userB
-      , authTokenB
+    let userA, userB, authTokenB;
 
     beforeEach(async () => {
       [userA, userB] = await Promise.all([
@@ -597,8 +590,7 @@ describe('UsersController', () => {
 
   describe('#update()', () => {
     describe('single-user tests', () => {
-      let authToken
-        , user
+      let authToken, user;
 
       beforeEach(async () => {
         const luna = await funcTestHelper.createUserAsync('Luna', 'password');
@@ -847,8 +839,7 @@ describe('UsersController', () => {
     })
 
     describe('frontendPreferences tests', () => {
-      let authToken
-        , user
+      let authToken, user;
 
       beforeEach(async () => {
         const luna = await funcTestHelper.createUserAsync('Luna', 'password');
@@ -980,8 +971,7 @@ describe('UsersController', () => {
   })
 
   describe('#updatePassword()', () => {
-    let authToken
-      , user
+    let authToken, user;
 
     beforeEach(async () => {
       const luna = await funcTestHelper.createUserAsync('Luna', 'password');

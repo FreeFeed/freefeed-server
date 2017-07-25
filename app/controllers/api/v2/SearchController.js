@@ -15,12 +15,12 @@ export default class SearchController {
     const preparedQuery = SearchQueryParser.parse(ctx.request.query.qs, ctx.state.user ? ctx.state.user.username : null)
     const DEFAULT_LIMIT = 30
 
-    let foundPosts = []
-      , isSubscribed = false
-      , targetUser
-      , targetGroup
-      , offset
-      , limit
+    let foundPosts = [],
+      isSubscribed = false,
+      targetUser,
+      targetGroup,
+      offset,
+      limit;
 
     offset = parseInt(ctx.request.query.offset, 10) || 0
     limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT

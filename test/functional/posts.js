@@ -142,8 +142,7 @@ describe('PostsController', () => {
         })
 
         describe('are protected', () => {
-          let zeusCtx
-            , post
+          let zeusCtx, post;
 
           beforeEach(async () => {
             [zeusCtx, post] = await Promise.all([

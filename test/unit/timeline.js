@@ -126,8 +126,7 @@ describe('Timeline', () => {
   })
 
   describe('#getSubscribers()', () => {
-    let userA
-      , userB
+    let userA, userB;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })

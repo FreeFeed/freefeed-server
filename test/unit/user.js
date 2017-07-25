@@ -828,8 +828,7 @@ describe('User', () => {
   })
 
   describe('#subscribeTo()', () => {
-    let userA
-      , userB
+    let userA, userB;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })
@@ -858,8 +857,7 @@ describe('User', () => {
   })
 
   describe('#subscribeToUsername()', () => {
-    let userA
-      , userB
+    let userA, userB;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })
@@ -887,8 +885,7 @@ describe('User', () => {
   })
 
   describe('#unsubscribeFrom()', () => {
-    let userA
-      , userB
+    let userA, userB;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })
@@ -920,8 +917,7 @@ describe('User', () => {
   })
 
   describe('#getSubscriptions()', () => {
-    let userA
-      , userB
+    let userA, userB;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })
