@@ -4,8 +4,8 @@ import knexCleaner from 'knex-cleaner'
 import origExpect from 'unexpected';
 
 import { getSingleton } from '../../app/app';
-import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, dbAdapter } from '../../app/models'
+import { DummyPublisher } from '../../app/pubsub'
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import {
   acceptRequestAsync,
