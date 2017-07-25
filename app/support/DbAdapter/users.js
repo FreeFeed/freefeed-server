@@ -277,7 +277,6 @@ const USER_COLUMNS = {
   createdAt:              'created_at',
   updatedAt:              'updated_at',
   directsReadAt:          'directs_read_at',
-  notificationsReadAt:    'notifications_read_at',
   isPrivate:              'is_private',
   isProtected:            'is_protected',
   isRestricted:           'is_restricted',
@@ -304,11 +303,6 @@ const USER_COLUMNS_MAPPING = {
     const d = new Date()
     d.setTime(timestamp)
     return d.toISOString()
-  },
-  notificationsReadAt: (timestamp) => {
-    const d = new Date();
-    d.setTime(timestamp);
-    return d.toISOString();
   },
   isPrivate:           (is_private) => {return is_private === '1'},
   isProtected:         (is_protected) => {return is_protected === '1'},

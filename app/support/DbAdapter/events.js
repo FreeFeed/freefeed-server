@@ -1,3 +1,5 @@
+import { COUNTABLE_EVENT_TYPES } from '../EventTypes';
+
 ///////////////////////////////////////////////////
 // Events
 ///////////////////////////////////////////////////
@@ -77,13 +79,14 @@ const eventsTrait = (superClass) => class extends superClass {
     return this.database('users').where('uid', userId).update(payload);
   }
 
-  async getUnreadEventsNumber(userId, eventTypes) {
+  async getUnreadEventsNumber(userId) {
     const user = await this.getUserById(userId);
     const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
 
     const res = await this.database('events')
       .where('user_id', user.intId)
-      .whereIn('event_type', eventTypes)
+      .whereRaw('("created_by_user_id" IS NULL OR "user_id" <> "created_by_user_id")')
+      .whereIn('event_type', COUNTABLE_EVENT_TYPES)
       .where('created_at', '>=', notificationsLastReadTime)
       .count();
 

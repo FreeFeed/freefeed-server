@@ -14,7 +14,7 @@ import uuid from 'uuid'
 import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
-import { EventService, ALLOWED_EVENT_TYPES } from '../support/EventService'
+import { EventService } from '../support/EventService';
 
 
 aws.config.setPromisesDependency(Promise);
@@ -1179,9 +1179,8 @@ export function addModel(dbAdapter) {
     return t.filter((v) => _.isInteger(v) && v > 0);  // exclude Comment.VISIBLE
   }
 
-  User.prototype.getUnreadNotificationsNumber = async function () {
-    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(this.id, ALLOWED_EVENT_TYPES);
-    return unreadNotificationsNumber;
+  User.prototype.getUnreadNotificationsNumber = function () {
+    return dbAdapter.getUnreadEventsNumber(this.id);
   };
 
   return User
