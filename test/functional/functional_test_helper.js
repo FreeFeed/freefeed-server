@@ -942,6 +942,6 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
  */
 export function noFieldOrEmptyArray(name) {
   return function (obj) {
-    return !(name in obj) || _.isArray(obj[name]) && obj[name].length === 0;
+    return !(name in obj) || (_.isArray(obj[name]) && obj[name].length === 0);
   };
 }

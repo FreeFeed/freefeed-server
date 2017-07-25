@@ -55,6 +55,7 @@
     "no-duplicate-imports": 2,
     "no-else-return": 2,
     "no-lonely-if": 2,
+    "no-mixed-operators": 2,
     "no-multiple-empty-lines": 2,
     "no-native-reassign": 2,
     "no-nested-ternary": 2,

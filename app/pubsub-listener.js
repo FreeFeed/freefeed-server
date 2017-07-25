@@ -176,10 +176,10 @@ export default class PubsubListener {
       if (post && user.id) {
         const banIds = bansMap.get(user.id) || [];
         if (
-          (type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy)
-          || (type === 'like:new') && banIds.includes(json.users.id)
-          || (type === 'comment_like:new' || type === 'comment_like:remove') &&
-            (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId))
+          ((type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy))
+          || ((type === 'like:new') && banIds.includes(json.users.id))
+          || ((type === 'comment_like:new' || type === 'comment_like:remove') &&
+            (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
         ) {
           return;
         }

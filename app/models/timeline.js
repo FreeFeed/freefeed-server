@@ -268,7 +268,7 @@ export function addModel(dbAdapter) {
       }
 
       if (author.isPrivate) {
-        if (feedOwner.isPrivate !== '1' && (this.isPosts()) || this.isDirects()) {
+        if ((feedOwner.isPrivate !== '1' && this.isPosts()) || this.isDirects()) {
           return post
         }
 

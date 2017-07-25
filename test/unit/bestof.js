@@ -37,7 +37,7 @@ describe('BestOf', () => {
 
       // 15 comments by 5 authors, each posts 3
       await Promise.all(_.range(15).map((i) => {
-        const userId = i % 5 + 1 // users 1, 2, 3, 4, 5
+        const userId = (i % 5) + 1;  // users 1, 2, 3, 4, 5
         const comment = users[userId].newComment({ body: 'comment', postId: popularPost.id })
         return comment.create()
       }))
