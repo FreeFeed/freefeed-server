@@ -761,7 +761,9 @@ describe('UsersController', () => {
       const invalid = [
         '', 'a', 'aa', 'aaaaaaaaaaaaaaaaaaaaaaaaaa',
         '\u4E9C\u4E9C',  // 2 han ideographs
-        '\u0928\u093F\u0928\u093F'  // Devanagari syllable "ni" (repeated 2 times)
+        '\u0928\u093F\u0928\u093F',  // Devanagari syllable "ni" (repeated 2 times)
+        '   ', // 3 spaces
+        '\t\t\t', // 3 tabs
       ]
 
       _.forEach(invalid, (screenName) => {
