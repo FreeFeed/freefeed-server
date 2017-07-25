@@ -938,7 +938,7 @@ describe('EventService', () => {
       });
 
       it('should create direct event on direct post creation for all direct receivers', async () => {
-        await createAndReturnPostToFeed({ username: [mars.username, jupiter.username, pluto.username] }, luna, 'Direct');
+        await createAndReturnPostToFeed([mars, jupiter, pluto], luna, 'Direct');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'direct',
@@ -963,7 +963,7 @@ describe('EventService', () => {
       });
 
       it('should not create direct event on semi-direct post (copy to own post feed) creation for direct sender', async () => {
-        await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'direct',
@@ -1013,7 +1013,7 @@ describe('EventService', () => {
       });
 
       it('should create direct_comment event on comment creation for all direct receivers except comment author', async () => {
-        const post = await createAndReturnPostToFeed({ username: [mars.username, jupiter.username, pluto.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([mars, jupiter, pluto], luna, 'Direct');
         await createCommentAsync(luna, post.id, 'Comment');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
@@ -1039,13 +1039,13 @@ describe('EventService', () => {
       });
 
       it('should not create direct_comment event on comment to semi-direct post (copy to own post feed) creation for comment author', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(luna, post.id, 'Comment');
         await expectPostEvents(lunaUserModel, []);
       });
 
       it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(luna, post.id, 'Comment');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
@@ -1057,7 +1057,7 @@ describe('EventService', () => {
       });
 
       it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(mars, post.id, 'Comment');
         await expectPostEvents(lunaUserModel, [{
           user_id:            lunaUserModel.intId,
@@ -1070,7 +1070,7 @@ describe('EventService', () => {
       });
 
       it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation by arbitrary user', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(jupiter, post.id, 'Comment');
         await expectPostEvents(lunaUserModel, [{
           user_id:            lunaUserModel.intId,
