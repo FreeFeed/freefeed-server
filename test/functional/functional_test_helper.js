@@ -387,11 +387,7 @@ export async function createUserAsyncPost(user) {
   return postJson(`/v1/users`, user)
 }
 
-export async function createUserAsync(username, password, attributes) {
-  if (typeof attributes === 'undefined') {
-    attributes = {}
-  }
-
+export async function createUserAsync(username, password, attributes = {}) {
   const user = {
     username,
     password
@@ -489,6 +485,10 @@ export function groupToPrivate(group, userContext) {
   return updateGroupAsync(group, userContext, { isPrivate: '1' });
 }
 
+export function groupToProtected(group, userContext) {
+  return updateGroupAsync(group, userContext, { isPrivate: '0', isProtected: '1' });
+}
+
 export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
@@ -526,11 +526,12 @@ export async function mutualSubscriptions(userContexts) {
 }
 
 export async function createAndReturnPostToFeed(feed, userContext, body) {
+  const destinations = _.isArray(feed) ? _.map(feed, 'username') : [feed.username];
   const response = await postJson(
     '/v1/posts',
     {
       post:      { body },
-      meta:      { feeds: feed.username },
+      meta:      { feeds: destinations },
       authToken: userContext.authToken
     }
   )
