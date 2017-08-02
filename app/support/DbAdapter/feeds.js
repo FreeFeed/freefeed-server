@@ -175,6 +175,19 @@ const feedsTrait = (superClass) => class extends superClass {
     return responses.map((record) => record.id);
   }
 
+  async getUsersNamedTimelines(userIds, name, params) {
+    const { rows } = await this.database.raw(
+      `select f.* 
+      from
+        unnest(:userIds::uuid[]) with ordinality as src (uid, ord)
+        join feeds f on f.user_id = src.uid and f.name = :name
+      order by src.ord
+      `,
+      { userIds, name }
+    );
+    return rows.map((r) => initTimelineObject(r, params));
+  }
+
   async deleteUser(uid) {
     await this.database('users').where({ uid }).delete();
     await this.cacheFlushUser(uid)

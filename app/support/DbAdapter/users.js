@@ -253,6 +253,31 @@ const usersTrait = (superClass) => class extends superClass {
     const res = await this.database.raw(q);
     return res.rows[0].cnt > 0;
   }
+
+  /**
+   * Returns UIDs of users who cah see any of
+   * the given feeds. It is assumed that feeds
+   * are private 'Posts' or 'Directs' feeds.
+   * 
+   * @param {number[]} feedIntIds 
+   * @return {string[]}
+   */
+  async getUsersWhoCanSeePrivateFeeds(feedIntIds) {
+    const { rows } = await this.database.raw(
+      `
+      -- Feed owners always can see these feeds
+      select user_id from feeds where id = any(:feedIntIds)
+      union
+      -- Users who subscribed to feeds
+      select s.user_id from
+        subscriptions s
+        join feeds f on f.uid = s.feed_id
+      where f.id = any(:feedIntIds)
+      `,
+      { feedIntIds }
+    );
+    return _.uniq(_.map(rows, 'user_id'));
+  }
 };
 
 export default usersTrait;
