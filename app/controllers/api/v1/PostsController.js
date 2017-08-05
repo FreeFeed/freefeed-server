@@ -3,7 +3,7 @@ import monitor from 'monitor-dog';
 
 import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
 import { EventService } from '../../../support/EventService'
-import { ForbiddenException, NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
+import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
 
 
 export default class PostsController {
@@ -21,8 +21,10 @@ export default class PostsController {
       feeds = meta.feeds
     } else if (meta.feeds) {
       feeds = [meta.feeds]
-    } else {
-      throw new NotAuthorizedException('Cannot publish post to /dev/null');
+    }
+
+    if (feeds.length === 0) {
+      throw new BadRequestException('Cannot publish post to /dev/null');
     }
 
     const commentsDisabled = (meta.commentsDisabled ? '1' : '0')

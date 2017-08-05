@@ -4,6 +4,7 @@ import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
 import knexCleaner from 'knex-cleaner'
+import expect from 'unexpected'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -55,6 +56,11 @@ describe('PostsController', () => {
         done()
       })
     })
+
+    it('should not create a post with empty feeds list', async () => {
+      const attempt = funcTestHelper.createAndReturnPostToFeed([], ctx, 'Post body');
+      await expect(attempt, 'to be rejected with', new Error('HTTP/1.1 400'));
+    });
 
     it('should create a post with comments disabled', async () => {
       const body = 'Post body'
