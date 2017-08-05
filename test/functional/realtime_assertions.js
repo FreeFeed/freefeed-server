@@ -115,6 +115,15 @@ export function installInto(expect) {
     }
   });
 
+  expect.addAssertion('<realtimeSession> when authorized as <userContext> <assertion>', async (expect, session, user) => {
+    session.send('auth', { authToken: user.authToken });
+    try {
+      return await expect.shift(session);
+    } finally {
+      session.disconnect();
+    }
+  });
+
   expect.addAssertion('<realtimeSession> with post having id <string> <assertion>', (expect, session, postId) => {
     session.context.postId = postId;
     return expect.shift(session);
