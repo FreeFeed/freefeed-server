@@ -61,6 +61,25 @@ export default class PubsubListener {
       logger.error('socket.io socket error', e);
     });
 
+    socket.on('auth', async (data) => {
+      if (!isPlainObject(data)) {
+        logger.warn('socket.io got "auth" request without data');
+        return;
+      }
+
+      if (data.authToken && typeof data.authToken === 'string') {
+        try {
+          const decoded = await jwt.verifyAsync(data.authToken, secret);
+          socket.user = await dbAdapter.getUserById(decoded.userId);
+        } catch (e) {
+          socket.user = { id: null };
+          logger.warn('socket.io got "auth" request with invalid token, signing user out');
+        }
+      } else {
+        socket.user = { id: null };
+      }
+    });
+
     socket.on('subscribe', (data) => {
       if (!isPlainObject(data)) {
         logger.warn('socket.io got "subscribe" request without data');
