@@ -359,7 +359,7 @@ export function addModel(dbAdapter) {
 
   User.prototype.update = async function (params) {
     const payload = {}
-    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences']
+    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences', 'preferences']
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -431,6 +431,17 @@ export function addModel(dbAdapter) {
       }
 
       payload.frontendPreferences = preferences
+    }
+
+    if (params.hasOwnProperty('preferences')) {
+      if (!_.isPlainObject(params.preferences)) {
+        throw new ValidationException(`Invalid 'preferences': must be a plain object`);
+      }
+      try {
+        payload.preferences = validateUserPrefs({ ...this.preferences, ...params.preferences });
+      } catch (e) {
+        throw new ValidationException(`Invalid 'preferences': ${e}`);
+      }
     }
 
     if (_.intersection(Object.keys(payload), changeableKeys).length > 0) {
