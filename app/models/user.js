@@ -15,6 +15,7 @@ import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
 import { EventService } from '../support/EventService';
+import { valiate as validateUserPrefs } from './user-prefs';
 
 
 aws.config.setPromisesDependency(Promise);
@@ -37,6 +38,7 @@ export function addModel(dbAdapter) {
     this.email = params.email
     this.description = params.description || ''
     this.frontendPreferences = params.frontendPreferences || {}
+    this.preferences = validateUserPrefs(params.preferences, true)
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
