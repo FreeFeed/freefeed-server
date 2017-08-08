@@ -420,7 +420,7 @@ export default class UsersController {
     }
 
     const attrs = _.reduce(
-      ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences'],
+      ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences', 'preferences'],
       (acc, key) => {
         if (key in ctx.request.body.user)
           acc[key] = ctx.request.body.user[key]
