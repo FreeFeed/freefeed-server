@@ -1185,11 +1185,7 @@ export function addModel(dbAdapter) {
    * @return {string[]}
    */
   User.prototype.getHiddenCommentTypes = function () {
-    let t = _.get(this.frontendPreferences, ['net.freefeed', 'comments', 'hiddenTypes']);
-    if (!_.isArray(t)) {
-      t = [];
-    }
-    return t.filter((v) => _.isInteger(v) && v > 0);  // exclude Comment.VISIBLE
+    return this.preferences.hideCommentsOfTypes;
   }
 
   User.prototype.getUnreadNotificationsNumber = function () {

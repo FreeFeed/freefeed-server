@@ -44,7 +44,7 @@ describe('Hidden comments', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
-          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [] } } } },
+          { preferences: { hideCommentsOfTypes: [] } },
         );
       });
 
@@ -91,7 +91,7 @@ describe('Hidden comments', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
-          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
+          { preferences: { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] } },
         );
       });
 
@@ -125,7 +125,7 @@ describe('Hidden comments', () => {
         await banUser(mars, venus);
         await updateUserAsync(
           mars,
-          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [] } } } },
+          { preferences: { hideCommentsOfTypes: [] } },
         );
       });
 
