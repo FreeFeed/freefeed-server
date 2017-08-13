@@ -635,5 +635,36 @@ export function addModel(dbAdapter) {
     }
   }
 
+  /**
+   * Filter users that can not see this post
+   * 
+   * Viewer CAN NOT see post if: 
+   * - viwer is anonymous and post is not public or 
+   * - viewer is authorized and 
+   *   - post author banned viewer or was banned by viewer or 
+   *   - post is private and viewer cannot read any of post's destination feeds
+   */
+  Post.prototype.onlyUsersCanSeePost = async function (users) {
+    if (users.length === 0) {
+      return [];
+    }
+
+    if (this.isProtected === '1') {
+      // Anonymous can not see this post
+      users = users.filter((u) => !!u.id); // users without id are anonymous
+    }
+
+    const authorBans = await dbAdapter.getBansAndBannersOfUser(this.userId);
+    // Author's banned and banners can not see this post
+    users = users.filter((u) => !authorBans.includes(u.id));
+
+    if (this.isPrivate === '1') {
+      const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
+      users = users.filter((u) => allowedUserIds.includes(u.id));
+    }
+
+    return users;
+  }
+
   return Post
 }

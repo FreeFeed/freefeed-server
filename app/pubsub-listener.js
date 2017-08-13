@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { compact, isArray, isPlainObject, keyBy } from 'lodash'
+import { isArray, isPlainObject, keyBy, uniq } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -146,80 +146,47 @@ export default class PubsubListener {
     ).catch((e) => { this.app.context.logger.error('onRedisMessage error', e)})
   }
 
-  async validateAndEmitMessage(sockets, room, type, json, post, emitter = null) {
+  async broadcastMessage(sockets, rooms, type, json, post, emitter = null) {
     const logger = this.app.context.logger
+    emitter = emitter || (async (socket, type, json) => socket.emit(type, json));
 
-    if (!(room in sockets.adapter.rooms)) {
-      return
+    let destSockets = rooms
+      .filter((r) => r in sockets.adapter.rooms) // active rooms
+      .map((r) => Object.keys(sockets.adapter.rooms[r])) // arrays of clientIds
+      .reduce((prev, curr) => prev.concat(curr), []) // flatten clientIds
+      .filter((v, i, a) => a.indexOf(v) === i) // deduplicate (https://stackoverflow.com/a/14438954)
+      .map((id) => sockets.connected[id]);
+
+    let users = destSockets.map((s) => s.user);
+    if (post) {
+      users = await post.onlyUsersCanSeePost(users);
+      destSockets = destSockets.filter((s) => users.includes((s.user)));
     }
 
-    const clientIds = Object.keys(sockets.adapter.rooms[room])
+    const bansMap = await dbAdapter.getUsersBansIdsMap(users.map((u) => u.id).filter((id) => !!id));
 
-    await Promise.all(clientIds.map(async (clientId) => {
-      const socket = sockets.connected[clientId]
-      const user = socket.user
-
+    await Promise.all(destSockets.map(async (socket) => {
+      const user = socket.user;
       if (!user) {
-        logger.error('user is null in validateAndEmitMessage')
-        return
+        logger.error('user is null in broadcastMessage');
+        return;
       }
 
-      if (post) {
-        if (!(await post.canShow(user.id))) {
+      // Bans
+      if (post && user.id) {
+        const banIds = bansMap.get(user.id) || [];
+        if (
+          (type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy)
+          || (type === 'like:new') && banIds.includes(json.users.id)
+          || (type === 'comment_like:new' || type === 'comment_like:remove') &&
+            (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId))
+        ) {
           return;
         }
-
-        if (user.id) {  // otherwise, it is an anonymous user
-          const banIds = await user.getBanIds()
-
-          if (banIds.includes(post.userId)) {
-            return;
-          }
-
-          const authorBans = await dbAdapter.getUserBansIds(post.userId)
-
-          if (authorBans.includes(user.id)) {
-            return;
-          }
-
-          if (type === 'comment:new' || type === 'comment:update') {
-            const uid = json.comments.createdBy;
-
-            if (banIds.includes(uid)) {
-              return;
-            }
-          }
-
-          if (type === 'like:new') {
-            const uid = json.users.id;
-
-            if (banIds.includes(uid)) {
-              return;
-            }
-          }
-
-          if (type === 'comment_like:new' || type === 'comment_like:remove') {
-            const commentAuthorUUID = json.comments.createdBy;
-
-            if (banIds.includes(commentAuthorUUID)) {
-              return;
-            }
-
-            const likerUUID = json.comments.userId;
-
-            if (banIds.includes(likerUUID)) {
-              return;
-            }
-          }
-        }
       }
 
-      if (emitter) {
-        await emitter(socket, type, json);
-      } else {
-        socket.emit(type, json);
-      }
-    }))
+      await emitter(socket, type, json);
+    }));
   }
 
   onUserUpdate = async (sockets, data) => {
@@ -235,56 +202,26 @@ export default class PubsubListener {
     sockets.in(`post:${data.postId}`).emit('post:destroy', json)
 
     const type = 'post:destroy'
-    let room = `timeline:${data.timelineId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
-
-    room = `post:${data.postId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    const rooms = [`timeline:${data.timelineId}`, `post:${data.postId}`];
+    await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
   onPostNew = async (sockets, data) => {
     const post = await dbAdapter.getPostById(data.postId)
-    const timelines = await post.getTimelines()
-
-    const feedIdsPromises = timelines.map(async (timeline) => {
-      const isBanned = await post.isBannedFor(timeline.userId)
-
-      if (!isBanned) {
-        return timeline.id
-      }
-
-      return null
-    })
-
-    let feedIds = await Promise.all(feedIdsPromises)
-    feedIds = compact(feedIds)
-
     const json = await new PostSerializer(post).promiseToJSON()
 
     const type = 'post:new'
-    const promises = feedIds.map((feedId) => {
-      const room = `timeline:${feedId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post, this._postEventEmitter);
-    })
-    await Promise.all(promises)
+    const rooms = await getRoomsOfFeedsAndPost(post)
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
   }
 
   onPostUpdate = async (sockets, data) => {
     const post = await dbAdapter.getPostById(data.postId)
-    const timelineIds = await post.getTimelineIds()
     const json = await new PostSerializer(post).promiseToJSON()
 
     const type = 'post:update'
-    let room
-
-    const promises = timelineIds.map(async (timelineId) => {
-      room = `timeline:${timelineId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post, this._postEventEmitter);
-    })
-    await Promise.all(promises)
-
-    room = `post:${data.postId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post, this._postEventEmitter);
+    const rooms = await getRoomsOfFeedsAndPost(post)
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
   }
 
   onCommentNew = async (sockets, data) => {
@@ -298,29 +235,10 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(comment.postId)
     const json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
-    const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
-    const timelinePromises = timelines.map(async (timeline) => {
-      if (await post.isHiddenIn(timeline))
-        return null
-
-      return timeline.id
-    })
-
-    let actualTimelineIds = await Promise.all(timelinePromises)
-    actualTimelineIds = compact(actualTimelineIds)
-
     const type = 'comment:new'
-    let room
-
-    const promises = actualTimelineIds.map((timelineId) => {
-      room = `timeline:${timelineId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
-    })
-
-    await Promise.all(promises)
-
-    room = `post:${post.id}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
+    const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
+    const rooms = await getRoomsOfFeedsAndPost(post, timelines, true);
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
   }
 
   onCommentUpdate = async (sockets, data) => {
@@ -329,15 +247,8 @@ export default class PubsubListener {
     const json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     const type = 'comment:update'
-    let room = `post:${post.id}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
-
-    const timelineIds = await post.getTimelineIds()
-    const promises = timelineIds.map(async (timelineId) => {
-      room = `timeline:${timelineId}`
-      await this.validateAndEmitMessage(sockets, room, type, json, post, this._commentLikeEventEmitter);
-    })
-    await Promise.all(promises)
+    const rooms = await getRoomsOfFeedsAndPost(post)
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
   }
 
   onCommentDestroy = async (sockets, data) => {
@@ -345,49 +256,26 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(data.postId)
 
     const type = 'comment:destroy'
-    let room = `post:${data.postId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
-
-    if (post) {
-      const timelineIds = await post.getTimelineIds();
-      const promises = timelineIds.map(async (timelineId) => {
-        room = `timeline:${timelineId}`;
-        await this.validateAndEmitMessage(sockets, room, type, json, post)
-      });
-
-      await Promise.all(promises);
-    }
+    const rooms = await getRoomsOfFeedsAndPost(post)
+    await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
   onLikeNew = async (sockets, data) => {
-    const user = await dbAdapter.getUserById(data.userId)
-    const json = await new LikeSerializer(user).promiseToJSON()
-    const post = await dbAdapter.getPostById(data.postId)
+    const [
+      user,
+      post,
+    ] = await Promise.all([
+      await dbAdapter.getUserById(data.userId),
+      await dbAdapter.getPostById(data.postId),
+    ]);
+    const json = await new LikeSerializer(user).promiseToJSON();
     json.meta = { postId: data.postId }
 
     const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
-    const timelinePromises = timelines.map(async (timeline) => {
-      if (await post.isHiddenIn(timeline))
-        return null
-
-      return timeline.id
-    })
-
-    let actualTimelineIds = await Promise.all(timelinePromises)
-    actualTimelineIds = compact(actualTimelineIds)
 
     const type = 'like:new'
-    let room
-
-    const promises = actualTimelineIds.map((timelineId) => {
-      room = `timeline:${timelineId}`
-      return this.validateAndEmitMessage(sockets, room, type, json, post)
-    })
-
-    await Promise.all(promises)
-
-    room = `post:${data.postId}`
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
+    const rooms = await getRoomsOfFeedsAndPost(post, timelines, true);
+    await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
   onLikeRemove = async (sockets, data) => {
@@ -395,17 +283,8 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(data.postId)
 
     const type = 'like:remove'
-    let room = `post:${data.postId}`
-
-    await this.validateAndEmitMessage(sockets, room, type, json, post)
-
-    const timelineIds = await post.getTimelineIds()
-    const promises = timelineIds.map(async (timelineId) => {
-      room = `timeline:${timelineId}`
-      await this.validateAndEmitMessage(sockets, room, type, json, post)
-    })
-
-    await Promise.all(promises)
+    const rooms = await getRoomsOfFeedsAndPost(post);
+    await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
   onPostHide = async (sockets, data) => {
@@ -445,19 +324,8 @@ export default class PubsubListener {
       json.comments.userId = data.unlikerUUID;
     }
 
-    let room;
-    const feeds = await post.getTimelines();
-    await Promise.all(feeds.map(async (feed) => {
-      if (await post.isHiddenIn(feed)) {
-        return null;
-      }
-
-      room = `timeline:${feed.id}`;
-      return this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
-    }));
-
-    room = `post:${data.postId}`;
-    await this.validateAndEmitMessage(sockets, room, msgType, json, post, this._commentLikeEventEmitter);
+    const rooms = await getRoomsOfFeedsAndPost(post, null, true);
+    await this.broadcastMessage(sockets, rooms, msgType, json, post, this._commentLikeEventEmitter);
   };
 
   async _commentLikeEventEmitter(socket, type, json) {
@@ -518,4 +386,51 @@ export default class PubsubListener {
 
     return postPayload;
   }
+}
+
+/**
+ * Returns feeds without RiverOfNews'es and Hides'es
+ * which owners have hidden given post.
+ * 
+ * @param {Timeline[]} feeds 
+ * @param {Post} post 
+ * @return {Timeline[]}
+ */
+async function filterFeedsThatHidePost(feeds, post) {
+  const riverOwnerIds = uniq(feeds.filter((f) => f.isRiverOfNews() || f.isHides()).map((f) => f.userId));
+  const hidesFeeds = await dbAdapter.getUsersNamedTimelines(riverOwnerIds, 'Hides');
+  // Post was hidden by these users
+  const blindUserIds = uniq(hidesFeeds.filter((f) => post.feedIntIds.includes(f.intId)).map((f) => f.userId));
+
+  return feeds.filter((f) => {
+    if (f.isRiverOfNews() || f.isHides()) {
+      return !blindUserIds.includes(f.userId);
+    }
+    return true;
+  });
+}
+
+/**
+ * Returns array of room names for the given feeds and post.
+ * If `filterHides` is true, filter feeds by `filterFeedsThatHidePost`.
+ * If `feeds` is falsy then `post.getTimelines()` used.
+ * 
+ * @param {Timeline[]} feeds 
+ * @param {Post} post 
+ * @param {boolean} [filterHides]
+ * @return {string[]}
+ */
+async function getRoomsOfFeedsAndPost(post, feeds = null, filterHides = false) {
+  if (!post) {
+    return [];
+  }
+  if (!feeds) {
+    feeds = await post.getTimelines();
+  }
+  if (filterHides) {
+    feeds = await filterFeedsThatHidePost(feeds, post);
+  }
+  const rooms = feeds.map((t) => `timeline:${t.id}`);
+  rooms.push(`post:${post.id}`);
+  return rooms;
 }

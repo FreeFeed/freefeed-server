@@ -95,8 +95,16 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getTimelinesByIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('uid', ids).orderByRaw(`position(uid::text in '${ids.toString()}')`);
-    return responses.map((r) => initTimelineObject(r, params));
+    const { rows } = await this.database.raw(
+      `select f.* 
+      from
+        unnest(:ids::uuid[]) with ordinality as src (uid, ord)
+        join feeds f on f.uid = src.uid
+      order by src.ord
+      `,
+      { ids }
+    );
+    return rows.map((r) => initTimelineObject(r, params));
   }
 
   async getTimelinesByIntIds(ids, params) {
@@ -165,6 +173,19 @@ const feedsTrait = (superClass) => class extends superClass {
   async getUsersNamedFeedsIntIds(userIds, names) {
     const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names);
     return responses.map((record) => record.id);
+  }
+
+  async getUsersNamedTimelines(userIds, name, params) {
+    const { rows } = await this.database.raw(
+      `select f.* 
+      from
+        unnest(:userIds::uuid[]) with ordinality as src (uid, ord)
+        join feeds f on f.user_id = src.uid and f.name = :name
+      order by src.ord
+      `,
+      { userIds, name }
+    );
+    return rows.map((r) => initTimelineObject(r, params));
   }
 
   async deleteUser(uid) {

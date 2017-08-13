@@ -8,6 +8,23 @@ const bansTrait = (superClass) => class extends superClass {
     return res.map((record) => record.banned_user_id);
   }
 
+  /**
+   * Returns Map.<userId, bannedUserIds>
+   * @param {string[]} userIds
+   * @return {Map.<string, string[]>}
+   */
+  async getUsersBansIdsMap(userIds) {
+    const { rows } = await this.database.raw(
+      `
+      select user_id, array_agg(banned_user_id) as bans
+      from bans where user_id = any(:userIds)
+      group by user_id
+      `,
+      { userIds }
+    );
+    return new Map(rows.map((r) => [r.user_id, r.bans]));
+  }
+
   async getUserIdsWhoBannedUser(userId) {
     const res = await this.database('bans').select('user_id').orderBy('created_at', 'desc').where('banned_user_id', userId);
     return res.map((record) => record.user_id);
