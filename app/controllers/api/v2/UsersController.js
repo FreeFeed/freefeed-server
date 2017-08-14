@@ -78,7 +78,7 @@ export default class UsersController {
       ctx.body = { err: 'Not found' };
       return;
     }
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const timer = monitor.timer('users.whoami-v2');
     try {
       const [

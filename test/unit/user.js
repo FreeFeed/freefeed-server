@@ -676,7 +676,8 @@ describe('User', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()
@@ -714,7 +715,8 @@ describe('User', () => {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
           timelines.length.should.be.eql(7)
-          const timeline = timelines[0]
+
+          const [timeline] = timelines;
           timeline.should.have.property('name')
           timeline.name.should.eql('RiverOfNews')
           timelines[1].should.have.property('name')
@@ -795,7 +797,8 @@ describe('User', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
@@ -846,7 +849,8 @@ describe('User', () => {
 
       posts.should.not.be.empty
       posts.length.should.eql(1)
-      const newPost = posts[0]
+
+      const [newPost] = posts;
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)
@@ -875,7 +879,7 @@ describe('User', () => {
       posts.should.not.be.empty
       posts.length.should.eql(1)
 
-      const newPost = posts[0]
+      const [newPost] = posts;
       newPost.should.have.property('body')
       newPost.body.should.eql(post.body)
       newPost.id.should.eql(post.id)

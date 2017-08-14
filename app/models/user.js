@@ -344,10 +344,9 @@ export function addModel(dbAdapter) {
       'updatedAt':           this.updatedAt.toString(),
       'hashedPassword':      this.hashedPassword,
       'frontendPreferences': JSON.stringify({})
-    }
-    const ids = await dbAdapter.createUser(payload);
-    this.id = ids[0];
-    this.intId = ids[1];
+    };
+
+    [this.id, this.intId] = await dbAdapter.createUser(payload);
 
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
     timer.stop() // @todo finally {}

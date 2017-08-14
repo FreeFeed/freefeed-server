@@ -176,7 +176,7 @@ export class EventService {
 
     let postGroupIntId = null;
     if (destinationFeeds.length === 1) {
-      const postFeed = destinationFeeds[0];
+      const [postFeed] = destinationFeeds;
       const feedOwner = await postFeed.getUser();
       if (feedOwner.type === 'group') {
         postGroupIntId = feedOwner.intId;

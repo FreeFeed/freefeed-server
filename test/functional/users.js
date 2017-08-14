@@ -90,7 +90,7 @@ describe('UsersController', () => {
           .send({ username: user.username, password: user.password })
           .end((err, res) => {
             res.body.should.have.property('authToken')
-            const authToken = res.body.authToken
+            const { authToken } = res.body;
 
             request
               .get(`${app.context.config.host}/v1/users/${user.username}/subscriptions`)
@@ -258,9 +258,9 @@ describe('UsersController', () => {
     }
 
     beforeEach(async () => {
-      const luna = await funcTestHelper.createUserAsync(user.username, user.password)
-      authToken = luna.authToken
-    })
+      const luna = await funcTestHelper.createUserAsync(user.username, user.password);
+      ({ authToken } = luna);
+    });
 
     it('should return current user for a valid user', (done) => {
       request
@@ -601,9 +601,8 @@ describe('UsersController', () => {
         , user
 
       beforeEach(async () => {
-        const luna = await funcTestHelper.createUserAsync('Luna', 'password')
-        user = luna.user
-        authToken = luna.authToken
+        const luna = await funcTestHelper.createUserAsync('Luna', 'password');
+        ({ authToken, user } = luna);
       })
 
       it('should update current user', (done) => {
@@ -852,9 +851,8 @@ describe('UsersController', () => {
         , user
 
       beforeEach(async () => {
-        const luna = await funcTestHelper.createUserAsync('Luna', 'password')
-        user = luna.user
-        authToken = luna.authToken
+        const luna = await funcTestHelper.createUserAsync('Luna', 'password');
+        ({ authToken, user } = luna);
       })
 
       it('should store frontendPreferences in DB and return it in whoami', async () => {
@@ -986,10 +984,9 @@ describe('UsersController', () => {
       , user
 
     beforeEach(async () => {
-      const luna = await funcTestHelper.createUserAsync('Luna', 'password')
-      user = luna.user
-      authToken = luna.authToken
-    })
+      const luna = await funcTestHelper.createUserAsync('Luna', 'password');
+      ({ authToken, user } = luna);
+    });
 
     it('should update current user password', (done) => {
       const password = 'drowssap'
@@ -1134,9 +1131,9 @@ describe('UsersController', () => {
       const [user] = await Promise.all([
         funcTestHelper.createUserAsync('Luna', 'password'),
         mkdirpAsync(config.profilePictures.storage.rootDir + config.profilePictures.path)
-      ])
+      ]);
 
-      authToken = user.authToken
+      ({ authToken } = user);
     })
 
     it('should update the profile picture', (done) => {
@@ -1251,7 +1248,8 @@ describe('UsersController', () => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
-                const post = res.body.posts[0]
+
+                const [post] = res.body.posts;
                 post.should.satisfy(funcTestHelper.noFieldOrEmptyArray('comments'))
 
                 // Zeus should not see comments in single-post view either
@@ -1289,7 +1287,8 @@ describe('UsersController', () => {
                   res.body.should.not.be.empty
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
-                  const post = res.body.posts[0]
+
+                  const [post] = res.body.posts;
                   post.should.satisfy(funcTestHelper.noFieldOrEmptyArray('likes'))
 
                   // Zeus should not see likes in single-post view either

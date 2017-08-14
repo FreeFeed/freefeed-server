@@ -227,7 +227,7 @@ AbstractSerializer.prototype = {
       }
     }
 
-    const name = this.name
+    const { name } = this;
     const promises = []
     for (const fieldName of this.strategy.select) {
       promises.push(nodeProcessor(fieldName))

@@ -374,7 +374,7 @@ export function addModel(dbAdapter) {
       return cmt.id
     })
 
-    const length = comments.length
+    const { length } = comments;
     let visibleCommentsIds = commentsIds
     let visibleComments = comments
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {

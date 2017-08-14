@@ -161,7 +161,7 @@ export default class GroupsController {
       return
     }
 
-    const groupName = ctx.params.groupName
+    const { groupName } = ctx.params;
     const group = await dbAdapter.getGroupByUsername(groupName)
 
     if (null === group) {
@@ -199,8 +199,7 @@ export default class GroupsController {
       return
     }
 
-    const groupName = ctx.params.groupName
-    const userName = ctx.params.userName
+    const { groupName, userName } = ctx.params;
     const group = await dbAdapter.getGroupByUsername(groupName)
 
     if (null === group) {
@@ -235,8 +234,7 @@ export default class GroupsController {
       return
     }
 
-    const groupName = ctx.params.groupName
-    const userName = ctx.params.userName
+    const { groupName, userName } = ctx.params;
     const group = await dbAdapter.getGroupByUsername(groupName)
 
     if (null === group) {
@@ -271,8 +269,7 @@ export default class GroupsController {
       return
     }
 
-    const groupName = ctx.params.groupName
-    const userName = ctx.params.userName
+    const { groupName, userName } = ctx.params;
     const group = await dbAdapter.getGroupByUsername(groupName)
 
     if (null === group) {

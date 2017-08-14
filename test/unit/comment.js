@@ -230,7 +230,7 @@ describe('Comment', () => {
     it('should destroy comment', async () => {
       let comments = await post.getComments()
 
-      const comment = comments[0]
+      const [comment] = comments;
       await comment.destroy()
 
       const oldComment = await dbAdapter.getCommentById(comment.id)

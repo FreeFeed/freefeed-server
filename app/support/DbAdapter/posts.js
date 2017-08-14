@@ -65,7 +65,7 @@ const postsTrait = (superClass) => class extends superClass {
 
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
-    const attrs = res[0]
+    const [attrs] = res;
     if (!attrs) {
       return []
     }
@@ -87,7 +87,7 @@ const postsTrait = (superClass) => class extends superClass {
 
   async isPostPresentInTimeline(timelineId, postId) {
     const res = await this.database('posts').where('uid', postId);
-    const postData = res[0];
+    const [postData] = res;
     return postData.feed_ids.includes(timelineId);
   }
 

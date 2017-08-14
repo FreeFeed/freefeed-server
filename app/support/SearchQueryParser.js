@@ -90,7 +90,7 @@ export class SearchQueryParser {
   static extractHashtags(queryObject) {
     const hashtags = extractHashtagsWithIndices(queryObject.query.toLowerCase())
     const indices = hashtags.map((h) => h.indices)
-    let query = queryObject.query
+    let { query } = queryObject;
 
     const hashtagSubstrings = indices.map(([start, end]) => {
       return query.substring(start, end)

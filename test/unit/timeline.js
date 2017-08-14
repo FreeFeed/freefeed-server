@@ -148,7 +148,8 @@ describe('Timeline', () => {
         .then((users) => {
           users.should.not.be.empty
           users.length.should.eql(1)
-          const user = users[0]
+
+          const [user] = users;
           user.should.have.property('id')
           user.id.should.eql(userA.id)
           done()

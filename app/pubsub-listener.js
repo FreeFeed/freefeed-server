@@ -47,8 +47,8 @@ export default class PubsubListener {
   onConnect = async (socket) => {
     const authToken = socket.handshake.query.token
     const config = configLoader()
-    const secret = config.secret
-    const logger = this.app.context.logger
+    const { secret } = config;
+    const { logger } = this.app.context;
 
     try {
       const decoded = await jwt.verifyAsync(authToken, secret)
@@ -147,7 +147,7 @@ export default class PubsubListener {
   }
 
   async broadcastMessage(sockets, rooms, type, json, post, emitter = null) {
-    const logger = this.app.context.logger
+    const { logger } = this.app.context;
     emitter = emitter || (async (socket, type, json) => socket.emit(type, json));
 
     let destSockets = rooms
@@ -166,7 +166,7 @@ export default class PubsubListener {
     const bansMap = await dbAdapter.getUsersBansIdsMap(users.map((u) => u.id).filter((id) => !!id));
 
     await Promise.all(destSockets.map(async (socket) => {
-      const user = socket.user;
+      const { user } = socket;
       if (!user) {
         logger.error('user is null in broadcastMessage');
         return;

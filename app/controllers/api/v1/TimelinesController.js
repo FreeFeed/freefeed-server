@@ -14,7 +14,7 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.homefeed-time')
 
     try {
-      const user = ctx.state.user
+      const { user } = ctx.state;
 
       const timeline = await user.getRiverOfNewsTimeline({
         offset:      ctx.request.query.offset,
@@ -41,7 +41,7 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.directs_feed-time')
 
     try {
-      const user = ctx.state.user
+      const { user } = ctx.state;
       const timeline = await user.getDirectsTimeline({
         offset:      ctx.request.query.offset,
         limit:       ctx.request.query.limit,
@@ -61,7 +61,7 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.posts_feed-time')
 
     try {
-      const username = ctx.params.username
+      const { username } = ctx.params;
       const user = await dbAdapter.getFeedOwnerByUsername(username)
 
       if (null === user) {
@@ -94,7 +94,7 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.likes_feed-time')
 
     try {
-      const username = ctx.params.username
+      const { username } = ctx.params;
       const user = await dbAdapter.getUserByUsername(username)
 
       if (null === user) {
@@ -127,7 +127,7 @@ export default class TimelineController {
     const timer = monitor.timer('timelines.comments_feed-time')
 
     try {
-      const username = ctx.params.username
+      const { username } = ctx.params;
       const user = await dbAdapter.getUserByUsername(username)
 
       if (null === user) {
@@ -163,7 +163,7 @@ export default class TimelineController {
       return
     }
 
-    const user = ctx.state.user
+    const { user } = ctx.state;
     const timer = monitor.timer('timelines.my_discussions_feed-time')
 
     try {

@@ -229,8 +229,8 @@ describe('GroupsController', () => {
 
     beforeEach(async () => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
-      const res = await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers')
-      group = res.group
+      const res = await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers');
+      ({ group } = res);
     })
 
     it('should update group settings', (done) => {

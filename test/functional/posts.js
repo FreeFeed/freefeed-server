@@ -1082,7 +1082,8 @@ describe('PostsController', () => {
             res.body.timelines.should.have.property('posts')
             res.body.should.have.property('posts')
             res.body.posts.length.should.eql(1)
-            const post = res.body.posts[0]
+
+            const [post] = res.body.posts;
             post.should.have.property('isHidden')
             post.isHidden.should.eql(true)
 
@@ -1099,7 +1100,8 @@ describe('PostsController', () => {
                   res.body.timelines.should.have.property('posts')
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
-                  const post = res.body.posts[0]
+
+                  const [post] = res.body.posts;
                   post.should.not.have.property('isHidden')
                   done()
                 })

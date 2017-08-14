@@ -64,7 +64,8 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              const _post = res.body.posts[0]
+
+              const [_post] = res.body.posts;
               _post.body.should.eql(post)
               request
                 .post(`${app.context.config.host}/v1/posts/${_post.id}/like`)
@@ -80,7 +81,8 @@ describe('Privates', () => {
                     res.body.timelines.posts.length.should.eql(1)
                     res.body.should.have.property('posts')
                     res.body.posts.length.should.eql(1)
-                    const _post = res.body.posts[0]
+
+                    const [_post] = res.body.posts;
                     _post.body.should.eql(post)
                     request
                       .get(`${app.context.config.host}/v1/posts/${_post.id}`)
@@ -300,7 +302,8 @@ describe('Privates', () => {
                         res.body.timelines.posts.length.should.eql(1)
                         res.body.should.have.property('posts')
                         res.body.posts.length.should.eql(1)
-                        const post = res.body.posts[0]
+
+                        const [post] = res.body.posts;
                         post.body.should.eql(post.body)
                         done()
                       })
@@ -650,7 +653,8 @@ describe('Privates', () => {
           res.body.timelines.posts.length.should.eql(1)
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
-          const post = res.body.posts[0]
+
+          const [post] = res.body.posts;
           post.body.should.eql(post.body)
           // post should be visible to owner
           request

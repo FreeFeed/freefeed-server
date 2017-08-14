@@ -14,14 +14,17 @@ export default class PostsController {
 
     const timer = monitor.timer('posts.create-time');
 
-    const meta = ctx.request.body.meta || {}
+    const meta = ctx.request.body.meta || {};
 
-    let feeds = []
-    if (_.isArray(meta.feeds)) {
-      feeds = meta.feeds
-    } else if (meta.feeds) {
-      feeds = [meta.feeds]
+    if (!meta.feeds) {
+      throw new NotAuthorizedException('Cannot publish post to /dev/null');
     }
+
+    if (!_.isArray(meta.feeds)) {
+      meta.feeds = [meta.feeds];
+    }
+
+    const { feeds } = meta;
 
     if (feeds.length === 0) {
       throw new BadRequestException('Cannot publish post to /dev/null');

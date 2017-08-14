@@ -260,9 +260,9 @@ export function addModel(dbAdapter) {
       this.title = metadata.title
 
       if (_.isArray(metadata.artist)) {
-        this.artist = metadata.artist[0]
+        [this.artist] = metadata.artist;
       } else {
-        this.artist = metadata.artist
+        this.artist = metadata.artist;
       }
     } else {
       // Set media properties for 'general' type
@@ -282,11 +282,11 @@ export function addModel(dbAdapter) {
   const fitIntoBounds = (size, bounds) => {
     let width, height;
     if (size.width * bounds.height > size.height * bounds.width) {
-      width  = bounds.width;
+      width  = bounds.width;  // eslint-disable-line prefer-destructuring
       height = Math.max(1, Math.round(size.height * bounds.width / size.width));
     } else {
       width  = Math.max(1, Math.round(size.width * bounds.height / size.height));
-      height = bounds.height;
+      height = bounds.height;  // eslint-disable-line prefer-destructuring
     }
     return { width, height };
   }

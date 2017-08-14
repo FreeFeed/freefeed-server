@@ -32,7 +32,7 @@ export default class TimelinesController {
   });
 
   home = authRequired(monitored('timelines.home-v2', async (ctx) => {
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'RiverOfNews');
     ctx.body = await genericTimeline(timeline, user.id, {
       withHides:      true,
@@ -42,19 +42,19 @@ export default class TimelinesController {
   }));
 
   myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
     ctx.body = await genericTimeline(timeline, user.id, getCommonParams(ctx));
   }));
 
   directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
     ctx.body = await genericTimeline(timeline, user.id, getCommonParams(ctx));
   }));
 
   userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
-    const username = ctx.params.username
+    const { username } = ctx.params;
     const user = await dbAdapter.getFeedOwnerByUsername(username)
     if (!user || user.hashedPassword === '') {
       ctx.status = 404;
@@ -86,7 +86,7 @@ export default class TimelinesController {
  *                                                      { limit:number, offset:number, sort:string, withMyPosts:boolean, hiddenCommentTypes: array }
  */
 function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
-  const query = ctx.request.query;
+  const { query } = ctx.request;
   const viewer = ctx.state.user;
 
   let limit = parseInt(query.limit, 10);

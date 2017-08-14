@@ -151,7 +151,8 @@ describe('Post', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
@@ -367,7 +368,8 @@ describe('Post', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()
@@ -387,7 +389,7 @@ describe('Post', () => {
       postsA.should.not.be.empty
       postsA.length.should.eql(1)
 
-      const newPost = postsA[0]
+      const [newPost] = postsA;
       newPost.should.have.property('id')
       newPost.id.should.eql(post2.id)
     });
@@ -399,7 +401,7 @@ describe('Post', () => {
       users.should.not.be.empty
       users.length.should.eql(1)
 
-      const user = users[0]
+      const [user] = users;
       user.should.have.property('id')
       user.id.should.eql(userA.id)
     })
@@ -560,7 +562,8 @@ describe('Post', () => {
         .then((users) => {
           users.should.not.be.empty
           users.length.should.eql(1)
-          const user = users[0]
+
+          const [user] = users;
           user.should.have.property('id')
           user.id.should.eql(userA.id)
           done()
@@ -622,7 +625,8 @@ describe('Post', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()

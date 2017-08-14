@@ -113,7 +113,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.getPostIds = async function (offset, limit) {
     if (_.isUndefined(offset)) {
-      offset = this.offset;
+      ({ offset } = this);
     } else if (offset < 0) {
       offset = 0;
     }
@@ -122,7 +122,7 @@ export function addModel(dbAdapter) {
     // do not use passed in value, use 0 instead". this is at the very least
     // used in Timeline.mergeTo()
     if (_.isUndefined(limit)) {
-      limit = this.limit;
+      ({ limit } = this);
     } else if (limit < 0) {
       limit = 0;
     }
@@ -154,7 +154,7 @@ export function addModel(dbAdapter) {
 
   Timeline.prototype.getPosts = async function (offset, limit) {
     if (_.isUndefined(offset)) {
-      offset = this.offset;
+      ({ offset } = this);
     } else if (offset < 0) {
       offset = 0;
     }
@@ -163,7 +163,7 @@ export function addModel(dbAdapter) {
     // do not use passed in value, use 0 instead". this is at the very least
     // used in Timeline.mergeTo()
     if (_.isUndefined(limit)) {
-      limit = this.limit;
+      ({ limit } = this);
     } else if (limit < 0) {
       limit = 0;
     }

@@ -109,10 +109,8 @@ export function addModel(dbAdapter) {
       'isPrivate':    this.isPrivate,
       'isProtected':  this.isProtected,
       'isRestricted': this.isRestricted
-    }
-    const ids = await dbAdapter.createUser(payload);
-    this.id = ids[0];
-    this.intId = ids[1];
+    };
+    [this.id, this.intId] = await dbAdapter.createUser(payload);
 
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 
