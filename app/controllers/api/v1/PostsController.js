@@ -32,6 +32,10 @@ export default class PostsController {
 
     const commentsDisabled = (meta.commentsDisabled ? '1' : '0')
 
+    if (feeds.filter((feed) => !_.isString(feed)).length > 0) {
+      throw new BadRequestException('Bogus "feeds" parameter');
+    }
+
     try {
       const promises = feeds.map(async (username) => {
         const feed = await dbAdapter.getFeedOwnerByUsername(username)
