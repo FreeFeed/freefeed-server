@@ -20,8 +20,12 @@ export default class PubsubListener {
     const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
     const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
 
-    redisPub.on('error', (err) => { app.context.logger.error('redisPub error', err) })
-    redisSub.on('error', (err) => { app.context.logger.error('redisSub error', err) })
+    redisPub.on('error', (err) => {
+      app.context.logger.error('redisPub error', err);
+    });
+    redisSub.on('error', (err) => {
+      app.context.logger.error('redisSub error', err);
+    });
 
     this.io = IoServer(server)
     this.io.adapter(redis_adapter({
@@ -29,11 +33,15 @@ export default class PubsubListener {
       subClient: redisSub
     }))
 
-    this.io.sockets.on('error', (err) => { app.context.logger.error('socket.io error', err) })
+    this.io.sockets.on('error', (err) => {
+      app.context.logger.error('socket.io error', err);
+    });
     this.io.sockets.on('connection', this.onConnect)
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
-    redisClient.on('error', (err) => { app.context.logger.error('redis error', err) })
+    redisClient.on('error', (err) => {
+      app.context.logger.error('redis error', err);
+    });
     redisClient.subscribe(
       'user:update',
       'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
@@ -47,8 +55,8 @@ export default class PubsubListener {
   onConnect = async (socket) => {
     const authToken = socket.handshake.query.token
     const config = configLoader()
-    const secret = config.secret
-    const logger = this.app.context.logger
+    const { secret } = config;
+    const { logger } = this.app.context;
 
     try {
       const decoded = await jwt.verifyAsync(authToken, secret)
@@ -138,17 +146,18 @@ export default class PubsubListener {
       'like:remove':         this.onLikeRemove,
       'comment_like:new':    this.onCommentLikeNew,
       'comment_like:remove': this.onCommentLikeRemove,
-    }
+    };
 
-    messageRoutes[channel](
-      this.io.sockets,
-      JSON.parse(msg)
-    ).catch((e) => { this.app.context.logger.error('onRedisMessage error', e)})
+    try {
+      await messageRoutes[channel](this.io.sockets, JSON.parse(msg));
+    } catch (e) {
+      this.app.context.logger.error('onRedisMessage error', e);
+    }
   }
 
   async broadcastMessage(sockets, rooms, type, json, post, emitter = null) {
-    const logger = this.app.context.logger
-    emitter = emitter || (async (socket, type, json) => socket.emit(type, json));
+    const { logger } = this.app.context;
+    emitter = emitter || ((socket, type, json) => socket.emit(type, json));
 
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
@@ -166,7 +175,7 @@ export default class PubsubListener {
     const bansMap = await dbAdapter.getUsersBansIdsMap(users.map((u) => u.id).filter((id) => !!id));
 
     await Promise.all(destSockets.map(async (socket) => {
-      const user = socket.user;
+      const { user } = socket;
       if (!user) {
         logger.error('user is null in broadcastMessage');
         return;
@@ -176,10 +185,10 @@ export default class PubsubListener {
       if (post && user.id) {
         const banIds = bansMap.get(user.id) || [];
         if (
-          (type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy)
-          || (type === 'like:new') && banIds.includes(json.users.id)
-          || (type === 'comment_like:new' || type === 'comment_like:remove') &&
-            (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId))
+          ((type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy))
+          || ((type === 'like:new') && banIds.includes(json.users.id))
+          || ((type === 'comment_like:new' || type === 'comment_like:remove') &&
+            (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
         ) {
           return;
         }
@@ -189,7 +198,7 @@ export default class PubsubListener {
     }));
   }
 
-  onUserUpdate = async (sockets, data) => {
+  onUserUpdate = (sockets, data) => {
     sockets.in(`user:${data.user.id}`).emit('user:update', data);
   };
 
@@ -287,14 +296,14 @@ export default class PubsubListener {
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onPostHide = async (sockets, data) => {
+  onPostHide = (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     const json = { meta: { postId: data.postId } }
     sockets.in(`timeline:${data.timelineId}`).emit('post:hide', json)
   }
 
-  onPostUnhide = async (sockets, data) => {
+  onPostUnhide = (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     const json = { meta: { postId: data.postId } }

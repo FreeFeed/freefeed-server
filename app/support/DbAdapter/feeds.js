@@ -45,13 +45,13 @@ const feedsTrait = (superClass) => class extends superClass {
 
     // Cache miss, read from the database
     const res = await this.database('feeds').where('user_id', userId);
-    const riverOfNews   = _.filter(res, (record) => { return record.name == 'RiverOfNews'});
-    const hides         = _.filter(res, (record) => { return record.name == 'Hides'});
-    const comments      = _.filter(res, (record) => { return record.name == 'Comments'});
-    const likes         = _.filter(res, (record) => { return record.name == 'Likes'});
-    const posts         = _.filter(res, (record) => { return record.name == 'Posts'});
-    const directs       = _.filter(res, (record) => { return record.name == 'Directs'});
-    const myDiscussions = _.filter(res, (record) => { return record.name == 'MyDiscussions'});
+    const riverOfNews   = _.filter(res, (record) => record.name === 'RiverOfNews');
+    const hides         = _.filter(res, (record) => record.name === 'Hides');
+    const comments      = _.filter(res, (record) => record.name === 'Comments');
+    const likes         = _.filter(res, (record) => record.name === 'Likes');
+    const posts         = _.filter(res, (record) => record.name === 'Posts');
+    const directs       = _.filter(res, (record) => record.name === 'Directs');
+    const myDiscussions = _.filter(res, (record) => record.name === 'MyDiscussions');
 
     const timelines =  {
       'RiverOfNews': riverOfNews[0] && riverOfNews[0].uid,

@@ -176,7 +176,7 @@ export class EventService {
 
     let postGroupIntId = null;
     if (destinationFeeds.length === 1) {
-      const postFeed = destinationFeeds[0];
+      const [postFeed] = destinationFeeds;
       const feedOwner = await postFeed.getUser();
       if (feedOwner.type === 'group') {
         postGroupIntId = feedOwner.intId;
@@ -291,10 +291,12 @@ export class EventService {
     const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
     const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
 
-    const replyToUser = mentions.find((m) => { return m.indices[0] === 0; });
+    const replyToUser = mentions.find((m) => m.indices[0] === 0);
 
     if (replyToUser) {
-      _.remove(mentions, (m) => { return m.username == replyToUser.username && m.indices[0] != 0; });
+      _.remove(mentions, (m) => {
+        return m.username === replyToUser.username && m.indices[0] != 0;
+      });
     }
     mentions = _.uniqBy(mentions, 'username');
 

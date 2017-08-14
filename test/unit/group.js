@@ -199,8 +199,8 @@ describe('Group', () => {
   })
 
   describe('addAdministrator', () => {
-    let group
-      , groupAdmin
+    let group, groupAdmin;
+
     beforeEach(async () => {
       groupAdmin = new User({
         username: 'Pluto',
@@ -228,9 +228,7 @@ describe('Group', () => {
   })
 
   describe('removeAdministrator', () => {
-    let group
-      , groupAdmin
-      , secondGroupAdmin
+    let group, groupAdmin, secondGroupAdmin;
 
     beforeEach(async () => {
       groupAdmin = new User({

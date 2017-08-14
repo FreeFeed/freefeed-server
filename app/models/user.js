@@ -52,10 +52,15 @@ export function addModel(dbAdapter) {
     }
     this.resetPasswordToken = params.resetPasswordToken
     this.resetPasswordSentAt = params.resetPasswordSentAt
-    if (parseInt(params.createdAt, 10))
-      this.createdAt = params.createdAt
-    if (parseInt(params.updatedAt, 10))
-      this.updatedAt = params.updatedAt
+
+    if (parseInt(params.createdAt, 10)) {
+      this.createdAt = params.createdAt;
+    }
+
+    if (parseInt(params.updatedAt, 10)) {
+      this.updatedAt = params.updatedAt;
+    }
+
     this.type = 'user'
 
     this.profilePictureUuid = params.profilePictureUuid || ''
@@ -85,24 +90,27 @@ export function addModel(dbAdapter) {
   Reflect.defineProperty(User.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
-      if (newValue)
-        this.username_ = newValue.trim().toLowerCase()
+      if (newValue) {
+        this.username_ = newValue.trim().toLowerCase();
+      }
     }
   })
 
   Reflect.defineProperty(User.prototype, 'screenName', {
     get: function () { return this.screenName_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.screenName_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.screenName_ = newValue.trim();
+      }
     }
   })
 
   Reflect.defineProperty(User.prototype, 'email', {
     get: function () { return _.isUndefined(this.email_) ? '' : this.email_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.email_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.email_ = newValue.trim();
+      }
     }
   })
 
@@ -130,8 +138,9 @@ export function addModel(dbAdapter) {
   Reflect.defineProperty(User.prototype, 'description', {
     get: function () { return this.description_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.description_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.description_ = newValue.trim();
+      }
     }
   })
 
@@ -195,7 +204,7 @@ export function addModel(dbAdapter) {
     return bcrypt.compare(clearPassword, this.hashedPassword)
   }
 
-  User.prototype.isValidEmail = async function () {
+  User.prototype.isValidEmail = function () {
     return User.emailIsValid(this.email)
   }
 
@@ -299,8 +308,9 @@ export function addModel(dbAdapter) {
   User.prototype.validateUsernameUniqueness = async function () {
     const res = await dbAdapter.existsUsername(this.username)
 
-    if (res !== 0)
-      throw new Error('Already exists')
+    if (res !== 0) {
+      throw new Error('Already exists');
+    }
   }
 
   User.prototype.validateOnCreate = async function (skip_stoplist) {
@@ -334,10 +344,9 @@ export function addModel(dbAdapter) {
       'updatedAt':           this.updatedAt.toString(),
       'hashedPassword':      this.hashedPassword,
       'frontendPreferences': JSON.stringify({})
-    }
-    const ids = await dbAdapter.createUser(payload);
-    this.id = ids[0];
-    this.intId = ids[1];
+    };
+
+    [this.id, this.intId] = await dbAdapter.createUser(payload);
 
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
     timer.stop() // @todo finally {}
@@ -461,9 +470,7 @@ export function addModel(dbAdapter) {
       const [likes, comments] = await Promise.all([post.getLikes(), post.getComments()]);
 
       for (const usersChunk of _.chunk(likes, 10)) {
-        const promises = usersChunk.map(async (user) => {
-          return user.getLikesTimelineIntId()
-        })
+        const promises = usersChunk.map((user) => user.getLikesTimelineIntId());
         const likesFeedsIntIds = await Promise.all(promises)
         actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
@@ -472,9 +479,7 @@ export function addModel(dbAdapter) {
       const commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
 
       for (const usersChunk of _.chunk(commenters, 10)) {
-        const promises = usersChunk.map(async (user) => {
-          return user.getCommentsTimelineIntId()
-        })
+        const promises = usersChunk.map((user) => user.getCommentsTimelineIntId());
 
         const commentsFeedsIntIds = await Promise.all(promises)
         actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
@@ -566,11 +571,11 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  User.prototype.getAdministratorIds = async function () {
+  User.prototype.getAdministratorIds = function () {
     return [this.id]
   }
 
-  User.prototype.getAdministrators = async function () {
+  User.prototype.getAdministrators = function () {
     return [this]
   }
 
@@ -820,8 +825,9 @@ export function addModel(dbAdapter) {
     const targetTimeline = await dbAdapter.getTimelineById(targetTimelineId)
     const targetTimelineOwner = await dbAdapter.getFeedOwnerById(targetTimeline.userId)
 
-    if (targetTimelineOwner.username == this.username)
-      throw new Error('Invalid')
+    if (targetTimelineOwner.username == this.username) {
+      throw new Error('Invalid');
+    }
 
     const timelineIds = await targetTimelineOwner.getPublicTimelineIds()
     const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
@@ -856,8 +862,9 @@ export function addModel(dbAdapter) {
     const wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
 
     // a user cannot unsubscribe from herself
-    if (user.username == this.username)
-      throw new Error('Invalid')
+    if (user.username == this.username) {
+      throw new Error('Invalid');
+    }
 
     if (_.isUndefined(options.skip)) {
       // remove timelines from user's subscriptions
@@ -873,12 +880,14 @@ export function addModel(dbAdapter) {
     promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))
 
     // remove all posts of The Timeline from likes timeline of user
-    if (options.likes)
-      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()))
+    if (options.likes) {
+      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()));
+    }
 
     // remove all post of The Timeline from comments timeline of user
-    if (options.comments)
-      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()))
+    if (options.comments) {
+      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()));
+    }
 
     await Promise.all(promises)
 
@@ -917,7 +926,7 @@ export function addModel(dbAdapter) {
     return new Comment(attrs)
   }
 
-  User.prototype.newAttachment = async function (attrs) {
+  User.prototype.newAttachment = function (attrs) {
     attrs.userId = this.id
     monitor.increment('users.attachments')
     return new Attachment(attrs)
@@ -1012,7 +1021,7 @@ export function addModel(dbAdapter) {
   User.prototype.getProfilePictureFilename = (uuid, size) => `${uuid}_${size}.jpg`;
 
   // used by serializer
-  User.prototype.getProfilePictureLargeUrl = async function () {
+  User.prototype.getProfilePictureLargeUrl = function () {
     if (_.isEmpty(this.profilePictureUuid)) {
       return ''
     }
@@ -1023,7 +1032,7 @@ export function addModel(dbAdapter) {
   }
 
   // used by serializer
-  User.prototype.getProfilePictureMediumUrl = async function () {
+  User.prototype.getProfilePictureMediumUrl = function () {
     if (_.isEmpty(this.profilePictureUuid)) {
       return ''
     }
@@ -1125,20 +1134,24 @@ export function addModel(dbAdapter) {
 
   User.prototype.getFollowedGroups = async function () {
     const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
-    if (timelinesIds.length === 0)
-      return []
+    if (timelinesIds.length === 0) {
+      return [];
+    }
 
     const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
-    if (timelines.length === 0)
-      return []
+    if (timelines.length === 0) {
+      return [];
+    }
 
     const timelineOwnerIds = _(timelines).map('userId').uniq().value()
-    if (timelineOwnerIds.length === 0)
-      return []
+    if (timelineOwnerIds.length === 0) {
+      return [];
+    }
 
     const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
-    if (timelineOwners.length === 0)
-      return []
+    if (timelineOwners.length === 0) {
+      return [];
+    }
 
     const followedGroups = timelineOwners.filter((owner) => {
       return 'group' === owner.type

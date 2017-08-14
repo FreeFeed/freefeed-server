@@ -7,7 +7,7 @@ import pgFormat from 'pg-format';
 
 const searchTrait = (superClass) => class extends superClass {
   async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, offset, limit) {
-    const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const { textSearchConfigName } = this.database.client.config;
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
@@ -67,7 +67,7 @@ const searchTrait = (superClass) => class extends superClass {
   }
 
   async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, offset, limit) {
-    const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const { textSearchConfigName } = this.database.client.config;
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
@@ -113,7 +113,7 @@ const searchTrait = (superClass) => class extends superClass {
   }
 
   async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, offset, limit) {
-    const textSearchConfigName = this.database.client.config.textSearchConfigName
+    const { textSearchConfigName } = this.database.client.config;
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)

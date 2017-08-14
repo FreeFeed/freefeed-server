@@ -20,15 +20,18 @@ export function createUser(username, password, attributes, callback) {
       attributes = {}
     }
 
-    if (typeof attributes === 'undefined')
-      attributes = {}
+    if (typeof attributes === 'undefined') {
+      attributes = {};
+    }
 
     const user = {
       username,
       password
     }
-    if (attributes.email)
-      user.email = attributes.email
+
+    if (attributes.email) {
+      user.email = attributes.email;
+    }
 
     apiUrl('/v1/users')
       .then((url) => {
@@ -139,8 +142,10 @@ export function createPost(context, body, callback) {
           .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
           .end((err, res) => {
             context.post = res.body.posts
-            if (typeof callback !== 'undefined')
-              callback(context.post)
+
+            if (typeof callback !== 'undefined') {
+              callback(context.post);
+            }
 
             done(err, res)
           })
@@ -383,7 +388,7 @@ async function postJson(relativeUrl, data) {
   )
 }
 
-export async function createUserAsyncPost(user) {
+export function createUserAsyncPost(user) {
   return postJson(`/v1/users`, user)
 }
 
@@ -620,7 +625,7 @@ export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
 
-export async function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
+export function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
   const parameters = {
     authToken: userContext.authToken,
     title,
@@ -853,7 +858,9 @@ const PromisifiedIO = (host, options, events) => {
             args.push(client);
             const result = events[k](...args);
             if (result instanceof Promise) {
-              result.catch((e) => { reject(e); })
+              result.catch((e) => {
+                reject(e);
+              })
             }
           } catch (e) {
             reject(e);
@@ -937,6 +944,6 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
  */
 export function noFieldOrEmptyArray(name) {
   return function (obj) {
-    return !(name in obj) || _.isArray(obj[name]) && obj[name].length === 0;
+    return !(name in obj) || (_.isArray(obj[name]) && obj[name].length === 0);
   };
 }

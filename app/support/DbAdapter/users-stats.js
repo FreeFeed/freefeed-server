@@ -22,8 +22,8 @@ const usersStatsTrait = (superClass) => class extends superClass {
       userStats = cachedUserStats
     } else {
       // Cache miss, read from the database
-      const res = await this.database('user_stats').where('user_id', userId)
-      userStats = res[0]
+      const res = await this.database('user_stats').where('user_id', userId);
+      [userStats] = res;
       await this.statsCache.setAsync(userId, userStats)
     }
 
@@ -146,7 +146,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
           .transacting(trx).forUpdate()
           .where('user_id', userId)
 
-        const stats = res[0]
+        const [stats] = res;
         const val = parseInt(stats[counterName], 10) + 1
 
         stats[counterName] = val
@@ -174,7 +174,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
           .transacting(trx).forUpdate()
           .where('user_id', userId)
 
-        const stats = res[0]
+        const [stats] = res;
         const val = parseInt(stats[counterName]) - 1
 
         if (val < 0) {

@@ -136,8 +136,8 @@ describe('Realtime (Socket.io)', () => {
     let lunaPost;
     let lunaComment, marsComment, jupiterComment;
 
-    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => async (obj) => {
-      expect(obj, 'to satisfy', {
+    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => (obj) => {
+      return expect(obj, 'to satisfy', {
         comments: {
           likes:      nLikes,
           hasOwnLike: hasOwn,

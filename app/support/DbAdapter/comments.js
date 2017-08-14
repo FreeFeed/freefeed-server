@@ -125,11 +125,11 @@ const commentsTrait = (superClass) => class extends superClass {
       throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
     }
 
-    const uid = (await this.database('comments').returning('uid').insert({
+    const [uid] = (await this.database('comments').returning('uid').insert({
       post_id:   params.postId,
       hide_type: params.hideType,
       body:      Comment.hiddenBody(params.hideType),
-    }))[0];
+    }));
 
     if (params.hideType === Comment.HIDDEN_ARCHIVED) {
       await this.database('hidden_comments').insert({

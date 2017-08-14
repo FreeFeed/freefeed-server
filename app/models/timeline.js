@@ -13,10 +13,15 @@ export function addModel(dbAdapter) {
     this.name = params.name
     this.userId = params.userId
     this.user = null;
-    if (parseInt(params.createdAt, 10))
-      this.createdAt = params.createdAt
-    if (parseInt(params.updatedAt, 10))
-      this.updatedAt = params.updatedAt
+
+    if (parseInt(params.createdAt, 10)) {
+      this.createdAt = params.createdAt;
+    }
+
+    if (parseInt(params.updatedAt, 10)) {
+      this.updatedAt = params.updatedAt;
+    }
+
     this.offset = parseInt(params.offset, 10) || 0
     this.limit = parseInt(params.limit, 10) || 30
     this.currentUser = params.currentUser
@@ -65,21 +70,22 @@ export function addModel(dbAdapter) {
     await pubSub.newPost(post.id)
   }
 
-  Timeline.getObjectsByIds = async function (objectIds) {
+  Timeline.getObjectsByIds = function (objectIds) {
     return dbAdapter.getTimelinesByIds(objectIds)
   }
 
-  Timeline.prototype.validate = async function () {
+  Timeline.prototype.validate = function () {
     const valid = this.name
       && this.name.length > 0
       && this.userId
-      && this.userId.length > 0
+      && this.userId.length > 0;
 
-    if (!valid)
-      throw new Error('Invalid')
+    if (!valid) {
+      throw new Error('Invalid');
+    }
   }
 
-  Timeline.prototype.create = async function () {
+  Timeline.prototype.create = function () {
     return this._createTimeline()
   }
 
@@ -106,23 +112,26 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getPostIds = async function (offset, limit) {
-    if (_.isUndefined(offset))
-      offset = this.offset
-    else if (offset < 0)
-      offset = 0
+    if (_.isUndefined(offset)) {
+      ({ offset } = this);
+    } else if (offset < 0) {
+      offset = 0;
+    }
 
     // -1 = special magic number, meaning “do not use limit defaults,
     // do not use passed in value, use 0 instead". this is at the very least
     // used in Timeline.mergeTo()
-    if (_.isUndefined(limit))
-      limit = this.limit
-    else if (limit < 0)
-      limit = 0
+    if (_.isUndefined(limit)) {
+      ({ limit } = this);
+    } else if (limit < 0) {
+      limit = 0;
+    }
 
     const valid = await this.canShow(this.currentUser)
 
-    if (!valid)
-      return []
+    if (!valid) {
+      return [];
+    }
 
     this.postIds = await dbAdapter.getTimelinePostsRange(this.intId, offset, limit)
     return this.postIds
@@ -131,8 +140,9 @@ export function addModel(dbAdapter) {
   Timeline.prototype.getFeedPosts = async function (offset, limit, params, customFeedIds) {
     const valid = await this.canShow(this.currentUser)
 
-    if (!valid)
-      return []
+    if (!valid) {
+      return [];
+    }
 
     let feedIds = [this.intId]
     if (customFeedIds) {
@@ -143,18 +153,20 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.getPosts = async function (offset, limit) {
-    if (_.isUndefined(offset))
-      offset = this.offset
-    else if (offset < 0)
-      offset = 0
+    if (_.isUndefined(offset)) {
+      ({ offset } = this);
+    } else if (offset < 0) {
+      offset = 0;
+    }
 
     // -1 = special magic number, meaning “do not use limit defaults,
     // do not use passed in value, use 0 instead". this is at the very least
     // used in Timeline.mergeTo()
-    if (_.isUndefined(limit))
-      limit = this.limit
-    else if (limit < 0)
-      limit = 0
+    if (_.isUndefined(limit)) {
+      ({ limit } = this);
+    } else if (limit < 0) {
+      limit = 0;
+    }
 
     const reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null
     const banIds = reader ? (await reader.getBanIds()) : []
@@ -179,7 +191,7 @@ export function addModel(dbAdapter) {
       }
 
       const localBumps = await dbAdapter.getUserLocalBumps(reader.id, oldestPostTime)
-      const localBumpedPostIds = localBumps.map((bump) => { return bump.postId })
+      const localBumpedPostIds = localBumps.map((bump) => bump.postId);
 
       const absentPostIds = _.difference(localBumpedPostIds, postIds)
       if (absentPostIds.length > 0) {
@@ -251,11 +263,12 @@ export function addModel(dbAdapter) {
 
       const readerBannedAuthor = banIds.includes(post.userId)
 
-      if (readerBannedAuthor || authorBannedReader)
-        return null
+      if (readerBannedAuthor || authorBannedReader) {
+        return null;
+      }
 
       if (author.isPrivate) {
-        if (feedOwner.isPrivate !== '1' && (this.isPosts()) || this.isDirects()) {
+        if ((feedOwner.isPrivate !== '1' && this.isPosts()) || this.isDirects()) {
           return post
         }
 
@@ -419,11 +432,13 @@ export function addModel(dbAdapter) {
   }
 
   Timeline.prototype.canShow = async function (readerId) {
-    if (this.userId === readerId)
+    if (this.userId === readerId) {
       return true;  // owner can read her posts
+    }
 
-    if (this.isDirects())
+    if (this.isDirects()) {
       return false;  // this is someone else's direct
+    }
 
     const user = await this.getUser();
 

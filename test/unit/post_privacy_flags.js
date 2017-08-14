@@ -72,7 +72,7 @@ describe('Post Privacy Flags', () => {
         ]);
       });
 
-      it('all posts should be public', async () => {
+      it('all posts should be public', () => {
         expect(postToLuna.isPrivate, 'to equal', '0');
         expect(postToLuna.isProtected, 'to equal', '0');
         expect(postToSelenitesAndLuna.isPrivate, 'to equal', '0');
@@ -95,7 +95,7 @@ describe('Post Privacy Flags', () => {
           ]);
         });
 
-        it('posts should change privacy', async () => {
+        it('posts should change privacy', () => {
           expect(postToLuna.isPrivate, 'to equal', '0');
           expect(postToLuna.isProtected, 'to equal', '1');
           expect(postToSelenitesAndLuna.isPrivate, 'to equal', '0');
@@ -119,7 +119,7 @@ describe('Post Privacy Flags', () => {
           ]);
         });
 
-        it('posts should change privacy', async () => {
+        it('posts should change privacy', () => {
           expect(postToLuna.isPrivate, 'to equal', '1');
           expect(postToLuna.isProtected, 'to equal', '1');
           expect(postToSelenitesAndLuna.isPrivate, 'to equal', '0');
@@ -144,7 +144,7 @@ describe('Post Privacy Flags', () => {
           ]);
         });
 
-        it('all posts should became public', async () => {
+        it('all posts should became public', () => {
           expect(postToLuna.isPrivate, 'to equal', '0');
           expect(postToLuna.isProtected, 'to equal', '0');
           expect(postToSelenitesAndLuna.isPrivate, 'to equal', '0');
