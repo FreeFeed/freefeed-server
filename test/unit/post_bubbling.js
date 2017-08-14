@@ -47,11 +47,7 @@ describe('PostBubbling', () => {
   describe('public users Luna, Mars and stranger Jupiter', () => {
     const lunaPostsContent = ['A', 'B', 'C'],
       marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'];
-    let luna
-      , mars
-      , jupiter
-      , lunaPosts
-      , marsPosts
+    let luna, mars, jupiter, lunaPosts, marsPosts;
 
     beforeEach(async () => {
       luna = new User({ username: 'Luna', password: 'password' })
@@ -383,13 +379,7 @@ describe('PostBubbling', () => {
     const lunaPostsContent = ['A', 'B', 'C'],
       marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'],
       plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta'];
-    let luna
-      , mars
-      , pluto
-      , jupiter
-      , lunaPosts
-      , marsPosts
-      , plutoPosts
+    let luna, mars, pluto, jupiter, lunaPosts, marsPosts, plutoPosts;
 
     beforeEach(async () => {
       luna = new User({ username: 'Luna', password: 'password' })
@@ -779,15 +769,10 @@ describe('PostBubbling', () => {
   })
 
   describe('public users Mars, Pluto and private user Luna', () => {
-    const lunaPostsContent = ['A', 'B', 'C']
-      , marsPostsContent   = ['Able', 'Baker', 'Charlie', 'Dog']
-      , plutoPostsContent  = ['Alpha', 'Beta', 'Gamma', 'Delta']
-    let luna
-      , mars
-      , pluto
-      , lunaPosts
-      , marsPosts
-      , plutoPosts
+    const lunaPostsContent  = ['A', 'B', 'C'];
+    const marsPostsContent  = ['Able', 'Baker', 'Charlie', 'Dog'];
+    const plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+    let luna, mars, pluto, lunaPosts, marsPosts, plutoPosts;
 
     beforeEach(async () => {
       luna       = new User({ username: 'Luna', password: 'password' })
@@ -847,19 +832,11 @@ describe('PostBubbling', () => {
   })
 
   describe('public users Luna, Mars, Pluto and private group EasyFox (owned by Luna)', () => {
-    const lunaPostsContent = ['A', 'B', 'C']
-      , marsPostsContent   = ['Able', 'Baker', 'Charlie', 'Dog']
-      , plutoPostsContent  = ['Alpha', 'Beta', 'Gamma', 'Delta']
-      , easyfoxPostsContent  = ['How', 'Item', 'Jig']
-    let luna
-      , mars
-      , pluto
-      , easyfox
-      , lunaPosts
-      , marsPosts
-      , plutoPosts
-      , easyfoxPosts
-      , easyfoxTimelineId
+    const lunaPostsContent    = ['A', 'B', 'C'];
+    const marsPostsContent    = ['Able', 'Baker', 'Charlie', 'Dog'];
+    const plutoPostsContent   = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+    const easyfoxPostsContent = ['How', 'Item', 'Jig'];
+    let luna, mars, pluto, easyfox, lunaPosts, marsPosts, plutoPosts, easyfoxPosts, easyfoxTimelineId;
 
     beforeEach(async () => {
       luna       = new User({ username: 'Luna', password: 'password' })
@@ -976,15 +953,10 @@ describe('PostBubbling', () => {
   })
 
   describe('feed pagination and local bumps', () => {
-    const lunaPostsContent = ['A', 'B', 'C']
-      , marsPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
-      , plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta']
-    let luna
-      , mars
-      , pluto
-      , lunaPosts
-      , marsPosts
-      , plutoPosts
+    const lunaPostsContent  = ['A', 'B', 'C'];
+    const marsPostsContent  = ['Able', 'Baker', 'Charlie', 'Dog'];
+    const plutoPostsContent = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+    let luna, mars, pluto, lunaPosts, marsPosts, plutoPosts;
 
     beforeEach(async () => {
       luna = new User({ username: 'Luna', password: 'password' })

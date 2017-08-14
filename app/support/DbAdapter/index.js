@@ -26,6 +26,7 @@ import unreadDirectsTrait from './unread-directs';
 import statsTrait from './stats';
 import eventsTrait from './events';
 import commentLikesTrait from './comment-likes';
+import allGroupsTrait from './all-groups';
 
 promisifyAll(redis.RedisClient.prototype);
 promisifyAll(redis.Multi.prototype);
@@ -97,4 +98,5 @@ export const DbAdapter = _.flow([
   statsTrait,
   eventsTrait,
   commentLikesTrait,
+  allGroupsTrait,
 ])(DbAdapterBase);

@@ -63,7 +63,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Post.prototype.validate = async function () {
+  Post.prototype.validate = function () {
     const valid = this.body
                && this.body.length > 0
                && this.userId
@@ -180,14 +180,16 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getSubscribedTimelineIds = async function (groupOnly) {
-    if (typeof groupOnly === 'undefined')
-      groupOnly = false
+    if (typeof groupOnly === 'undefined') {
+      groupOnly = false;
+    }
 
     const feed = await dbAdapter.getFeedOwnerById(this.userId)
 
     const feeds = [feed.getRiverOfNewsTimelineId()]
-    if (!groupOnly)
-      feeds.push(feed.getPostsTimelineId())
+    if (!groupOnly) {
+      feeds.push(feed.getPostsTimelineId());
+    }
 
     let timelineIds = await Promise.all(feeds)
     const newTimelineIds = await this.getTimelineIds()
@@ -372,7 +374,7 @@ export function addModel(dbAdapter) {
       return cmt.id
     })
 
-    const length = comments.length
+    const { length } = comments;
     let visibleCommentsIds = commentsIds
     let visibleComments = comments
     if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
@@ -452,11 +454,13 @@ export function addModel(dbAdapter) {
     let likedUsersIds = await dbAdapter.getPostLikersIdsWithoutBannedUsers(this.id, this.currentUser)
 
     likedUsersIds = likedUsersIds.sort((a, b) => {
-      if (a == this.currentUser)
-        return -1
+      if (a == this.currentUser) {
+        return -1;
+      }
 
-      if (b == this.currentUser)
-        return 1
+      if (b == this.currentUser) {
+        return 1;
+      }
 
       return 0
     })
@@ -496,8 +500,9 @@ export function addModel(dbAdapter) {
     const timelines = await this.getPostedTo()
 
     const arr = timelines.map(async (timeline) => {
-      if (timeline.isDirects())
-        return true
+      if (timeline.isDirects()) {
+        return true;
+      }
 
       const owner = await dbAdapter.getUserById(timeline.userId)
 
@@ -565,8 +570,9 @@ export function addModel(dbAdapter) {
 
   Post.prototype.isHiddenIn = async function (timeline) {
     // hides are applicable only to river
-    if (!(timeline.isRiverOfNews() || timeline.isHides()))
-      return false
+    if (!(timeline.isRiverOfNews() || timeline.isHides())) {
+      return false;
+    }
 
     const owner = await timeline.getUser()
     const hidesTimelineIntId = await owner.getHidesTimelineIntId()
@@ -633,6 +639,37 @@ export function addModel(dbAdapter) {
         await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id)
       }
     }
+  }
+
+  /**
+   * Filter users that can not see this post
+   * 
+   * Viewer CAN NOT see post if: 
+   * - viwer is anonymous and post is not public or 
+   * - viewer is authorized and 
+   *   - post author banned viewer or was banned by viewer or 
+   *   - post is private and viewer cannot read any of post's destination feeds
+   */
+  Post.prototype.onlyUsersCanSeePost = async function (users) {
+    if (users.length === 0) {
+      return [];
+    }
+
+    if (this.isProtected === '1') {
+      // Anonymous can not see this post
+      users = users.filter((u) => !!u.id); // users without id are anonymous
+    }
+
+    const authorBans = await dbAdapter.getBansAndBannersOfUser(this.userId);
+    // Author's banned and banners can not see this post
+    users = users.filter((u) => !authorBans.includes(u.id));
+
+    if (this.isPrivate === '1') {
+      const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
+      users = users.filter((u) => allowedUserIds.includes(u.id));
+    }
+
+    return users;
   }
 
   return Post

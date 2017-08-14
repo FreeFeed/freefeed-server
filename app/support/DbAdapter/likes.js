@@ -52,7 +52,7 @@ const likesTrait = (superClass) => class extends superClass {
       post_id: postId,
       user_id: userId
     })
-    const record = res[0]
+    const [record] = res;
 
     if (!record) {
       return null

@@ -1,7 +1,9 @@
 require('babel-register')({ ignore: /node_modules/ });
 
 global.Promise = require('bluebird')
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
+global.Promise.onPossiblyUnhandledRejection((e) => {
+  throw e;
+});
 
 global.Promise.config({
   // Enable warnings.

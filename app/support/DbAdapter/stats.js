@@ -47,7 +47,7 @@ const statsTrait = (superClass) => class extends superClass {
       { count: restore_requests_completed },
       { count: restore_requests_pending },
       { count: users_with_restored_comments },
-    ] = Promise.all([
+    ] = await Promise.all([
       this.database('posts').count('id').first().where('created_at', '<', FREEFEED_START_DATE),
       this.database('comments').count('id').first().where('created_at', '<', FREEFEED_START_DATE),
       this.database('hidden_comments').count('comment_id').first(),

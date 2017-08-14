@@ -11,9 +11,7 @@ describe('Comment', () => {
   })
 
   describe('#update()', () => {
-    let userA
-      , comment
-      , post
+    let userA, comment, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -52,8 +50,7 @@ describe('Comment', () => {
   })
 
   describe('#create()', () => {
-    let user
-      , post
+    let user, post;
 
     beforeEach(async () => {
       user = new User({
@@ -141,8 +138,7 @@ describe('Comment', () => {
   })
 
   describe('#findById()', () => {
-    let user
-      , post
+    let user, post;
 
     beforeEach(async () => {
       user = new User({
@@ -199,8 +195,7 @@ describe('Comment', () => {
   })
 
   describe('#destroy()', () => {
-    let userA
-      , post
+    let userA, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -230,7 +225,7 @@ describe('Comment', () => {
     it('should destroy comment', async () => {
       let comments = await post.getComments()
 
-      const comment = comments[0]
+      const [comment] = comments;
       await comment.destroy()
 
       const oldComment = await dbAdapter.getCommentById(comment.id)

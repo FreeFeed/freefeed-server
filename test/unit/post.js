@@ -10,8 +10,7 @@ describe('Post', () => {
   })
 
   describe('#update()', () => {
-    let userA
-      , post
+    let userA, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -151,7 +150,8 @@ describe('Post', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
           newPost.should.have.property('body')
@@ -271,9 +271,7 @@ describe('Post', () => {
   })
 
   describe('#getTimelineIds()', () => {
-    let userA
-      , userB
-      , post
+    let userA, userB, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -311,8 +309,7 @@ describe('Post', () => {
   })
 
   describe('#setCommentsDisabled()', () => {
-    let user
-      , post
+    let user, post;
 
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' })
@@ -330,11 +327,7 @@ describe('Post', () => {
   })
 
   describe('#addLike()', () => {
-    let userA
-      , userB
-      , userC
-      , users
-      , post
+    let userA, userB, userC, users, post;
 
     beforeEach(async () => {
       userA = new User({ username: 'Luna', password: 'password' })
@@ -367,7 +360,8 @@ describe('Post', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()
@@ -387,7 +381,7 @@ describe('Post', () => {
       postsA.should.not.be.empty
       postsA.length.should.eql(1)
 
-      const newPost = postsA[0]
+      const [newPost] = postsA;
       newPost.should.have.property('id')
       newPost.id.should.eql(post2.id)
     });
@@ -399,7 +393,7 @@ describe('Post', () => {
       users.should.not.be.empty
       users.length.should.eql(1)
 
-      const user = users[0]
+      const [user] = users;
       user.should.have.property('id')
       user.id.should.eql(userA.id)
     })
@@ -505,10 +499,7 @@ describe('Post', () => {
   })
 
   describe('#removeLike()', () => {
-    let userA
-      , userB
-      , userC
-      , post
+    let userA, userB, userC, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -560,7 +551,8 @@ describe('Post', () => {
         .then((users) => {
           users.should.not.be.empty
           users.length.should.eql(1)
-          const user = users[0]
+
+          const [user] = users;
           user.should.have.property('id')
           user.id.should.eql(userA.id)
           done()
@@ -570,10 +562,7 @@ describe('Post', () => {
   })
 
   describe('#addComment()', () => {
-    let userA
-      , userB
-      , userC
-      , post
+    let userA, userB, userC, post;
 
     beforeEach(async () => {
       userA = new User({
@@ -622,7 +611,8 @@ describe('Post', () => {
         .then((posts) => {
           posts.should.not.be.empty
           posts.length.should.eql(1)
-          const newPost = posts[0]
+
+          const [newPost] = posts;
           newPost.should.have.property('id')
           newPost.id.should.eql(post.id)
           done()
@@ -632,8 +622,7 @@ describe('Post', () => {
   })
 
   describe('#getComments()', () => {
-    let userA
-      , post
+    let userA, post;
     const comments = []
 
     beforeEach(async () => {
@@ -686,8 +675,7 @@ describe('Post', () => {
   })
 
   describe('#destroy()', () => {
-    let user
-      , timelineId
+    let user, timelineId;
 
     beforeEach(async () => {
       user = new User({

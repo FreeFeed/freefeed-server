@@ -136,8 +136,8 @@ describe('Realtime (Socket.io)', () => {
     let lunaPost;
     let lunaComment, marsComment, jupiterComment;
 
-    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => async (obj) => {
-      expect(obj, 'to satisfy', {
+    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => (obj) => {
+      return expect(obj, 'to satisfy', {
         comments: {
           likes:      nLikes,
           hasOwnLike: hasOwn,
@@ -1287,6 +1287,50 @@ describe('Realtime (Socket.io)', () => {
           }]
         });
       });
+    });
+  });
+
+  describe('Authorization inside the realtime session', () => {
+    describe('Mars is a private user', () => {
+      beforeEach(async () => {
+        await funcTestHelper.goPrivate(marsContext);
+      });
+
+      it(
+        'Anonymous does not get notifications about his posts',
+        () => expect(anonContext, 'when subscribed to timeline', marsTimeline,
+          'not to get post:* events from', marsContext)
+      );
+
+      it(
+        'Mars gets notifications about his posts',
+        () => expect(anonContext, 'when subscribed to timeline', marsTimeline,
+          'when authorized as', marsContext,
+          'to get post:* events from', marsContext)
+      );
+
+      it(
+        'Luna does not gets notifications about his posts',
+        () => expect(anonContext, 'when subscribed to timeline', marsTimeline,
+          'when authorized as', lunaContext,
+          'not to get post:* events from', marsContext)
+      );
+
+      it(
+        'Luna re-auth as Mars and gets notifications about his posts',
+        () => expect(anonContext, 'when subscribed to timeline', marsTimeline,
+          'when authorized as', lunaContext,
+          'when authorized as', marsContext,
+          'to get post:* events from', marsContext)
+      );
+
+      it(
+        'Mars signed out and does not get notifications about his posts',
+        () => expect(anonContext, 'when subscribed to timeline', marsTimeline,
+          'when authorized as', marsContext,
+          'when authorized as', anonContext,
+          'not to get post:* events from', marsContext)
+      );
     });
   });
 });

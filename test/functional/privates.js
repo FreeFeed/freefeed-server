@@ -64,7 +64,8 @@ describe('Privates', () => {
               res.body.timelines.posts.length.should.eql(1)
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
-              const _post = res.body.posts[0]
+
+              const [_post] = res.body.posts;
               _post.body.should.eql(post)
               request
                 .post(`${app.context.config.host}/v1/posts/${_post.id}/like`)
@@ -80,7 +81,8 @@ describe('Privates', () => {
                     res.body.timelines.posts.length.should.eql(1)
                     res.body.should.have.property('posts')
                     res.body.posts.length.should.eql(1)
-                    const _post = res.body.posts[0]
+
+                    const [_post] = res.body.posts;
                     _post.body.should.eql(post)
                     request
                       .get(`${app.context.config.host}/v1/posts/${_post.id}`)
@@ -300,7 +302,8 @@ describe('Privates', () => {
                         res.body.timelines.posts.length.should.eql(1)
                         res.body.should.have.property('posts')
                         res.body.posts.length.should.eql(1)
-                        const post = res.body.posts[0]
+
+                        const [post] = res.body.posts;
                         post.body.should.eql(post.body)
                         done()
                       })
@@ -650,7 +653,8 @@ describe('Privates', () => {
           res.body.timelines.posts.length.should.eql(1)
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
-          const post = res.body.posts[0]
+
+          const [post] = res.body.posts;
           post.body.should.eql(post.body)
           // post should be visible to owner
           request
@@ -716,10 +720,14 @@ describe('Privates', () => {
 
       describe('with commented post', () => {
         beforeEach((done) => {
-          funcTestHelper.createComment('mars comment', post.id, marsContext.authToken, () => { done() })
+          funcTestHelper.createComment('mars comment', post.id, marsContext.authToken, () => {
+            done();
+          });
         })
         beforeEach((done) => {
-          funcTestHelper.createComment('zeus comment', post.id, zeusContext.authToken, () => { done() })
+          funcTestHelper.createComment('zeus comment', post.id, zeusContext.authToken, () => {
+            done();
+          });
         })
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
@@ -1025,8 +1033,12 @@ describe('Privates', () => {
     describe('given we have 2 posts by luna', () => {
       let post1, post2
 
-      beforeEach(async () => {post1 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 1')})
-      beforeEach(async () => {post2 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 2')})
+      beforeEach(async () => {
+        post1 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 1');
+      });
+      beforeEach(async () => {
+        post2 = await funcTestHelper.createAndReturnPost(lunaContext, 'post 2');
+      });
 
       it('should bump posts correctly, if someone comments them', async () => {
         await funcTestHelper.createCommentAsync(marsContext, post1.id, 'comment1')

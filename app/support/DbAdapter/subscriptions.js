@@ -67,7 +67,7 @@ const subscriptionsTrait = (superClass) => class extends superClass {
   }
 
   async getTimelineSubscribers(timelineIntId) {
-    const responses = this.database('users').whereRaw('subscribed_feed_ids && ?', [[timelineIntId]])
+    const responses = await this.database('users').whereRaw('subscribed_feed_ids && ?', [[timelineIntId]]);
     return responses.map(initUserObject)
   }
 

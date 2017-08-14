@@ -3,6 +3,8 @@ export default class pubSubStub {
 
   updateUnreadDirects() {}
 
+  updateUnreadNotifications() {}
+
   newPost() {}
 
   destroyPost() {}

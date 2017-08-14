@@ -2,7 +2,6 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
-import { ALLOWED_EVENT_TYPES } from '../../../support/EventService';
 
 export default class UsersController {
   static async blockedByMe(ctx) {
@@ -47,7 +46,7 @@ export default class UsersController {
       return;
     }
 
-    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(ctx.state.user.id, ALLOWED_EVENT_TYPES);
+    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(ctx.state.user.id);
     ctx.body = { unread: unreadNotificationsNumber };
   }
 
@@ -79,7 +78,7 @@ export default class UsersController {
       ctx.body = { err: 'Not found' };
       return;
     }
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const timer = monitor.timer('users.whoami-v2');
     try {
       const [

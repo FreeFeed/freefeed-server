@@ -33,6 +33,14 @@ export default class pubSub {
     await this.publisher.userUpdated(payload);
   }
 
+  async updateUnreadNotifications(userIntId) {
+    const [{ uid: userId }] = await dbAdapter.getUsersIdsByIntIds([userIntId]);
+    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(userId);
+    const user = { id: userId, unreadNotificationsNumber };
+    const payload = JSON.stringify({ user });
+    await this.publisher.userUpdated(payload);
+  }
+
   async newPost(postId) {
     const payload = JSON.stringify({ postId })
     await this.publisher.postCreated(payload)

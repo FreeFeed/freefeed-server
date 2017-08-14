@@ -22,7 +22,7 @@ export function connect() {
   return knex
 }
 
-export async function configure() {
-  const textSearchConfigName = config.postgres.textSearchConfigName
+export function configure() {
+  const { textSearchConfigName } = config.postgres;
   return knex.raw(`SET default_text_search_config TO '${textSearchConfigName}'`)
 }

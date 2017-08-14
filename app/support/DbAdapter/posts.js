@@ -65,7 +65,7 @@ const postsTrait = (superClass) => class extends superClass {
 
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
-    const attrs = res[0]
+    const [attrs] = res;
     if (!attrs) {
       return []
     }
@@ -73,7 +73,7 @@ const postsTrait = (superClass) => class extends superClass {
     return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
   }
 
-  async insertPostIntoFeeds(feedIntIds, postId) {
+  insertPostIntoFeeds(feedIntIds, postId) {
     if (!feedIntIds || feedIntIds.length == 0) {
       return null
     }
@@ -81,13 +81,13 @@ const postsTrait = (superClass) => class extends superClass {
     return this.database.raw('UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid = ?', [feedIntIds, postId]);
   }
 
-  async withdrawPostFromFeeds(feedIntIds, postUUID) {
+  withdrawPostFromFeeds(feedIntIds, postUUID) {
     return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
     const res = await this.database('posts').where('uid', postId);
-    const postData = res[0];
+    const [postData] = res;
     return postData.feed_ids.includes(timelineId);
   }
 
