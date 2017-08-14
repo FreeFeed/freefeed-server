@@ -86,7 +86,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Attachment.prototype.validate = async function () {
+  Attachment.prototype.validate = function () {
     const valid = this.file
                && Object.keys(this.file).length > 0
                && this.file.path
@@ -175,12 +175,12 @@ export function addModel(dbAdapter) {
   }
 
   // Get public URL of attachment (via Promise, for serializer)
-  Attachment.prototype.getUrl = async function () {
+  Attachment.prototype.getUrl = function () {
     return config.attachments.url + config.attachments.path + this.getFilename()
   }
 
   // Get public URL of attachment's thumbnail (via Promise, for serializer)
-  Attachment.prototype.getThumbnailUrl = async function () {
+  Attachment.prototype.getThumbnailUrl = function () {
     if (this.noThumbnail === '1') {
       return this.getUrl()
     }

@@ -146,17 +146,18 @@ export default class PubsubListener {
       'like:remove':         this.onLikeRemove,
       'comment_like:new':    this.onCommentLikeNew,
       'comment_like:remove': this.onCommentLikeRemove,
-    }
+    };
 
-    messageRoutes[channel](
-      this.io.sockets,
-      JSON.parse(msg)
-    ).catch((e) => { this.app.context.logger.error('onRedisMessage error', e)})
+    try {
+      await messageRoutes[channel](this.io.sockets, JSON.parse(msg));
+    } catch (e) {
+      this.app.context.logger.error('onRedisMessage error', e);
+    }
   }
 
   async broadcastMessage(sockets, rooms, type, json, post, emitter = null) {
     const { logger } = this.app.context;
-    emitter = emitter || (async (socket, type, json) => socket.emit(type, json));
+    emitter = emitter || ((socket, type, json) => socket.emit(type, json));
 
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
@@ -197,7 +198,7 @@ export default class PubsubListener {
     }));
   }
 
-  onUserUpdate = async (sockets, data) => {
+  onUserUpdate = (sockets, data) => {
     sockets.in(`user:${data.user.id}`).emit('user:update', data);
   };
 
@@ -295,14 +296,14 @@ export default class PubsubListener {
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onPostHide = async (sockets, data) => {
+  onPostHide = (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     const json = { meta: { postId: data.postId } }
     sockets.in(`timeline:${data.timelineId}`).emit('post:hide', json)
   }
 
-  onPostUnhide = async (sockets, data) => {
+  onPostUnhide = (sockets, data) => {
     // NOTE: posts are hidden only on RiverOfNews timeline so this
     // event won't leak any personal information
     const json = { meta: { postId: data.postId } }

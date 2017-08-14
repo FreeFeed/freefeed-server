@@ -78,7 +78,7 @@ export function addModel(dbAdapter) {
     return valid
   }
 
-  Group.prototype.validate = async function (skip_stoplist) {
+  Group.prototype.validate = function (skip_stoplist) {
     if (!this.isValidUsername(skip_stoplist)) {
       throw new Error('Invalid username')
     }

@@ -42,7 +42,7 @@ import * as realtimeAssertions from './realtime_assertions';
 const expect = origExpect.clone().use(realtimeAssertions);
 
 describe('EventService', () => {
-  before(async () => {
+  before(() => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -1502,7 +1502,7 @@ describe('EventService', () => {
 });
 
 describe('EventsController', () => {
-  before(async () => {
+  before(() => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -1793,7 +1793,7 @@ describe('EventsController', () => {
 });
 
 describe('Unread events counter', () => {
-  before(async () => {
+  before(() => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -1895,8 +1895,8 @@ describe('Unread events counter realtime updates for ', () => {
 
   let luna, mars;
 
-  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => async (obj) => {
-    expect(obj, 'to satisfy', {
+  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => (obj) => {
+    return expect(obj, 'to satisfy', {
       user: {
         id:                        userId,
         unreadNotificationsNumber: unreadCount

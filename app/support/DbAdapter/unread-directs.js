@@ -3,7 +3,7 @@
 ///////////////////////////////////////////////////
 
 const unreadDirectsTrait = (superClass) => class extends superClass {
-  async markAllDirectsAsRead(userId) {
+  markAllDirectsAsRead(userId) {
     const currentTime = new Date().toISOString()
 
     const payload = { directs_read_at: currentTime }

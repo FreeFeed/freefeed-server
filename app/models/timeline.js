@@ -70,11 +70,11 @@ export function addModel(dbAdapter) {
     await pubSub.newPost(post.id)
   }
 
-  Timeline.getObjectsByIds = async function (objectIds) {
+  Timeline.getObjectsByIds = function (objectIds) {
     return dbAdapter.getTimelinesByIds(objectIds)
   }
 
-  Timeline.prototype.validate = async function () {
+  Timeline.prototype.validate = function () {
     const valid = this.name
       && this.name.length > 0
       && this.userId
@@ -85,7 +85,7 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Timeline.prototype.create = async function () {
+  Timeline.prototype.create = function () {
     return this._createTimeline()
   }
 

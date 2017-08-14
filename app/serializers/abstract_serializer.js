@@ -49,7 +49,7 @@ AbstractSerializer.prototype = {
     return this.NESTED_STRATEGY
   },
 
-  processMultiObjects: async function (objects, strategy, serializer, root, level) {
+  processMultiObjects: function (objects, strategy, serializer, root, level) {
     const promises = []
 
     for (const object of objects) {

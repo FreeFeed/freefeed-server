@@ -73,7 +73,7 @@ const postsTrait = (superClass) => class extends superClass {
     return this.getTimelinesUUIDsByIntIds(attrs.feed_ids)
   }
 
-  async insertPostIntoFeeds(feedIntIds, postId) {
+  insertPostIntoFeeds(feedIntIds, postId) {
     if (!feedIntIds || feedIntIds.length == 0) {
       return null
     }
@@ -81,7 +81,7 @@ const postsTrait = (superClass) => class extends superClass {
     return this.database.raw('UPDATE posts SET feed_ids = (feed_ids | ?) WHERE uid = ?', [feedIntIds, postId]);
   }
 
-  async withdrawPostFromFeeds(feedIntIds, postUUID) {
+  withdrawPostFromFeeds(feedIntIds, postUUID) {
     return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
   }
 

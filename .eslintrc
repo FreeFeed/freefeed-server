@@ -102,6 +102,7 @@
     "quotes": [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
     "require-yield": 0,
     "rest-spread-spacing": 2,
+    "require-await": 2,
     "space-before-blocks": 2,
     "space-before-function-paren": [2, {
       "anonymous": "always",

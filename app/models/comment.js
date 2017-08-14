@@ -55,7 +55,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Comment.prototype.validate = async function () {
+  Comment.prototype.validate = function () {
     const valid = this.body
                && this.body.length > 0
                && this.userId

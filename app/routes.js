@@ -85,7 +85,7 @@ export default function (app) {
   NotificationsRoute(router);
   CommentLikesRoute(router);
 
-  router.use('/v[0-9]+/*', async (ctx) => {
+  router.use('/v[0-9]+/*', (ctx) => {
     ctx.status = 404;
     ctx.body = { err: `API method not found: '${ctx.req.path}'` }
   });

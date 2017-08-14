@@ -1028,7 +1028,7 @@ describe('PostsController', () => {
         })
     })
 
-    describe('with likes', async () => {
+    describe('with likes', () => {
       let users
 
       beforeEach(async () => {

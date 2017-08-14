@@ -388,7 +388,7 @@ async function postJson(relativeUrl, data) {
   )
 }
 
-export async function createUserAsyncPost(user) {
+export function createUserAsyncPost(user) {
   return postJson(`/v1/users`, user)
 }
 
@@ -625,7 +625,7 @@ export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
 
-export async function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
+export function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
   const parameters = {
     authToken: userContext.authToken,
     title,

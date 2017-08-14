@@ -204,7 +204,7 @@ export function addModel(dbAdapter) {
     return bcrypt.compare(clearPassword, this.hashedPassword)
   }
 
-  User.prototype.isValidEmail = async function () {
+  User.prototype.isValidEmail = function () {
     return User.emailIsValid(this.email)
   }
 
@@ -470,9 +470,7 @@ export function addModel(dbAdapter) {
       const [likes, comments] = await Promise.all([post.getLikes(), post.getComments()]);
 
       for (const usersChunk of _.chunk(likes, 10)) {
-        const promises = usersChunk.map(async (user) => {
-          return user.getLikesTimelineIntId()
-        })
+        const promises = usersChunk.map((user) => user.getLikesTimelineIntId());
         const likesFeedsIntIds = await Promise.all(promises)
         actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
       }
@@ -481,9 +479,7 @@ export function addModel(dbAdapter) {
       const commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
 
       for (const usersChunk of _.chunk(commenters, 10)) {
-        const promises = usersChunk.map(async (user) => {
-          return user.getCommentsTimelineIntId()
-        })
+        const promises = usersChunk.map((user) => user.getCommentsTimelineIntId());
 
         const commentsFeedsIntIds = await Promise.all(promises)
         actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
@@ -575,11 +571,11 @@ export function addModel(dbAdapter) {
     return this
   }
 
-  User.prototype.getAdministratorIds = async function () {
+  User.prototype.getAdministratorIds = function () {
     return [this.id]
   }
 
-  User.prototype.getAdministrators = async function () {
+  User.prototype.getAdministrators = function () {
     return [this]
   }
 
@@ -930,7 +926,7 @@ export function addModel(dbAdapter) {
     return new Comment(attrs)
   }
 
-  User.prototype.newAttachment = async function (attrs) {
+  User.prototype.newAttachment = function (attrs) {
     attrs.userId = this.id
     monitor.increment('users.attachments')
     return new Attachment(attrs)
@@ -1025,7 +1021,7 @@ export function addModel(dbAdapter) {
   User.prototype.getProfilePictureFilename = (uuid, size) => `${uuid}_${size}.jpg`;
 
   // used by serializer
-  User.prototype.getProfilePictureLargeUrl = async function () {
+  User.prototype.getProfilePictureLargeUrl = function () {
     if (_.isEmpty(this.profilePictureUuid)) {
       return ''
     }
@@ -1036,7 +1032,7 @@ export function addModel(dbAdapter) {
   }
 
   // used by serializer
-  User.prototype.getProfilePictureMediumUrl = async function () {
+  User.prototype.getProfilePictureMediumUrl = function () {
     if (_.isEmpty(this.profilePictureUuid)) {
       return ''
     }
