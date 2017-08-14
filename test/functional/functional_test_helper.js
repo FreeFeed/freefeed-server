@@ -1,3 +1,5 @@
+import http from 'http';
+
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
@@ -331,6 +333,12 @@ export function getSubscribers(username, authToken, callback) {
   }(callback)
 }
 
+const agent = new http.Agent({
+  keepAlive:      true,
+  keepAliveMsecs: 5000,
+  maxSockets:     50,
+});
+
 export async function getSubscribersAsync(username, userContext) {
   const relativeUrl = `/v1/users/${username}/subscribers`
   let url = await apiUrl(relativeUrl)
@@ -340,7 +348,7 @@ export async function getSubscribersAsync(username, userContext) {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  return fetch(url)
+  return fetch(url, { agent });
 }
 
 export async function getSubscriptionsAsync(username, userContext) {
@@ -352,7 +360,7 @@ export async function getSubscriptionsAsync(username, userContext) {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  return fetch(url)
+  return fetch(url, { agent });
 }
 
 export function getSubscriptions(username, authToken, callback) {
@@ -381,11 +389,12 @@ async function postJson(relativeUrl, data) {
   return fetch(
     await apiUrl(relativeUrl),
     {
+      agent,
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(data)
     }
-  )
+  );
 }
 
 export function createUserAsyncPost(user) {
@@ -570,7 +579,7 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, { agent });
 
   if (response.status != 200) {
     throw new Error(`HTTP/1.1 ${response.status}`);
@@ -614,7 +623,7 @@ export async function readPostAsync(postId, userContext) {
     url = `${url}&authToken=${encodedToken}`
   }
 
-  return fetch(url)
+  return fetch(url, { agent });
 }
 
 export function disableComments(postId, authToken) {
@@ -804,7 +813,7 @@ export async function likeComment(commentId, likerContext = null) {
     headers['X-Authentication-Token'] = likerContext.authToken;
   }
   const url = await apiUrl(`/v2/comments/${commentId}/like`);
-  return fetch(url, { method: 'POST', headers });
+  return fetch(url, { agent, method: 'POST', headers });
 }
 
 export async function unlikeComment(commentId, unlikerContext = null) {
@@ -813,7 +822,7 @@ export async function unlikeComment(commentId, unlikerContext = null) {
     headers['X-Authentication-Token'] = unlikerContext.authToken;
   }
   const url = await apiUrl(`/v2/comments/${commentId}/unlike`);
-  return fetch(url, { method: 'POST', headers });
+  return fetch(url, { agent, method: 'POST', headers });
 }
 
 export async function getCommentLikes(commentId, viewerContext = null) {
@@ -822,7 +831,7 @@ export async function getCommentLikes(commentId, viewerContext = null) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
   const url = await apiUrl(`/v2/comments/${commentId}/likes`);
-  return fetch(url, { method: 'GET', headers });
+  return fetch(url, { agent, method: 'GET', headers });
 }
 
 /**
@@ -900,7 +909,7 @@ export async function fetchPost(postId, viewerContext = null, params = {}) {
   }
   const response = await fetch(
     await apiUrl(`/${params.apiVersion}/posts/${postId}?maxComments=${params.allComments ? 'all' : ''}&maxLikes=${params.allLikes ? 'all' : ''}`),
-    { headers }
+    { agent, headers }
   );
   const post = await response.json();
   if (response.status !== 200) {
@@ -922,7 +931,7 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
   }
   const response = await fetch(
     await apiUrl(`/${apiVersion}/timelines/${path}`),
-    { headers }
+    { agent, headers }
   );
   const feed = await response.json();
   // console.log(feed);
