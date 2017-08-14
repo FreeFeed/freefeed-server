@@ -63,10 +63,13 @@ export function addModel(dbAdapter) {
     this.userId = params.userId
     this.postId = params.postId
 
-    if (parseInt(params.createdAt, 10))
-      this.createdAt = params.createdAt
-    if (parseInt(params.updatedAt, 10))
-      this.updatedAt = params.updatedAt
+    if (parseInt(params.createdAt, 10)) {
+      this.createdAt = params.createdAt;
+    }
+
+    if (parseInt(params.updatedAt, 10)) {
+      this.updatedAt = params.updatedAt;
+    }
   }
 
   Attachment.className = Attachment
@@ -91,8 +94,9 @@ export function addModel(dbAdapter) {
                && this.userId
                && this.userId.length > 0
 
-    if (!valid)
-      throw new Error('Invalid')
+    if (!valid) {
+      throw new Error('Invalid');
+    }
   }
 
   Attachment.prototype.create = async function () {

@@ -422,8 +422,9 @@ export default class UsersController {
     const attrs = _.reduce(
       ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences'],
       (acc, key) => {
-        if (key in ctx.request.body.user)
-          acc[key] = ctx.request.body.user[key]
+        if (key in ctx.request.body.user) {
+          acc[key] = ctx.request.body.user[key];
+        }
         return acc
       },
       {}
@@ -444,8 +445,9 @@ export default class UsersController {
     const currentPassword = ctx.request.body.currentPassword || ''
     const valid = await ctx.state.user.validPassword(currentPassword)
 
-    if (!valid)
-      throw new Error('Your old password is not valid')
+    if (!valid) {
+      throw new Error('Your old password is not valid');
+    }
 
     await ctx.state.user.updatePassword(ctx.request.body.password, ctx.request.body.passwordConfirmation)
     ctx.body = { message: 'Your password has been changed' };

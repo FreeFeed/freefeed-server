@@ -20,15 +20,18 @@ export function createUser(username, password, attributes, callback) {
       attributes = {}
     }
 
-    if (typeof attributes === 'undefined')
-      attributes = {}
+    if (typeof attributes === 'undefined') {
+      attributes = {};
+    }
 
     const user = {
       username,
       password
     }
-    if (attributes.email)
-      user.email = attributes.email
+
+    if (attributes.email) {
+      user.email = attributes.email;
+    }
 
     apiUrl('/v1/users')
       .then((url) => {
@@ -139,8 +142,10 @@ export function createPost(context, body, callback) {
           .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
           .end((err, res) => {
             context.post = res.body.posts
-            if (typeof callback !== 'undefined')
-              callback(context.post)
+
+            if (typeof callback !== 'undefined') {
+              callback(context.post);
+            }
 
             done(err, res)
           })

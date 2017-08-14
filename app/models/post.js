@@ -180,14 +180,16 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.getSubscribedTimelineIds = async function (groupOnly) {
-    if (typeof groupOnly === 'undefined')
-      groupOnly = false
+    if (typeof groupOnly === 'undefined') {
+      groupOnly = false;
+    }
 
     const feed = await dbAdapter.getFeedOwnerById(this.userId)
 
     const feeds = [feed.getRiverOfNewsTimelineId()]
-    if (!groupOnly)
-      feeds.push(feed.getPostsTimelineId())
+    if (!groupOnly) {
+      feeds.push(feed.getPostsTimelineId());
+    }
 
     let timelineIds = await Promise.all(feeds)
     const newTimelineIds = await this.getTimelineIds()
@@ -452,11 +454,13 @@ export function addModel(dbAdapter) {
     let likedUsersIds = await dbAdapter.getPostLikersIdsWithoutBannedUsers(this.id, this.currentUser)
 
     likedUsersIds = likedUsersIds.sort((a, b) => {
-      if (a == this.currentUser)
-        return -1
+      if (a == this.currentUser) {
+        return -1;
+      }
 
-      if (b == this.currentUser)
-        return 1
+      if (b == this.currentUser) {
+        return 1;
+      }
 
       return 0
     })
@@ -496,8 +500,9 @@ export function addModel(dbAdapter) {
     const timelines = await this.getPostedTo()
 
     const arr = timelines.map(async (timeline) => {
-      if (timeline.isDirects())
-        return true
+      if (timeline.isDirects()) {
+        return true;
+      }
 
       const owner = await dbAdapter.getUserById(timeline.userId)
 
@@ -565,8 +570,9 @@ export function addModel(dbAdapter) {
 
   Post.prototype.isHiddenIn = async function (timeline) {
     // hides are applicable only to river
-    if (!(timeline.isRiverOfNews() || timeline.isHides()))
-      return false
+    if (!(timeline.isRiverOfNews() || timeline.isHides())) {
+      return false;
+    }
 
     const owner = await timeline.getUser()
     const hidesTimelineIntId = await owner.getHidesTimelineIntId()

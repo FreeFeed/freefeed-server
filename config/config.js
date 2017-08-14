@@ -5,8 +5,9 @@ let config
 
 export function load() {
   // FIXME: should be replaced with promise-based System.import() eventually
-  if (!config)
-    config = require(configName).getConfig()
+  if (!config) {
+    config = require(configName).getConfig();
+  }
 
   return config
 }

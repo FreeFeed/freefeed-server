@@ -37,24 +37,27 @@ export function addModel(dbAdapter) {
   Reflect.defineProperty(Group.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
-      if (newValue)
-        this.username_ = newValue.trim().toLowerCase()
+      if (newValue) {
+        this.username_ = newValue.trim().toLowerCase();
+      }
     }
   })
 
   Reflect.defineProperty(Group.prototype, 'screenName', {
     get: function () { return this.screenName_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.screenName_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.screenName_ = newValue.trim();
+      }
     }
   })
 
   Reflect.defineProperty(Group.prototype, 'description', {
     get: function () { return this.description_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.description_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.description_ = newValue.trim();
+      }
     }
   })
 

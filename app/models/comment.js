@@ -15,10 +15,14 @@ export function addModel(dbAdapter) {
     this.userId = params.userId
     this.postId = params.postId
     this.hideType = params.hideType || Comment.VISIBLE
-    if (parseInt(params.createdAt, 10))
-      this.createdAt = params.createdAt
-    if (parseInt(params.updatedAt, 10))
-      this.updatedAt = params.updatedAt
+
+    if (parseInt(params.createdAt, 10)) {
+      this.createdAt = params.createdAt;
+    }
+
+    if (parseInt(params.updatedAt, 10)) {
+      this.updatedAt = params.updatedAt;
+    }
   }
 
   Comment.className = Comment

@@ -24,10 +24,14 @@ export default class SearchController {
 
     offset = parseInt(ctx.request.query.offset, 10) || 0
     limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT
-    if (offset < 0)
-      offset = 0
-    if (limit < 0)
-      limit = DEFAULT_LIMIT
+
+    if (offset < 0) {
+      offset = 0;
+    }
+
+    if (limit < 0) {
+      limit = DEFAULT_LIMIT;
+    }
 
     const requestedLimit = limit;
     limit++;

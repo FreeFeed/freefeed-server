@@ -118,19 +118,22 @@ export default class PostsController {
       const valid = await post.canShow(userId)
 
       // this is a private post
-      if (!valid)
-        throw new ForbiddenException('Not found')
+      if (!valid) {
+        throw new ForbiddenException('Not found');
+      }
 
       if (ctx.state.user) {
         const banIds = await dbAdapter.getUserBansIds(post.userId)
 
-        if (banIds.includes(ctx.state.user.id))
-          throw new ForbiddenException('This user has prevented you from seeing their posts')
+        if (banIds.includes(ctx.state.user.id)) {
+          throw new ForbiddenException('This user has prevented you from seeing their posts');
+        }
 
         const yourBanIds = await ctx.state.user.getBanIds()
 
-        if (yourBanIds.includes(post.userId))
-          throw new ForbiddenException('You have blocked this user and do not want to see their posts')
+        if (yourBanIds.includes(post.userId)) {
+          throw new ForbiddenException('You have blocked this user and do not want to see their posts');
+        }
       }
 
       const json = new PostSerializer(post).promiseToJSON()

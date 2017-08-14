@@ -45,10 +45,14 @@ const commentLikesTrait = (superClass) => class extends superClass {
 
     if (viewerUserUUID) {
       commentLikesData = commentLikesData.sort((a, b) => {
-        if (a.userId == viewerUserUUID)
+        if (a.userId == viewerUserUUID) {
           return -1;
-        if (b.userId == viewerUserUUID)
+        }
+
+        if (b.userId == viewerUserUUID) {
           return 1;
+        }
+
         return 0;
       });
     }
