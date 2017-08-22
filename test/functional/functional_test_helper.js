@@ -772,6 +772,10 @@ export function hidePost(postId, user) {
   return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
 }
 
+export function unhidePost(postId, user) {
+  return postJson(`/v1/posts/${postId}/unhide`, { authToken: user.authToken })
+}
+
 export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
   const eventTypesQS = eventTypes ? eventTypes.map((t) => `filter=${t}&`).join('') : '';
   const limitQS = limit ? `limit=${limit}&` : '';
