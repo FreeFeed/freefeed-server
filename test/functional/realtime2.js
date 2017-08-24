@@ -126,5 +126,21 @@ describe('Realtime (post hides)', () => {
         expect(marsEvent, 'to be fulfilled');
       });
     });
+
+    describe('Mars tried to subscribe to Luna\'s RiverOfNews', () => {
+      beforeEach(async () => {
+        const lunaRoNFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'RiverOfNews');
+        marsSession.send('subscribe', { 'timeline': [lunaRoNFeed.id] });
+      });
+
+      it(`shold not deliver 'like:remove' event when Mars unlikes post`, async () => {
+        const marsEvent = marsSession.notReceive('like:remove');
+        await Promise.all([
+          funcTestHelper.unlike(post.id, mars.authToken),
+          marsEvent,
+        ]);
+        expect(marsEvent, 'to be fulfilled');
+      });
+    });
   });
 });
