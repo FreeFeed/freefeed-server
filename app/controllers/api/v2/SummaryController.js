@@ -3,11 +3,19 @@ import { NotFoundException, ForbiddenException } from '../../../support/exceptio
 import { serializePostsCollection } from '../../../serializers/v2/post';
 import { monitored, authRequired } from './helpers';
 
+const getDays = (d) => {
+  const DEFAULT_DAYS = 7;
+  const MIN_DAYS = 1;
+  const MAX_DAYS = 30;
+  const days = parseInt(d, 10) || DEFAULT_DAYS;
+  return Math.max(MIN_DAYS, Math.min(MAX_DAYS, days));
+};
+
 export default class SummaryController {
   static generalSummary = authRequired(monitored('summary.general', async (ctx) => {
-    const DEFAULT_DAYS = 7;
+    const days = getDays(ctx.params.days);
+
     const currentUser = ctx.state.user;
-    const days = parseInt(ctx.params.days, 10) || DEFAULT_DAYS;
 
     // Get timeline "RiverOfNews" of current user
     const [timelineIntId] = await dbAdapter.getUserNamedFeedsIntIds(currentUser.id, ['RiverOfNews']);
