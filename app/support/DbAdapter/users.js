@@ -248,10 +248,20 @@ const usersTrait = (superClass) => class extends superClass {
   }
 
   async someUsersArePublic(userIds, anonymousFriendly) {
-    const anonymousCondition = anonymousFriendly ? 'AND not "is_protected"' : '';
-    const q = pgFormat(`SELECT COUNT("id") AS "cnt" FROM "users" WHERE not "is_private" ${anonymousCondition} AND "uid" IN (%L)`, userIds);
-    const res = await this.database.raw(q);
-    return res.rows[0].cnt > 0;
+    if (userIds.length === 0) {
+      return false;
+    }
+    const { rows } = await this.database.raw(
+      `select 1 from users
+      where
+        not is_private
+        and not (:anonymousFriendly and is_protected)
+        and uid = any(:userIds)
+      limit 1
+      `,
+      { userIds, anonymousFriendly }
+    );
+    return rows.length > 0;
   }
 
   /**

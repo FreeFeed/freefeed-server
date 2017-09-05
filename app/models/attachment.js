@@ -360,6 +360,7 @@ export function addModel(dbAdapter) {
         await execFileAsync(gifsicle, [
           '--resize', `${w}x${h}`,
           '--resize-colors', '128',
+          '--no-background',
           '-o', tmpResizedFile(sizeId),
           originalFile,
         ]);

@@ -2,7 +2,7 @@ dist: trusty
 language: node_js
 node_js:
   - 6.11
-  - 8.1
+  - 8.3
 env:
   - CXX=g++-4.8
 services:
