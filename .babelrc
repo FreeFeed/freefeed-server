@@ -7,6 +7,10 @@
     "syntax-dynamic-import",
     "syntax-export-extensions",
     "syntax-object-rest-spread",
+    ["transform-async-to-module-method", {
+      "module": "bluebird",
+      "method": "coroutine"
+    }],
     "transform-class-properties",
     "transform-es2015-modules-commonjs",
     "transform-export-extensions",

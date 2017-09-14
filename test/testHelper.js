@@ -7,6 +7,9 @@ bb.onPossiblyUnhandledRejection((e) => {
 require('babel-runtime/core-js/promise').default = bb;
 global.Promise = bb;
 
+bb.coroutine.addYieldHandler((value) => bb.resolve(value));
+
+
 require('babel-register')({ ignore: /node_modules/ });
 
 global.$database = require('../config/database').default;  // used by realtime-tests
