@@ -1,12 +1,13 @@
-
-import bluebird from 'bluebird'
+import bb from 'bluebird'
 import consoleStamp from 'console-stamp'
 
 import { getSingleton as initApp } from './app/app'
 
-global.Promise = bluebird;
-global.Promise.config({ longStackTraces: process.env.NODE_ENV !== 'production' });
-global.Promise.onPossiblyUnhandledRejection((e) => {
+require('babel-runtime/core-js/promise').default = bb;
+global.Promise = bb;
+
+bb.config({ longStackTraces: process.env.NODE_ENV !== 'production' });
+bb.onPossiblyUnhandledRejection((e) => {
   console.error('Unhandled Exception', e);
 });
 

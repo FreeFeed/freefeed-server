@@ -1,18 +1,13 @@
-require('babel-register')({ ignore: /node_modules/ });
+const bb = require('bluebird');
 
-global.Promise = require('bluebird')
-global.Promise.onPossiblyUnhandledRejection((e) => {
+bb.onPossiblyUnhandledRejection((e) => {
   throw e;
 });
 
-global.Promise.config({
-  // Enable warnings.
-  warnings:        false,
-  // Enable long stack traces.
-  longStackTraces: true,
-  // Enable cancellation.
-  cancellation:    true
-});
+require('babel-runtime/core-js/promise').default = bb;
+global.Promise = bb;
+
+require('babel-register')({ ignore: /node_modules/ });
 
 global.$database = require('../config/database').default;  // used by realtime-tests
 
