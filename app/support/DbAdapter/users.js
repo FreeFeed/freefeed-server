@@ -320,6 +320,7 @@ const USER_COLUMNS = {
   resetPasswordSentAt:    'reset_password_sent_at',
   resetPasswordExpiresAt: 'reset_password_expires_at',
   frontendPreferences:    'frontend_preferences',
+  preferences:            'preferences',
 };
 
 const USER_COLUMNS_MAPPING = {
@@ -371,7 +372,8 @@ const USER_FIELDS = {
   reset_password_expires_at: 'resetPasswordExpiresAt',
   frontend_preferences:      'frontendPreferences',
   subscribed_feed_ids:       'subscribedFeedIds',
-  private_meta:              'privateMeta'
+  private_meta:              'privateMeta',
+  preferences:               'preferences',
 };
 
 const USER_FIELDS_MAPPING = {
