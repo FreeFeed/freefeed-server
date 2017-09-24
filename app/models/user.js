@@ -15,6 +15,7 @@ import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
 import { Attachment, Comment, Post } from '../models'
 import { EventService } from '../support/EventService';
+import { valiate as validateUserPrefs } from './user-prefs';
 
 
 aws.config.setPromisesDependency(Promise);
@@ -37,6 +38,7 @@ export function addModel(dbAdapter) {
     this.email = params.email
     this.description = params.description || ''
     this.frontendPreferences = params.frontendPreferences || {}
+    this.preferences = validateUserPrefs(params.preferences, true);
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
@@ -357,7 +359,7 @@ export function addModel(dbAdapter) {
 
   User.prototype.update = async function (params) {
     const payload = {}
-    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences']
+    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences', 'preferences'];
 
     if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
       if (!this.screenNameIsValid(params.screenName)) {
@@ -429,6 +431,17 @@ export function addModel(dbAdapter) {
       }
 
       payload.frontendPreferences = preferences
+    }
+
+    if (params.hasOwnProperty('preferences')) {
+      if (!_.isPlainObject(params.preferences)) {
+        throw new ValidationException(`Invalid 'preferences': must be a plain object`);
+      }
+      try {
+        payload.preferences = validateUserPrefs({ ...this.preferences, ...params.preferences });
+      } catch (e) {
+        throw new ValidationException(`Invalid 'preferences': ${e}`);
+      }
     }
 
     if (_.intersection(Object.keys(payload), changeableKeys).length > 0) {
@@ -1185,11 +1198,7 @@ export function addModel(dbAdapter) {
    * @return {string[]}
    */
   User.prototype.getHiddenCommentTypes = function () {
-    let t = _.get(this.frontendPreferences, ['net.freefeed', 'comments', 'hiddenTypes']);
-    if (!_.isArray(t)) {
-      t = [];
-    }
-    return t.filter((v) => _.isInteger(v) && v > 0);  // exclude Comment.VISIBLE
+    return this.preferences.hideCommentsOfTypes;
   }
 
   User.prototype.getUnreadNotificationsNumber = function () {
