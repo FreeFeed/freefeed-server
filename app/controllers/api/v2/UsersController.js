@@ -58,6 +58,7 @@ export default class UsersController {
     }
 
     await dbAdapter.markAllDirectsAsRead(ctx.state.user.id)
+    await pubSub.updateUnreadDirects(ctx.state.user.id);
     ctx.body = { message: `Directs are now marked as read for ${ctx.state.user.id}` };
   }
 
