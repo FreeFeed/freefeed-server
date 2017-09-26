@@ -2250,4 +2250,18 @@ describe('Unread events counter realtime updates for ', () => {
       expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
     });
   });
+
+  describe('markAllNotificationsAsRead() call', () => {
+    it('user should receive counter update', async () => {
+      await subscribeToAsync(mars, luna);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return markAllNotificationsAsRead(luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(0, luna.user.id));
+    });
+  });
 });
