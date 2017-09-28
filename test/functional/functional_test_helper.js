@@ -795,6 +795,14 @@ export async function getUnreadNotificationsNumber(user) {
   return response;
 }
 
+export async function markAllDirectsAsRead(user) {
+  const response = await postJson('/v2/users/markAllDirectsAsRead', {
+    authToken: user.authToken,
+    '_method': 'get'
+  });
+  return response;
+}
+
 export async function markAllNotificationsAsRead(user) {
   const response = await postJson('/v2/users/markAllNotificationsAsRead', {
     authToken: user.authToken,
