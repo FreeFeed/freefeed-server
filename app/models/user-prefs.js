@@ -26,6 +26,11 @@ const schema = {
         ],
       },
     },
+    sendNotificationsDigest: {
+      title:   'Send notifications digest email for current user',
+      default: false,
+      type:    'boolean',
+    },
   },
   additionalProperties: false,
 };
