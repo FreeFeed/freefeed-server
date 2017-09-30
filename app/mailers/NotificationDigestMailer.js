@@ -5,7 +5,7 @@ import { load as configLoader } from '../../config/config';
 const config = configLoader();
 const BASE_URL = 'http://freefeed.net';
 
-export async function sendEventsDigestEmail(user, events, users, groups, digestInterval) {
+export function sendEventsDigestEmail(user, events, users, groups, digestInterval) {
   // TODO: const subject = config.mailer.notificationDigestEmailSubject
   // TODO: BASE_URL
   let emailBody = '';
