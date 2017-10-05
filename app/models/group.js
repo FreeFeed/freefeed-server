@@ -37,24 +37,27 @@ export function addModel(dbAdapter) {
   Reflect.defineProperty(Group.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
-      if (newValue)
-        this.username_ = newValue.trim().toLowerCase()
+      if (newValue) {
+        this.username_ = newValue.trim().toLowerCase();
+      }
     }
   })
 
   Reflect.defineProperty(Group.prototype, 'screenName', {
     get: function () { return this.screenName_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.screenName_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.screenName_ = newValue.trim();
+      }
     }
   })
 
   Reflect.defineProperty(Group.prototype, 'description', {
     get: function () { return this.description_ },
     set: function (newValue) {
-      if (_.isString(newValue))
-        this.description_ = newValue.trim()
+      if (_.isString(newValue)) {
+        this.description_ = newValue.trim();
+      }
     }
   })
 
@@ -75,7 +78,7 @@ export function addModel(dbAdapter) {
     return valid
   }
 
-  Group.prototype.validate = async function (skip_stoplist) {
+  Group.prototype.validate = function (skip_stoplist) {
     if (!this.isValidUsername(skip_stoplist)) {
       throw new Error('Invalid username')
     }
@@ -106,10 +109,8 @@ export function addModel(dbAdapter) {
       'isPrivate':    this.isPrivate,
       'isProtected':  this.isProtected,
       'isRestricted': this.isRestricted
-    }
-    const ids = await dbAdapter.createUser(payload);
-    this.id = ids[0];
-    this.intId = ids[1];
+    };
+    [this.id, this.intId] = await dbAdapter.createUser(payload);
 
     await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts'])
 

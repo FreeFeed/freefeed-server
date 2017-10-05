@@ -76,6 +76,13 @@ export function installInto(expect) {
     inspect:  (sess, depth, output, inspect) => output.text('Session(').append(inspect(sess.context, depth)).text(')'),
   });
 
+  expect.addType({
+    name:     'method',
+    base:     'function',
+    identify: (m) => m !== null && typeof m === 'function',
+    inspect:  (method, depth, output) => output.text('method'),
+  });
+
   // Pre-conditions
   expect.addAssertion('<userContext> when subscribed to timeline <string> <assertion>', async (expect, viewer, timeline) => {
     const session = await Session.create(viewer);
@@ -87,9 +94,29 @@ export function installInto(expect) {
     }
   });
 
+  expect.addAssertion('<userContext> when subscribed to user <string> <assertion>', async (expect, viewer, userUUID) => {
+    const session = await Session.create(viewer);
+    session.send('subscribe', { 'user': [userUUID] });
+    try {
+      session.context.subscribedUserId = userUUID;
+      return await expect.shift(session);
+    } finally {
+      session.disconnect();
+    }
+  });
+
   expect.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
     const session = await Session.create(viewer);
     session.send('subscribe', { 'post': [postId] });
+    try {
+      return await expect.shift(session);
+    } finally {
+      session.disconnect();
+    }
+  });
+
+  expect.addAssertion('<realtimeSession> when authorized as <userContext> <assertion>', async (expect, session, user) => {
+    session.send('auth', { authToken: user.authToken });
     try {
       return await expect.shift(session);
     } finally {
@@ -165,7 +192,7 @@ export function installInto(expect) {
       funcTestHelper.updatePostAsync({ post: { id: postId }, authToken: publisher.authToken }, { body: 'Updated post body' }),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'post:update'),
     ]);
-    session.context.postUpdateRealtimeMsg = res[1];
+    [, session.context.postUpdateRealtimeMsg] = res;
     return expect.shift(session);
   });
 
@@ -190,7 +217,7 @@ export function installInto(expect) {
       funcTestHelper.createCommentAsync(publisher, postId, 'reply'),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment:new'),
     ]);
-    session.context.commentRealtimeMsg = res[1];
+    [, session.context.commentRealtimeMsg] = res;
     return expect.shift(session);
   });
 
@@ -205,7 +232,7 @@ export function installInto(expect) {
       funcTestHelper.updateCommentAsync(publisher, commentId, 'changed reply'),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment:update'),
     ]);
-    session.context.commentRealtimeMsg = res[1];
+    [, session.context.commentRealtimeMsg] = res;
     return expect.shift(session);
   });
 
@@ -227,13 +254,13 @@ export function installInto(expect) {
     const noEvents = expect.flags['not'];
 
     expect(session.context, 'to have key', 'commentId');
-    const commentId = session.context.commentId;
+    const { commentId } = session.context;
 
     const res = await Promise.all([
       funcTestHelper.likeComment(commentId, publisher),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:new'),
     ]);
-    session.context.commentLikeRealtimeMsg = res[1];
+    [, session.context.commentLikeRealtimeMsg] = res;
     return expect.shift(session);
   });
 
@@ -242,13 +269,28 @@ export function installInto(expect) {
     const noEvents = expect.flags['not'];
 
     expect(session.context, 'to have key', 'commentId');
-    const commentId = session.context.commentId;
+    const { commentId } = session.context;
 
     const res = await Promise.all([
       funcTestHelper.unlikeComment(commentId, publisher),
       expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'comment_like:remove'),
     ]);
-    session.context.commentLikeRealtimeMsg = res[1];
+    [, session.context.commentLikeRealtimeMsg] = res;
+    return expect.shift(session);
+  });
+
+  expect.addAssertion('<realtimeSession> [not] to get user:update event when called <method>', async (expect, session, method) => {
+    expect.errorMode = 'nested';
+    const noEvents = expect.flags['not'];
+
+    expect(session.context, 'to have key', 'subscribedUserId');
+    const { subscribedUserId } = session.context;
+
+    const res = await Promise.all([
+      method(subscribedUserId),
+      expect(session, `${noEvents ? 'not ' : ''}to receive event`, 'user:update'),
+    ]);
+    [, session.context.userUpdateRealtimeMsg] = res;
     return expect.shift(session);
   });
 }

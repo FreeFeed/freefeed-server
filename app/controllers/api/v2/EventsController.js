@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { dbAdapter } from '../../../models';
-import { ALLOWED_EVENT_TYPES } from '../../../support/EventService'
+import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 import { userSerializerFunction } from './helpers'
 
 const EVENT_GROUPS = {

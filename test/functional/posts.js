@@ -4,6 +4,7 @@ import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
 import knexCleaner from 'knex-cleaner'
+import expect from 'unexpected'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -55,6 +56,11 @@ describe('PostsController', () => {
         done()
       })
     })
+
+    it('should not create a post with empty feeds list', async () => {
+      const attempt = funcTestHelper.createAndReturnPostToFeed([], ctx, 'Post body');
+      await expect(attempt, 'to be rejected with', new Error('HTTP/1.1 400'));
+    });
 
     it('should create a post with comments disabled', async () => {
       const body = 'Post body'
@@ -136,8 +142,7 @@ describe('PostsController', () => {
         })
 
         describe('are protected', () => {
-          let zeusCtx
-            , post
+          let zeusCtx, post;
 
           beforeEach(async () => {
             [zeusCtx, post] = await Promise.all([
@@ -1023,7 +1028,7 @@ describe('PostsController', () => {
         })
     })
 
-    describe('with likes', async () => {
+    describe('with likes', () => {
       let users
 
       beforeEach(async () => {
@@ -1076,7 +1081,8 @@ describe('PostsController', () => {
             res.body.timelines.should.have.property('posts')
             res.body.should.have.property('posts')
             res.body.posts.length.should.eql(1)
-            const post = res.body.posts[0]
+
+            const [post] = res.body.posts;
             post.should.have.property('isHidden')
             post.isHidden.should.eql(true)
 
@@ -1093,7 +1099,8 @@ describe('PostsController', () => {
                   res.body.timelines.should.have.property('posts')
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
-                  const post = res.body.posts[0]
+
+                  const [post] = res.body.posts;
                   post.should.not.have.property('isHidden')
                   done()
                 })

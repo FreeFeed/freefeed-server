@@ -340,8 +340,8 @@ describe('PrivateGroups', () => {
         funcTestHelper.createUserAsync('yole', 'wordpass')
       ])
 
-      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers', true)
-      group = response.group
+      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers', true);
+      ({ group } = response);
     })
 
     it('should reject unauthenticated users', (done) => {
@@ -459,8 +459,8 @@ describe('PrivateGroups', () => {
         funcTestHelper.createUserAsync('Pluto', 'wordpass')
       ])
 
-      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers')
-      group = response.group
+      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers');
+      ({ group } = response);
 
       await Promise.all([
         funcTestHelper.subscribeToAsync(secondAdminContext, group),
@@ -552,7 +552,8 @@ describe('PrivateGroups', () => {
                   res.body.timelines.posts.length.should.eql(1)
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
-                  const post = res.body.posts[0]
+
+                  const [post] = res.body.posts;
                   post.body.should.eql('Post body')
                   done()
                 })
@@ -1015,8 +1016,8 @@ describe('PrivateGroups', () => {
         funcTestHelper.createUserAsync('Pluto', 'wordpass')
       ])
 
-      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers')
-      group = response.group
+      const response = await funcTestHelper.createGroupAsync(adminContext, 'pepyatka-dev', 'Pepyatka Developers');
+      ({ group } = response);
 
       await funcTestHelper.subscribeToAsync(plutoContext, group)
 

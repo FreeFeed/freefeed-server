@@ -31,7 +31,7 @@ function logAndQuit(type) {
   }
 }
 
-export async function selectDatabase() {
+export function selectDatabase() {
   return database.selectAsync(config.database)
 }
 

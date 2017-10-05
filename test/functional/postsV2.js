@@ -166,7 +166,7 @@ describe('TimelinesControllerV2', () => {
         });
       });
 
-      describe('Open Graph test', async () => {
+      describe('Open Graph test', () => {
         let lunaPostWithSpecialCharacters, lunaPostWithNewLines;
 
         beforeEach(async () => {
@@ -193,7 +193,7 @@ describe('TimelinesControllerV2', () => {
           });
         });
 
-        describe('Luna is a protected user', async () => {
+        describe('Luna is a protected user', () => {
           beforeEach(async () => await goProtected(luna));
 
           it('should not return any information for a protected post', async () => {
@@ -202,7 +202,7 @@ describe('TimelinesControllerV2', () => {
           });
         });
 
-        describe('Luna is a private user', async () => {
+        describe('Luna is a private user', () => {
           beforeEach(async () => await goPrivate(luna));
 
           it('should not return any information for a private post', async () => {

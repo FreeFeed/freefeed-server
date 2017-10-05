@@ -63,10 +63,13 @@ export function addModel(dbAdapter) {
     this.userId = params.userId
     this.postId = params.postId
 
-    if (parseInt(params.createdAt, 10))
-      this.createdAt = params.createdAt
-    if (parseInt(params.updatedAt, 10))
-      this.updatedAt = params.updatedAt
+    if (parseInt(params.createdAt, 10)) {
+      this.createdAt = params.createdAt;
+    }
+
+    if (parseInt(params.updatedAt, 10)) {
+      this.updatedAt = params.updatedAt;
+    }
   }
 
   Attachment.className = Attachment
@@ -83,7 +86,7 @@ export function addModel(dbAdapter) {
     }
   })
 
-  Attachment.prototype.validate = async function () {
+  Attachment.prototype.validate = function () {
     const valid = this.file
                && Object.keys(this.file).length > 0
                && this.file.path
@@ -91,8 +94,9 @@ export function addModel(dbAdapter) {
                && this.userId
                && this.userId.length > 0
 
-    if (!valid)
-      throw new Error('Invalid')
+    if (!valid) {
+      throw new Error('Invalid');
+    }
   }
 
   Attachment.prototype.create = async function () {
@@ -171,12 +175,12 @@ export function addModel(dbAdapter) {
   }
 
   // Get public URL of attachment (via Promise, for serializer)
-  Attachment.prototype.getUrl = async function () {
+  Attachment.prototype.getUrl = function () {
     return config.attachments.url + config.attachments.path + this.getFilename()
   }
 
   // Get public URL of attachment's thumbnail (via Promise, for serializer)
-  Attachment.prototype.getThumbnailUrl = async function () {
+  Attachment.prototype.getThumbnailUrl = function () {
     if (this.noThumbnail === '1') {
       return this.getUrl()
     }
@@ -256,9 +260,9 @@ export function addModel(dbAdapter) {
       this.title = metadata.title
 
       if (_.isArray(metadata.artist)) {
-        this.artist = metadata.artist[0]
+        [this.artist] = metadata.artist;
       } else {
-        this.artist = metadata.artist
+        this.artist = metadata.artist;
       }
     } else {
       // Set media properties for 'general' type
@@ -278,11 +282,11 @@ export function addModel(dbAdapter) {
   const fitIntoBounds = (size, bounds) => {
     let width, height;
     if (size.width * bounds.height > size.height * bounds.width) {
-      width  = bounds.width;
+      width  = bounds.width;  // eslint-disable-line prefer-destructuring
       height = Math.max(1, Math.round(size.height * bounds.width / size.width));
     } else {
       width  = Math.max(1, Math.round(size.width * bounds.height / size.height));
-      height = bounds.height;
+      height = bounds.height;  // eslint-disable-line prefer-destructuring
     }
     return { width, height };
   }
@@ -356,6 +360,7 @@ export function addModel(dbAdapter) {
         await execFileAsync(gifsicle, [
           '--resize', `${w}x${h}`,
           '--resize-colors', '128',
+          '--no-background',
           '-o', tmpResizedFile(sizeId),
           originalFile,
         ]);

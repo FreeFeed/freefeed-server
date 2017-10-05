@@ -13,13 +13,7 @@ describe('FullTextSearch', () => {
   describe('public users Luna, Mars', () => {
     const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
 
-    let luna
-      , mars
-      , lunaPosts
-      , lunaVisibleFeedIds
-      , bannedByLunaUserIds
-      , marsVisibleFeedIds
-      , bannedByMarsUserIds
+    let luna, mars, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds, marsVisibleFeedIds, bannedByMarsUserIds;
 
     beforeEach(async () => {
       luna    = new User({ username: 'Luna', password: 'password' })
@@ -154,19 +148,8 @@ describe('FullTextSearch', () => {
     const saturnPostsContent = ['Eagle', 'Fire', 'Gigantic']
     const marsPostsContent = ['Humidity', 'Icicle', 'Job']
 
-    let luna
-      , mars
-      , jupiter
-      , saturn
-      , lunaPosts
-      , lunaVisibleFeedIds
-      , bannedByLunaUserIds
-      , marsVisibleFeedIds
-      , bannedByMarsUserIds
-      , jupiterVisibleFeedIds
-      , bannedByJupiterUserIds
-      , saturnPosts
-      , marsPosts
+    let luna, mars, jupiter, saturn, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds,
+      marsVisibleFeedIds, bannedByMarsUserIds, jupiterVisibleFeedIds, bannedByJupiterUserIds, saturnPosts, marsPosts;
 
     beforeEach(async () => {
       luna    = new User({ username: 'Luna', password: 'password' })
@@ -411,10 +394,7 @@ describe('FullTextSearch', () => {
   })
 
   describe('banned users content', () => {
-    let luna
-      , mars
-      , jupiter
-      , post;
+    let luna, mars, jupiter, post;
 
     const _becomeFriends = async (user1, user2) => {
       const [user1TimelineId, user2TimelineId] = await Promise.all([
@@ -1128,8 +1108,8 @@ describe('FullTextSearch', () => {
     })
 
     describe('public posts search with specified group', () => {
-      let group
-        , groupTimelineId;
+      let group, groupTimelineId;
+
       beforeEach(async () => {
         group = new Group({ username: 'search-dev' });
         await group.create(luna.id, false);
@@ -1302,8 +1282,8 @@ describe('FullTextSearch', () => {
     })
 
     describe('private posts search with specified group', () => {
-      let group
-        , groupTimelineId;
+      let group, groupTimelineId;
+
       beforeEach(async () => {
         group = new Group({ username: 'search-dev', isPrivate: '1' });
         await group.create(luna.id, false);
@@ -1478,10 +1458,7 @@ describe('FullTextSearch', () => {
   })
 
   describe('group post search', () => {
-    let luna
-      , mars
-      , jupiter
-      , post;
+    let luna, mars, jupiter, post;
 
     const _createGroupPost = async (author, groupPostsFeedId, text) => {
       post = await author.newPost({ body: text, timelineIds: [groupPostsFeedId] });
@@ -1508,8 +1485,8 @@ describe('FullTextSearch', () => {
     });
 
     describe('public posts search with specified group', () => {
-      let group
-        , groupTimelineId;
+      let group, groupTimelineId;
+
       beforeEach(async () => {
         group = new Group({ username: 'search-dev' });
         await group.create(luna.id, false);
@@ -1654,8 +1631,8 @@ describe('FullTextSearch', () => {
     })
 
     describe('private posts search with specified group', () => {
-      let group
-        , groupTimelineId;
+      let group, groupTimelineId;
+
       beforeEach(async () => {
         group = new Group({ username: 'search-dev', isPrivate: '1' });
         await group.create(luna.id, false);

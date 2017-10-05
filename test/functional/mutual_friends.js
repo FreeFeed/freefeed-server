@@ -2,6 +2,7 @@
 /* global $pg_database */
 import request from 'superagent'
 import knexCleaner from 'knex-cleaner'
+import expect from 'unexpected'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -185,6 +186,12 @@ describe('MutualFriends', () => {
               })
           })
       })
+
+      it('should send direct message with @-mention', async () => {
+        const postRequest = funcTestHelper.createAndReturnPostToFeed(marsContext, lunaContext, '@direct');
+        await postRequest;
+        expect(postRequest, 'to be fulfilled');
+      });
     })
   })
 })

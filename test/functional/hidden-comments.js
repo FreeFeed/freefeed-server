@@ -44,7 +44,7 @@ describe('Hidden comments', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
-          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [] } } } },
+          { preferences: { hideCommentsOfTypes: [] } },
         );
       });
 
@@ -59,7 +59,7 @@ describe('Hidden comments', () => {
 
       it('should return timeline (API v2) with hidden Venus comment', async () => {
         const reply = await fetchTimeline('mars', luna);
-        const postInReply = reply.posts[0];
+        const [postInReply] = reply.posts;
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === postInReply.comments[0]);
         const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
@@ -78,7 +78,7 @@ describe('Hidden comments', () => {
 
       it('should return timeline (API v1) with hidden Venus comment', async () => {
         const reply = await fetchTimeline('mars', luna, 'v1');
-        const postInReply = reply.posts[0];
+        const [postInReply] = reply.posts;
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === postInReply.comments[0]);
         const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
@@ -91,7 +91,7 @@ describe('Hidden comments', () => {
       beforeEach(async () => {
         await updateUserAsync(
           luna,
-          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
+          { preferences: { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] } },
         );
       });
 
@@ -125,7 +125,7 @@ describe('Hidden comments', () => {
         await banUser(mars, venus);
         await updateUserAsync(
           mars,
-          { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [] } } } },
+          { preferences: { hideCommentsOfTypes: [] } },
         );
       });
 

@@ -1,3 +1,5 @@
+import http from 'http';
+
 import fetch from 'node-fetch'
 import request  from 'superagent'
 import _ from 'lodash'
@@ -20,15 +22,18 @@ export function createUser(username, password, attributes, callback) {
       attributes = {}
     }
 
-    if (typeof attributes === 'undefined')
-      attributes = {}
+    if (typeof attributes === 'undefined') {
+      attributes = {};
+    }
 
     const user = {
       username,
       password
     }
-    if (attributes.email)
-      user.email = attributes.email
+
+    if (attributes.email) {
+      user.email = attributes.email;
+    }
 
     apiUrl('/v1/users')
       .then((url) => {
@@ -139,8 +144,10 @@ export function createPost(context, body, callback) {
           .send({ post: { body }, meta: { feeds: context.username }, authToken: context.authToken })
           .end((err, res) => {
             context.post = res.body.posts
-            if (typeof callback !== 'undefined')
-              callback(context.post)
+
+            if (typeof callback !== 'undefined') {
+              callback(context.post);
+            }
 
             done(err, res)
           })
@@ -326,6 +333,12 @@ export function getSubscribers(username, authToken, callback) {
   }(callback)
 }
 
+const agent = new http.Agent({
+  keepAlive:      true,
+  keepAliveMsecs: 5000,
+  maxSockets:     50,
+});
+
 export async function getSubscribersAsync(username, userContext) {
   const relativeUrl = `/v1/users/${username}/subscribers`
   let url = await apiUrl(relativeUrl)
@@ -335,7 +348,7 @@ export async function getSubscribersAsync(username, userContext) {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  return fetch(url)
+  return fetch(url, { agent });
 }
 
 export async function getSubscriptionsAsync(username, userContext) {
@@ -347,7 +360,7 @@ export async function getSubscriptionsAsync(username, userContext) {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  return fetch(url)
+  return fetch(url, { agent });
 }
 
 export function getSubscriptions(username, authToken, callback) {
@@ -376,22 +389,19 @@ async function postJson(relativeUrl, data) {
   return fetch(
     await apiUrl(relativeUrl),
     {
+      agent,
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(data)
     }
-  )
+  );
 }
 
-export async function createUserAsyncPost(user) {
+export function createUserAsyncPost(user) {
   return postJson(`/v1/users`, user)
 }
 
-export async function createUserAsync(username, password, attributes) {
-  if (typeof attributes === 'undefined') {
-    attributes = {}
-  }
-
+export async function createUserAsync(username, password, attributes = {}) {
   const user = {
     username,
     password
@@ -411,7 +421,7 @@ export async function createUserAsync(username, password, attributes) {
   // (for compatibility with old tests)
   await updateUserAsync(
     { user: userData, authToken: data.authToken },
-    { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
+    { preferences: { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] } },
   );
 
   return {
@@ -489,6 +499,10 @@ export function groupToPrivate(group, userContext) {
   return updateGroupAsync(group, userContext, { isPrivate: '1' });
 }
 
+export function groupToProtected(group, userContext) {
+  return updateGroupAsync(group, userContext, { isPrivate: '0', isProtected: '1' });
+}
+
 export function subscribeToAsync(subscriber, victim) {
   return postJson(`/v1/users/${victim.username}/subscribe`, { authToken: subscriber.authToken })
 }
@@ -526,11 +540,12 @@ export async function mutualSubscriptions(userContexts) {
 }
 
 export async function createAndReturnPostToFeed(feed, userContext, body) {
+  const destinations = _.isArray(feed) ? _.map(feed, 'username') : [feed.username];
   const response = await postJson(
     '/v1/posts',
     {
       post:      { body },
-      meta:      { feeds: feed.username },
+      meta:      { feeds: destinations },
       authToken: userContext.authToken
     }
   )
@@ -564,7 +579,7 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
     url = `${url}?authToken=${encodedToken}`
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, { agent });
 
   if (response.status != 200) {
     throw new Error(`HTTP/1.1 ${response.status}`);
@@ -608,7 +623,7 @@ export async function readPostAsync(postId, userContext) {
     url = `${url}&authToken=${encodedToken}`
   }
 
-  return fetch(url)
+  return fetch(url, { agent });
 }
 
 export function disableComments(postId, authToken) {
@@ -619,7 +634,7 @@ export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
 
-export async function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
+export function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
   const parameters = {
     authToken: userContext.authToken,
     title,
@@ -780,6 +795,14 @@ export async function getUnreadNotificationsNumber(user) {
   return response;
 }
 
+export async function markAllDirectsAsRead(user) {
+  const response = await postJson('/v2/users/markAllDirectsAsRead', {
+    authToken: user.authToken,
+    '_method': 'get'
+  });
+  return response;
+}
+
 export async function markAllNotificationsAsRead(user) {
   const response = await postJson('/v2/users/markAllNotificationsAsRead', {
     authToken: user.authToken,
@@ -798,7 +821,7 @@ export async function likeComment(commentId, likerContext = null) {
     headers['X-Authentication-Token'] = likerContext.authToken;
   }
   const url = await apiUrl(`/v2/comments/${commentId}/like`);
-  return fetch(url, { method: 'POST', headers });
+  return fetch(url, { agent, method: 'POST', headers });
 }
 
 export async function unlikeComment(commentId, unlikerContext = null) {
@@ -807,7 +830,7 @@ export async function unlikeComment(commentId, unlikerContext = null) {
     headers['X-Authentication-Token'] = unlikerContext.authToken;
   }
   const url = await apiUrl(`/v2/comments/${commentId}/unlike`);
-  return fetch(url, { method: 'POST', headers });
+  return fetch(url, { agent, method: 'POST', headers });
 }
 
 export async function getCommentLikes(commentId, viewerContext = null) {
@@ -816,7 +839,7 @@ export async function getCommentLikes(commentId, viewerContext = null) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
   const url = await apiUrl(`/v2/comments/${commentId}/likes`);
-  return fetch(url, { method: 'GET', headers });
+  return fetch(url, { agent, method: 'GET', headers });
 }
 
 /**
@@ -852,7 +875,9 @@ const PromisifiedIO = (host, options, events) => {
             args.push(client);
             const result = events[k](...args);
             if (result instanceof Promise) {
-              result.catch((e) => { reject(e); })
+              result.catch((e) => {
+                reject(e);
+              })
             }
           } catch (e) {
             reject(e);
@@ -892,7 +917,7 @@ export async function fetchPost(postId, viewerContext = null, params = {}) {
   }
   const response = await fetch(
     await apiUrl(`/${params.apiVersion}/posts/${postId}?maxComments=${params.allComments ? 'all' : ''}&maxLikes=${params.allLikes ? 'all' : ''}`),
-    { headers }
+    { agent, headers }
   );
   const post = await response.json();
   if (response.status !== 200) {
@@ -914,7 +939,7 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
   }
   const response = await fetch(
     await apiUrl(`/${apiVersion}/timelines/${path}`),
-    { headers }
+    { agent, headers }
   );
   const feed = await response.json();
   // console.log(feed);
@@ -936,6 +961,6 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
  */
 export function noFieldOrEmptyArray(name) {
   return function (obj) {
-    return !(name in obj) || _.isArray(obj[name]) && obj[name].length === 0;
+    return !(name in obj) || (_.isArray(obj[name]) && obj[name].length === 0);
   };
 }

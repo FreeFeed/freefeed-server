@@ -169,3 +169,14 @@ export const timelineResponse = {
   }),
   isLastPage: expect.it('to be a boolean'),
 };
+
+export const allGroupsResponse = {
+  withProtected: expect.it('to be a boolean'),
+  groups:        expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    id:             expect.it('to satisfy', UUID),
+    subscribers:    expect.it('not to be negative'),
+    postsByMonth:   expect.it('not to be negative'),
+    authorsVariety: expect.it('to be within', 0, 1),
+  }),
+  users: expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
+};

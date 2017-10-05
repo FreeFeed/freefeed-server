@@ -1,10 +1,12 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import knexCleaner from 'knex-cleaner'
-import expect from 'unexpected'
+import origExpect from 'unexpected';
 
-import { DummyPublisher } from '../../app/pubsub'
+import { getSingleton } from '../../app/app';
 import { PubSub, dbAdapter } from '../../app/models'
+import { DummyPublisher } from '../../app/pubsub'
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import {
   acceptRequestAsync,
   acceptRequestToJoinGroup,
@@ -20,6 +22,7 @@ import {
   goPrivate,
   kickOutUserFromGroup,
   markAllNotificationsAsRead,
+  markAllDirectsAsRead,
   mutualSubscriptions,
   promoteToAdmin,
   rejectRequestAsync,
@@ -35,9 +38,12 @@ import {
   whoami
 } from '../functional/functional_test_helper'
 import * as schema from './schemaV2-helper'
+import * as realtimeAssertions from './realtime_assertions';
+
+const expect = origExpect.clone().use(realtimeAssertions);
 
 describe('EventService', () => {
-  before(async () => {
+  before(() => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -933,7 +939,7 @@ describe('EventService', () => {
       });
 
       it('should create direct event on direct post creation for all direct receivers', async () => {
-        await createAndReturnPostToFeed({ username: [mars.username, jupiter.username, pluto.username] }, luna, 'Direct');
+        await createAndReturnPostToFeed([mars, jupiter, pluto], luna, 'Direct');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'direct',
@@ -958,7 +964,7 @@ describe('EventService', () => {
       });
 
       it('should not create direct event on semi-direct post (copy to own post feed) creation for direct sender', async () => {
-        await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
           event_type:         'direct',
@@ -1008,7 +1014,7 @@ describe('EventService', () => {
       });
 
       it('should create direct_comment event on comment creation for all direct receivers except comment author', async () => {
-        const post = await createAndReturnPostToFeed({ username: [mars.username, jupiter.username, pluto.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([mars, jupiter, pluto], luna, 'Direct');
         await createCommentAsync(luna, post.id, 'Comment');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
@@ -1034,13 +1040,13 @@ describe('EventService', () => {
       });
 
       it('should not create direct_comment event on comment to semi-direct post (copy to own post feed) creation for comment author', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(luna, post.id, 'Comment');
         await expectPostEvents(lunaUserModel, []);
       });
 
       it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(luna, post.id, 'Comment');
         await expectPostEvents(marsUserModel, [{
           user_id:            marsUserModel.intId,
@@ -1052,7 +1058,7 @@ describe('EventService', () => {
       });
 
       it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(mars, post.id, 'Comment');
         await expectPostEvents(lunaUserModel, [{
           user_id:            lunaUserModel.intId,
@@ -1065,7 +1071,7 @@ describe('EventService', () => {
       });
 
       it('should create direct_comment event on comment to semi-direct post (copy to own post feed) creation by arbitrary user', async () => {
-        const post = await createAndReturnPostToFeed({ username: [luna.username, mars.username] }, luna, 'Direct');
+        const post = await createAndReturnPostToFeed([luna, mars], luna, 'Direct');
         await createCommentAsync(jupiter, post.id, 'Comment');
         await expectPostEvents(lunaUserModel, [{
           user_id:            lunaUserModel.intId,
@@ -1497,7 +1503,7 @@ describe('EventService', () => {
 });
 
 describe('EventsController', () => {
-  before(async () => {
+  before(() => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -1788,7 +1794,7 @@ describe('EventsController', () => {
 });
 
 describe('Unread events counter', () => {
-  before(async () => {
+  before(() => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
@@ -1822,7 +1828,7 @@ describe('Unread events counter', () => {
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_by_user' });
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_by_user' });
     const count = await getUnreadEventsCountFromWhoAmI(luna);
-    expect(count, 'to be', 2);
+    expect(count, 'to be', 0);
   });
 
   it('should count allowed event types', async () => {
@@ -1878,5 +1884,405 @@ describe('Unread events counter', () => {
   it('getUnreadNotificationsNumber() should require auth', async () => {
     const res = await getUnreadNotificationsNumber({ authToken: null });
     expect(res.status, 'to be', 403);
+  });
+});
+
+describe('Unread events counter realtime updates for ', () => {
+  before(async () => {
+    await getSingleton();
+    const pubsubAdapter = new PubSubAdapter($database);
+    PubSub.setPublisher(pubsubAdapter);
+  });
+
+  let luna, mars;
+
+  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => (obj) => {
+    return expect(obj, 'to satisfy', {
+      user: {
+        id:                        userId,
+        unreadNotificationsNumber: unreadCount
+      }
+    });
+  };
+
+  beforeEach(async () => {
+    await knexCleaner.clean($pg_database);
+    [luna, mars] = await Promise.all([
+      createUserAsync('luna', 'pw'),
+      createUserAsync('mars', 'pw')
+    ]);
+  });
+
+  describe('user_subscribed event', () => {
+    it('user should receive counter update', async () => {
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return subscribeToAsync(mars, luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('user_unsubscribed event', () => {
+    it('user should receive counter update', async () => {
+      await subscribeToAsync(mars, luna);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return unsubscribeFromAsync(mars, luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('banned_user event', () => {
+    it('user should not receive counter update', async () => {
+      await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'not to get user:update event when called', () => {
+          return banUser(luna, mars);
+        }
+      );
+    });
+  });
+
+  describe('banned_by_user event', () => {
+    it('user should not receive counter update', async () => {
+      await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'not to get user:update event when called', () => {
+          return banUser(mars, luna);
+        }
+      );
+    });
+  });
+
+  describe('unbanned_user event', () => {
+    it('user should not receive counter update', async () => {
+      await banUser(luna, mars);
+      await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'not to get user:update event when called', () => {
+          return unbanUser(luna, mars);
+        }
+      );
+    });
+  });
+
+  describe('unbanned_by_user event', () => {
+    it('user should not receive counter update', async () => {
+      await banUser(mars, luna);
+      await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'not to get user:update event when called', () => {
+          return unbanUser(mars, luna);
+        }
+      );
+    });
+  });
+
+  describe('subscription_requested event', () => {
+    it('user should receive counter update', async () => {
+      await goPrivate(luna);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return sendRequestToSubscribe(mars, luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('subscription_request_revoked event', () => {
+    it('user should receive counter update', async () => {
+      await goPrivate(luna);
+      await sendRequestToSubscribe(mars, luna);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return revokeSubscriptionRequest(mars, luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('subscription_request_approved event', () => {
+    it('user should receive counter update', async () => {
+      await goPrivate(mars);
+      await sendRequestToSubscribe(luna, mars);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return acceptRequestAsync(mars, luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('subscription_request_rejected event', () => {
+    it('user should receive counter update', async () => {
+      await goPrivate(mars);
+      await sendRequestToSubscribe(luna, mars);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return rejectRequestAsync(mars, luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('group_created event', () => {
+    it('user should not receive counter update', async () => {
+      await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'not to get user:update event when called', () => {
+          return createGroupAsync(luna, 'events');
+        }
+      );
+    });
+  });
+
+  describe('group_subscribed event', () => {
+    it('user should receive counter update', async () => {
+      const group = await createGroupAsync(luna, 'events');
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return subscribeToAsync(mars, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('group_unsubscribed event', () => {
+    it('user should receive counter update', async () => {
+      const group = await createGroupAsync(luna, 'events');
+      await subscribeToAsync(mars, group);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return unsubscribeFromAsync(mars, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('group_subscription_requested event', () => {
+    it('user should receive counter update', async () => {
+      const group = await createGroupAsync(luna, 'events', 'Events Group', true);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return sendRequestToJoinGroup(mars, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('group_subscription_request_revoked event', () => {
+    it('user should receive counter update', async () => {
+      const group = await createGroupAsync(luna, 'events', 'Events Group', true);
+      await sendRequestToJoinGroup(mars, group);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return revokeSubscriptionRequest(mars, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('group_subscription_approved event', () => {
+    it('user should receive counter update', async () => {
+      const group = await createGroupAsync(mars, 'events', 'Events Group', true);
+      await sendRequestToJoinGroup(luna, group);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return acceptRequestToJoinGroup(mars, luna, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('managed_group_subscription_approved event', () => {
+    it('admin should receive counter update', async () => {
+      const jupiter = await createUserAsync('jupiter', 'pw');
+      const group = await createGroupAsync(luna, 'events', 'Events Group', true);
+      await promoteToAdmin(group, luna, jupiter);
+      await sendRequestToJoinGroup(mars, group);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return acceptRequestToJoinGroup(jupiter, mars, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('group_subscription_rejected event', () => {
+    it('user should receive counter update', async () => {
+      const group = await createGroupAsync(mars, 'events', 'Events Group', true);
+      await sendRequestToJoinGroup(luna, group);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return rejectSubscriptionRequestToGroup(mars, luna, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('managed_group_subscription_rejected event', () => {
+    it('admin should receive counter update', async () => {
+      const jupiter = await createUserAsync('jupiter', 'pw');
+      const group = await createGroupAsync(luna, 'events', 'Events Group', true);
+      await promoteToAdmin(group, luna, jupiter);
+      await sendRequestToJoinGroup(mars, group);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return rejectSubscriptionRequestToGroup(jupiter, mars, group);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('group_admin_promoted event', () => {
+    it('admin should receive counter update', async () => {
+      const jupiter = await createUserAsync('jupiter', 'pw');
+      const group = await createGroupAsync(luna, 'events', 'Events Group', true);
+      await promoteToAdmin(group, luna, jupiter);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return promoteToAdmin(group, jupiter, mars);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('group_admin_demoted event', () => {
+    it('admin should receive counter update', async () => {
+      const jupiter = await createUserAsync('jupiter', 'pw');
+      const group = await createGroupAsync(luna, 'events', 'Events Group', true);
+      await promoteToAdmin(group, luna, jupiter);
+      await promoteToAdmin(group, jupiter, mars);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return demoteFromAdmin(group, jupiter, mars);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
+    });
+  });
+
+  describe('mention_in_post event', () => {
+    it('user should receive counter update', async () => {
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return createAndReturnPostToFeed(mars, mars, 'Mentioning @luna');
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('mention_in_comment event', () => {
+    it('user should receive counter update', async () => {
+      const post = await createAndReturnPostToFeed(luna, luna, 'Test post');
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return createCommentAsync(mars, post.id, 'Mentioning @luna');
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('mention_comment_to event', () => {
+    it('user should receive counter update', async () => {
+      const post = await createAndReturnPostToFeed(luna, luna, 'Test post');
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return createCommentAsync(mars, post.id, '@luna hello!');
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(1, luna.user.id));
+    });
+  });
+
+  describe('markAllNotificationsAsRead() call', () => {
+    it('user should receive counter update', async () => {
+      await subscribeToAsync(mars, luna);
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return markAllNotificationsAsRead(luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(0, luna.user.id));
+    });
+  });
+
+  describe('markAllDirectsAsRead() call', () => {
+    it('user should receive counter update', async () => {
+      await mutualSubscriptions([luna, mars]);
+      await createAndReturnPostToFeed(luna, mars, 'Direct');
+      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+        'when subscribed to user', luna.user.id,
+        'to get user:update event when called', () => {
+          return markAllDirectsAsRead(luna);
+        }
+      );
+
+      expect(msg, 'to satisfy', {
+        user: {
+          id:                  luna.user.id,
+          unreadDirectsNumber: '0'
+        }
+      });
+    });
   });
 });

@@ -43,7 +43,7 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const secret = config.secret
+    const { secret } = config;
     const authToken = jwt.sign({ userId: user.id }, secret)
 
     const json = await new MyProfileSerializer(user).promiseToJSON()
@@ -76,7 +76,7 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const secret = config.secret
+    const { secret } = config;
     const authToken = jwt.sign({ userId: user.id }, secret)
 
     const json = await new MyProfileSerializer(user).promiseToJSON()
@@ -192,7 +192,7 @@ export default class UsersController {
   }
 
   static async subscribers(ctx) {
-    const username = ctx.params.username
+    const { username } = ctx.params;
     const user = await dbAdapter.getFeedOwnerByUsername(username)
 
     if (null === user) {
@@ -227,7 +227,7 @@ export default class UsersController {
   }
 
   static async subscriptions(ctx) {
-    const username = ctx.params.username
+    const { username } = ctx.params;
     const user = await dbAdapter.getUserByUsername(username)
 
     if (null === user) {
@@ -252,7 +252,7 @@ export default class UsersController {
       const obj = await jsonPromise
       const memo = await memoPromise
 
-      const user = obj.subscribers[0]
+      const [user] = obj.subscribers;
 
       memo.subscriptions.push(obj.subscriptions)
       memo.subscribers[user.id] = user
@@ -305,7 +305,7 @@ export default class UsersController {
       return
     }
 
-    const username = ctx.params.username
+    const { username } = ctx.params;
     const user = await dbAdapter.getFeedOwnerByUsername(username)
 
     if (null === user) {
@@ -420,10 +420,11 @@ export default class UsersController {
     }
 
     const attrs = _.reduce(
-      ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences'],
+      ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences', 'preferences'],
       (acc, key) => {
-        if (key in ctx.request.body.user)
-          acc[key] = ctx.request.body.user[key]
+        if (key in ctx.request.body.user) {
+          acc[key] = ctx.request.body.user[key];
+        }
         return acc
       },
       {}
@@ -444,8 +445,9 @@ export default class UsersController {
     const currentPassword = ctx.request.body.currentPassword || ''
     const valid = await ctx.state.user.validPassword(currentPassword)
 
-    if (!valid)
-      throw new Error('Your old password is not valid')
+    if (!valid) {
+      throw new Error('Your old password is not valid');
+    }
 
     await ctx.state.user.updatePassword(ctx.request.body.password, ctx.request.body.passwordConfirmation)
     ctx.body = { message: 'Your password has been changed' };

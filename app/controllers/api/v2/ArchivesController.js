@@ -10,7 +10,7 @@ const config = configLoader();
 
 export default class ArchivesController {
   restoration = authRequired(monitored('archives.restoration', async (ctx) => {
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
     if (!archParams) {
       throw new ForbiddenException('You have no archive record');
@@ -55,7 +55,7 @@ export default class ArchivesController {
   }));
 
   activities = authRequired(monitored('archives.start', async (ctx) => {
-    const user = ctx.state.user;
+    const { user } = ctx.state;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
     if (!archParams) {
       throw new ForbiddenException('You have no archive record');

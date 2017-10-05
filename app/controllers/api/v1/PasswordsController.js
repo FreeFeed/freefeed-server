@@ -5,7 +5,7 @@ import { NotFoundException } from '../../../support/exceptions'
 
 export default class PasswordsController {
   static async create(ctx) {
-    const email = ctx.request.body.email
+    const { email } = ctx.request.body;
 
     if (email == null || email.length == 0) {
       ctx.status = 400;
