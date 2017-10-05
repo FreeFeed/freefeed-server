@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import monitor from 'monitor-dog'
-import { dbAdapter } from '../../../models'
+import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
 
 export default class UsersController {
@@ -58,6 +58,7 @@ export default class UsersController {
     }
 
     await dbAdapter.markAllDirectsAsRead(ctx.state.user.id)
+    await pubSub.updateUnreadDirects(ctx.state.user.id);
     ctx.body = { message: `Directs are now marked as read for ${ctx.state.user.id}` };
   }
 
@@ -69,6 +70,7 @@ export default class UsersController {
     }
 
     await dbAdapter.markAllEventsAsRead(ctx.state.user.id);
+    await pubSub.updateUnreadNotifications(ctx.state.user.intId);
     ctx.body = { message: `Notifications are now marked as read for ${ctx.state.user.id}` };
   }
 

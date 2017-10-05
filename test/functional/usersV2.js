@@ -7,14 +7,16 @@ import expect from 'unexpected'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
+import { PubSub, Comment } from '../../app/models'
 import {
   createUserAsync,
   mutualSubscriptions,
   subscribeToAsync,
   createGroupAsync,
   sendRequestToJoinGroup,
+  updateUserAsync,
 } from '../functional/functional_test_helper'
+import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 import * as schema from './schemaV2-helper';
 
 describe('UsersControllerV2', () => {
@@ -138,6 +140,7 @@ describe('UsersControllerV2', () => {
         unreadNotificationsNumber:   expect.it('to be a number'),
         subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
         subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
+        preferences:                 expect.it('to satisfy', (data) => expect(validateUserPrefs(data), 'to be an object')),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {
@@ -151,6 +154,33 @@ describe('UsersControllerV2', () => {
         requests:      expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.userOrGroup),
         managedGroups: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', managedGroupSchema),
       });
+    });
+  })
+
+  describe('Backend preferences', () => {
+    let luna;
+
+    beforeEach(async () => {
+      luna = await createUserAsync('luna', 'pw');
+    });
+
+    it('should allow to update preferences with valid value', async () => {
+      const preferences = { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] };
+      const res = await updateUserAsync(luna, { preferences });
+      const data = await res.json();
+      expect(data, 'to satisfy', { users: { preferences } });
+    });
+
+    it('should not allow to update preferences with invalid value', async () => {
+      const preferences = { hideCommentsOfTypes: [1, 1, true] };
+      const res = await updateUserAsync(luna, { preferences });
+      expect(res, 'to satisfy', { status: 422 });
+    });
+
+    it('should not allow to update preferences with invalid key', async () => {
+      const preferences = { hideCommentsOfTypes2: 1 };
+      const res = await updateUserAsync(luna, { preferences });
+      expect(res, 'to satisfy', { status: 422 });
     });
   })
 })

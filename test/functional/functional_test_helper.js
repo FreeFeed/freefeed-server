@@ -421,7 +421,7 @@ export async function createUserAsync(username, password, attributes = {}) {
   // (for compatibility with old tests)
   await updateUserAsync(
     { user: userData, authToken: data.authToken },
-    { frontendPreferences: { 'net.freefeed': { comments: { hiddenTypes: [Comment.HIDDEN_BANNED] } } } },
+    { preferences: { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] } },
   );
 
   return {
@@ -789,6 +789,14 @@ export async function getUserEvents(userContext, eventTypes = null, limit = null
 
 export async function getUnreadNotificationsNumber(user) {
   const response = await postJson('/v2/users/getUnreadNotificationsNumber', {
+    authToken: user.authToken,
+    '_method': 'get'
+  });
+  return response;
+}
+
+export async function markAllDirectsAsRead(user) {
+  const response = await postJson('/v2/users/markAllDirectsAsRead', {
     authToken: user.authToken,
     '_method': 'get'
   });
