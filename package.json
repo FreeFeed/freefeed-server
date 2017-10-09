@@ -17,6 +17,7 @@
     "coverage": "cross-env NODE_ENV=test istanbul cover _mocha -- -R spec",
     "data_transfer": "babel-node bin/data_transfer",
     "reindex_hashtags": "babel-node bin/reindex_hashtags",
+    "notification_emails": "babel-node bin/notification_emails",
     "count_stats": "babel-node bin/count_stats",
     "count-daily-stats": "babel-node bin/count-daily-stats",
     "import_clikes": "babel-node bin/import_clikes"
