@@ -39,6 +39,7 @@ async function get_next_metric_update_date(metric) {
     case 'posts':
     case 'posts_creates':
     case 'active_users':
+    case 'events':
       data_type = 'posts';
       break;
     case 'comments':
@@ -178,6 +179,11 @@ async function main() {
 
     const res = await postgres.raw(sql);
     return res.rows[0].count;
+  });
+
+  await create_metric('events', to_date, async (dt, next_date) => {
+    const res = await postgres('events').count('id').where('created_at', '<', next_date).first();
+    return res.count;
   });
 
   await create_metric('active_users', to_date, async (dt) => {

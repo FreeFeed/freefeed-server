@@ -7,7 +7,8 @@ import pgFormat from 'pg-format';
 const statsTrait = (superClass) => class extends superClass {
   async getStats(data, start_date, end_date) {
     const supported_metrics = ['comments', 'comments_creates', 'posts', 'posts_creates', 'users', 'registrations',
-      'active_users', 'likes', 'likes_creates', 'comment_likes', 'comment_likes_creates', 'groups', 'groups_creates'];
+      'active_users', 'likes', 'likes_creates', 'comment_likes', 'comment_likes_creates', 'groups', 'groups_creates',
+      'events'];
 
     const metrics = data.split(',').sort();
 
