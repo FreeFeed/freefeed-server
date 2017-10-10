@@ -36,6 +36,7 @@
     "cache-manager": "2.4.0",
     "cache-manager-redis": "0.5.0",
     "console-stamp": "0.2.5",
+    "debug": "3.1.0",
     "ejs": "2.5.7",
     "ff-url-finder": "2.3.5",
     "gifsicle": "3.0.4",
