@@ -242,7 +242,7 @@ function makeUserLink(user) {
 
 function makePostLink(postId, postAuthor, isDirect = false) {
   const postLink = `${BASE_URL}/${postAuthor.username}/${postId}`;
-  return `<a href="${postLink}" style="color:#555599;">${isDirect ? 'post' : 'direct message'}</a>`;
+  return `<a href="${postLink}" style="color:#555599;">${isDirect ? 'direct message' : 'post'}</a>`;
 }
 
 function makeCommentLink(postId, commentId, postAuthor, linkText) {
