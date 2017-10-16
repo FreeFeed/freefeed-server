@@ -3,11 +3,9 @@ import Mailer from '../../lib/mailer';
 import { load as configLoader } from '../../config/config';
 
 const config = configLoader();
-const BASE_URL = 'http://freefeed.net';
 
 export function sendEventsDigestEmail(user, events, users, groups, digestInterval) {
   // TODO: const subject = config.mailer.notificationDigestEmailSubject
-  // TODO: BASE_URL
   let emailBody = '';
   for (const event of events) {
     const eventData = getEventPayload(event, users, groups);
@@ -237,16 +235,16 @@ const notificationTemplates = {
 };
 
 function makeUserLink(user) {
-  return `<a href="${BASE_URL}/${user.username}" style="color:#555599;">@${user.username}</a>`;
+  return `<a href="${config.host}/${user.username}" style="color:#555599;">@${user.username}</a>`;
 }
 
 function makePostLink(postId, postAuthor, isDirect = false) {
-  const postLink = `${BASE_URL}/${postAuthor.username}/${postId}`;
+  const postLink = `${config.host}/${postAuthor.username}/${postId}`;
   return `<a href="${postLink}" style="color:#555599;">${isDirect ? 'direct message' : 'post'}</a>`;
 }
 
 function makeCommentLink(postId, commentId, postAuthor, linkText) {
-  const postLink = `${BASE_URL}/${postAuthor.username}/${postId}#comment-${commentId}`;
+  const postLink = `${config.host}/${postAuthor.username}/${postId}#comment-${commentId}`;
   return `<a href="${postLink}" style="color:#555599;">${linkText}</a>`;
 }
 
