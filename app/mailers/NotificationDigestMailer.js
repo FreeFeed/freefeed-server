@@ -14,7 +14,14 @@ export function sendEventsDigestEmail(user, events, users, groups, digestInterva
     emailBody += `${eventMarkup}\n`;
   }
 
-  return Mailer.sendMail(user, 'Notifications digest', { digest: { body: emailBody, interval: digestInterval } }, `${config.appRoot}/app/scripts/views/mailer/notificationsDigest.ejs`, true);
+  return Mailer.sendMail(user, 'Notifications digest', {
+    digest: {
+      body:     emailBody,
+      interval: digestInterval,
+    },
+    recipient: user,
+    baseUrl:   config.host,
+  }, `${config.appRoot}/app/scripts/views/mailer/notificationsDigest.ejs`, true);
 }
 
 function getEventPayload(event, users, groups) {
