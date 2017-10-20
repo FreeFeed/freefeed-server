@@ -288,6 +288,13 @@ const usersTrait = (superClass) => class extends superClass {
     );
     return _.uniq(_.map(rows, 'user_id'));
   }
+
+  async getNotificationsDigestRecipients() {
+    const users = await this.database('users')
+      .where('type', 'user')
+      .whereRaw(`preferences -> 'sendNotificationsDigest' = 'true'::jsonb`);
+    return users.map(initUserObject);
+  }
 };
 
 export default usersTrait;

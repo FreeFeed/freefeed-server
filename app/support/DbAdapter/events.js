@@ -93,6 +93,27 @@ const eventsTrait = (superClass) => class extends superClass {
 
     return parseInt(res[0].count, 10) || 0;
   }
+
+  async getDigestSentAt(userIntIds) {
+    const res = await this.database('notification_email_log')
+      .select('user_id')
+      .max('sent_at as sent_at')
+      .whereIn('user_id', userIntIds)
+      .groupBy('user_id');
+
+    const emailSentMapping = {};
+    for (const entry of res) {
+      emailSentMapping[entry.user_id] = entry.sent_at;
+    }
+    return emailSentMapping;
+  }
+
+  addNotificationEmailLogEntry(userIntId, email) {
+    return this.database('notification_email_log').insert({
+      user_id: userIntId,
+      email
+    });
+  }
 };
 
 export default eventsTrait;
