@@ -13,6 +13,9 @@ export async function up(knex) {
       frontend_preferences = (
         frontend_preferences::jsonb #- '{net.freefeed,comments,hiddenTypes}'
       )::text
+    where
+      "frontend_preferences" IS NOT NULL AND
+      "frontend_preferences" <> ''
   `);
 }
 
