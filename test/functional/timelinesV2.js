@@ -418,6 +418,7 @@ describe('TimelinesControllerV2', () => {
       postLikedByMars = await createAndReturnPost(venus, 'Post');
       await createCommentAsync(mars, postCommentedByMars.id, 'Comment');
       await like(postLikedByMars.id, mars.authToken);
+      await hidePost(postCreatedByMars.id, luna);
     });
 
     const nonEmptyExpected = (anonymous = true) => async () => {
@@ -461,6 +462,10 @@ describe('TimelinesControllerV2', () => {
     describe('Mars is a public user', () => {
       it('should return Mars timelines with posts to anonymous', nonEmptyExpected());
       it('should return Mars timelines with posts to Luna', nonEmptyExpected(false));
+      it('should return Mars timeline with post having isHidden property', async () => {
+        const feed = await fetchUserTimeline('Posts', mars, luna);
+        expect(feed.posts[0], 'to have key', 'isHidden');
+      });
     });
 
     describe('Mars is a private user', () => {
