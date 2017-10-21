@@ -11,11 +11,8 @@ import { initObject, prepareModelPayload } from './utils';
 const feedsTrait = (superClass) => class extends superClass {
   async createTimeline(payload) {
     const preparedPayload = prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
-    if (preparedPayload.name == 'MyDiscussions') {
-      preparedPayload.uid = preparedPayload.user_id
-    }
-    const res = await this.database('feeds').returning(['id', 'uid']).insert(preparedPayload)
-    return { intId: res[0].id, id: res[0].uid }
+    const [res] = await this.database('feeds').returning(['id', 'uid']).insert(preparedPayload)
+    return { intId: res.id, id: res.uid }
   }
 
   createUserTimelines(userId, timelineNames) {

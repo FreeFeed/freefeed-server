@@ -648,8 +648,6 @@ describe('User', () => {
           timeline.should.not.be.empty
           timeline.should.have.property('name')
           timeline.name.should.eql('MyDiscussions')
-          timeline.should.have.property('id')
-          timeline.id.should.eql(user.id)
           done()
         })
         .catch((e) => { done(e) })
