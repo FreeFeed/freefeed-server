@@ -398,6 +398,17 @@ export function addModel(dbAdapter) {
     return this.name === 'Hides'
   }
 
+  /** 
+   * Personal timeline can be viewed only by it owner 
+   * @return {boolean} 
+   */ 
+  Timeline.prototype.isPersonal = function () {
+    return this.name === 'RiverOfNews' ||
+      this.name === 'Directs' ||
+      this.name === 'Hides' ||
+      this.name === 'MyDiscussions';
+  }
+
   Timeline.prototype.updatePost = async function (postId, action) {
     if (action === 'like') {
       const postInTimeline = await dbAdapter.isPostPresentInTimeline(this.intId, postId)

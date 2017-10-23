@@ -101,7 +101,17 @@ export default class PubsubListener {
           continue;
         }
 
-        data[channel].filter(Boolean).forEach((id) => {
+        data[channel].filter(Boolean).forEach(async (id) => {
+          if (channel === 'timeline') {
+            const t = await dbAdapter.getTimelineById(id);
+            if (!t) {
+              logger.warn(`attempt to subscribe to nonexistent timeline (ID=${id})`);
+              return;
+            } else if (t.isPersonal() && t.userId !== socket.user.id) {
+              logger.warn(`attempt to subscribe to someone else's '${t.name}' timeline`);
+              return;
+            }
+          }
           socket.join(`${channel}:${id}`)
           logger.info(`User has subscribed to ${id} ${channel}`)
         })
