@@ -469,15 +469,6 @@ describe('Realtime (Socket.io)', () => {
         });
 
         describe('via RiverOfNews timeline channel', () => {
-          it('Anonymous user gets notifications about comment likes', async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(anonContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'to get comment_like:new event from', marsContext
-            );
-            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, marsContext.user.id));
-          });
-
           it('Luna gets notifications about comment likes to own comment', async () => {
             const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
               'when subscribed to timeline', lunaRiverOfNews,
@@ -485,24 +476,6 @@ describe('Realtime (Socket.io)', () => {
               'to get comment_like:new event from', marsContext
             );
             expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, marsContext.user.id));
-          });
-
-          it("Mars gets notifications about comment likes to Luna's comment", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'to get comment_like:new event from', marsContext
-            );
-            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, marsContext.user.id));
-          });
-
-          it("Luna gets notifications about comment likes to Mars' comment", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', marsComment.id,
-              'to get comment_like:new event from', jupiter
-            );
-            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, jupiter.user.id));
           });
 
           it("Luna gets notifications about comment likes to Mars' comment", async () => {
@@ -517,26 +490,6 @@ describe('Realtime (Socket.io)', () => {
           describe('when post is hidden by Mars', () => {
             beforeEach(async () => {
               await funcTestHelper.hidePost(lunaPost.id, marsContext);
-            });
-
-            describe("when subscribed to Luna's RiverOfNews", () => {
-              it("Mars gets notifications about own comment likes to Luna's comment", async () => {
-                const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
-                  'when subscribed to timeline', lunaRiverOfNews,
-                  'with comment having id', lunaComment.id,
-                  'to get comment_like:new event from', marsContext
-                );
-                expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, marsContext.user.id));
-              });
-
-              it("Mars gets notifications about Jupiter's comment likes to Luna's comment", async () => {
-                const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
-                  'when subscribed to timeline', lunaRiverOfNews,
-                  'with comment having id', lunaComment.id,
-                  'to get comment_like:new event from', jupiter
-                );
-                expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, jupiter.user.id));
-              });
             });
 
             describe("when subscribed to Mars's RiverOfNews", () => {
@@ -591,15 +544,6 @@ describe('Realtime (Socket.io)', () => {
               );
               expect(msg, 'to be', null);
             });
-
-            it("Jupiter doesn't get notifications about own comment likes to Luna's comment to Luna's post", async () => {
-              const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
-                'when subscribed to timeline', lunaRiverOfNews,
-                'with comment having id', lunaComment.id,
-                'not to get comment_like:new event from', jupiter
-              );
-              expect(msg, 'to be', null);
-            });
           });
 
           describe('when Jupiter is banned by Mars', () => {
@@ -623,24 +567,6 @@ describe('Realtime (Socket.io)', () => {
                 'not to get comment_like:new event from', lunaContext
               );
               expect(msg, 'to be', null);
-            });
-
-            it('Jupiter gets notifications about comment likes to own comment', async () => {
-              const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
-                'when subscribed to timeline', lunaRiverOfNews,
-                'with comment having id', jupiterComment.id,
-                'to get comment_like:new event from', lunaContext
-              );
-              expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, lunaContext.user.id));
-            });
-
-            it("Jupiter gets notifications about comment likes to Mars' comment", async () => {
-              const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
-                'when subscribed to timeline', lunaRiverOfNews,
-                'with comment having id', marsComment.id,
-                'to get comment_like:new event from', lunaContext
-              );
-              expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, lunaContext.user.id));
             });
           });
         });
@@ -864,24 +790,6 @@ describe('Realtime (Socket.io)', () => {
         });
 
         describe('via RiverOfNews timeline channel', () => {
-          it("Anonymous user doesn't get notifications about comment likes", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(anonContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'not to get comment_like:new event from', marsContext
-            );
-            expect(msg, 'to be', null);
-          });
-
-          it("Anonymous user doesn't get notifications about comment likes", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(anonContext,
-              'when subscribed to timeline', marsRiverOfNews,
-              'with comment having id', marsComment.id,
-              'not to get comment_like:new event from', jupiter
-            );
-            expect(msg, 'to be', null);
-          });
-
           it('Luna gets notifications about comment likes to own comment', async () => {
             const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
               'when subscribed to timeline', lunaRiverOfNews,
@@ -889,33 +797,6 @@ describe('Realtime (Socket.io)', () => {
               'to get comment_like:new event from', marsContext
             );
             expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, false, marsContext.user.id));
-          });
-
-          it("Mars gets notifications about comment likes to Luna's comment", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'to get comment_like:new event from', marsContext
-            );
-            expect(msg, 'to satisfy', commentHavingNLikesExpectation(1, true, marsContext.user.id));
-          });
-
-          it("Jupiter doesn't get notifications about comment likes", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'not to get comment_like:new event from', marsContext
-            );
-            expect(msg, 'to be', null);
-          });
-
-          it("Jupiter doesn't get notifications about comment likes", async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(jupiter,
-              'when subscribed to timeline', marsRiverOfNews,
-              'with comment having id', marsComment.id,
-              'not to get comment_like:new event from', jupiter
-            );
-            expect(msg, 'to be', null);
           });
         });
 
@@ -1103,26 +984,8 @@ describe('Realtime (Socket.io)', () => {
         });
 
         describe('via RiverOfNews timeline channel', () => {
-          it('Anonymous user gets notifications about comment likes', async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(anonContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'to get comment_like:remove event from', marsContext
-            );
-            expect(msg, 'to satisfy', commentHavingNLikesExpectation(0, false, marsContext.user.id));
-          });
-
           it('Luna gets notifications about comment likes', async () => {
             const { context: { commentLikeRealtimeMsg: msg } } = await expect(lunaContext,
-              'when subscribed to timeline', lunaRiverOfNews,
-              'with comment having id', lunaComment.id,
-              'to get comment_like:remove event from', marsContext
-            );
-            expect(msg, 'to satisfy', commentHavingNLikesExpectation(0, false, marsContext.user.id));
-          });
-
-          it('Mars gets notifications about comment likes', async () => {
-            const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
               'when subscribed to timeline', lunaRiverOfNews,
               'with comment having id', lunaComment.id,
               'to get comment_like:remove event from', marsContext
@@ -1133,17 +996,6 @@ describe('Realtime (Socket.io)', () => {
           describe('when post is hidden by Mars', () => {
             beforeEach(async () => {
               await funcTestHelper.hidePost(lunaPost.id, marsContext);
-            });
-
-            describe("when subscribed to Luna's RiverOfNews", () => {
-              it('Mars gets notifications about comment likes', async () => {
-                const { context: { commentLikeRealtimeMsg: msg } } = await expect(marsContext,
-                  'when subscribed to timeline', lunaRiverOfNews,
-                  'with comment having id', lunaComment.id,
-                  'to get comment_like:remove event from', marsContext
-                );
-                expect(msg, 'to satisfy', commentHavingNLikesExpectation(0, false, marsContext.user.id));
-              });
             });
 
             describe("when subscribed to Mars's RiverOfNews", () => {
