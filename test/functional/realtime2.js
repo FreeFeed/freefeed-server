@@ -51,6 +51,60 @@ describe('Realtime #2', () => {
       await funcTestHelper.like(post.id, mars.authToken);
     });
 
+    describe('Luna, Mars and Anon are subscribed to the post channel', () => {
+      beforeEach(() => {
+        lunaSession.send('subscribe', { 'post': [post.id] });
+        marsSession.send('subscribe', { 'post': [post.id] });
+        anonSession.send('subscribe', { 'post': [post.id] });
+      });
+
+      it(`shold deliver 'post:hide' event only to Luna when Luna hides post`, async () => {
+        const lunaEvent = lunaSession.receive('post:hide');
+        const marsEvent = marsSession.notReceive('post:hide');
+        const anonEvent = anonSession.notReceive('post:hide');
+        await Promise.all([
+          funcTestHelper.hidePost(post.id, luna),
+          lunaEvent, marsEvent, anonEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled with', { meta: { postId: post.id } });
+        expect(marsEvent, 'to be fulfilled');
+        expect(anonEvent, 'to be fulfilled');
+      });
+
+      describe('Lunа hide post', () => {
+        beforeEach(async () => {
+          await funcTestHelper.hidePost(post.id, luna);
+        });
+
+        it(`shold deliver 'post:unhide' event only to Luna when Luna unhides post`, async () => {
+          const lunaEvent = lunaSession.receive('post:unhide');
+          const marsEvent = marsSession.notReceive('post:unhide');
+          const anonEvent = anonSession.notReceive('post:unhide');
+          await Promise.all([
+            funcTestHelper.unhidePost(post.id, luna),
+            lunaEvent, marsEvent, anonEvent,
+          ]);
+          expect(lunaEvent, 'to be fulfilled with', { meta: { postId: post.id } });
+          expect(marsEvent, 'to be fulfilled');
+          expect(anonEvent, 'to be fulfilled');
+        });
+
+        it(`shold deliver 'post:update' event with isHidden field only to Luna when Luna updates post`, async () => {
+          const lunaEvent = lunaSession.receive('post:update');
+          const marsEvent = marsSession.receive('post:update');
+          const anonEvent = anonSession.receive('post:update');
+          luna.post = post;
+          await Promise.all([
+            funcTestHelper.updatePostAsync(luna, { body: 'Updated post' }),
+            lunaEvent, marsEvent, anonEvent,
+          ]);
+          expect(lunaEvent, 'to be fulfilled with value satisfying', { posts: { isHidden: true } });
+          expect(marsEvent, 'to be fulfilled with value satisfying', { posts: expect.it('to not have key', 'isHidden') });
+          expect(anonEvent, 'to be fulfilled with value satisfying', { posts: expect.it('to not have key', 'isHidden') });
+        });
+      });
+    });
+
     describe('Mars tried to subscribe to Luna\'s RiverOfNews', () => {
       beforeEach(async () => {
         const lunaRoNFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'RiverOfNews');
