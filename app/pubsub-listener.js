@@ -296,12 +296,18 @@ export default class PubsubListener {
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onLikeRemove = async (sockets, data) => {
-    const json = { meta: { userId: data.userId, postId: data.postId } }
-    const post = await dbAdapter.getPostById(data.postId)
+  onLikeRemove = async (sockets, { userId, postId, prevFeedIds }) => {
+    const json = { meta: { userId, postId } }
+    const [
+      post,
+      timelines,
+    ] = await Promise.all([
+      dbAdapter.getPostById(postId),
+      dbAdapter.getTimelinesByIds(prevFeedIds),
+    ]);
 
     const type = 'like:remove'
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(post, timelines);
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 

@@ -105,6 +105,28 @@ describe('Realtime #2', () => {
       });
     });
 
+    describe('Luna and Mars are subscribed to their MyDiscussions', () => {
+      beforeEach(async () => {
+        const [lunaMDFeed, marsMDFeed] = await Promise.all([
+          dbAdapter.getUserNamedFeed(luna.user.id, 'MyDiscussions'),
+          dbAdapter.getUserNamedFeed(mars.user.id, 'MyDiscussions'),
+        ]);
+        lunaSession.send('subscribe', { 'timeline': [lunaMDFeed.id] });
+        marsSession.send('subscribe', { 'timeline': [marsMDFeed.id] });
+      });
+
+      it(`shold deliver 'like:remove' event when Mars unlikes post`, async () => {
+        const lunaEvent = lunaSession.receive('like:remove');
+        const marsEvent = marsSession.receive('like:remove');
+        await Promise.all([
+          funcTestHelper.unlike(post.id, mars.authToken),
+          lunaEvent, marsEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled');
+        expect(marsEvent, 'to be fulfilled');
+      });
+    });
+
     describe('Mars tried to subscribe to Luna\'s RiverOfNews', () => {
       beforeEach(async () => {
         const lunaRoNFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'RiverOfNews');
