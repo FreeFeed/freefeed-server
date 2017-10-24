@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { isArray, isPlainObject, keyBy, uniq, uniqBy } from 'lodash'
+import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -165,9 +165,8 @@ export default class PubsubListener {
     }
   }
 
-  async broadcastMessage(sockets, rooms, type, json, post, emitter = null) {
+  async broadcastMessage(sockets, rooms, type, json, post, emitter = defaultEmitter) {
     const { logger } = this.app.context;
-    emitter = emitter || ((socket, type, json) => socket.emit(type, json));
 
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
@@ -306,18 +305,26 @@ export default class PubsubListener {
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onPostHide = (sockets, data) => {
-    // NOTE: posts are hidden only on RiverOfNews timeline so this
-    // event won't leak any personal information
-    const json = { meta: { postId: data.postId } }
-    sockets.in(`timeline:${data.timelineId}`).emit('post:hide', json)
+  onPostHide = async (sockets, { postId, userId }) => {
+    // NOTE: this event only broadcasts to hider's sockets  
+    // so it won't leak any personal information  
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId)
+
+    const type = 'post:hide';
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
   }
 
-  onPostUnhide = (sockets, data) => {
-    // NOTE: posts are hidden only on RiverOfNews timeline so this
-    // event won't leak any personal information
-    const json = { meta: { postId: data.postId } }
-    sockets.in(`timeline:${data.timelineId}`).emit('post:unhide', json)
+  onPostUnhide = async (sockets, { postId, userId }) => {
+    // NOTE: this event only broadcasts to hider's sockets  
+    // so it won't leak any personal information  
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId)
+
+    const type = 'post:unhide';
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
   }
 
   onCommentLikeNew = async (sockets, data) => {
@@ -343,7 +350,7 @@ export default class PubsubListener {
       json.comments.userId = data.unlikerUUID;
     }
 
-    const rooms = await getRoomsOfPost(post, null, true);
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, msgType, json, post, this._commentLikeEventEmitter);
   };
 
@@ -354,14 +361,34 @@ export default class PubsubListener {
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 
-    socket.emit(type, json);
+    defaultEmitter(socket, type, json);
   }
 
   _postEventEmitter = async (socket, type, json) => {
+    // We should make a copy of json because  
+    // there are parallel emitters running with  
+    // the same data  
+    json = cloneDeep(json);
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
-    socket.emit(type, json);
+
+    if (type !== 'post:new') {
+      const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
+      if (isHidden) {
+        json.posts.isHidden = true;
+      }
+    }
+    defaultEmitter(socket, type, json);
   }
+
+  /** 
+   * Emits message only to the specified user 
+   */ 
+  _singleUserEmitter = (userId) => (socket, type, json) => {
+    if (socket.user.id === userId) {
+      defaultEmitter(socket, type, json);
+    }
+  };
 
   async _insertCommentLikesInfo(postPayload, viewerUUID) {
     postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
@@ -436,3 +463,5 @@ async function getRoomsOfPost(post, extraFeeds = []) {
   rooms.push(`post:${post.id}`);
   return rooms;
 }
+
+const defaultEmitter = (socket, type, json) => socket.emit(type, json);
