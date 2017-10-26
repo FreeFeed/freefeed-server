@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep } from 'lodash'
+import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep, intersection } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -203,7 +203,9 @@ export default class PubsubListener {
         }
       }
 
-      await emitter(socket, type, json);
+      const realtimeChannels = intersection(rooms, socket.rooms);
+
+      await emitter(socket, type, { ...json, realtimeChannels });
     }));
   }
 

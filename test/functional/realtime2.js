@@ -125,6 +125,23 @@ describe('Realtime #2', () => {
         expect(lunaEvent, 'to be fulfilled');
         expect(marsEvent, 'to be fulfilled');
       });
+
+      it(`shold deliver events with correct 'realtimeChannels' fields`, async () => {
+        const lunaEvent = lunaSession.receive('like:remove');
+        const marsEvent = marsSession.receive('like:remove');
+        const [, lunaMsg, marsMsg] = await Promise.all([
+          funcTestHelper.unlike(post.id, mars.authToken),
+          lunaEvent, marsEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled');
+        expect(marsEvent, 'to be fulfilled');
+        const [lunaMDFeed, marsMDFeed] = await Promise.all([
+          dbAdapter.getUserNamedFeed(luna.user.id, 'MyDiscussions'),
+          dbAdapter.getUserNamedFeed(mars.user.id, 'MyDiscussions'),
+        ]);
+        expect(lunaMsg, 'to satisfy', { realtimeChannels: [`timeline:${lunaMDFeed.id}`] });
+        expect(marsMsg, 'to satisfy', { realtimeChannels: [`timeline:${marsMDFeed.id}`] });
+      });
     });
 
     describe('Mars tried to subscribe to Luna\'s RiverOfNews', () => {
