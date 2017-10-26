@@ -209,8 +209,8 @@ export default class PubsubListener {
     }));
   }
 
-  onUserUpdate = (sockets, data) => {
-    sockets.in(`user:${data.user.id}`).emit('user:update', data);
+  onUserUpdate = async (sockets, data) => {
+    await this.broadcastMessage(sockets, [`user:${data.user.id}`], 'user:update', data, null);
   };
 
   // Message-handlers follow
