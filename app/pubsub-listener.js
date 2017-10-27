@@ -244,8 +244,8 @@ export default class PubsubListener {
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
   }
 
-  onCommentNew = async (sockets, data) => {
-    const comment = await dbAdapter.getCommentById(data.commentId)
+  onCommentNew = async (sockets, { commentId }) => {
+    const comment = await dbAdapter.getCommentById(commentId)
 
     if (!comment) {
       // might be outdated event
@@ -256,8 +256,7 @@ export default class PubsubListener {
     const json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     const type = 'comment:new'
-    const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
-    const rooms = await getRoomsOfPost(post, timelines);
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
   }
 
@@ -280,21 +279,19 @@ export default class PubsubListener {
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onLikeNew = async (sockets, data) => {
+  onLikeNew = async (sockets, { userId, postId }) => {
     const [
       user,
       post,
     ] = await Promise.all([
-      await dbAdapter.getUserById(data.userId),
-      await dbAdapter.getPostById(data.postId),
+      await dbAdapter.getUserById(userId),
+      await dbAdapter.getPostById(postId),
     ]);
     const json = await new LikeSerializer(user).promiseToJSON();
-    json.meta = { postId: data.postId }
-
-    const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
+    json.meta = { postId }
 
     const type = 'like:new'
-    const rooms = await getRoomsOfPost(post, timelines);
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
@@ -435,30 +432,27 @@ export default class PubsubListener {
 }
 
 /**
- * Returns array of room names related to post as union of 
+ * Returns array of all room names related to post as union of 
  * post room and timelines: `post.getTimelines()`, post author's  
- * and likers/commenters `MyDiscussions` feeds  
- * and `extraFeeds`. 
+ * and likers/commenters `MyDiscussions` feeds. 
  * 
  * @param {Post} post 
- * @param {Timeline[]} extraFeeds 
  * @return {string[]}
  */
-export async function getRoomsOfPost(post, extraFeeds = []) {
+export async function getRoomsOfPost(post) {
   if (!post) {
     return [];
   }
 
   const postFeeds = await post.getTimelines();
-  const myDiscussionsOwnerIds = [...postFeeds, ...extraFeeds]
+  const myDiscussionsOwnerIds = postFeeds
     .filter((f) => f.isLikes() || f.isComments())
     .map((f) => f.userId);
 
   myDiscussionsOwnerIds.push(post.userId);
   const myDiscussionsFeeds = await dbAdapter.getUsersNamedTimelines(uniq(myDiscussionsOwnerIds), 'MyDiscussions');
 
-  const feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds, ...extraFeeds], 'id');
-
+  const feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;
