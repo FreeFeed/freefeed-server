@@ -112,6 +112,10 @@ export default class PubsubListener {
               return;
             }
           }
+          if (channel === 'user' && id !== socket.user.id) {
+            logger.warn(`attempt to subscribe to someone else's '${channel}' channel`);
+            return;
+          }
           socket.join(`${channel}:${id}`)
           logger.info(`User has subscribed to ${id} ${channel}`)
         })

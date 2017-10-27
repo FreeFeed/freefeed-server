@@ -170,5 +170,31 @@ describe('Realtime #2', () => {
         expect(marsEvent, 'to be fulfilled');
       });
     });
+
+    describe('Luna subscribed to Luna\'s user channel', () => {
+      beforeEach(() => lunaSession.send('subscribe', { 'user': [luna.user.id] }));
+
+      it(`shold deliver 'user:update' event when Luna reads notifications`, async () => {
+        const lunaEvent = lunaSession.receive('user:update');
+        await Promise.all([
+          funcTestHelper.markAllNotificationsAsRead(luna),
+          lunaEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled');
+      });
+    });
+
+    describe('Mars tried to subscribe to Luna\'s user channel', () => {
+      beforeEach(() => marsSession.send('subscribe', { 'user': [luna.user.id] }));
+
+      it(`shold not deliver 'user:update' event when Luna reads notifications`, async () => {
+        const marsEvent = marsSession.notReceive('user:update');
+        await Promise.all([
+          funcTestHelper.markAllNotificationsAsRead(luna),
+          marsEvent,
+        ]);
+        expect(marsEvent, 'to be fulfilled');
+      });
+    });
   });
 });
