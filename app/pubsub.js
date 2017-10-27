@@ -46,13 +46,9 @@ export default class pubSub {
     await this.publisher.postCreated(payload)
   }
 
-  async destroyPost(postId, timelineIds) {
-    const promises = timelineIds.map(async (timelineId) => {
-      const jsonedPost = JSON.stringify({ postId, timelineId })
-      await this.publisher.postDestroyed(jsonedPost)
-    })
-
-    await Promise.all(promises)
+  async destroyPost(postId, rooms) {
+    const payload = JSON.stringify({ postId, rooms })
+    await this.publisher.postDestroyed(payload)
   }
 
   async updatePost(postId) {

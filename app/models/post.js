@@ -163,17 +163,22 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.destroy = async function () {
-    await dbAdapter.statsPostDeleted(this.userId, this.id)  // needs data in DB
+    const [
+      realtimeRooms,
+      comments,
+    ] = await Promise.all([
+      getRoomsOfPost(this),
+      this.getComments(),
+      dbAdapter.statsPostDeleted(this.userId, this.id),  // needs data in DB
+    ]);
 
     // remove all comments
-    const comments = await this.getComments()
     await Promise.all(comments.map((comment) => comment.destroy()))
 
-    const timelineIds = await this.getTimelineIds()
     await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id)
     await dbAdapter.deletePost(this.id)
 
-    await pubSub.destroyPost(this.id, timelineIds)
+    await pubSub.destroyPost(this.id, realtimeRooms)
   }
 
   Post.prototype.getCreatedBy = function () {

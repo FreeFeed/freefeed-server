@@ -142,6 +142,17 @@ describe('Realtime #2', () => {
         expect(lunaMsg, 'to satisfy', { realtimeChannels: [`timeline:${lunaMDFeed.id}`] });
         expect(marsMsg, 'to satisfy', { realtimeChannels: [`timeline:${marsMDFeed.id}`] });
       });
+
+      it(`shold deliver 'post:destroy' when Luna deletes post`, async () => {
+        const lunaEvent = lunaSession.receive('post:destroy');
+        const marsEvent = marsSession.receive('post:destroy');
+        await Promise.all([
+          funcTestHelper.deletePostAsync(luna, post.id),
+          lunaEvent, marsEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled');
+        expect(marsEvent, 'to be fulfilled');
+      });
     });
 
     describe('Mars tried to subscribe to Luna\'s RiverOfNews', () => {
