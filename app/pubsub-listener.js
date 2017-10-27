@@ -165,7 +165,7 @@ export default class PubsubListener {
     }
   }
 
-  async broadcastMessage(sockets, rooms, type, json, post, emitter = defaultEmitter) {
+  async broadcastMessage(sockets, rooms, type, json, post = null, emitter = defaultEmitter) {
     const { logger } = this.app.context;
 
     let destSockets = rooms
@@ -214,16 +214,10 @@ export default class PubsubListener {
   };
 
   // Message-handlers follow
-  onPostDestroy = async (sockets, data) => {
-    const post = await dbAdapter.getPostById(data.postId)
-    const json = { meta: { postId: data.postId } }
-
-    sockets.in(`timeline:${data.timelineId}`).emit('post:destroy', json)
-    sockets.in(`post:${data.postId}`).emit('post:destroy', json)
-
+  onPostDestroy = async (sockets, { postId, rooms }) => {
+    const json = { meta: { postId } }
     const type = 'post:destroy'
-    const rooms = [`timeline:${data.timelineId}`, `post:${data.postId}`];
-    await this.broadcastMessage(sockets, rooms, type, json, post);
+    await this.broadcastMessage(sockets, rooms, type, json);
   }
 
   onPostNew = async (sockets, data) => {
