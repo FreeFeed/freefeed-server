@@ -18,6 +18,7 @@ import {
   fetchPost,
   createMockAttachmentAsync,
   updatePostAsync,
+  hidePost,
 } from './functional_test_helper'
 
 describe('TimelinesControllerV2', () => {
@@ -265,6 +266,19 @@ describe('TimelinesControllerV2', () => {
         await updatePostAsync(luna, postData);
         const { posts } = await fetchPost(luna.post.id);
         expect(posts.attachments, 'to equal', postData.attachments);
+      });
+    });
+    describe('Luna wrote post and hide it', () => {
+      let luna;
+      beforeEach(async () => {
+        luna = await createUserAsync('luna', 'pw');
+        luna.post = await createAndReturnPost(luna, 'Luna post');
+        await hidePost(luna.post.id, luna);
+      });
+
+      it('should return post to Luna with truthy isHidden property', async () => {
+        const { posts } = await fetchPost(luna.post.id, luna);
+        expect(posts, 'to have key', 'isHidden'); // it must be true because of schema
       });
     });
   });

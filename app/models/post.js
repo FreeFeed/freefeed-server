@@ -550,13 +550,13 @@ export function addModel(dbAdapter) {
 
   Post.prototype.removeLike = async function (userId) {
     const user = await dbAdapter.getUserById(userId)
+    const prevFeedIds = await this.getTimelineIds()
     const timelineId = await user.getLikesTimelineIntId()
-    const promises = [
+    await Promise.all([
       dbAdapter.removeUserPostLike(this.id, userId),
       dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
-    ]
-    await Promise.all(promises)
-    await pubSub.removeLike(this.id, userId)
+    ])
+    await pubSub.removeLike(this.id, userId, prevFeedIds)
 
     return true
   }
