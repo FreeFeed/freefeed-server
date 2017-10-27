@@ -3,6 +3,7 @@ import _ from 'lodash'
 
 import { extractHashtags } from '../support/hashtags'
 import { Timeline, PubSub as pubSub } from '../models'
+import { getRoomsOfPost } from '../pubsub-listener'
 
 
 export function addModel(dbAdapter) {
@@ -549,14 +550,19 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.removeLike = async function (userId) {
-    const user = await dbAdapter.getUserById(userId)
-    const prevFeedIds = await this.getTimelineIds()
+    const [
+      realtimeRooms,
+      user,
+    ] = await Promise.all([
+      getRoomsOfPost(this),
+      dbAdapter.getUserById(userId),
+    ]);
     const timelineId = await user.getLikesTimelineIntId()
     await Promise.all([
       dbAdapter.removeUserPostLike(this.id, userId),
       dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
     ])
-    await pubSub.removeLike(this.id, userId, prevFeedIds)
+    await pubSub.removeLike(this.id, userId, realtimeRooms)
     return true
   }
 
