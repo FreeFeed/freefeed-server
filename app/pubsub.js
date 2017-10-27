@@ -82,8 +82,8 @@ export default class pubSub {
     await this.publisher.likeAdded(payload)
   }
 
-  async removeLike(postId, userId, prevFeedIds) {
-    const payload = JSON.stringify({ userId, postId, prevFeedIds })
+  async removeLike(postId, userId, rooms) {
+    const payload = JSON.stringify({ userId, postId, rooms })
     await this.publisher.likeRemoved(payload)
   }
 
