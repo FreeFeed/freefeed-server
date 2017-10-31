@@ -35,7 +35,6 @@ export default class TimelinesController {
     const { user } = ctx.state;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, 'RiverOfNews');
     ctx.body = await genericTimeline(timeline, user.id, {
-      withHides:      true,
       withLocalBumps: true,
       ...getCommonParams(ctx),
     });
@@ -116,7 +115,6 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     limit:              30,
     offset:             0,
     sort:               ORD_UPDATED,
-    withHides:          false,  // consider viewer Hides feed (for RiverOfNews)
     withLocalBumps:     false,  // consider viewer local bumps (for RiverOfNews)
     withoutDirects:     false,  // do not show direct messages (for Likes and Comments)
     withMyPosts:        false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
@@ -127,7 +125,6 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   };
 
   params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === ORD_UPDATED;
-  params.withHides = params.withHides && !!viewerId;
   params.withMyPosts = params.withMyPosts && timeline.name === 'MyDiscussions';
 
   const allUserIds = new Set();
@@ -137,7 +134,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   const allDestinations = [];
   const allSubscribers = [];
 
-  const { intId: hidesFeedId } = params.withHides ? await dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 };
+  const { intId: hidesFeedId } = viewerId ? await dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 };
 
   const timelineIds = [timeline.intId];
   const owner = await timeline.getUser();
@@ -189,7 +186,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
       omittedLikes,
     };
 
-    if (params.withHides && post.feedIntIds.includes(hidesFeedId)) {
+    if (post.feedIntIds.includes(hidesFeedId)) {
       sPost.isHidden = true; // present only if true
     }
 

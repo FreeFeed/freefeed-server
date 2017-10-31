@@ -46,13 +46,9 @@ export default class pubSub {
     await this.publisher.postCreated(payload)
   }
 
-  async destroyPost(postId, timelineIds) {
-    const promises = timelineIds.map(async (timelineId) => {
-      const jsonedPost = JSON.stringify({ postId, timelineId })
-      await this.publisher.postDestroyed(jsonedPost)
-    })
-
-    await Promise.all(promises)
+  async destroyPost(postId, rooms) {
+    const payload = JSON.stringify({ postId, rooms })
+    await this.publisher.postDestroyed(payload)
   }
 
   async updatePost(postId) {
@@ -82,25 +78,17 @@ export default class pubSub {
     await this.publisher.likeAdded(payload)
   }
 
-  async removeLike(postId, userId) {
-    const payload = JSON.stringify({ userId, postId })
+  async removeLike(postId, userId, rooms) {
+    const payload = JSON.stringify({ userId, postId, rooms })
     await this.publisher.likeRemoved(payload)
   }
 
   async hidePost(userId, postId) {
-    const user = await dbAdapter.getUserById(userId)
-    const timelineId = await user.getRiverOfNewsTimelineId()
-
-    const payload = JSON.stringify({ timelineId, postId })
-    await this.publisher.postHidden(payload)
+    await this.publisher.postHidden(JSON.stringify({ userId, postId }))
   }
 
   async unhidePost(userId, postId) {
-    const user = await dbAdapter.getUserById(userId)
-    const timelineId = await user.getRiverOfNewsTimelineId()
-
-    const payload = JSON.stringify({ timelineId, postId })
-    await this.publisher.postUnhidden(payload)
+    await this.publisher.postUnhidden(JSON.stringify({ userId, postId }))
   }
 
   async newCommentLike(commentId, postId, likerUUID) {

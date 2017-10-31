@@ -73,6 +73,11 @@ export default class PostsController {
       omittedLikes:    postWithStuff.omittedLikes,
     };
 
+    const { intId: hidesFeedId } = viewer ? await dbAdapter.getUserNamedFeed(viewer.id, 'Hides') : { intId: 0 };
+    if (postWithStuff.post.feedIntIds.includes(hidesFeedId)) {
+      sPost.isHidden = true; // present only if true 
+    }
+
     const comments = postWithStuff.comments.map(serializeComment);
     const attachments = postWithStuff.attachments.map(serializeAttachment);
     const subscribersIds = _.compact(_.map(postWithStuff.destinations, 'user'));
