@@ -345,7 +345,8 @@ export function addModel(dbAdapter) {
       'createdAt':           this.createdAt.toString(),
       'updatedAt':           this.updatedAt.toString(),
       'hashedPassword':      this.hashedPassword,
-      'frontendPreferences': JSON.stringify({})
+      'frontendPreferences': JSON.stringify({}),
+      'preferences':         this.preferences,
     };
 
     [this.id, this.intId] = await dbAdapter.createUser(payload);
