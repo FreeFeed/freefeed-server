@@ -30,7 +30,7 @@ export const EVENT_TYPES = {
   MANAGED_GROUP_SUBSCRIPTION_REJECTED: 'managed_group_subscription_rejected',
 };
 
-export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user'];
+export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user', 'user_unsubscribed'];
 export const ALLOWED_EVENT_TYPES = _.difference(_.values(EVENT_TYPES), INVISIBLE_EVENT_TYPES);
 export const NOT_COUNTABLE_EVENT_TYPES = [...INVISIBLE_EVENT_TYPES, 'banned_user', 'unbanned_user', 'group_created'];
 export const COUNTABLE_EVENT_TYPES = _.difference(_.values(EVENT_TYPES), NOT_COUNTABLE_EVENT_TYPES);

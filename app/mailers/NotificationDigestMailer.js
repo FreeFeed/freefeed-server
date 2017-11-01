@@ -116,13 +116,8 @@ const notificationTemplates = {
       ${eventTime}
     `;
   },
-  user_unsubscribed: (eventData) => {
-    const unsubscriberLink = makeUserLink(eventData.creator);
-    const eventTime = eventData.createdAt.format('HH:MM');
-    return `
-      ${unsubscriberLink} unsubscribed from your feed<br />
-      ${eventTime}
-    `;
+  user_unsubscribed: () => {
+    return '';
   },
   subscription_request_approved: (eventData) => {
     const approverLink = makeUserLink(eventData.creator);
