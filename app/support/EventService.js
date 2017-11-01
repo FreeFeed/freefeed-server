@@ -27,7 +27,6 @@ export class EventService {
 
   static async onUserUnsubscribed(initiatorIntId, unsubscribedUserIntId) {
     await dbAdapter.createEvent(unsubscribedUserIntId, EVENT_TYPES.USER_UNSUBSCRIBED, initiatorIntId, unsubscribedUserIntId);
-    await pubSub.updateUnreadNotifications(unsubscribedUserIntId);
   }
 
   static async onSubscriptionRequestCreated(fromUserIntId, toUserIntId) {

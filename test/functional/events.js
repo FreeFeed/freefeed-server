@@ -1625,7 +1625,7 @@ describe('EventsController', () => {
         });
 
         res = await getUserEvents(luna, ['subscriptions']);
-        expect(res['Notifications'], 'to have length', 7);
+        expect(res['Notifications'], 'to have length', 6);
 
         res = await getUserEvents(luna, ['groups']);
         expect(res['Notifications'], 'to have length', 11);
@@ -1927,16 +1927,14 @@ describe('Unread events counter realtime updates for ', () => {
   });
 
   describe('user_unsubscribed event', () => {
-    it('user should receive counter update', async () => {
+    it('user should not receive counter update', async () => {
       await subscribeToAsync(mars, luna);
-      const { context: { userUpdateRealtimeMsg: msg } } = await expect(luna,
+      await expect(luna,
         'when subscribed to user', luna.user.id,
-        'to get user:update event when called', () => {
+        'not to get user:update event when called', () => {
           return unsubscribeFromAsync(mars, luna);
         }
       );
-
-      expect(msg, 'to satisfy', userUpdateEventWithUnreadNotifications(2, luna.user.id));
     });
   });
 

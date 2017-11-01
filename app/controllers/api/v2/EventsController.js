@@ -8,7 +8,6 @@ const EVENT_GROUPS = {
   bans:          ['banned_user', 'unbanned_user'],
   subscriptions: [
     'user_subscribed',
-    'user_unsubscribed',
     'subscription_requested',
     'subscription_request_revoked',
     'subscription_request_approved',
