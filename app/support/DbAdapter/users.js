@@ -13,7 +13,7 @@ const usersTrait = (superClass) => class extends superClass {
     return [uid, intId];
   }
 
-  updateUser(userId, payload) {
+  async updateUser(userId, payload) {
     const tokenExpirationTime = new Date(Date.now())
     const expireAfter = 60 * 60 * 24 // 24 hours
 
@@ -24,8 +24,8 @@ const usersTrait = (superClass) => class extends superClass {
       preparedPayload['reset_password_expires_at'] = tokenExpirationTime.toISOString()
     }
 
-    this.cacheFlushUser(userId)
-    return this.database('users').where('uid', userId).update(preparedPayload)
+    await this.database('users').where('uid', userId).update(preparedPayload)
+    await this.cacheFlushUser(userId)
   }
 
   setUpdatedAtInGroupsByIds = async (groupIds, time) => {
