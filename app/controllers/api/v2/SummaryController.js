@@ -25,6 +25,6 @@ export default class SummaryController {
 
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUser.id });
 
-    ctx.body = await serializePostsCollection(postsObjects);
+    ctx.body = await serializePostsCollection(postsObjects, currentUser.id);
   }));
 }
