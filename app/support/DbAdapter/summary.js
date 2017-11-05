@@ -45,7 +45,16 @@ const summaryTrait = (superClass) => class extends superClass {
             ) AS c
             ON c.post_id = posts.uid
           LEFT JOIN
-            (SELECT post_id, COUNT(id) AS likes_count FROM likes GROUP BY likes.post_id) AS l
+            (
+              SELECT
+                post_id, COUNT(id) AS likes_count 
+              FROM 
+                likes 
+              WHERE 
+                created_at > (current_date - ${days} * interval '1 day')
+              GROUP BY 
+                likes.post_id
+            ) AS l
             ON l.post_id = posts.uid
           ${bannedMe.length > 0 ? `
             INNER JOIN feeds ON posts.destination_feed_ids # feeds.id > 0 AND feeds.name = 'Posts'
