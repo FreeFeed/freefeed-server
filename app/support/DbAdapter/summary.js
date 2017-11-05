@@ -33,7 +33,16 @@ const summaryTrait = (superClass) => class extends superClass {
         FROM
           posts
           LEFT JOIN
-            (SELECT post_id, COUNT(id) AS comments_count, COUNT(DISTINCT user_id) as comment_authors_count FROM comments GROUP BY comments.post_id) AS c
+            (
+              SELECT 
+                post_id, COUNT(id) AS comments_count, COUNT(DISTINCT user_id) as comment_authors_count 
+              FROM
+                comments
+              WHERE 
+                created_at > (current_date - ${days} * interval '1 day')
+              GROUP BY
+                comments.post_id
+            ) AS c
             ON c.post_id = posts.uid
           LEFT JOIN
             (SELECT post_id, COUNT(id) AS likes_count FROM likes GROUP BY likes.post_id) AS l
