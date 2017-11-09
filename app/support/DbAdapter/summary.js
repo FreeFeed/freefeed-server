@@ -14,13 +14,21 @@ import pgFormat from 'pg-format';
  */
 const summaryTrait = (superClass) => class extends superClass {
   async getSummaryPosts(currentUserId, timelineIntId, days) {
-    const [iBanned, bannedMe] = await Promise.all([
-      this.getUserBansIds(currentUserId),
-      this.getUserIdsWhoBannedUser(currentUserId)
-    ]);
+    let privacyFilter = 'AND NOT posts.is_protected';
+    let banFilter = '';
 
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(iBanned);
-    const usersWhoBannedMeFilter = (bannedMe.length > 0) ? pgFormat('AND feeds.user_id NOT IN (%L) ', bannedMe) : '';
+    if (currentUserId) {
+      const [visiblePrivateFeedIntIds, bannedUserIds] = await Promise.all([
+        this.getVisiblePrivateFeedIntIds(currentUserId),
+        this.getBansAndBannersOfUser(currentUserId),
+      ]);
+
+      // Exclude private feeds viewer cannot read
+      privacyFilter = pgFormat('AND (NOT posts.is_private OR posts.destination_feed_ids && %L)', `{${visiblePrivateFeedIntIds.join(',')}}`);
+
+      // Exclude authors who banned viewer or were banned by viewer
+      banFilter = (bannedUserIds.length > 0) ? pgFormat('AND (posts.user_id NOT IN (%L))', bannedUserIds) : '';
+    }
 
     const sql = `
         SELECT
@@ -56,14 +64,11 @@ const summaryTrait = (superClass) => class extends superClass {
                 likes.post_id
             ) AS l
             ON l.post_id = posts.uid
-          ${bannedMe.length > 0 ? `
-            INNER JOIN feeds ON posts.destination_feed_ids # feeds.id > 0 AND feeds.name = 'Posts'
-          ` : ''}
         WHERE
           posts.feed_ids && '{${timelineIntId}}' AND
           posts.created_at > (current_date - ${days} * interval '1 day')
-          ${bannedUsersFilter}
-          ${usersWhoBannedMeFilter}
+          ${privacyFilter}
+          ${banFilter}
         ORDER BY
           metric DESC
         LIMIT
