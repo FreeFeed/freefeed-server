@@ -138,7 +138,11 @@ export async function performSearch(context, query, params = {}) {
 export async function getSummary(context, params = {}) {
   params = { days: 7, ...params };
 
-  const response = await postJson(`/v2/summary/${params.days}`, {
+  const url = params.username
+    ? `/v2/summary/${params.username}/${params.days}`
+    : `/v2/summary/${params.days}`;
+
+  const response = await postJson(url, {
     authToken: context.authToken,
     '_method': 'get'
   });
