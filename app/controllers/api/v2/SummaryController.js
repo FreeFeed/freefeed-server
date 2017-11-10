@@ -1,6 +1,7 @@
 import { dbAdapter } from '../../../models'
 import { NotFoundException } from '../../../support/exceptions'
 import { serializePostsCollection } from '../../../serializers/v2/post';
+import { serializeUser } from '../../../serializers/v2/user';
 import { monitored, authRequired } from './helpers';
 
 const getDays = (d) => {
@@ -46,8 +47,36 @@ export default class SummaryController {
     // Get posts authored by target user, and provide current user (the reader) for filtering
     const foundPosts = await dbAdapter.getSummaryPosts(currentUserId, timelineIntId, days);
 
-    const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
+    // Serialize for the response
+    if (foundPosts.length > 0) {
+      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
 
-    ctx.body = await serializePostsCollection(postsObjects, currentUserId);
+      ctx.body = await serializePostsCollection(postsObjects, currentUserId);
+      ctx.body.isLastPage = true;
+    } else {
+      const [allUsersAssoc, allStatsAssoc] = await Promise.all([
+        dbAdapter.getUsersByIdsAssoc([targetUser.id]),
+        dbAdapter.getUsersStatsAssoc([targetUser.id]),
+      ]);
+
+      const defaultStats = { posts: '0', likes: '0', comments: '0', subscribers: '0', subscriptions: '0' };
+
+      const users = [{
+        ...serializeUser(allUsersAssoc[targetUser.id]),
+        statistics: allStatsAssoc[targetUser.id] || defaultStats
+      }];
+
+      ctx.body = {
+        admins:        [],
+        attachments:   [],
+        comments:      [],
+        isLastPage:    true,
+        posts:         [],
+        subscribers:   [],
+        subscriptions: [],
+        timelines:     [],
+        users
+      };
+    }
   });
 }
