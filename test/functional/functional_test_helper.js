@@ -135,6 +135,17 @@ export async function performSearch(context, query, params = {}) {
   return await response.json()
 }
 
+export async function getSummary(context, params = {}) {
+  params = { days: 7, ...params };
+
+  const response = await postJson(`/v2/summary/${params.days}`, {
+    authToken: context.authToken,
+    '_method': 'get'
+  });
+
+  return await response.json();
+}
+
 export function createPost(context, body, callback) {
   return function (done) {
     apiUrl('/v1/posts')
