@@ -135,6 +135,21 @@ export async function performSearch(context, query, params = {}) {
   return await response.json()
 }
 
+export async function getSummary(context, params = {}) {
+  params = { days: 7, ...params };
+
+  const url = params.username
+    ? `/v2/summary/${params.username}/${params.days}`
+    : `/v2/summary/${params.days}`;
+
+  const response = await postJson(url, {
+    authToken: context.authToken,
+    '_method': 'get'
+  });
+
+  return await response.json();
+}
+
 export function createPost(context, body, callback) {
   return function (done) {
     apiUrl('/v1/posts')
@@ -770,6 +785,10 @@ export function unbanUser(who, whom) {
 
 export function hidePost(postId, user) {
   return postJson(`/v1/posts/${postId}/hide`, { authToken: user.authToken })
+}
+
+export function unhidePost(postId, user) {
+  return postJson(`/v1/posts/${postId}/unhide`, { authToken: user.authToken })
 }
 
 export async function getUserEvents(userContext, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {

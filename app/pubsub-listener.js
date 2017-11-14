@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { isArray, isPlainObject, keyBy, uniq } from 'lodash'
+import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep, intersection } from 'lodash'
 import IoServer from 'socket.io'
 import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
@@ -101,7 +101,21 @@ export default class PubsubListener {
           continue;
         }
 
-        data[channel].filter(Boolean).forEach((id) => {
+        data[channel].filter(Boolean).forEach(async (id) => {
+          if (channel === 'timeline') {
+            const t = await dbAdapter.getTimelineById(id);
+            if (!t) {
+              logger.warn(`attempt to subscribe to nonexistent timeline (ID=${id})`);
+              return;
+            } else if (t.isPersonal() && t.userId !== socket.user.id) {
+              logger.warn(`attempt to subscribe to someone else's '${t.name}' timeline`);
+              return;
+            }
+          }
+          if (channel === 'user' && id !== socket.user.id) {
+            logger.warn(`attempt to subscribe to someone else's '${channel}' channel`);
+            return;
+          }
           socket.join(`${channel}:${id}`)
           logger.info(`User has subscribed to ${id} ${channel}`)
         })
@@ -155,9 +169,8 @@ export default class PubsubListener {
     }
   }
 
-  async broadcastMessage(sockets, rooms, type, json, post, emitter = null) {
+  async broadcastMessage(sockets, rooms, type, json, post = null, emitter = defaultEmitter) {
     const { logger } = this.app.context;
-    emitter = emitter || ((socket, type, json) => socket.emit(type, json));
 
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
@@ -194,25 +207,21 @@ export default class PubsubListener {
         }
       }
 
-      await emitter(socket, type, json);
+      const realtimeChannels = intersection(rooms, socket.rooms);
+
+      await emitter(socket, type, { ...json, realtimeChannels });
     }));
   }
 
-  onUserUpdate = (sockets, data) => {
-    sockets.in(`user:${data.user.id}`).emit('user:update', data);
+  onUserUpdate = async (sockets, data) => {
+    await this.broadcastMessage(sockets, [`user:${data.user.id}`], 'user:update', data, null);
   };
 
   // Message-handlers follow
-  onPostDestroy = async (sockets, data) => {
-    const post = await dbAdapter.getPostById(data.postId)
-    const json = { meta: { postId: data.postId } }
-
-    sockets.in(`timeline:${data.timelineId}`).emit('post:destroy', json)
-    sockets.in(`post:${data.postId}`).emit('post:destroy', json)
-
+  onPostDestroy = async (sockets, { postId, rooms }) => {
+    const json = { meta: { postId } }
     const type = 'post:destroy'
-    const rooms = [`timeline:${data.timelineId}`, `post:${data.postId}`];
-    await this.broadcastMessage(sockets, rooms, type, json, post);
+    await this.broadcastMessage(sockets, rooms, type, json);
   }
 
   onPostNew = async (sockets, data) => {
@@ -220,7 +229,7 @@ export default class PubsubListener {
     const json = await new PostSerializer(post).promiseToJSON()
 
     const type = 'post:new'
-    const rooms = await getRoomsOfFeedsAndPost(post)
+    const rooms = await getRoomsOfPost(post)
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
   }
 
@@ -229,12 +238,12 @@ export default class PubsubListener {
     const json = await new PostSerializer(post).promiseToJSON()
 
     const type = 'post:update'
-    const rooms = await getRoomsOfFeedsAndPost(post)
+    const rooms = await getRoomsOfPost(post)
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
   }
 
-  onCommentNew = async (sockets, data) => {
-    const comment = await dbAdapter.getCommentById(data.commentId)
+  onCommentNew = async (sockets, { commentId }) => {
+    const comment = await dbAdapter.getCommentById(commentId)
 
     if (!comment) {
       // might be outdated event
@@ -245,8 +254,7 @@ export default class PubsubListener {
     const json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     const type = 'comment:new'
-    const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
-    const rooms = await getRoomsOfFeedsAndPost(post, timelines, true);
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
   }
 
@@ -256,7 +264,7 @@ export default class PubsubListener {
     const json = await new PubsubCommentSerializer(comment).promiseToJSON()
 
     const type = 'comment:update'
-    const rooms = await getRoomsOfFeedsAndPost(post)
+    const rooms = await getRoomsOfPost(post)
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
   }
 
@@ -265,49 +273,53 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(data.postId)
 
     const type = 'comment:destroy'
-    const rooms = await getRoomsOfFeedsAndPost(post)
+    const rooms = await getRoomsOfPost(post)
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onLikeNew = async (sockets, data) => {
+  onLikeNew = async (sockets, { userId, postId }) => {
     const [
       user,
       post,
     ] = await Promise.all([
-      await dbAdapter.getUserById(data.userId),
-      await dbAdapter.getPostById(data.postId),
+      await dbAdapter.getUserById(userId),
+      await dbAdapter.getPostById(postId),
     ]);
     const json = await new LikeSerializer(user).promiseToJSON();
-    json.meta = { postId: data.postId }
-
-    const timelines = await dbAdapter.getTimelinesByIds(data.timelineIds)
+    json.meta = { postId }
 
     const type = 'like:new'
-    const rooms = await getRoomsOfFeedsAndPost(post, timelines, true);
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onLikeRemove = async (sockets, data) => {
-    const json = { meta: { userId: data.userId, postId: data.postId } }
-    const post = await dbAdapter.getPostById(data.postId)
-
+  onLikeRemove = async (sockets, { userId, postId, rooms }) => {
+    const json = { meta: { userId, postId } }
+    const post = await dbAdapter.getPostById(postId);
     const type = 'like:remove'
-    const rooms = await getRoomsOfFeedsAndPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
   }
 
-  onPostHide = (sockets, data) => {
-    // NOTE: posts are hidden only on RiverOfNews timeline so this
-    // event won't leak any personal information
-    const json = { meta: { postId: data.postId } }
-    sockets.in(`timeline:${data.timelineId}`).emit('post:hide', json)
+  onPostHide = async (sockets, { postId, userId }) => {
+    // NOTE: this event only broadcasts to hider's sockets  
+    // so it won't leak any personal information  
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId)
+
+    const type = 'post:hide';
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
   }
 
-  onPostUnhide = (sockets, data) => {
-    // NOTE: posts are hidden only on RiverOfNews timeline so this
-    // event won't leak any personal information
-    const json = { meta: { postId: data.postId } }
-    sockets.in(`timeline:${data.timelineId}`).emit('post:unhide', json)
+  onPostUnhide = async (sockets, { postId, userId }) => {
+    // NOTE: this event only broadcasts to hider's sockets  
+    // so it won't leak any personal information  
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId)
+
+    const type = 'post:unhide';
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
   }
 
   onCommentLikeNew = async (sockets, data) => {
@@ -333,7 +345,7 @@ export default class PubsubListener {
       json.comments.userId = data.unlikerUUID;
     }
 
-    const rooms = await getRoomsOfFeedsAndPost(post, null, true);
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, msgType, json, post, this._commentLikeEventEmitter);
   };
 
@@ -344,14 +356,34 @@ export default class PubsubListener {
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 
-    socket.emit(type, json);
+    defaultEmitter(socket, type, json);
   }
 
   _postEventEmitter = async (socket, type, json) => {
+    // We should make a copy of json because  
+    // there are parallel emitters running with  
+    // the same data  
+    json = cloneDeep(json);
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
-    socket.emit(type, json);
+
+    if (type !== 'post:new') {
+      const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
+      if (isHidden) {
+        json.posts.isHidden = true;
+      }
+    }
+    defaultEmitter(socket, type, json);
   }
+
+  /** 
+   * Emits message only to the specified user 
+   */ 
+  _singleUserEmitter = (userId) => (socket, type, json) => {
+    if (socket.user.id === userId) {
+      defaultEmitter(socket, type, json);
+    }
+  };
 
   async _insertCommentLikesInfo(postPayload, viewerUUID) {
     postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
@@ -398,48 +430,30 @@ export default class PubsubListener {
 }
 
 /**
- * Returns feeds without RiverOfNews'es and Hides'es
- * which owners have hidden given post.
+ * Returns array of all room names related to post as union of 
+ * post room and timelines: `post.getTimelines()`, post author's  
+ * and likers/commenters `MyDiscussions` feeds. 
  * 
- * @param {Timeline[]} feeds 
  * @param {Post} post 
- * @return {Timeline[]}
- */
-async function filterFeedsThatHidePost(feeds, post) {
-  const riverOwnerIds = uniq(feeds.filter((f) => f.isRiverOfNews() || f.isHides()).map((f) => f.userId));
-  const hidesFeeds = await dbAdapter.getUsersNamedTimelines(riverOwnerIds, 'Hides');
-  // Post was hidden by these users
-  const blindUserIds = uniq(hidesFeeds.filter((f) => post.feedIntIds.includes(f.intId)).map((f) => f.userId));
-
-  return feeds.filter((f) => {
-    if (f.isRiverOfNews() || f.isHides()) {
-      return !blindUserIds.includes(f.userId);
-    }
-    return true;
-  });
-}
-
-/**
- * Returns array of room names for the given feeds and post.
- * If `filterHides` is true, filter feeds by `filterFeedsThatHidePost`.
- * If `feeds` is falsy then `post.getTimelines()` used.
- * 
- * @param {Timeline[]} feeds 
- * @param {Post} post 
- * @param {boolean} [filterHides]
  * @return {string[]}
  */
-async function getRoomsOfFeedsAndPost(post, feeds = null, filterHides = false) {
+export async function getRoomsOfPost(post) {
   if (!post) {
     return [];
   }
-  if (!feeds) {
-    feeds = await post.getTimelines();
-  }
-  if (filterHides) {
-    feeds = await filterFeedsThatHidePost(feeds, post);
-  }
+
+  const postFeeds = await post.getTimelines();
+  const myDiscussionsOwnerIds = postFeeds
+    .filter((f) => f.isLikes() || f.isComments())
+    .map((f) => f.userId);
+
+  myDiscussionsOwnerIds.push(post.userId);
+  const myDiscussionsFeeds = await dbAdapter.getUsersNamedTimelines(uniq(myDiscussionsOwnerIds), 'MyDiscussions');
+
+  const feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;
 }
+
+const defaultEmitter = (socket, type, json) => socket.emit(type, json);
