@@ -21,6 +21,7 @@ import UsersRoute from './routes/api/v1/UsersRoute'
 import GroupsRouteV2 from './routes/api/v2/GroupsRoute'
 import RequestsRouteV2 from './routes/api/v2/RequestsRoute'
 import SearchRoute from './routes/api/v2/SearchRoute'
+import SummaryRoute from './routes/api/v2/SummaryRoute'
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
 import StatsRouteV2 from './routes/api/v2/Stats'
@@ -77,6 +78,7 @@ export default function (app) {
   GroupsRouteV2(router);
   RequestsRouteV2(router);
   SearchRoute(router);
+  SummaryRoute(router);
   TimelinesRouteV2(router);
   UsersRouteV2(router);
   PostsRouteV2(router);

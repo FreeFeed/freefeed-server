@@ -3,6 +3,7 @@ import _ from 'lodash'
 
 import { extractHashtags } from '../support/hashtags'
 import { Timeline, PubSub as pubSub } from '../models'
+import { getRoomsOfPost } from '../pubsub-listener'
 
 
 export function addModel(dbAdapter) {
@@ -162,17 +163,22 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.destroy = async function () {
-    await dbAdapter.statsPostDeleted(this.userId, this.id)  // needs data in DB
+    const [
+      realtimeRooms,
+      comments,
+    ] = await Promise.all([
+      getRoomsOfPost(this),
+      this.getComments(),
+      dbAdapter.statsPostDeleted(this.userId, this.id),  // needs data in DB
+    ]);
 
     // remove all comments
-    const comments = await this.getComments()
     await Promise.all(comments.map((comment) => comment.destroy()))
 
-    const timelineIds = await this.getTimelineIds()
     await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id)
     await dbAdapter.deletePost(this.id)
 
-    await pubSub.destroyPost(this.id, timelineIds)
+    await pubSub.destroyPost(this.id, realtimeRooms)
   }
 
   Post.prototype.getCreatedBy = function () {
@@ -549,15 +555,19 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.removeLike = async function (userId) {
-    const user = await dbAdapter.getUserById(userId)
+    const [
+      realtimeRooms,
+      user,
+    ] = await Promise.all([
+      getRoomsOfPost(this),
+      dbAdapter.getUserById(userId),
+    ]);
     const timelineId = await user.getLikesTimelineIntId()
-    const promises = [
+    await Promise.all([
       dbAdapter.removeUserPostLike(this.id, userId),
       dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
-    ]
-    await Promise.all(promises)
-    await pubSub.removeLike(this.id, userId)
-
+    ])
+    await pubSub.removeLike(this.id, userId, realtimeRooms)
     return true
   }
 
