@@ -27,6 +27,7 @@ export default class SummaryController {
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUser.id });
 
     ctx.body = await serializePostsCollection(postsObjects, currentUser.id);
+    ctx.body.isLastPage = true;
   }));
 
   static userSummary = monitored('summary.user', async (ctx) => {
