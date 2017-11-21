@@ -47,7 +47,7 @@ const summaryTrait = (superClass) => class extends superClass {
               FROM
                 comments
               WHERE 
-                created_at > (current_date - ${days} * interval '1 day')
+                created_at > (now() - ${days} * interval '1 day')
               GROUP BY
                 comments.post_id
             ) AS c
@@ -59,14 +59,14 @@ const summaryTrait = (superClass) => class extends superClass {
               FROM 
                 likes 
               WHERE 
-                created_at > (current_date - ${days} * interval '1 day')
+                created_at > (now() - ${days} * interval '1 day')
               GROUP BY 
                 likes.post_id
             ) AS l
             ON l.post_id = posts.uid
         WHERE
           posts.feed_ids && '{${timelineIntId}}' AND
-          posts.created_at > (current_date - ${days} * interval '1 day')
+          posts.created_at > (now() - ${days} * interval '1 day')
           ${privacyFilter}
           ${banFilter}
         ORDER BY
