@@ -16,7 +16,7 @@ const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'i
 const quotedQueryReplacementRegex  = new RegExp(QUOTE_REPLACEMENT_PATTERN, 'ig')
 
 export class SearchQueryParser {
-  static parse(query, defaultUsername = null) {
+  static parse(query, defaultUsername = null, urlQueryparmas = '') {
     query = decodeURIComponent(query)
 
     const parseResult = {
@@ -25,7 +25,8 @@ export class SearchQueryParser {
       username: '',
       group:    '',
       quotes:   [],
-      hashtags: []
+      hashtags: [],
+      intitle: urlQueryparmas.intitle != null && urlQueryparmas.intitle ?urlQueryparmas.intitle :'',
     }
 
     this.parseQueryScope(parseResult, defaultUsername)
