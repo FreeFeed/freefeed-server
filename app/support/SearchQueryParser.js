@@ -16,16 +16,17 @@ const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'i
 const quotedQueryReplacementRegex  = new RegExp(QUOTE_REPLACEMENT_PATTERN, 'ig')
 
 export class SearchQueryParser {
-  static parse(query, defaultUsername = null) {
+  static parse(query, defaultUsername = null, urlQueryparmas = null) {
     query = decodeURIComponent(query)
 
     const parseResult = {
-      scope:    SEARCH_SCOPES.ALL_VISIBLE_POSTS,
+      scope:     SEARCH_SCOPES.ALL_VISIBLE_POSTS,
       query,
-      username: '',
-      group:    '',
-      quotes:   [],
-      hashtags: []
+      username:  '',
+      group:     '',
+      quotes:    [],
+      hashtags:  [],
+      incomment: urlQueryparmas.incomment != null && urlQueryparmas.incomment ? urlQueryparmas.incomment : ''
     }
 
     this.parseQueryScope(parseResult, defaultUsername)

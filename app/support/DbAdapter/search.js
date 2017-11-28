@@ -13,7 +13,7 @@ const searchTrait = (superClass) => class extends superClass {
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
     const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected'
-
+    const searchIncommentCondition = query.incomment != null && query.incomment ? ` comments.body like '%${query.incomment}%'` : ''
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
       visibleFeedIds = 'NULL'
     }
@@ -23,16 +23,23 @@ const searchTrait = (superClass) => class extends superClass {
       `inner join "users" on feeds.user_id=users.uid and ${publicOrVisibleForAnonymous} ` +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
+    let searchIncommentConditionQuery = '';
+    if ((commentSearchCondition === ' 1=0 ') || (bannedCommentAuthorFilter == '')) {
+      searchIncommentConditionQuery = `${searchIncommentCondition} `;
+    } else if (searchIncommentConditionQuery != '') {
+      searchIncommentConditionQuery = `${commentSearchCondition} ${bannedCommentAuthorFilter} and ${searchIncommentCondition} `;
+    } else {
+      searchIncommentConditionQuery = `${commentSearchCondition} ${bannedCommentAuthorFilter} `;
+    }
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
       `inner join "users" on feeds.user_id=users.uid and ${publicOrVisibleForAnonymous} ` +
       `where
           posts.uid in (
-            select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
+            select post_id from comments where ${searchIncommentConditionQuery} 
           ) ${bannedUsersFilter}`;
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
-
     if (currentUserId) {
       const myPostsSubQuery = 'select "posts".* from "posts" ' +
         `where "posts"."user_id" = '${currentUserId}' and ${searchCondition}`;
