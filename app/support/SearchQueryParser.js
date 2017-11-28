@@ -26,7 +26,7 @@ export class SearchQueryParser {
       group:    '',
       quotes:   [],
       hashtags: [],
-      intitle: urlQueryparmas.intitle != null && urlQueryparmas.intitle ?urlQueryparmas.intitle :'',
+      intitle:  urlQueryparmas.intitle != null && urlQueryparmas.intitle ? urlQueryparmas.intitle : ''
     }
 
     this.parseQueryScope(parseResult, defaultUsername)

@@ -13,29 +13,19 @@ const searchTrait = (superClass) => class extends superClass {
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
     const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected'
-    const searchIntitlCondition = query.intitle != null && query.intitle ?` posts.body like '%${query.intitle}%'` :''
-    
+    const searchIntitlCondition = query.intitle != null && query.intitle ? ` posts.body like '%${query.intitle}%'` : ''
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
       visibleFeedIds = 'NULL'
     }
 
-     // filter query condition
-    let searchIntitlConditionQuery='';
- 
-    if( (searchCondition ===' 1=0 ' ) || (bannedUsersFilter =='' ) )
-     {
-       searchIntitlConditionQuery = `${searchIntitlCondition} ` ;
- 
-     }
-     else if(searchIntitlCondition !='')
-     {
- 
-        searchIntitlConditionQuery = `${searchCondition} ${bannedUsersFilter} and ${searchIntitlCondition} ` ;
-     }
-     else 
-     {
-        searchIntitlConditionQuery = `${searchCondition} ${bannedUsersFilter} ` ;
-     }
+    let searchIntitlConditionQuery = '';
+    if ((searchCondition === ' 1=0 ') || (bannedUsersFilter == '')) {
+      searchIntitlConditionQuery = `${searchIntitlCondition} `;
+    } else if (searchIntitlCondition != '') {
+      searchIntitlConditionQuery = `${searchCondition} ${bannedUsersFilter} and ${searchIntitlCondition} `;
+    } else {
+      searchIntitlConditionQuery = `${searchCondition} ${bannedUsersFilter} `;
+    }
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +

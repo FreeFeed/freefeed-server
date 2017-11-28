@@ -12,7 +12,7 @@ export default class SearchController {
   }
 
   search = async (ctx) => {
-    const preparedQuery = SearchQueryParser.parse(ctx.request.query.qs, ctx.state.user ? ctx.state.user.username : null,ctx.request.query)
+    const preparedQuery = SearchQueryParser.parse(ctx.request.query.qs, ctx.state.user ? ctx.state.user.username : null, ctx.request.query)
     const DEFAULT_LIMIT = 30
 
     let foundPosts = [],
