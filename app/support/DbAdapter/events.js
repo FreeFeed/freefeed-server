@@ -75,8 +75,8 @@ const eventsTrait = (superClass) => class extends superClass {
 
     const payload = { notifications_read_at: currentTime };
 
+    await this.database('users').where('uid', userId).update(payload);
     await this.cacheFlushUser(userId);
-    return this.database('users').where('uid', userId).update(payload);
   }
 
   async getUnreadEventsNumber(userId) {
