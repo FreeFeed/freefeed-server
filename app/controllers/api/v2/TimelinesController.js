@@ -165,7 +165,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   }
 
   const postsIds = canViewUser ?
-    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, limit: params.limit + 1 }) :
+    await dbAdapter.getTimelinePostsIds(timeline.name, timelineIds, viewerId, { ...params, limit: params.limit + 1 }) :
     [];
 
   const isLastPage = postsIds.length <= params.limit;

@@ -189,7 +189,7 @@ const postsTrait = (superClass) => class extends superClass {
   /**
    * Returns UIDs of timelines posts
    */
-  async getTimelinePostsIds(timelineIntIds, viewerId = null, params = {}) {
+  async getTimelinePostsIds(timelineName, timelineIntIds, viewerId = null, params = {}) {
     params = {
       limit:          30,
       offset:         0,
@@ -253,17 +253,36 @@ const postsTrait = (superClass) => class extends superClass {
 
     if (!params.withLocalBumps || params.offset > maxOffsetWithLocalBumps) {
       // without local bumps
-      const sql = pgFormat(`
-        select p.uid
-        from 
-          posts p
-        where
-          (p.feed_ids && %L or ${myPostsSQL})
-          and ${restrictionsSQL}
-        order by
-          p.%I desc
-        limit %L offset %L
-      `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+      let sql = '';
+      if (timelineName !== 'RiverOfNews') {
+        // Request with CTE for the feed with relatively small number of posts
+        sql = pgFormat(`
+          with filteredPosts as (
+            select * from posts p where p.feed_ids && %L or ${myPostsSQL}
+          )
+          select p.uid
+          from 
+            filteredPosts p
+          where
+            ${restrictionsSQL}
+          order by
+            p.%I desc
+          limit %L offset %L
+        `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+      } else {
+        // Request without CTE for the RiverOfNews feed
+        sql = pgFormat(`
+          select p.uid
+          from 
+            posts p
+          where
+            (p.feed_ids && %L or ${myPostsSQL})
+            and ${restrictionsSQL}
+          order by
+            p.%I desc
+          limit %L offset %L
+        `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+      }
       return (await this.database.raw(sql)).rows.map((r) => r.uid);
     }
 
@@ -533,11 +552,11 @@ const postsTrait = (superClass) => class extends superClass {
         ${commentFields.join(', ')}, id,
         rank() over (partition by post_id order by created_at, id),
         count(*) over (partition by post_id),
-        (select coalesce(count(*), '0') from comment_likes cl
+        (select coalesce(count(*), 0) from comment_likes cl
           where cl.comment_id = comments.id
             and cl.user_id not in (select id from users where uid in (%L))
         ) as c_likes,
-        (select count(*) = 1 from comment_likes cl
+        (select true from comment_likes cl
           where cl.comment_id = comments.id
             and cl.user_id = %L
         ) as has_own_like
@@ -606,7 +625,7 @@ const postsTrait = (superClass) => class extends superClass {
 
       const comment = initCommentObject(comm);
       comment.likes       = parseInt(comm.c_likes);
-      comment.hasOwnLike  = comm.has_own_like;
+      comment.hasOwnLike  = Boolean(comm.has_own_like);
       results[comm.post_id].comments.push(comment);
       results[comm.post_id].omittedComments = (params.foldComments && comm.count > params.maxUnfoldedComments) ? comm.count - 2 : 0;
 
