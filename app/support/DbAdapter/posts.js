@@ -712,6 +712,7 @@ const POST_COLUMNS = {
   commentsDisabled: 'comments_disabled',
   isPrivate:        'is_private',
   isProtected:      'is_protected',
+  isPropagable:     'is_propagable',
 }
 
 const POST_COLUMNS_MAPPING = {
@@ -737,8 +738,9 @@ const POST_COLUMNS_MAPPING = {
     }
     return null
   },
-  isPrivate:   (is_private) => {return is_private === '1'},
-  isProtected: (is_protected) => {return is_protected === '1'},
+  isPrivate:    (is_private) => {return is_private === '1'},
+  isProtected:  (is_protected) => {return is_protected === '1'},
+  isPropagable: (is_propagable) => {return is_propagable === '1'},
 }
 
 const POST_FIELDS = {
@@ -755,6 +757,7 @@ const POST_FIELDS = {
   likes_count:          'likesCount',
   is_private:           'isPrivate',
   is_protected:         'isProtected',
+  is_propagable:        'isPropagable',
   friendfeed_url:       'friendfeedUrl',
 }
 
@@ -766,4 +769,5 @@ const POST_FIELDS_MAPPING = {
   user_id:           (user_id) => {return user_id ? user_id : ''},
   is_private:        (is_private) => {return is_private ? '1' : '0' },
   is_protected:      (is_protected) => {return is_protected ? '1' : '0' },
+  is_propagable:     (is_propagable) => {return is_propagable ? '1' : '0' },
 }
