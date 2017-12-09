@@ -1,15 +1,13 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
 import { expect } from 'chai'
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 
 import { dbAdapter, Post, Timeline, User } from '../../app/models'
 
 
 describe('User', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#validPassword()', () => {
     it('should validate valid password', (done) => {

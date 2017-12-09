@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import knexCleaner from 'knex-cleaner';
 import expect from 'unexpected'
 
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
@@ -26,7 +26,7 @@ describe('Realtime #2', () => {
     anonSession;
 
   beforeEach(async () => {
-    await knexCleaner.clean($pg_database);
+    await cleanDB($pg_database);
 
     [luna, mars] = await Promise.all([
       funcTestHelper.createUserAsync('luna', 'pw'),

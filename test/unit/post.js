@@ -1,13 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner';
 import { dbAdapter, Post, User } from '../../app/models'
 
 
 describe('Post', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#update()', () => {
     let userA, post;

@@ -2,9 +2,9 @@
 /* global $pg_database */
 import _ from 'lodash';
 import fetch from 'node-fetch';
-import knexCleaner from 'knex-cleaner';
 import expect from 'unexpected';
 
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSub } from '../../app/models';
@@ -16,7 +16,7 @@ describe('All groups', () => {
   before(async () => {
     app = await getSingleton();
     PubSub.setPublisher(new DummyPublisher());
-    await knexCleaner.clean($pg_database);
+    await cleanDB($pg_database);
   });
 
   describe('There are three groups: Pubic, Protected and Private. Luna, Mars and Venus wrote posts to these groups', () => {

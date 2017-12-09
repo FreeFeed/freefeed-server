@@ -2,9 +2,9 @@
 /* global $pg_database */
 import fetch from 'node-fetch'
 import request from 'superagent'
-import knexCleaner from 'knex-cleaner'
 import expect from 'unexpected'
 
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, Comment } from '../../app/models'
@@ -27,9 +27,7 @@ describe('UsersControllerV2', () => {
     PubSub.setPublisher(new DummyPublisher())
   })
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#blockedByMe()', () => {
     it('should reject unauthenticated users', (done) => {

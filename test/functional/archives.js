@@ -1,9 +1,9 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import fetch from 'node-fetch';
-import knexCleaner from 'knex-cleaner';
 import expect from 'unexpected';
 
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSub, dbAdapter, Comment } from '../../app/models';
@@ -15,9 +15,7 @@ describe('Archives', () => {
     app = await getSingleton();
     PubSub.setPublisher(new DummyPublisher());
   })
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('Luna has archive, Mars hasn\'t but has record, Venus hasn\'t anything', () => {
     let luna, mars, venus;
