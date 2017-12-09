@@ -197,11 +197,11 @@ const postsTrait = (superClass) => class extends superClass {
   async getSubscriprionsIntIds(userId) {
     const sql = `
       with feeds as (
-      select f.id, f.name from 
+        select f.id, f.name from
           subscriptions s join feeds f on f.uid = s.feed_id 
           where s.user_id = :userId
-      union  -- viewer's own feeds
-        select id, name from feeds where user_id = :userId and name in ('Posts', 'Directs', 'Comments', 'Likes')
+        union  -- viewer's own feeds
+          select id, name from feeds where user_id = :userId and name in ('Posts', 'Directs', 'Comments', 'Likes')
       )
       select 
         case when name in ('Comments', 'Likes') then 'activities' else 'destinations' end as type,
@@ -338,10 +338,13 @@ const postsTrait = (superClass) => class extends superClass {
         limit %L
     `, fullCount);
     const localBumpsSQL = pgFormat(`
+        with local_bumps as (
+          select post_id, min(created_at) as created_at from local_bumps where user_id = %L group by post_id
+        )
         select b.post_id as uid, b.created_at as date
         from
           local_bumps b
-          join posts p on p.uid = b.post_id and b.user_id = %L
+          join posts p on p.uid = b.post_id
         where
           ${sourceConditionSQL} and ${restrictionsSQL}
         order by b.created_at desc
