@@ -1,13 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 import { dbAdapter, User, Group } from '../../app/models'
 
 
 describe('Group', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     let groupAdmin

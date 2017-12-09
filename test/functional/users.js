@@ -3,9 +3,9 @@
 import _ from 'lodash'
 import { mkdirp } from 'mkdirp'
 import request from 'superagent'
-import knexCleaner from 'knex-cleaner'
 import { promisify } from 'bluebird'
 
+import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
@@ -24,9 +24,7 @@ describe('UsersController', () => {
     PubSub.setPublisher(new DummyPublisher())
   })
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     it('should create a valid user', (done) => {

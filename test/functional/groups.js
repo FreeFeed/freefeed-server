@@ -2,9 +2,9 @@
 /* global $pg_database */
 import request from 'superagent'
 import { mkdirp } from 'mkdirp'
-import knexCleaner from 'knex-cleaner'
 import { promisify } from 'bluebird'
 
+import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
@@ -23,9 +23,7 @@ describe('GroupsController', () => {
     PubSub.setPublisher(new DummyPublisher())
   })
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     let context = {}

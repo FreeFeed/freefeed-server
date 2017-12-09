@@ -1,14 +1,12 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
 import uuid from 'uuid'
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 import { dbAdapter, Timeline, User } from '../../app/models'
 
 
 describe('Timeline', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     it('should create without error', (done) => {

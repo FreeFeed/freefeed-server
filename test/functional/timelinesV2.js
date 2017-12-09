@@ -1,10 +1,10 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import fetch from 'node-fetch'
-import knexCleaner from 'knex-cleaner'
 import expect from 'unexpected'
 import _ from 'lodash'
 
+import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, dbAdapter } from '../../app/models'
@@ -34,7 +34,7 @@ describe('TimelinesControllerV2', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  beforeEach(async () => await knexCleaner.clean($pg_database));
+  beforeEach(() => cleanDB($pg_database));
 
   describe('#home', () => {
     it('should reject unauthenticated users', async () => {

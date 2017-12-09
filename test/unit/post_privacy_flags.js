@@ -1,13 +1,12 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import knexCleaner from 'knex-cleaner'
 import expect from 'unexpected'
+
+import cleanDB from '../dbCleaner'
 import { dbAdapter, User, Group } from '../../app/models'
 
 describe('Post Privacy Flags', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('User Luna is a member of public group Selenites and private group Celestials', () => {
     let luna,

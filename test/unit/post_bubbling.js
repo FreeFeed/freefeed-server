@@ -1,13 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 import { User, Group } from '../../app/models'
 
 
 describe('PostBubbling', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   const homeFeedEqualTo = async (user, expectedContent, feedReaderId) => {
     const homeFeed = await user.getRiverOfNewsTimeline({ currentUser: feedReaderId })
