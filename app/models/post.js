@@ -346,8 +346,7 @@ export function addModel(dbAdapter) {
         return
       }
 
-      const promises = riversOfNewsOwners.map((ownerId) => dbAdapter.createLocalBump(this.id, ownerId))
-      await Promise.all(promises)
+      await dbAdapter.setLocalBumpForUsers(this.id, riversOfNewsOwners)
 
       return
     }
