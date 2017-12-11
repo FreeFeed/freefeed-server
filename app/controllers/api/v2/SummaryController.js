@@ -18,11 +18,11 @@ export default class SummaryController {
 
     const currentUser = ctx.state.user;
 
-    // Get timeline "RiverOfNews" of current user
-    const [timelineIntId] = await dbAdapter.getUserNamedFeedsIntIds(currentUser.id, ['RiverOfNews']);
+    // Get timelines that forms a "RiverOfNews" of current user
+    const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id);
 
     // Get posts current user subscribed to
-    const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, timelineIntId, days);
+    const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, days, destinations, activities);
 
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUser.id });
 
@@ -46,7 +46,7 @@ export default class SummaryController {
     const [timelineIntId] = await dbAdapter.getUserNamedFeedsIntIds(targetUser.id, ['Posts']);
 
     // Get posts authored by target user, and provide current user (the reader) for filtering
-    const foundPosts = await dbAdapter.getSummaryPosts(currentUserId, timelineIntId, days);
+    const foundPosts = await dbAdapter.getSummaryPosts(currentUserId, days, [timelineIntId]);
 
     // Serialize for the response
     if (foundPosts.length > 0) {
