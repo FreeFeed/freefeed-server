@@ -1,10 +1,13 @@
 import _ from 'lodash';
 import { dbAdapter } from '../../../models';
+import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, authRequired, userSerializerFunction } from './helpers';
 
 const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
 const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
+
+const config = configLoader();
 
 export default class TimelinesController {
   app = null;
@@ -163,7 +166,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
         canViewUser = !banIds.includes(owner.id);
       }
     }
-  } else if (timeline.name === 'RiverOfNews') {
+  } else if (timeline.name === 'RiverOfNews' && config.dynamicRiverOfNews) {
     const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(viewerId);
     timelineIds.length = 0;
     timelineIds.push(...destinations);

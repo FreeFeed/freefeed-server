@@ -1,8 +1,11 @@
 import { dbAdapter } from '../../../models'
 import { NotFoundException } from '../../../support/exceptions'
+import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection } from '../../../serializers/v2/post';
 import { serializeUser } from '../../../serializers/v2/user';
 import { monitored, authRequired } from './helpers';
+
+const config = configLoader();
 
 const getDays = (d) => {
   const DEFAULT_DAYS = 7;
@@ -18,8 +21,16 @@ export default class SummaryController {
 
     const currentUser = ctx.state.user;
 
-    // Get timelines that forms a "RiverOfNews" of current user
-    const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id);
+    let destinations = [];
+    let activities  = [];
+
+    if (config.dynamicRiverOfNews) {
+      // Get timelines that forms a "RiverOfNews" of current user
+      ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id));
+    } else {
+      // Get timeline "RiverOfNews" of current user 
+      destinations = await dbAdapter.getUserNamedFeedsIntIds(currentUser.id, ['RiverOfNews']);
+    }
 
     // Get posts current user subscribed to
     const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, days, destinations, activities);

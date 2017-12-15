@@ -11,11 +11,11 @@ import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } fr
 
 promisifyAll(jwt)
 
+const config = configLoader()
+
 export default class PubsubListener {
   constructor(server, app) {
     this.app = app
-
-    const config = configLoader()
 
     const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
     const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
@@ -54,7 +54,6 @@ export default class PubsubListener {
 
   onConnect = async (socket) => {
     const authToken = socket.handshake.query.token
-    const config = configLoader()
     const { secret } = config;
     const { logger } = this.app.context;
 
@@ -454,16 +453,21 @@ export async function getRoomsOfPost(post) {
   myDiscussionsOwnerIds.push(post.userId);
   const myDiscussionsFeeds = await dbAdapter.getUsersNamedTimelines(uniq(myDiscussionsOwnerIds), 'MyDiscussions');
 
-  /**
-   * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
-   * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
-   */
-  const riverOfNewsSourceIds = [...destinationFeeds, ...(post.isPropagable ? activityFeeds : [])].map((f) => f.id);
-  const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
-  const riverOfNewsFeeds = await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, post.userId], 'RiverOfNews');
-
   // All feeds related to post
-  const feeds = uniqBy([...destinationFeeds, ...activityFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
+  let feeds = [];
+  if (config.dynamicRiverOfNews) {
+    /**
+     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
+     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+     */
+    const riverOfNewsSourceIds = [...destinationFeeds, ...(post.isPropagable ? activityFeeds : [])].map((f) => f.id);
+    const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
+    const riverOfNewsFeeds = await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, post.userId], 'RiverOfNews');
+    feeds = uniqBy([...destinationFeeds, ...activityFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
+  } else {
+    feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
+  }
+
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;
