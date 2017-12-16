@@ -8,7 +8,7 @@ export const timeStampString = (v) => expect(v, 'to be a string').and('to match'
 
 export const UUID = (v) => expect(v, 'to match', /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-(8|9|a|b)[a-f0-9]{3}-[a-f0-9]{12}$/);
 
-export const user = {
+export const userBasic = {
   id:                      expect.it('to satisfy', UUID),
   username:                expect.it('to be a string'),
   screenName:              expect.it('to be a string'),
@@ -21,14 +21,28 @@ export const user = {
   description:             expect.it('to be a string'),
   profilePictureLargeUrl:  expect.it('to be a string'),
   profilePictureMediumUrl: expect.it('to be a string'),
-  statistics:              expect.it('to be an object'),
+};
+
+export const groupBasic = {
+  ...userBasic,
+  isRestricted: expect.it('to satisfy', boolString),
+  type:         expect.it('to equal', 'group'),
+};
+
+export const user = {
+  ...userBasic,
+  statistics: expect.it('to be an object'),
 };
 
 export const group = {
-  ...user,
-  isRestricted:   expect.it('to satisfy', boolString),
-  type:           expect.it('to equal', 'group'),
+  ...groupBasic,
+  statistics:     expect.it('to be an object'),
   administrators: expect.it('to be an array').and('to have items satisfying', UUID),
+};
+
+export const userOrGroupBasic = (obj) => {
+  const isGroup = obj && typeof obj === 'object' && obj.type === 'group';
+  return expect(obj, 'to exhaustively satisfy', isGroup ? groupBasic : userBasic);
 };
 
 export const userOrGroup = (obj) => {
