@@ -1,6 +1,8 @@
 import http from 'http';
+import { createReadStream } from 'fs';
 
 import fetch from 'node-fetch'
+import FormData from 'form-data';
 import request  from 'superagent'
 import _ from 'lodash'
 import SocketIO from 'socket.io-client';
@@ -486,6 +488,30 @@ export function updateGroupAsync(group, adminContext, groupData) {
       '_method': 'put'
     }
   )
+}
+
+export async function updateProfilePicture(userContext, filePath) {
+  const form = new FormData();
+  form.append('file', createReadStream(filePath));
+  const url = await apiUrl(`/v1/users/updateProfilePicture`);
+  return await fetch(url, {
+    agent,
+    method:  'POST',
+    headers: { ...form.getHeaders(), 'X-Authentication-Token': userContext.authToken },
+    body:    form,
+  });
+}
+
+export async function updateGroupProfilePicture(userContext, groupName, filePath) {
+  const form = new FormData();
+  form.append('file', createReadStream(filePath));
+  const url = await apiUrl(`/v1/groups/${groupName}/updateProfilePicture`);
+  return await fetch(url, {
+    agent,
+    method:  'POST',
+    headers: { ...form.getHeaders(), 'X-Authentication-Token': userContext.authToken },
+    body:    form,
+  });
 }
 
 export function getUserAsync(context, username) {
