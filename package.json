@@ -102,6 +102,7 @@
     "eslint-plugin-lodash": "~2.5.0",
     "eslint-plugin-promise": "~3.6.0",
     "eslint-plugin-you-dont-need-lodash-underscore": "~6.3.1",
+    "form-data": "~2.3.1",
     "istanbul": "0.4.5",
     "mkdirp": "0.5.1",
     "mocha": "~4.1.0",

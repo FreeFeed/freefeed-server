@@ -46,7 +46,8 @@ export default class PubsubListener {
       'user:update',
       'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
       'comment:new', 'comment:update', 'comment:destroy',
-      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove'
+      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove',
+      'global:user:update',
     )
 
     redisClient.on('message', this.onRedisMessage)
@@ -160,6 +161,8 @@ export default class PubsubListener {
       'like:remove':         this.onLikeRemove,
       'comment_like:new':    this.onCommentLikeNew,
       'comment_like:remove': this.onCommentLikeRemove,
+
+      'global:user:update': this.onGlobalUserUpdate,
     };
 
     try {
@@ -329,6 +332,12 @@ export default class PubsubListener {
   onCommentLikeRemove = async (sockets, data) => {
     await this._sendCommentLikeMsg(sockets, data, 'comment_like:remove');
   };
+
+  onGlobalUserUpdate = async (sockets, user) => {
+    await this.broadcastMessage(sockets, ['global:users'], 'global:user:update', { user });
+  };
+
+  // Helpers
 
   _sendCommentLikeMsg = async (sockets, data, msgType) => {
     const comment = await dbAdapter.getCommentById(data.commentId);

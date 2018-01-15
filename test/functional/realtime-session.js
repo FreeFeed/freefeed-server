@@ -60,4 +60,13 @@ export default class Session {
      const timer = setTimeout(() => resolve(null), silenceTimeout);
    });
  }
+
+ async receiveWhile(event, ...promises) {
+   const [result] = await Promise.all([this.receive(event), ...promises]);
+   return result;
+ }
+
+ async notReceiveWhile(event, ...promises) {
+   await Promise.all([this.notReceive(event), ...promises]);
+ }
 }

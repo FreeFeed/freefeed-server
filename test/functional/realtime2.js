@@ -8,6 +8,7 @@ import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
 
 import * as funcTestHelper from './functional_test_helper';
+import * as schema from './schemaV2-helper';
 import Session from './realtime-session';
 
 describe('Realtime #2', () => {
@@ -194,6 +195,109 @@ describe('Realtime #2', () => {
           marsEvent,
         ]);
         expect(marsEvent, 'to be fulfilled');
+      });
+    });
+  });
+
+  describe(`'global:users' realtime channel`, () => {
+    beforeEach(() => {
+      anonSession.send('subscribe', { 'global': ['users'] });
+    });
+
+    describe(`Updates of user`, () => {
+      it(`should deliver 'global:user:update' event when Luna changes screenName`, async () => {
+        const screenName = 'Sailor Moon';
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          funcTestHelper.updateUserAsync(luna, { screenName })
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            ...schema.userBasic,
+            id: luna.user.id,
+            screenName,
+          }
+        });
+      });
+
+      it(`should deliver 'global:user:update' event when Luna goes private`, async () => {
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          funcTestHelper.goPrivate(luna)
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            ...schema.userBasic,
+            id:        luna.user.id,
+            isPrivate: '1',
+          }
+        });
+      });
+
+      it(`should deliver 'global:user:update' event when Luna updates profile picture`, async () => {
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          funcTestHelper.updateProfilePicture(luna, 'test/fixtures/default-userpic-75.gif')
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            ...schema.userBasic,
+            id:                      luna.user.id,
+            profilePictureLargeUrl:  expect.it('not to be empty'),
+            profilePictureMediumUrl: expect.it('not to be empty'),
+          }
+        });
+      });
+    });
+
+    describe(`Updates of group`, () => {
+      let selenites;
+      beforeEach(async () => {
+        ({ group: selenites } = await funcTestHelper.createGroupAsync(luna, 'selenites'));
+      });
+
+      it(`should deliver 'global:user:update' event when group changes screenName`, async () => {
+        const screenName = 'The First Men in the Moon';
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          funcTestHelper.updateGroupAsync(selenites, luna, { screenName })
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            ...schema.groupBasic,
+            id: selenites.id,
+            screenName,
+          }
+        });
+      });
+
+      it(`should deliver 'global:user:update' event when group becomes restricted`, async () => {
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          funcTestHelper.updateGroupAsync(selenites, luna, { isRestricted: '1' })
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            ...schema.groupBasic,
+            id:           selenites.id,
+            isRestricted: '1',
+          }
+        });
+      });
+
+      it(`should deliver 'global:user:update' event when group updates profile picture`, async () => {
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          funcTestHelper.updateGroupProfilePicture(luna, selenites.username, 'test/fixtures/default-userpic-75.gif')
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            ...schema.groupBasic,
+            id:                      selenites.id,
+            profilePictureLargeUrl:  expect.it('not to be empty'),
+            profilePictureMediumUrl: expect.it('not to be empty'),
+          }
+        });
       });
     });
   });
