@@ -54,38 +54,48 @@ export async function sendEmails() {
 }
 
 function getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeenAt) {
-  digestSentAt = digestSentAt ? moment(digestSentAt) : null;
-  notificationsLastSeenAt = notificationsLastSeenAt ? moment(notificationsLastSeenAt) : null;
-  const _90DaysAgo = moment().subtract(90, 'days'),
-    DayAgo = moment().subtract(1, 'days'),
-    DayAgoAndHalfAnHour = moment().subtract(1, 'days').subtract(30, 'minutes');
+  const wrappedDigestSentAt = digestSentAt ? moment(digestSentAt) : null;
+  const wrappedNotificationsLastSeenAt = notificationsLastSeenAt ? moment(notificationsLastSeenAt) : null;
 
-  if (!digestSentAt) {
-    if (!notificationsLastSeenAt) {
+  const _90DaysAgo = moment().subtract(90, 'days');
+  const DayAgo = moment().subtract(1, 'days');
+  const DayAgoAndHalfAnHour = moment().subtract(1, 'days').subtract(30, 'minutes');
+
+  if (!wrappedDigestSentAt) {
+    if (!wrappedNotificationsLastSeenAt) {
       return _90DaysAgo;
     }
-    if (notificationsLastSeenAt.isSameOrBefore(DayAgo, 'minute')) {
-      return notificationsLastSeenAt;
+
+    if (wrappedNotificationsLastSeenAt.isSameOrBefore(DayAgo, 'minute')) {
+      return wrappedNotificationsLastSeenAt;
     }
-    return notificationsLastSeenAt;
+
+    return wrappedNotificationsLastSeenAt;
   }
-  if (digestSentAt.isAfter(DayAgo)) {
+
+  if (wrappedDigestSentAt.isAfter(DayAgo)) {
     return null;
   }
-  if (digestSentAt.isBefore(DayAgo) && digestSentAt.isSameOrAfter(DayAgoAndHalfAnHour, 'minute')) {
-    if (!notificationsLastSeenAt) {
+
+  if (wrappedDigestSentAt.isBefore(DayAgo) && wrappedDigestSentAt.isSameOrAfter(DayAgoAndHalfAnHour, 'minute')) {
+    if (!wrappedNotificationsLastSeenAt) {
       return DayAgo;
     }
-    if (notificationsLastSeenAt.isAfter(DayAgo)) {
-      return notificationsLastSeenAt;
+
+    if (wrappedNotificationsLastSeenAt.isAfter(DayAgo)) {
+      return wrappedNotificationsLastSeenAt;
     }
+
     return DayAgo;
   }
-  if (!notificationsLastSeenAt) {
-    return digestSentAt;
+
+  if (!wrappedNotificationsLastSeenAt) {
+    return wrappedDigestSentAt;
   }
-  if (notificationsLastSeenAt.isAfter(DayAgo)) {
-    return notificationsLastSeenAt;
+
+  if (wrappedNotificationsLastSeenAt.isAfter(DayAgo)) {
+    return wrappedNotificationsLastSeenAt;
   }
-  return digestSentAt;
+
+  return wrappedDigestSentAt;
 }
