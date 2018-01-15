@@ -1823,6 +1823,9 @@ describe('Unread events counter', () => {
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_user' });
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_by_user' });
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_by_user' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_created' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct_comment' });
     const count = await getUnreadEventsCountFromWhoAmI(luna);
     expect(count, 'to be', 0);
   });
@@ -1866,7 +1869,7 @@ describe('Unread events counter', () => {
     expect(count, 'to be', 0);
 
     await subscribeToAsync(mars, luna);
-    await createAndReturnPostToFeed(mars, luna, 'Direct');
+    await createAndReturnPostToFeed(luna, luna, 'Mentioning @mars');
 
     count = await getUnreadEventsCountFromWhoAmI(mars);
     expect(count, 'to be', 1);
