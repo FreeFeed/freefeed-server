@@ -301,8 +301,8 @@ export default class PubsubListener {
   }
 
   onPostHide = async (sockets, { postId, userId }) => {
-    // NOTE: this event only broadcasts to hider's sockets  
-    // so it won't leak any personal information  
+    // NOTE: this event only broadcasts to hider's sockets
+    // so it won't leak any personal information
     const json = { meta: { postId } };
     const post = await dbAdapter.getPostById(postId)
 
@@ -312,8 +312,8 @@ export default class PubsubListener {
   }
 
   onPostUnhide = async (sockets, { postId, userId }) => {
-    // NOTE: this event only broadcasts to hider's sockets  
-    // so it won't leak any personal information  
+    // NOTE: this event only broadcasts to hider's sockets
+    // so it won't leak any personal information
     const json = { meta: { postId } };
     const post = await dbAdapter.getPostById(postId)
 
@@ -360,9 +360,9 @@ export default class PubsubListener {
   }
 
   _postEventEmitter = async (socket, type, json) => {
-    // We should make a copy of json because  
-    // there are parallel emitters running with  
-    // the same data  
+    // We should make a copy of json because
+    // there are parallel emitters running with
+    // the same data
     json = cloneDeep(json);
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
@@ -376,9 +376,9 @@ export default class PubsubListener {
     defaultEmitter(socket, type, json);
   }
 
-  /** 
-   * Emits message only to the specified user 
-   */ 
+  /**
+   * Emits message only to the specified user
+   */
   _singleUserEmitter = (userId) => (socket, type, json) => {
     if (socket.user.id === userId) {
       defaultEmitter(socket, type, json);
@@ -430,11 +430,11 @@ export default class PubsubListener {
 }
 
 /**
- * Returns array of all room names related to post as union of 
- * post room and timelines: `post.getTimelines()`, post author's  
- * and likers/commenters `MyDiscussions` feeds. 
- * 
- * @param {Post} post 
+ * Returns array of all room names related to post as union of
+ * post room and timelines: `post.getTimelines()`, post author's
+ * and likers/commenters `MyDiscussions` feeds.
+ *
+ * @param {Post} post
  * @return {string[]}
  */
 export async function getRoomsOfPost(post) {

@@ -398,10 +398,10 @@ export function addModel(dbAdapter) {
     return this.name === 'Hides'
   }
 
-  /** 
-   * Personal timeline can be viewed only by it owner 
-   * @return {boolean} 
-   */ 
+  /**
+   * Personal timeline can be viewed only by it owner
+   * @return {boolean}
+   */
   Timeline.prototype.isPersonal = function () {
     return this.name === 'RiverOfNews' ||
       this.name === 'Directs' ||

@@ -42,7 +42,7 @@ const check = ajv.compile(schema);
  * Validates and completes absent fields by default values.
  * Throws exception if validation failed (or returns default
  * value if 'safe' argument is true).
- * 
+ *
  * @param {object}  data
  * @param {boolean} safe - return default value instead of exception throwing
  * @return {object}

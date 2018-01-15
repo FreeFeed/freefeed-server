@@ -653,11 +653,11 @@ export function addModel(dbAdapter) {
 
   /**
    * Filter users that can not see this post
-   * 
-   * Viewer CAN NOT see post if: 
-   * - viwer is anonymous and post is not public or 
-   * - viewer is authorized and 
-   *   - post author banned viewer or was banned by viewer or 
+   *
+   * Viewer CAN NOT see post if:
+   * - viwer is anonymous and post is not public or
+   * - viewer is authorized and
+   *   - post author banned viewer or was banned by viewer or
    *   - post is private and viewer cannot read any of post's destination feeds
    */
   Post.prototype.onlyUsersCanSeePost = async function (users) {
