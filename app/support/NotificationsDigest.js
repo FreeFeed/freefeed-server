@@ -53,13 +53,14 @@ export async function sendEmails() {
   debug('all promised actions are finished');
 }
 
-function getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeenAt) {
+export function getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeenAt, now) {
   const wrappedDigestSentAt = digestSentAt ? moment(digestSentAt) : null;
   const wrappedNotificationsLastSeenAt = notificationsLastSeenAt ? moment(notificationsLastSeenAt) : null;
+  const wrappedNow = moment(now);
 
-  const _90DaysAgo = moment().subtract(90, 'days');
-  const DayAgo = moment().subtract(1, 'days');
-  const DayAgoAndHalfAnHour = moment().subtract(1, 'days').subtract(30, 'minutes');
+  const _90DaysAgo = wrappedNow.clone().subtract(90, 'days');
+  const DayAgo = wrappedNow.clone().subtract(1, 'days');
+  const DayAgoAndHalfAnHour = wrappedNow.clone().subtract(1, 'days').subtract(30, 'minutes');
 
   if (!wrappedDigestSentAt) {
     if (!wrappedNotificationsLastSeenAt) {
