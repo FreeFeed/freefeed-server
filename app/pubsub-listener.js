@@ -11,11 +11,11 @@ import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } fr
 
 promisifyAll(jwt)
 
+const config = configLoader()
+
 export default class PubsubListener {
   constructor(server, app) {
     this.app = app
-
-    const config = configLoader()
 
     const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
     const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
@@ -55,7 +55,6 @@ export default class PubsubListener {
 
   onConnect = async (socket) => {
     const authToken = socket.handshake.query.token
-    const config = configLoader()
     const { secret } = config;
     const { logger } = this.app.context;
 
@@ -440,8 +439,8 @@ export default class PubsubListener {
 
 /**
  * Returns array of all room names related to post as union of
- * post room and timelines: `post.getTimelines()`, post author's
- * and likers/commenters `MyDiscussions` feeds.
+ * post room and all timelines of posts, materialized or dynamic
+ * (as RiverOfNews and MyDiscussions).
  *
  * @param {Post} post
  * @return {string[]}
@@ -452,14 +451,32 @@ export async function getRoomsOfPost(post) {
   }
 
   const postFeeds = await post.getTimelines();
-  const myDiscussionsOwnerIds = postFeeds
-    .filter((f) => f.isLikes() || f.isComments())
-    .map((f) => f.userId);
+  const activityFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments());
+  const destinationFeeds = postFeeds.filter((f) => f.isPosts() || f.isDirects());
 
+  /**
+   * 'MyDiscussions' feeds of post author and users who did
+   * some activity (likes, comments) on post.
+   */
+  const myDiscussionsOwnerIds = activityFeeds.map((f) => f.userId);
   myDiscussionsOwnerIds.push(post.userId);
   const myDiscussionsFeeds = await dbAdapter.getUsersNamedTimelines(uniq(myDiscussionsOwnerIds), 'MyDiscussions');
 
-  const feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
+  // All feeds related to post
+  let feeds = [];
+  if (config.dynamicRiverOfNews) {
+    /**
+     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
+     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+     */
+    const riverOfNewsSourceIds = [...destinationFeeds, ...(post.isPropagable ? activityFeeds : [])].map((f) => f.id);
+    const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
+    const riverOfNewsFeeds = await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, post.userId], 'RiverOfNews');
+    feeds = uniqBy([...destinationFeeds, ...activityFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
+  } else {
+    feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
+  }
+
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;

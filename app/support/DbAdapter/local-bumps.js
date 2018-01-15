@@ -3,21 +3,22 @@
 ///////////////////////////////////////////////////
 
 const localBumpsTrait = (superClass) => class extends superClass {
-  async createLocalBump(postId, userId) {
-    const existingPostLocalBumps = await this.database('local_bumps').where({
-      post_id: postId,
-      user_id: userId
-    }).count()
-    if (parseInt(existingPostLocalBumps[0].count) > 0) {
-      return true
+  /**
+   * Set local bumps for given post and users
+   *
+   * @param {string} postId
+   * @param {string[]} userIds
+   */
+  async setLocalBumpForUsers(postId, userIds) {
+    if (userIds.length === 0) {
+      return;
     }
-
-    const payload = {
-      post_id: postId,
-      user_id: userId
-    }
-
-    return this.database('local_bumps').returning('id').insert(payload)
+    // Insert multiple rows from array at once
+    await this.database.raw(
+      `insert into local_bumps (post_id, user_id) 
+         select :postId, x from unnest(:userIds::uuid[]) x on conflict do nothing`,
+      { postId, userIds }
+    );
   }
 
   async getUserLocalBumps(userId, newerThan) {

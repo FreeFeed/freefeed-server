@@ -187,17 +187,47 @@ const postsTrait = (superClass) => class extends superClass {
   }
 
   /**
+   * Returns integer ids of feeds that user is subscribed to. These ids are
+   * separated in two groups: 'destinations' — 'Posts' and 'Directs' feeds and
+   * 'activities' — 'Comments' and 'Likes'.
+   *
+   * @param {String} userId
+   * @return {{destinations: number[], activities: number[]}} - ids of feeds
+   */
+  async getSubscriprionsIntIds(userId) {
+    const sql = `
+      with feeds as (
+        select f.id, f.name from
+          subscriptions s join feeds f on f.uid = s.feed_id 
+          where s.user_id = :userId
+        union  -- viewer's own feeds
+          select id, name from feeds where user_id = :userId and name in ('Posts', 'Directs', 'Comments', 'Likes')
+      )
+      select 
+        case when name in ('Comments', 'Likes') then 'activities' else 'destinations' end as type,
+        array_agg(id) as ids
+      from feeds group by type
+    `;
+    const { rows } = await this.database.raw(sql, { userId });
+    const result = { destinations: [], activities: [] };
+    rows.forEach(({ ids, type }) => result[type] = ids);
+    return result;
+  }
+
+  /**
    * Returns UIDs of timelines posts
    */
   async getTimelinePostsIds(timelineName, timelineIntIds, viewerId = null, params = {}) {
     params = {
-      limit:          30,
-      offset:         0,
-      sort:           'bumped',
-      withLocalBumps: false,
-      withMyPosts:    false,
-      createdBefore:  null,
-      createdAfter:   null,
+      limit:           30,
+      offset:          0,
+      sort:            'bumped',
+      withLocalBumps:  false,
+      withMyPosts:     false,
+      withoutDirects:  false,
+      createdBefore:   null,
+      createdAfter:    null,
+      activityFeedIds: [],
       ...params,
     };
 
@@ -209,7 +239,7 @@ const postsTrait = (superClass) => class extends superClass {
     let  bannedUsersIds = [];
     // Additional condition for params.withoutDirects option
     let noDirectsSQL = 'true';
-    let myPostsSQL = 'false';
+    let myPostsSQL = null;
 
     if (viewerId) {
       [
@@ -231,6 +261,16 @@ const postsTrait = (superClass) => class extends superClass {
         myPostsSQL = pgFormat('p.user_id = %L', viewerId);
       }
     }
+
+    const sourceConditionParts = [];
+    sourceConditionParts.push(pgFormat('p.feed_ids && %L', `{${timelineIntIds.join(',')}}`));
+    if (params.activityFeedIds.length > 0) {
+      sourceConditionParts.push(pgFormat('p.feed_ids && %L and p.is_propagable', `{${params.activityFeedIds.join(',')}}`));
+    }
+    if (myPostsSQL) {
+      sourceConditionParts.push(myPostsSQL);
+    }
+    const sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
 
     const createdAtParts = [];
     if (params.createdBefore) {
@@ -258,7 +298,7 @@ const postsTrait = (superClass) => class extends superClass {
         // Request with CTE for the feed with relatively small number of posts
         sql = pgFormat(`
           with filteredPosts as (
-            select * from posts p where p.feed_ids && %L or ${myPostsSQL}
+            select * from posts p where ${sourceConditionSQL}
           )
           select p.uid
           from 
@@ -268,7 +308,7 @@ const postsTrait = (superClass) => class extends superClass {
           order by
             p.%I desc
           limit %L offset %L
-        `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+        `, `${params.sort}_at`, params.limit, params.offset);
       } else {
         // Request without CTE for the RiverOfNews feed
         sql = pgFormat(`
@@ -276,12 +316,11 @@ const postsTrait = (superClass) => class extends superClass {
           from 
             posts p
           where
-            (p.feed_ids && %L or ${myPostsSQL})
-            and ${restrictionsSQL}
+            ${sourceConditionSQL} and ${restrictionsSQL}
           order by
             p.%I desc
           limit %L offset %L
-        `, `{${timelineIntIds.join(',')}}`, `${params.sort}_at`, params.limit, params.offset);
+        `, `${params.sort}_at`, params.limit, params.offset);
       }
       return (await this.database.raw(sql)).rows.map((r) => r.uid);
     }
@@ -293,23 +332,24 @@ const postsTrait = (superClass) => class extends superClass {
         from 
           posts p
         where
-          (p.feed_ids && %L or ${myPostsSQL})
-          and ${restrictionsSQL}
+          ${sourceConditionSQL} and ${restrictionsSQL}
         order by
           p.bumped_at desc
         limit %L
-    `, `{${timelineIntIds.join(',')}}`, fullCount);
+    `, fullCount);
     const localBumpsSQL = pgFormat(`
+        with local_bumps as (
+          select post_id, min(created_at) as created_at from local_bumps where user_id = %L group by post_id
+        )
         select b.post_id as uid, b.created_at as date
         from
           local_bumps b
-          join posts p on p.uid = b.post_id and b.user_id = %L
+          join posts p on p.uid = b.post_id
         where
-          (p.feed_ids && %L or ${myPostsSQL})
-          and ${restrictionsSQL}
+          ${sourceConditionSQL} and ${restrictionsSQL}
         order by b.created_at desc
         limit %L
-    `, viewerId, `{${timelineIntIds.join(',')}}`, fullCount);
+    `, viewerId, fullCount);
 
     const [
       { rows: postsData },
@@ -712,6 +752,7 @@ const POST_COLUMNS = {
   commentsDisabled: 'comments_disabled',
   isPrivate:        'is_private',
   isProtected:      'is_protected',
+  isPropagable:     'is_propagable',
 }
 
 const POST_COLUMNS_MAPPING = {
@@ -737,8 +778,9 @@ const POST_COLUMNS_MAPPING = {
     }
     return null
   },
-  isPrivate:   (is_private) => {return is_private === '1'},
-  isProtected: (is_protected) => {return is_protected === '1'},
+  isPrivate:    (is_private) => {return is_private === '1'},
+  isProtected:  (is_protected) => {return is_protected === '1'},
+  isPropagable: (is_propagable) => {return is_propagable === '1'},
 }
 
 const POST_FIELDS = {
@@ -755,6 +797,7 @@ const POST_FIELDS = {
   likes_count:          'likesCount',
   is_private:           'isPrivate',
   is_protected:         'isProtected',
+  is_propagable:        'isPropagable',
   friendfeed_url:       'friendfeedUrl',
 }
 
@@ -766,4 +809,5 @@ const POST_FIELDS_MAPPING = {
   user_id:           (user_id) => {return user_id ? user_id : ''},
   is_private:        (is_private) => {return is_private ? '1' : '0' },
   is_protected:      (is_protected) => {return is_protected ? '1' : '0' },
+  is_propagable:     (is_propagable) => {return is_propagable ? '1' : '0' },
 }

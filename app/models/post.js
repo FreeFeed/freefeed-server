@@ -24,6 +24,7 @@ export function addModel(dbAdapter) {
     this.likesCount       = params.likesCount
     this.isPrivate        = params.isPrivate || '0';
     this.isProtected      = params.isProtected || '0';
+    this.isPropagable     = params.isPropagable || '0';
 
     if (params.friendfeedUrl) {
       this.friendfeedUrl = params.friendfeedUrl;
@@ -104,6 +105,7 @@ export function addModel(dbAdapter) {
     const newPost = await dbAdapter.getPostById(this.id);
     this.isPrivate = newPost.isPrivate;
     this.isProtected = newPost.isProtected;
+    this.isPropagable = newPost.isPropagable;
 
     // save nested resources
     await this.linkAttachments()
@@ -344,8 +346,7 @@ export function addModel(dbAdapter) {
         return
       }
 
-      const promises = riversOfNewsOwners.map((ownerId) => dbAdapter.createLocalBump(this.id, ownerId))
-      await Promise.all(promises)
+      await dbAdapter.setLocalBumpForUsers(this.id, riversOfNewsOwners)
 
       return
     }

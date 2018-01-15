@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import cleanDB from '../dbCleaner'
-
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
@@ -13,15 +12,15 @@ describe('SummaryController', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  beforeEach(() => cleanDB($pg_database));
-
   describe('#generalSummary()', () => {
     const anon = {};
     let luna = {};
     let mars = {};
     let zeus = {};
 
-    beforeEach(async () => {
+    before(async () => {
+      await cleanDB($pg_database);
+
       // Create three users
       [luna, mars, zeus] = await Promise.all([
         funcTestHelper.createUserAsync('luna', 'pw'),
@@ -87,7 +86,9 @@ describe('SummaryController', () => {
     let mars = {};
     let zeus = {};
 
-    beforeEach(async () => {
+    before(async () => {
+      await cleanDB($pg_database);
+
       // Create three users
       [luna, mars, zeus] = await Promise.all([
         funcTestHelper.createUserAsync('luna', 'pw'),

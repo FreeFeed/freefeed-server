@@ -409,39 +409,6 @@ export function addModel(dbAdapter) {
       this.name === 'MyDiscussions';
   }
 
-  Timeline.prototype.updatePost = async function (postId, action) {
-    if (action === 'like') {
-      const postInTimeline = await dbAdapter.isPostPresentInTimeline(this.intId, postId)
-
-      if (postInTimeline) {
-        // For the time being, like does not bump post if it is already present in timeline
-        return
-      }
-    }
-
-    const currentTime = new Date().getTime()
-
-    if (action === 'like') {
-      await dbAdapter.insertPostIntoFeeds([this.intId], postId)
-      if (this.isRiverOfNews()) {
-        await dbAdapter.createLocalBump(postId, this.userId)
-      }
-    } else {
-      await Promise.all([
-        dbAdapter.insertPostIntoFeeds([this.intId], postId),
-        dbAdapter.setPostBumpedAt(postId, currentTime)
-      ])
-    }
-
-    // does not update lastActivity on like
-    if (action === 'like') {
-      return
-    }
-
-    const feed = await this.getUser()
-    await feed.updateLastActivityAt()
-  }
-
   Timeline.prototype.canShow = async function (readerId) {
     if (this.userId === readerId) {
       return true;  // owner can read her posts
