@@ -59,44 +59,22 @@ export function getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeen
   const wrappedNow = moment(now);
 
   const _90DaysAgo = wrappedNow.clone().subtract(90, 'days');
-  const DayAgo = wrappedNow.clone().subtract(1, 'days');
-  const DayAgoAndHalfAnHour = wrappedNow.clone().subtract(1, 'days').subtract(30, 'minutes');
+  const DayAgoAndHalfAnHour = wrappedNow.clone().subtract(1, 'days').add(30, 'minutes');
 
-  if (!wrappedDigestSentAt) {
-    if (!wrappedNotificationsLastSeenAt) {
-      return _90DaysAgo;
-    }
-
-    if (wrappedNotificationsLastSeenAt.isSameOrBefore(DayAgo, 'minute')) {
-      return wrappedNotificationsLastSeenAt;
-    }
-
-    return wrappedNotificationsLastSeenAt;
-  }
-
-  if (wrappedDigestSentAt.isAfter(DayAgo)) {
+  if (wrappedDigestSentAt && wrappedDigestSentAt.isAfter(DayAgoAndHalfAnHour)) {
     return null;
   }
 
-  if (wrappedDigestSentAt.isBefore(DayAgo) && wrappedDigestSentAt.isSameOrAfter(DayAgoAndHalfAnHour, 'minute')) {
-    if (!wrappedNotificationsLastSeenAt) {
-      return DayAgo;
-    }
-
-    if (wrappedNotificationsLastSeenAt.isAfter(DayAgo)) {
-      return wrappedNotificationsLastSeenAt;
-    }
-
-    return DayAgo;
+  if (
+    (!wrappedDigestSentAt || wrappedDigestSentAt.isBefore(_90DaysAgo)) &&
+    (!wrappedNotificationsLastSeenAt || wrappedNotificationsLastSeenAt.isBefore(_90DaysAgo))
+  ) {
+    return _90DaysAgo;
   }
 
-  if (!wrappedNotificationsLastSeenAt) {
+  if (wrappedDigestSentAt && (!wrappedNotificationsLastSeenAt || wrappedDigestSentAt.isAfter(wrappedNotificationsLastSeenAt))) {
     return wrappedDigestSentAt;
   }
 
-  if (wrappedNotificationsLastSeenAt.isAfter(DayAgo)) {
-    return wrappedNotificationsLastSeenAt;
-  }
-
-  return wrappedDigestSentAt;
+  return wrappedNotificationsLastSeenAt;
 }
