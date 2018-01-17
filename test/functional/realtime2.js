@@ -62,7 +62,7 @@ describe('Realtime #2', () => {
         anonSession.send('subscribe', { 'post': [post.id] });
       });
 
-      it(`shold deliver 'post:hide' event only to Luna when Luna hides post`, async () => {
+      it(`should deliver 'post:hide' event only to Luna when Luna hides post`, async () => {
         const lunaEvent = lunaSession.receive('post:hide');
         const marsEvent = marsSession.notReceive('post:hide');
         const anonEvent = anonSession.notReceive('post:hide');
@@ -80,7 +80,7 @@ describe('Realtime #2', () => {
           await funcTestHelper.hidePost(post.id, luna);
         });
 
-        it(`shold deliver 'post:unhide' event only to Luna when Luna unhides post`, async () => {
+        it(`should deliver 'post:unhide' event only to Luna when Luna unhides post`, async () => {
           const lunaEvent = lunaSession.receive('post:unhide');
           const marsEvent = marsSession.notReceive('post:unhide');
           const anonEvent = anonSession.notReceive('post:unhide');
@@ -93,7 +93,7 @@ describe('Realtime #2', () => {
           expect(anonEvent, 'to be fulfilled');
         });
 
-        it(`shold deliver 'post:update' event with isHidden field only to Luna when Luna updates post`, async () => {
+        it(`should deliver 'post:update' event with isHidden field only to Luna when Luna updates post`, async () => {
           const lunaEvent = lunaSession.receive('post:update');
           const marsEvent = marsSession.receive('post:update');
           const anonEvent = anonSession.receive('post:update');
@@ -119,7 +119,7 @@ describe('Realtime #2', () => {
         marsSession.send('subscribe', { 'timeline': [marsMDFeed.id] });
       });
 
-      it(`shold deliver 'like:remove' event when Mars unlikes post`, async () => {
+      it(`should deliver 'like:remove' event when Mars unlikes post`, async () => {
         const lunaEvent = lunaSession.receive('like:remove');
         const marsEvent = marsSession.receive('like:remove');
         await Promise.all([
@@ -130,7 +130,7 @@ describe('Realtime #2', () => {
         expect(marsEvent, 'to be fulfilled');
       });
 
-      it(`shold deliver events with correct 'realtimeChannels' fields`, async () => {
+      it(`should deliver events with correct 'realtimeChannels' fields`, async () => {
         const lunaEvent = lunaSession.receive('like:remove');
         const marsEvent = marsSession.receive('like:remove');
         const [, lunaMsg, marsMsg] = await Promise.all([
@@ -147,7 +147,7 @@ describe('Realtime #2', () => {
         expect(marsMsg, 'to satisfy', { realtimeChannels: [`timeline:${marsMDFeed.id}`] });
       });
 
-      it(`shold deliver 'post:destroy' when Luna deletes post`, async () => {
+      it(`should deliver 'post:destroy' when Luna deletes post`, async () => {
         const lunaEvent = lunaSession.receive('post:destroy');
         const marsEvent = marsSession.receive('post:destroy');
         await Promise.all([
@@ -165,7 +165,7 @@ describe('Realtime #2', () => {
         marsSession.send('subscribe', { 'timeline': [lunaRoNFeed.id] });
       });
 
-      it(`shold not deliver 'like:remove' event when Mars unlikes post`, async () => {
+      it(`should not deliver 'like:remove' event when Mars unlikes post`, async () => {
         const marsEvent = marsSession.notReceive('like:remove');
         await Promise.all([
           funcTestHelper.unlike(post.id, mars.authToken),
@@ -178,7 +178,7 @@ describe('Realtime #2', () => {
     describe('Luna subscribed to Luna\'s user channel', () => {
       beforeEach(() => lunaSession.send('subscribe', { 'user': [luna.user.id] }));
 
-      it(`shold deliver 'user:update' event when Luna reads notifications`, async () => {
+      it(`should deliver 'user:update' event when Luna reads notifications`, async () => {
         const lunaEvent = lunaSession.receive('user:update');
         await Promise.all([
           funcTestHelper.markAllNotificationsAsRead(luna),
@@ -191,7 +191,7 @@ describe('Realtime #2', () => {
     describe('Mars tried to subscribe to Luna\'s user channel', () => {
       beforeEach(() => marsSession.send('subscribe', { 'user': [luna.user.id] }));
 
-      it(`shold not deliver 'user:update' event when Luna reads notifications`, async () => {
+      it(`should not deliver 'user:update' event when Luna reads notifications`, async () => {
         const marsEvent = marsSession.notReceive('user:update');
         await Promise.all([
           funcTestHelper.markAllNotificationsAsRead(luna),
