@@ -4,10 +4,10 @@ import koaBody from 'koa-body';
 import methodOverride from 'koa-methodoverride';
 import morgan from 'koa-morgan';
 import passport from 'koa-passport';
-import winston from 'winston'
 import responseTime from 'koa-response-time'
 import { promisify } from 'bluebird';
 import Raven from 'raven';
+import createDebug from 'debug';
 
 import { originMiddleware } from './initializers/origin';
 import { load as configLoader } from './config';
@@ -23,22 +23,14 @@ if (sentryIsEnabled) {
   Raven.config(config.sentryDsn, { autoBreadcrumbs: true }).install();
 }
 
-const env = process.env.NODE_ENV || 'development'
+const env = process.env.NODE_ENV || 'development';
+const log = createDebug('freefeed:init');
 
 passportInit(passport)
 
 async function selectEnvironment(app) {
   app.context.config = config;
   app.context.port = process.env.PORT || config.port;
-  app.context.logger = new (winston.Logger)({
-    transports: [
-      new (winston.transports.Console)({
-        timestamp:        true,
-        level:            config.logLevel || 'debug',
-        handleExceptions: true
-      })
-    ]
-  })
 
   await selectDatabase()
   await configurePostgres()
@@ -59,7 +51,7 @@ exports.init = async function (app) {
       await access(attachmentsDir, fs.W_OK);
     } catch (e) {
       gotErrors = true;
-      app.context.logger.error(`Attachments dir does not exist: ${attachmentsDir}`)
+      log(`Attachments dir does not exist: ${attachmentsDir}`)
     }
 
     const checkPromises = Object.values(config.attachments.imageSizes).map(async (sizeConfig) => {
@@ -69,7 +61,7 @@ exports.init = async function (app) {
         await access(thumbnailsDir, fs.W_OK);
       } catch (e) {
         gotErrors = true;
-        app.context.logger.error(`Thumbnails dir does not exist: ${thumbnailsDir}`);
+        log(`Thumbnails dir does not exist: ${thumbnailsDir}`);
       }
     });
     await Promise.all(checkPromises);
@@ -102,13 +94,14 @@ exports.init = async function (app) {
   app.use(morgan('combined', { stream: accessLogStream }))
 
   if (config.logResponseTime) {  // should be located BEFORE responseTime
+    const timeLogger = createDebug('freefeed:request');
     app.use(async (ctx, next) => {
       await next();
 
       const time = ctx.response.get('X-Response-Time');
       const resource = (ctx.request.method + ctx.request.url).toLowerCase();
 
-      app.context.logger.info(resource, time);
+      timeLogger(resource, time);
     });
   }
 

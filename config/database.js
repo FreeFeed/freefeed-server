@@ -1,5 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import _redis from 'redis'
+import createDebug from 'debug';
 
 import { load as configLoader } from './config'
 
@@ -8,27 +9,27 @@ promisifyAll(_redis.RedisClient.prototype)
 promisifyAll(_redis.Multi.prototype)
 
 const config = configLoader()
+const debug = createDebug('freefeed:database');
 let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options)
 export default database;
 
-// TODO: move to app.context.logger
-database.on('connect', log('connect'))
-database.on('ready', log('ready'))
-database.on('reconnecting', log('reconnecting'))
-database.on('error', logAndQuit('error'))
-database.on('end', log('end'))
+database.on('connect', log('connect'));
+database.on('ready', log('ready'));
+database.on('reconnecting', log('reconnecting'));
+database.on('end', log('end'));
+database.on('error', logAndQuit('error'));
 
 function log(type) {
   return function (...args) {
-    console.log(type, args);  // eslint-disable-line no-console
-  }
+    debug(type, args);
+  };
 }
 
 function logAndQuit(type) {
   return function (...args) {
-    console.log(type, args);  // eslint-disable-line no-console
+    debug(type, args);
     process.exit(1);
-  }
+  };
 }
 
 export function selectDatabase() {

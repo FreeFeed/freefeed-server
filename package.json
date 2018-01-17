@@ -76,8 +76,7 @@
     "underscore.string": "3.3.4",
     "url": "0.11.0",
     "uuid": "3.1.0",
-    "validator": "~9.2.0",
-    "winston": "1.1.2"
+    "validator": "~9.2.0"
   },
   "devDependencies": {
     "babel-eslint": "~8.2.1",

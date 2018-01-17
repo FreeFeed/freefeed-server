@@ -2,6 +2,7 @@ import http from 'http'
 
 import AwaitLock from 'await-lock'
 import { promisifyAll } from 'bluebird'
+import createDebug from 'debug';
 import Application from 'koa';
 
 import routesInit from './routes'
@@ -35,8 +36,10 @@ export async function getSingleton() {
     const port = (process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port)
     await server.listenAsync(port)
 
-    _app.context.logger.info(`Koa server is listening on port ${port}`);
-    _app.context.logger.info(`Server is running in ${_app.env} mode`);
+    const log = createDebug('freefeed:init');
+
+    log(`Koa server is listening on port ${port}`);
+    log(`Server is running in ${_app.env} mode`);
 
     app = _app
 

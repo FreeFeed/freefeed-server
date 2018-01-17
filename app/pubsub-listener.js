@@ -5,6 +5,7 @@ import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, k
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
+import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
@@ -13,6 +14,7 @@ import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } fr
 promisifyAll(jwt);
 
 const config = configLoader();
+const debug = createDebug('freefeed:PubsubListener');
 const noOp = () => {};
 
 export default class PubsubListener {
@@ -26,7 +28,7 @@ export default class PubsubListener {
     this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
 
     this.io.on('error', (err) => {
-      app.context.logger.error('socket.io error', err);
+      debug('socket.io error', err);
     });
 
     // authentication
@@ -48,7 +50,7 @@ export default class PubsubListener {
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {});
     redisClient.on('error', (err) => {
-      app.context.logger.error('redis error', err);
+      debug('redis error', err);
     });
     redisClient.subscribe(
       'user:update',
@@ -63,20 +65,21 @@ export default class PubsubListener {
 
   onConnect = (socket) => {
     const { secret } = config;
-    const { logger } = this.app.context;
 
     socket.on('error', (e) => {
-      logger.error('socket.io socket error', e);
+      debug(`[socket.id=${socket.id}] error`, e);
     });
 
     socket.on('auth', async (data, callback) => {
+      debug(`[socket.id=${socket.id}] 'auth' request`);
+
       if (!isFunction(callback)) {
         callback = noOp;
       }
 
       try {
         if (!isPlainObject(data)) {
-          logger.warn('socket.io got "auth" request without data');
+          debug(`[socket.id=${socket.id}] 'auth' request: no data`);
           return;
         }
 
@@ -85,10 +88,11 @@ export default class PubsubListener {
             const decoded = await jwt.verifyAsync(data.authToken, secret);
             socket.user = await dbAdapter.getUserById(decoded.userId);
             callback({ success: true });
+            debug(`[socket.id=${socket.id}] 'auth' request: successfully authenticated as ${socket.user.username}`);
           } catch (e) {
             socket.user = { id: null };
             callback({ success: false, message: 'invalid token' });
-            logger.warn('socket.io got "auth" request with invalid token, signing user out');
+            debug(`[socket.id=${socket.id}] 'auth' request: invalid token, signing user out`, data.authToken);
           }
         } else {
           socket.user = { id: null };
@@ -96,18 +100,20 @@ export default class PubsubListener {
         }
       } catch (e) {
         callback({ success: false, message: e.message });
-        logger.warn(`socket.io "auth" thrown exception: ${e}`);
+        debug(`[socket.id=${socket.id}] 'auth' request: exception ${e}`);
       }
     });
 
     socket.on('subscribe', async (data, callback) => {
+      debug(`[socket.id=${socket.id}] 'subscribe' request`);
+
       if (!isFunction(callback)) {
         callback = noOp;
       }
 
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
-        logger.warn('socket.io got "subscribe" request without data');
+        debug(`[socket.id=${socket.id}] 'subscribe' request: no data`);
         return;
       }
 
@@ -143,7 +149,7 @@ export default class PubsubListener {
         const channelLists = await Promise.all(channelListsPromises);
         flatten(channelLists).map((channelId) => {
           socket.join(channelId);
-          logger.info(`User has subscribed to ${channelId}`);
+          debug(`[socket.id=${socket.id}] 'subscribe' request: successfully subscribed to ${channelId}`);
         });
 
         const rooms = buildGroupedListOfSubscriptions(socket);
@@ -151,18 +157,20 @@ export default class PubsubListener {
         callback({ success: true, rooms });
       } catch (e) {
         callback({ success: false, message: e.message });
-        logger.warn(`socket.io "subscribe" error: ${e.message}`);
+        debug(`[socket.id=${socket.id}] 'subscribe' request: exception ${e}`);
       }
     });
 
     socket.on('unsubscribe', (data, callback) => {
+      debug(`[socket.id=${socket.id}] 'unsubscribe' request`);
+
       if (!isFunction(callback)) {
         callback = noOp;
       }
 
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
-        logger.warn('socket.io got "unsubscribe" request without data');
+        debug(`[socket.id=${socket.id}] 'unsubscribe' request: no data`);
         return;
       }
 
@@ -171,13 +179,13 @@ export default class PubsubListener {
 
         if (!isArray(channelIds)) {
           callback({ success: false, message: `List of ${channelType} ids has to be an array` });
-          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
+          debug(`[socket.id=${socket.id}] 'unsubscribe' request: got bogus channel list`);
           return;
         }
 
         channelIds.filter(Boolean).forEach((id) => {
           socket.leave(`${channelType}:${id}`);
-          logger.info(`User has unsubscribed from ${id} ${channelType}`);
+          debug(`[socket.id=${socket.id}] 'unsubscribe' request: successfully unsubscribed from ${channelType}:${id}`);
         });
       }
 
@@ -212,13 +220,11 @@ export default class PubsubListener {
     try {
       await messageRoutes[channel](this.io.sockets, JSON.parse(msg));
     } catch (e) {
-      this.app.context.logger.error('onRedisMessage error', e);
+      debug(`onRedisMessage: error while processing ${channel} request`, e);
     }
   };
 
   async broadcastMessage(sockets, rooms, type, json, post = null, emitter = defaultEmitter) {
-    const { logger } = this.app.context;
-
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
       .map((r) => Object.keys(sockets.adapter.rooms[r].sockets)) // arrays of clientIds
@@ -240,8 +246,10 @@ export default class PubsubListener {
 
     await Promise.all(destSockets.map(async (socket) => {
       const { user } = socket;
+
       if (!user) {
-        logger.error('user is null in broadcastMessage');
+        // is it actually possible now?
+        debug(`broadcastMessage: socket ${socket.id} doesn't have user associated with it`);
         return;
       }
 

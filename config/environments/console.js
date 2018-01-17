@@ -25,7 +25,6 @@ export function getConfig() {
     appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel:           'warn',
     onboardingUsername: 'welcome',
     recaptcha:          { enabled: false },
 

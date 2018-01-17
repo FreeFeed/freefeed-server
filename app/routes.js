@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
 import Raven from 'raven';
+import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
 import { dbAdapter } from './models'
@@ -37,21 +38,24 @@ const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 
 export default function (app) {
+  const authDebug = createDebug('freefeed:authentication');
   const findUser = async (ctx, next) => {
     const authToken = ctx.request.get('x-authentication-token')
       || ctx.request.body.authToken
       || ctx.request.query.authToken;
 
     if (authToken) {
+      authDebug('got token', authToken);
       try {
         const decoded = await jwt.verifyAsync(authToken, config.secret);
         const user = await dbAdapter.getUserById(decoded.userId);
 
         if (user) {
           ctx.state.user = user;
+          authDebug(`authenticated as ${user.username}`);
         }
       } catch (e) {
-        ctx.logger.info(`invalid token. the user will be treated as anonymous: ${e.message}`);
+        authDebug(`invalid token. the user will be treated as anonymous: ${e.message}`);
       }
     }
 

@@ -20,9 +20,6 @@ bb.onPossiblyUnhandledRejection((e) => {
 consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
 
 initApp()
-  .then((app) => {
-    app.context.logger.info(`Server initialization is complete`)
-  })
   .catch((e) => {
     process.stderr.write(`FATAL ERROR\n`)
     process.stderr.write(`${e.message}\n`)
