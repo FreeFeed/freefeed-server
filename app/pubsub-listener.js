@@ -183,6 +183,10 @@ export default class PubsubListener {
       .filter((v, i, a) => a.indexOf(v) === i) // deduplicate (https://stackoverflow.com/a/14438954)
       .map((id) => sockets.connected[id]);
 
+    if (destSockets.length === 0) {
+      return;
+    }
+
     let users = destSockets.map((s) => s.user);
     if (post) {
       users = await post.onlyUsersCanSeePost(users);
