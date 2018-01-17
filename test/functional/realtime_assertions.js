@@ -98,7 +98,7 @@ export function installInto(expect) {
   // Pre-conditions
   expect.addAssertion('<userContext> when subscribed to timeline <string> <assertion>', async (expect, viewer, timeline) => {
     const session = await Session.create(viewer);
-    session.send('subscribe', { 'timeline': [timeline] });
+    await session.sendAsync('subscribe', { 'timeline': [timeline] });
     try {
       return await expect.shift(session);
     } finally {
@@ -108,7 +108,7 @@ export function installInto(expect) {
 
   expect.addAssertion('<userContext> when subscribed to user <string> <assertion>', async (expect, viewer, userUUID) => {
     const session = await Session.create(viewer);
-    session.send('subscribe', { 'user': [userUUID] });
+    await session.sendAsync('subscribe', { 'user': [userUUID] });
     try {
       session.context.subscribedUserId = userUUID;
       return await expect.shift(session);
@@ -119,7 +119,7 @@ export function installInto(expect) {
 
   expect.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
     const session = await Session.create(viewer);
-    session.send('subscribe', { 'post': [postId] });
+    await session.sendAsync('subscribe', { 'post': [postId] });
     try {
       return await expect.shift(session);
     } finally {

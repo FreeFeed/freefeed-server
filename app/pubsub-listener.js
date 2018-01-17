@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep, intersection } from 'lodash'
+import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash'
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken'
@@ -91,38 +91,53 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('subscribe', (data) => {
+    socket.on('subscribe', async (data, callback) => {
       if (!isPlainObject(data)) {
+        callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "subscribe" request without data');
         return;
       }
 
-      for (const channel of Object.keys(data)) {
-        if (!isArray(data[channel])) {
-          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
-          continue;
+      const channelListsPromises = map(data, async (channelIds, channelType) => {
+        if (!isArray(channelIds)) {
+          throw new Error(`List of ${channelType} ids has to be an array`);
         }
 
-        data[channel].filter(Boolean).forEach(async (id) => {
-          if (channel === 'timeline') {
+        const promises = channelIds.map(async (id) => {
+          if (channelType === 'timeline') {
             const t = await dbAdapter.getTimelineById(id);
+
             if (!t) {
-              logger.warn(`attempt to subscribe to nonexistent timeline (ID=${id})`);
-              return;
-            } else if (t.isPersonal() && t.userId !== socket.user.id) {
-              logger.warn(`attempt to subscribe to someone else's '${t.name}' timeline`);
-              return;
+              throw new Error(`attempt to subscribe to nonexistent timeline (ID=${id})`);
+            }
+
+            if (t.isPersonal() && t.userId !== socket.user.id) {
+              throw new Error(`attempt to subscribe to someone else's '${t.name}' timeline (ID=${id})`);
+            }
+          } else if (channelType === 'user') {
+            if (id !== socket.user.id) {
+              throw new Error(`attempt to subscribe to someone else's '${channelType}' channel (ID=${id})`);
             }
           }
-          if (channel === 'user' && id !== socket.user.id) {
-            logger.warn(`attempt to subscribe to someone else's '${channel}' channel`);
-            return;
-          }
-          socket.join(`${channel}:${id}`)
-          logger.info(`User has subscribed to ${id} ${channel}`)
-        })
+
+          return `${channelType}:${id}`;
+        });
+
+        return await Promise.all(promises);
+      });
+
+      try {
+        const channelLists = await Promise.all(channelListsPromises);
+        flatten(channelLists).map((channelId) => {
+          socket.join(channelId);
+          logger.info(`User has subscribed to ${channelId}`);
+        });
+        callback({ success: true });
+      } catch (e) {
+        callback({ success: false, message: e.message });
+        logger.warn(`socket.io "subscribe" error: ${e.message}`);
       }
-    })
+    });
 
     socket.on('unsubscribe', (data) => {
       if (!isPlainObject(data)) {
