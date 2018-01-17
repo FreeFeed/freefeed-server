@@ -24,7 +24,19 @@ export default class PubsubListener {
       app.context.logger.error('socket.io error', err);
     });
 
+    // authentication
+    this.io.use(async (socket, next) => {
+      const authToken = socket.handshake.query.token
+      const { secret } = config;
 
+      try {
+        const decoded = await jwt.verifyAsync(authToken, secret)
+        socket.user = await dbAdapter.getUserById(decoded.userId)
+      } catch (e) {
+        socket.user = { id: null }
+      }
+
+      return next();
     });
 
     this.io.on('connection', this.onConnect);
@@ -44,17 +56,9 @@ export default class PubsubListener {
     redisClient.on('message', this.onRedisMessage)
   }
 
-  onConnect = async (socket) => {
-    const authToken = socket.handshake.query.token
+  onConnect = (socket) => {
     const { secret } = config;
     const { logger } = this.app.context;
-
-    try {
-      const decoded = await jwt.verifyAsync(authToken, secret)
-      socket.user = await dbAdapter.getUserById(decoded.userId)
-    } catch (e) {
-      socket.user = { id: null }
-    }
 
     socket.on('error', (e) => {
       logger.error('socket.io socket error', e);
