@@ -1,6 +1,6 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash'
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash'
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken'
@@ -65,7 +65,11 @@ export default class PubsubListener {
       logger.error('socket.io socket error', e);
     });
 
-    socket.on('auth', async (data, callback = noOp) => {
+    socket.on('auth', async (data, callback) => {
+      if (!isFunction(callback)) {
+        callback = noOp;
+      }
+
       try {
         if (!isPlainObject(data)) {
           logger.warn('socket.io got "auth" request without data');
@@ -92,7 +96,11 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('subscribe', async (data, callback = noOp) => {
+    socket.on('subscribe', async (data, callback) => {
+      if (!isFunction(callback)) {
+        callback = noOp;
+      }
+
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "subscribe" request without data');
@@ -143,7 +151,11 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('unsubscribe', (data, callback = noOp) => {
+    socket.on('unsubscribe', (data, callback) => {
+      if (!isFunction(callback)) {
+        callback = noOp;
+      }
+
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "unsubscribe" request without data');
