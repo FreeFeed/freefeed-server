@@ -64,22 +64,30 @@ export default class PubsubListener {
       logger.error('socket.io socket error', e);
     });
 
-    socket.on('auth', async (data) => {
-      if (!isPlainObject(data)) {
-        logger.warn('socket.io got "auth" request without data');
-        return;
-      }
-
-      if (data.authToken && typeof data.authToken === 'string') {
-        try {
-          const decoded = await jwt.verifyAsync(data.authToken, secret);
-          socket.user = await dbAdapter.getUserById(decoded.userId);
-        } catch (e) {
-          socket.user = { id: null };
-          logger.warn('socket.io got "auth" request with invalid token, signing user out');
+    socket.on('auth', async (data, callback) => {
+      try {
+        if (!isPlainObject(data)) {
+          logger.warn('socket.io got "auth" request without data');
+          return;
         }
-      } else {
-        socket.user = { id: null };
+
+        if (data.authToken && typeof data.authToken === 'string') {
+          try {
+            const decoded = await jwt.verifyAsync(data.authToken, secret);
+            socket.user = await dbAdapter.getUserById(decoded.userId);
+            callback({ success: true });
+          } catch (e) {
+            socket.user = { id: null };
+            callback({ success: false, message: 'invalid token' });
+            logger.warn('socket.io got "auth" request with invalid token, signing user out');
+          }
+        } else {
+          socket.user = { id: null };
+          callback({ success: true });
+        }
+      } catch (e) {
+        callback({ success: false, message: e.message });
+        logger.warn(`socket.io "auth" thrown exception: ${e}`);
       }
     });
 

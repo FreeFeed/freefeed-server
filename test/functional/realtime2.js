@@ -39,8 +39,11 @@ describe('Realtime #2', () => {
       Session.create(port, 'Mars session'),
       Session.create(port, 'Anon session'),
     ]);
-    lunaSession.send('auth', { authToken: luna.authToken });
-    marsSession.send('auth', { authToken: mars.authToken });
+
+    await Promise.all([
+      lunaSession.sendAsync('auth', { authToken: luna.authToken }),
+      marsSession.sendAsync('auth', { authToken: mars.authToken })
+    ]);
   });
 
   afterEach(() => [lunaSession, marsSession, anonSession].forEach((s) => s.disconnect()));

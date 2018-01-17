@@ -34,6 +34,18 @@ class Session {
     this.socket.emit(event, data);
   }
 
+  sendAsync = (event, data) => {
+    return new Promise((resolve, reject) => {
+      this.socket.emit(event, data, (result) => {
+        if (result.success) {
+          resolve(true);
+        } else {
+          reject(new Error(result.message));
+        }
+      });
+    });
+  };
+
   disconnect() {
     this.socket.disconnect();
   }
@@ -116,7 +128,7 @@ export function installInto(expect) {
   });
 
   expect.addAssertion('<realtimeSession> when authorized as <userContext> <assertion>', async (expect, session, user) => {
-    session.send('auth', { authToken: user.authToken });
+    await session.sendAsync('auth', { authToken: user.authToken });
     try {
       return await expect.shift(session);
     } finally {
