@@ -11,7 +11,8 @@ import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } fr
 
 promisifyAll(jwt)
 
-const config = configLoader()
+const config = configLoader();
+const noOp = () => {};
 
 export default class PubsubListener {
   constructor(server, app) {
@@ -64,7 +65,7 @@ export default class PubsubListener {
       logger.error('socket.io socket error', e);
     });
 
-    socket.on('auth', async (data, callback) => {
+    socket.on('auth', async (data, callback = noOp) => {
       try {
         if (!isPlainObject(data)) {
           logger.warn('socket.io got "auth" request without data');
@@ -91,7 +92,7 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('subscribe', async (data, callback) => {
+    socket.on('subscribe', async (data, callback = noOp) => {
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "subscribe" request without data');
@@ -142,7 +143,7 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('unsubscribe', (data, callback) => {
+    socket.on('unsubscribe', (data, callback = noOp) => {
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "unsubscribe" request without data');
