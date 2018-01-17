@@ -29,7 +29,7 @@
   "dependencies": {
     "ajv": "~6.0.1",
     "await-lock": "1.1.2",
-    "aws-sdk": "~2.181.0",
+    "aws-sdk": "~2.183.0",
     "babel-cli": "6.26.0",
     "bcrypt": "1.0.3",
     "bluebird": "~3.5.1",
@@ -75,7 +75,7 @@
     "socket.io-redis": "~5.2.0",
     "underscore.string": "3.3.4",
     "url": "0.11.0",
-    "uuid": "3.1.0",
+    "uuid": "~3.2.1",
     "validator": "~9.2.0"
   },
   "devDependencies": {
