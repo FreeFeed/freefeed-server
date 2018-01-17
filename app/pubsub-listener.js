@@ -1,8 +1,8 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
 import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep, intersection } from 'lodash'
-import IoServer from 'socket.io'
-import redis_adapter from 'socket.io-redis'
+import IoServer from 'socket.io';
+import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../config/config'
@@ -15,28 +15,19 @@ const config = configLoader()
 
 export default class PubsubListener {
   constructor(server, app) {
-    this.app = app
+    this.app = app;
 
-    const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
-    const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
+    this.io = IoServer(server);
+    this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
 
-    redisPub.on('error', (err) => {
-      app.context.logger.error('redisPub error', err);
-    });
-    redisSub.on('error', (err) => {
-      app.context.logger.error('redisSub error', err);
-    });
-
-    this.io = IoServer(server)
-    this.io.adapter(redis_adapter({
-      pubClient: redisPub,
-      subClient: redisSub
-    }))
-
-    this.io.sockets.on('error', (err) => {
+    this.io.on('error', (err) => {
       app.context.logger.error('socket.io error', err);
     });
-    this.io.sockets.on('connection', this.onConnect)
+
+
+    });
+
+    this.io.on('connection', this.onConnect);
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
     redisClient.on('error', (err) => {
@@ -93,7 +84,6 @@ export default class PubsubListener {
         logger.warn('socket.io got "subscribe" request without data');
         return;
       }
-
 
       for (const channel of Object.keys(data)) {
         if (!isArray(data[channel])) {
@@ -176,7 +166,7 @@ export default class PubsubListener {
 
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
-      .map((r) => Object.keys(sockets.adapter.rooms[r])) // arrays of clientIds
+      .map((r) => Object.keys(sockets.adapter.rooms[r].sockets)) // arrays of clientIds
       .reduce((prev, curr) => prev.concat(curr), []) // flatten clientIds
       .filter((v, i, a) => a.indexOf(v) === i) // deduplicate (https://stackoverflow.com/a/14438954)
       .map((id) => sockets.connected[id]);
@@ -209,7 +199,7 @@ export default class PubsubListener {
         }
       }
 
-      const realtimeChannels = intersection(rooms, socket.rooms);
+      const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
 
       await emitter(socket, type, { ...json, realtimeChannels });
     }));
