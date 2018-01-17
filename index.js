@@ -1,7 +1,9 @@
-import bb from 'bluebird'
-import consoleStamp from 'console-stamp'
+/* eslint babel/semi: "error" */
+import bb from 'bluebird';
+import consoleStamp from 'console-stamp';
 
-import { getSingleton as initApp } from './app/app'
+import { getSingleton as initApp } from './app/app';
+
 
 require('babel-runtime/core-js/promise').default = bb;
 global.Promise = bb;
@@ -17,12 +19,12 @@ bb.onPossiblyUnhandledRejection((e) => {
   console.error('Unhandled Exception', e);
 });
 
-consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l')
+consoleStamp(console, 'yyyy/mm/dd HH:MM:ss.l');
 
 initApp()
   .catch((e) => {
-    process.stderr.write(`FATAL ERROR\n`)
-    process.stderr.write(`${e.message}\n`)
-    process.stderr.write(`${e.stack}\n`)
-    process.exit(1)
-  })
+    process.stderr.write(`FATAL ERROR\n`);
+    process.stderr.write(`${e.message}\n`);
+    process.stderr.write(`${e.stack}\n`);
+    process.exit(1);
+  });

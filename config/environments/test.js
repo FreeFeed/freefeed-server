@@ -1,9 +1,9 @@
-import stubTransport from 'nodemailer-stub-transport'
-import { test as postgresConfig } from '../../knexfile'
+import stubTransport from 'nodemailer-stub-transport';
+import { test as postgresConfig } from '../../knexfile';
 
 
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
-process.env.MONITOR_PREFIX = 'tests'
+process.env.MONITOR_PREFIX = 'tests';
 
 export function getConfig() {
   const config = {
@@ -22,9 +22,9 @@ export function getConfig() {
     frontendPreferencesLimit: 65536,
 
     dynamicRiverOfNews: true,
-  }
+  };
 
-  config.host = `http://localhost:${config.port}`
+  config.host = `http://localhost:${config.port}`;
 
   config.application = {
     USERNAME_STOP_LIST: [
@@ -35,7 +35,7 @@ export function getConfig() {
     EXTRA_STOP_LIST: [
       'thatcreepyguy', 'nicegirlnextdoor', 'perfectstranger'
     ]
-  }
+  };
 
   config.media = {
     url:     `${config.host}/`, // must have trailing slash
@@ -43,7 +43,7 @@ export function getConfig() {
       type:    'fs',
       rootDir: '/tmp/pepyatka-media/' // must have trailing slash
     }
-  }
+  };
   config.attachments = {
     url:           config.media.url,
     storage:       config.media.storage,
@@ -63,12 +63,12 @@ export function getConfig() {
         bounds: { width: 1600, height: 1200 }
       }
     }
-  }
+  };
   config.profilePictures = {
     url:     config.media.url,
     storage: config.media.storage,
     path:    'profilepics/' // must have trailing slash
-  }
+  };
 
   config.mailer = {
     transport:                stubTransport,
@@ -78,15 +78,15 @@ export function getConfig() {
     host:                     config.origin,
     options:                  {},
     adminRecipient:           { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' },
-  }
+  };
 
   config.redis = {
     host:    'localhost',
     port:    6379,
     options: {}
-  }
+  };
 
-  config.postgres = postgresConfig
+  config.postgres = postgresConfig;
 
-  return config
+  return config;
 }

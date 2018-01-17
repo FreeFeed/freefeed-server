@@ -1,16 +1,16 @@
-import { promisifyAll } from 'bluebird'
-import _redis from 'redis'
+import { promisifyAll } from 'bluebird';
+import _redis from 'redis';
 import createDebug from 'debug';
 
-import { load as configLoader } from './config'
+import { load as configLoader } from './config';
 
 
-promisifyAll(_redis.RedisClient.prototype)
-promisifyAll(_redis.Multi.prototype)
+promisifyAll(_redis.RedisClient.prototype);
+promisifyAll(_redis.Multi.prototype);
 
-const config = configLoader()
+const config = configLoader();
 const debug = createDebug('freefeed:database');
-let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options)
+let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
 export default database;
 
 database.on('connect', log('connect'));
@@ -33,18 +33,18 @@ function logAndQuit(type) {
 }
 
 export function selectDatabase() {
-  return database.selectAsync(config.database)
+  return database.selectAsync(config.database);
 }
 
 export function connect() {
-  return database
+  return database;
 }
 
 export function redis() {
-  return redis
+  return redis;
 }
 
 export function disconnect() {
-  _redis.end()
-  database = null
+  _redis.end();
+  database = null;
 }

@@ -1,19 +1,19 @@
-import fs from 'fs'
+import fs from 'fs';
 
 import koaBody from 'koa-body';
 import methodOverride from 'koa-methodoverride';
 import morgan from 'koa-morgan';
 import passport from 'koa-passport';
-import responseTime from 'koa-response-time'
+import responseTime from 'koa-response-time';
 import { promisify } from 'bluebird';
 import Raven from 'raven';
 import createDebug from 'debug';
 
 import { originMiddleware } from './initializers/origin';
 import { load as configLoader } from './config';
-import { selectDatabase } from './database'
-import { configure as configurePostgres } from './postgres'
-import { init as passportInit } from './initializers/passport'
+import { selectDatabase } from './database';
+import { configure as configurePostgres } from './postgres';
+import { init as passportInit } from './initializers/passport';
 
 
 const config = configLoader();
@@ -26,20 +26,20 @@ if (sentryIsEnabled) {
 const env = process.env.NODE_ENV || 'development';
 const log = createDebug('freefeed:init');
 
-passportInit(passport)
+passportInit(passport);
 
 async function selectEnvironment(app) {
   app.context.config = config;
   app.context.port = process.env.PORT || config.port;
 
-  await selectDatabase()
-  await configurePostgres()
+  await selectDatabase();
+  await configurePostgres();
 
-  return app
+  return app;
 }
 
 exports.init = async function (app) {
-  await selectEnvironment(app)
+  await selectEnvironment(app);
 
   if (config.media.storage.type === 'fs') {
     const access = promisify(fs.access);
@@ -51,7 +51,7 @@ exports.init = async function (app) {
       await access(attachmentsDir, fs.W_OK);
     } catch (e) {
       gotErrors = true;
-      log(`Attachments dir does not exist: ${attachmentsDir}`)
+      log(`Attachments dir does not exist: ${attachmentsDir}`);
     }
 
     const checkPromises = Object.values(config.attachments.imageSizes).map(async (sizeConfig) => {
@@ -77,7 +77,7 @@ exports.init = async function (app) {
     jsonLimit: config.attachments.fileSizeLimit,
     textLimit: config.attachments.fileSizeLimit
   }));
-  app.use(passport.initialize())
+  app.use(passport.initialize());
   app.use(originMiddleware);
   app.use(methodOverride((req) => {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
@@ -90,8 +90,8 @@ exports.init = async function (app) {
     return undefined;  // otherwise, no need to override
   }));
 
-  const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' })
-  app.use(morgan('combined', { stream: accessLogStream }))
+  const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' });
+  app.use(morgan('combined', { stream: accessLogStream }));
 
   if (config.logResponseTime) {  // should be located BEFORE responseTime
     const timeLogger = createDebug('freefeed:request');
@@ -107,5 +107,5 @@ exports.init = async function (app) {
 
   app.use(responseTime());
 
-  return app
-}
+  return app;
+};
