@@ -132,7 +132,10 @@ export default class PubsubListener {
           socket.join(channelId);
           logger.info(`User has subscribed to ${channelId}`);
         });
-        callback({ success: true });
+
+        const rooms = buildGroupedListOfSubscriptions(socket);
+
+        callback({ success: true, rooms });
       } catch (e) {
         callback({ success: false, message: e.message });
         logger.warn(`socket.io "subscribe" error: ${e.message}`);
@@ -161,7 +164,9 @@ export default class PubsubListener {
         })
       }
 
-      callback({ success: true });
+      const rooms = buildGroupedListOfSubscriptions(socket);
+
+      callback({ success: true, rooms });
     })
   };
 
@@ -507,6 +512,20 @@ export async function getRoomsOfPost(post) {
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;
+}
+
+function buildGroupedListOfSubscriptions(socket) {
+  return Object.keys(socket.rooms)
+    .map((room) => room.split(':'))
+    .filter((pieces) => pieces.length === 2)
+    .reduce((result, [channelType, channelId]) => {
+      if (!(channelType in result)) {
+        result[channelType] = [];
+      }
+
+      result[channelType].push(channelId);
+      return result;
+    }, {});
 }
 
 const defaultEmitter = (socket, type, json) => socket.emit(type, json);
