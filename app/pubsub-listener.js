@@ -139,25 +139,31 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('unsubscribe', (data) => {
+    socket.on('unsubscribe', (data, callback) => {
       if (!isPlainObject(data)) {
+        callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "unsubscribe" request without data');
         return;
       }
 
-      for (const channel of Object.keys(data)) {
-        if (!isArray(data[channel])) {
+      for (const channelType of Object.keys(data)) {
+        const channelIds = data[channelType];
+
+        if (!isArray(channelIds)) {
+          callback({ success: false, message: `List of ${channelType} ids has to be an array` });
           logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
-          continue;
+          return;
         }
 
-        data[channel].filter(Boolean).forEach((id) => {
-          socket.leave(`${channel}:${id}`)
-          logger.info(`User has unsubscribed from ${id} ${channel}`)
+        channelIds.filter(Boolean).forEach((id) => {
+          socket.leave(`${channelType}:${id}`);
+          logger.info(`User has unsubscribed from ${id} ${channelType}`)
         })
       }
+
+      callback({ success: true });
     })
-  }
+  };
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
