@@ -1,20 +1,24 @@
-import { promisifyAll } from 'bluebird'
-import { createClient as createRedisClient } from 'redis'
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash'
+/* eslint babel/semi: "error" */
+import { promisifyAll } from 'bluebird';
+import { createClient as createRedisClient } from 'redis';
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
-import { load as configLoader } from '../config/config'
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
+import { load as configLoader } from '../config/config';
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
 
 
-promisifyAll(jwt)
+promisifyAll(jwt);
 
 const config = configLoader();
 const noOp = () => {};
 
 export default class PubsubListener {
+  app;
+  io;
+
   constructor(server, app) {
     this.app = app;
 
@@ -27,14 +31,14 @@ export default class PubsubListener {
 
     // authentication
     this.io.use(async (socket, next) => {
-      const authToken = socket.handshake.query.token
+      const authToken = socket.handshake.query.token;
       const { secret } = config;
 
       try {
-        const decoded = await jwt.verifyAsync(authToken, secret)
-        socket.user = await dbAdapter.getUserById(decoded.userId)
+        const decoded = await jwt.verifyAsync(authToken, secret);
+        socket.user = await dbAdapter.getUserById(decoded.userId);
       } catch (e) {
-        socket.user = { id: null }
+        socket.user = { id: null };
       }
 
       return next();
@@ -42,7 +46,7 @@ export default class PubsubListener {
 
     this.io.on('connection', this.onConnect);
 
-    const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
+    const redisClient = createRedisClient(config.redis.port, config.redis.host, {});
     redisClient.on('error', (err) => {
       app.context.logger.error('redis error', err);
     });
@@ -52,9 +56,9 @@ export default class PubsubListener {
       'comment:new', 'comment:update', 'comment:destroy',
       'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove',
       'global:user:update',
-    )
+    );
 
-    redisClient.on('message', this.onRedisMessage)
+    redisClient.on('message', this.onRedisMessage);
   }
 
   onConnect = (socket) => {
@@ -173,14 +177,14 @@ export default class PubsubListener {
 
         channelIds.filter(Boolean).forEach((id) => {
           socket.leave(`${channelType}:${id}`);
-          logger.info(`User has unsubscribed from ${id} ${channelType}`)
-        })
+          logger.info(`User has unsubscribed from ${id} ${channelType}`);
+        });
       }
 
       const rooms = buildGroupedListOfSubscriptions(socket);
 
       callback({ success: true, rooms });
-    })
+    });
   };
 
   onRedisMessage = async (channel, msg) => {
@@ -210,7 +214,7 @@ export default class PubsubListener {
     } catch (e) {
       this.app.context.logger.error('onRedisMessage error', e);
     }
-  }
+  };
 
   async broadcastMessage(sockets, rooms, type, json, post = null, emitter = defaultEmitter) {
     const { logger } = this.app.context;
@@ -266,63 +270,63 @@ export default class PubsubListener {
 
   // Message-handlers follow
   onPostDestroy = async (sockets, { postId, rooms }) => {
-    const json = { meta: { postId } }
-    const type = 'post:destroy'
+    const json = { meta: { postId } };
+    const type = 'post:destroy';
     await this.broadcastMessage(sockets, rooms, type, json);
-  }
+  };
 
   onPostNew = async (sockets, data) => {
-    const post = await dbAdapter.getPostById(data.postId)
-    const json = await new PostSerializer(post).promiseToJSON()
+    const post = await dbAdapter.getPostById(data.postId);
+    const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:new'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'post:new';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
-  }
+  };
 
   onPostUpdate = async (sockets, data) => {
-    const post = await dbAdapter.getPostById(data.postId)
-    const json = await new PostSerializer(post).promiseToJSON()
+    const post = await dbAdapter.getPostById(data.postId);
+    const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:update'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'post:update';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
-  }
+  };
 
   onCommentNew = async (sockets, { commentId }) => {
-    const comment = await dbAdapter.getCommentById(commentId)
+    const comment = await dbAdapter.getCommentById(commentId);
 
     if (!comment) {
       // might be outdated event
-      return
+      return;
     }
 
-    const post = await dbAdapter.getPostById(comment.postId)
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON()
+    const post = await dbAdapter.getPostById(comment.postId);
+    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:new'
+    const type = 'comment:new';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
-  }
+  };
 
   onCommentUpdate = async (sockets, data) => {
-    const comment = await dbAdapter.getCommentById(data.commentId)
-    const post = await dbAdapter.getPostById(comment.postId)
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON()
+    const comment = await dbAdapter.getCommentById(data.commentId);
+    const post = await dbAdapter.getPostById(comment.postId);
+    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:update'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'comment:update';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
-  }
+  };
 
   onCommentDestroy = async (sockets, data) => {
-    const json = { postId: data.postId, commentId: data.commentId }
-    const post = await dbAdapter.getPostById(data.postId)
+    const json = { postId: data.postId, commentId: data.commentId };
+    const post = await dbAdapter.getPostById(data.postId);
 
-    const type = 'comment:destroy'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'comment:destroy';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
-  }
+  };
 
   onLikeNew = async (sockets, { userId, postId }) => {
     const [
@@ -333,41 +337,41 @@ export default class PubsubListener {
       await dbAdapter.getPostById(postId),
     ]);
     const json = await new LikeSerializer(user).promiseToJSON();
-    json.meta = { postId }
+    json.meta = { postId };
 
-    const type = 'like:new'
+    const type = 'like:new';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
-  }
+  };
 
   onLikeRemove = async (sockets, { userId, postId, rooms }) => {
-    const json = { meta: { userId, postId } }
+    const json = { meta: { userId, postId } };
     const post = await dbAdapter.getPostById(postId);
-    const type = 'like:remove'
+    const type = 'like:remove';
     await this.broadcastMessage(sockets, rooms, type, json, post);
-  }
+  };
 
   onPostHide = async (sockets, { postId, userId }) => {
     // NOTE: this event only broadcasts to hider's sockets
     // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId)
+    const post = await dbAdapter.getPostById(postId);
 
     const type = 'post:hide';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
-  }
+  };
 
   onPostUnhide = async (sockets, { postId, userId }) => {
     // NOTE: this event only broadcasts to hider's sockets
     // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId)
+    const post = await dbAdapter.getPostById(postId);
 
     const type = 'post:unhide';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
-  }
+  };
 
   onCommentLikeNew = async (sockets, data) => {
     await this._sendCommentLikeMsg(sockets, data, 'comment_like:new');
@@ -427,7 +431,7 @@ export default class PubsubListener {
       }
     }
     defaultEmitter(socket, type, json);
-  }
+  };
 
   /**
    * Emits message only to the specified user
