@@ -57,19 +57,19 @@ describe('TimelinesControllerV2', () => {
         };
 
         describe('Folded comments', () => {
-          it('shold return post whith 1 comment without folding', async () => await expectFolding(1, 1, 0));
-          it('shold return post whith 2 comments without folding', async () => await expectFolding(2, 2, 0));
-          it('shold return post whith 3 comments without folding', async () => await expectFolding(3, 3, 0));
-          it('shold return post whith 4 comments with folding', async () => await expectFolding(4, 2, 2));
-          it('shold return post whith 5 comments with folding', async () => await expectFolding(5, 2, 3));
+          it('should return post whith 1 comment without folding', async () => await expectFolding(1, 1, 0));
+          it('should return post whith 2 comments without folding', async () => await expectFolding(2, 2, 0));
+          it('should return post whith 3 comments without folding', async () => await expectFolding(3, 3, 0));
+          it('should return post whith 4 comments with folding', async () => await expectFolding(4, 2, 2));
+          it('should return post whith 5 comments with folding', async () => await expectFolding(5, 2, 3));
         });
 
         describe('Unfolded comments', () => {
-          it('shold return post whith 1 comment without folding', async () => await expectFolding(1, 1, 0, true));
-          it('shold return post whith 2 comments without folding', async () => await expectFolding(2, 2, 0, true));
-          it('shold return post whith 3 comments without folding', async () => await expectFolding(3, 3, 0, true));
-          it('shold return post whith 4 comments without folding', async () => await expectFolding(4, 4, 0, true));
-          it('shold return post whith 5 comments without folding', async () => await expectFolding(5, 5, 0, true));
+          it('should return post whith 1 comment without folding', async () => await expectFolding(1, 1, 0, true));
+          it('should return post whith 2 comments without folding', async () => await expectFolding(2, 2, 0, true));
+          it('should return post whith 3 comments without folding', async () => await expectFolding(3, 3, 0, true));
+          it('should return post whith 4 comments without folding', async () => await expectFolding(4, 4, 0, true));
+          it('should return post whith 5 comments without folding', async () => await expectFolding(5, 5, 0, true));
         });
       });
 
@@ -91,19 +91,19 @@ describe('TimelinesControllerV2', () => {
         };
 
         describe('Folded likes', () => {
-          it('shold return post whith 1 like without folding', async () => await expectFolding(1, 1, 0));
-          it('shold return post whith 2 likes without folding', async () => await expectFolding(2, 2, 0));
-          it('shold return post whith 3 likes without folding', async () => await expectFolding(3, 3, 0));
-          it('shold return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0));
-          it('shold return post whith 5 likes with folding', async () => await expectFolding(5, 3, 2));
+          it('should return post whith 1 like without folding', async () => await expectFolding(1, 1, 0));
+          it('should return post whith 2 likes without folding', async () => await expectFolding(2, 2, 0));
+          it('should return post whith 3 likes without folding', async () => await expectFolding(3, 3, 0));
+          it('should return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0));
+          it('should return post whith 5 likes with folding', async () => await expectFolding(5, 3, 2));
         });
 
         describe('Unfolded likes', () => {
-          it('shold return post whith 1 like without folding', async () => await expectFolding(1, 1, 0, true));
-          it('shold return post whith 2 likes without folding', async () => await expectFolding(2, 2, 0, true));
-          it('shold return post whith 3 likes without folding', async () => await expectFolding(3, 3, 0, true));
-          it('shold return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0, true));
-          it('shold return post whith 5 likes without folding', async () => await expectFolding(5, 5, 0, true));
+          it('should return post whith 1 like without folding', async () => await expectFolding(1, 1, 0, true));
+          it('should return post whith 2 likes without folding', async () => await expectFolding(2, 2, 0, true));
+          it('should return post whith 3 likes without folding', async () => await expectFolding(3, 3, 0, true));
+          it('should return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0, true));
+          it('should return post whith 5 likes without folding', async () => await expectFolding(5, 5, 0, true));
         });
       });
 

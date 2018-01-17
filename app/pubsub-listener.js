@@ -1,8 +1,8 @@
 import { promisifyAll } from 'bluebird'
 import { createClient as createRedisClient } from 'redis'
-import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep, intersection } from 'lodash'
-import IoServer from 'socket.io'
-import redis_adapter from 'socket.io-redis'
+import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash'
+import IoServer from 'socket.io';
+import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../config/config'
@@ -15,28 +15,31 @@ const config = configLoader()
 
 export default class PubsubListener {
   constructor(server, app) {
-    this.app = app
+    this.app = app;
 
-    const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
-    const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
+    this.io = IoServer(server);
+    this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
 
-    redisPub.on('error', (err) => {
-      app.context.logger.error('redisPub error', err);
-    });
-    redisSub.on('error', (err) => {
-      app.context.logger.error('redisSub error', err);
-    });
-
-    this.io = IoServer(server)
-    this.io.adapter(redis_adapter({
-      pubClient: redisPub,
-      subClient: redisSub
-    }))
-
-    this.io.sockets.on('error', (err) => {
+    this.io.on('error', (err) => {
       app.context.logger.error('socket.io error', err);
     });
-    this.io.sockets.on('connection', this.onConnect)
+
+    // authentication
+    this.io.use(async (socket, next) => {
+      const authToken = socket.handshake.query.token
+      const { secret } = config;
+
+      try {
+        const decoded = await jwt.verifyAsync(authToken, secret)
+        socket.user = await dbAdapter.getUserById(decoded.userId)
+      } catch (e) {
+        socket.user = { id: null }
+      }
+
+      return next();
+    });
+
+    this.io.on('connection', this.onConnect);
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
     redisClient.on('error', (err) => {
@@ -53,94 +56,119 @@ export default class PubsubListener {
     redisClient.on('message', this.onRedisMessage)
   }
 
-  onConnect = async (socket) => {
-    const authToken = socket.handshake.query.token
+  onConnect = (socket) => {
     const { secret } = config;
     const { logger } = this.app.context;
-
-    try {
-      const decoded = await jwt.verifyAsync(authToken, secret)
-      socket.user = await dbAdapter.getUserById(decoded.userId)
-    } catch (e) {
-      socket.user = { id: null }
-    }
 
     socket.on('error', (e) => {
       logger.error('socket.io socket error', e);
     });
 
-    socket.on('auth', async (data) => {
-      if (!isPlainObject(data)) {
-        logger.warn('socket.io got "auth" request without data');
-        return;
-      }
-
-      if (data.authToken && typeof data.authToken === 'string') {
-        try {
-          const decoded = await jwt.verifyAsync(data.authToken, secret);
-          socket.user = await dbAdapter.getUserById(decoded.userId);
-        } catch (e) {
-          socket.user = { id: null };
-          logger.warn('socket.io got "auth" request with invalid token, signing user out');
+    socket.on('auth', async (data, callback) => {
+      try {
+        if (!isPlainObject(data)) {
+          logger.warn('socket.io got "auth" request without data');
+          return;
         }
-      } else {
-        socket.user = { id: null };
+
+        if (data.authToken && typeof data.authToken === 'string') {
+          try {
+            const decoded = await jwt.verifyAsync(data.authToken, secret);
+            socket.user = await dbAdapter.getUserById(decoded.userId);
+            callback({ success: true });
+          } catch (e) {
+            socket.user = { id: null };
+            callback({ success: false, message: 'invalid token' });
+            logger.warn('socket.io got "auth" request with invalid token, signing user out');
+          }
+        } else {
+          socket.user = { id: null };
+          callback({ success: true });
+        }
+      } catch (e) {
+        callback({ success: false, message: e.message });
+        logger.warn(`socket.io "auth" thrown exception: ${e}`);
       }
     });
 
-    socket.on('subscribe', (data) => {
+    socket.on('subscribe', async (data, callback) => {
       if (!isPlainObject(data)) {
+        callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "subscribe" request without data');
         return;
       }
 
-
-      for (const channel of Object.keys(data)) {
-        if (!isArray(data[channel])) {
-          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
-          continue;
+      const channelListsPromises = map(data, async (channelIds, channelType) => {
+        if (!isArray(channelIds)) {
+          throw new Error(`List of ${channelType} ids has to be an array`);
         }
 
-        data[channel].filter(Boolean).forEach(async (id) => {
-          if (channel === 'timeline') {
+        const promises = channelIds.map(async (id) => {
+          if (channelType === 'timeline') {
             const t = await dbAdapter.getTimelineById(id);
+
             if (!t) {
-              logger.warn(`attempt to subscribe to nonexistent timeline (ID=${id})`);
-              return;
-            } else if (t.isPersonal() && t.userId !== socket.user.id) {
-              logger.warn(`attempt to subscribe to someone else's '${t.name}' timeline`);
-              return;
+              throw new Error(`attempt to subscribe to nonexistent timeline (ID=${id})`);
+            }
+
+            if (t.isPersonal() && t.userId !== socket.user.id) {
+              throw new Error(`attempt to subscribe to someone else's '${t.name}' timeline (ID=${id})`);
+            }
+          } else if (channelType === 'user') {
+            if (id !== socket.user.id) {
+              throw new Error(`attempt to subscribe to someone else's '${channelType}' channel (ID=${id})`);
             }
           }
-          if (channel === 'user' && id !== socket.user.id) {
-            logger.warn(`attempt to subscribe to someone else's '${channel}' channel`);
-            return;
-          }
-          socket.join(`${channel}:${id}`)
-          logger.info(`User has subscribed to ${id} ${channel}`)
-        })
-      }
-    })
 
-    socket.on('unsubscribe', (data) => {
+          return `${channelType}:${id}`;
+        });
+
+        return await Promise.all(promises);
+      });
+
+      try {
+        const channelLists = await Promise.all(channelListsPromises);
+        flatten(channelLists).map((channelId) => {
+          socket.join(channelId);
+          logger.info(`User has subscribed to ${channelId}`);
+        });
+
+        const rooms = buildGroupedListOfSubscriptions(socket);
+
+        callback({ success: true, rooms });
+      } catch (e) {
+        callback({ success: false, message: e.message });
+        logger.warn(`socket.io "subscribe" error: ${e.message}`);
+      }
+    });
+
+    socket.on('unsubscribe', (data, callback) => {
       if (!isPlainObject(data)) {
+        callback({ success: false, message: 'request without data' });
         logger.warn('socket.io got "unsubscribe" request without data');
         return;
       }
 
-      for (const channel of Object.keys(data)) {
-        if (!isArray(data[channel])) {
+      for (const channelType of Object.keys(data)) {
+        const channelIds = data[channelType];
+
+        if (!isArray(channelIds)) {
+          callback({ success: false, message: `List of ${channelType} ids has to be an array` });
           logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
-          continue;
+          return;
         }
 
-        data[channel].filter(Boolean).forEach((id) => {
-          socket.leave(`${channel}:${id}`)
-          logger.info(`User has unsubscribed from ${id} ${channel}`)
+        channelIds.filter(Boolean).forEach((id) => {
+          socket.leave(`${channelType}:${id}`);
+          logger.info(`User has unsubscribed from ${id} ${channelType}`)
         })
       }
+
+      const rooms = buildGroupedListOfSubscriptions(socket);
+
+      callback({ success: true, rooms });
     })
-  }
+  };
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
@@ -176,10 +204,14 @@ export default class PubsubListener {
 
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
-      .map((r) => Object.keys(sockets.adapter.rooms[r])) // arrays of clientIds
+      .map((r) => Object.keys(sockets.adapter.rooms[r].sockets)) // arrays of clientIds
       .reduce((prev, curr) => prev.concat(curr), []) // flatten clientIds
       .filter((v, i, a) => a.indexOf(v) === i) // deduplicate (https://stackoverflow.com/a/14438954)
       .map((id) => sockets.connected[id]);
+
+    if (destSockets.length === 0) {
+      return;
+    }
 
     let users = destSockets.map((s) => s.user);
     if (post) {
@@ -209,7 +241,7 @@ export default class PubsubListener {
         }
       }
 
-      const realtimeChannels = intersection(rooms, socket.rooms);
+      const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
 
       await emitter(socket, type, { ...json, realtimeChannels });
     }));
@@ -480,6 +512,20 @@ export async function getRoomsOfPost(post) {
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;
+}
+
+function buildGroupedListOfSubscriptions(socket) {
+  return Object.keys(socket.rooms)
+    .map((room) => room.split(':'))
+    .filter((pieces) => pieces.length === 2)
+    .reduce((result, [channelType, channelId]) => {
+      if (!(channelType in result)) {
+        result[channelType] = [];
+      }
+
+      result[channelType].push(channelId);
+      return result;
+    }, {});
 }
 
 const defaultEmitter = (socket, type, json) => socket.emit(type, json);
