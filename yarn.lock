@@ -3555,7 +3555,7 @@ mocha@~4.1.0:
     mkdirp "0.5.1"
     supports-color "4.4.0"
 
-moment@~2.20.1:
+moment@^2.13.0, moment@~2.20.1:
   version "2.20.1"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.20.1.tgz#d6eb1a46cbcc14a2b2f9434112c1ff8907f313fd"
 
@@ -5333,6 +5333,12 @@ underscore.string@3.3.4:
 unexpected-bluebird@2.9.34-longstack2:
   version "2.9.34-longstack2"
   resolved "https://registry.yarnpkg.com/unexpected-bluebird/-/unexpected-bluebird-2.9.34-longstack2.tgz#49acac753b0556ded6025210ee96182307d2b2c9"
+
+unexpected-moment@~3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/unexpected-moment/-/unexpected-moment-3.2.1.tgz#1e3304404b9ef52c1736818e77294b2e7b3fb0a6"
+  dependencies:
+    moment "^2.13.0"
 
 unexpected@~10.36.2:
   version "10.36.2"
