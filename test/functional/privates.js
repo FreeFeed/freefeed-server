@@ -2,7 +2,7 @@
 /* global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -18,9 +18,7 @@ describe('Privates', () => {
     PubSub.setPublisher(new DummyPublisher())
   })
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('user Luna and user Mars', () => {
     let lunaContext = {}

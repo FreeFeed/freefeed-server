@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import knexCleaner from 'knex-cleaner'
 import origExpect from 'unexpected';
 
+import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app';
 import { PubSub, dbAdapter } from '../../app/models'
 import { DummyPublisher } from '../../app/pubsub'
@@ -47,9 +47,7 @@ describe('EventService', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database);
-  });
+  beforeEach(() => cleanDB($pg_database));
 
   const expectUserEventsToBe = async (user, expectedEvents, requestedEventTypes = null) => {
     const userEvents = await dbAdapter.getUserEvents(user.intId, requestedEventTypes);
@@ -1507,9 +1505,7 @@ describe('EventsController', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database);
-  });
+  beforeEach(() => cleanDB($pg_database));
 
   describe('myEvents', () => {
     let luna, mars, lunaUserModel, marsUserModel;
@@ -1801,7 +1797,7 @@ describe('Unread events counter', () => {
   let luna, mars, lunaUserModel;
 
   beforeEach(async () => {
-    await knexCleaner.clean($pg_database);
+    await cleanDB($pg_database);
     [luna, mars] = await Promise.all([
       createUserAsync('luna', 'pw'),
       createUserAsync('mars', 'pw')
@@ -1827,6 +1823,9 @@ describe('Unread events counter', () => {
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_user' });
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'banned_by_user' });
     await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'unbanned_by_user' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'group_created' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct' });
+    await dbAdapter.database('events').insert({ user_id: lunaUserModel.intId, event_type: 'direct_comment' });
     const count = await getUnreadEventsCountFromWhoAmI(luna);
     expect(count, 'to be', 0);
   });
@@ -1870,7 +1869,7 @@ describe('Unread events counter', () => {
     expect(count, 'to be', 0);
 
     await subscribeToAsync(mars, luna);
-    await createAndReturnPostToFeed(mars, luna, 'Direct');
+    await createAndReturnPostToFeed(luna, luna, 'Mentioning @mars');
 
     count = await getUnreadEventsCountFromWhoAmI(mars);
     expect(count, 'to be', 1);
@@ -1906,7 +1905,7 @@ describe('Unread events counter realtime updates for ', () => {
   };
 
   beforeEach(async () => {
-    await knexCleaner.clean($pg_database);
+    await cleanDB($pg_database);
     [luna, mars] = await Promise.all([
       createUserAsync('luna', 'pw'),
       createUserAsync('mars', 'pw')

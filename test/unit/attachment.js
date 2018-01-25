@@ -3,13 +3,13 @@
 import fs from 'fs'
 import path from 'path'
 import { mkdirp } from 'mkdirp'
-import knexCleaner from 'knex-cleaner'
 import gm from 'gm'
 import { promisify, promisifyAll } from 'bluebird'
 import chai from 'chai'
 import chaiFS from 'chai-fs'
 import _ from 'lodash';
 
+import cleanDB from '../dbCleaner'
 import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
@@ -23,9 +23,7 @@ const stat = promisify(fs.stat);
 const config = configLoader()
 
 describe('Attachment', () => {
-  before(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  before(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     let user

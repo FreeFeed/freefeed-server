@@ -2,7 +2,7 @@ import { inherits } from 'util'
 
 import _ from 'lodash'
 
-import { User } from '../models'
+import { User, PubSub as pubSub } from '../models'
 import { ForbiddenException } from '../support/exceptions'
 
 
@@ -177,6 +177,7 @@ export function addModel(dbAdapter) {
       }
 
       await dbAdapter.updateUser(this.id, payload)
+      await pubSub.globalUserUpdate(this.id)
     }
 
     return this

@@ -1,7 +1,7 @@
-import { development as postgresConfig } from '../../knexfile'
+import { development as postgresConfig } from '../../knexfile';
 
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
-process.env.MONITOR_PREFIX = 'development'
+process.env.MONITOR_PREFIX = 'development';
 
 const transport = function () {
   return {
@@ -11,11 +11,11 @@ const transport = function () {
       const input = mail.message.createReadStream();
       input.pipe(process.stdout);
       input.on('end', () => {
-        callback(null, true)
-      })
+        callback(null, true);
+      });
     }
-  }
-}
+  };
+};
 
 export function getConfig() {
   const config = {
@@ -27,17 +27,18 @@ export function getConfig() {
     appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel:           'debug',
     logResponseTime:    true,
     // disableRealtime: true,
     onboardingUsername: 'welcome',
     recaptcha:          { enabled: false },
     // sentryDsn: '',
 
-    frontendPreferencesLimit: 65536
-  }
+    frontendPreferencesLimit: 65536,
 
-  config.host = `http://localhost:${config.port}`
+    dynamicRiverOfNews: true,
+  };
+
+  config.host = `http://localhost:${config.port}`;
 
   config.application = {
     // Unavailable for registration (reserved for internal use)
@@ -59,7 +60,7 @@ export function getConfig() {
     // config.application {
     //   EXTRA_STOP_LIST = array
     // }
-  }
+  };
 
   config.media = {
     // Public URL prefix
@@ -78,7 +79,7 @@ export function getConfig() {
       secretAccessKey: 'SECRET-ACCESS-KEY',
       bucket:          'bucket-name'
     }
-  }
+  };
   config.attachments = {
     url:           config.media.url,
     storage:       config.media.storage,
@@ -94,12 +95,12 @@ export function getConfig() {
         bounds: { width: 1050, height: 350 }
       }
     }
-  }
+  };
   config.profilePictures = {
     url:     config.media.url,
     storage: config.media.storage,
     path:    'profilepics/' // must have trailing slash
-  }
+  };
 
   config.mailer = {
     transport,
@@ -109,15 +110,15 @@ export function getConfig() {
     host:                     config.origin,
     options:                  {},
     adminRecipient:           { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' },
-  }
+  };
 
   config.redis = {
     host:    'localhost',
     port:    6379,
     options: {}
-  }
+  };
 
-  config.postgres = postgresConfig
+  config.postgres = postgresConfig;
 
-  return config
+  return config;
 }

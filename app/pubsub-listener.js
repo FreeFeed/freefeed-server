@@ -1,146 +1,199 @@
-import { promisifyAll } from 'bluebird'
-import { createClient as createRedisClient } from 'redis'
-import { isArray, isPlainObject, keyBy, uniq, uniqBy, cloneDeep, intersection } from 'lodash'
-import IoServer from 'socket.io'
-import redis_adapter from 'socket.io-redis'
-import jwt from 'jsonwebtoken'
+/* eslint babel/semi: "error" */
+import { promisifyAll } from 'bluebird';
+import { createClient as createRedisClient } from 'redis';
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash';
+import IoServer from 'socket.io';
+import redis_adapter from 'socket.io-redis';
+import jwt from 'jsonwebtoken';
+import createDebug from 'debug';
 
-import { load as configLoader } from '../config/config'
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
+import { load as configLoader } from '../config/config';
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
 
 
-promisifyAll(jwt)
+promisifyAll(jwt);
+
+const config = configLoader();
+const debug = createDebug('freefeed:PubsubListener');
+const noOp = () => {};
 
 export default class PubsubListener {
+  app;
+  io;
+
   constructor(server, app) {
-    this.app = app
+    this.app = app;
 
-    const config = configLoader()
+    this.io = IoServer(server);
+    this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
 
-    const redisPub = createRedisClient(config.redis.port, config.redis.host, config.redis.options)
-    const redisSub = createRedisClient(config.redis.port, config.redis.host, { ...config.redis.options, detect_buffers: true });
-
-    redisPub.on('error', (err) => {
-      app.context.logger.error('redisPub error', err);
-    });
-    redisSub.on('error', (err) => {
-      app.context.logger.error('redisSub error', err);
+    this.io.on('error', (err) => {
+      debug('socket.io error', err);
     });
 
-    this.io = IoServer(server)
-    this.io.adapter(redis_adapter({
-      pubClient: redisPub,
-      subClient: redisSub
-    }))
+    // authentication
+    this.io.use(async (socket, next) => {
+      const authToken = socket.handshake.query.token;
+      const { secret } = config;
 
-    this.io.sockets.on('error', (err) => {
-      app.context.logger.error('socket.io error', err);
+      try {
+        const decoded = await jwt.verifyAsync(authToken, secret);
+        socket.user = await dbAdapter.getUserById(decoded.userId);
+      } catch (e) {
+        socket.user = { id: null };
+      }
+
+      return next();
     });
-    this.io.sockets.on('connection', this.onConnect)
 
-    const redisClient = createRedisClient(config.redis.port, config.redis.host, {})
+    this.io.on('connection', this.onConnect);
+
+    const redisClient = createRedisClient(config.redis.port, config.redis.host, {});
     redisClient.on('error', (err) => {
-      app.context.logger.error('redis error', err);
+      debug('redis error', err);
     });
     redisClient.subscribe(
       'user:update',
       'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
       'comment:new', 'comment:update', 'comment:destroy',
-      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove'
-    )
+      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove',
+      'global:user:update',
+    );
 
-    redisClient.on('message', this.onRedisMessage)
+    redisClient.on('message', this.onRedisMessage);
   }
 
-  onConnect = async (socket) => {
-    const authToken = socket.handshake.query.token
-    const config = configLoader()
+  onConnect = (socket) => {
     const { secret } = config;
-    const { logger } = this.app.context;
-
-    try {
-      const decoded = await jwt.verifyAsync(authToken, secret)
-      socket.user = await dbAdapter.getUserById(decoded.userId)
-    } catch (e) {
-      socket.user = { id: null }
-    }
 
     socket.on('error', (e) => {
-      logger.error('socket.io socket error', e);
+      debug(`[socket.id=${socket.id}] error`, e);
     });
 
-    socket.on('auth', async (data) => {
-      if (!isPlainObject(data)) {
-        logger.warn('socket.io got "auth" request without data');
-        return;
+    socket.on('auth', async (data, callback) => {
+      debug(`[socket.id=${socket.id}] 'auth' request`);
+
+      if (!isFunction(callback)) {
+        callback = noOp;
       }
 
-      if (data.authToken && typeof data.authToken === 'string') {
-        try {
-          const decoded = await jwt.verifyAsync(data.authToken, secret);
-          socket.user = await dbAdapter.getUserById(decoded.userId);
-        } catch (e) {
+      try {
+        if (!isPlainObject(data)) {
+          debug(`[socket.id=${socket.id}] 'auth' request: no data`);
+          return;
+        }
+
+        if (data.authToken && typeof data.authToken === 'string') {
+          try {
+            const decoded = await jwt.verifyAsync(data.authToken, secret);
+            socket.user = await dbAdapter.getUserById(decoded.userId);
+            callback({ success: true });
+            debug(`[socket.id=${socket.id}] 'auth' request: successfully authenticated as ${socket.user.username}`);
+          } catch (e) {
+            socket.user = { id: null };
+            callback({ success: false, message: 'invalid token' });
+            debug(`[socket.id=${socket.id}] 'auth' request: invalid token, signing user out`, data.authToken);
+          }
+        } else {
           socket.user = { id: null };
-          logger.warn('socket.io got "auth" request with invalid token, signing user out');
+          callback({ success: true });
         }
-      } else {
-        socket.user = { id: null };
+      } catch (e) {
+        callback({ success: false, message: e.message });
+        debug(`[socket.id=${socket.id}] 'auth' request: exception ${e}`);
       }
     });
 
-    socket.on('subscribe', (data) => {
+    socket.on('subscribe', async (data, callback) => {
+      debug(`[socket.id=${socket.id}] 'subscribe' request`);
+
+      if (!isFunction(callback)) {
+        callback = noOp;
+      }
+
       if (!isPlainObject(data)) {
-        logger.warn('socket.io got "subscribe" request without data');
+        callback({ success: false, message: 'request without data' });
+        debug(`[socket.id=${socket.id}] 'subscribe' request: no data`);
         return;
       }
 
-
-      for (const channel of Object.keys(data)) {
-        if (!isArray(data[channel])) {
-          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
-          continue;
+      const channelListsPromises = map(data, async (channelIds, channelType) => {
+        if (!isArray(channelIds)) {
+          throw new Error(`List of ${channelType} ids has to be an array`);
         }
 
-        data[channel].filter(Boolean).forEach(async (id) => {
-          if (channel === 'timeline') {
+        const promises = channelIds.map(async (id) => {
+          if (channelType === 'timeline') {
             const t = await dbAdapter.getTimelineById(id);
+
             if (!t) {
-              logger.warn(`attempt to subscribe to nonexistent timeline (ID=${id})`);
-              return;
-            } else if (t.isPersonal() && t.userId !== socket.user.id) {
-              logger.warn(`attempt to subscribe to someone else's '${t.name}' timeline`);
-              return;
+              throw new Error(`attempt to subscribe to nonexistent timeline (ID=${id})`);
+            }
+
+            if (t.isPersonal() && t.userId !== socket.user.id) {
+              throw new Error(`attempt to subscribe to someone else's '${t.name}' timeline (ID=${id})`);
+            }
+          } else if (channelType === 'user') {
+            if (id !== socket.user.id) {
+              throw new Error(`attempt to subscribe to someone else's '${channelType}' channel (ID=${id})`);
             }
           }
-          if (channel === 'user' && id !== socket.user.id) {
-            logger.warn(`attempt to subscribe to someone else's '${channel}' channel`);
-            return;
-          }
-          socket.join(`${channel}:${id}`)
-          logger.info(`User has subscribed to ${id} ${channel}`)
-        })
-      }
-    })
 
-    socket.on('unsubscribe', (data) => {
+          return `${channelType}:${id}`;
+        });
+
+        return await Promise.all(promises);
+      });
+
+      try {
+        const channelLists = await Promise.all(channelListsPromises);
+        flatten(channelLists).map((channelId) => {
+          socket.join(channelId);
+          debug(`[socket.id=${socket.id}] 'subscribe' request: successfully subscribed to ${channelId}`);
+        });
+
+        const rooms = buildGroupedListOfSubscriptions(socket);
+
+        callback({ success: true, rooms });
+      } catch (e) {
+        callback({ success: false, message: e.message });
+        debug(`[socket.id=${socket.id}] 'subscribe' request: exception ${e}`);
+      }
+    });
+
+    socket.on('unsubscribe', (data, callback) => {
+      debug(`[socket.id=${socket.id}] 'unsubscribe' request`);
+
+      if (!isFunction(callback)) {
+        callback = noOp;
+      }
+
       if (!isPlainObject(data)) {
-        logger.warn('socket.io got "unsubscribe" request without data');
+        callback({ success: false, message: 'request without data' });
+        debug(`[socket.id=${socket.id}] 'unsubscribe' request: no data`);
         return;
       }
 
-      for (const channel of Object.keys(data)) {
-        if (!isArray(data[channel])) {
-          logger.warn('socket.io got "unsubscribe" request with bogus list of channels');
-          continue;
+      for (const channelType of Object.keys(data)) {
+        const channelIds = data[channelType];
+
+        if (!isArray(channelIds)) {
+          callback({ success: false, message: `List of ${channelType} ids has to be an array` });
+          debug(`[socket.id=${socket.id}] 'unsubscribe' request: got bogus channel list`);
+          return;
         }
 
-        data[channel].filter(Boolean).forEach((id) => {
-          socket.leave(`${channel}:${id}`)
-          logger.info(`User has unsubscribed from ${id} ${channel}`)
-        })
+        channelIds.filter(Boolean).forEach((id) => {
+          socket.leave(`${channelType}:${id}`);
+          debug(`[socket.id=${socket.id}] 'unsubscribe' request: successfully unsubscribed from ${channelType}:${id}`);
+        });
       }
-    })
-  }
+
+      const rooms = buildGroupedListOfSubscriptions(socket);
+
+      callback({ success: true, rooms });
+    });
+  };
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
@@ -160,24 +213,28 @@ export default class PubsubListener {
       'like:remove':         this.onLikeRemove,
       'comment_like:new':    this.onCommentLikeNew,
       'comment_like:remove': this.onCommentLikeRemove,
+
+      'global:user:update': this.onGlobalUserUpdate,
     };
 
     try {
       await messageRoutes[channel](this.io.sockets, JSON.parse(msg));
     } catch (e) {
-      this.app.context.logger.error('onRedisMessage error', e);
+      debug(`onRedisMessage: error while processing ${channel} request`, e);
     }
-  }
+  };
 
   async broadcastMessage(sockets, rooms, type, json, post = null, emitter = defaultEmitter) {
-    const { logger } = this.app.context;
-
     let destSockets = rooms
       .filter((r) => r in sockets.adapter.rooms) // active rooms
-      .map((r) => Object.keys(sockets.adapter.rooms[r])) // arrays of clientIds
+      .map((r) => Object.keys(sockets.adapter.rooms[r].sockets)) // arrays of clientIds
       .reduce((prev, curr) => prev.concat(curr), []) // flatten clientIds
       .filter((v, i, a) => a.indexOf(v) === i) // deduplicate (https://stackoverflow.com/a/14438954)
       .map((id) => sockets.connected[id]);
+
+    if (destSockets.length === 0) {
+      return;
+    }
 
     let users = destSockets.map((s) => s.user);
     if (post) {
@@ -189,8 +246,10 @@ export default class PubsubListener {
 
     await Promise.all(destSockets.map(async (socket) => {
       const { user } = socket;
+
       if (!user) {
-        logger.error('user is null in broadcastMessage');
+        // is it actually possible now?
+        debug(`broadcastMessage: socket ${socket.id} doesn't have user associated with it`);
         return;
       }
 
@@ -207,7 +266,7 @@ export default class PubsubListener {
         }
       }
 
-      const realtimeChannels = intersection(rooms, socket.rooms);
+      const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
 
       await emitter(socket, type, { ...json, realtimeChannels });
     }));
@@ -219,63 +278,63 @@ export default class PubsubListener {
 
   // Message-handlers follow
   onPostDestroy = async (sockets, { postId, rooms }) => {
-    const json = { meta: { postId } }
-    const type = 'post:destroy'
+    const json = { meta: { postId } };
+    const type = 'post:destroy';
     await this.broadcastMessage(sockets, rooms, type, json);
-  }
+  };
 
   onPostNew = async (sockets, data) => {
-    const post = await dbAdapter.getPostById(data.postId)
-    const json = await new PostSerializer(post).promiseToJSON()
+    const post = await dbAdapter.getPostById(data.postId);
+    const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:new'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'post:new';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
-  }
+  };
 
   onPostUpdate = async (sockets, data) => {
-    const post = await dbAdapter.getPostById(data.postId)
-    const json = await new PostSerializer(post).promiseToJSON()
+    const post = await dbAdapter.getPostById(data.postId);
+    const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:update'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'post:update';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._postEventEmitter);
-  }
+  };
 
   onCommentNew = async (sockets, { commentId }) => {
-    const comment = await dbAdapter.getCommentById(commentId)
+    const comment = await dbAdapter.getCommentById(commentId);
 
     if (!comment) {
       // might be outdated event
-      return
+      return;
     }
 
-    const post = await dbAdapter.getPostById(comment.postId)
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON()
+    const post = await dbAdapter.getPostById(comment.postId);
+    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:new'
+    const type = 'comment:new';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
-  }
+  };
 
   onCommentUpdate = async (sockets, data) => {
-    const comment = await dbAdapter.getCommentById(data.commentId)
-    const post = await dbAdapter.getPostById(comment.postId)
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON()
+    const comment = await dbAdapter.getCommentById(data.commentId);
+    const post = await dbAdapter.getPostById(comment.postId);
+    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:update'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'comment:update';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._commentLikeEventEmitter);
-  }
+  };
 
   onCommentDestroy = async (sockets, data) => {
-    const json = { postId: data.postId, commentId: data.commentId }
-    const post = await dbAdapter.getPostById(data.postId)
+    const json = { postId: data.postId, commentId: data.commentId };
+    const post = await dbAdapter.getPostById(data.postId);
 
-    const type = 'comment:destroy'
-    const rooms = await getRoomsOfPost(post)
+    const type = 'comment:destroy';
+    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
-  }
+  };
 
   onLikeNew = async (sockets, { userId, postId }) => {
     const [
@@ -286,41 +345,41 @@ export default class PubsubListener {
       await dbAdapter.getPostById(postId),
     ]);
     const json = await new LikeSerializer(user).promiseToJSON();
-    json.meta = { postId }
+    json.meta = { postId };
 
-    const type = 'like:new'
+    const type = 'like:new';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post);
-  }
+  };
 
   onLikeRemove = async (sockets, { userId, postId, rooms }) => {
-    const json = { meta: { userId, postId } }
+    const json = { meta: { userId, postId } };
     const post = await dbAdapter.getPostById(postId);
-    const type = 'like:remove'
+    const type = 'like:remove';
     await this.broadcastMessage(sockets, rooms, type, json, post);
-  }
+  };
 
   onPostHide = async (sockets, { postId, userId }) => {
-    // NOTE: this event only broadcasts to hider's sockets  
-    // so it won't leak any personal information  
+    // NOTE: this event only broadcasts to hider's sockets
+    // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId)
+    const post = await dbAdapter.getPostById(postId);
 
     const type = 'post:hide';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
-  }
+  };
 
   onPostUnhide = async (sockets, { postId, userId }) => {
-    // NOTE: this event only broadcasts to hider's sockets  
-    // so it won't leak any personal information  
+    // NOTE: this event only broadcasts to hider's sockets
+    // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId)
+    const post = await dbAdapter.getPostById(postId);
 
     const type = 'post:unhide';
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(sockets, rooms, type, json, post, this._singleUserEmitter(userId));
-  }
+  };
 
   onCommentLikeNew = async (sockets, data) => {
     await this._sendCommentLikeMsg(sockets, data, 'comment_like:new');
@@ -329,6 +388,12 @@ export default class PubsubListener {
   onCommentLikeRemove = async (sockets, data) => {
     await this._sendCommentLikeMsg(sockets, data, 'comment_like:remove');
   };
+
+  onGlobalUserUpdate = async (sockets, user) => {
+    await this.broadcastMessage(sockets, ['global:users'], 'global:user:update', { user });
+  };
+
+  // Helpers
 
   _sendCommentLikeMsg = async (sockets, data, msgType) => {
     const comment = await dbAdapter.getCommentById(data.commentId);
@@ -360,9 +425,9 @@ export default class PubsubListener {
   }
 
   _postEventEmitter = async (socket, type, json) => {
-    // We should make a copy of json because  
-    // there are parallel emitters running with  
-    // the same data  
+    // We should make a copy of json because
+    // there are parallel emitters running with
+    // the same data
     json = cloneDeep(json);
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
@@ -374,11 +439,11 @@ export default class PubsubListener {
       }
     }
     defaultEmitter(socket, type, json);
-  }
+  };
 
-  /** 
-   * Emits message only to the specified user 
-   */ 
+  /**
+   * Emits message only to the specified user
+   */
   _singleUserEmitter = (userId) => (socket, type, json) => {
     if (socket.user.id === userId) {
       defaultEmitter(socket, type, json);
@@ -430,11 +495,11 @@ export default class PubsubListener {
 }
 
 /**
- * Returns array of all room names related to post as union of 
- * post room and timelines: `post.getTimelines()`, post author's  
- * and likers/commenters `MyDiscussions` feeds. 
- * 
- * @param {Post} post 
+ * Returns array of all room names related to post as union of
+ * post room and all timelines of posts, materialized or dynamic
+ * (as RiverOfNews and MyDiscussions).
+ *
+ * @param {Post} post
  * @return {string[]}
  */
 export async function getRoomsOfPost(post) {
@@ -443,17 +508,49 @@ export async function getRoomsOfPost(post) {
   }
 
   const postFeeds = await post.getTimelines();
-  const myDiscussionsOwnerIds = postFeeds
-    .filter((f) => f.isLikes() || f.isComments())
-    .map((f) => f.userId);
+  const activityFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments());
+  const destinationFeeds = postFeeds.filter((f) => f.isPosts() || f.isDirects());
 
+  /**
+   * 'MyDiscussions' feeds of post author and users who did
+   * some activity (likes, comments) on post.
+   */
+  const myDiscussionsOwnerIds = activityFeeds.map((f) => f.userId);
   myDiscussionsOwnerIds.push(post.userId);
   const myDiscussionsFeeds = await dbAdapter.getUsersNamedTimelines(uniq(myDiscussionsOwnerIds), 'MyDiscussions');
 
-  const feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
+  // All feeds related to post
+  let feeds = [];
+  if (config.dynamicRiverOfNews) {
+    /**
+     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
+     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+     */
+    const riverOfNewsSourceIds = [...destinationFeeds, ...(post.isPropagable ? activityFeeds : [])].map((f) => f.id);
+    const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
+    const riverOfNewsFeeds = await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, post.userId], 'RiverOfNews');
+    feeds = uniqBy([...destinationFeeds, ...activityFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
+  } else {
+    feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
+  }
+
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
   return rooms;
+}
+
+function buildGroupedListOfSubscriptions(socket) {
+  return Object.keys(socket.rooms)
+    .map((room) => room.split(':'))
+    .filter((pieces) => pieces.length === 2)
+    .reduce((result, [channelType, channelId]) => {
+      if (!(channelType in result)) {
+        result[channelType] = [];
+      }
+
+      result[channelType].push(channelId);
+      return result;
+    }, {});
 }
 
 const defaultEmitter = (socket, type, json) => socket.emit(type, json);

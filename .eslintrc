@@ -55,6 +55,7 @@
     "lodash/unwrap": 2,
     "max-statements-per-line": [2, { "max": 1 }],
     "no-await-in-loop": 2,
+    "no-control-regex": 0,
     "no-debugger": 2,
     "no-duplicate-imports": 2,
     "no-else-return": 2,

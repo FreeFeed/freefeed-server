@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import knexCleaner from 'knex-cleaner';
 import origExpect from 'unexpected';
 
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
@@ -26,7 +26,7 @@ describe('Realtime (Socket.io)', () => {
   const anonContext = { authToken: '' }
 
   beforeEach(async () => {
-    await knexCleaner.clean($pg_database);
+    await cleanDB($pg_database);
 
     [lunaContext, marsContext] = await Promise.all([
       funcTestHelper.createUserAsync('luna', 'pw'),

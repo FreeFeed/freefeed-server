@@ -13,7 +13,7 @@ import uuid from 'uuid'
 
 import { load as configLoader } from '../../config/config'
 import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
-import { Attachment, Comment, Post } from '../models'
+import { Attachment, Comment, Post, PubSub as pubSub } from '../models'
 import { EventService } from '../support/EventService';
 import { valiate as validateUserPrefs } from './user-prefs';
 
@@ -456,6 +456,7 @@ export function addModel(dbAdapter) {
       }
 
       await dbAdapter.updateUser(this.id, preparedPayload)
+      await pubSub.globalUserUpdate(this.id)
 
       for (const k in payload) {
         this[k] = payload[k]
@@ -974,7 +975,8 @@ export function addModel(dbAdapter) {
       'updatedAt':          this.updatedAt.toString()
     }
 
-    return dbAdapter.updateUser(this.id, payload)
+    await dbAdapter.updateUser(this.id, payload)
+    await pubSub.globalUserUpdate(this.id)
   }
 
   User.prototype.saveProfilePictureWithSize = async function (path, uuid, originalSize, size) {

@@ -1,13 +1,17 @@
 import _ from 'lodash';
+import createDebug from 'debug';
+
 import { AttachmentSerializer } from '../../../models';
 import { reportError } from '../../../support/exceptions';
 
 
 export default class AttachmentsController {
-  app = null
+  app;
+  debug;
 
   constructor(app) {
-    this.app = app
+    this.app = app;
+    this.debug = createDebug('freefeed:AttachmentsController');
   }
 
   create = async (ctx) => {
@@ -26,7 +30,7 @@ export default class AttachmentsController {
         ctx.body = await json;
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
-          ctx.logger.warn(e.message);
+          this.debug(e.message);
 
           const errorDetails = { message: 'Corrupt image' }
           reportError(ctx)(errorDetails);
@@ -34,7 +38,7 @@ export default class AttachmentsController {
         }
 
         if (e.message && e.message.indexOf('LCMS encoding') > -1) {
-          ctx.logger.warn(`GraphicsMagick should be configured with --with-lcms2 option`);
+          this.debug(`GraphicsMagick should be configured with --with-lcms2 option`);
 
           const errorDetails = { status: 500, message: 'Internal server error' }
           reportError(ctx)(errorDetails);

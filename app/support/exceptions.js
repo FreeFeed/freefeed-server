@@ -1,3 +1,8 @@
+import createDebug from 'debug';
+
+
+const debug = createDebug('freefeed:errors');
+
 export function reportError(ctx) {
   return (err) => {
     const result = {};
@@ -5,7 +10,7 @@ export function reportError(ctx) {
 
     if ('internalQuery' in err) {
       // looks like postgres err
-      ctx.logger.error(err);
+      debug(err);
       Reflect.deleteProperty(err, 'message');  // do not expose DB internals
     }
 

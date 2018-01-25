@@ -1,7 +1,7 @@
-const env = process.env.NODE_ENV || 'development'
-const configName = `./environments/${env}`
+const env = process.env.NODE_ENV || 'development';
+const configName = `./environments/${env}`;
 
-let config
+let config;
 
 export function load() {
   // FIXME: should be replaced with promise-based System.import() eventually
@@ -9,5 +9,5 @@ export function load() {
     config = require(configName).getConfig();
   }
 
-  return config
+  return config;
 }

@@ -1,0 +1,5 @@
+{
+  "rules": {
+    "babel/semi": 2
+  }
+}

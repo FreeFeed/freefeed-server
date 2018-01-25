@@ -2,7 +2,9 @@
 import bluebird from 'bluebird';
 
 global.Promise = bluebird;
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
+global.Promise.onPossiblyUnhandledRejection((e) => {
+  throw e;
+});
 
 import { postgres } from '../app/models'
 

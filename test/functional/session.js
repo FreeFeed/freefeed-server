@@ -2,7 +2,7 @@
 /* global $pg_database */
 import request from 'superagent'
 import fetch from 'node-fetch'
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
@@ -17,9 +17,7 @@ describe('SessionController', () => {
     PubSub.setPublisher(new DummyPublisher())
   })
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     let user, userData;

@@ -268,8 +268,8 @@ const usersTrait = (superClass) => class extends superClass {
    * Returns UIDs of users who cah see any of
    * the given feeds. It is assumed that feeds
    * are private 'Posts' or 'Directs' feeds.
-   * 
-   * @param {number[]} feedIntIds 
+   *
+   * @param {number[]} feedIntIds
    * @return {string[]}
    */
   async getUsersWhoCanSeePrivateFeeds(feedIntIds) {
