@@ -12,6 +12,7 @@ const CHANNEL_NAMES = {
   LIKE_REMOVED:         'like:remove',
   COMMENT_LIKE_ADDED:   'comment_like:new',
   COMMENT_LIKE_REMOVED: 'comment_like:remove',
+  GLOBAL_USER_UPDATED:  'global:user:update',
 }
 
 export class PubSubAdapter {
@@ -79,6 +80,12 @@ export class PubSubAdapter {
 
   commentLikeRemoved(payload) {
     return this._publish(CHANNEL_NAMES.COMMENT_LIKE_REMOVED, payload);
+  }
+
+  ///////////////////////////////////////////////////
+
+  globalUserUpdated(payload) {
+    return this._publish(CHANNEL_NAMES.GLOBAL_USER_UPDATED, payload);
   }
 
   ///////////////////////////////////////////////////

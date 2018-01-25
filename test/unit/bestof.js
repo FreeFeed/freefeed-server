@@ -1,15 +1,13 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import knexCleaner from 'knex-cleaner'
 import _ from 'lodash'
 
+import cleanDB from '../dbCleaner'
 import { dbAdapter, User } from '../../app/models'
 
 
 describe('BestOf', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('best of', () => {
     let users, popularPost, unpopularPost, bestPosts;

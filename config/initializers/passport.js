@@ -1,6 +1,6 @@
-import { Strategy as LocalStrategy } from 'passport-local'
+import { Strategy as LocalStrategy } from 'passport-local';
 
-import { dbAdapter } from '../../app/models'
+import { dbAdapter } from '../../app/models';
 
 
 export function init(passport) {
@@ -9,25 +9,25 @@ export function init(passport) {
     passwordField: 'password'
   }, async (username, clearPassword, done) => {
     try {
-      const user = await dbAdapter.getUserByUsername(username)
+      const user = await dbAdapter.getUserByUsername(username);
 
       if (!user) {
         // db inconsistency. got id, but didn't find object
-        done({ message: 'We could not find the nickname you provided.' })
-        return
+        done({ message: 'We could not find the nickname you provided.' });
+        return;
       }
 
-      const valid = await user.validPassword(clearPassword)
+      const valid = await user.validPassword(clearPassword);
 
       if (!valid) {
-        done({ message: 'The password you provided does not match the password in our system.' })
-        return
+        done({ message: 'The password you provided does not match the password in our system.' });
+        return;
       }
 
-      done(null, user)
+      done(null, user);
     } catch (e) {
-      done({ message: 'We could not find the nickname you provided.' })
+      done({ message: 'We could not find the nickname you provided.' });
     }
-  }))
+  }));
 }
 

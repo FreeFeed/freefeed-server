@@ -1,14 +1,12 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import knexCleaner from 'knex-cleaner'
+import cleanDB from '../dbCleaner'
 import { User, Group, dbAdapter } from '../../app/models'
 import { SearchQueryParser } from '../../app/support/SearchQueryParser'
 
 
 describe('FullTextSearch', () => {
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('public users Luna, Mars', () => {
     const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']

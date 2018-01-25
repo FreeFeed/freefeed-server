@@ -1,3 +1,4 @@
+import { map } from 'lodash';
 import pgFormat from 'pg-format';
 
 import { initUserObject } from './users';
@@ -60,6 +61,17 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     const res = await this.database.raw(q);
 
     return res.rows;
+  }
+
+  async getUsersSubscribedToTimelines(timelineIds) {
+    if (timelineIds.length === 0) {
+      return [];
+    }
+    const { rows } = await this.database.raw(
+      `select distinct user_id from subscriptions where feed_id = any(:timelineIds)`,
+      { timelineIds },
+    );
+    return map(rows, 'user_id');
   }
 
   async getTimelineSubscribersIds(timelineId) {

@@ -1,3 +1,4 @@
+/* eslint babel/semi: "error" */
 try {
   require('newrelic');
 } catch (e) {

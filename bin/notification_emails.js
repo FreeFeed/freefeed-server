@@ -1,17 +1,20 @@
 #!/usr/bin/env babel-node
 import bluebird from 'bluebird';
-import _ from 'lodash';
-import { dbAdapter } from '../app/models';
+
 import { sendEmails } from '../app/support/NotificationsDigest';
 
+
 global.Promise = bluebird;
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
-
-async function main(){
-  await sendEmails();
-}
-
-main().then(()=> {
-  console.log("Finished");
-  process.exit(0);
+global.Promise.onPossiblyUnhandledRejection((e) => {
+  throw e;
 });
+
+sendEmails()
+  .then(() => {
+    process.stdout.write('Finished\n');
+    process.exit(0);
+  })
+  .catch((e) => {
+    process.stderr.write(`Error: ${e}\n`);
+    process.exit(1);
+  });

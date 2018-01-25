@@ -3,9 +3,9 @@
 import request from 'superagent'
 import _ from 'lodash'
 import fetch from 'node-fetch'
-import knexCleaner from 'knex-cleaner'
 import expect from 'unexpected'
 
+import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
@@ -20,9 +20,7 @@ describe('PostsController', () => {
     PubSub.setPublisher(new DummyPublisher())
   })
 
-  beforeEach(async () => {
-    await knexCleaner.clean($pg_database)
-  })
+  beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
     let ctx = {}

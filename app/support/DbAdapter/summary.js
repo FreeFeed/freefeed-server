@@ -13,7 +13,7 @@ import pgFormat from 'pg-format';
  * - L is number of likes
  */
 const summaryTrait = (superClass) => class extends superClass {
-  async getSummaryPosts(currentUserId, timelineIntId, days) {
+  async getSummaryPosts(currentUserId, days, timelineIntIds, activityIntIds = []) {
     let privacyFilter = 'AND NOT posts.is_protected';
     let banFilter = '';
 
@@ -28,6 +28,11 @@ const summaryTrait = (superClass) => class extends superClass {
 
       // Exclude authors who banned viewer or were banned by viewer
       banFilter = (bannedUserIds.length > 0) ? pgFormat('AND (posts.user_id NOT IN (%L))', bannedUserIds) : '';
+    }
+
+    let postSourceCondition = `posts.feed_ids && '{${timelineIntIds.join(',')}}'`;
+    if (activityIntIds.length > 0) {
+      postSourceCondition = `(${postSourceCondition} or posts.is_propagable and posts.feed_ids && '{${activityIntIds.join(',')}}')`;
     }
 
     const sql = `
@@ -65,7 +70,7 @@ const summaryTrait = (superClass) => class extends superClass {
             ) AS l
             ON l.post_id = posts.uid
         WHERE
-          posts.feed_ids && '{${timelineIntId}}' AND
+          ${postSourceCondition} AND
           posts.created_at > (now() - ${days} * interval '1 day')
           ${privacyFilter}
           ${banFilter}

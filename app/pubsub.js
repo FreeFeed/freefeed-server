@@ -1,4 +1,5 @@
 import { dbAdapter } from './models'
+import { serializeUser } from './serializers/v2/user'
 
 
 export class DummyPublisher {
@@ -15,6 +16,7 @@ export class DummyPublisher {
   postUnhidden() {}
   commentLikeAdded() {}
   commentLikeRemoved() {}
+  globalUserUpdated() {}
 }
 
 export default class pubSub {
@@ -99,5 +101,11 @@ export default class pubSub {
   async removeCommentLike(commentId, postId, unlikerUUID) {
     const payload = JSON.stringify({ commentId, postId, unlikerUUID });
     await this.publisher.commentLikeRemoved(payload);
+  }
+
+  async globalUserUpdate(userId) {
+    const user = await dbAdapter.getUserById(userId);
+    const payload = JSON.stringify(serializeUser(user));
+    await this.publisher.globalUserUpdated(payload);
   }
 }

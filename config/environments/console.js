@@ -1,5 +1,5 @@
 // Clustering for monitor-dogstats @todo replace in ansible-deploy
-process.env.MONITOR_PREFIX = 'development-console'
+process.env.MONITOR_PREFIX = 'development-console';
 
 const transport = function () {
   return {
@@ -9,11 +9,11 @@ const transport = function () {
       const input = mail.message.createReadStream();
       input.pipe(process.stdout);
       input.on('end', () => {
-        callback(null, true)
-      })
+        callback(null, true);
+      });
     }
-  }
-}
+  };
+};
 
 export function getConfig() {
   const config = {
@@ -25,14 +25,15 @@ export function getConfig() {
     appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
-    logLevel:           'warn',
     onboardingUsername: 'welcome',
     recaptcha:          { enabled: false },
 
-    frontendPreferencesLimit: 65536
-  }
+    frontendPreferencesLimit: 65536,
 
-  config.host = `http://localhost:${config.port}`
+    dynamicRiverOfNews: true,
+  };
+
+  config.host = `http://localhost:${config.port}`;
 
   config.application = {
     // Unavailable for registration (reserved for internal use)
@@ -54,7 +55,7 @@ export function getConfig() {
     // config.application {
     //   EXTRA_STOP_LIST = array
     // }
-  }
+  };
 
   config.media = {
     // Public URL prefix
@@ -73,7 +74,7 @@ export function getConfig() {
       secretAccessKey: 'SECRET-ACCESS-KEY',
       bucket:          'bucket-name'
     }
-  }
+  };
   config.attachments = {
     url:           config.media.url,
     storage:       config.media.storage,
@@ -85,7 +86,7 @@ export function getConfig() {
         bounds: { width: 525, height: 175 }
       }
     }
-  }
+  };
   config.profilePictures = {
     // Profile pictures only support 'fs' for the time being, so we won't use shared values by default
     url:     `${config.host}/`,
@@ -94,7 +95,7 @@ export function getConfig() {
       rootDir: config.media.storage.rootDir
     },
     path: 'profilepics/' // must have trailing slash
-  }
+  };
 
   config.mailer = {
     transport,
@@ -104,13 +105,13 @@ export function getConfig() {
     host:                     config.origin,
     options:                  {},
     adminRecipient:           { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' },
-  }
+  };
 
   config.redis = {
     host:    'localhost',
     port:    6379,
     options: {}
-  }
+  };
 
-  return config
+  return config;
 }

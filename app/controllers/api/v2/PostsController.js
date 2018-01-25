@@ -75,7 +75,7 @@ export default class PostsController {
 
     const { intId: hidesFeedId } = viewer ? await dbAdapter.getUserNamedFeed(viewer.id, 'Hides') : { intId: 0 };
     if (postWithStuff.post.feedIntIds.includes(hidesFeedId)) {
-      sPost.isHidden = true; // present only if true 
+      sPost.isHidden = true; // present only if true
     }
 
     const comments = postWithStuff.comments.map(serializeComment);
