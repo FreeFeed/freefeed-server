@@ -69,6 +69,7 @@ export default class PubsubListener {
   }
 
   onConnect = (socket) => {
+    promisifyAll(socket);
     const { secret } = config;
 
     socket.on('error', (e) => {
@@ -155,10 +156,10 @@ export default class PubsubListener {
 
       try {
         const channelLists = await Promise.all(channelListsPromises);
-        flatten(channelLists).map((channelId) => {
-          socket.join(channelId);
+        await Promise.all(flatten(channelLists).map(async (channelId) => {
+          await socket.joinAsync(channelId);
           debug(`[socket.id=${socket.id}] 'subscribe' request: successfully subscribed to ${channelId}`);
-        });
+        }));
 
         const rooms = buildGroupedListOfSubscriptions(socket);
 
@@ -185,6 +186,7 @@ export default class PubsubListener {
         return;
       }
 
+      const roomsToLeave = [];
       for (const channelType of Object.keys(data)) {
         const channelIds = data[channelType];
 
@@ -193,12 +195,13 @@ export default class PubsubListener {
           debug(`[socket.id=${socket.id}] 'unsubscribe' request: got bogus channel list`);
           return;
         }
-
-        channelIds.filter(Boolean).forEach((id) => {
-          socket.leave(`${channelType}:${id}`);
-          debug(`[socket.id=${socket.id}] 'unsubscribe' request: successfully unsubscribed from ${channelType}:${id}`);
-        });
+        roomsToLeave.push(...channelIds.filter(Boolean).map((id) => `${channelType}:${id}`));
       }
+
+      await Promise.all(roomsToLeave.map(async (room) => {
+        await socket.leaveAsync(room);
+        debug(`[socket.id=${socket.id}] 'unsubscribe' request: successfully unsubscribed from ${room}`);
+      }));
 
       const rooms = buildGroupedListOfSubscriptions(socket);
 
