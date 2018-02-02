@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy, noop } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy, noop, values } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -10,6 +10,7 @@ import Raven from 'raven';
 
 import { load as configLoader } from '../config/config';
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
+import { eventNames } from './support/PubSubAdapter';
 
 
 promisifyAll(jwt);
@@ -56,13 +57,7 @@ export default class PubsubListener {
       }
       debug('redis error', err);
     });
-    redisClient.subscribe(
-      'user:update',
-      'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
-      'comment:new', 'comment:update', 'comment:destroy',
-      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove',
-      'global:user:update',
-    );
+    redisClient.subscribe(values(eventNames));
 
     redisClient.on('message', this.onRedisMessage);
   }
@@ -198,24 +193,24 @@ export default class PubsubListener {
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
-      'user:update': this.onUserUpdate,
+      [eventNames.USER_UPDATE]: this.onUserUpdate,
 
-      'post:new':     this.onPostNew,
-      'post:update':  this.onPostUpdate,
-      'post:destroy': this.onPostDestroy,
-      'post:hide':    this.onPostHide,
-      'post:unhide':  this.onPostUnhide,
+      [eventNames.POST_CREATED]:   this.onPostNew,
+      [eventNames.POST_UPDATED]:   this.onPostUpdate,
+      [eventNames.POST_DESTROYED]: this.onPostDestroy,
+      [eventNames.POST_HIDDEN]:    this.onPostHide,
+      [eventNames.POST_UNHIDDEN]:  this.onPostUnhide,
 
-      'comment:new':     this.onCommentNew,
-      'comment:update':  this.onCommentUpdate,
-      'comment:destroy': this.onCommentDestroy,
+      [eventNames.COMMENT_CREATED]:   this.onCommentNew,
+      [eventNames.COMMENT_UPDATED]:   this.onCommentUpdate,
+      [eventNames.COMMENT_DESTROYED]: this.onCommentDestroy,
 
-      'like:new':            this.onLikeNew,
-      'like:remove':         this.onLikeRemove,
-      'comment_like:new':    this.onCommentLikeNew,
-      'comment_like:remove': this.onCommentLikeRemove,
+      [eventNames.LIKE_ADDED]:           this.onLikeNew,
+      [eventNames.LIKE_REMOVED]:         this.onLikeRemove,
+      [eventNames.COMMENT_LIKE_ADDED]:   this.onCommentLikeNew,
+      [eventNames.COMMENT_LIKE_REMOVED]: this.onCommentLikeRemove,
 
-      'global:user:update': this.onGlobalUserUpdate,
+      [eventNames.GLOBAL_USER_UPDATED]: this.onGlobalUserUpdate,
     };
 
     try {
@@ -257,9 +252,9 @@ export default class PubsubListener {
       if (post && user.id) {
         const banIds = bansMap.get(user.id) || [];
         if (
-          ((type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy))
-          || ((type === 'like:new') && banIds.includes(json.users.id))
-          || ((type === 'comment_like:new' || type === 'comment_like:remove') &&
+          ((type === eventNames.COMMENT_CREATED || type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
+          || ((type === eventNames.LIKE_ADDED) && banIds.includes(json.users.id))
+          || ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
             (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
         ) {
           return;
@@ -279,7 +274,7 @@ export default class PubsubListener {
   // Message-handlers follow
   onPostDestroy = async ({ postId, rooms }) => {
     const json = { meta: { postId } };
-    const type = 'post:destroy';
+    const type = eventNames.POST_DESTROYED;
     await this.broadcastMessage(rooms, type, json);
   };
 
@@ -287,7 +282,7 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(data.postId);
     const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:new';
+    const type = eventNames.POST_CREATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
@@ -296,7 +291,7 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(data.postId);
     const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:update';
+    const type = eventNames.POST_UPDATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
@@ -312,7 +307,7 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(comment.postId);
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:new';
+    const type = eventNames.COMMENT_CREATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
@@ -322,7 +317,7 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(comment.postId);
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:update';
+    const type = eventNames.COMMENT_UPDATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
@@ -330,7 +325,7 @@ export default class PubsubListener {
   onCommentDestroy = async ({ postId, commentId, rooms }) => {
     const json = { postId, commentId };
     const post = await dbAdapter.getPostById(postId);
-    const type = 'comment:destroy';
+    const type = eventNames.COMMENT_DESTROYED;
     await this.broadcastMessage(rooms, type, json, post);
   };
 
@@ -345,7 +340,7 @@ export default class PubsubListener {
     const json = await new LikeSerializer(user).promiseToJSON();
     json.meta = { postId };
 
-    const type = 'like:new';
+    const type = eventNames.LIKE_ADDED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post);
   };
@@ -353,7 +348,7 @@ export default class PubsubListener {
   onLikeRemove = async ({ userId, postId, rooms }) => {
     const json = { meta: { userId, postId } };
     const post = await dbAdapter.getPostById(postId);
-    const type = 'like:remove';
+    const type = eventNames.LIKE_REMOVED;
     await this.broadcastMessage(rooms, type, json, post);
   };
 
@@ -363,7 +358,7 @@ export default class PubsubListener {
     const json = { meta: { postId } };
     const post = await dbAdapter.getPostById(postId);
 
-    const type = 'post:hide';
+    const type = eventNames.POST_HIDDEN;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
@@ -374,7 +369,7 @@ export default class PubsubListener {
     const json = { meta: { postId } };
     const post = await dbAdapter.getPostById(postId);
 
-    const type = 'post:unhide';
+    const type = eventNames.POST_UNHIDDEN;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
@@ -402,7 +397,7 @@ export default class PubsubListener {
     }
 
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
-    if (msgType === 'comment_like:new') {
+    if (msgType === eventNames.COMMENT_LIKE_ADDED) {
       json.comments.userId = data.likerUUID;
     } else {
       json.comments.userId = data.unlikerUUID;
@@ -430,7 +425,7 @@ export default class PubsubListener {
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
 
-    if (type !== 'post:new') {
+    if (type !== eventNames.POST_CREATED) {
       const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
       if (isHidden) {
         json.posts.isHidden = true;
