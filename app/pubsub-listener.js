@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy, noop } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -17,7 +17,6 @@ promisifyAll(jwt);
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
-const noOp = () => {};
 
 export default class PubsubListener {
   app;
@@ -76,12 +75,8 @@ export default class PubsubListener {
       debug(`[socket.id=${socket.id}] error`, e);
     });
 
-    socket.on('auth', async (data, callback) => {
+    socket.on('auth', async (data, callback = noop) => {
       debug(`[socket.id=${socket.id}] 'auth' request`);
-
-      if (!isFunction(callback)) {
-        callback = noOp;
-      }
 
       try {
         if (!isPlainObject(data)) {
@@ -113,12 +108,8 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('subscribe', async (data, callback) => {
+    socket.on('subscribe', async (data, callback = noop) => {
       debug(`[socket.id=${socket.id}] 'subscribe' request`);
-
-      if (!isFunction(callback)) {
-        callback = noOp;
-      }
 
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
@@ -173,12 +164,8 @@ export default class PubsubListener {
       }
     });
 
-    socket.on('unsubscribe', (data, callback) => {
+    socket.on('unsubscribe', async (data, callback = noop) => {
       debug(`[socket.id=${socket.id}] 'unsubscribe' request`);
-
-      if (!isFunction(callback)) {
-        callback = noOp;
-      }
 
       if (!isPlainObject(data)) {
         callback({ success: false, message: 'request without data' });
