@@ -37,7 +37,7 @@ export default class Session {
     return new Promise((resolve, reject) => {
       this.socket.emit(event, data, (result) => {
         if (result.success) {
-          resolve(true);
+          resolve(result);
         } else {
           reject(new Error(result.message));
         }
