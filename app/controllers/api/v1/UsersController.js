@@ -172,24 +172,19 @@ export default class UsersController {
     timer.stop()
   }
 
-  static async show(ctx) {
-    const feed = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
-
-    if (null === feed) {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
+  static show = monitored('users.show', async (ctx) => {
+    const { username } = ctx.params;
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
+    if (!user || user.hashedPassword === '') {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
 
-    // cleaned accounts have password-hash set to empty string
-    if (feed.hashedPassword === '') {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
-    }
+    const serUsers = await serializeUsersByIds([user.id]);
+    const users = serUsers.find((u) => u.id === user.id);
+    const admins = serUsers.filter((u) => u.type === 'user');
 
-    // HACK: feed.isUser() ? UserSerializer : GroupSerializer
-    const serializer = UserSerializer
-
-    const json = await new serializer(feed).promiseToJSON()
-    ctx.body = json
-  }
+    ctx.body = { users, admins };
+  });
 
   static subscribers = monitored('users.subscribers', async (ctx) => {
     const viewer = ctx.state.user || null;
