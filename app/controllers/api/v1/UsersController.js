@@ -210,6 +210,7 @@ export default class UsersController {
       }
     }
 
+    const timer = monitor.timer('users.subscribers')
     const timeline = await user.getPostsTimeline()
     const subscribers = await timeline.getSubscribers()
     const jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
@@ -224,6 +225,7 @@ export default class UsersController {
     }, { subscribers: [] })
 
     ctx.body = await json;
+    timer.stop()
   }
 
   static async subscriptions(ctx) {
@@ -245,6 +247,7 @@ export default class UsersController {
       }
     }
 
+    const timer = monitor.timer('users.subscriptions')
     const subscriptions = await user.getSubscriptions()
     const jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
 
@@ -264,6 +267,7 @@ export default class UsersController {
     json.subscribers = _.values(json.subscribers)
 
     ctx.body = json
+    timer.stop()
   }
 
   static async ban(ctx) {
@@ -332,6 +336,7 @@ export default class UsersController {
       throw new ForbiddenException('This user prevented your from subscribing to them')
     }
 
+    const timer = monitor.timer('users.subscribe')
     await ctx.state.user.subscribeToUsername(username)
     if ('user' === user.type) {
       await EventService.onUserSubscribed(ctx.state.user.intId, user.intId);
@@ -340,6 +345,7 @@ export default class UsersController {
     }
     const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
     ctx.body = json
+    timer.stop()
   }
 
   static async unsubscribeUser(ctx) {
