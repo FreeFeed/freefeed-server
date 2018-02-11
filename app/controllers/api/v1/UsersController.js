@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
-import { dbAdapter, MyProfileSerializer, User, UserSerializer } from '../../../models'
+import { dbAdapter, MyProfileSerializer, User } from '../../../models'
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
