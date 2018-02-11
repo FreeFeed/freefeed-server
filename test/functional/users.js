@@ -633,7 +633,7 @@ describe('UsersController', () => {
           data.should.have.property('users')
           data.users.should.have.property('screenName')
           data.users.screenName.should.eql(oldScreenName) // old screenName
-          data.users.should.not.have.property('description') // no description property (since it's empty)
+          data.users.description.should.eql('') // empty description
         }
 
         // Second, only update description (screenName shouldn't change)
