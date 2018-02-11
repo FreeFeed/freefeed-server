@@ -237,7 +237,7 @@ export default class UsersController {
       throw new ForbiddenException('User is private')
     }
 
-    const timelines = await user.getSubscriptions()
+    const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
     const timelineOwnersIds = timelines.map((t) => t.userId);
 
     const subscribers = await serializeUsersByIds(timelineOwnersIds);
