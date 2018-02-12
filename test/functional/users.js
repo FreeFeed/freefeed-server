@@ -561,6 +561,8 @@ describe('UsersController', () => {
           () => expect(getSubscriptions(viewer), 'to be rejected with', /^403 /));
         it('should return 200 OK to authorized and subscribed viewer',
           () => expect(getSubscriptions(subscribed), 'to be fulfilled'));
+        it('should return 200 OK to user themself',
+          () => expect(getSubscriptions(user), 'to be fulfilled'));
       });
     });
 
@@ -657,6 +659,8 @@ describe('UsersController', () => {
           () => expect(getSubscribers(viewer), 'to be rejected with', /^403 /));
         it('should return 200 OK to authorized and subscribed viewer',
           () => expect(getSubscribers(subscribed), 'to be fulfilled'));
+        it('should return 200 OK to user themself',
+          () => expect(getSubscribers(user), 'to be fulfilled'));
       });
     });
 
