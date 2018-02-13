@@ -194,3 +194,14 @@ export const allGroupsResponse = {
   }),
   users: expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
 };
+
+export const userSubscriptionsResponse = {
+  subscribers:   expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
+  subscriptions: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    id:   expect.it('to satisfy', UUID),
+    name: expect.it('to be one of', ['Posts', 'Comments', 'Likes']),
+    user: expect.it('to satisfy', UUID),
+  }),
+};
+
+export const userSubscribersResponse = { subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', user) };
