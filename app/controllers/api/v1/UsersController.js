@@ -209,7 +209,9 @@ export default class UsersController {
       throw new ForbiddenException('User is private')
     }
 
-    const subscribers = await serializeUsersByIds(subscriberIds);
+    const serUsers = await serializeUsersByIds(subscriberIds);
+    // Sorting by 'random' id to mask actual subscription order
+    const subscribers = _.sortBy(serUsers, 'id');
 
     ctx.body = { subscribers };
   });
@@ -240,12 +242,14 @@ export default class UsersController {
     const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
     const timelineOwnersIds = timelines.map((t) => t.userId);
 
-    const subscribers = await serializeUsersByIds(timelineOwnersIds);
-    const subscriptions = timelines.map((t) => ({
+    const serUsers = await serializeUsersByIds(timelineOwnersIds);
+    // Sorting by 'random' id to mask actual subscription order
+    const subscribers = _.sortBy(serUsers, 'id');
+    const subscriptions = _.sortBy(timelines.map((t) => ({
       id:   t.id,
       name: t.name,
       user: t.userId,
-    }));
+    })), 'id');
 
     ctx.body = { subscribers, subscriptions };
   });
