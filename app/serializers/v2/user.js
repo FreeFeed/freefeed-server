@@ -27,6 +27,7 @@ const selfUserFields = [
   'frontendPreferences',
   'privateMeta',
   'preferences',
+  'providers',
 ];
 
 export async function serializeSelfUser(user) {

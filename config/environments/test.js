@@ -87,6 +87,15 @@ export function getConfig() {
     options: {}
   };
 
+  config.oauth = {
+    facebookClientId:     'test',
+    facebookClientSecret: 'test',
+    googleClientId:       'test',
+    googleClientSecret:   'test',
+    githubClientId:       'test',
+    githubClientSecret:   'test',
+  };
+
   config.postgres = postgresConfig;
 
   return config;

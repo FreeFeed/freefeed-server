@@ -120,6 +120,15 @@ export function getConfig() {
     options: {}
   };
 
+  config.oauth = {
+    facebookClientId:     '',
+    facebookClientSecret: '',
+    googleClientId:       '',
+    googleClientSecret:   '',
+    githubClientId:       '',
+    githubClientSecret:   '',
+  };
+
   config.postgres = postgresConfig;
 
   return config;

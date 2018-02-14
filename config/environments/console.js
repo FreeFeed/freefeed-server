@@ -114,5 +114,14 @@ export function getConfig() {
     options: {}
   };
 
+  config.oauth = {
+    facebookClientId:     '',
+    facebookClientSecret: '',
+    googleClientId:       '',
+    googleClientSecret:   '',
+    githubClientId:       '',
+    githubClientSecret:   '',
+  };
+
   return config;
 }
