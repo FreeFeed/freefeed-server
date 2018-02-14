@@ -39,6 +39,7 @@ export function addModel(dbAdapter) {
     this.description = params.description || ''
     this.frontendPreferences = params.frontendPreferences || {}
     this.preferences = validateUserPrefs(params.preferences, true);
+    this.providers = params.providers || {};
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
