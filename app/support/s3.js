@@ -9,5 +9,10 @@ export function getS3(storageConfig) {
     'secretAccessKey': storageConfig.secretAccessKey || null
   };
 
+  if ('endpoint' in storageConfig) {
+    // useful for usage with DigitalOcean Spaces or other S3-compatible services
+    s3Config.endpoint = new aws.Endpoint(storageConfig.endpoint);
+  }
+
   return new aws.S3(s3Config);
 }
