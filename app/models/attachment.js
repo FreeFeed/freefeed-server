@@ -1,7 +1,6 @@
 import fs from 'fs'
 import { execFile } from 'child_process';
 
-import aws from 'aws-sdk'
 import { promisify, promisifyAll } from 'bluebird'
 import gm from 'gm'
 import meta from 'musicmetadata'
@@ -11,7 +10,7 @@ import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 
-aws.config.setPromisesDependency(Promise);
+import { getS3 } from '../support/s3';
 import { load as configLoader } from '../../config/config'
 
 
@@ -400,10 +399,7 @@ export function addModel(dbAdapter) {
 
   // Upload original attachment or its thumbnail to the S3 bucket
   Attachment.prototype.uploadToS3 = async function (sourceFile, destPath) {
-    const s3 = new aws.S3({
-      'accessKeyId':     config.attachments.storage.accessKeyId || null,
-      'secretAccessKey': config.attachments.storage.secretAccessKey || null
-    });
+    const s3 = getS3(config.attachments.storage);
     await s3.putObject({
       ACL:                'public-read',
       Bucket:             config.attachments.storage.bucket,
