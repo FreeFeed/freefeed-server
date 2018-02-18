@@ -163,9 +163,9 @@ describe('UsersControllerV2', () => {
 
       beforeEach(async () => {
         [user, ...readers] = await createTestUsers(readersCount + 1);
-        for (const reader of readers) {
+        for (const reader of readers) {  // eslint-disable-line no-await-in-loop
           // Order is important
-          await subscribeToAsync(reader, user); // eslint-disable-line no-await-in-loop
+          await subscribeToAsync(reader, user);
         }
       });
 
@@ -188,9 +188,9 @@ describe('UsersControllerV2', () => {
 
       beforeEach(async () => {
         [user, ...friends] = await createTestUsers(friendsCount + 1);
-        for (const friend of friends) {
+        for (const friend of friends) {  // eslint-disable-line no-await-in-loop
           // Order is important
-          await subscribeToAsync(user, friend); // eslint-disable-line no-await-in-loop
+          await subscribeToAsync(user, friend);
         }
       });
 

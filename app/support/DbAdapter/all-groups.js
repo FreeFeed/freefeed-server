@@ -32,8 +32,8 @@ const allGroupsTrait = (superClass) => class extends superClass {
         where feed_id = any(:feedUIDs)
         group by feed_id
       `, { feedUIDs });
-    const postsRequest = this.database.raw(`
-        select
+    const postsRequest = this.database.raw(
+      ` select
           user_id as author,
           destination_feed_ids & :feedIntIds as destinations,
           exp(-date_part('epoch', now() - created_at) / :avgInterval) as fade
@@ -42,11 +42,13 @@ const allGroupsTrait = (superClass) => class extends superClass {
         where
           created_at > now() - :cutInterval::interval
           and destination_feed_ids && :feedIntIds
-      `, {
+      `,
+      {
         feedIntIds,
         cutInterval: '100 days',
         avgInterval: 30 * 86400,
-      });
+      }
+    );
 
     const [
       { rows: subscribersRows },

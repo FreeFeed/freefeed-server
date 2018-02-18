@@ -23,10 +23,10 @@ async function main() {
   const clikesData = JSON.parse(file);
   const clikesCount = clikesData.length;
 
-  for (const i in clikesData) {
+  for (const i in clikesData) {  // eslint-disable-line no-await-in-loop
     const clike = clikesData[i];
     process.stdout.write(`Processing clikes: ${parseInt(i) + 1} of ${clikesCount}\r`);
-    const [commentId, userId] = await dbAdapter._getCommentAndUserIntId(clike.comment_id, clike.user_id);  // eslint-disable-line no-await-in-loop
+    const [commentId, userId] = await dbAdapter._getCommentAndUserIntId(clike.comment_id, clike.user_id);
 
     if (!commentId) {
       process.stderr.write(`Can't find comment "${clike.comment_id}": SKIP\n`);
@@ -45,7 +45,7 @@ async function main() {
     };
 
     try {
-      await postgres('comment_likes').insert(payload);  // eslint-disable-line no-await-in-loop
+      await postgres('comment_likes').insert(payload);
     } catch (e) {
       if (e.message.includes('duplicate key value')) {
         continue;
