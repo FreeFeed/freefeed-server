@@ -569,25 +569,26 @@ describe('UsersController', () => {
     describe('Response data', () => {
       const friendsCount = 5;
       let friends;
-      let feeds;
 
       beforeEach(async () => {
         friends = await funcTestHelper.createTestUsers(friendsCount);
         await Promise.all(friends.map((friend) => funcTestHelper.subscribeToAsync(user, friend)));
-        ({ subscriptions: feeds } = await getSubscriptions());
       });
 
-      it('should return valid types of feeds', () => {
+      it('should return valid types of feeds', async () => {
+        const { subscriptions: feeds } = await getSubscriptions();
         for (const { name } of feeds) {
           expect(name, 'to be one of', ['Posts', 'Comments', 'Likes']);
         }
       });
 
-      it('should return valid number of feeds', () => {
+      it('should return valid number of feeds', async () => {
+        const { subscriptions: feeds } = await getSubscriptions();
         expect(feeds, 'to have length', 3 * friendsCount);
       });
 
-      it('should return valid owners of feeds', () => {
+      it('should return valid owners of feeds', async () => {
+        const { subscriptions: feeds } = await getSubscriptions();
         const feedOwners = _.uniq(feeds.map((f) => f.user)).sort();
         const friendIds = friends.map((f) => f.user.id).sort();
         expect(feedOwners, 'to equal', friendIds);
@@ -662,15 +663,14 @@ describe('UsersController', () => {
     describe('Response data', () => {
       const readersCount = 5;
       let readers;
-      let subscribers;
 
       beforeEach(async () => {
         readers = await funcTestHelper.createTestUsers(readersCount);
         await Promise.all(readers.map((reader) => funcTestHelper.subscribeToAsync(reader, user)));
-        ({ subscribers } = await getSubscribers());
       });
 
-      it('should return valid users', () => {
+      it('should return valid users', async () => {
+        const { subscribers } = await getSubscribers();
         const subsIds = subscribers.map((s) => s.id).sort();
         const readerIds = readers.map((r) => r.user.id).sort();
         expect(subsIds, 'to equal', readerIds);
