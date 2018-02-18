@@ -1,6 +1,8 @@
+import _ from 'lodash';
 import monitor from 'monitor-dog';
 import { NotAuthorizedException } from '../../../support/exceptions'
 import { serializeUser } from '../../../serializers/v2/user';
+import { dbAdapter } from '../../../models';
 
 export function monitored(monitorName, handlerFunc) {
   return async (ctx) => {
@@ -46,4 +48,32 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
     }
     return obj;
   };
+}
+
+/**
+ * Serialises users by their ids
+ *
+ * @param {Array.<string>} ids
+ * @returns {Array}
+ */
+export async function serializeUsersByIds(userIds) {
+  // Complement userIds array by the group admins
+  const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds);
+  _.values(adminsAssoc).forEach((ids) => ids.forEach((s) => userIds.push(s)));
+  userIds = _.uniq(userIds);
+
+  // Select users and their stats
+  const [
+    usersAssoc,
+    statsAssoc,
+  ] = await Promise.all([
+    dbAdapter.getUsersByIdsAssoc(userIds),
+    dbAdapter.getUsersStatsAssoc(userIds),
+  ]);
+
+  // Create serializer
+  const serializeUser = userSerializerFunction(usersAssoc, statsAssoc, adminsAssoc);
+
+  // Serialize
+  return Object.keys(usersAssoc).map(serializeUser);
 }

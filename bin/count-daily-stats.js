@@ -76,10 +76,10 @@ async function create_metric(metric, to_date, get_metric) {
 
   dt = await get_next_metric_update_date(metric);
 
-  while (!dt.isAfter(to_date)) {
+  while (!dt.isAfter(to_date)) {  // eslint-disable-line no-await-in-loop
     const next_date = moment(dt).add(1, 'days');
-    const res = await get_metric(dt, next_date);                 // eslint-disable-line no-await-in-loop
-    await postgres('stats').insert({ dt, metric, value: res });  // eslint-disable-line no-await-in-loop
+    const res = await get_metric(dt, next_date);
+    await postgres('stats').insert({ dt, metric, value: res });
 
     process.stdout.write(`Creating stats for ${metric} for ${dt.format(`YYYY-MM-DD`)}: ${res}\n`);
 
@@ -191,7 +191,8 @@ async function main() {
   await create_metric('active_users', to_date, async (dt) => {
     const day = dt.format(`YYYY-MM-DD`)
 
-    const sql = pgFormat(`
+    const sql = pgFormat(
+      `
         select count (distinct user_id) from 
           (select distinct (user_id) from posts where date_trunc('day',created_at) = %L
             union select distinct (user_id) from comments where date_trunc('day',created_at) = %L

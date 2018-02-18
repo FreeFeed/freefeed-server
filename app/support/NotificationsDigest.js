@@ -4,7 +4,7 @@ import createDebug from 'debug';
 import { dbAdapter } from '../models';
 import { serializeEvents } from '../serializers/v2/event';
 import { sendEventsDigestEmail } from '../mailers/NotificationDigestMailer';
-import { COUNTABLE_EVENT_TYPES } from './EventTypes';
+import { DIGEST_EVENT_TYPES } from './EventTypes';
 
 
 export async function sendEmails() {
@@ -32,7 +32,7 @@ export async function sendEmails() {
 
     debug(`[${u.username}] looking for notifications since ${digestInterval}…`);
 
-    const events = await dbAdapter.getUserEvents(u.intId, COUNTABLE_EVENT_TYPES, null, null, notificationsQueryDate);
+    const events = await dbAdapter.getUserEvents(u.intId, DIGEST_EVENT_TYPES, null, null, notificationsQueryDate);
     if (!events.length) {
       debug(`[${u.username}] no relevant notifications found: SKIP`);
       return;

@@ -83,51 +83,62 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     return responses.map(initUserObject)
   }
 
-  async subscribeUserToTimelines(timelineIds, currentUserId) {
-    const subsPromises = timelineIds.map((id) => {
-      const currentTime = new Date().toISOString()
-
-      const payload = {
-        feed_id:    id,
-        user_id:    currentUserId,
-        created_at: currentTime
-      }
-      return this.database('subscriptions').returning('id').insert(payload)
-    })
-    await Promise.all(subsPromises)
-
-    const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
-
-    const res = await this.database.raw(
-      'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids | ?) WHERE uid = ? RETURNING subscribed_feed_ids',
-      [feedIntIds, currentUserId]
-    );
-
-    await this.cacheFlushUser(currentUserId)
-
-    return res.rows[0].subscribed_feed_ids
+  async subscribeUserToTimelines(feedIds, userId) {
+    let feedIntIds;
+    await this.database.transaction(async (trx) => {
+      // Lock users table row
+      await trx.raw('select 1 from users where uid = :userId for update', { userId });
+      // Insert multiple rows from array at once
+      await trx.raw(
+        `insert into subscriptions (user_id, feed_id) 
+         select :userId, x from unnest(:feedIds::uuid[]) x on conflict do nothing`,
+        { userId, feedIds }
+      );
+      // Update users table
+      feedIntIds = await actualizeUserSubscribedFeedIds(trx, userId);
+      // Update users cache
+      await this.cacheFlushUser(userId);
+    });
+    return feedIntIds;
   }
 
-  async unsubscribeUserFromTimelines(timelineIds, currentUserId) {
-    const unsubsPromises = timelineIds.map((id) => {
-      return this.database('subscriptions').where({
-        feed_id: id,
-        user_id: currentUserId
-      }).delete()
-    })
-    await Promise.all(unsubsPromises)
-
-    const feedIntIds = await this.getTimelinesIntIdsByUUIDs(timelineIds)
-
-    const res = await this.database.raw(
-      'UPDATE users SET subscribed_feed_ids = (subscribed_feed_ids - ?) WHERE uid = ? RETURNING subscribed_feed_ids',
-      [feedIntIds, currentUserId]
-    );
-
-    await this.cacheFlushUser(currentUserId)
-
-    return res.rows[0].subscribed_feed_ids
+  async unsubscribeUserFromTimelines(feedIds, userId) {
+    let feedIntIds;
+    await this.database.transaction(async (trx) => {
+      // Lock users table row
+      await trx.raw('select 1 from users where uid = :userId for update', { userId });
+      // Delete subscriptions records
+      await trx.raw(
+        `delete from subscriptions where user_id = :userId and feed_id = any(:feedIds)`,
+        { userId, feedIds }
+      );
+      // Update users table
+      feedIntIds = await actualizeUserSubscribedFeedIds(trx, userId);
+      // Update users cache
+      await this.cacheFlushUser(userId);
+    });
+    return feedIntIds;
   }
 };
 
 export default subscriptionsTrait;
+
+/**
+ * Update users.subscribed_feed_ids from 'subscriptions' table
+ * and return the actual value
+ *
+ * @param {object} db DB connection or transaction
+ * @param {string} userId
+ * @returns {Array.<number>}
+ */
+async function actualizeUserSubscribedFeedIds(db, userId) {
+  const { rows } = await db.raw(
+    `select f.id from
+        feeds f
+        join subscriptions s on s.feed_id = f.uid and s.user_id = :userId`,
+    { userId }
+  );
+  const feedIntIds = map(rows, 'id');
+  await db.raw('update  users set subscribed_feed_ids = :feedIntIds where uid = :userId', { feedIntIds, userId });
+  return feedIntIds;
+}

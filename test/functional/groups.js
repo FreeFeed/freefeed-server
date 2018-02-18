@@ -169,8 +169,10 @@ describe('GroupsController', () => {
               const subIds = res.body.subscriptions.map((sub) => sub.user)
               subIds.should.contain(newGroupId)
               const users = res.body.subscribers
-              users.length.should.eql(1)
-              users[0].type.should.eql('group')
+              const userIds = users.map((u) => u.id)
+              users.length.should.eql(2) // group and their admin
+              userIds.should.contain(newGroupId)
+              userIds.should.contain(context.user.id)
               done()
             })
         })
@@ -268,7 +270,7 @@ describe('GroupsController', () => {
         data.should.have.property('users')
         data.users.should.have.property('screenName')
         data.users.screenName.should.eql(oldScreenName) // old screenName
-        data.users.should.not.have.property('description') // no description property (since it's empty)
+        data.users.description.should.eql('') // empty description
       }
 
       // Second, only update description (screenName shouldn't change)

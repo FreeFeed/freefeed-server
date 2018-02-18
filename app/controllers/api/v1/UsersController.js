@@ -2,12 +2,12 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 
-import { dbAdapter, MyProfileSerializer, SubscriberSerializer, SubscriptionSerializer, User, UserSerializer } from '../../../models'
+import { dbAdapter, MyProfileSerializer, User } from '../../../models'
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
-
+import { monitored, serializeUsersByIds } from '../v2/helpers';
 
 const config = configLoader()
 
@@ -172,99 +172,87 @@ export default class UsersController {
     timer.stop()
   }
 
-  static async show(ctx) {
-    const feed = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
-
-    if (null === feed) {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
-    }
-
-    // cleaned accounts have password-hash set to empty string
-    if (feed.hashedPassword === '') {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
-    }
-
-    // HACK: feed.isUser() ? UserSerializer : GroupSerializer
-    const serializer = UserSerializer
-
-    const json = await new serializer(feed).promiseToJSON()
-    ctx.body = json
-  }
-
-  static async subscribers(ctx) {
+  static show = monitored('users.show', async (ctx) => {
     const { username } = ctx.params;
     const user = await dbAdapter.getFeedOwnerByUsername(username)
-
-    if (null === user) {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
-    }
-
-    if (!ctx.state.user && user.isProtected === '1') {
-      throw new ForbiddenException('User is protected')
-    }
-
-    if (user.isPrivate === '1') {
-      const subscriberIds = await user.getSubscriberIds()
-      if (ctx.state.user.id !== user.id && !subscriberIds.includes(ctx.state.user.id)) {
-        throw new ForbiddenException('User is private')
-      }
-    }
-
-    const timeline = await user.getPostsTimeline()
-    const subscribers = await timeline.getSubscribers()
-    const jsonPromises = subscribers.map((subscriber) => new SubscriberSerializer(subscriber).promiseToJSON())
-
-    const json = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
-      const obj = await jsonPromise
-      const memo = await memoPromise
-
-      memo.subscribers.push(obj.subscribers)
-
-      return memo
-    }, { subscribers: [] })
-
-    ctx.body = await json;
-  }
-
-  static async subscriptions(ctx) {
-    const { username } = ctx.params;
-    const user = await dbAdapter.getUserByUsername(username)
-
-    if (null === user) {
+    if (!user || user.hashedPassword === '') {
       throw new NotFoundException(`User "${ctx.params.username}" is not found`)
     }
 
-    if (!ctx.state.user && user.isProtected === '1') {
+    const serUsers = await serializeUsersByIds([user.id]);
+    const users = serUsers.find((u) => u.id === user.id);
+    const admins = serUsers.filter((u) => u.type === 'user');
+
+    ctx.body = { users, admins };
+  });
+
+  static subscribers = monitored('users.subscribers', async (ctx) => {
+    const viewer = ctx.state.user || null;
+
+    const { username } = ctx.params;
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
+    if (!user || user.hashedPassword === '') {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
+    }
+
+    if (!viewer && user.isPrivate === '1') {
+      throw new ForbiddenException('User is private')
+    }
+
+    if (!viewer && user.isProtected === '1') {
       throw new ForbiddenException('User is protected')
     }
 
-    if (user.isPrivate === '1') {
-      const subscriberIds = await user.getSubscriberIds()
-      if (ctx.state.user.id !== user.id && !subscriberIds.includes(ctx.state.user.id)) {
-        throw new ForbiddenException('User is private')
-      }
+    const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+
+    if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
+      throw new ForbiddenException('User is private')
     }
 
-    const subscriptions = await user.getSubscriptions()
-    const jsonPromises = subscriptions.map((subscription) => new SubscriptionSerializer(subscription).promiseToJSON())
+    const serUsers = await serializeUsersByIds(subscriberIds);
+    // Sorting by 'random' id to mask actual subscription order
+    const subscribers = _.sortBy(serUsers, 'id');
 
-    const reducedJsonPromise = _.reduce(jsonPromises, async (memoPromise, jsonPromise) => {
-      const obj = await jsonPromise
-      const memo = await memoPromise
+    ctx.body = { subscribers };
+  });
 
-      const [user] = obj.subscribers;
+  static subscriptions = monitored('users.subscriptions', async (ctx) => {
+    const viewer = ctx.state.user || null;
 
-      memo.subscriptions.push(obj.subscriptions)
-      memo.subscribers[user.id] = user
+    const { username } = ctx.params;
+    const user = await dbAdapter.getFeedOwnerByUsername(username)
+    if (!user || user.hashedPassword === '') {
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
+    }
 
-      return memo
-    }, { subscriptions: [], subscribers: {} })
+    if (!viewer && user.isPrivate === '1') {
+      throw new ForbiddenException('User is private')
+    }
 
-    const json = await reducedJsonPromise
-    json.subscribers = _.values(json.subscribers)
+    if (!viewer && user.isProtected === '1') {
+      throw new ForbiddenException('User is protected')
+    }
 
-    ctx.body = json
-  }
+    const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+
+    if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
+      throw new ForbiddenException('User is private')
+    }
+
+    const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
+    const timelineOwnersIds = timelines.map((t) => t.userId);
+
+    const serUsers = await serializeUsersByIds(timelineOwnersIds);
+    // Sorting by 'random' id to mask actual subscription order
+    const subscribers = _.sortBy(serUsers, 'id');
+    const subscriptions = _.sortBy(timelines.map((t) => ({
+      id:   t.id,
+      name: t.name,
+      user: t.userId,
+    })), 'id');
+
+    ctx.body = { subscribers, subscriptions };
+  });
 
   static async ban(ctx) {
     if (!ctx.state.user) {
