@@ -1,9 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
+import fetch from 'node-fetch'
 import _ from 'lodash'
 import { mkdirp } from 'mkdirp'
 import request from 'superagent'
 import { promisify } from 'bluebird'
+import expect from 'unexpected'
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
@@ -11,7 +13,7 @@ import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
-
+import * as schema from './schemaV2-helper';
 
 const mkdirpAsync = promisify(mkdirp)
 const config = configLoader()
@@ -382,48 +384,6 @@ describe('UsersController', () => {
     })
   })
 
-  describe('#subscribers()', () => {
-    let userA, userB, authTokenB;
-
-    beforeEach(async () => {
-      [userA, userB] = await Promise.all([
-        funcTestHelper.createUserAsync('Luna', 'password'),
-        funcTestHelper.createUserAsync('Mars', 'password')
-      ])
-
-      authTokenB = userB.authToken
-
-      const body = 'Post body'
-      await funcTestHelper.createAndReturnPost(userA, body)
-      await funcTestHelper.subscribeToAsync(userB, userA)
-    })
-
-    it('should return list of subscribers', (done) => {
-      request
-        .get(`${app.context.config.host}/v1/users/${userA.username}/subscribers`)
-        .query({ authToken: authTokenB })
-        .end((err, res) => {
-          res.body.should.not.be.empty
-          res.body.should.have.property('subscribers')
-          res.body.subscribers.should.not.be.empty
-          res.body.subscribers.length.should.eql(1)
-          res.body.subscribers[0].should.have.property('id')
-          res.body.subscribers[0].username.should.eql(userB.username.toLowerCase())
-          done()
-        })
-    })
-
-    it('should return list of subscribers of public user without authorization', (done) => {
-      request
-        .get(`${app.context.config.host}/v1/users/${userA.username}/subscribers`)
-        .end((err, res) => {
-          res.body.should.not.be.empty
-          res.body.should.have.property('subscribers')
-          done()
-        })
-    })
-  })
-
   describe('#unsubscribe()', () => {
     let userA, userB, authTokenA, authTokenB;
 
@@ -543,48 +503,180 @@ describe('UsersController', () => {
   })
 
   describe('#subscriptions()', () => {
-    let userA, userB, authTokenB;
+    let user;
+    const getSubscriptions = async (viewerCtx = null) => {
+      const headers = {};
+      if (viewerCtx !== null) {
+        headers['X-Authentication-Token'] = viewerCtx.authToken;
+      }
+      const resp = await fetch(`${app.context.config.host}/v1/users/${user.username}/subscriptions`, { headers });
+      const json = await resp.json();
+      if (!resp.ok) {
+        const message = json.err ? `${resp.status} ${resp.statusText}: ${json.err}` : `${resp.status} ${resp.statusText}`;
+        throw new Error(message);
+      }
+      expect(json, 'to exhaustively satisfy', schema.userSubscriptionsResponse);
+      return json;
+    };
 
     beforeEach(async () => {
-      [userA, userB] = await Promise.all([
-        funcTestHelper.createUserAsync('Luna', 'password'),
-        funcTestHelper.createUserAsync('Mars', 'password')
-      ])
+      user = await funcTestHelper.createTestUser();
+    });
 
-      authTokenB = userB.authToken
+    describe('Access control', () => {
+      let viewer;
+      beforeEach(async () => {
+        viewer = await funcTestHelper.createTestUser();
+      });
 
-      await funcTestHelper.subscribeToAsync(userB, userA)
-    })
+      describe('User is public', () => {
+        it('should return 200 OK to anonymous viewer',
+          () => expect(getSubscriptions(), 'to be fulfilled'));
+        it('should return 200 OK to authorized viewer',
+          () => expect(getSubscriptions(viewer), 'to be fulfilled'));
+      });
 
-    it('should return list of subscriptions', (done) => {
-      request
-        .get(`${app.context.config.host}/v1/users/${userB.username}/subscriptions`)
-        .query({ authToken: authTokenB })
-        .end((err, res) => {
-          res.body.should.not.be.empty
-          res.body.should.have.property('subscriptions')
-          const types = ['Comments', 'Likes', 'Posts']
+      describe('User is protected', () => {
+        beforeEach(async () => {
+          await funcTestHelper.goProtected(user);
+        });
 
-          for (const feed of res.body.subscriptions) {
-            if (!types.includes(feed.name)) {
-              done('unexpected subscription');
-            }
-          }
+        it('should return 403 Forbidden to anonymous viewer',
+          () => expect(getSubscriptions(), 'to be rejected with', /^403 /));
+        it('should return 200 OK to authorized viewer',
+          () => expect(getSubscriptions(viewer), 'to be fulfilled'));
+      });
 
-          done();
-        })
-    })
+      describe('User is private', () => {
+        let subscribed;
+        beforeEach(async () => {
+          subscribed = await funcTestHelper.createTestUser();
+          funcTestHelper.subscribeToAsync(subscribed, user);
+          await funcTestHelper.goPrivate(user);
+        });
 
-    it('should return list of subscriptions of public user without authorization', (done) => {
-      request
-        .get(`${app.context.config.host}/v1/users/${userB.username}/subscriptions`)
-        .end((err, res) => {
-          res.body.should.not.be.empty
-          res.body.should.have.property('subscriptions')
-          done()
-        })
-    })
-  })
+        it('should return 403 Forbidden to anonymous viewer',
+          () => expect(getSubscriptions(), 'to be rejected with', /^403 /));
+        it('should return 403 Forbidden to authorized but not subscribed viewer',
+          () => expect(getSubscriptions(viewer), 'to be rejected with', /^403 /));
+        it('should return 200 OK to authorized and subscribed viewer',
+          () => expect(getSubscriptions(subscribed), 'to be fulfilled'));
+        it('should return 200 OK to user themself',
+          () => expect(getSubscriptions(user), 'to be fulfilled'));
+      });
+    });
+
+    describe('Response data', () => {
+      const friendsCount = 5;
+      let friends;
+
+      beforeEach(async () => {
+        friends = await funcTestHelper.createTestUsers(friendsCount);
+        await Promise.all(friends.map((friend) => funcTestHelper.subscribeToAsync(user, friend)));
+      });
+
+      it('should return valid types of feeds', async () => {
+        const { subscriptions: feeds } = await getSubscriptions();
+        for (const { name } of feeds) {
+          expect(name, 'to be one of', ['Posts', 'Comments', 'Likes']);
+        }
+      });
+
+      it('should return valid number of feeds', async () => {
+        const { subscriptions: feeds } = await getSubscriptions();
+        expect(feeds, 'to have length', 3 * friendsCount);
+      });
+
+      it('should return valid owners of feeds', async () => {
+        const { subscriptions: feeds } = await getSubscriptions();
+        const feedOwners = _.uniq(feeds.map((f) => f.user)).sort();
+        const friendIds = friends.map((f) => f.user.id).sort();
+        expect(feedOwners, 'to equal', friendIds);
+      });
+    });
+  });
+
+  describe('#subscribers()', () => {
+    let user;
+    const getSubscribers = async (viewerCtx = null) => {
+      const headers = {};
+      if (viewerCtx !== null) {
+        headers['X-Authentication-Token'] = viewerCtx.authToken;
+      }
+      const resp = await fetch(`${app.context.config.host}/v1/users/${user.username}/subscribers`, { headers });
+      const json = await resp.json();
+      if (!resp.ok) {
+        const message = json.err ? `${resp.status} ${resp.statusText}: ${json.err}` : `${resp.status} ${resp.statusText}`;
+        throw new Error(message);
+      }
+      expect(json, 'to exhaustively satisfy', schema.userSubscribersResponse);
+      return json;
+    };
+
+    beforeEach(async () => {
+      user = await funcTestHelper.createTestUser();
+    });
+
+    describe('Access control', () => {
+      let viewer;
+      beforeEach(async () => {
+        viewer = await funcTestHelper.createTestUser();
+      });
+
+      describe('User is public', () => {
+        it('should return 200 OK to anonymous viewer',
+          () => expect(getSubscribers(), 'to be fulfilled'));
+        it('should return 200 OK to authorized viewer',
+          () => expect(getSubscribers(viewer), 'to be fulfilled'));
+      });
+
+      describe('User is protected', () => {
+        beforeEach(async () => {
+          await funcTestHelper.goProtected(user);
+        });
+
+        it('should return 403 Forbidden to anonymous viewer',
+          () => expect(getSubscribers(), 'to be rejected with', /^403 /));
+        it('should return 200 OK to authorized viewer',
+          () => expect(getSubscribers(viewer), 'to be fulfilled'));
+      });
+
+      describe('User is private', () => {
+        let subscribed;
+        beforeEach(async () => {
+          subscribed = await funcTestHelper.createTestUser();
+          funcTestHelper.subscribeToAsync(subscribed, user);
+          await funcTestHelper.goPrivate(user);
+        });
+
+        it('should return 403 Forbidden to anonymous viewer',
+          () => expect(getSubscribers(), 'to be rejected with', /^403 /));
+        it('should return 403 Forbidden to authorized but not subscribed viewer',
+          () => expect(getSubscribers(viewer), 'to be rejected with', /^403 /));
+        it('should return 200 OK to authorized and subscribed viewer',
+          () => expect(getSubscribers(subscribed), 'to be fulfilled'));
+        it('should return 200 OK to user themself',
+          () => expect(getSubscribers(user), 'to be fulfilled'));
+      });
+    });
+
+    describe('Response data', () => {
+      const readersCount = 5;
+      let readers;
+
+      beforeEach(async () => {
+        readers = await funcTestHelper.createTestUsers(readersCount);
+        await Promise.all(readers.map((reader) => funcTestHelper.subscribeToAsync(reader, user)));
+      });
+
+      it('should return valid users', async () => {
+        const { subscribers } = await getSubscribers();
+        const subsIds = subscribers.map((s) => s.id).sort();
+        const readerIds = readers.map((r) => r.user.id).sort();
+        expect(subsIds, 'to equal', readerIds);
+      });
+    });
+  });
 
   describe('#update()', () => {
     describe('single-user tests', () => {
@@ -633,7 +725,7 @@ describe('UsersController', () => {
           data.should.have.property('users')
           data.users.should.have.property('screenName')
           data.users.screenName.should.eql(oldScreenName) // old screenName
-          data.users.should.not.have.property('description') // no description property (since it's empty)
+          data.users.description.should.eql('') // empty description
         }
 
         // Second, only update description (screenName shouldn't change)

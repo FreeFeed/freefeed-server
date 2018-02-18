@@ -371,9 +371,9 @@ export function addModel(dbAdapter) {
       if (originalImage === null) {
         originalImage = promisifyAll(gm(originalFile));
       }
-      for (const sizeId of thumbIds) {
+      for (const sizeId of thumbIds) {  // eslint-disable-line no-await-in-loop
         const { w, h } = this.imageSizes[sizeId];
-        await originalImage  // eslint-disable-line no-await-in-loop
+        await originalImage
           .resizeExact(w, h)
           .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
           .autoOrient()

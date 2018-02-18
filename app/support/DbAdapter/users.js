@@ -204,7 +204,8 @@ const usersTrait = (superClass) => class extends superClass {
       .innerJoin('feeds as f', 'f.uid', 's.feed_id')
       .where('f.name', 'Posts')
       .where('f.user_id', userId)
-      .orderBy('s.created_at', 'desc');
+      .orderBy('s.created_at', 'desc')
+      .orderBy('s.id', 'desc');
   }
 
   // Insert record to 'archives' table for the test purposes.

@@ -90,8 +90,9 @@ const commentLikesTrait = (superClass) => class extends superClass {
       bannedUsersIds.push(unexistedUID);
     }
 
-    const commentLikesSQL = pgFormat(`
-      select uid,
+    const commentLikesSQL = pgFormat(
+      `
+        select uid,
             (select coalesce(count(*), '0') from comment_likes cl
               where cl.comment_id = comments.id
                 and cl.user_id not in (select id from users where uid in (%L))
@@ -100,8 +101,8 @@ const commentLikesTrait = (superClass) => class extends superClass {
               where cl.comment_id = comments.id
                 and cl.user_id = %L
             ) as has_own_like
-      from comments
-      where uid in (%L) and user_id not in (%L)`,
+        from comments
+        where uid in (%L) and user_id not in (%L)`,
       bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds
     );
 
@@ -121,8 +122,9 @@ const commentLikesTrait = (superClass) => class extends superClass {
       bannedUsersIds.push(unexistedUID);
     }
 
-    const commentLikesSQL = pgFormat(`
-      select  p.uid,
+    const commentLikesSQL = pgFormat(
+      `
+        select  p.uid,
               (select count(cl.*)
                 from comment_likes cl join comments c
                   on c.id = cl.comment_id

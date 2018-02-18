@@ -55,15 +55,15 @@ describe('PostBubbling', () => {
       await Promise.all([luna.create(), mars.create(), jupiter.create()]);
 
       lunaPosts = []
-      for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body });
+        lunaPosts.push(await post.create());
       }
 
       marsPosts = []
-      for (const body of marsPostsContent) {
-        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of marsPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await mars.newPost({ body });
+        marsPosts.push(await post.create());
       }
     })
 
@@ -388,21 +388,21 @@ describe('PostBubbling', () => {
       await Promise.all([luna.create(), mars.create(), pluto.create(), jupiter.create()]);
 
       lunaPosts = []
-      for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body });
+        lunaPosts.push(await post.create());
       }
 
       marsPosts = []
-      for (const body of marsPostsContent) {
-        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of marsPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await mars.newPost({ body });
+        marsPosts.push(await post.create());
       }
 
       plutoPosts = []
-      for (const body of plutoPostsContent) {
-        const post = await pluto.newPost({ body });  // eslint-disable-line no-await-in-loop
-        plutoPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of plutoPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await pluto.newPost({ body });
+        plutoPosts.push(await post.create());
       }
     })
 
@@ -472,9 +472,9 @@ describe('PostBubbling', () => {
           await mars.subscribeTo(jupiterTimelineId)
           await jupiter.subscribeTo(marsTimelineId)
           const jupiterPosts = []
-          for (const body of jupiterPostsContent) {
-            const post = await jupiter.newPost({ body });  // eslint-disable-line no-await-in-loop
-            jupiterPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+          for (const body of jupiterPostsContent) {  // eslint-disable-line no-await-in-loop
+            const post = await jupiter.newPost({ body });
+            jupiterPosts.push(await post.create());
           }
         })
 
@@ -781,21 +781,21 @@ describe('PostBubbling', () => {
       await luna.update({ isPrivate: '1' })
 
       lunaPosts  = []
-      for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body });
+        lunaPosts.push(await post.create());
       }
 
       marsPosts  = []
-      for (const body of marsPostsContent) {
-        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of marsPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await mars.newPost({ body });
+        marsPosts.push(await post.create());
       }
 
       plutoPosts = []
-      for (const body of plutoPostsContent) {
-        const post = await pluto.newPost({ body });  // eslint-disable-line no-await-in-loop
-        plutoPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of plutoPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await pluto.newPost({ body });
+        plutoPosts.push(await post.create());
       }
     })
 
@@ -848,27 +848,27 @@ describe('PostBubbling', () => {
       easyfoxTimelineId = await easyfox.getPostsTimelineId()
 
       lunaPosts  = []
-      for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body });
+        lunaPosts.push(await post.create());
       }
 
       marsPosts  = []
-      for (const body of marsPostsContent) {
-        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of marsPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await mars.newPost({ body });
+        marsPosts.push(await post.create());
       }
 
       plutoPosts = []
-      for (const body of plutoPostsContent) {
-        const post = await pluto.newPost({ body });  // eslint-disable-line no-await-in-loop
-        plutoPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of plutoPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await pluto.newPost({ body });
+        plutoPosts.push(await post.create());
       }
 
       easyfoxPosts = []
-      for (const body of easyfoxPostsContent) {
-        const post = await easyfox.newPost({ body, timelineIds: [easyfoxTimelineId] });  // eslint-disable-line no-await-in-loop
-        easyfoxPosts.push(await post.create());                                          // eslint-disable-line no-await-in-loop
+      for (const body of easyfoxPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await easyfox.newPost({ body, timelineIds: [easyfoxTimelineId] });
+        easyfoxPosts.push(await post.create());
       }
     })
 
@@ -964,21 +964,21 @@ describe('PostBubbling', () => {
       await Promise.all([luna.create(), mars.create(), pluto.create()]);
 
       lunaPosts = []
-      for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body });
+        lunaPosts.push(await post.create());
       }
 
       marsPosts = []
-      for (const body of marsPostsContent) {
-        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of marsPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await mars.newPost({ body });
+        marsPosts.push(await post.create());
       }
 
       plutoPosts = []
-      for (const body of plutoPostsContent) {
-        const post = await pluto.newPost({ body });  // eslint-disable-line no-await-in-loop
-        plutoPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+      for (const body of plutoPostsContent) {  // eslint-disable-line no-await-in-loop
+        const post = await pluto.newPost({ body });
+        plutoPosts.push(await post.create());
       }
 
       const [marsTimelineId, lunaTimelineId, plutoTimelineId] = await Promise.all([

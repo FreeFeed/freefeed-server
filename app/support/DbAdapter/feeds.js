@@ -133,7 +133,8 @@ const feedsTrait = (superClass) => class extends superClass {
       .from('subscriptions as s')
       .innerJoin('feeds as f', 's.feed_id', 'f.uid')
       .where(where)
-      .orderBy('s.created_at', 'desc');
+      .orderBy('s.created_at', 'desc')
+      .orderBy('s.id', 'desc');
     return records.map(initTimelineObject);
   }
 

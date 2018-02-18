@@ -450,6 +450,19 @@ export async function createUserAsync(username, password, attributes = {}) {
   }
 }
 
+let testUserCounter = 1;
+export function createTestUser() {
+  return createUserAsync(`testuser${testUserCounter++}`, 'pw');
+}
+
+export function createTestUsers(count) {
+  const promises = [];
+  for (let i = 0; i < count; i++) {
+    promises.push(createTestUser());
+  }
+  return Promise.all(promises);
+}
+
 export function whoami(authToken) {
   return postJson(
     '/v1/users/whoami',

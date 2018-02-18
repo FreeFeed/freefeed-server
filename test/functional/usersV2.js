@@ -1,6 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import fetch from 'node-fetch'
+import _ from 'lodash'
 import request from 'superagent'
 import expect from 'unexpected'
 
@@ -15,6 +16,7 @@ import {
   createGroupAsync,
   sendRequestToJoinGroup,
   updateUserAsync,
+  createTestUsers,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 import * as schema from './schemaV2-helper';
@@ -151,6 +153,56 @@ describe('UsersControllerV2', () => {
         }),
         requests:      expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.userOrGroup),
         managedGroups: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', managedGroupSchema),
+      });
+    });
+
+    describe('Subscribers', () => {
+      let user;
+      const readersCount = 5;
+      let readers;
+
+      beforeEach(async () => {
+        [user, ...readers] = await createTestUsers(readersCount + 1);
+        for (const reader of readers) {  // eslint-disable-line no-await-in-loop
+          // Order is important
+          await subscribeToAsync(reader, user);
+        }
+      });
+
+      it('should return subscribers ordered by subscription time (most recent first)', async () => {
+        const { users: { subscribers } } = await fetch(
+          `${app.context.config.host}/v2/users/whoami`,
+          { headers: { 'X-Authentication-Token': user.authToken } }
+        ).then((r) => r.json());
+        const subscribersIds = subscribers.map((s) => s.id);
+        const readersIds = readers.map((fr) => fr.user.id);
+        _.reverse(readersIds);
+        expect(subscribersIds, 'to equal', readersIds);
+      });
+    });
+
+    describe('Subscriptions', () => {
+      let user;
+      const friendsCount = 5;
+      let friends;
+
+      beforeEach(async () => {
+        [user, ...friends] = await createTestUsers(friendsCount + 1);
+        for (const friend of friends) {  // eslint-disable-line no-await-in-loop
+          // Order is important
+          await subscribeToAsync(user, friend);
+        }
+      });
+
+      it('should return subscriptions ordered by subscription time (most recent first)', async () => {
+        const { subscriptions:feeds } = await fetch(
+          `${app.context.config.host}/v2/users/whoami`,
+          { headers: { 'X-Authentication-Token': user.authToken } }
+        ).then((r) => r.json());
+        const feedOwnerIds = feeds.map((f) => f.user);
+        const friendsIds = friends.map((fr) => fr.user.id);
+        _.reverse(friendsIds);
+        expect(feedOwnerIds, 'to equal', friendsIds);
       });
     });
   })
