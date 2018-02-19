@@ -295,12 +295,12 @@ describe('PostsController', () => {
             .post(`${app.context.config.host}/v1/posts`)
             .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end(() => {
-              funcTestHelper.getTimeline('/v1/timelines/filter/directs', ctx.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/filter/directs', ctx.authToken, (err, res) => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].should.have.property('body')
                 res.body.posts[0].body.should.eql(body)
-                funcTestHelper.getTimeline('/v1/timelines/filter/directs', marsCtx.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/filter/directs', marsCtx.authToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].should.have.property('body')

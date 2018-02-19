@@ -661,7 +661,7 @@ export function getRiverOfNews(userContext) {
 }
 
 export function getMyDiscussions(userContext) {
-  return getTimelineAsync('/v1/timelines/filter/discussions', userContext)
+  return getTimelineAsync('/v2/timelines/filter/discussions', userContext)
 }
 
 export function sendResetPassword(email) {
