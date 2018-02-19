@@ -52,7 +52,7 @@ describe('Privates', () => {
           .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body: post }, meta: { feeds: [group, lunaContext.user.username] }, authToken: lunaContext.authToken })
           .end(() => {
-            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
@@ -289,7 +289,7 @@ describe('Privates', () => {
                       res.body.users.should.not.have.property('pendingSubscriptionRequests')
                       res.body.should.not.have.property('requests')
 
-                      funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                      funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                         // check user is subscribed
                         res.should.not.be.empty
                         res.body.should.not.be.empty
@@ -352,7 +352,7 @@ describe('Privates', () => {
                           res.body.users.should.not.have.property('pendingSubscriptionRequests')
                           res.body.should.not.have.property('requests')
 
-                          funcTestHelper.getTimeline('/v1/timelines/home', herculesContext.authToken, (err, res) => {
+                          funcTestHelper.getTimeline('/v2/timelines/home', herculesContext.authToken, (err, res) => {
                             // check user is not subscribed
                             res.should.not.be.empty
                             res.body.should.not.be.empty
@@ -583,7 +583,7 @@ describe('Privates', () => {
           err.status.should.eql(403)
           const error = JSON.parse(err.response.error.text)
           error.err.should.eql('You cannot subscribe to private feed')
-          funcTestHelper.getTimeline('/v1/timelines/home', herculesContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', herculesContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -641,7 +641,7 @@ describe('Privates', () => {
       })
 
       it('that should be visible to subscribers only', (done) => {
-        funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+        funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -675,7 +675,7 @@ describe('Privates', () => {
       })
 
       it('that should be visible to ex-subscribers', (done) => {
-        funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+        funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -738,7 +738,7 @@ describe('Privates', () => {
         })
 
         it('should not influence how mars sees posts in his river of news', (done) => {
-          funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines.posts')
             done()
@@ -773,7 +773,7 @@ describe('Privates', () => {
         })
 
         it('should not show zeus her posts in his river of news', (done) => {
-          funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
             res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
@@ -793,7 +793,7 @@ describe('Privates', () => {
           })
 
           it('should not influence how mars sees posts in his river of news', (done) => {
-            funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               done()
@@ -825,7 +825,7 @@ describe('Privates', () => {
           })
 
           it('should show zeus her posts in his river of news', (done) => {
-            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               res.body.timelines.posts.length.should.eql(1)
@@ -852,7 +852,7 @@ describe('Privates', () => {
         })
 
         it('should not influence how mars sees posts in his river of news', (done) => {
-          funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines.posts')
             done()
@@ -887,7 +887,7 @@ describe('Privates', () => {
         })
 
         it('should not show zeus her posts in his river of news', (done) => {
-          funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
             res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
@@ -907,7 +907,7 @@ describe('Privates', () => {
           })
 
           it('should not influence how mars sees posts in his river of news', (done) => {
-            funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               done()
@@ -939,7 +939,7 @@ describe('Privates', () => {
           })
 
           it('should show zeus her posts in his river of news', (done) => {
-            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               res.body.timelines.posts.length.should.eql(1)

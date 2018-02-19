@@ -315,7 +315,7 @@ describe('UsersController', () => {
 
           funcTestHelper.createPost(lunaContext, body)(() => {
             request
-              .get(`${app.context.config.host}/v1/timelines/home`)
+              .get(`${app.context.config.host}/v2/timelines/home`)
               .query({ authToken: marsContext.authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
@@ -339,7 +339,7 @@ describe('UsersController', () => {
           res.body.users.username.should.eql(marsContext.username.toLowerCase())
 
           request
-            .get(`${app.context.config.host}/v1/timelines/home`)
+            .get(`${app.context.config.host}/v2/timelines/home`)
             .query({ authToken: marsContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -407,7 +407,7 @@ describe('UsersController', () => {
         .send({ authToken: authTokenB })
         .end(() => {
           request
-            .get(`${app.context.config.host}/v1/timelines/home`)
+            .get(`${app.context.config.host}/v2/timelines/home`)
             .query({ authToken: authTokenB })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -1324,7 +1324,7 @@ describe('UsersController', () => {
             .end((err, res) => {
               res.error.should.be.empty
               res.body.should.not.be.empty
-              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
@@ -1363,7 +1363,7 @@ describe('UsersController', () => {
               .send({ authToken: zeusContext.authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
-                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.not.be.empty
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
@@ -1395,7 +1395,7 @@ describe('UsersController', () => {
           .send({ authToken: zeusContext.authToken })
           .end(() => {
             // Now Zeus should see this post in his timeline
-            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
@@ -1405,7 +1405,7 @@ describe('UsersController', () => {
                 .send({ authToken: zeusContext.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
-                  funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                  funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                     res.body.should.not.be.empty
                     res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                     done()
@@ -1420,7 +1420,7 @@ describe('UsersController', () => {
     it('should completely disallow to see banning user posts', (done) => {
       funcTestHelper.createPostForTest(zeusContext, 'Post body', () => {
         // Mars sees the post because he's subscribed to Zeus
-        funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+        funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
@@ -1431,7 +1431,7 @@ describe('UsersController', () => {
             .end((err, res) => {
               res.body.should.not.be.empty
               // Now Mars doesn't see post in his timeline
-              funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
 

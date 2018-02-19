@@ -657,7 +657,7 @@ export function getUserCommentsFeed(feedOwnerContext, readerContext) {
 }
 
 export function getRiverOfNews(userContext) {
-  return getTimelineAsync('/v1/timelines/home', userContext)
+  return getTimelineAsync('/v2/timelines/home', userContext)
 }
 
 export function getMyDiscussions(userContext) {

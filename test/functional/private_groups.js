@@ -540,7 +540,7 @@ describe('PrivateGroups', () => {
                 res.body.users.pendingGroupRequests.should.be.false
 
 
-                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', nonAdminContext.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -656,7 +656,7 @@ describe('PrivateGroups', () => {
                 res.body.users.pendingGroupRequests.should.be.false
 
 
-                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', nonAdminContext.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -756,7 +756,7 @@ describe('PrivateGroups', () => {
             res.should.not.be.empty
             res.error.should.be.empty
 
-            funcTestHelper.getTimeline('/v1/timelines/home', groupMemberContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', groupMemberContext.authToken, (err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')

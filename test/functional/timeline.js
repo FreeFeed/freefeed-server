@@ -28,7 +28,7 @@ describe('TimelinesController', () => {
     })
 
     it('should return empty River Of News', (done) => {
-      funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+      funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -41,7 +41,7 @@ describe('TimelinesController', () => {
     })
 
     it('should not return River Of News for unauthenticated user', (done) => {
-      funcTestHelper.getTimeline('/v1/timelines/home', null, (err) => {
+      funcTestHelper.getTimeline('/v2/timelines/home', null, (err) => {
         err.should.not.be.empty
         err.status.should.eql(401)
         done()
@@ -57,7 +57,7 @@ describe('TimelinesController', () => {
         res.body.posts.should.have.property('body')
         res.body.posts.body.should.eql(body)
 
-        funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+        funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')

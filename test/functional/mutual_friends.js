@@ -49,7 +49,7 @@ describe('MutualFriends', () => {
               .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(() => {
-                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
                   res.body.timelines.name.should.eql('RiverOfNews')
@@ -99,7 +99,7 @@ describe('MutualFriends', () => {
           .end((err, res) => {
             const post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, () => {
-              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                 try {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')

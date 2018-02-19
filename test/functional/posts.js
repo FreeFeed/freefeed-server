@@ -218,12 +218,12 @@ describe('PostsController', () => {
               res.body.posts.should.have.property('body')
               res.body.posts.body.should.eql(body)
 
-              funcTestHelper.getTimeline('/v1/timelines/home', marsCtx.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', marsCtx.authToken, (err, res) => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].should.have.property('body')
                 res.body.posts[0].body.should.eql(body)
-                funcTestHelper.getTimeline('/v1/timelines/home', ctx.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', ctx.authToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].should.have.property('body')
@@ -437,7 +437,7 @@ describe('PostsController', () => {
               .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end((err, res) => {
                 res.status.should.eql(200)
-                funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', otherUserAuthToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].body.should.eql(body)
@@ -460,7 +460,7 @@ describe('PostsController', () => {
               .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end((err, res) => {
                 res.status.should.eql(200)
-                funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', otherUserAuthToken, (err, res) => {
                   res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                   done()
                 })
@@ -486,7 +486,7 @@ describe('PostsController', () => {
                   .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
                   .send({ authToken: ctx.authToken })
                   .end(() => {
-                    funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
+                    funcTestHelper.getTimeline('/v2/timelines/home', otherUserAuthToken, (err, res) => {
                       res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                       done()
                     })
@@ -1070,7 +1070,7 @@ describe('PostsController', () => {
         .post(`${app.context.config.host}/v1/posts/${context.post.id}/hide`)
         .send({ authToken: context.authToken, })
         .end(() => {
-          funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -1088,7 +1088,7 @@ describe('PostsController', () => {
               .post(`${app.context.config.host}/v1/posts/${context.post.id}/unhide`)
               .send({ authToken: context.authToken, })
               .end(() => {
-                funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
