@@ -107,7 +107,7 @@ describe('PostsController', () => {
           res.body.posts.body.should.eql(body)
           const post = res.body.posts
           request
-            .get(`${app.context.config.host}/v1/posts/${post.id}`)
+            .get(`${app.context.config.host}/v2/posts/${post.id}`)
             .query({ authToken: marsCtx.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -255,13 +255,11 @@ describe('PostsController', () => {
                   authTokenC = res.body.users.token
 
                   request
-                    .get(`${app.context.config.host}/v1/posts/${post.id}`)
+                    .get(`${app.context.config.host}/v2/posts/${post.id}`)
                     .query({ authToken: authTokenC })
                     .end((err) => {
                       err.should.not.be.empty
                       err.status.should.eql(403)
-                      const error = JSON.parse(err.response.error.text)
-                      error.err.should.eql('Not found')
                       done()
                     })
                 })
@@ -278,7 +276,7 @@ describe('PostsController', () => {
               const post = res.body.posts
 
               request
-                .get(`${app.context.config.host}/v1/posts/${post.id}`)
+                .get(`${app.context.config.host}/v2/posts/${post.id}`)
                 .query({ authToken: marsCtx.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
@@ -994,7 +992,7 @@ describe('PostsController', () => {
 
     it('should show a post', (done) => {
       request
-        .get(`${app.context.config.host}/v1/posts/${context.post.id}`)
+        .get(`${app.context.config.host}/v2/posts/${context.post.id}`)
         .query({ authToken: context.authToken })
         .end((err, res) => {
           res.body.should.not.be.empty
@@ -1007,7 +1005,7 @@ describe('PostsController', () => {
     })
 
     it('should show a post to anonymous user', async () => {
-      const response = await fetch(`${app.context.config.host}/v1/posts/${context.post.id}`)
+      const response = await fetch(`${app.context.config.host}/v2/posts/${context.post.id}`)
       response.status.should.eql(200, `anonymous user couldn't read post`)
 
       const data = await response.json()
@@ -1016,12 +1014,10 @@ describe('PostsController', () => {
 
     it('should return 404 given an invalid post ID', (done) => {
       request
-        .get(`${app.context.config.host}/v1/posts/123_no_such_id`)
+        .get(`${app.context.config.host}/v2/posts/123_no_such_id`)
         .query({ authToken: context.authToken })
-        .end((err, res) => {
+        .end((err) => {
           err.status.should.eql(404)
-          res.body.err.should.eql("Can't find post")
-
           done()
         })
     })

@@ -669,7 +669,7 @@ export function sendResetPassword(email) {
 }
 
 export async function readPostAsync(postId, userContext) {
-  const relativeUrl = `/v1/posts/${postId}?maxComments=all`
+  const relativeUrl = `/v2/posts/${postId}?maxComments=all`
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {

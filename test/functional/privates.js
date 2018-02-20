@@ -83,7 +83,7 @@ describe('Privates', () => {
                     const [_post] = res.body.posts;
                     _post.body.should.eql(post)
                     request
-                      .get(`${app.context.config.host}/v1/posts/${_post.id}`)
+                      .get(`${app.context.config.host}/v2/posts/${_post.id}`)
                       .query({ authToken: zeusContext.authToken })
                       .end((err, res) => {
                         _.isUndefined(res).should.be.false
@@ -656,14 +656,14 @@ describe('Privates', () => {
           post.body.should.eql(post.body)
           // post should be visible to owner
           request
-            .get(`${app.context.config.host}/v1/posts/${post.id}`)
+            .get(`${app.context.config.host}/v2/posts/${post.id}`)
             .query({ authToken: lunaContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
               res.body.posts.body.should.eql(post.body)
               // post should be visible to subscribers
               request
-                .get(`${app.context.config.host}/v1/posts/${post.id}`)
+                .get(`${app.context.config.host}/v2/posts/${post.id}`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
@@ -685,7 +685,7 @@ describe('Privates', () => {
           res.body.should.have.property('posts')
           // post should not be visible to ex-subscribers
           request
-            .get(`${app.context.config.host}/v1/posts/${post.id}`)
+            .get(`${app.context.config.host}/v2/posts/${post.id}`)
             .query({ authToken: zeusContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -697,13 +697,11 @@ describe('Privates', () => {
 
       it('that should not be visible to users that are not subscribed', (done) => {
         request
-          .get(`${app.context.config.host}/v1/posts/${post.id}`)
+          .get(`${app.context.config.host}/v2/posts/${post.id}`)
           .query({ authToken: herculesContext.authToken })
           .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
-            const error = JSON.parse(err.response.error.text)
-            error.err.should.eql('Not found')
             done()
           })
       })

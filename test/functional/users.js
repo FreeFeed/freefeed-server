@@ -1334,12 +1334,12 @@ describe('UsersController', () => {
 
                 // Zeus should not see comments in single-post view either
                 request
-                  .get(`${app.context.config.host}/v1/posts/${postId}`)
+                  .get(`${app.context.config.host}/v2/posts/${postId}`)
                   .query({ authToken: zeusContext.authToken })
                   .end((err, res) => {
                     res.body.should.not.be.empty
                     res.body.should.have.property('posts')
-                    res.body.posts.should.not.have.property('comments')
+                    res.body.posts.comments.should.eql([])
                     done()
                   })
               })
@@ -1373,7 +1373,7 @@ describe('UsersController', () => {
 
                   // Zeus should not see likes in single-post view either
                   request
-                    .get(`${app.context.config.host}/v1/posts/${zeusContext.post.id}`)
+                    .get(`${app.context.config.host}/v2/posts/${zeusContext.post.id}`)
                     .query({ authToken: zeusContext.authToken })
                     .end((err, res) => {
                       res.body.should.not.be.empty
@@ -1437,13 +1437,12 @@ describe('UsersController', () => {
 
                 // Mars should not see the post in single-post view either
                 request
-                  .get(`${app.context.config.host}/v1/posts/${zeusContext.post.id}`)
+                  .get(`${app.context.config.host}/v2/posts/${zeusContext.post.id}`)
                   .query({ authToken: marsContext.authToken })
                   .end((err) => {
                     err.should.not.be.empty
                     err.status.should.eql(403)
                     err.response.error.should.have.property('text')
-                    JSON.parse(err.response.error.text).err.should.eql('This user has prevented you from seeing their posts')
                     done()
                   })
               })
