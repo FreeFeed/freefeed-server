@@ -370,7 +370,7 @@ describe('PrivateGroups', () => {
         .end((err, res) => {
           res.status.should.eql(200)
           request
-            .get(`${app.context.config.host}/v1/users/whoami`)
+            .get(`${app.context.config.host}/v2/users/whoami`)
             .query({ authToken: adminContext.authToken })
             .end((err, res) => {
               res.should.not.be.empty
@@ -530,7 +530,7 @@ describe('PrivateGroups', () => {
             res.error.should.be.empty
 
             request
-              .get(`${app.context.config.host}/v1/users/whoami`)
+              .get(`${app.context.config.host}/v2/users/whoami`)
               .query({ authToken: adminContext.authToken })
               .end((err, res) => {
                 res.should.not.be.empty
@@ -646,7 +646,7 @@ describe('PrivateGroups', () => {
             res.error.should.be.empty
 
             request
-              .get(`${app.context.config.host}/v1/users/whoami`)
+              .get(`${app.context.config.host}/v2/users/whoami`)
               .query({ authToken: adminContext.authToken })
               .end((err, res) => {
                 res.should.not.be.empty

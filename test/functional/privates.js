@@ -152,13 +152,13 @@ describe('Privates', () => {
             .send({ authToken: lunaContext.authToken })
             .end(() => {
               request
-                .get(`${app.context.config.host}/v1/users/whoami`)
+                .get(`${app.context.config.host}/v2/users/whoami`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('users')
-                  res.body.users.should.not.have.property('subscriptionRequests')
+                  res.body.users.subscriptionRequests.should.eql([])
                   done()
                 })
             })
@@ -180,13 +180,13 @@ describe('Privates', () => {
                   res.body.err.should.not.be.empty
                   res.body.err.should.eql('Invalid')
                   request
-                    .get(`${app.context.config.host}/v1/users/whoami`)
+                    .get(`${app.context.config.host}/v2/users/whoami`)
                     .query({ authToken: lunaContext.authToken })
                     .end((err, res) => {
                       res.should.not.be.empty
                       res.body.should.not.be.empty
                       res.body.should.have.property('users')
-                      res.body.users.should.not.have.property('subscriptionRequests')
+                      res.body.users.subscriptionRequests.should.eql([])
                       done()
                     })
                 })
@@ -268,26 +268,26 @@ describe('Privates', () => {
               res.error.should.be.empty
 
               request
-                .get(`${app.context.config.host}/v1/users/whoami`)
+                .get(`${app.context.config.host}/v2/users/whoami`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
                   // check there are no subscription requests
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('users')
-                  res.body.users.should.not.have.property('subscriptionRequests')
-                  res.body.should.not.have.property('requests')
+                  res.body.users.subscriptionRequests.should.eql([])
+                  res.body.requests.should.eql([])
 
                   request
-                    .get(`${app.context.config.host}/v1/users/whoami`)
+                    .get(`${app.context.config.host}/v2/users/whoami`)
                     .query({ authToken: lunaContext.authToken })
                     .end((err, res) => {
                       // check there are no pending requests
                       res.should.not.be.empty
                       res.body.should.not.be.empty
                       res.body.should.have.property('users')
-                      res.body.users.should.not.have.property('pendingSubscriptionRequests')
-                      res.body.should.not.have.property('requests')
+                      res.body.users.pendingSubscriptionRequests.should.eql([])
+                      res.body.requests.should.eql([])
 
                       funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                         // check user is subscribed
@@ -329,7 +329,7 @@ describe('Privates', () => {
                   res.error.should.be.empty
 
                   request
-                    .get(`${app.context.config.host}/v1/users/whoami`)
+                    .get(`${app.context.config.host}/v2/users/whoami`)
                     .query({ authToken: lunaContext.authToken })
                     .end((err, res) => {
                       // check there are no subscription requests
@@ -343,14 +343,14 @@ describe('Privates', () => {
                       res.body.requests.length.should.eql(1)
 
                       request
-                        .get(`${app.context.config.host}/v1/users/whoami`)
+                        .get(`${app.context.config.host}/v2/users/whoami`)
                         .query({ authToken: herculesContext.authToken })
                         .end((err, res) => {
                           res.should.not.be.empty
                           res.body.should.not.be.empty
                           res.body.should.have.property('users')
-                          res.body.users.should.not.have.property('pendingSubscriptionRequests')
-                          res.body.should.not.have.property('requests')
+                          res.body.users.pendingSubscriptionRequests.should.eql([])
+                          res.body.requests.should.eql([])
 
                           funcTestHelper.getTimeline('/v2/timelines/home', herculesContext.authToken, (err, res) => {
                             // check user is not subscribed
@@ -608,7 +608,7 @@ describe('Privates', () => {
             res.error.should.be.empty
 
             request
-              .get(`${app.context.config.host}/v1/users/whoami`)
+              .get(`${app.context.config.host}/v2/users/whoami`)
               .query({ authToken: lunaContext.authToken })
               .end((err, res) => {
                 // check there are subscription requests
@@ -622,7 +622,7 @@ describe('Privates', () => {
                 res.body.requests[0].id.should.eql(zeusContext.user.id)
 
                 request
-                  .get(`${app.context.config.host}/v1/users/whoami`)
+                  .get(`${app.context.config.host}/v2/users/whoami`)
                   .query({ authToken: zeusContext.authToken })
                   .end((err, res) => {
                     // check there are pending requests

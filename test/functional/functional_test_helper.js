@@ -465,7 +465,7 @@ export function createTestUsers(count) {
 
 export function whoami(authToken) {
   return postJson(
-    '/v1/users/whoami',
+    '/v2/users/whoami',
     {
       authToken,
       '_method': 'get'

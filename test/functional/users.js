@@ -264,7 +264,7 @@ describe('UsersController', () => {
 
     it('should return current user for a valid user', (done) => {
       request
-        .get(`${app.context.config.host}/v1/users/whoami`)
+        .get(`${app.context.config.host}/v2/users/whoami`)
         .query({ authToken })
         .end((err, res) => {
           res.should.not.be.empty
@@ -279,7 +279,7 @@ describe('UsersController', () => {
 
     it('should not return user for an invalid user', (done) => {
       request
-        .get(`${app.context.config.host}/v1/users/whoami`)
+        .get(`${app.context.config.host}/v2/users/whoami`)
         .query({ authToken: 'token' })
         .end((err) => {
           err.should.not.be.empty
@@ -1225,7 +1225,7 @@ describe('UsersController', () => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           request
-            .get(`${app.context.config.host}/v1/users/whoami`)
+            .get(`${app.context.config.host}/v2/users/whoami`)
             .query({ authToken })
             .end((err, res) => {
               res.should.not.be.empty
