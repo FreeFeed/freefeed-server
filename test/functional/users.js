@@ -1480,7 +1480,7 @@ describe('UsersController', () => {
       const data = await funcTestHelper.getUserFeed(zeusContext, marsContext);
 
       data.should.not.be.empty
-      data.should.not.have.property('posts')
+      data.posts.should.eql([])
     })
 
     it("each banned user should not see posts in banner's posts feed", async () => {
@@ -1494,11 +1494,11 @@ describe('UsersController', () => {
 
       const viewedByMars = await funcTestHelper.getUserFeed(zeusContext, marsContext);
       viewedByMars.should.not.be.empty
-      viewedByMars.should.not.have.property('posts')
+      viewedByMars.posts.should.eql([])
 
       const viewedByPluto = await funcTestHelper.getUserFeed(zeusContext, plutoContext);
       viewedByPluto.should.not.be.empty
-      viewedByPluto.should.not.have.property('posts')
+      viewedByPluto.posts.should.eql([])
     })
 
     // Same fun inside groups
@@ -1517,9 +1517,9 @@ describe('UsersController', () => {
           .send({ authToken: zeusContext.authToken })
           .end((err, res) => {
             res.body.should.not.be.empty
-            funcTestHelper.getTimeline(`/v1/timelines/${groupUserName}`, zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${groupUserName}`, zeusContext.authToken, (err, res) => {
               res.body.should.not.be.empty
-              res.body.should.not.have.property('posts')
+              res.body.posts.should.eql([])
 
               done()
             })

@@ -69,7 +69,7 @@ describe('Privates', () => {
                 .post(`${app.context.config.host}/v1/posts/${_post.id}/like`)
                 .send({ authToken: zeusContext.authToken })
                 .end(() => {
-                  funcTestHelper.getTimeline(`/v1/timelines/${zeusContext.user.username}/likes`, zeusContext.authToken, (err, res) => {
+                  funcTestHelper.getTimeline(`/v2/timelines/${zeusContext.user.username}/likes`, zeusContext.authToken, (err, res) => {
                     _.isUndefined(res).should.be.false
                     res.body.should.not.be.empty
                     res.body.should.have.property('timelines')
@@ -205,10 +205,10 @@ describe('Privates', () => {
                 .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
                 .send({ authToken: marsContext.authToken })
                 .end(() => {
-                  funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, marsContext.authToken, (err, res) => {
+                  funcTestHelper.getTimeline(`/v2/timelines/${marsContext.user.username}/likes`, marsContext.authToken, (err, res) => {
                     res.body.should.have.property('posts')
 
-                    funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, zeusContext.authToken, (err, res) => {
+                    funcTestHelper.getTimeline(`/v2/timelines/${marsContext.user.username}/likes`, zeusContext.authToken, (err, res) => {
                       // view mars/likes timeline as zeus
                       res.body.should.have.property('posts')
 
@@ -228,10 +228,10 @@ describe('Privates', () => {
             })
             .end(() => {
               funcTestHelper.createComment('comment', post.id, marsContext.authToken, () => {
-                funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/comments`, marsContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline(`/v2/timelines/${marsContext.user.username}/comments`, marsContext.authToken, (err, res) => {
                   res.body.should.have.property('posts')
 
-                  funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/comments`, zeusContext.authToken, (err, res) => {
+                  funcTestHelper.getTimeline(`/v2/timelines/${marsContext.user.username}/comments`, zeusContext.authToken, (err, res) => {
                     // view mars/comments timeline as zeus
                     res.body.should.have.property('posts')
 
@@ -371,13 +371,13 @@ describe('Privates', () => {
       })
 
       xit('should protect user stats', (done) => {
-        funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}`, herculesContext.authToken, (err, res) => {
+        funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}`, herculesContext.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('users')
           res.body.users[0].should.not.have.property('statistics')
 
-          funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}`, lunaContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}`, lunaContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('users')
@@ -407,14 +407,14 @@ describe('Privates', () => {
         viewedByLuna.should.not.have.property('err')  // luna is an owner
 
         const lunaFeedViewedByAnonymous = await funcTestHelper.getUserFeed(lunaContext)
-        lunaFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
-        lunaFeedViewedByAnonymous.should.not.have.property('subscribers')
-        lunaFeedViewedByAnonymous.should.not.have.property('admins')
+        lunaFeedViewedByAnonymous.timelines.subscribers.should.eql([])
+        lunaFeedViewedByAnonymous.subscribers.should.eql([])
+        lunaFeedViewedByAnonymous.admins.should.eql([])
 
         const lunaFeedViewedByHercules = await funcTestHelper.getUserFeed(lunaContext, herculesContext)
-        lunaFeedViewedByHercules.timelines.should.not.have.property('subscribers')
-        lunaFeedViewedByHercules.should.not.have.property('subscribers')
-        lunaFeedViewedByHercules.should.not.have.property('admins')
+        lunaFeedViewedByHercules.timelines.subscribers.should.eql([])
+        lunaFeedViewedByHercules.subscribers.should.eql([])
+        lunaFeedViewedByHercules.admins.should.eql([])
 
         const lunaFeedViewedByMars = await funcTestHelper.getUserFeed(lunaContext, marsContext)
         lunaFeedViewedByMars.timelines.should.have.property('subscribers')
@@ -427,14 +427,14 @@ describe('Privates', () => {
         lunaFeedViewedByLuna.should.have.property('admins')
 
         const lunaLikesFeedViewedByAnonymous = await funcTestHelper.getUserLikesFeed(lunaContext)
-        lunaLikesFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
-        lunaLikesFeedViewedByAnonymous.should.not.have.property('subscribers')
-        lunaLikesFeedViewedByAnonymous.should.not.have.property('admins')
+        lunaLikesFeedViewedByAnonymous.timelines.subscribers.should.eql([])
+        lunaLikesFeedViewedByAnonymous.subscribers.should.eql([])
+        lunaLikesFeedViewedByAnonymous.admins.should.eql([])
 
         const lunaLikesFeedViewedByHercules = await funcTestHelper.getUserLikesFeed(lunaContext, herculesContext)
-        lunaLikesFeedViewedByHercules.timelines.should.not.have.property('subscribers')
-        lunaLikesFeedViewedByHercules.should.not.have.property('subscribers')
-        lunaLikesFeedViewedByHercules.should.not.have.property('admins')
+        lunaLikesFeedViewedByHercules.timelines.subscribers.should.eql([])
+        lunaLikesFeedViewedByHercules.subscribers.should.eql([])
+        lunaLikesFeedViewedByHercules.admins.should.eql([])
 
         const lunaLikesFeedViewedByMars = await funcTestHelper.getUserLikesFeed(lunaContext, marsContext)
         lunaLikesFeedViewedByMars.timelines.should.have.property('subscribers')
@@ -447,14 +447,14 @@ describe('Privates', () => {
         lunaLikesFeedViewedByLuna.should.have.property('admins')
 
         const lunaCommentsFeedViewedByAnonymous = await funcTestHelper.getUserCommentsFeed(lunaContext)
-        lunaCommentsFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
-        lunaCommentsFeedViewedByAnonymous.should.not.have.property('subscribers')
-        lunaCommentsFeedViewedByAnonymous.should.not.have.property('admins')
+        lunaCommentsFeedViewedByAnonymous.timelines.subscribers.should.eql([])
+        lunaCommentsFeedViewedByAnonymous.subscribers.should.eql([])
+        lunaCommentsFeedViewedByAnonymous.admins.should.eql([])
 
         const lunaCommentsFeedViewedByHercules = await funcTestHelper.getUserCommentsFeed(lunaContext, herculesContext)
-        lunaCommentsFeedViewedByHercules.timelines.should.not.have.property('subscribers')
-        lunaCommentsFeedViewedByHercules.should.not.have.property('subscribers')
-        lunaCommentsFeedViewedByHercules.should.not.have.property('admins')
+        lunaCommentsFeedViewedByHercules.timelines.subscribers.should.eql([])
+        lunaCommentsFeedViewedByHercules.subscribers.should.eql([])
+        lunaCommentsFeedViewedByHercules.admins.should.eql([])
 
         const lunaCommentsFeedViewedByMars = await funcTestHelper.getUserCommentsFeed(lunaContext, marsContext)
         lunaCommentsFeedViewedByMars.timelines.should.have.property('subscribers')
@@ -488,16 +488,16 @@ describe('Privates', () => {
         })
       })
       it('should protect posts timeline', (done) => {
-        funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}`, herculesContext.authToken, (err, res) => {
+        funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}`, herculesContext.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
           res.body.timelines.should.have.property('name')
           res.body.timelines.name.should.eql('Posts')
-          res.body.timelines.should.not.have.property('posts')
-          res.body.should.not.have.property('posts')
+          res.body.timelines.posts.should.eql([])
+          res.body.posts.should.eql([])
 
-          funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}`, lunaContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}`, lunaContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -515,7 +515,7 @@ describe('Privates', () => {
           .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
           .send({ authToken: marsContext.authToken })
           .end(() => {
-            funcTestHelper.getTimeline(`/v1/timelines/${marsContext.user.username}/likes`, lunaContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${marsContext.user.username}/likes`, lunaContext.authToken, (err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
@@ -533,14 +533,14 @@ describe('Privates', () => {
           .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
           .send({ authToken: lunaContext.authToken })
           .end(() => {
-            funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/likes`, herculesContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}/likes`, herculesContext.authToken, (err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
               res.body.timelines.should.have.property('name')
               res.body.timelines.name.should.eql('Likes')
-              res.body.timelines.should.not.have.property('posts')
-              res.body.should.not.have.property('posts')
+              res.body.timelines.posts.should.eql([])
+              res.body.posts.should.eql([])
 
               done()
             })
@@ -549,7 +549,7 @@ describe('Privates', () => {
 
       it('should be visible for auth users in comments timeline', (done) => {
         funcTestHelper.createComment('body', post.id, lunaContext.authToken, () => {
-          funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/comments`, lunaContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}/comments`, lunaContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -564,14 +564,14 @@ describe('Privates', () => {
 
       it('should protect comments timeline', (done) => {
         funcTestHelper.createComment('body', post.id, lunaContext.authToken, () => {
-          funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.user.username}/comments`, herculesContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}/comments`, herculesContext.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
             res.body.timelines.should.have.property('name')
             res.body.timelines.name.should.eql('Comments')
-            res.body.timelines.should.not.have.property('posts')
-            res.body.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
+            res.body.posts.should.eql([])
             done()
           })
         })
@@ -730,7 +730,7 @@ describe('Privates', () => {
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
         it('should not influence how mars sees posts in his comments timeline', (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/comments`, marsContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/comments`, marsContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines.posts')
             done()
@@ -746,28 +746,28 @@ describe('Privates', () => {
         })
 
         it("should not show zeus her posts in mars's comments timeline", (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/comments`, zeusContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/comments`, zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
             done()
           })
         })
 
         it("should not show her posts in mars's comments timeline to anonymous", (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/comments`, null, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/comments`, null, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
             done()
           })
         })
 
         it("should not show zeus her posts in zeus's comments timeline", (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${zeusContext.username}/comments`, zeusContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${zeusContext.username}/comments`, zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
             done()
           })
         })
@@ -785,7 +785,7 @@ describe('Privates', () => {
           beforeEach(() => funcTestHelper.goPublic(lunaContext))
 
           it('should not influence how mars sees posts in his comments timeline', (done) => {
-            funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/comments`, marsContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/comments`, marsContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               done()
@@ -801,7 +801,7 @@ describe('Privates', () => {
           })
 
           it("should show zeus her posts in mars's comments timeline", (done) => {
-            funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/comments`, zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/comments`, zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               res.body.timelines.posts.length.should.eql(1)
@@ -813,7 +813,7 @@ describe('Privates', () => {
           })
 
           it("should show zeus her posts in zeus's comments timeline", (done) => {
-            funcTestHelper.getTimeline(`/v1/timelines/${zeusContext.username}/comments`, zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${zeusContext.username}/comments`, zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               res.body.timelines.posts.length.should.eql(1)
@@ -844,7 +844,7 @@ describe('Privates', () => {
         beforeEach(() => funcTestHelper.goPrivate(lunaContext))
 
         it('should not influence how mars sees posts in his likes timeline', (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, marsContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/likes`, marsContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines.posts')
             done()
@@ -860,28 +860,28 @@ describe('Privates', () => {
         })
 
         it("should not show zeus her posts in mars's likes timeline", (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, zeusContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/likes`, zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
             done()
           })
         })
 
         it("should not show her posts in mars's likes timeline to anonymous", (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, null, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/likes`, null, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
             done()
           })
         })
 
         it("should not show zeus her posts in zeus's likes timeline", (done) => {
-          funcTestHelper.getTimeline(`/v1/timelines/${zeusContext.username}/likes`, zeusContext.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${zeusContext.username}/likes`, zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false
             res.should.have.deep.property('body.timelines')
-            res.body.timelines.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
             done()
           })
         })
@@ -899,7 +899,7 @@ describe('Privates', () => {
           beforeEach(() => funcTestHelper.goPublic(lunaContext))
 
           it('should not influence how mars sees posts in his likes timeline', (done) => {
-            funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, marsContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/likes`, marsContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               done()
@@ -915,7 +915,7 @@ describe('Privates', () => {
           })
 
           it("should show zeus her posts in mars's likes timeline", (done) => {
-            funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/likes`, zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               res.body.timelines.posts.length.should.eql(1)
@@ -927,7 +927,7 @@ describe('Privates', () => {
           })
 
           it("should show zeus her posts in zeus's likes timeline", (done) => {
-            funcTestHelper.getTimeline(`/v1/timelines/${zeusContext.username}/likes`, zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${zeusContext.username}/likes`, zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false
               res.should.have.deep.property('body.timelines.posts')
               res.body.timelines.posts.length.should.eql(1)
