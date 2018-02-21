@@ -159,19 +159,6 @@ export default class UsersController {
     ctx.body = {};
   }
 
-  static async whoami(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
-
-    const timer = monitor.timer('users.whoami-time')
-    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
-    ctx.body = json
-    timer.stop()
-  }
-
   static show = monitored('users.show', async (ctx) => {
     const { username } = ctx.params;
     const user = await dbAdapter.getFeedOwnerByUsername(username)

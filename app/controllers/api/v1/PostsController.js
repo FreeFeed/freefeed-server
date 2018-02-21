@@ -107,51 +107,6 @@ export default class PostsController {
     ctx.body = json
   }
 
-  static async show(ctx) {
-    const timer = monitor.timer('posts.show-time');
-
-    try {
-      const userId = ctx.state.user ? ctx.state.user.id : null
-      const post = await dbAdapter.getPostById(ctx.params.postId, {
-        maxComments: ctx.request.query.maxComments,
-        maxLikes:    ctx.request.query.maxLikes,
-        currentUser: userId
-      })
-
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      const valid = await post.canShow(userId)
-
-      // this is a private post
-      if (!valid) {
-        throw new ForbiddenException('Not found');
-      }
-
-      if (ctx.state.user) {
-        const banIds = await dbAdapter.getUserBansIds(post.userId)
-
-        if (banIds.includes(ctx.state.user.id)) {
-          throw new ForbiddenException('This user has prevented you from seeing their posts');
-        }
-
-        const yourBanIds = await ctx.state.user.getBanIds()
-
-        if (yourBanIds.includes(post.userId)) {
-          throw new ForbiddenException('You have blocked this user and do not want to see their posts');
-        }
-      }
-
-      const json = new PostSerializer(post).promiseToJSON()
-      ctx.body = await json;
-
-      monitor.increment('posts.show-requests');
-    } finally {
-      timer.stop();
-    }
-  }
-
   static async like(ctx) {
     if (!ctx.state.user) {
       throw new NotAuthorizedException();
