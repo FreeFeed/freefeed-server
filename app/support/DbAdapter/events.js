@@ -47,7 +47,7 @@ const eventsTrait = (superClass) => class extends superClass {
     if (offset) {
       query = query.offset(offset);
     }
-    return query.orderBy('created_at', 'desc');
+    return query.orderBy('created_at', 'desc').orderBy('id', 'desc');
   }
 
   async _getGroupIntIdByUUID(groupUUID) {
