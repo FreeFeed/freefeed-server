@@ -512,6 +512,10 @@ export async function createUserAsync(username, password, attributes = {}) {
   }
 }
 
+export function signInAsync(data) {
+  return postJson(`/v1/session`, data);
+}
+
 let testUserCounter = 1;
 export function createTestUser() {
   return createUserAsync(`testuser${testUserCounter++}`, 'pw');

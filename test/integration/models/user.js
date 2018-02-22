@@ -1,10 +1,13 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import { expect } from 'chai'
+import chai, { expect } from 'chai'
+import chaiSubset from 'chai-subset'
 
 import cleanDB from '../../dbCleaner'
 import { dbAdapter, Post, Timeline, User } from '../../../app/models'
 
+
+chai.use(chaiSubset);
 
 describe('User', () => {
   beforeEach(() => cleanDB($pg_database))
@@ -1027,4 +1030,101 @@ describe('User', () => {
       }
     })
   })
+
+  describe('#addOrUpdateAuthMethods()', () => {
+    let user;
+
+    beforeEach(async () => {
+      user = await new User({ username: 'Test', password: 'password' }).create();
+      await user.addOrUpdateAuthMethod('facebook', { id: 1 });
+    });
+
+    it('should add new auth method if not present', async () => {
+      const authMethod = await dbAdapter.getUserAuthMethod({
+        providerName: 'facebook',
+        userId:       user.intId,
+      });
+      expect(authMethod).to.not.be.a('null');
+    });
+
+    it('should update profile of present auth method', async () => {
+      const newProfile = { id: 1, displayName: 'John Doe' };
+      await user.addOrUpdateAuthMethod('facebook', newProfile);
+      const authMethod = await dbAdapter.database('user_auth_methods')
+        .where({
+          provider_name: 'facebook',
+          provider_id:   1,
+          user_id:       user.intId,
+        })
+        .first();
+      expect(authMethod).to.have.ownProperty('profile', newProfile);
+    });
+  });
+
+  describe('#removeAuthMethod()', () => {
+    let user;
+
+    beforeEach(async () => {
+      user = await new User({ username: 'Test', password: 'password' }).create();
+      await user.addOrUpdateAuthMethod('facebook', { id: 1 });
+    });
+
+    it('should remove auth method', async () => {
+      await user.removeAuthMethod('facebook', 1);
+      const authMethod = await dbAdapter.database('user_auth_methods')
+        .where({
+          provider_name: 'facebook',
+          provider_id:   1,
+          user_id:       user.intId,
+        })
+        .first();
+      expect(authMethod).to.be.undefined;
+    });
+  });
+
+  describe('#getAuthMethod()', () => {
+    let user;
+
+    beforeEach(async () => {
+      user = await new User({ username: 'Test', password: 'password' }).create();
+      await user.addOrUpdateAuthMethod('facebook', { id: 1 });
+    });
+
+    it('should return auth method if present', async () => {
+      const authMethod = await user.getAuthMethod({ providerName: 'facebook', providerId: 1 });
+      expect(authMethod).to.have.ownProperty('profile', { id: 1 });
+    });
+
+    context('when no auth methods found', () => {
+      it('should return undefined', async () => {
+        const authMethod = await user.getAuthMethod({ providerName: 'facebook', providerId: 2 });
+        expect(authMethod).to.be.undefined;
+      });
+    });
+  });
+
+  describe('#getAuthMethods()', () => {
+    let user;
+
+    beforeEach(async () => {
+      user = await new User({ username: 'Test', password: 'password' }).create();
+      await user.addOrUpdateAuthMethod('facebook', { id: 1 });
+      await user.addOrUpdateAuthMethod('facebook', { id: 2 });
+    });
+
+    it('should return array of auth methods', async () => {
+      const authMethods = await user.getAuthMethods({ providerName: 'facebook' });
+      expect(authMethods).to.be.an('array').that.containSubset([
+        { providerName: 'facebook', providerId: '1' },
+        { providerName: 'facebook', providerId: '2' },
+      ])
+    });
+
+    context('when no auth methods found', () => {
+      it('should return empty array', async () => {
+        const authMethods = await user.getAuthMethods({ providerName: 'unknown' });
+        expect(authMethods).to.be.an('array').that.is.empty;
+      });
+    });
+  });
 })
