@@ -242,7 +242,7 @@ export default class UsersController {
     const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
     const timelineOwnersIds = timelines.map((t) => t.userId);
 
-    const serUsers = await serializeUsersByIds(timelineOwnersIds);
+    const serUsers = await serializeUsersByIds(timelineOwnersIds, false);
     // Sorting by 'random' id to mask actual subscription order
     const subscribers = _.sortBy(serUsers, 'id');
     const subscriptions = _.sortBy(timelines.map((t) => ({

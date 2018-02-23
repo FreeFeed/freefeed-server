@@ -170,9 +170,8 @@ describe('GroupsController', () => {
               subIds.should.contain(newGroupId)
               const users = res.body.subscribers
               const userIds = users.map((u) => u.id)
-              users.length.should.eql(2) // group and their admin
+              users.length.should.eql(1)
               userIds.should.contain(newGroupId)
-              userIds.should.contain(context.user.id)
               done()
             })
         })
