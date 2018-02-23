@@ -400,7 +400,7 @@ export function addModel(dbAdapter) {
   // Upload original attachment or its thumbnail to the S3 bucket
   Attachment.prototype.uploadToS3 = async function (sourceFile, destPath) {
     const s3 = getS3(config.attachments.storage);
-    await s3.putObject({
+    await s3.upload({
       ACL:                'public-read',
       Bucket:             config.attachments.storage.bucket,
       Key:                destPath + this.getFilename(),
@@ -408,7 +408,7 @@ export function addModel(dbAdapter) {
       ContentType:        this.mimeType,
       ContentDisposition: this.getContentDisposition()
     }).promise();
-  }
+  };
 
   // Get cross-browser Content-Disposition header for attachment
   Attachment.prototype.getContentDisposition = function () {

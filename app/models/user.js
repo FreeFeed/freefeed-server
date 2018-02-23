@@ -1016,7 +1016,7 @@ export function addModel(dbAdapter) {
   // Upload profile picture to the S3 bucket
   User.prototype.uploadToS3 = async function (sourceFile, destFile, subConfig) {
     const s3 = getS3(subConfig.storage);
-    await s3.putObject({
+    await s3.upload({
       ACL:                'public-read',
       Bucket:             subConfig.storage.bucket,
       Key:                subConfig.path + destFile,
@@ -1024,7 +1024,7 @@ export function addModel(dbAdapter) {
       ContentType:        'image/jpeg',
       ContentDisposition: 'inline'
     }).promise();
-  }
+  };
 
   User.prototype.getProfilePicturePath = function (uuid, size) {
     return config.profilePictures.storage.rootDir + config.profilePictures.path + this.getProfilePictureFilename(uuid, size)
