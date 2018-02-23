@@ -53,14 +53,17 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
 /**
  * Serialises users by their ids
  *
- * @param {Array.<string>} ids
+ * @param {Array.<string>} userIds
+ * @param {boolean} withAdmins
  * @returns {Array}
  */
-export async function serializeUsersByIds(userIds) {
-  // Complement userIds array by the group admins
+export async function serializeUsersByIds(userIds, withAdmins = true) {
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds);
-  _.values(adminsAssoc).forEach((ids) => ids.forEach((s) => userIds.push(s)));
-  userIds = _.uniq(userIds);
+  if (withAdmins) {
+    // Complement userIds array by the group admins
+    _.values(adminsAssoc).forEach((ids) => ids.forEach((s) => userIds.push(s)));
+    userIds = _.uniq(userIds);
+  }
 
   // Select users and their stats
   const [
