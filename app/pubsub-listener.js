@@ -6,6 +6,7 @@ import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
 import createDebug from 'debug';
+import Raven from 'raven';
 
 import { load as configLoader } from '../config/config';
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
@@ -14,6 +15,7 @@ import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } fr
 promisifyAll(jwt);
 
 const config = configLoader();
+const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
 const noOp = () => {};
 
@@ -50,6 +52,9 @@ export default class PubsubListener {
 
     const redisClient = createRedisClient(config.redis.port, config.redis.host, {});
     redisClient.on('error', (err) => {
+      if (sentryIsEnabled) {
+        Raven.captureException(err, { extra: { err: 'PubsubListener Redis subscriber error' } });
+      }
       debug('redis error', err);
     });
     redisClient.subscribe(
@@ -99,6 +104,9 @@ export default class PubsubListener {
           callback({ success: true });
         }
       } catch (e) {
+        if (sentryIsEnabled) {
+          Raven.captureException(e, { extra: { err: 'PubsubListener auth error' } });
+        }
         callback({ success: false, message: e.message });
         debug(`[socket.id=${socket.id}] 'auth' request: exception ${e}`);
       }
@@ -156,6 +164,9 @@ export default class PubsubListener {
 
         callback({ success: true, rooms });
       } catch (e) {
+        if (sentryIsEnabled) {
+          Raven.captureException(e, { extra: { err: 'PubsubListener subscribe error' } });
+        }
         callback({ success: false, message: e.message });
         debug(`[socket.id=${socket.id}] 'subscribe' request: exception ${e}`);
       }
@@ -220,6 +231,9 @@ export default class PubsubListener {
     try {
       await messageRoutes[channel](this.io.sockets, JSON.parse(msg));
     } catch (e) {
+      if (sentryIsEnabled) {
+        Raven.captureException(e, { extra: { err: 'PubsubListener Redis message handler error' } });
+      }
       debug(`onRedisMessage: error while processing ${channel} request`, e);
     }
   };
