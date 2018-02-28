@@ -291,18 +291,7 @@ describe('Post', () => {
       await post.create();
 
       await promiseA;
-      const timelineId = await userB.getPostsTimelineId();
-      await userA.subscribeTo(timelineId)
-    })
-
-    it('should copy post to subscribed River of News', (done) => {
-      post.getTimelineIds()
-        .then((timelineIds) => {
-          timelineIds.should.not.be.empty
-          timelineIds.length.should.eql(3)
-          done()
-        })
-        .catch((e) => { done(e) })
+      await userA.subscribeTo(userB)
     })
   })
 
@@ -337,11 +326,9 @@ describe('Post', () => {
       post = await userB.newPost({ body: 'Post body' })
       await post.create()
 
-      const bTimelineId = await userB.getPostsTimelineId()
-      await userA.subscribeTo(bTimelineId)
+      await userA.subscribeTo(userB)
 
-      const aTimelineId = await userA.getPostsTimelineId()
-      await userC.subscribeTo(aTimelineId)
+      await userC.subscribeTo(userA)
 
       const promises = [];
       for (let i = 0; i < 10; i++) {
@@ -521,14 +508,9 @@ describe('Post', () => {
       post = await userB.newPost(attrs)
       await post.create();
 
-      const [timelineIdA, timelineIdB] = await Promise.all([
-        userA.getPostsTimelineId(),
-        userB.getPostsTimelineId()
-      ]);
-
       await Promise.all([
-        userA.subscribeTo(timelineIdB),
-        userC.subscribeTo(timelineIdA)
+        userA.subscribeTo(userB),
+        userC.subscribeTo(userA)
       ]);
     })
 
@@ -584,14 +566,9 @@ describe('Post', () => {
       post = await userB.newPost(attrs)
       await post.create();
 
-      const [timelineIdA, timelineIdB] = await Promise.all([
-        userA.getPostsTimelineId(),
-        userB.getPostsTimelineId()
-      ]);
-
       await Promise.all([
-        userA.subscribeTo(timelineIdB),
-        userC.subscribeTo(timelineIdA)
+        userA.subscribeTo(userB),
+        userC.subscribeTo(userA)
       ]);
     })
 
