@@ -156,6 +156,14 @@ export function addModel(dbAdapter) {
     }
   })
 
+  /**
+   * User.isActive is true for non-disabled users (having hashedPassword !== '')
+   */
+  Reflect.defineProperty(User.prototype, 'isActive', {
+    get: function () { return this.hashedPassword !== ''; },
+    set: function () {},
+  })
+
   User.stopList = (skipExtraList) => {
     if (skipExtraList) {
       return config.application.USERNAME_STOP_LIST
@@ -170,6 +178,10 @@ export function addModel(dbAdapter) {
 
   User.prototype.isUser = function () {
     return this.type === 'user'
+  }
+
+  User.prototype.isGroup = function () {
+    return !this.isUser()
   }
 
   User.prototype.newPost = async function (attrs) {
