@@ -19,17 +19,18 @@ describe('Local bumps', () => {
 
       // Mars posts
       marsPosts = [];
+      // eslint-disable-next-line no-await-in-loop
       for (let i = 0; i < nPosts; i++) {
-        // eslint-disable-next-line no-await-in-loop
         const { id } = await helper.createAndReturnPost(mars, 'post');
         marsPosts.push(id);
       }
+
       marsDefaultHomefeed = [...marsPosts].reverse();
 
       // Luna posts
       lunaPosts = [];
+      // eslint-disable-next-line no-await-in-loop
       for (let i = 0; i < nPosts; i++) {
-        // eslint-disable-next-line no-await-in-loop
         const { id } = await helper.createAndReturnPost(luna, 'post');
         lunaPosts.push(id);
       }
@@ -41,8 +42,8 @@ describe('Local bumps', () => {
 
       // Mars posts in group
       marsPostsInGroup = [];
+      // eslint-disable-next-line no-await-in-loop
       for (let i = 0; i < nPosts; i++) {
-        // eslint-disable-next-line no-await-in-loop
         const { id } = await helper.createAndReturnPostToFeed(celestials, mars, 'post');
         marsPostsInGroup.push(id);
       }
