@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniq, uniqBy } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -507,29 +507,22 @@ export async function getRoomsOfPost(post) {
     return [];
   }
 
-  const postFeeds = await post.getTimelines();
-  const activityFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments());
-  const destinationFeeds = postFeeds.filter((f) => f.isPosts() || f.isDirects());
+  const [
+    postFeeds,
+    myDiscussionsFeeds,
+    riverOfNewsFeeds,
+  ] = await Promise.all([
+    post.getTimelines(),
+    post.getMyDiscussionsTimelines(),
+    post.getRiverOfNewsTimelines(),
+  ]);
 
-  /**
-   * 'MyDiscussions' feeds of post author and users who did
-   * some activity (likes, comments) on post.
-   */
-  const myDiscussionsOwnerIds = activityFeeds.map((f) => f.userId);
-  myDiscussionsOwnerIds.push(post.userId);
-  const myDiscussionsFeeds = await dbAdapter.getUsersNamedTimelines(uniq(myDiscussionsOwnerIds), 'MyDiscussions');
+  const materialFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments() || f.isPosts() || f.isDirects());
 
   // All feeds related to post
   let feeds = [];
   if (config.dynamicRiverOfNews) {
-    /**
-     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
-     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
-     */
-    const riverOfNewsSourceIds = [...destinationFeeds, ...(post.isPropagable ? activityFeeds : [])].map((f) => f.id);
-    const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
-    const riverOfNewsFeeds = await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, post.userId], 'RiverOfNews');
-    feeds = uniqBy([...destinationFeeds, ...activityFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
+    feeds = uniqBy([...materialFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
   } else {
     feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
   }
