@@ -51,7 +51,7 @@ export default function (app) {
         const decoded = await jwt.verifyAsync(authToken, config.secret);
         const user = await dbAdapter.getUserById(decoded.userId);
 
-        if (user) {
+        if (user && user.isActive) {
           ctx.state.user = user;
           authDebug(`authenticated as ${user.username}`);
         }
