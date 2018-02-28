@@ -237,6 +237,45 @@ export function addModel(dbAdapter) {
     return this.postedTo
   }
 
+  /**
+   * Returns all RiverOfNews timelines this post belongs to.
+   * Timelines are calculated dynamically.
+   *
+   * @return {Timeline[]}
+   */
+  Post.prototype.getRiverOfNewsTimelines = async function () {
+    const postFeeds = await this.getTimelines();
+    const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
+    const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
+
+    /**
+     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
+     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+     */
+    const riverOfNewsSourceIds = [...destinations, ...(this.isPropagable === '1' ? activities : [])].map((f) => f.id);
+    const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
+    return await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, this.userId], 'RiverOfNews');
+  };
+
+  /**
+   * Returns all MyDiscussions timelines this post belongs to.
+   * Timelines are calculated dynamically.
+   *
+   * @return {Timeline[]}
+   */
+  Post.prototype.getMyDiscussionsTimelines = async function () {
+    const postFeeds = await this.getTimelines();
+    const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
+
+    /**
+     * 'MyDiscussions' feeds of post author and users who did
+     * some activity (likes, comments) on post.
+     */
+    const myDiscussionsOwnerIds = activities.map((f) => f.userId);
+    myDiscussionsOwnerIds.push(this.userId);
+    return await dbAdapter.getUsersNamedTimelines(_.uniq(myDiscussionsOwnerIds), 'MyDiscussions');
+  };
+
   Post.prototype.getGenericFriendOfFriendTimelineIntIds = async function (user, type) {
     const timelineIntIds = []
 
