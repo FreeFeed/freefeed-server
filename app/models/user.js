@@ -846,85 +846,78 @@ export function addModel(dbAdapter) {
     return 1;
   }
 
-  // Subscribe to user-owner of a given `timelineId`
-  User.prototype.subscribeTo = async function (targetTimelineId) {
-    const targetTimeline = await dbAdapter.getTimelineById(targetTimelineId)
-    const targetTimelineOwner = await dbAdapter.getFeedOwnerById(targetTimeline.userId)
-
-    if (targetTimelineOwner.username == this.username) {
-      throw new Error('Invalid');
+  /**
+   * Subscribe this user to targetUser
+   *
+   * This function is not performs any access checks. It returns 'true' if
+   * subscription was successiful and 'false' if this user was already
+   * subscribed to the targetUser.
+   *
+   * @param {User} targetUser
+   * @param {object} [params]
+   * @returns {boolean}
+   */
+  User.prototype.subscribeTo = async function (targetUser, params = {}) {
+    params = {
+      noEvents: false, // do not fire subscription event
+      ...params
+    };
+    const subscribedFeedIds = await dbAdapter.subscribeUserToUser(this.id, targetUser.id);
+    if (!subscribedFeedIds) {
+      return false;
     }
+    this.subscribedFeedIds = subscribedFeedIds;
 
-    const timelineIds = await targetTimelineOwner.getPublicTimelineIds()
-    const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
+    await Promise.all([
+      dbAdapter.cacheFlushUser(this.id),
+      dbAdapter.statsSubscriptionCreated(this.id),
+      dbAdapter.statsSubscriberAdded(targetUser.id),
+    ]);
 
-    await dbAdapter.createMergedPostsTimeline(await this.getRiverOfNewsTimelineIntId(), [targetTimeline.intId]);
-
-    this.subscribedFeedIds = subscribedFeedsIntIds
-
-    await dbAdapter.statsSubscriptionCreated(this.id)
-    await dbAdapter.statsSubscriberAdded(targetTimelineOwner.id)
-
-    monitor.increment('users.subscriptions')
-
-    return this
+    monitor.increment('users.subscriptions');
+    if (!params.noEvents) {
+      if (targetUser.isUser()) {
+        await EventService.onUserSubscribed(this.intId, targetUser.intId);
+      } else {
+        await EventService.onGroupSubscribed(this.intId, targetUser);
+      }
+    }
+    return true;
   }
 
-  // Subscribe this user to `username`
-  User.prototype.subscribeToUsername = async function (username) {
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
 
-    if (null === user) {
-      throw new NotFoundException(`Feed "${username}" is not found`)
+  /**
+   * Unsubscribe this user from targetUser
+   *
+   * This function is not performs any access checks. It returns 'true' if
+   * unsubscription was successiful and 'false' if this user was not
+   * subscribed to the targetUser before.
+   *
+   * @param {User} targetUser
+   * @returns {boolean}
+   */
+  User.prototype.unsubscribeFrom = async function (targetUser) {
+    const subscribedFeedIds = await dbAdapter.unsubscribeUserFromUser(this.id, targetUser.id);
+    if (!subscribedFeedIds) {
+      return false;
+    }
+    this.subscribedFeedIds = subscribedFeedIds;
+
+    await Promise.all([
+      dbAdapter.cacheFlushUser(this.id),
+      dbAdapter.statsSubscriptionDeleted(this.id),
+      dbAdapter.statsSubscriberRemoved(targetUser.id),
+    ]);
+
+    monitor.increment('users.unsubscriptions');
+
+    if (targetUser.isUser()) {
+      await EventService.onUserUnsubscribed(this.intId, targetUser.intId);
+    } else {
+      await EventService.onGroupUnsubscribed(this.intId, targetUser);
     }
 
-    const timelineId = await user.getPostsTimelineId()
-    return this.subscribeTo(timelineId)
-  }
-
-  User.prototype.unsubscribeFrom = async function (timelineId, options = {}) {
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
-    const wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
-
-    // a user cannot unsubscribe from herself
-    if (user.username == this.username) {
-      throw new Error('Invalid');
-    }
-
-    if (_.isUndefined(options.skip)) {
-      // remove timelines from user's subscriptions
-      const timelineIds = await user.getPublicTimelineIds()
-
-      const subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
-      this.subscribedFeedIds = subscribedFeedsIntIds
-    }
-
-    const promises = []
-
-    // remove all posts of The Timeline from user's River of News
-    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))
-
-    // remove all posts of The Timeline from likes timeline of user
-    if (options.likes) {
-      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()));
-    }
-
-    // remove all post of The Timeline from comments timeline of user
-    if (options.comments) {
-      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()));
-    }
-
-    await Promise.all(promises)
-
-    if (wasSubscribed) {
-      await dbAdapter.statsSubscriptionDeleted(this.id)
-      await dbAdapter.statsSubscriberRemoved(user.id)
-    }
-
-    monitor.increment('users.unsubscriptions')
-
-    return this
+    return true;
   }
 
   User.prototype.calculateStatsValues = async function () {
