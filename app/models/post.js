@@ -366,27 +366,12 @@ export function addModel(dbAdapter) {
     const feedsIntIds = timelines.map((t) => t.intId)
     const insertIntoFeedIds = _.difference(feedsIntIds, this.feedIntIds)
     const timelineOwnersIds = timelines.map((t) => t.userId)
-    let riversOfNewsOwners = timelines.map((t) => {
-      if (t.isRiverOfNews() && insertIntoFeedIds.includes(t.intId)) {
-        return t.userId
-      }
-      return null
-    })
-
-    riversOfNewsOwners = _.compact(riversOfNewsOwners)
 
     if (insertIntoFeedIds.length > 0) {
       await dbAdapter.insertPostIntoFeeds(insertIntoFeedIds, this.id)
     }
 
     if (isLikeAction) {
-      if (insertIntoFeedIds.length == 0) {
-        // For the time being, like does not bump post if it is already present in timeline
-        return
-      }
-
-      await dbAdapter.setLocalBumpForUsers(this.id, riversOfNewsOwners)
-
       return
     }
 
@@ -589,6 +574,20 @@ export function addModel(dbAdapter) {
     timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
 
     await dbAdapter.createUserPostLike(this.id, user.id)
+
+    if (this.isPropagable === '1') {
+      // Local bumps
+      const [prevRONs, likesTimeline] = await Promise.all([
+        this.getRiverOfNewsTimelines(),
+        user.getLikesTimeline(),
+      ]);
+      const prevRONsOwners = _.map(prevRONs, 'userId');
+      const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([likesTimeline.id]);
+      usersSubscribedToLikeFeed.push(user.id); // user always implicitly subscribed to their feeds
+      const newRONsOwners = _.difference(usersSubscribedToLikeFeed, prevRONsOwners);
+      await dbAdapter.setLocalBumpForUsers(this.id, newRONsOwners);
+    }
+
     await this.publishChangesToFeeds(timelines, true)
 
     return timelines
