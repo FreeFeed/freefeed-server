@@ -395,14 +395,6 @@ export function addModel(dbAdapter) {
         throw new Error('bad input')
       }
 
-      if (params.isPrivate === '1' && this.isPrivate === '0') {
-        // was public, now private
-        await this.unsubscribeNonFriends()
-      } else if (params.isPrivate === '0' && this.isPrivate === '1') {
-        // was private, now public
-        await this.subscribeNonFriends()
-      }
-
       payload.isPrivate = params.isPrivate
     }
 
@@ -475,103 +467,6 @@ export function addModel(dbAdapter) {
     }
 
     return this
-  }
-
-  User.prototype.subscribeNonFriends = async function () {
-    // NOTE: this method is super ineffective as it iterates all posts
-    // and then all comments in user's timeline, we could make it more
-    // efficient when introduce Entries table with meta column (post to
-    // timelines many-to-many over Entries)
-    /* eslint-disable no-await-in-loop */
-
-    const timeline = await this.getPostsTimeline({ currentUser: this.id })
-    const posts = await timeline.getPosts(0, -1)
-
-    let fixedUsers = []
-
-    // first of all, let's revive likes
-    for (const post of posts) {
-      const actions = []
-
-      const [likes, comments] = await Promise.all([post.getLikes(), post.getComments()]);
-
-      for (const usersChunk of _.chunk(likes, 10)) {
-        const promises = usersChunk.map((user) => user.getLikesTimelineIntId());
-        const likesFeedsIntIds = await Promise.all(promises)
-        actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
-      }
-
-      const uniqueCommenterUids = _.uniq(comments.map((comment) => comment.userId))
-      const commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
-
-      for (const usersChunk of _.chunk(commenters, 10)) {
-        const promises = usersChunk.map((user) => user.getCommentsTimelineIntId());
-
-        const commentsFeedsIntIds = await Promise.all(promises)
-        actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
-      }
-
-      await Promise.all(actions)
-
-      fixedUsers = _.uniqBy(fixedUsers.concat(likes).concat(commenters), 'id')
-    }
-
-    for (const usersChunk of _.chunk(fixedUsers, 10)) {
-      const promises = usersChunk.map(async (user) => {
-        const [riverId, commentsTimelineId, likesTimelineId] = await Promise.all([
-          user.getRiverOfNewsTimelineIntId(),
-          user.getCommentsTimelineIntId(),
-          user.getLikesTimelineIntId()
-        ])
-
-        await dbAdapter.createMergedPostsTimeline(riverId, [commentsTimelineId, likesTimelineId]);
-      })
-
-      await Promise.all(promises)
-    }
-    /* eslint-enable no-await-in-loop */
-  }
-
-  User.prototype.unsubscribeNonFriends = async function () {
-    /* eslint-disable no-await-in-loop */
-    const subscriberIds = await this.getSubscriberIds()
-    const timeline = await this.getPostsTimeline()
-
-    // users that I'm not following are ex-followers now
-    // var subscribers = await this.getSubscribers()
-    // await Promise.all(subscribers.map(function (user) {
-    //   // this is not friend, let's unsubscribe her before going to private
-    //   if (!subscriptionIds.includes(user.id)) {
-    //     return user.unsubscribeFrom(timeline.id, { likes: true, comments: true })
-    //   }
-    // }))
-
-    // we need to review post by post as some strangers that are not
-    // followers and friends could commented on or like my posts
-    // let's find strangers first
-    const posts = await timeline.getPosts(0, -1)
-
-    let allUsers = []
-
-    for (const post of posts) {
-      const timelines = await post.getTimelines()
-      const userPromises = timelines.map((timeline) => timeline.getUser())
-      const users = await Promise.all(userPromises)
-
-      allUsers = _.uniqBy(allUsers.concat(users), 'id')
-    }
-
-    // and remove all private posts from all strangers timelines
-    const users = _.filter(
-      allUsers,
-      (user) => (!subscriberIds.includes(user.id) && user.id != this.id)
-    )
-
-    for (const chunk of _.chunk(users, 10)) {
-      const actions = chunk.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
-      await Promise.all(actions)
-    }
-    /* eslint-enable no-await-in-loop */
   }
 
   User.prototype.updatePassword = async function (password, passwordConfirmation) {
