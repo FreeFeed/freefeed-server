@@ -5,7 +5,16 @@ import { serializeUser } from '../../../serializers/v2/user';
 import { dbAdapter } from '../../../models';
 
 export function monitored(monitorName, handlerFunc) {
+  if (!handlerFunc) {
+    return _.partial(monitored, monitorName);
+  }
   return async (ctx) => {
+    if (ctx.state.isMonitored) {
+      // This call is already monitored
+      await handlerFunc(ctx);
+      return;
+    }
+    ctx.state.isMonitored = true;
     const timer = monitor.timer(`${monitorName}-time`);
     try {
       await handlerFunc(ctx);
