@@ -184,16 +184,13 @@ export function addModel(dbAdapter) {
   }
 
   Group.prototype.subscribeOwner = async function (ownerId) {
-    const owner = await dbAdapter.getUserById(ownerId)
+    const owner = await dbAdapter.getUserById(ownerId);
 
     if (!owner) {
-      return null
+      return null;
     }
 
-    const timelineId = await this.getPostsTimelineId()
-    const res = await owner.subscribeTo(timelineId)
-
-    return res
+    return await owner.subscribeTo(this, { noEvents: true });
   }
 
   Group.prototype.addAdministrator = function (feedId) {
