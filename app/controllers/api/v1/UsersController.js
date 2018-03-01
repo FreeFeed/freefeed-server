@@ -274,12 +274,6 @@ export default class UsersController {
       throw new ForbiddenException('You cannot subscribe to private feed');
     }
 
-    const timelineId = await targetUser.getPostsTimelineId();
-    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(subscriber.id, timelineId);
-    if (isSubscribed) {
-      throw new ForbiddenException('You are already subscribed to that user');
-    }
-
     const [
       banIds,
       theirBanIds,
@@ -294,7 +288,10 @@ export default class UsersController {
       throw new ForbiddenException('This user prevented your from subscribing to them');
     }
 
-    await subscriber.subscribeTo(targetUser);
+    const success = await subscriber.subscribeTo(targetUser);
+    if (!success) {
+      throw new ForbiddenException('You are already subscribed to that user');
+    }
 
     // 'subscribe' should return the same response as 'whoami'
     await UsersControllerV2.whoAmI(ctx);
