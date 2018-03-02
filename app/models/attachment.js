@@ -4,7 +4,10 @@ import { execFile } from 'child_process';
 import { promisify, promisifyAll } from 'bluebird'
 import gm from 'gm'
 import meta from 'musicmetadata'
+import mime from 'mime-types'
 import mmm from 'mmmagic'
+import readChunk from 'read-chunk'
+import fileType from 'file-type'
 import _ from 'lodash'
 import mv from 'mv';
 import gifsicle from 'gifsicle';
@@ -24,21 +27,45 @@ const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 const magic = new mmm.Magic()
 const detectFile = promisify(magic.detectFile, { context: magic })
 
-const execFileAsync = promisify(execFile);
 
-async function detectMimetype(filename) {
-  const mimeType = await detectMime(filename)
+async function mimeTypeDetect(fileName, filePath) {
+  const file = `${filePath}/${fileName}`;
+  // The file type is detected by checking the magic number of the buffer.
+  // It only needs the first 4100 bytes.
+  const buffer = await readChunk(filePath, 0, 4100)
+  const info = fileType(buffer)
 
-  if (mimeType === 'application/octet-stream') {
-    const fileType = await detectFile(filename)
+  if (info && info.mime && info.mime !== 'application/octet-stream') {
+    return info.mime;
+  }
 
-    if (fileType.startsWith('Audio file with ID3')) {
-      return 'audio/mpeg'
+  // legacy mmmagic based detection
+  let mimeType = 'application/octet-stream';
+  try {
+    mimeType = await detectMime(filePath)
+
+    if (mimeType === 'application/octet-stream') {
+      const fileType = await detectFile(filePath)
+
+      if (fileType.startsWith('Audio file with ID3')) {
+        mimeType = 'audio/mpeg'
+      }
     }
+  } catch (e) {
+    if (_.isEmpty(mimeType)) {
+      throw e
+    }
+  }
+
+  // otherwise, we'll use the fallback to content-type detected with a file extension provided by the user
+  if (mimeType === 'application/octet-stream') {
+    mimeType = mime.lookup(file) || mimeType
   }
 
   return mimeType
 }
+
+const execFileAsync = promisify(execFile);
 
 export function addModel(dbAdapter) {
   /**
@@ -214,6 +241,7 @@ export function addModel(dbAdapter) {
   // Store the file and process its thumbnail, if necessary
   Attachment.prototype.handleMedia = async function () {
     const tmpAttachmentFile = this.file.path
+    const tmpAttachmentFileName = this.file.name
 
     const supportedImageTypes = {
       'image/jpeg':    'jpg',
@@ -229,15 +257,7 @@ export function addModel(dbAdapter) {
       'audio/x-wav': 'wav'
     }
 
-    // Check a mime type
-    try {
-      this.mimeType = await detectMimetype(tmpAttachmentFile)
-    } catch (e) {
-      if (_.isEmpty(this.mimeType)) {
-        throw e
-      }
-      // otherwise, we'll use the fallback provided by the user
-    }
+    this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile)
 
     if (supportedImageTypes[this.mimeType]) {
       // Set media properties for 'image' type
