@@ -6,7 +6,6 @@ const commonUserFields = [
   'screenName',
   'isPrivate',
   'isProtected',
-  'isVisibleToAnonymous',
   'createdAt',
   'updatedAt',
   'type',
