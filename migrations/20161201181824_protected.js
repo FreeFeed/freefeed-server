@@ -10,7 +10,7 @@ export function up(knex) {
     });
 }
 
-export async function down(knex) {
+export function down(knex) {
   return knex.schema
     .table('users', (table) => table.boolean('is_visible_to_anonymous').defaultTo(true).notNullable())
     .raw('update users set is_visible_to_anonymous = (not is_private and not is_protected)')
