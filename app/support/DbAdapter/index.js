@@ -59,9 +59,9 @@ class DbAdapterBase {
    * @param transaction
    */
   async executeSerizlizableTransaction(transaction) {
-    while (true) {  // eslint-disable-line no-constant-condition, no-await-in-loop
+    while (true) {  // eslint-disable-line no-constant-condition
       try {
-        await this.database.transaction(async (trx) => {
+        await this.database.transaction(async (trx) => {  // eslint-disable-line no-await-in-loop
           await trx.raw('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
           return transaction(trx);
         });

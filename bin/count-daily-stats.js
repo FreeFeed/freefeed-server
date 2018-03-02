@@ -76,10 +76,10 @@ async function create_metric(metric, to_date, get_metric) {
 
   dt = await get_next_metric_update_date(metric);
 
-  while (!dt.isAfter(to_date)) {  // eslint-disable-line no-await-in-loop
+  while (!dt.isAfter(to_date)) {
     const next_date = moment(dt).add(1, 'days');
-    const res = await get_metric(dt, next_date);
-    await postgres('stats').insert({ dt, metric, value: res });
+    const res = await get_metric(dt, next_date);                 // eslint-disable-line no-await-in-loop
+    await postgres('stats').insert({ dt, metric, value: res });  // eslint-disable-line no-await-in-loop
 
     process.stdout.write(`Creating stats for ${metric} for ${dt.format(`YYYY-MM-DD`)}: ${res}\n`);
 

@@ -48,8 +48,8 @@ describe('TimelinesControllerV2', () => {
 
       describe('Comments folding test', () => {
         const expectFolding = async (nComments, expComments, expOmitted, allComments = false) => {
-          for (let n = 0; n < nComments; n++) {  // eslint-disable-line no-await-in-loop
-            await createCommentAsync(luna, lunaPost.id, `Comment ${n + 1}`);
+          for (let n = 0; n < nComments; n++) {
+            await createCommentAsync(luna, lunaPost.id, `Comment ${n + 1}`);  // eslint-disable-line no-await-in-loop
           }
           const post = await fetchPost(lunaPost.id, null, { allComments });
           expect(post.posts.comments, 'to have length', expComments);

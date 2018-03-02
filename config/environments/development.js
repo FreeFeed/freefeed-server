@@ -77,7 +77,8 @@ export function getConfig() {
       // Parameters for 's3'
       accessKeyId:     'ACCESS-KEY-ID',
       secretAccessKey: 'SECRET-ACCESS-KEY',
-      bucket:          'bucket-name'
+      bucket:          'bucket-name',
+      // endpoint:        'nyc3.digitaloceanspaces.com',
     }
   };
   config.attachments = {

@@ -26,9 +26,9 @@ describe('FullTextSearch', () => {
       bannedByMarsUserIds = await mars.getBanIds()
 
       lunaPosts = []
-      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
-        const post = await luna.newPost({ body });
-        lunaPosts.push(await post.create());
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
+        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
     })
 
@@ -166,19 +166,19 @@ describe('FullTextSearch', () => {
       bannedByMarsUserIds = await mars.getBanIds()
 
       lunaPosts = []
-      for (const body of lunaPostsContent) {  // eslint-disable-line no-await-in-loop
-        const post = await luna.newPost({ body });
-        lunaPosts.push(await post.create());
+      for (const body of lunaPostsContent) {
+        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
+        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
       saturnPosts = []
-      for (const body of saturnPostsContent) {  // eslint-disable-line no-await-in-loop
-        const post = await saturn.newPost({ body });
-        saturnPosts.push(await post.create());
+      for (const body of saturnPostsContent) {
+        const post = await saturn.newPost({ body });  // eslint-disable-line no-await-in-loop
+        saturnPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
       marsPosts = []
-      for (const body of marsPostsContent) {  // eslint-disable-line no-await-in-loop
-        const post = await mars.newPost({ body });
-        marsPosts.push(await post.create());
+      for (const body of marsPostsContent) {
+        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
+        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
     })
 
