@@ -15,6 +15,7 @@ import { load as configLoader } from '../../config/config'
 
 chai.use(chaiFS)
 
+const { expect } = chai;
 const mkdirpAsync = promisify(mkdirp);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
@@ -73,6 +74,18 @@ describe('Attachment', () => {
         name: 'test-image-animated.gif',
         type: 'image/gif'
       },
+      audio: {
+        size: 16836,
+        path: '/tmp/upload_12345678901234567890123456789012_8',
+        name: 'sample.mp3',
+        type: 'audio/mpeg'
+      },
+      unknown: {
+        size: 16836,
+        path: '/tmp/upload_12345678901234567890123456789012_9',
+        name: 'sample',
+        type: 'audio/mpeg'
+      }
     }
 
     const createAndCheckAttachment = async (file, post, user) => {
@@ -96,7 +109,7 @@ describe('Attachment', () => {
       newAttachment.id.should.eql(attachment.id)
 
       newAttachment.should.have.a.property('mediaType')
-      newAttachment.mediaType.should.be.equal('image')
+      expect(['image', 'audio', 'general']).to.include(newAttachment.mediaType);
 
       newAttachment.should.have.a.property('fileName')
       newAttachment.fileName.should.be.equal(file.name)
@@ -108,7 +121,6 @@ describe('Attachment', () => {
       newAttachment.mimeType.should.be.equal(file.type)
 
       newAttachment.should.have.a.property('fileExtension')
-      newAttachment.fileExtension.should.be.equal(file.name.match(/\.(\w+)$/)[1])
 
       newAttachment.getPath().should.be.equal(`${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`)
 
@@ -148,6 +160,8 @@ describe('Attachment', () => {
         'test-image-exif-rotated.900x300.jpg': '5',
         'test-image-sgrb.png':                 '6',
         'test-image-animated.gif':             '7',
+        'sample.mp3':                          '8',
+        'sample':                              '9'
       };
 
       const srcPrefix = path.resolve(__dirname, '../fixtures');
@@ -337,6 +351,26 @@ describe('Attachment', () => {
           url: `${config.attachments.url}${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`
         }
       })
+    })
+
+    it('should create an audio attachment', async () => {
+      const newAttachment = await createAndCheckAttachment(files.audio, post, user)
+      newAttachment.should.have.a.property('mimeType');
+      newAttachment.mimeType.should.be.equal('audio/mpeg')
+      newAttachment.should.have.a.property('noThumbnail')
+      newAttachment.noThumbnail.should.be.equal('1')
+      newAttachment.should.have.a.property('mediaType');
+      newAttachment.mediaType.should.be.equal('audio')
+    })
+
+    it('should create an audio attachment from audio file without extension', async () => {
+      const newAttachment = await createAndCheckAttachment(files.unknown, post, user)
+      newAttachment.should.have.a.property('mimeType');
+      newAttachment.mimeType.should.be.equal('audio/mpeg')
+      newAttachment.should.have.a.property('noThumbnail')
+      newAttachment.noThumbnail.should.be.equal('1')
+      newAttachment.should.have.a.property('mediaType');
+      newAttachment.mediaType.should.be.equal('audio')
     })
   })
 })

@@ -1,17 +1,19 @@
 import fs from 'fs'
 import { execFile } from 'child_process';
 
-import aws from 'aws-sdk'
 import { promisify, promisifyAll } from 'bluebird'
 import gm from 'gm'
 import meta from 'musicmetadata'
+import mime from 'mime-types'
 import mmm from 'mmmagic'
+import readChunk from 'read-chunk'
+import fileType from 'file-type'
 import _ from 'lodash'
 import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 
-aws.config.setPromisesDependency(Promise);
+import { getS3 } from '../support/s3';
 import { load as configLoader } from '../../config/config'
 
 
@@ -25,21 +27,45 @@ const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 const magic = new mmm.Magic()
 const detectFile = promisify(magic.detectFile, { context: magic })
 
-const execFileAsync = promisify(execFile);
 
-async function detectMimetype(filename) {
-  const mimeType = await detectMime(filename)
+async function mimeTypeDetect(fileName, filePath) {
+  const file = `${filePath}/${fileName}`;
+  // The file type is detected by checking the magic number of the buffer.
+  // It only needs the first 4100 bytes.
+  const buffer = await readChunk(filePath, 0, 4100)
+  const info = fileType(buffer)
 
-  if (mimeType === 'application/octet-stream') {
-    const fileType = await detectFile(filename)
+  if (info && info.mime && info.mime !== 'application/octet-stream') {
+    return info.mime;
+  }
 
-    if (fileType.startsWith('Audio file with ID3')) {
-      return 'audio/mpeg'
+  // legacy mmmagic based detection
+  let mimeType = 'application/octet-stream';
+  try {
+    mimeType = await detectMime(filePath)
+
+    if (mimeType === 'application/octet-stream') {
+      const fileType = await detectFile(filePath)
+
+      if (fileType.startsWith('Audio file with ID3')) {
+        mimeType = 'audio/mpeg'
+      }
     }
+  } catch (e) {
+    if (_.isEmpty(mimeType)) {
+      throw e
+    }
+  }
+
+  // otherwise, we'll use the fallback to content-type detected with a file extension provided by the user
+  if (mimeType === 'application/octet-stream') {
+    mimeType = mime.lookup(file) || mimeType
   }
 
   return mimeType
 }
+
+const execFileAsync = promisify(execFile);
 
 export function addModel(dbAdapter) {
   /**
@@ -215,6 +241,7 @@ export function addModel(dbAdapter) {
   // Store the file and process its thumbnail, if necessary
   Attachment.prototype.handleMedia = async function () {
     const tmpAttachmentFile = this.file.path
+    const tmpAttachmentFileName = this.file.name
 
     const supportedImageTypes = {
       'image/jpeg':    'jpg',
@@ -230,15 +257,7 @@ export function addModel(dbAdapter) {
       'audio/x-wav': 'wav'
     }
 
-    // Check a mime type
-    try {
-      this.mimeType = await detectMimetype(tmpAttachmentFile)
-    } catch (e) {
-      if (_.isEmpty(this.mimeType)) {
-        throw e
-      }
-      // otherwise, we'll use the fallback provided by the user
-    }
+    this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile)
 
     if (supportedImageTypes[this.mimeType]) {
       // Set media properties for 'image' type
@@ -371,9 +390,9 @@ export function addModel(dbAdapter) {
       if (originalImage === null) {
         originalImage = promisifyAll(gm(originalFile));
       }
-      for (const sizeId of thumbIds) {  // eslint-disable-line no-await-in-loop
+      for (const sizeId of thumbIds) {
         const { w, h } = this.imageSizes[sizeId];
-        await originalImage
+        await originalImage  // eslint-disable-line no-await-in-loop
           .resizeExact(w, h)
           .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
           .autoOrient()
@@ -400,11 +419,8 @@ export function addModel(dbAdapter) {
 
   // Upload original attachment or its thumbnail to the S3 bucket
   Attachment.prototype.uploadToS3 = async function (sourceFile, destPath) {
-    const s3 = new aws.S3({
-      'accessKeyId':     config.attachments.storage.accessKeyId || null,
-      'secretAccessKey': config.attachments.storage.secretAccessKey || null
-    });
-    await s3.putObject({
+    const s3 = getS3(config.attachments.storage);
+    await s3.upload({
       ACL:                'public-read',
       Bucket:             config.attachments.storage.bucket,
       Key:                destPath + this.getFilename(),
@@ -412,7 +428,7 @@ export function addModel(dbAdapter) {
       ContentType:        this.mimeType,
       ContentDisposition: this.getContentDisposition()
     }).promise();
-  }
+  };
 
   // Get cross-browser Content-Disposition header for attachment
   Attachment.prototype.getContentDisposition = function () {

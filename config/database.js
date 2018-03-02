@@ -1,6 +1,7 @@
 import { promisifyAll } from 'bluebird';
 import _redis from 'redis';
 import createDebug from 'debug';
+import Raven from 'raven';
 
 import { load as configLoader } from './config';
 
@@ -9,6 +10,7 @@ promisifyAll(_redis.RedisClient.prototype);
 promisifyAll(_redis.Multi.prototype);
 
 const config = configLoader();
+const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
 let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
 export default database;
@@ -27,6 +29,9 @@ function log(type) {
 
 function logAndQuit(type) {
   return function (...args) {
+    if (sentryIsEnabled) {
+      Raven.captureException(args, { extra: { err: 'Unknown Redis error. Switching off server.' } });
+    }
     debug(type, args);
     process.exit(1);
   };
