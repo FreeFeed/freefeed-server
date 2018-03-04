@@ -516,7 +516,7 @@ describe('Post', () => {
 
     it('should remove like from friend of friend timelines', (done) => {
       post.addLike(userA)
-        .then(() => post.removeLike(userA.id))
+        .then(() => post.removeLike(userA))
         .then(() => post.getLikes())
         .then((users) => {
           users.should.be.empty

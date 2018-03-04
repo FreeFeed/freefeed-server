@@ -552,35 +552,31 @@ export function addModel(dbAdapter) {
     return _.every(flags)
   }
 
+  /**
+   * Adds like to post. This method does not performs any access check.
+   * It returns true on success and false if this post was already
+   * liked by this user.
+   *
+   * @param {User} user
+   * @returns {boolean}
+   */
   Post.prototype.addLike = async function (user) {
-    const relevantPostState = await dbAdapter.getPostById(this.id)
-    this.feedIntIds = relevantPostState.feedIntIds
-    this.destinationFeedIds = relevantPostState.destinationFeedIds
-
-    let timelineIntIds = this.destinationFeedIds.slice()
-
-    // only subscribers are allowed to read direct posts
-    if (!await this.isStrictlyDirect()) {
-      const moreTimelineIntIds = await this.getLikesFriendOfFriendTimelineIntIds(user)
-      timelineIntIds.push(...moreTimelineIntIds)
-
-      timelineIntIds = _.uniq(timelineIntIds)
+    const success = await dbAdapter.likePost(this.id, user.id);
+    if (!success) {
+      return false;
     }
 
-    let timelines = await dbAdapter.getTimelinesByIntIds(timelineIntIds)
-
-    // no need to post updates to rivers of banned users
-    const bannedIds = await user.getBanIds()
-    timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
-
-    await dbAdapter.createUserPostLike(this.id, user.id)
+    const [
+      likesTimeline,
+      ,
+    ] = await Promise.all([
+      user.getLikesTimeline(),
+      dbAdapter.statsLikeCreated(user.id),
+    ]);
 
     if (this.isPropagable === '1') {
       // Local bumps
-      const [prevRONs, likesTimeline] = await Promise.all([
-        this.getRiverOfNewsTimelines(),
-        user.getLikesTimeline(),
-      ]);
+      const prevRONs = await this.getRiverOfNewsTimelines();
       const prevRONsOwners = _.map(prevRONs, 'userId');
       const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([likesTimeline.id]);
       usersSubscribedToLikeFeed.push(user.id); // user always implicitly subscribed to their feeds
@@ -588,26 +584,42 @@ export function addModel(dbAdapter) {
       await dbAdapter.setLocalBumpForUsers(this.id, newRONsOwners);
     }
 
-    await this.publishChangesToFeeds(timelines, true)
+    await dbAdapter.insertPostIntoFeeds([likesTimeline.intId], this.id);
 
-    return timelines
-  }
+    // Send realtime notifications
+    await pubSub.newLike(this, user.id);
 
-  Post.prototype.removeLike = async function (userId) {
+    return true;
+  };
+
+  /**
+   * Removes like from post. This method does not performs any access check.
+   * It returns true on success and false if this post was not already
+   * liked by this user.
+   *
+   * @param {User} user
+   * @returns {boolean}
+   */
+  Post.prototype.removeLike = async function (user) {
+    const success = await dbAdapter.unlikePost(this.id, user.id);
+    if (!success) {
+      return false;
+    }
     const [
       realtimeRooms,
-      user,
+      timelineId,
+      ,
     ] = await Promise.all([
       getRoomsOfPost(this),
-      dbAdapter.getUserById(userId),
+      user.getLikesTimelineIntId(),
+      dbAdapter.statsLikeDeleted(user.id),
     ]);
-    const timelineId = await user.getLikesTimelineIntId()
-    await Promise.all([
-      dbAdapter.removeUserPostLike(this.id, userId),
-      dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
-    ])
-    await pubSub.removeLike(this.id, userId, realtimeRooms)
-    return true
+    await dbAdapter.withdrawPostFromFeeds([timelineId], this.id);
+
+    // Send realtime notifications
+    await pubSub.removeLike(this.id, user.id, realtimeRooms);
+
+    return true;
   }
 
   Post.prototype.isBannedFor = async function (userId) {
