@@ -1,9 +1,10 @@
 import _ from 'lodash'
 import monitor from 'monitor-dog';
 
-import { dbAdapter, PostSerializer, PubSub as pubSub } from '../../../models'
+import { dbAdapter, PostSerializer } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
+import { authRequired, monitored } from '../v2/helpers';
 
 
 export default class PostsController {
@@ -107,129 +108,35 @@ export default class PostsController {
     ctx.body = json
   }
 
-  static async like(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
-
-    const timer = monitor.timer('posts.likes.time');
-
-    try {
-      const post = await dbAdapter.getPostById(ctx.params.postId)
-
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
+  static like = _.flow(authRequired, postAccessRequired, monitored('posts.likes'))(
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (post.userId === user.id) {
+        throw new ForbiddenException("You can't like your own post");
       }
 
-      const authorId = post.userId;
-
-      if (authorId === ctx.state.user.id) {
-        throw new ForbiddenException("You can't like your own post")
+      const success = await post.addLike(user);
+      if (!success) {
+        throw new ForbiddenException("You can't like post that you have already liked");
       }
 
-      const isVisible = await post.canShow(ctx.state.user.id)
-      if (!isVisible) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      const banIds = await dbAdapter.getUserBansIds(authorId);
-
-      if (banIds.includes(ctx.state.user.id)) {
-        throw new ForbiddenException('Author of this post has banned you');
-      }
-
-      const yourBanIds = await ctx.state.user.getBanIds();
-
-      if (yourBanIds.includes(authorId)) {
-        throw new ForbiddenException('You have banned the author of this post');
-      }
-
-      const userLikedPost = await dbAdapter.hasUserLikedPost(ctx.state.user.id, post.id)
-
-      if (userLikedPost) {
-        throw new ForbiddenException("You can't like post that you have already liked")
-      }
-
-      try {
-        const affectedTimelines = await post.addLike(ctx.state.user)
-
-        await dbAdapter.statsLikeCreated(ctx.state.user.id)
-
-        ctx.status = 200;
-        ctx.body = {};
-
-        await pubSub.newLike(post, ctx.state.user.id, affectedTimelines)
-
-        monitor.increment('posts.likes');
-        monitor.increment('posts.reactions');
-      } catch (e) {
-        if (e.code === '23505') {
-          // '23505' stands for unique_violation
-          // see https://www.postgresql.org/docs/current/static/errcodes-appendix.html
-          throw new ForbiddenException("You can't like post that you have already liked")
-        }
-
-        throw e;
-      }
-    } finally {
-      timer.stop();
-    }
-  }
-
-  static async unlike(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
-
-    const timer = monitor.timer('posts.unlikes.time');
-
-    try {
-      const post = await dbAdapter.getPostById(ctx.params.postId)
-
-      if (null === post) {
-        throw new NotFoundException("Can't find post");
-      }
-
-      if (post.userId === ctx.state.user.id) {
-        throw new ForbiddenException("You can't un-like your own post")
-      }
-
-      const author = await dbAdapter.getUserById(post.userId);
-      const banIds = await author.getBanIds();
-
-      if (banIds.includes(ctx.state.user.id)) {
-        throw new ForbiddenException('Author of this post has blocked you');
-      }
-
-      const yourBanIds = await ctx.state.user.getBanIds();
-
-      if (yourBanIds.includes(author.id)) {
-        throw new ForbiddenException('You have blocked the author of this post');
-      }
-
-      const userLikedPost = await dbAdapter.hasUserLikedPost(ctx.state.user.id, post.id)
-      if (!userLikedPost) {
-        throw new ForbiddenException("You can't un-like post that you haven't yet liked")
-      }
-
-      const valid = await post.canShow(ctx.state.user.id)
-      if (!valid) {
-        throw new Error('Not found')
-      }
-
-      await post.removeLike(ctx.state.user.id)
-
-      await dbAdapter.statsLikeDeleted(ctx.state.user.id)
-
-      ctx.status = 200;
+      monitor.increment('posts.reactions');
       ctx.body = {};
-
-      monitor.increment('posts.unlikes');
-      monitor.increment('posts.unreactions');
-    } finally {
-      timer.stop();
     }
-  }
+  );
+
+  static unlike = _.flow(authRequired, postAccessRequired, monitored('posts.unlikes'))(
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      const success = await post.removeLike(user);
+      if (!success) {
+        throw new ForbiddenException("You can't un-like post that you haven't yet liked");
+      }
+
+      monitor.decrement('posts.reactions');
+      ctx.body = {};
+    }
+  );
 
   static async destroy(ctx) {
     if (!ctx.state.user) {
