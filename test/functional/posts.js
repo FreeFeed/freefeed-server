@@ -156,9 +156,7 @@ describe('PostsController', () => {
               .end((err) => {
                 try {
                   err.should.not.be.empty
-                  err.status.should.eql(404)
-                  const error = JSON.parse(err.response.error.text)
-                  error.err.should.eql(`Can't find post`)
+                  err.status.should.eql(403)
                 } catch (e) {
                   done(e);
                   return;
@@ -754,10 +752,6 @@ describe('PostsController', () => {
     it("should not un-like user's own post", async () => {
       const response = await funcTestHelper.unlike(context.post.id, context.authToken)
       response.status.should.eql(403)
-
-      const data = await response.json()
-      data.should.have.property('err')
-      data.err.should.eql("You can't un-like your own post")
     })
   })
 

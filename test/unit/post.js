@@ -338,39 +338,6 @@ describe('Post', () => {
       users = await Promise.all(promises)
     })
 
-    it('should add like to friend of friend timelines', (done) => {
-      post.addLike(userA)
-        .then(() => userC.getRiverOfNewsTimeline())
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.not.be.empty
-          posts.length.should.eql(1)
-
-          const [newPost] = posts;
-          newPost.should.have.property('id')
-          newPost.id.should.eql(post.id)
-          done()
-        })
-        .catch((e) => { done(e) })
-    })
-
-    it('should not add liked posts to friends posts timelines', async () => {
-      const post2 = await userA.newPost({ body: 'Post body 2' })
-      await post2.create()
-
-      await post.addLike(userA)
-
-      const postsFeedA = await userA.getPostsTimeline({ currentUser: userC.id })
-      const postsA = postsFeedA.posts
-
-      postsA.should.not.be.empty
-      postsA.length.should.eql(1)
-
-      const [newPost] = postsA;
-      newPost.should.have.property('id')
-      newPost.id.should.eql(post2.id)
-    });
-
     it('should add user to likes', async () => {
       await post.addLike(userA)
       const users = await post.getLikes()
