@@ -83,62 +83,119 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     return responses.map(initUserObject)
   }
 
-  async subscribeUserToTimelines(feedIds, userId) {
-    let feedIntIds;
+  /**
+   * Smart subscribe one user to another
+   *
+   * This function performs the following updates within
+   * single transaction:
+   *  - Subscription to target user feeds
+   *  - Update of users.subscribed_feed_ids of subscriber
+   *
+   * It returns updated subscriber.subscribedFeedIds if subscription was
+   * successiful or 'null' if subscriber was already subscribed to the
+   * target user.
+   *
+   * @param {object} subscriber - subscriber object
+   * @param {string} subscriberId - id of subscriber
+   * @param {string} tagretId - id of target user
+   * @returns {Array.<number>|null}
+   */
+  async subscribeUserToUser(subscriberId, targetId) {
+    let subscribedFeedIds = null;
+
+    const allFeeds = await this.getUserTimelinesIds(targetId);
+    const publicFeedIds = ['Posts', 'Comments', 'Likes'].map((n) => allFeeds[n]);
+
     await this.database.transaction(async (trx) => {
-      // Lock users table row
-      await trx.raw('select 1 from users where uid = :userId for update', { userId });
-      // Insert multiple rows from array at once
-      await trx.raw(
-        `insert into subscriptions (user_id, feed_id) 
-         select :userId, x from unnest(:feedIds::uuid[]) x on conflict do nothing`,
-        { userId, feedIds }
+      // Lock users table
+      await trx.raw('select 1 from users where uid = :subscriberId for update', { subscriberId });
+
+      // Trying to subscribie to the public feeds
+      const { rows } = await trx.raw(
+        `insert into subscriptions (user_id, feed_id)
+           select :subscriberId, x from unnest(:publicFeedIds::uuid[]) x on conflict do nothing
+           returning feed_id`,
+        { subscriberId, publicFeedIds }
       );
-      // Update users table
-      feedIntIds = await actualizeUserSubscribedFeedIds(trx, userId);
-      // Update users cache
-      await this.cacheFlushUser(userId);
+
+      // Are we subscribed to the Posts feed?
+      if (!rows.some((row) => row.feed_id === allFeeds.Posts)) {
+        return;
+      }
+      subscribedFeedIds = await updateSubscribedFeedIds(trx, subscriberId);
     });
-    return feedIntIds;
+
+    return subscribedFeedIds;
   }
 
-  async unsubscribeUserFromTimelines(feedIds, userId) {
-    let feedIntIds;
+  /**
+   * Smart unsubscribe one user from another
+   *
+   * This function performs all necessary database updates within
+   * single transaction:
+   *  - Unsubscription from target user feeds
+   *  - Update of users.subscribed_feed_ids of subscriber
+   *
+   * It returns updated subscriber.subscribedFeedIds if subscription was
+   * successiful or 'null' if subscriber was already subscribed to the
+   * target user.
+   *
+   * @param {object} subscriber - subscriber object
+   * @param {string} subscriberId - id of subscriber
+   * @param {string} tagretId - id of target user
+   * @returns {Array.<number>|null}
+   */
+  async unsubscribeUserFromUser(subscriberId, targetId) {
+    let subscribedFeedIds = null;
+
     await this.database.transaction(async (trx) => {
-      // Lock users table row
-      await trx.raw('select 1 from users where uid = :userId for update', { userId });
-      // Delete subscriptions records
-      await trx.raw(
-        `delete from subscriptions where user_id = :userId and feed_id = any(:feedIds)`,
-        { userId, feedIds }
+      // Lock users table
+      await trx.raw('select 1 from users where uid = :subscriberId for update', { subscriberId });
+
+      // Trying to unsubscribie from all feeds
+      const { rows } = await trx.raw(
+        `delete from subscriptions s using feeds f
+          where
+            s.user_id = :subscriberId
+            and f.user_id = :targetId
+            and f.uid = s.feed_id
+          returning f.name`,
+        { subscriberId, targetId }
       );
-      // Update users table
-      feedIntIds = await actualizeUserSubscribedFeedIds(trx, userId);
-      // Update users cache
-      await this.cacheFlushUser(userId);
+
+      // Was subscribed to the Posts feed?
+      if (!rows.some((row) => row.name === 'Posts')) {
+        return;
+      }
+
+      subscribedFeedIds = await updateSubscribedFeedIds(trx, subscriberId);
     });
-    return feedIntIds;
+
+    return subscribedFeedIds;
   }
 };
 
 export default subscriptionsTrait;
 
 /**
- * Update users.subscribed_feed_ids from 'subscriptions' table
- * and return the actual value
+ * Update subscriber data after subscribe/unsubscribe
  *
- * @param {object} db DB connection or transaction
- * @param {string} userId
- * @returns {Array.<number>}
+ * This function performs:
+ *  - Update of users.subscribed_feed_ids of subscriber
+ *
+ * @param {object} db - DB connection or transaction
+ * @param {string} subscriberId - id of subscriber
+ * @returns {Array.<number>} - new value of subscribed_feed_ids
  */
-async function actualizeUserSubscribedFeedIds(db, userId) {
-  const { rows } = await db.raw(
-    `select f.id from
-        feeds f
-        join subscriptions s on s.feed_id = f.uid and s.user_id = :userId`,
-    { userId }
+async function updateSubscribedFeedIds(db, subscriberId) {
+  const { rows:[{ feed_ids }] } = await db.raw(
+    `select
+      coalesce(array_agg(f.id), '{}') as feed_ids
+    from
+      feeds f
+      join subscriptions s on s.feed_id = f.uid and s.user_id = :subscriberId`,
+    { subscriberId }
   );
-  const feedIntIds = map(rows, 'id');
-  await db.raw('update  users set subscribed_feed_ids = :feedIntIds where uid = :userId', { feedIntIds, userId });
-  return feedIntIds;
+  await db.raw('update users set subscribed_feed_ids = :feed_ids where uid = :subscriberId', { feed_ids, subscriberId });
+  return feed_ids;
 }

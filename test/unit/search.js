@@ -84,8 +84,7 @@ describe('FullTextSearch', () => {
 
     describe('Luna and Mars are friends', () => {
       beforeEach(async () => {
-        const [marsTimelineId, lunaTimelineId] = await Promise.all([mars.getPostsTimelineId(), luna.getPostsTimelineId()])
-        await Promise.all([luna.subscribeTo(marsTimelineId), mars.subscribeTo(lunaTimelineId)]);
+        await Promise.all([luna.subscribeTo(mars), mars.subscribeTo(luna)]);
         lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds
         marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
       })
@@ -244,8 +243,7 @@ describe('FullTextSearch', () => {
 
     describe('Luna and Mars are friends', () => {
       beforeEach(async () => {
-        const [marsTimelineId, lunaTimelineId] = await Promise.all([mars.getPostsTimelineId(), luna.getPostsTimelineId()])
-        await Promise.all([luna.subscribeTo(marsTimelineId), mars.subscribeTo(lunaTimelineId)]);
+        await Promise.all([luna.subscribeTo(mars), mars.subscribeTo(luna)]);
         marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
         jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds
         bannedByJupiterUserIds = await jupiter.getBanIds()
@@ -395,13 +393,8 @@ describe('FullTextSearch', () => {
     let luna, mars, jupiter, post;
 
     const _becomeFriends = async (user1, user2) => {
-      const [user1TimelineId, user2TimelineId] = await Promise.all([
-        user1.getPostsTimelineId(),
-        user2.getPostsTimelineId()
-      ]);
-
-      await user1.subscribeTo(user2TimelineId);
-      return user2.subscribeTo(user1TimelineId);
+      await user1.subscribeTo(user2);
+      return user2.subscribeTo(user1);
     }
 
     const _createPost = async (author, text) => {
@@ -1112,8 +1105,8 @@ describe('FullTextSearch', () => {
         group = new Group({ username: 'search-dev' });
         await group.create(luna.id, false);
         groupTimelineId = await group.getPostsTimelineId();
-        await mars.subscribeTo(groupTimelineId);
-        return jupiter.subscribeTo(groupTimelineId);
+        await mars.subscribeTo(group);
+        return jupiter.subscribeTo(group);
       });
 
       const _searchPublicGroupPosts = async (term, viewer) => {
@@ -1286,8 +1279,8 @@ describe('FullTextSearch', () => {
         group = new Group({ username: 'search-dev', isPrivate: '1' });
         await group.create(luna.id, false);
         groupTimelineId = await group.getPostsTimelineId();
-        await mars.subscribeTo(groupTimelineId);
-        return jupiter.subscribeTo(groupTimelineId);
+        await mars.subscribeTo(group);
+        return jupiter.subscribeTo(group);
       });
 
       const _searchPrivateGroupPosts = async (term, viewer) => {
@@ -1489,7 +1482,7 @@ describe('FullTextSearch', () => {
         group = new Group({ username: 'search-dev' });
         await group.create(luna.id, false);
         groupTimelineId = await group.getPostsTimelineId();
-        return mars.subscribeTo(groupTimelineId);
+        return mars.subscribeTo(group);
       });
 
       const _searchPublicGroupPosts = async (term, viewer) => {
@@ -1532,7 +1525,7 @@ describe('FullTextSearch', () => {
           const group2 = new Group({ username: 'search-dev2' });
           await group2.create(luna.id, false);
           const group2TimelineId = await group2.getPostsTimelineId();
-          await mars.subscribeTo(group2TimelineId);
+          await mars.subscribeTo(group2);
 
           await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
           await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
@@ -1574,7 +1567,7 @@ describe('FullTextSearch', () => {
           const group2 = new Group({ username: 'search-dev2' });
           await group2.create(luna.id, false);
           const group2TimelineId = await group2.getPostsTimelineId();
-          await mars.subscribeTo(group2TimelineId);
+          await mars.subscribeTo(group2);
 
           await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
           await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
@@ -1616,7 +1609,7 @@ describe('FullTextSearch', () => {
           const group2 = new Group({ username: 'search-dev2' });
           await group2.create(luna.id, false);
           const group2TimelineId = await group2.getPostsTimelineId();
-          await mars.subscribeTo(group2TimelineId);
+          await mars.subscribeTo(group2);
 
           await _createGroupPost(mars, group2TimelineId, 'Lazy green #fox jumps over the lazy pig');
           await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
@@ -1635,7 +1628,7 @@ describe('FullTextSearch', () => {
         group = new Group({ username: 'search-dev', isPrivate: '1' });
         await group.create(luna.id, false);
         groupTimelineId = await group.getPostsTimelineId();
-        return mars.subscribeTo(groupTimelineId);
+        return mars.subscribeTo(group);
       });
 
       const _searchPrivateGroupPosts = async (term, viewer) => {
@@ -1680,8 +1673,8 @@ describe('FullTextSearch', () => {
             const group2 = new Group({ username: 'search-dev2' });
             await group2.create(luna.id, false);
             const group2TimelineId = await group2.getPostsTimelineId();
-            await mars.subscribeTo(group2TimelineId);
-            await jupiter.subscribeTo(group2TimelineId);
+            await mars.subscribeTo(group2);
+            await jupiter.subscribeTo(group2);
 
             await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
             await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
@@ -1742,8 +1735,8 @@ describe('FullTextSearch', () => {
             const group2 = new Group({ username: 'search-dev2' });
             await group2.create(luna.id, false);
             const group2TimelineId = await group2.getPostsTimelineId();
-            await mars.subscribeTo(group2TimelineId);
-            await jupiter.subscribeTo(group2TimelineId);
+            await mars.subscribeTo(group2);
+            await jupiter.subscribeTo(group2);
 
             await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
             await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
@@ -1804,8 +1797,8 @@ describe('FullTextSearch', () => {
             const group2 = new Group({ username: 'search-dev2' });
             await group2.create(luna.id, false);
             const group2TimelineId = await group2.getPostsTimelineId();
-            await mars.subscribeTo(group2TimelineId);
-            await jupiter.subscribeTo(group2TimelineId);
+            await mars.subscribeTo(group2);
+            await jupiter.subscribeTo(group2);
 
             await _createGroupPost(mars, group2TimelineId, 'Lazy green #fox jumps over the lazy pig');
             await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');

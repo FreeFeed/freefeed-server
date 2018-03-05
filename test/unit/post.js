@@ -291,18 +291,7 @@ describe('Post', () => {
       await post.create();
 
       await promiseA;
-      const timelineId = await userB.getPostsTimelineId();
-      await userA.subscribeTo(timelineId)
-    })
-
-    it('should copy post to subscribed River of News', (done) => {
-      post.getTimelineIds()
-        .then((timelineIds) => {
-          timelineIds.should.not.be.empty
-          timelineIds.length.should.eql(3)
-          done()
-        })
-        .catch((e) => { done(e) })
+      await userA.subscribeTo(userB)
     })
   })
 
@@ -337,11 +326,9 @@ describe('Post', () => {
       post = await userB.newPost({ body: 'Post body' })
       await post.create()
 
-      const bTimelineId = await userB.getPostsTimelineId()
-      await userA.subscribeTo(bTimelineId)
+      await userA.subscribeTo(userB)
 
-      const aTimelineId = await userA.getPostsTimelineId()
-      await userC.subscribeTo(aTimelineId)
+      await userC.subscribeTo(userA)
 
       const promises = [];
       for (let i = 0; i < 10; i++) {
@@ -350,39 +337,6 @@ describe('Post', () => {
       }
       users = await Promise.all(promises)
     })
-
-    it('should add like to friend of friend timelines', (done) => {
-      post.addLike(userA)
-        .then(() => userC.getRiverOfNewsTimeline())
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.not.be.empty
-          posts.length.should.eql(1)
-
-          const [newPost] = posts;
-          newPost.should.have.property('id')
-          newPost.id.should.eql(post.id)
-          done()
-        })
-        .catch((e) => { done(e) })
-    })
-
-    it('should not add liked posts to friends posts timelines', async () => {
-      const post2 = await userA.newPost({ body: 'Post body 2' })
-      await post2.create()
-
-      await post.addLike(userA)
-
-      const postsFeedA = await userA.getPostsTimeline({ currentUser: userC.id })
-      const postsA = postsFeedA.posts
-
-      postsA.should.not.be.empty
-      postsA.length.should.eql(1)
-
-      const [newPost] = postsA;
-      newPost.should.have.property('id')
-      newPost.id.should.eql(post2.id)
-    });
 
     it('should add user to likes', async () => {
       await post.addLike(userA)
@@ -521,20 +475,15 @@ describe('Post', () => {
       post = await userB.newPost(attrs)
       await post.create();
 
-      const [timelineIdA, timelineIdB] = await Promise.all([
-        userA.getPostsTimelineId(),
-        userB.getPostsTimelineId()
-      ]);
-
       await Promise.all([
-        userA.subscribeTo(timelineIdB),
-        userC.subscribeTo(timelineIdA)
+        userA.subscribeTo(userB),
+        userC.subscribeTo(userA)
       ]);
     })
 
     it('should remove like from friend of friend timelines', (done) => {
       post.addLike(userA)
-        .then(() => post.removeLike(userA.id))
+        .then(() => post.removeLike(userA))
         .then(() => post.getLikes())
         .then((users) => {
           users.should.be.empty
@@ -584,14 +533,9 @@ describe('Post', () => {
       post = await userB.newPost(attrs)
       await post.create();
 
-      const [timelineIdA, timelineIdB] = await Promise.all([
-        userA.getPostsTimelineId(),
-        userB.getPostsTimelineId()
-      ]);
-
       await Promise.all([
-        userA.subscribeTo(timelineIdB),
-        userC.subscribeTo(timelineIdA)
+        userA.subscribeTo(userB),
+        userC.subscribeTo(userA)
       ]);
     })
 

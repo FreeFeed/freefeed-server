@@ -237,6 +237,45 @@ export function addModel(dbAdapter) {
     return this.postedTo
   }
 
+  /**
+   * Returns all RiverOfNews timelines this post belongs to.
+   * Timelines are calculated dynamically.
+   *
+   * @return {Timeline[]}
+   */
+  Post.prototype.getRiverOfNewsTimelines = async function () {
+    const postFeeds = await this.getTimelines();
+    const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
+    const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
+
+    /**
+     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
+     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+     */
+    const riverOfNewsSourceIds = [...destinations, ...(this.isPropagable === '1' ? activities : [])].map((f) => f.id);
+    const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
+    return await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, this.userId], 'RiverOfNews');
+  };
+
+  /**
+   * Returns all MyDiscussions timelines this post belongs to.
+   * Timelines are calculated dynamically.
+   *
+   * @return {Timeline[]}
+   */
+  Post.prototype.getMyDiscussionsTimelines = async function () {
+    const postFeeds = await this.getTimelines();
+    const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
+
+    /**
+     * 'MyDiscussions' feeds of post author and users who did
+     * some activity (likes, comments) on post.
+     */
+    const myDiscussionsOwnerIds = activities.map((f) => f.userId);
+    myDiscussionsOwnerIds.push(this.userId);
+    return await dbAdapter.getUsersNamedTimelines(_.uniq(myDiscussionsOwnerIds), 'MyDiscussions');
+  };
+
   Post.prototype.getGenericFriendOfFriendTimelineIntIds = async function (user, type) {
     const timelineIntIds = []
 
@@ -327,27 +366,12 @@ export function addModel(dbAdapter) {
     const feedsIntIds = timelines.map((t) => t.intId)
     const insertIntoFeedIds = _.difference(feedsIntIds, this.feedIntIds)
     const timelineOwnersIds = timelines.map((t) => t.userId)
-    let riversOfNewsOwners = timelines.map((t) => {
-      if (t.isRiverOfNews() && insertIntoFeedIds.includes(t.intId)) {
-        return t.userId
-      }
-      return null
-    })
-
-    riversOfNewsOwners = _.compact(riversOfNewsOwners)
 
     if (insertIntoFeedIds.length > 0) {
       await dbAdapter.insertPostIntoFeeds(insertIntoFeedIds, this.id)
     }
 
     if (isLikeAction) {
-      if (insertIntoFeedIds.length == 0) {
-        // For the time being, like does not bump post if it is already present in timeline
-        return
-      }
-
-      await dbAdapter.setLocalBumpForUsers(this.id, riversOfNewsOwners)
-
       return
     }
 
@@ -528,48 +552,74 @@ export function addModel(dbAdapter) {
     return _.every(flags)
   }
 
+  /**
+   * Adds like to post. This method does not performs any access check.
+   * It returns true on success and false if this post was already
+   * liked by this user.
+   *
+   * @param {User} user
+   * @returns {boolean}
+   */
   Post.prototype.addLike = async function (user) {
-    const relevantPostState = await dbAdapter.getPostById(this.id)
-    this.feedIntIds = relevantPostState.feedIntIds
-    this.destinationFeedIds = relevantPostState.destinationFeedIds
-
-    let timelineIntIds = this.destinationFeedIds.slice()
-
-    // only subscribers are allowed to read direct posts
-    if (!await this.isStrictlyDirect()) {
-      const moreTimelineIntIds = await this.getLikesFriendOfFriendTimelineIntIds(user)
-      timelineIntIds.push(...moreTimelineIntIds)
-
-      timelineIntIds = _.uniq(timelineIntIds)
+    const success = await dbAdapter.likePost(this.id, user.id);
+    if (!success) {
+      return false;
     }
 
-    let timelines = await dbAdapter.getTimelinesByIntIds(timelineIntIds)
+    const [
+      likesTimeline,
+      ,
+    ] = await Promise.all([
+      user.getLikesTimeline(),
+      dbAdapter.statsLikeCreated(user.id),
+    ]);
 
-    // no need to post updates to rivers of banned users
-    const bannedIds = await user.getBanIds()
-    timelines = timelines.filter((timeline) => !(timeline.userId in bannedIds))
+    if (this.isPropagable === '1') {
+      // Local bumps
+      const prevRONs = await this.getRiverOfNewsTimelines();
+      const prevRONsOwners = _.map(prevRONs, 'userId');
+      const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([likesTimeline.id]);
+      usersSubscribedToLikeFeed.push(user.id); // user always implicitly subscribed to their feeds
+      const newRONsOwners = _.difference(usersSubscribedToLikeFeed, prevRONsOwners);
+      await dbAdapter.setLocalBumpForUsers(this.id, newRONsOwners);
+    }
 
-    await dbAdapter.createUserPostLike(this.id, user.id)
-    await this.publishChangesToFeeds(timelines, true)
+    await dbAdapter.insertPostIntoFeeds([likesTimeline.intId], this.id);
 
-    return timelines
-  }
+    // Send realtime notifications
+    await pubSub.newLike(this, user.id);
 
-  Post.prototype.removeLike = async function (userId) {
+    return true;
+  };
+
+  /**
+   * Removes like from post. This method does not performs any access check.
+   * It returns true on success and false if this post was not already
+   * liked by this user.
+   *
+   * @param {User} user
+   * @returns {boolean}
+   */
+  Post.prototype.removeLike = async function (user) {
+    const success = await dbAdapter.unlikePost(this.id, user.id);
+    if (!success) {
+      return false;
+    }
     const [
       realtimeRooms,
-      user,
+      timelineId,
+      ,
     ] = await Promise.all([
       getRoomsOfPost(this),
-      dbAdapter.getUserById(userId),
+      user.getLikesTimelineIntId(),
+      dbAdapter.statsLikeDeleted(user.id),
     ]);
-    const timelineId = await user.getLikesTimelineIntId()
-    await Promise.all([
-      dbAdapter.removeUserPostLike(this.id, userId),
-      dbAdapter.withdrawPostFromFeeds([timelineId], this.id)
-    ])
-    await pubSub.removeLike(this.id, userId, realtimeRooms)
-    return true
+    await dbAdapter.withdrawPostFromFeeds([timelineId], this.id);
+
+    // Send realtime notifications
+    await pubSub.removeLike(this.id, user.id, realtimeRooms);
+
+    return true;
   }
 
   Post.prototype.isBannedFor = async function (userId) {

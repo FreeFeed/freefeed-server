@@ -824,93 +824,160 @@ describe('User', () => {
   })
 
   describe('#subscribeTo()', () => {
-    let userA, userB;
+    let luna, mars, venus;
 
     beforeEach(async () => {
-      userA = new User({ username: 'Luna', password: 'password' })
-      userB = new User({ username: 'Mars', password: 'password' })
+      luna = new User({ username: 'Luna', password: 'password' });
+      mars = new User({ username: 'Mars', password: 'password' });
+      venus = new User({ username: 'Venus', password: 'password' });
 
-      await Promise.all([userA.create(), userB.create()])
+      await Promise.all([
+        luna.create(),
+        mars.create(),
+        venus.create(),
+      ]);
     })
 
-    it('should subscribe to timeline', async () => {
-      const attrs = { body: 'Post body' }
-      const post = await userB.newPost(attrs)
-      await post.create()
-      const timelineId = await userB.getPostsTimelineId()
-      await userA.subscribeTo(timelineId)
-      const timeline = await userA.getRiverOfNewsTimeline()
-      const posts = await timeline.getPosts()
-
-      posts.should.not.be.empty
-      posts.length.should.eql(1)
-
-      const [newPost] = posts;
-      newPost.should.have.property('body')
-      newPost.body.should.eql(post.body)
-      newPost.id.should.eql(post.id)
-    })
-  })
-
-  describe('#subscribeToUsername()', () => {
-    let userA, userB;
-
-    beforeEach(async () => {
-      userA = new User({ username: 'Luna', password: 'password' })
-      userB = new User({ username: 'Mars', password: 'password' })
-
-      await Promise.all([userA.create(), userB.create()])
-    })
-
-    it('should subscribe to username', async () => {
-      const attrs = { body: 'Post body' }
-      const post = await userB.newPost(attrs)
-      await post.create()
-      await userA.subscribeToUsername(userB.username)
-      const timeline = await userA.getRiverOfNewsTimeline()
-      const posts = await timeline.getPosts()
-
-      posts.should.not.be.empty
-      posts.length.should.eql(1)
-
-      const [newPost] = posts;
-      newPost.should.have.property('body')
-      newPost.body.should.eql(post.body)
-      newPost.id.should.eql(post.id)
+    it('should subscribe to user not subscribed before', async () => {
+      const res = await luna.subscribeTo(mars);
+      expect(res).to.be.true;
     });
-  })
+
+    it('should not subscribe to user subscribed before', async () => {
+      await luna.subscribeTo(mars);
+      const res = await luna.subscribeTo(mars);
+      expect(res).to.be.false;
+    });
+
+    describe('Mutual subscriptions', () => {
+      const nUsers = 4;
+      const users = [];
+
+      beforeEach(async () => {
+        for (let i = 0; i < nUsers; i++) {
+          users.push(new User({ username: `user${i}`, password: 'password' }));
+        }
+        await Promise.all(users.map((u) => u.create()));
+      });
+
+      it(`should mutually subscribe ${nUsers} users to each other`, async () => {
+        const subscriptions = [];
+        for (const user1 of users) {
+          for (const user2 of users) {
+            if (user1 !== user2) {
+              subscriptions.push(user1.subscribeTo(user2));
+            }
+          }
+        }
+        const results = await Promise.all(subscriptions);
+        expect(results).to.not.include(false);
+        for (let i = 0; i < nUsers; i++) {
+          expect(users[i].subscribedFeedIds).to.have.lengthOf(3 * (nUsers - 1));
+        }
+        const stats = await Promise.all(users.map((u) => u.getStatistics()));
+        for (let i = 0; i < nUsers; i++) {
+          expect(stats[i].subscriptions).to.equal(`${nUsers - 1}`);
+          expect(stats[i].subscribers).to.equal(`${nUsers - 1}`);
+        }
+      });
+    });
+
+    describe('Luna subscribed to Mars', () => {
+      beforeEach(async () => {
+        await luna.subscribeTo(mars);
+      })
+
+      it('should have correct subscribedFeedIds of Luna', async () => {
+        const marsTimelines = await Promise.all([
+          mars.getPostsTimeline(),
+          mars.getCommentsTimeline(),
+          mars.getLikesTimeline(),
+        ]);
+        expect(luna.subscribedFeedIds).to.have.members(marsTimelines.map((t) => t.intId));
+      });
+
+      it('should have correct Luna statistic', async () => {
+        const stats = await luna.getStatistics();
+        expect(stats).to.include({ subscriptions: '1' });
+      });
+
+      it('should have correct Mars statistic', async () => {
+        const stats = await mars.getStatistics();
+        expect(stats).to.include({ subscribers: '1' });
+      });
+
+      describe('Luna also subscribed to Venus', () => {
+        beforeEach(async () => {
+          await luna.subscribeTo(venus);
+        })
+
+        it('should have correct subscribedFeedIds of Luna', async () => {
+          const marsTimelines = await Promise.all([
+            mars.getPostsTimeline(),
+            mars.getCommentsTimeline(),
+            mars.getLikesTimeline(),
+          ]);
+          const venusTimelines = await Promise.all([
+            venus.getPostsTimeline(),
+            venus.getCommentsTimeline(),
+            venus.getLikesTimeline(),
+          ]);
+          const timelines = [...marsTimelines, ...venusTimelines];
+          expect(luna.subscribedFeedIds).to.have.members(timelines.map((t) => t.intId));
+        });
+
+        it('should have correct Luna statistic', async () => {
+          const stats = await luna.getStatistics();
+          expect(stats).to.include({ subscriptions: '2' });
+        });
+      });
+    });
+  });
 
   describe('#unsubscribeFrom()', () => {
-    let userA, userB;
+    const nUsers = 4;
+    describe(`Mutual subscriptions of ${nUsers} users`, () => {
+      const users = [];
 
-    beforeEach(async () => {
-      userA = new User({ username: 'Luna', password: 'password' })
-      userB = new User({ username: 'Mars', password: 'password' })
+      beforeEach(async () => {
+        for (let i = 0; i < nUsers; i++) {
+          users.push(new User({ username: `user${i}`, password: 'password' }));
+        }
+        await Promise.all(users.map((u) => u.create()));
 
-      await Promise.all([userA.create(), userB.create()])
-    })
+        const subscriptions = [];
+        for (const user1 of users) {
+          for (const user2 of users) {
+            if (user1 !== user2) {
+              subscriptions.push(user1.subscribeTo(user2));
+            }
+          }
+        }
+        await Promise.all(subscriptions);
+      });
 
-    it('should unsubscribe from timeline', (done) => {
-      const attrs = { body: 'Post body' }
-      let identifier
-
-      userB.newPost(attrs)
-        .then((newPost) => newPost.create())
-        .then(() => userB.getPostsTimelineId())
-        .then((timelineId) => {
-          identifier = timelineId
-          return userA.subscribeTo(timelineId)
-        })
-        .then(() => userA.unsubscribeFrom(identifier))
-        .then(() => userA.getRiverOfNewsTimeline())
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.be.empty
-          done()
-        })
-        .catch((e) => { done(e) })
-    })
-  })
+      it(`should mutually unsubscribe ${nUsers} users from each other`, async () => {
+        const actions = [];
+        for (const user1 of users) {
+          for (const user2 of users) {
+            if (user1 !== user2) {
+              actions.push(user1.unsubscribeFrom(user2));
+            }
+          }
+        }
+        const results = await Promise.all(actions);
+        expect(results).to.not.include(false);
+        for (let i = 0; i < nUsers; i++) {
+          expect(users[i].subscribedFeedIds).to.be.empty;
+        }
+        const stats = await Promise.all(users.map((u) => u.getStatistics()));
+        for (let i = 0; i < nUsers; i++) {
+          expect(stats[i].subscriptions).to.equal('0');
+          expect(stats[i].subscribers).to.equal('0');
+        }
+      });
+    });
+  });
 
   describe('#getSubscriptions()', () => {
     let userA, userB;
@@ -928,8 +995,7 @@ describe('User', () => {
       const newPost = await userB.newPost(attrs);
       await newPost.create();
 
-      const timelineId = await userB.getPostsTimelineId();
-      await userA.subscribeTo(timelineId);
+      await userA.subscribeTo(userB);
 
       const feeds = await userA.getSubscriptions();
       feeds.should.not.be.empty;

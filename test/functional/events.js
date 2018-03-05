@@ -249,13 +249,13 @@ describe('EventService', () => {
       await mutualSubscriptions([mars, luna]);
       await banUser(luna, mars);
       await expectUserEventsToBe(lunaUserModel, [
+        { event_type: 'banned_user' },
         {
           user_id:            lunaUserModel.intId,
           event_type:         'user_unsubscribed',
           created_by_user_id: marsUserModel.intId,
           target_user_id:     lunaUserModel.intId,
         },
-        { event_type: 'banned_user' },
         {
           user_id:            lunaUserModel.intId,
           event_type:         'user_subscribed',
@@ -275,13 +275,13 @@ describe('EventService', () => {
       await subscribeToAsync(mars, luna);
       await banUser(luna, mars);
       await expectUserEventsToBe(lunaUserModel, [
+        { event_type: 'banned_user' },
         {
           user_id:            lunaUserModel.intId,
           event_type:         'user_unsubscribed',
           created_by_user_id: marsUserModel.intId,
           target_user_id:     lunaUserModel.intId,
         },
-        { event_type: 'banned_user' },
         {
           user_id:            lunaUserModel.intId,
           event_type:         'user_subscribed',

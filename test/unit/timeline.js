@@ -138,8 +138,7 @@ describe('Timeline', () => {
 
       userB.newPost(attrs)
         .then((newPost) => newPost.create())
-        .then(() => userB.getPostsTimelineId())
-        .then((timelineId) => userA.subscribeTo(timelineId))
+        .then(() => userA.subscribeTo(userB))
         .then(() => userB.getPostsTimeline())
         .then((timeline) => timeline.getSubscribers())
         .then((users) => {

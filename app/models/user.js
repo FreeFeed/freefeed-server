@@ -148,6 +148,14 @@ export function addModel(dbAdapter) {
     }
   })
 
+  /**
+   * User.isActive is true for non-disabled users (having hashedPassword !== '')
+   */
+  Reflect.defineProperty(User.prototype, 'isActive', {
+    get: function () { return this.hashedPassword !== ''; },
+    set: function () {},
+  })
+
   User.stopList = (skipExtraList) => {
     if (skipExtraList) {
       return config.application.USERNAME_STOP_LIST
@@ -162,6 +170,10 @@ export function addModel(dbAdapter) {
 
   User.prototype.isUser = function () {
     return this.type === 'user'
+  }
+
+  User.prototype.isGroup = function () {
+    return !this.isUser()
   }
 
   User.prototype.newPost = async function (attrs) {
@@ -375,14 +387,6 @@ export function addModel(dbAdapter) {
         throw new Error('bad input')
       }
 
-      if (params.isPrivate === '1' && this.isPrivate === '0') {
-        // was public, now private
-        await this.unsubscribeNonFriends()
-      } else if (params.isPrivate === '0' && this.isPrivate === '1') {
-        // was private, now public
-        await this.subscribeNonFriends()
-      }
-
       payload.isPrivate = params.isPrivate
     }
 
@@ -450,103 +454,6 @@ export function addModel(dbAdapter) {
     }
 
     return this
-  }
-
-  User.prototype.subscribeNonFriends = async function () {
-    // NOTE: this method is super ineffective as it iterates all posts
-    // and then all comments in user's timeline, we could make it more
-    // efficient when introduce Entries table with meta column (post to
-    // timelines many-to-many over Entries)
-    /* eslint-disable no-await-in-loop */
-
-    const timeline = await this.getPostsTimeline({ currentUser: this.id })
-    const posts = await timeline.getPosts(0, -1)
-
-    let fixedUsers = []
-
-    // first of all, let's revive likes
-    for (const post of posts) {
-      const actions = []
-
-      const [likes, comments] = await Promise.all([post.getLikes(), post.getComments()]);
-
-      for (const usersChunk of _.chunk(likes, 10)) {
-        const promises = usersChunk.map((user) => user.getLikesTimelineIntId());
-        const likesFeedsIntIds = await Promise.all(promises)
-        actions.push(dbAdapter.insertPostIntoFeeds(likesFeedsIntIds, post.id))
-      }
-
-      const uniqueCommenterUids = _.uniq(comments.map((comment) => comment.userId))
-      const commenters = await dbAdapter.getUsersByIds(uniqueCommenterUids)
-
-      for (const usersChunk of _.chunk(commenters, 10)) {
-        const promises = usersChunk.map((user) => user.getCommentsTimelineIntId());
-
-        const commentsFeedsIntIds = await Promise.all(promises)
-        actions.push(dbAdapter.insertPostIntoFeeds(commentsFeedsIntIds, post.id))
-      }
-
-      await Promise.all(actions)
-
-      fixedUsers = _.uniqBy(fixedUsers.concat(likes).concat(commenters), 'id')
-    }
-
-    for (const usersChunk of _.chunk(fixedUsers, 10)) {
-      const promises = usersChunk.map(async (user) => {
-        const [riverId, commentsTimelineId, likesTimelineId] = await Promise.all([
-          user.getRiverOfNewsTimelineIntId(),
-          user.getCommentsTimelineIntId(),
-          user.getLikesTimelineIntId()
-        ])
-
-        await dbAdapter.createMergedPostsTimeline(riverId, [commentsTimelineId, likesTimelineId]);
-      })
-
-      await Promise.all(promises)
-    }
-    /* eslint-enable no-await-in-loop */
-  }
-
-  User.prototype.unsubscribeNonFriends = async function () {
-    /* eslint-disable no-await-in-loop */
-    const subscriberIds = await this.getSubscriberIds()
-    const timeline = await this.getPostsTimeline()
-
-    // users that I'm not following are ex-followers now
-    // var subscribers = await this.getSubscribers()
-    // await Promise.all(subscribers.map(function (user) {
-    //   // this is not friend, let's unsubscribe her before going to private
-    //   if (!subscriptionIds.includes(user.id)) {
-    //     return user.unsubscribeFrom(timeline.id, { likes: true, comments: true })
-    //   }
-    // }))
-
-    // we need to review post by post as some strangers that are not
-    // followers and friends could commented on or like my posts
-    // let's find strangers first
-    const posts = await timeline.getPosts(0, -1)
-
-    let allUsers = []
-
-    for (const post of posts) {
-      const timelines = await post.getTimelines()
-      const userPromises = timelines.map((timeline) => timeline.getUser())
-      const users = await Promise.all(userPromises)
-
-      allUsers = _.uniqBy(allUsers.concat(users), 'id')
-    }
-
-    // and remove all private posts from all strangers timelines
-    const users = _.filter(
-      allUsers,
-      (user) => (!subscriberIds.includes(user.id) && user.id != this.id)
-    )
-
-    for (const chunk of _.chunk(users, 10)) {
-      const actions = chunk.map((user) => user.unsubscribeFrom(timeline.id, { likes: true, comments: true, skip: true }))
-      await Promise.all(actions)
-    }
-    /* eslint-enable no-await-in-loop */
   }
 
   User.prototype.updatePassword = async function (password, passwordConfirmation) {
@@ -784,13 +691,10 @@ export function addModel(dbAdapter) {
       throw new NotFoundException(`User "${username}" is not found`)
     }
 
-    const myPostsFeedId = await this.getPostsTimelineId();
-    const bannedUserWasSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, myPostsFeedId);
-
     await dbAdapter.createUserBan(this.id, user.id);
 
     const promises = [
-      user.unsubscribeFrom(myPostsFeedId)
+      user.unsubscribeFrom(this)
     ]
 
     // reject if and only if there is a pending request
@@ -804,7 +708,7 @@ export function addModel(dbAdapter) {
     await Promise.all(promises)
     monitor.increment('users.bans')
 
-    await EventService.onUserBanned(this.intId, user.intId, bannedUserWasSubscribed, bannedUserHasRequestedSubscription);
+    await EventService.onUserBanned(this.intId, user.intId, bannedUserHasRequestedSubscription);
     return 1
   }
 
@@ -821,85 +725,78 @@ export function addModel(dbAdapter) {
     return 1;
   }
 
-  // Subscribe to user-owner of a given `timelineId`
-  User.prototype.subscribeTo = async function (targetTimelineId) {
-    const targetTimeline = await dbAdapter.getTimelineById(targetTimelineId)
-    const targetTimelineOwner = await dbAdapter.getFeedOwnerById(targetTimeline.userId)
-
-    if (targetTimelineOwner.username == this.username) {
-      throw new Error('Invalid');
+  /**
+   * Subscribe this user to targetUser
+   *
+   * This function is not performs any access checks. It returns 'true' if
+   * subscription was successiful and 'false' if this user was already
+   * subscribed to the targetUser.
+   *
+   * @param {User} targetUser
+   * @param {object} [params]
+   * @returns {boolean}
+   */
+  User.prototype.subscribeTo = async function (targetUser, params = {}) {
+    params = {
+      noEvents: false, // do not fire subscription event
+      ...params
+    };
+    const subscribedFeedIds = await dbAdapter.subscribeUserToUser(this.id, targetUser.id);
+    if (!subscribedFeedIds) {
+      return false;
     }
+    this.subscribedFeedIds = subscribedFeedIds;
 
-    const timelineIds = await targetTimelineOwner.getPublicTimelineIds()
-    const subscribedFeedsIntIds = await dbAdapter.subscribeUserToTimelines(timelineIds, this.id)
+    await Promise.all([
+      dbAdapter.cacheFlushUser(this.id),
+      dbAdapter.statsSubscriptionCreated(this.id),
+      dbAdapter.statsSubscriberAdded(targetUser.id),
+    ]);
 
-    await dbAdapter.createMergedPostsTimeline(await this.getRiverOfNewsTimelineIntId(), [targetTimeline.intId]);
-
-    this.subscribedFeedIds = subscribedFeedsIntIds
-
-    await dbAdapter.statsSubscriptionCreated(this.id)
-    await dbAdapter.statsSubscriberAdded(targetTimelineOwner.id)
-
-    monitor.increment('users.subscriptions')
-
-    return this
+    monitor.increment('users.subscriptions');
+    if (!params.noEvents) {
+      if (targetUser.isUser()) {
+        await EventService.onUserSubscribed(this.intId, targetUser.intId);
+      } else {
+        await EventService.onGroupSubscribed(this.intId, targetUser);
+      }
+    }
+    return true;
   }
 
-  // Subscribe this user to `username`
-  User.prototype.subscribeToUsername = async function (username) {
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
 
-    if (null === user) {
-      throw new NotFoundException(`Feed "${username}" is not found`)
+  /**
+   * Unsubscribe this user from targetUser
+   *
+   * This function is not performs any access checks. It returns 'true' if
+   * unsubscription was successiful and 'false' if this user was not
+   * subscribed to the targetUser before.
+   *
+   * @param {User} targetUser
+   * @returns {boolean}
+   */
+  User.prototype.unsubscribeFrom = async function (targetUser) {
+    const subscribedFeedIds = await dbAdapter.unsubscribeUserFromUser(this.id, targetUser.id);
+    if (!subscribedFeedIds) {
+      return false;
+    }
+    this.subscribedFeedIds = subscribedFeedIds;
+
+    await Promise.all([
+      dbAdapter.cacheFlushUser(this.id),
+      dbAdapter.statsSubscriptionDeleted(this.id),
+      dbAdapter.statsSubscriberRemoved(targetUser.id),
+    ]);
+
+    monitor.increment('users.unsubscriptions');
+
+    if (targetUser.isUser()) {
+      await EventService.onUserUnsubscribed(this.intId, targetUser.intId);
+    } else {
+      await EventService.onGroupUnsubscribed(this.intId, targetUser);
     }
 
-    const timelineId = await user.getPostsTimelineId()
-    return this.subscribeTo(timelineId)
-  }
-
-  User.prototype.unsubscribeFrom = async function (timelineId, options = {}) {
-    const timeline = await dbAdapter.getTimelineById(timelineId)
-    const user = await dbAdapter.getFeedOwnerById(timeline.userId)
-    const wasSubscribed = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineId)
-
-    // a user cannot unsubscribe from herself
-    if (user.username == this.username) {
-      throw new Error('Invalid');
-    }
-
-    if (_.isUndefined(options.skip)) {
-      // remove timelines from user's subscriptions
-      const timelineIds = await user.getPublicTimelineIds()
-
-      const subscribedFeedsIntIds = await dbAdapter.unsubscribeUserFromTimelines(timelineIds, this.id)
-      this.subscribedFeedIds = subscribedFeedsIntIds
-    }
-
-    const promises = []
-
-    // remove all posts of The Timeline from user's River of News
-    promises.push(timeline.unmerge(await this.getRiverOfNewsTimelineIntId()))
-
-    // remove all posts of The Timeline from likes timeline of user
-    if (options.likes) {
-      promises.push(timeline.unmerge(await this.getLikesTimelineIntId()));
-    }
-
-    // remove all post of The Timeline from comments timeline of user
-    if (options.comments) {
-      promises.push(timeline.unmerge(await this.getCommentsTimelineIntId()));
-    }
-
-    await Promise.all(promises)
-
-    if (wasSubscribed) {
-      await dbAdapter.statsSubscriptionDeleted(this.id)
-      await dbAdapter.statsSubscriberRemoved(user.id)
-    }
-
-    monitor.increment('users.unsubscriptions')
-
-    return this
+    return true;
   }
 
   User.prototype.calculateStatsValues = async function () {
@@ -1102,10 +999,8 @@ export function addModel(dbAdapter) {
   User.prototype.acceptSubscriptionRequest = async function (userId) {
     await dbAdapter.deleteSubscriptionRequest(this.id, userId)
 
-    const timelineId = await this.getPostsTimelineId()
-
     const user = await dbAdapter.getUserById(userId)
-    return user.subscribeTo(timelineId)
+    return user.subscribeTo(this)
   }
 
   User.prototype.rejectSubscriptionRequest = async function (userId) {
