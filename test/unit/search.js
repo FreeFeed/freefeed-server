@@ -157,7 +157,7 @@ describe('FullTextSearch', () => {
 
       await Promise.all([luna.create(), mars.create(), jupiter.create(), saturn.create()])
       await luna.update({ isPrivate: '1' })
-      await saturn.update({ isVisibleToAnonymous: '0' })
+      await saturn.update({ isProtected: '1' })
 
       lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds
       bannedByLunaUserIds = await luna.getBanIds()
