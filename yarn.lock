@@ -5069,10 +5069,6 @@ sax@>=0.6.0:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
 
-scarlet@2.0.20:
-  version "2.0.20"
-  resolved "https://registry.yarnpkg.com/scarlet/-/scarlet-2.0.20.tgz#e4412be004d018b59ff736071457f4827be3348c"
-
 seek-bzip@^1.0.3:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/seek-bzip/-/seek-bzip-1.0.5.tgz#cfe917cb3d274bcffac792758af53173eb1fabdc"

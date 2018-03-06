@@ -55,9 +55,6 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Post.className = Post
-  Post.namespace = 'post'
-
   Reflect.defineProperty(Post.prototype, 'body', {
     get: function () { return this.body_ },
     set: function (newValue) {

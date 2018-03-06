@@ -27,9 +27,6 @@ export function addModel(dbAdapter) {
     this.currentUser = params.currentUser
   }
 
-  Timeline.className = Timeline
-  Timeline.namespace = 'timeline'
-
   Reflect.defineProperty(Timeline.prototype, 'name', {
     get: function () { return this.name_ },
     set: function (newValue) {

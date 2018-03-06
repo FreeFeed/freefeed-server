@@ -107,7 +107,6 @@
     "mkdirp": "0.5.1",
     "mocha": "~5.0.2",
     "npm-run-all": "~4.1.2",
-    "scarlet": "2.0.20",
     "socket.io-client": "~2.0.4",
     "superagent": "1.8.3",
     "unexpected": "~10.37.2",
