@@ -249,12 +249,23 @@ export function addModel(dbAdapter) {
     const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
 
     /**
-     * 'RiverOfNews' feeds of post author, users subscribed to post destinations feeds ('Posts' and 'Directs')
-     * and (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+     * 'RiverOfNews' feeds of:
+     * - post author
+     * - users subscribed to post destinations feeds ('Posts')
+     * - owners of post destinations feeds ('Posts' and 'Directs')
+     * - (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
      */
     const riverOfNewsSourceIds = [...destinations, ...(this.isPropagable === '1' ? activities : [])].map((f) => f.id);
     const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
-    return await dbAdapter.getUsersNamedTimelines([...riverOfNewsOwnerIds, this.userId], 'RiverOfNews');
+    const destinationOwnerIds = destinations.map((f) => f.userId);
+    return await dbAdapter.getUsersNamedTimelines(
+      _.uniq([
+        ...riverOfNewsOwnerIds,
+        ...destinationOwnerIds,
+        this.userId,
+      ]),
+      'RiverOfNews',
+    );
   };
 
   /**
