@@ -239,12 +239,8 @@ export default class PubsubListener {
   };
 
   async broadcastMessage(sockets, rooms, type, json, post = null, emitter = defaultEmitter) {
-    let destSockets = rooms
-      .filter((r) => r in sockets.adapter.rooms) // active rooms
-      .map((r) => Object.keys(sockets.adapter.rooms[r].sockets)) // arrays of clientIds
-      .reduce((prev, curr) => prev.concat(curr), []) // flatten clientIds
-      .filter((v, i, a) => a.indexOf(v) === i) // deduplicate (https://stackoverflow.com/a/14438954)
-      .map((id) => sockets.connected[id]);
+    let destSockets = Object.values(this.io.sockets.connected)
+      .filter((socket) => rooms.some((r) => r in socket.rooms));
 
     if (destSockets.length === 0) {
       return;
