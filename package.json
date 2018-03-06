@@ -6,7 +6,7 @@
   "version": "1.41.0",
   "private": true,
   "scripts": {
-    "start": "babel-node profiled.js",
+    "start": "babel-node index.js",
     "travis": "run-s -c test lint",
     "test": "run-s reset-test-db test-rollback mocha",
     "lint": "eslint app bin config test",
@@ -60,7 +60,6 @@
     "monitor-dog": "1.5.0",
     "musicmetadata": "2.0.5",
     "mv": "2.1.1",
-    "newrelic": "~2.9.0",
     "node-cache": "4.1.1",
     "node-fetch": "~2.0.0",
     "nodemailer": "1.11.0",
