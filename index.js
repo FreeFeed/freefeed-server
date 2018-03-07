@@ -9,12 +9,7 @@ require('babel-runtime/core-js/promise').default = bb;
 global.Promise = bb;
 
 bb.config({ longStackTraces: process.env.NODE_ENV !== 'production' });
-if ('__NR_original' in bb.coroutine) {
-  // newrelic 2.6.0 hides original object
-  bb.coroutine.__NR_original.addYieldHandler((value) => bb.resolve(value));
-} else {
-  bb.coroutine.addYieldHandler((value) => bb.resolve(value));
-}
+bb.coroutine.addYieldHandler((value) => bb.resolve(value));
 bb.onPossiblyUnhandledRejection((e) => {
   console.error('Unhandled Exception', e);
 });

@@ -14,7 +14,6 @@ export const userBasic = {
   screenName:              expect.it('to be a string'),
   isPrivate:               expect.it('to satisfy', boolString),
   isProtected:             expect.it('to satisfy', boolString),
-  isVisibleToAnonymous:    expect.it('to satisfy', boolString),
   createdAt:               expect.it('to satisfy', timeStampString),
   updatedAt:               expect.it('to satisfy', timeStampString),
   type:                    expect.it('to equal', 'user'),

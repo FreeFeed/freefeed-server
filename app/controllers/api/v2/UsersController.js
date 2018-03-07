@@ -165,9 +165,6 @@ function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
     const obj = serializeUser(allUsers[id]);
     obj.statistics = allStats[id] || defaultStats;
     if (obj.type === 'group') {
-      if (!obj.isVisibleToAnonymous) {
-        obj.isVisibleToAnonymous = (obj.isProtected === '1') ? '0' : '1';
-      }
       obj.administrators = allGroupAdmins[obj.id] || [];
     }
     return obj;

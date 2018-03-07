@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken'
 import _ from 'lodash'
-import monitor from 'monitor-dog'
 
 import { dbAdapter, MyProfileSerializer, User } from '../../../models'
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
-import { monitored, serializeUsersByIds } from '../v2/helpers';
+import { monitored, authRequired, serializeUsersByIds, targetUserRequired } from '../v2/helpers';
+import { UsersControllerV2 } from '../../../controllers';
 
 const config = configLoader()
 
@@ -38,7 +38,7 @@ export default class UsersController {
         throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
       }
 
-      await user.subscribeToUsername(config.onboardingUsername)
+      await user.subscribeTo(onboardingUser)
     } catch (e /* if e instanceof NotFoundException */) {
       // if onboarding username is not found, just pass
     }
@@ -71,7 +71,7 @@ export default class UsersController {
         throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
       }
 
-      await user.subscribeToUsername(config.onboardingUsername)
+      await user.subscribeTo(onboardingUser)
     } catch (e /* if e instanceof NotFoundException */) {
       // if onboarding username is not found, just pass
     }
@@ -115,27 +115,17 @@ export default class UsersController {
     ctx.body = {};
   }
 
-  static async acceptRequest(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
+  static acceptRequest = _.flow(authRequired, targetUserRequired)(async (ctx) => {
+    const { user: targetUser, targetUser: subscriber } = ctx.state;
 
-    const user = await dbAdapter.getUserByUsername(ctx.params.username)
-
-    if (null === user) {
-      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
-    }
-
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id)
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
     if (!hasRequest) {
-      throw new Error('Invalid')
+      throw new ForbiddenException('There is no subscription requests');
     }
-    await ctx.state.user.acceptSubscriptionRequest(user.id)
-    await EventService.onSubscriptionRequestApproved(user.intId, ctx.state.user.intId);
+    await targetUser.acceptSubscriptionRequest(subscriber.id);
+    await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
     ctx.body = {};
-  }
+  });
 
   static async rejectRequest(ctx) {
     if (!ctx.state.user) {
@@ -157,19 +147,6 @@ export default class UsersController {
     await ctx.state.user.rejectSubscriptionRequest(user.id)
     await EventService.onSubscriptionRequestRejected(user.intId, ctx.state.user.intId);
     ctx.body = {};
-  }
-
-  static async whoami(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
-
-    const timer = monitor.timer('users.whoami-time')
-    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
-    ctx.body = json
-    timer.stop()
   }
 
   static show = monitored('users.show', async (ctx) => {
@@ -286,119 +263,83 @@ export default class UsersController {
     ctx.body = { status };
   }
 
-  static async subscribe(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
+  static subscribe = _.flow(authRequired, targetUserRequired, monitored('users.subscribe'))(async (ctx) => {
+    const { user: subscriber, targetUser } = ctx.state;
+
+    if (subscriber.id === targetUser.id) {
+      throw new ForbiddenException('You cannot subscribe to yourself');
     }
+
+    if (targetUser.isPrivate === '1') {
+      throw new ForbiddenException('You cannot subscribe to private feed');
+    }
+
+    const [
+      banIds,
+      theirBanIds,
+    ] = await Promise.all([
+      subscriber.getBanIds(),
+      targetUser.getBanIds(),
+    ]);
+    if (banIds.includes(targetUser.id)) {
+      throw new ForbiddenException('You cannot subscribe to a banned user');
+    }
+    if (theirBanIds.includes(subscriber.id)) {
+      throw new ForbiddenException('This user prevented your from subscribing to them');
+    }
+
+    const success = await subscriber.subscribeTo(targetUser);
+    if (!success) {
+      throw new ForbiddenException('You are already subscribed to that user');
+    }
+
+    // 'subscribe' should return the same response as 'whoami'
+    await UsersControllerV2.whoAmI(ctx);
+  });
+
+  static unsubscribeUser = _.flow(authRequired, targetUserRequired, monitored('users.unsubscribeUser'))(async (ctx) => {
+    const subscriber = ctx.state.user;
 
     const { username } = ctx.params;
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
-
-    if (null === user) {
-      throw new NotFoundException(`Feed "${username}" is not found`)
+    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+    if (!targetUser || !targetUser.isActive) {
+      throw new NotFoundException(`User "${username}" is not found`);
     }
 
-    if (user.isPrivate === '1') {
-      throw new ForbiddenException('You cannot subscribe to private feed')
+    const success = await targetUser.unsubscribeFrom(subscriber);
+    if (!success) {
+      throw new ForbiddenException('This user is not subscribed to you');
     }
 
-    const timelineId = await user.getPostsTimelineId()
-    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(ctx.state.user.id, timelineId)
-    if (isSubscribed) {
-      throw new ForbiddenException('You are already subscribed to that user')
+    // 'unsubscribeUser' should return the same response as 'whoami'
+    await UsersControllerV2.whoAmI(ctx);
+  });
+
+  static unsubscribe = _.flow(authRequired, targetUserRequired, monitored('users.unsubscribe'))(async (ctx) => {
+    const subscriber = ctx.state.user;
+
+    const { username } = ctx.params;
+    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+    if (!targetUser || !targetUser.isActive) {
+      throw new NotFoundException(`User "${username}" is not found`);
     }
 
-    const banIds = await ctx.state.user.getBanIds()
-    if (banIds.includes(user.id)) {
-      throw new ForbiddenException('You cannot subscribe to a banned user')
-    }
+    if (targetUser.isGroup()) {
+      const adminIds = await targetUser.getAdministratorIds();
 
-    const theirBanIds = await user.getBanIds()
-    if (theirBanIds.includes(ctx.state.user.id)) {
-      throw new ForbiddenException('This user prevented your from subscribing to them')
-    }
-
-    await ctx.state.user.subscribeToUsername(username)
-    if ('user' === user.type) {
-      await EventService.onUserSubscribed(ctx.state.user.intId, user.intId);
-    } else {
-      await EventService.onGroupSubscribed(ctx.state.user.intId, user);
-    }
-    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
-    ctx.body = json
-  }
-
-  static async unsubscribeUser(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
-
-    const user = await dbAdapter.getUserByUsername(ctx.params.username)
-
-    if (null === user) {
-      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
-    }
-
-    const timelineId = await ctx.state.user.getPostsTimelineId()
-
-    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
-    if (!isSubscribed) {
-      throw new ForbiddenException('You are not subscribed to that user')
-    }
-
-    await user.unsubscribeFrom(timelineId)
-
-    await EventService.onUserUnsubscribed(user.intId, ctx.state.user.intId);
-    const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
-    ctx.body = json
-  }
-
-  static async unsubscribe(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
-
-    const timer = monitor.timer('users.unsubscribe-time')
-
-    try {
-      const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
-
-      if (null === user) {
-        throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
+      if (adminIds.includes(subscriber.id)) {
+        throw new ForbiddenException('Group administrators cannot unsubscribe from own groups');
       }
-
-      const timelineId = await user.getPostsTimelineId()
-
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(ctx.state.user.id, timelineId)
-      if (!isSubscribed) {
-        throw new ForbiddenException('You are not subscribed to that user')
-      }
-
-      if ('group' === user.type) {
-        const adminIds = await user.getAdministratorIds()
-
-        if (adminIds.includes(ctx.state.user.id)) {
-          throw new ForbiddenException('Group administrators cannot unsubscribe from own groups')
-        }
-      }
-      await ctx.state.user.unsubscribeFrom(timelineId)
-      if ('user' === user.type) {
-        await EventService.onUserUnsubscribed(ctx.state.user.intId, user.intId);
-      } else {
-        await EventService.onGroupUnsubscribed(ctx.state.user.intId, user);
-      }
-      const json = await new MyProfileSerializer(ctx.state.user).promiseToJSON()
-      ctx.body = json
-    } finally {
-      timer.stop()
     }
-  }
+
+    const success = await subscriber.unsubscribeFrom(targetUser);
+    if (!success) {
+      throw new ForbiddenException('You are not subscribed to that user');
+    }
+
+    // 'unsubscribe' should return the same response as 'whoami'
+    await UsersControllerV2.whoAmI(ctx);
+  });
 
   static async update(ctx) {
     if (!ctx.state.user || ctx.state.user.id != ctx.params.userId) {
@@ -408,7 +349,7 @@ export default class UsersController {
     }
 
     const attrs = _.reduce(
-      ['screenName', 'email', 'isPrivate', 'isProtected', 'isVisibleToAnonymous', 'description', 'frontendPreferences', 'preferences'],
+      ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences', 'preferences'],
       (acc, key) => {
         if (key in ctx.request.body.user) {
           acc[key] = ctx.request.body.user[key];

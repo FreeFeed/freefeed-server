@@ -74,9 +74,8 @@ export default class pubSub {
     await this.publisher.commentUpdated(payload)
   }
 
-  async newLike(post, userId, timelines) {
-    const timelineIds = timelines.map((t) => t.id)
-    const payload = JSON.stringify({ userId, postId: post.id, timelineIds })
+  async newLike(post, userId) {
+    const payload = JSON.stringify({ userId, postId: post.id })
     await this.publisher.likeAdded(payload)
   }
 

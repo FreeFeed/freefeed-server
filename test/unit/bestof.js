@@ -22,7 +22,7 @@ describe('BestOf', () => {
         return user.create()
       }))
 
-      await users[0].update({ isVisibleToAnonymous: '0' })
+      await users[0].update({ isProtected: '1' })
 
       popularPost = await users[0].newPost({ body: 'Popular post' })
       await popularPost.create()

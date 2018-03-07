@@ -4,12 +4,9 @@ import { extractMentions, extractMentionsWithIndices } from './mentions'
 import { EVENT_TYPES } from './EventTypes';
 
 export class EventService {
-  static async onUserBanned(initiatorIntId, bannedUserIntId, wasSubscribed = false, hasRequestedSubscription = false) {
+  static async onUserBanned(initiatorIntId, bannedUserIntId, hasRequestedSubscription = false) {
     await dbAdapter.createEvent(initiatorIntId, EVENT_TYPES.USER_BANNED, initiatorIntId, bannedUserIntId);
     await dbAdapter.createEvent(bannedUserIntId, EVENT_TYPES.BANNED_BY, initiatorIntId, bannedUserIntId);
-    if (wasSubscribed) {
-      await this.onUserUnsubscribed(bannedUserIntId, initiatorIntId);
-    }
     if (hasRequestedSubscription) {
       await this.onSubscriptionRequestRejected(bannedUserIntId, initiatorIntId);
     }
@@ -41,7 +38,6 @@ export class EventService {
 
   static async onSubscriptionRequestApproved(fromUserIntId, toUserIntId) {
     await dbAdapter.createEvent(fromUserIntId, EVENT_TYPES.SUBSCRIPTION_REQUEST_APPROVED, toUserIntId, fromUserIntId);
-    await dbAdapter.createEvent(toUserIntId, EVENT_TYPES.USER_SUBSCRIBED, fromUserIntId, toUserIntId);
     await pubSub.updateUnreadNotifications(fromUserIntId);
     await pubSub.updateUnreadNotifications(toUserIntId);
   }

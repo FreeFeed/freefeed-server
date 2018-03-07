@@ -28,7 +28,7 @@ describe('TimelinesController', () => {
     })
 
     it('should return empty River Of News', (done) => {
-      funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+      funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -41,7 +41,7 @@ describe('TimelinesController', () => {
     })
 
     it('should not return River Of News for unauthenticated user', (done) => {
-      funcTestHelper.getTimeline('/v1/timelines/home', null, (err) => {
+      funcTestHelper.getTimeline('/v2/timelines/home', null, (err) => {
         err.should.not.be.empty
         err.status.should.eql(401)
         done()
@@ -57,7 +57,7 @@ describe('TimelinesController', () => {
         res.body.posts.should.have.property('body')
         res.body.posts.body.should.eql(body)
 
-        funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+        funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -84,7 +84,7 @@ describe('TimelinesController', () => {
     })
 
     it('should return posts timeline', (done) => {
-      funcTestHelper.getTimeline(`/v1/timelines/${context.username}`, context.authToken, (err, res) => {
+      funcTestHelper.getTimeline(`/v2/timelines/${context.username}`, context.authToken, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -118,7 +118,7 @@ describe('TimelinesController', () => {
     })
 
     it('should respect explicit pagination limits', (done) => {
-      funcTestHelper.getTimelinePaged(`/v1/timelines/${context.username}`, context.authToken, 0, 1, (err, res) => {
+      funcTestHelper.getTimelinePaged(`/v2/timelines/${context.username}`, context.authToken, 0, 1, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -134,7 +134,7 @@ describe('TimelinesController', () => {
     })
 
     it('should respect pagination offset', (done) => {
-      funcTestHelper.getTimelinePaged(`/v1/timelines/${context.username}`, context.authToken, 1, 1, (err, res) => {
+      funcTestHelper.getTimelinePaged(`/v2/timelines/${context.username}`, context.authToken, 1, 1, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -166,7 +166,7 @@ describe('TimelinesController', () => {
     })
 
     it('should return likes timeline', (done) => {
-      funcTestHelper.getTimeline(`/v1/timelines/${marsContext.username}/likes`, context.authToken, (err, res) => {
+      funcTestHelper.getTimeline(`/v2/timelines/${marsContext.username}/likes`, context.authToken, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -186,14 +186,14 @@ describe('TimelinesController', () => {
         .post(`${app.context.config.host}/v1/posts/${post.id}/unlike`)
         .send({ authToken: context.authToken })
         .end(() => {
-          funcTestHelper.getTimeline(`/v1/timelines/${context.username}/likes`, context.authToken, (err, res) => {
+          funcTestHelper.getTimeline(`/v2/timelines/${context.username}/likes`, context.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
             res.body.timelines.should.have.property('name')
             res.body.timelines.name.should.eql('Likes')
-            res.body.timelines.should.not.have.property('posts')
-            res.body.should.not.have.property('posts')
+            res.body.timelines.posts.should.eql([])
+            res.body.posts.should.eql([])
             done()
           })
         })
@@ -225,7 +225,7 @@ describe('TimelinesController', () => {
     })
 
     it('should return comments timeline', (done) => {
-      funcTestHelper.getTimeline(`/v1/timelines/${context.username}/comments`, context.authToken, (err, res) => {
+      funcTestHelper.getTimeline(`/v2/timelines/${context.username}/comments`, context.authToken, (err, res) => {
         res.should.not.be.empty
         res.body.should.not.be.empty
         res.body.should.have.property('timelines')
@@ -245,7 +245,7 @@ describe('TimelinesController', () => {
         res.body.should.be.empty
         res.status.should.eql(200)
 
-        funcTestHelper.getTimeline(`/v1/timelines/${context.username}/comments`, context.authToken, (err, res) => {
+        funcTestHelper.getTimeline(`/v2/timelines/${context.username}/comments`, context.authToken, (err, res) => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           res.body.should.have.property('timelines')
@@ -262,14 +262,14 @@ describe('TimelinesController', () => {
             res.body.should.be.empty
             res.status.should.eql(200)
 
-            funcTestHelper.getTimeline(`/v1/timelines/${context.username}/comments`, context.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${context.username}/comments`, context.authToken, (err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
               res.body.timelines.should.have.property('name')
               res.body.timelines.name.should.eql('Comments')
-              res.body.timelines.should.not.have.property('posts')
-              res.body.should.not.have.property('posts')
+              res.body.timelines.posts.should.eql([])
+              res.body.posts.should.eql([])
 
               done()
             })

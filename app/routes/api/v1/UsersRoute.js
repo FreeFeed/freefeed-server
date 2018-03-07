@@ -1,5 +1,5 @@
 import { FeedFactoriesController, UsersController } from '../../../controllers'
-
+import deprecated from '../../../controllers/api/v1/Deprecated';
 
 export default function addRoutes(app) {
   app.post('/v1/users',                          UsersController.create)
@@ -10,7 +10,7 @@ export default function addRoutes(app) {
   // introduce groups management
   app.post('/v1/users/:username/unsubscribeFromMe', UsersController.unsubscribeUser)
   app.post('/v1/users/:username/sendRequest',    UsersController.sendRequest)
-  app.get('/v1/users/whoami',                   UsersController.whoami)
+  app.get('/v1/users/whoami',                   deprecated('Please use /v2/users/whoami'))
   app.get('/v1/users/:username',                UsersController.show)
   app.put('/v1/users/updatePassword',           UsersController.updatePassword)
   app.post('/v1/users/updateProfilePicture',     UsersController.updateProfilePicture)
