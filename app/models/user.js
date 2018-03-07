@@ -81,9 +81,6 @@ export function addModel(dbAdapter) {
     }
   }
 
-  User.className = User
-  User.namespace = 'user'
-
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
 

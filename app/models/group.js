@@ -31,9 +31,6 @@ export function addModel(dbAdapter) {
 
   inherits(Group, User)
 
-  Group.className = Group
-  Group.namespace = 'user'
-
   Reflect.defineProperty(Group.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {

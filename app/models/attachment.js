@@ -98,9 +98,6 @@ export function addModel(dbAdapter) {
     }
   }
 
-  Attachment.className = Attachment
-  Attachment.namespace = 'attachment'
-
   Reflect.defineProperty(Attachment.prototype, 'imageSizes', {
     get: function () { return this.imageSizes_ },
     set: function (newValue) {
