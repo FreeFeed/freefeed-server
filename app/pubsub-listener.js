@@ -135,15 +135,15 @@ export default class PubsubListener {
             const t = await dbAdapter.getTimelineById(id);
 
             if (!t) {
-              throw new Error(`attempt to subscribe to nonexistent timeline (ID=${id})`);
+              throw new Error(`User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${id})`);
             }
 
             if (t.isPersonal() && t.userId !== socket.user.id) {
-              throw new Error(`attempt to subscribe to someone else's '${t.name}' timeline (ID=${id})`);
+              throw new Error(`User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${id}) belonging to user ${t.userId}`);
             }
           } else if (channelType === 'user') {
             if (id !== socket.user.id) {
-              throw new Error(`attempt to subscribe to someone else's '${channelType}' channel (ID=${id})`);
+              throw new Error(`User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${id})`);
             }
           }
 
