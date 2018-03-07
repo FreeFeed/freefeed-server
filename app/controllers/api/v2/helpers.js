@@ -1,11 +1,20 @@
 import _ from 'lodash';
 import monitor from 'monitor-dog';
-import { NotAuthorizedException } from '../../../support/exceptions'
+import { NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
 import { serializeUser } from '../../../serializers/v2/user';
 import { dbAdapter } from '../../../models';
 
 export function monitored(monitorName, handlerFunc) {
+  if (!handlerFunc) {
+    return _.partial(monitored, monitorName);
+  }
   return async (ctx) => {
+    if (ctx.state.isMonitored) {
+      // This call is already monitored
+      await handlerFunc(ctx);
+      return;
+    }
+    ctx.state.isMonitored = true;
     const timer = monitor.timer(`${monitorName}-time`);
     try {
       await handlerFunc(ctx);
@@ -21,6 +30,21 @@ export function authRequired(handlerFunc) {
     if (!ctx.state.user) {
       throw new NotAuthorizedException();
     }
+    await handlerFunc(ctx);
+  };
+}
+
+export function targetUserRequired(handlerFunc) {
+  return async (ctx) => {
+    if (!ctx.params.username) {
+      throw new NotFoundException(`Target user is not defined`);
+    }
+    const { username } = ctx.params;
+    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+    if (!targetUser || !targetUser.isActive) {
+      throw new NotFoundException(`User "${username}" is not found`);
+    }
+    ctx.state.targetUser = targetUser;
     await handlerFunc(ctx);
   };
 }
@@ -41,9 +65,6 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
     const obj = serializeUser(allUsers[id]);
     obj.statistics = allStats[id] || defaultStats;
     if (obj.type === 'group') {
-      if (!obj.isVisibleToAnonymous) {
-        obj.isVisibleToAnonymous = (obj.isProtected === '1') ? '0' : '1';
-      }
       obj.administrators = allGroupAdmins[obj.id] || [];
     }
     return obj;

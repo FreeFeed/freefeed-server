@@ -402,18 +402,6 @@ const postsTrait = (superClass) => class extends superClass {
     return result.slice(params.offset, fullCount);
   }
 
-  // merges posts from "source" into "destination"
-  async createMergedPostsTimeline(destinationTimelineId, sourceTimelineIds) {
-    const transaction = async (trx) => {
-      await trx.raw(
-        'UPDATE "posts" SET "feed_ids" = ("feed_ids" | ?) WHERE "feed_ids" && ?',
-        [[destinationTimelineId], sourceTimelineIds]
-      );
-    };
-
-    await this.executeSerizlizableTransaction(transaction);
-  }
-
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
     const res1 = await this.database('posts').select('uid', 'updated_at').orderBy('bumped_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
     const postIds1 = res1.map((record) => {

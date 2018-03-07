@@ -140,63 +140,21 @@ const usersStatsTrait = (superClass) => class extends superClass {
   }
 
   async incrementStatsCounter(userId, counterName) {
-    await this.database.transaction(async (trx) => {
-      try {
-        const res = await this.database('user_stats')
-          .transacting(trx).forUpdate()
-          .where('user_id', userId)
-
-        const [stats] = res;
-        const val = parseInt(stats[counterName], 10) + 1
-
-        stats[counterName] = val
-
-        await this.database('user_stats')
-          .transacting(trx)
-          .where('user_id', userId)
-          .update(stats)
-
-        await trx.commit();
-      } catch (e) {
-        await trx.rollback();
-        throw e;
-      }
-    });
-
+    await this.database.raw(
+      'update user_stats set :counterName: = :counterName: + 1 where user_id = :userId',
+      { userId, counterName }
+    );
     // Invalidate cache
-    await this.statsCache.delAsync(userId)
+    await this.statsCache.delAsync(userId);
   }
 
   async decrementStatsCounter(userId, counterName) {
-    await this.database.transaction(async (trx) => {
-      try {
-        const res = await this.database('user_stats')
-          .transacting(trx).forUpdate()
-          .where('user_id', userId)
-
-        const [stats] = res;
-        const val = parseInt(stats[counterName]) - 1
-
-        if (val < 0) {
-          throw new Error(`Negative user stats: ${counterName} of ${userId}`);
-        }
-
-        stats[counterName] = val
-
-        await this.database('user_stats')
-          .transacting(trx)
-          .where('user_id', userId)
-          .update(stats)
-
-        await trx.commit();
-      } catch (e) {
-        await trx.rollback();
-        throw e;
-      }
-    });
-
+    await this.database.raw(
+      'update user_stats set :counterName: = :counterName: - 1 where user_id = :userId',
+      { userId, counterName }
+    );
     // Invalidate cache
-    await this.statsCache.delAsync(userId)
+    await this.statsCache.delAsync(userId);
   }
 };
 

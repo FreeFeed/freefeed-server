@@ -465,7 +465,7 @@ export function createTestUsers(count) {
 
 export function whoami(authToken) {
   return postJson(
-    '/v1/users/whoami',
+    '/v2/users/whoami',
     {
       authToken,
       '_method': 'get'
@@ -645,23 +645,23 @@ const getTimelineAsync = async (relativeUrl, userContext) => {
 }
 
 export function getUserFeed(feedOwnerContext, readerContext) {
-  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}`, readerContext)
+  return getTimelineAsync(`/v2/timelines/${feedOwnerContext.username}`, readerContext)
 }
 
 export function getUserLikesFeed(feedOwnerContext, readerContext) {
-  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}/likes`, readerContext)
+  return getTimelineAsync(`/v2/timelines/${feedOwnerContext.username}/likes`, readerContext)
 }
 
 export function getUserCommentsFeed(feedOwnerContext, readerContext) {
-  return getTimelineAsync(`/v1/timelines/${feedOwnerContext.username}/comments`, readerContext)
+  return getTimelineAsync(`/v2/timelines/${feedOwnerContext.username}/comments`, readerContext)
 }
 
 export function getRiverOfNews(userContext) {
-  return getTimelineAsync('/v1/timelines/home', userContext)
+  return getTimelineAsync('/v2/timelines/home', userContext)
 }
 
 export function getMyDiscussions(userContext) {
-  return getTimelineAsync('/v1/timelines/filter/discussions', userContext)
+  return getTimelineAsync('/v2/timelines/filter/discussions', userContext)
 }
 
 export function sendResetPassword(email) {
@@ -669,7 +669,7 @@ export function sendResetPassword(email) {
 }
 
 export async function readPostAsync(postId, userContext) {
-  const relativeUrl = `/v1/posts/${postId}?maxComments=all`
+  const relativeUrl = `/v2/posts/${postId}?maxComments=all`
   let url = await apiUrl(relativeUrl)
 
   if (!_.isUndefined(userContext)) {
@@ -990,13 +990,13 @@ export async function fetchPost(postId, viewerContext = null, params = {}) {
   return post;
 }
 
-export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2') {
+export async function fetchTimeline(path, viewerContext = null) {
   const headers = {};
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
   const response = await fetch(
-    await apiUrl(`/${apiVersion}/timelines/${path}`),
+    await apiUrl(`/v2/timelines/${path}`),
     { agent, headers }
   );
   const feed = await response.json();
@@ -1004,9 +1004,7 @@ export async function fetchTimeline(path, viewerContext = null, apiVersion = 'v2
   if (response.status !== 200) {
     expect.fail('HTTP error (code {0}): {1}', response.status, feed.err);
   }
-  if (apiVersion === 'v2') {
-    expect(feed, 'to exhaustively satisfy', schema.timelineResponse);
-  }
+  expect(feed, 'to exhaustively satisfy', schema.timelineResponse);
   return feed;
 }
 

@@ -107,7 +107,7 @@ describe('PostsController', () => {
           res.body.posts.body.should.eql(body)
           const post = res.body.posts
           request
-            .get(`${app.context.config.host}/v1/posts/${post.id}`)
+            .get(`${app.context.config.host}/v2/posts/${post.id}`)
             .query({ authToken: marsCtx.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -156,17 +156,15 @@ describe('PostsController', () => {
               .end((err) => {
                 try {
                   err.should.not.be.empty
-                  err.status.should.eql(404)
-                  const error = JSON.parse(err.response.error.text)
-                  error.err.should.eql(`Can't find post`)
+                  err.status.should.eql(403)
                 } catch (e) {
                   done(e);
                   return;
                 }
 
-                funcTestHelper.getTimeline(`/v1/timelines/${zeusCtx.username}/likes`, zeusCtx.authToken, (err, res) => {
+                funcTestHelper.getTimeline(`/v2/timelines/${zeusCtx.username}/likes`, zeusCtx.authToken, (err, res) => {
                   try {
-                    res.body.should.not.have.property('posts')
+                    res.body.posts.should.eql([])
                     done()
                   } catch (e) {
                     done(e);
@@ -183,8 +181,8 @@ describe('PostsController', () => {
               const error = JSON.parse(err.response.error.text)
               error.err.should.eql('Not found')
 
-              funcTestHelper.getTimeline(`/v1/timelines/${zeusCtx.username}/comments`, zeusCtx.authToken, (err, res) => {
-                res.body.should.not.have.property('posts')
+              funcTestHelper.getTimeline(`/v2/timelines/${zeusCtx.username}/comments`, zeusCtx.authToken, (err, res) => {
+                res.body.posts.should.eql([])
                 done()
               })
             })
@@ -218,12 +216,12 @@ describe('PostsController', () => {
               res.body.posts.should.have.property('body')
               res.body.posts.body.should.eql(body)
 
-              funcTestHelper.getTimeline('/v1/timelines/home', marsCtx.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', marsCtx.authToken, (err, res) => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].should.have.property('body')
                 res.body.posts[0].body.should.eql(body)
-                funcTestHelper.getTimeline('/v1/timelines/home', ctx.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', ctx.authToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].should.have.property('body')
@@ -255,13 +253,11 @@ describe('PostsController', () => {
                   authTokenC = res.body.users.token
 
                   request
-                    .get(`${app.context.config.host}/v1/posts/${post.id}`)
+                    .get(`${app.context.config.host}/v2/posts/${post.id}`)
                     .query({ authToken: authTokenC })
                     .end((err) => {
                       err.should.not.be.empty
                       err.status.should.eql(403)
-                      const error = JSON.parse(err.response.error.text)
-                      error.err.should.eql('Not found')
                       done()
                     })
                 })
@@ -278,7 +274,7 @@ describe('PostsController', () => {
               const post = res.body.posts
 
               request
-                .get(`${app.context.config.host}/v1/posts/${post.id}`)
+                .get(`${app.context.config.host}/v2/posts/${post.id}`)
                 .query({ authToken: marsCtx.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
@@ -295,12 +291,12 @@ describe('PostsController', () => {
             .post(`${app.context.config.host}/v1/posts`)
             .send({ post: { body }, meta: { feeds: [marsCtx.username] }, authToken: ctx.authToken })
             .end(() => {
-              funcTestHelper.getTimeline('/v1/timelines/filter/directs', ctx.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/filter/directs', ctx.authToken, (err, res) => {
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
                 res.body.posts[0].should.have.property('body')
                 res.body.posts[0].body.should.eql(body)
-                funcTestHelper.getTimeline('/v1/timelines/filter/directs', marsCtx.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/filter/directs', marsCtx.authToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].should.have.property('body')
@@ -340,7 +336,7 @@ describe('PostsController', () => {
             res.body.posts.body.should.eql(body)
 
             request
-              .get(`${app.context.config.host}/v1/timelines/${groupName}`)
+              .get(`${app.context.config.host}/v2/timelines/${groupName}`)
               .query({ authToken: ctx.authToken })
               .end((err, res) => {
                 res.body.posts.length.should.eql(1)
@@ -348,7 +344,7 @@ describe('PostsController', () => {
 
                 // Verify that the post didn't appear in the user's own timeline
                 request
-                  .get(`${app.context.config.host}/v1/timelines/${ctx.username}`)
+                  .get(`${app.context.config.host}/v2/timelines/${ctx.username}`)
                   .query({ authToken: context.authToken })
                   .end((err, res) => {
                     res.should.not.be.empty
@@ -356,8 +352,8 @@ describe('PostsController', () => {
                     res.body.should.have.property('timelines')
                     res.body.timelines.should.have.property('name')
                     res.body.timelines.name.should.eql('Posts')
-                    res.body.timelines.should.not.have.property('posts')
-                    res.body.should.not.have.property('posts')
+                    res.body.timelines.posts.should.eql([])
+                    res.body.posts.should.eql([])
 
                     done()
                   })
@@ -379,7 +375,7 @@ describe('PostsController', () => {
             res.body.posts.body.should.eql(body)
 
             request
-              .get(`${app.context.config.host}/v1/timelines/${groupName}`)
+              .get(`${app.context.config.host}/v2/timelines/${groupName}`)
               .query({ authToken: ctx.authToken })
               .end((err, res) => {
                 res.body.posts.length.should.eql(1)
@@ -387,7 +383,7 @@ describe('PostsController', () => {
 
                 // Verify that the post didn't appear in the user's own timeline
                 request
-                  .get(`${app.context.config.host}/v1/timelines/${ctx.username}`)
+                  .get(`${app.context.config.host}/v2/timelines/${ctx.username}`)
                   .query({ authToken: context.authToken })
                   .end((err, res) => {
                     res.body.posts.length.should.eql(1)
@@ -437,7 +433,7 @@ describe('PostsController', () => {
               .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end((err, res) => {
                 res.status.should.eql(200)
-                funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', otherUserAuthToken, (err, res) => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
                   res.body.posts[0].body.should.eql(body)
@@ -460,7 +456,7 @@ describe('PostsController', () => {
               .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
               .end((err, res) => {
                 res.status.should.eql(200)
-                funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', otherUserAuthToken, (err, res) => {
                   res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                   done()
                 })
@@ -486,7 +482,7 @@ describe('PostsController', () => {
                   .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
                   .send({ authToken: ctx.authToken })
                   .end(() => {
-                    funcTestHelper.getTimeline('/v1/timelines/home', otherUserAuthToken, (err, res) => {
+                    funcTestHelper.getTimeline('/v2/timelines/home', otherUserAuthToken, (err, res) => {
                       res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                       done()
                     })
@@ -508,8 +504,8 @@ describe('PostsController', () => {
               .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: ctx.authToken })
               .end(() => {
-                funcTestHelper.getTimeline(`/v1/timelines/${ctx.username}`, ctx.authToken, (err, res) => {
-                  res.body.should.not.have.property('posts')
+                funcTestHelper.getTimeline(`/v2/timelines/${ctx.username}`, ctx.authToken, (err, res) => {
+                  res.body.posts.should.eql([])
                   done()
                 })
               })
@@ -756,10 +752,6 @@ describe('PostsController', () => {
     it("should not un-like user's own post", async () => {
       const response = await funcTestHelper.unlike(context.post.id, context.authToken)
       response.status.should.eql(403)
-
-      const data = await response.json()
-      data.should.have.property('err')
-      data.err.should.eql("You can't un-like your own post")
     })
   })
 
@@ -994,7 +986,7 @@ describe('PostsController', () => {
 
     it('should show a post', (done) => {
       request
-        .get(`${app.context.config.host}/v1/posts/${context.post.id}`)
+        .get(`${app.context.config.host}/v2/posts/${context.post.id}`)
         .query({ authToken: context.authToken })
         .end((err, res) => {
           res.body.should.not.be.empty
@@ -1007,7 +999,7 @@ describe('PostsController', () => {
     })
 
     it('should show a post to anonymous user', async () => {
-      const response = await fetch(`${app.context.config.host}/v1/posts/${context.post.id}`)
+      const response = await fetch(`${app.context.config.host}/v2/posts/${context.post.id}`)
       response.status.should.eql(200, `anonymous user couldn't read post`)
 
       const data = await response.json()
@@ -1016,12 +1008,10 @@ describe('PostsController', () => {
 
     it('should return 404 given an invalid post ID', (done) => {
       request
-        .get(`${app.context.config.host}/v1/posts/123_no_such_id`)
+        .get(`${app.context.config.host}/v2/posts/123_no_such_id`)
         .query({ authToken: context.authToken })
-        .end((err, res) => {
+        .end((err) => {
           err.status.should.eql(404)
-          res.body.err.should.eql("Can't find post")
-
           done()
         })
     })
@@ -1070,7 +1060,7 @@ describe('PostsController', () => {
         .post(`${app.context.config.host}/v1/posts/${context.post.id}/hide`)
         .send({ authToken: context.authToken, })
         .end(() => {
-          funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+          funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
             res.should.not.be.empty
             res.body.should.not.be.empty
             res.body.should.have.property('timelines')
@@ -1088,7 +1078,7 @@ describe('PostsController', () => {
               .post(`${app.context.config.host}/v1/posts/${context.post.id}/unhide`)
               .send({ authToken: context.authToken, })
               .end(() => {
-                funcTestHelper.getTimeline('/v1/timelines/home', context.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', context.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -1137,7 +1127,7 @@ describe('PostsController', () => {
           res.status.should.eql(200)
 
           request
-            .get(`${app.context.config.host}/v1/timelines/${username}`)
+            .get(`${app.context.config.host}/v2/timelines/${username}`)
             .query({ authToken: context.authToken })
             .end((err, res) => {
               res.should.not.be.empty
@@ -1145,8 +1135,8 @@ describe('PostsController', () => {
               res.body.should.have.property('timelines')
               res.body.timelines.should.have.property('name')
               res.body.timelines.name.should.eql('Posts')
-              res.body.timelines.should.not.have.property('posts')
-              res.body.should.not.have.property('posts')
+              res.body.timelines.posts.should.eql([])
+              res.body.posts.should.eql([])
               done()
             })
         })

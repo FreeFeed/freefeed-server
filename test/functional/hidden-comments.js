@@ -48,7 +48,7 @@ describe('Hidden comments', () => {
         );
       });
 
-      it('should return post (API v2) with hidden Venus comment', async () => {
+      it('should return post with hidden Venus comment', async () => {
         const reply = await fetchPost(post.id, luna);
         expect(reply.comments, 'to have length', 2);
         const venusComment = reply.comments.find((c) => c.id === reply.posts.comments[0]);
@@ -57,7 +57,7 @@ describe('Hidden comments', () => {
         expect(lunaComment,  'to satisfy', { hideType: Comment.VISIBLE });
       });
 
-      it('should return timeline (API v2) with hidden Venus comment', async () => {
+      it('should return timeline with hidden Venus comment', async () => {
         const reply = await fetchTimeline('mars', luna);
         const [postInReply] = reply.posts;
         expect(reply.comments, 'to have length', 2);
@@ -65,25 +65,6 @@ describe('Hidden comments', () => {
         const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
         expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
         expect(lunaComment,  'to satisfy', { hideType: Comment.VISIBLE });
-      });
-
-      it('should return post (API v1) with hidden Venus comment', async () => {
-        const reply = await fetchPost(post.id, luna, { apiVersion: 'v1' });
-        expect(reply.comments, 'to have length', 2);
-        const venusComment = reply.comments.find((c) => c.id === reply.posts.comments[0]);
-        const lunaComment =  reply.comments.find((c) => c.id === reply.posts.comments[1]);
-        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
-        expect(lunaComment,  'to not have key', 'hideType');
-      });
-
-      it('should return timeline (API v1) with hidden Venus comment', async () => {
-        const reply = await fetchTimeline('mars', luna, 'v1');
-        const [postInReply] = reply.posts;
-        expect(reply.comments, 'to have length', 2);
-        const venusComment = reply.comments.find((c) => c.id === postInReply.comments[0]);
-        const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
-        expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
-        expect(lunaComment,  'to not have key', 'hideType');
       });
     });
 
@@ -95,28 +76,16 @@ describe('Hidden comments', () => {
         );
       });
 
-      it('should return post (API v2) without Venus comment', async () => {
+      it('should return post without Venus comment', async () => {
         const reply = await fetchPost(post.id, luna);
         expect(reply.comments, 'to have length', 1);
         expect(reply.comments[0],  'to satisfy', { hideType: Comment.VISIBLE });
       });
 
-      it('should return timeline (API v2) without Venus comment', async () => {
+      it('should return timeline without Venus comment', async () => {
         const reply = await fetchTimeline('mars', luna);
         expect(reply.comments, 'to have length', 1);
         expect(reply.comments[0],  'to satisfy', { hideType: Comment.VISIBLE });
-      });
-
-      it('should return post (API v1) without Venus comment', async () => {
-        const reply = await fetchPost(post.id, luna, { apiVersion: 'v1' });
-        expect(reply.comments, 'to have length', 1);
-        expect(reply.comments[0],  'to not have key', 'hideType');
-      });
-
-      it('should return timeline (API v1) without Venus comment', async () => {
-        const reply = await fetchTimeline('mars', luna, 'v1');
-        expect(reply.comments, 'to have length', 1);
-        expect(reply.comments[0],  'to not have key', 'hideType');
       });
     });
 

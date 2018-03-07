@@ -264,7 +264,7 @@ describe('UsersController', () => {
 
     it('should return current user for a valid user', (done) => {
       request
-        .get(`${app.context.config.host}/v1/users/whoami`)
+        .get(`${app.context.config.host}/v2/users/whoami`)
         .query({ authToken })
         .end((err, res) => {
           res.should.not.be.empty
@@ -279,7 +279,7 @@ describe('UsersController', () => {
 
     it('should not return user for an invalid user', (done) => {
       request
-        .get(`${app.context.config.host}/v1/users/whoami`)
+        .get(`${app.context.config.host}/v2/users/whoami`)
         .query({ authToken: 'token' })
         .end((err) => {
           err.should.not.be.empty
@@ -315,7 +315,7 @@ describe('UsersController', () => {
 
           funcTestHelper.createPost(lunaContext, body)(() => {
             request
-              .get(`${app.context.config.host}/v1/timelines/home`)
+              .get(`${app.context.config.host}/v2/timelines/home`)
               .query({ authToken: marsContext.authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
@@ -339,7 +339,7 @@ describe('UsersController', () => {
           res.body.users.username.should.eql(marsContext.username.toLowerCase())
 
           request
-            .get(`${app.context.config.host}/v1/timelines/home`)
+            .get(`${app.context.config.host}/v2/timelines/home`)
             .query({ authToken: marsContext.authToken })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -368,7 +368,7 @@ describe('UsersController', () => {
         .send({ authToken: lunaContext.authToken })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(500)
+          err.status.should.eql(403)
           done()
         })
     })
@@ -407,7 +407,7 @@ describe('UsersController', () => {
         .send({ authToken: authTokenB })
         .end(() => {
           request
-            .get(`${app.context.config.host}/v1/timelines/home`)
+            .get(`${app.context.config.host}/v2/timelines/home`)
             .query({ authToken: authTokenB })
             .end((err, res) => {
               res.body.should.not.be.empty
@@ -780,27 +780,6 @@ describe('UsersController', () => {
           })
       })
 
-      it('should update visibility to anonymous', (done) => {
-        request
-          .post(`${app.context.config.host}/v1/users/${user.id}`)
-          .send({
-            authToken,
-            user:      { isVisibleToAnonymous: '0' },
-            '_method': 'put'
-          })
-          .end((err, res) => {
-            res.should.not.be.empty
-            res.body.should.not.be.empty
-            res.body.should.have.property('users')
-            res.body.users.should.have.property('id')
-            res.body.users.should.have.property('isVisibleToAnonymous')
-            res.body.users.should.have.property('isProtected')
-            res.body.users.isVisibleToAnonymous.should.eql('0')
-            res.body.users.isProtected.should.eql('1')
-            done()
-          })
-      })
-
       it('should update protection settings', (done) => {
         request
           .post(`${app.context.config.host}/v1/users/${user.id}`)
@@ -814,9 +793,7 @@ describe('UsersController', () => {
             res.body.should.not.be.empty
             res.body.should.have.property('users')
             res.body.users.should.have.property('id')
-            res.body.users.should.have.property('isVisibleToAnonymous')
             res.body.users.should.have.property('isProtected')
-            res.body.users.isVisibleToAnonymous.should.eql('0')
             res.body.users.isProtected.should.eql('1')
             done()
           })
@@ -1225,7 +1202,7 @@ describe('UsersController', () => {
           res.should.not.be.empty
           res.body.should.not.be.empty
           request
-            .get(`${app.context.config.host}/v1/users/whoami`)
+            .get(`${app.context.config.host}/v2/users/whoami`)
             .query({ authToken })
             .end((err, res) => {
               res.should.not.be.empty
@@ -1324,7 +1301,7 @@ describe('UsersController', () => {
             .end((err, res) => {
               res.error.should.be.empty
               res.body.should.not.be.empty
-              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.have.property('posts')
                 res.body.posts.length.should.eql(1)
@@ -1334,12 +1311,12 @@ describe('UsersController', () => {
 
                 // Zeus should not see comments in single-post view either
                 request
-                  .get(`${app.context.config.host}/v1/posts/${postId}`)
+                  .get(`${app.context.config.host}/v2/posts/${postId}`)
                   .query({ authToken: zeusContext.authToken })
                   .end((err, res) => {
                     res.body.should.not.be.empty
                     res.body.should.have.property('posts')
-                    res.body.posts.should.not.have.property('comments')
+                    res.body.posts.comments.should.eql([])
                     done()
                   })
               })
@@ -1363,7 +1340,7 @@ describe('UsersController', () => {
               .send({ authToken: zeusContext.authToken })
               .end((err, res) => {
                 res.body.should.not.be.empty
-                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.not.be.empty
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
@@ -1373,7 +1350,7 @@ describe('UsersController', () => {
 
                   // Zeus should not see likes in single-post view either
                   request
-                    .get(`${app.context.config.host}/v1/posts/${zeusContext.post.id}`)
+                    .get(`${app.context.config.host}/v2/posts/${zeusContext.post.id}`)
                     .query({ authToken: zeusContext.authToken })
                     .end((err, res) => {
                       res.body.should.not.be.empty
@@ -1395,7 +1372,7 @@ describe('UsersController', () => {
           .send({ authToken: zeusContext.authToken })
           .end(() => {
             // Now Zeus should see this post in his timeline
-            funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               res.body.should.not.be.empty
               res.body.should.have.property('posts')
               res.body.posts.length.should.eql(1)
@@ -1405,7 +1382,7 @@ describe('UsersController', () => {
                 .send({ authToken: zeusContext.authToken })
                 .end((err, res) => {
                   res.body.should.not.be.empty
-                  funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                  funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                     res.body.should.not.be.empty
                     res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
                     done()
@@ -1420,7 +1397,7 @@ describe('UsersController', () => {
     it('should completely disallow to see banning user posts', (done) => {
       funcTestHelper.createPostForTest(zeusContext, 'Post body', () => {
         // Mars sees the post because he's subscribed to Zeus
-        funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+        funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
           res.body.should.not.be.empty
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
@@ -1431,19 +1408,18 @@ describe('UsersController', () => {
             .end((err, res) => {
               res.body.should.not.be.empty
               // Now Mars doesn't see post in his timeline
-              funcTestHelper.getTimeline('/v1/timelines/home', marsContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
                 res.body.should.not.be.empty
                 res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
 
                 // Mars should not see the post in single-post view either
                 request
-                  .get(`${app.context.config.host}/v1/posts/${zeusContext.post.id}`)
+                  .get(`${app.context.config.host}/v2/posts/${zeusContext.post.id}`)
                   .query({ authToken: marsContext.authToken })
                   .end((err) => {
                     err.should.not.be.empty
                     err.status.should.eql(403)
                     err.response.error.should.have.property('text')
-                    JSON.parse(err.response.error.text).err.should.eql('This user has prevented you from seeing their posts')
                     done()
                   })
               })
@@ -1480,7 +1456,7 @@ describe('UsersController', () => {
       const data = await funcTestHelper.getUserFeed(zeusContext, marsContext);
 
       data.should.not.be.empty
-      data.should.not.have.property('posts')
+      data.posts.should.eql([])
     })
 
     it("each banned user should not see posts in banner's posts feed", async () => {
@@ -1494,11 +1470,11 @@ describe('UsersController', () => {
 
       const viewedByMars = await funcTestHelper.getUserFeed(zeusContext, marsContext);
       viewedByMars.should.not.be.empty
-      viewedByMars.should.not.have.property('posts')
+      viewedByMars.posts.should.eql([])
 
       const viewedByPluto = await funcTestHelper.getUserFeed(zeusContext, plutoContext);
       viewedByPluto.should.not.be.empty
-      viewedByPluto.should.not.have.property('posts')
+      viewedByPluto.posts.should.eql([])
     })
 
     // Same fun inside groups
@@ -1517,9 +1493,9 @@ describe('UsersController', () => {
           .send({ authToken: zeusContext.authToken })
           .end((err, res) => {
             res.body.should.not.be.empty
-            funcTestHelper.getTimeline(`/v1/timelines/${groupUserName}`, zeusContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline(`/v2/timelines/${groupUserName}`, zeusContext.authToken, (err, res) => {
               res.body.should.not.be.empty
-              res.body.should.not.have.property('posts')
+              res.body.posts.should.eql([])
 
               done()
             })

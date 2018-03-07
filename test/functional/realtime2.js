@@ -290,4 +290,77 @@ describe('Realtime #2', () => {
       });
     });
   });
+
+  describe('Luna and Mars are friends, both are listen to their homefeeds', () => {
+    beforeEach(async () => {
+      const [
+        ,
+        lunaHomefeed,
+        marsHomefeed,
+      ] = await Promise.all([
+        funcTestHelper.mutualSubscriptions([luna, mars]),
+        dbAdapter.getUserNamedFeed(luna.user.id, 'RiverOfNews'),
+        dbAdapter.getUserNamedFeed(mars.user.id, 'RiverOfNews'),
+      ]);
+      await Promise.all([
+        lunaSession.sendAsync('subscribe', { 'timeline': [lunaHomefeed.id] }),
+        marsSession.sendAsync('subscribe', { 'timeline': [marsHomefeed.id] }),
+      ]);
+    });
+
+    it(`should deliver 'post:new' to Luna when Luna writes direct post to Mars`, async () => {
+      const test = lunaSession.receiveWhile(
+        'post:new',
+        funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
+      );
+      await expect(test, 'to be fulfilled');
+    });
+
+    it(`should deliver 'post:new' to Mars when Luna writes direct post to Mars`, async () => {
+      const test = marsSession.receiveWhile(
+        'post:new',
+        funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
+      );
+      await expect(test, 'to be fulfilled');
+    });
+
+    describe('Luna wrote direct post to Mars', () => {
+      let post;
+      beforeEach(async () => {
+        post = await funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello');
+      });
+
+      it(`should deliver 'comment:new' to Luna when Luna comments direct post`, async () => {
+        const test = lunaSession.receiveWhile(
+          'comment:new',
+          funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
+        );
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should deliver 'comment:new' to Mars when Luna comments direct post`, async () => {
+        const test = marsSession.receiveWhile(
+          'comment:new',
+          funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
+        );
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should deliver 'post:destroy' to Luna when Luna deletes direct post`, async () => {
+        const test = lunaSession.receiveWhile(
+          'post:destroy',
+          funcTestHelper.deletePostAsync(luna, post.id),
+        );
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should deliver 'post:destroy' to Mars when Luna deletes direct post`, async () => {
+        const test = marsSession.receiveWhile(
+          'post:destroy',
+          funcTestHelper.deletePostAsync(luna, post.id),
+        );
+        await expect(test, 'to be fulfilled');
+      });
+    });
+  });
 });

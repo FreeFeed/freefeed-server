@@ -49,7 +49,7 @@ describe('MutualFriends', () => {
               .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(() => {
-                funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
                   res.body.timelines.name.should.eql('RiverOfNews')
@@ -71,7 +71,7 @@ describe('MutualFriends', () => {
               .post(`${app.context.config.host}/v1/posts/${post.id}/like`)
               .send({ authToken: lunaContext.authToken })
               .end(() => {
-                funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/likes`, lunaContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.username}/likes`, lunaContext.authToken, (err, res) => {
                   if (err) {
                     done(err);
                     return;
@@ -81,7 +81,7 @@ describe('MutualFriends', () => {
                     res.body.should.have.property('timelines')
                     res.body.timelines.should.have.property('name')
                     res.body.timelines.name.should.eql('Likes')
-                    res.body.should.not.have.property('posts')
+                    res.body.posts.should.eql([])
                     done()
                   } catch (e) {
                     done(e)
@@ -99,7 +99,7 @@ describe('MutualFriends', () => {
           .end((err, res) => {
             const post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, () => {
-              funcTestHelper.getTimeline('/v1/timelines/home', zeusContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
                 try {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
@@ -122,7 +122,7 @@ describe('MutualFriends', () => {
           .end((err, res) => {
             const post = res.body.posts
             funcTestHelper.createComment(body, post.id, lunaContext.authToken, () => {
-              funcTestHelper.getTimeline(`/v1/timelines/${lunaContext.username}/comments`, lunaContext.authToken, (err, res) => {
+              funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.username}/comments`, lunaContext.authToken, (err, res) => {
                 if (err) {
                   done(err);
                   return;
@@ -132,7 +132,7 @@ describe('MutualFriends', () => {
                   res.body.should.have.property('timelines')
                   res.body.timelines.should.have.property('name')
                   res.body.timelines.name.should.eql('Comments')
-                  res.body.should.not.have.property('posts')
+                  res.body.posts.should.eql([])
                   done()
                 } catch (e) {
                   done(e)
@@ -176,7 +176,7 @@ describe('MutualFriends', () => {
                 try {
                   res.body.should.not.be.empty
                   res.body.should.have.property('err')
-                  res.body.err.should.eql(`Can't find post`)
+                  res.status.should.eql(403)
                   done()
                 } catch (e) {
                   done(e)

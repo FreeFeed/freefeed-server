@@ -370,7 +370,7 @@ describe('PrivateGroups', () => {
         .end((err, res) => {
           res.status.should.eql(200)
           request
-            .get(`${app.context.config.host}/v1/users/whoami`)
+            .get(`${app.context.config.host}/v2/users/whoami`)
             .query({ authToken: adminContext.authToken })
             .end((err, res) => {
               res.should.not.be.empty
@@ -530,7 +530,7 @@ describe('PrivateGroups', () => {
             res.error.should.be.empty
 
             request
-              .get(`${app.context.config.host}/v1/users/whoami`)
+              .get(`${app.context.config.host}/v2/users/whoami`)
               .query({ authToken: adminContext.authToken })
               .end((err, res) => {
                 res.should.not.be.empty
@@ -540,7 +540,7 @@ describe('PrivateGroups', () => {
                 res.body.users.pendingGroupRequests.should.be.false
 
 
-                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', nonAdminContext.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -646,7 +646,7 @@ describe('PrivateGroups', () => {
             res.error.should.be.empty
 
             request
-              .get(`${app.context.config.host}/v1/users/whoami`)
+              .get(`${app.context.config.host}/v2/users/whoami`)
               .query({ authToken: adminContext.authToken })
               .end((err, res) => {
                 res.should.not.be.empty
@@ -656,7 +656,7 @@ describe('PrivateGroups', () => {
                 res.body.users.pendingGroupRequests.should.be.false
 
 
-                funcTestHelper.getTimeline('/v1/timelines/home', nonAdminContext.authToken, (err, res) => {
+                funcTestHelper.getTimeline('/v2/timelines/home', nonAdminContext.authToken, (err, res) => {
                   res.should.not.be.empty
                   res.body.should.not.be.empty
                   res.body.should.have.property('timelines')
@@ -756,7 +756,7 @@ describe('PrivateGroups', () => {
             res.should.not.be.empty
             res.error.should.be.empty
 
-            funcTestHelper.getTimeline('/v1/timelines/home', groupMemberContext.authToken, (err, res) => {
+            funcTestHelper.getTimeline('/v2/timelines/home', groupMemberContext.authToken, (err, res) => {
               res.should.not.be.empty
               res.body.should.not.be.empty
               res.body.should.have.property('timelines')
@@ -1026,36 +1026,36 @@ describe('PrivateGroups', () => {
 
     it('anonymous users should have no access to private group subscribers', async () => {
       const groupFeedViewedByAnonymous = await funcTestHelper.getUserFeed(group)
-      groupFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
-      groupFeedViewedByAnonymous.should.not.have.property('subscribers')
-      groupFeedViewedByAnonymous.should.not.have.property('admins')
+      groupFeedViewedByAnonymous.timelines.subscribers.should.eql([])
+      groupFeedViewedByAnonymous.subscribers.should.eql([])
+      groupFeedViewedByAnonymous.admins.should.eql([])
 
       const groupLikesFeedViewedByAnonymous = await funcTestHelper.getUserLikesFeed(group)
-      groupLikesFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
-      groupLikesFeedViewedByAnonymous.should.not.have.property('subscribers')
-      groupLikesFeedViewedByAnonymous.should.not.have.property('admins')
+      groupLikesFeedViewedByAnonymous.timelines.subscribers.should.eql([])
+      groupLikesFeedViewedByAnonymous.subscribers.should.eql([])
+      groupLikesFeedViewedByAnonymous.admins.should.eql([])
 
       const groupCommentsFeedViewedByAnonymous = await funcTestHelper.getUserCommentsFeed(group)
-      groupCommentsFeedViewedByAnonymous.timelines.should.not.have.property('subscribers')
-      groupCommentsFeedViewedByAnonymous.should.not.have.property('subscribers')
-      groupCommentsFeedViewedByAnonymous.should.not.have.property('admins')
+      groupCommentsFeedViewedByAnonymous.timelines.subscribers.should.eql([])
+      groupCommentsFeedViewedByAnonymous.subscribers.should.eql([])
+      groupCommentsFeedViewedByAnonymous.admins.should.eql([])
     });
 
     it('non-members of group should have no access to private group subscribers', async () => {
       const groupFeedViewedByMars = await funcTestHelper.getUserFeed(group, marsContext)
-      groupFeedViewedByMars.timelines.should.not.have.property('subscribers')
-      groupFeedViewedByMars.should.not.have.property('subscribers')
-      groupFeedViewedByMars.should.not.have.property('admins')
+      groupFeedViewedByMars.timelines.subscribers.should.eql([])
+      groupFeedViewedByMars.subscribers.should.eql([])
+      groupFeedViewedByMars.admins.should.eql([])
 
       const groupLikesFeedViewedByMars = await funcTestHelper.getUserLikesFeed(group, marsContext)
-      groupLikesFeedViewedByMars.timelines.should.not.have.property('subscribers')
-      groupLikesFeedViewedByMars.should.not.have.property('subscribers')
-      groupLikesFeedViewedByMars.should.not.have.property('admins')
+      groupLikesFeedViewedByMars.timelines.subscribers.should.eql([])
+      groupLikesFeedViewedByMars.subscribers.should.eql([])
+      groupLikesFeedViewedByMars.admins.should.eql([])
 
       const groupCommentsFeedViewedByMars = await funcTestHelper.getUserCommentsFeed(group, marsContext)
-      groupCommentsFeedViewedByMars.timelines.should.not.have.property('subscribers')
-      groupCommentsFeedViewedByMars.should.not.have.property('subscribers')
-      groupCommentsFeedViewedByMars.should.not.have.property('admins')
+      groupCommentsFeedViewedByMars.timelines.subscribers.should.eql([])
+      groupCommentsFeedViewedByMars.subscribers.should.eql([])
+      groupCommentsFeedViewedByMars.admins.should.eql([])
     })
 
     it('group members should have access to private group subscribers', async () => {

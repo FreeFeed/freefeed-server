@@ -285,18 +285,15 @@ export default class GroupsController {
     if (null === user) {
       throw new NotFoundException(`User "${userName}" is not found`)
     }
-    const timelineId = await group.getPostsTimelineId()
+
     if (adminIds.includes(user.id)) {
       throw new ForbiddenException('Group administrators cannot be unsubscribed from own groups')
     }
 
-    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, timelineId)
-    if (!isSubscribed) {
-      throw new ForbiddenException('You are not subscribed to that user')
+    const success = await user.unsubscribeFrom(group);
+    if (!success) {
+      throw new ForbiddenException('This user is not subscribed to that group');
     }
-
-    await user.unsubscribeFrom(timelineId)
-    await EventService.onGroupUnsubscribed(user.intId, group);
 
     ctx.body = { err: null, status: 'success' };
   }
