@@ -55,7 +55,7 @@ export function addModel(dbAdapter) {
      * timeline of the posting user and the River of News timelines of all
      * subscribers of the feeds to which it is posted).
      */
-    async publishPost(post) {
+    static async publishPost(post) {
       const currentTime = new Date().getTime();
 
       // We can use post.timelineIds here instead of post.getPostedToIds
