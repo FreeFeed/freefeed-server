@@ -4,14 +4,14 @@ import expect from 'unexpected';
 import { noop } from 'lodash';
 
 import cleanDB from '../dbCleaner';
-import { postAccessRequired } from '../../app/controllers/api/v1/PostsController';
+import { postAccessRequired } from '../../app/controllers/middlewares';
 import { User, Post } from '../../app/models';
 
-describe('Controller wrappers', () => {
+describe('Controller middlewares', () => {
   beforeEach(() => cleanDB($pg_database));
 
   describe('postAccessRequired', () => {
-    const wrappedHandler = postAccessRequired(noop);
+    const handler = (ctx, map) => postAccessRequired(map)(ctx, noop);
 
     describe('Luna, Mars and Luna\'s post', () => {
       let luna, mars, post, ctx;
@@ -33,23 +33,48 @@ describe('Controller wrappers', () => {
         };
       });
 
+      it('should not allow to process route without required parameter', async () => {
+        Reflect.deleteProperty(ctx.params, 'postId');
+        await expect(handler(ctx), 'to be rejected with', { status: 500 });
+      });
+
       it('should not allow to view inexistent post', async () => {
         ctx.params.postId = '00000000-0000-0000-C000-000000000046';
-        await expect(wrappedHandler(ctx), 'to be rejected with', { status: 404 });
+        await expect(handler(ctx), 'to be rejected with', { status: 404 });
+      });
+
+      it('should allow to view post with custom route parameter', async () => {
+        ctx.params.postId2 = ctx.params.postId;
+        Reflect.deleteProperty(ctx.params, 'postId');
+        await expect(handler(ctx, { postId2: 'post2' }), 'to be fulfilled');
+        expect(ctx.state, 'to satisfy', { post2: { id: post.id } });
+      });
+
+      it('should allow to view two posts', async () => {
+        ctx.params.postId2 = ctx.params.postId;
+        await expect(handler(ctx, { postId: 'post', postId2: 'post2' }), 'to be fulfilled');
+        expect(ctx.state, 'to satisfy', { post2: { id: post.id }, post: { id: post.id } });
+      });
+
+      it('should not allow to view two posts if one of them is not exists', async () => {
+        ctx.params.postId2 = ctx.params.postId;
+        ctx.params.postId = '00000000-0000-0000-C000-000000000046';
+        await expect(handler(ctx, { postId: 'post', postId2: 'post2' }), 'to be rejected with', { status: 404 });
       });
 
       it('should allow anonymous to view post', async () => {
-        await expect(wrappedHandler(ctx), 'to be fulfilled');
+        await expect(handler(ctx), 'to be fulfilled');
+        expect(ctx.state, 'to satisfy', { post: { id: post.id } });
       });
 
       it('should allow Mars to view post', async () => {
         ctx.state.user = mars;
-        await expect(wrappedHandler(ctx), 'to be fulfilled');
+        await expect(handler(ctx), 'to be fulfilled');
       });
 
       it('should allow Luna to view post', async () => {
         ctx.state.user = luna;
-        await expect(wrappedHandler(ctx), 'to be fulfilled');
+        await expect(handler(ctx), 'to be fulfilled');
       });
 
       describe('Luna becomes protected', () => {
@@ -58,17 +83,17 @@ describe('Controller wrappers', () => {
         });
 
         it('should not allow anonymous to view post', async () => {
-          await expect(wrappedHandler(ctx), 'to be rejected with', { status: 403 });
+          await expect(handler(ctx), 'to be rejected with', { status: 403 });
         });
 
         it('should allow Mars to view post', async () => {
           ctx.state.user = mars;
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
 
         it('should allow Luna to view post', async () => {
           ctx.state.user = luna;
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
       });
 
@@ -78,17 +103,17 @@ describe('Controller wrappers', () => {
         });
 
         it('should not allow anonymous to view post', async () => {
-          await expect(wrappedHandler(ctx), 'to be rejected with', { status: 403 });
+          await expect(handler(ctx), 'to be rejected with', { status: 403 });
         });
 
         it('should not allow Mars to view post', async () => {
           ctx.state.user = mars;
-          await expect(wrappedHandler(ctx), 'to be rejected with', { status: 403 });
+          await expect(handler(ctx), 'to be rejected with', { status: 403 });
         });
 
         it('should allow Luna to view post', async () => {
           ctx.state.user = luna;
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
 
         describe('Mars subscribes to Luna', () => {
@@ -98,7 +123,7 @@ describe('Controller wrappers', () => {
 
           it('should allow Mars to view post', async () => {
             ctx.state.user = mars;
-            await expect(wrappedHandler(ctx), 'to be fulfilled');
+            await expect(handler(ctx), 'to be fulfilled');
           });
         });
       });
@@ -109,17 +134,17 @@ describe('Controller wrappers', () => {
         });
 
         it('should allow anonymous to view post', async () => {
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
 
         it('should not allow Mars to view post', async () => {
           ctx.state.user = mars;
-          await expect(wrappedHandler(ctx), 'to be rejected with', { status: 403 });
+          await expect(handler(ctx), 'to be rejected with', { status: 403 });
         });
 
         it('should allow Luna to view post', async () => {
           ctx.state.user = luna;
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
       });
 
@@ -129,17 +154,17 @@ describe('Controller wrappers', () => {
         });
 
         it('should allow anonymous to view post', async () => {
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
 
         it('should not allow Mars to view post', async () => {
           ctx.state.user = mars;
-          await expect(wrappedHandler(ctx), 'to be rejected with', { status: 403 });
+          await expect(handler(ctx), 'to be rejected with', { status: 403 });
         });
 
         it('should allow Luna to view post', async () => {
           ctx.state.user = luna;
-          await expect(wrappedHandler(ctx), 'to be fulfilled');
+          await expect(handler(ctx), 'to be fulfilled');
         });
       });
 
@@ -178,17 +203,17 @@ describe('Controller wrappers', () => {
           });
 
           it('should not allow anonymous to view post', async () => {
-            await expect(wrappedHandler(ctx), 'to be rejected with', { status: 403 });
+            await expect(handler(ctx), 'to be rejected with', { status: 403 });
           });
 
           it('should allow Mars to view post', async () => {
             ctx.state.user = mars;
-            await expect(wrappedHandler(ctx), 'to be fulfilled');
+            await expect(handler(ctx), 'to be fulfilled');
           });
 
           it('should allow Luna to view post', async () => {
             ctx.state.user = luna;
-            await expect(wrappedHandler(ctx), 'to be fulfilled');
+            await expect(handler(ctx), 'to be fulfilled');
           });
         });
       });

@@ -1,53 +1,6 @@
 import _ from 'lodash';
-import monitor from 'monitor-dog';
-import { NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
 import { serializeUser } from '../../../serializers/v2/user';
 import { dbAdapter } from '../../../models';
-
-export function monitored(monitorName, handlerFunc) {
-  if (!handlerFunc) {
-    return _.partial(monitored, monitorName);
-  }
-  return async (ctx) => {
-    if (ctx.state.isMonitored) {
-      // This call is already monitored
-      await handlerFunc(ctx);
-      return;
-    }
-    ctx.state.isMonitored = true;
-    const timer = monitor.timer(`${monitorName}-time`);
-    try {
-      await handlerFunc(ctx);
-      monitor.increment(`${monitorName}-requests`);
-    } finally {
-      timer.stop();
-    }
-  };
-}
-
-export function authRequired(handlerFunc) {
-  return async (ctx) => {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
-    await handlerFunc(ctx);
-  };
-}
-
-export function targetUserRequired(handlerFunc) {
-  return async (ctx) => {
-    if (!ctx.params.username) {
-      throw new NotFoundException(`Target user is not defined`);
-    }
-    const { username } = ctx.params;
-    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
-    if (!targetUser || !targetUser.isActive) {
-      throw new NotFoundException(`User "${username}" is not found`);
-    }
-    ctx.state.targetUser = targetUser;
-    await handlerFunc(ctx);
-  };
-}
 
 const defaultStats = {
   posts:         '0',

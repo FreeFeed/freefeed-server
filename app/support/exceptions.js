@@ -59,3 +59,10 @@ export class ValidationException {
     this.status = 422
   }
 }
+
+export class ServerErrorException {
+  constructor(message) {
+    this.message = message || 'Internal server error'
+    this.status = 500
+  }
+}
