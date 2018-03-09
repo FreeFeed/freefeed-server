@@ -96,10 +96,11 @@ const eventsTrait = (superClass) => class extends superClass {
   }
 
   async getDigestSentAt(userIntIds) {
-    const res = await this.database('notification_email_log')
+    const res = await this.database('sent_emails_log')
       .select('user_id')
       .max('sent_at as sent_at')
       .whereIn('user_id', userIntIds)
+      .andWhere('email_type', 'notification')
       .groupBy('user_id');
 
     const emailSentMapping = {};
@@ -110,8 +111,9 @@ const eventsTrait = (superClass) => class extends superClass {
   }
 
   addNotificationEmailLogEntry(userIntId, email) {
-    return this.database('notification_email_log').insert({
-      user_id: userIntId,
+    return this.database('sent_emails_log').insert({
+      email_type: 'notification',
+      user_id:    userIntId,
       email
     });
   }

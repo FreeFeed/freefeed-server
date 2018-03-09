@@ -45,7 +45,7 @@ export async function sendEmails() {
     debug(`[${u.username}] email is queued: OK`);
 
     await dbAdapter.addNotificationEmailLogEntry(u.intId, u.email);
-    debug(`[${u.username}] added entry to notification_email_log`);
+    debug(`[${u.username}] added entry to sent_emails_log`);
   });
 
   debug('waiting for all promised actions to finish');
