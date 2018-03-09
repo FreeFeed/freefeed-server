@@ -1,11 +1,11 @@
 import _ from 'lodash'
 import monitor from 'monitor-dog';
+import compose from 'koa-compose';
 
 import { dbAdapter, PostSerializer } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
-import { authRequired, monitored } from '../v2/helpers';
-
+import { postAccessRequired, authRequired, monitored } from '../../middlewares';
 
 export default class PostsController {
   static async create(ctx) {
@@ -108,7 +108,10 @@ export default class PostsController {
     ctx.body = json
   }
 
-  static like = _.flow(authRequired, postAccessRequired, monitored('posts.likes'))(
+  static like = compose([
+    authRequired(),
+    postAccessRequired(),
+    monitored('posts.likes'),
     async (ctx) => {
       const { user, post } = ctx.state;
       if (post.userId === user.id) {
@@ -122,10 +125,13 @@ export default class PostsController {
 
       monitor.increment('posts.reactions');
       ctx.body = {};
-    }
-  );
+    },
+  ]);
 
-  static unlike = _.flow(authRequired, postAccessRequired, monitored('posts.unlikes'))(
+  static unlike = compose([
+    authRequired(),
+    postAccessRequired(),
+    monitored('posts.unlikes'),
     async (ctx) => {
       const { user, post } = ctx.state;
       const success = await post.removeLike(user);
@@ -135,8 +141,8 @@ export default class PostsController {
 
       monitor.decrement('posts.reactions');
       ctx.body = {};
-    }
-  );
+    },
+  ]);
 
   static async destroy(ctx) {
     if (!ctx.state.user) {
@@ -228,55 +234,4 @@ export default class PostsController {
 
     ctx.body = {};
   }
-}
-
-export function postAccessRequired(handlerFunc) {
-  return async (ctx) => {
-    const forbidden = (reason = 'You cannot see this post') => new ForbiddenException(reason);
-    const notFound = (reason = 'Post not found') => new NotFoundException(reason);
-
-    if (!ctx.params.postId) {
-      throw notFound(`Post Id is not defined`);
-    }
-    const { postId } = ctx.params;
-    const post = await dbAdapter.getPostById(postId);
-    if (!post) {
-      throw notFound();
-    }
-
-    // Viewer CAN NOT see post if:
-    // - viwer is anonymous and post is not public or
-    // - viewer is authorized and
-    //   - post author banned viewer or was banned by viewer or
-    //   - post is private and viewer cannot read any of post's destination feeds
-    const { user: viewer } = ctx.state;
-
-    // Check if viewer is anonymous and post is not public
-    if (!viewer && post.isProtected === '1') {
-      if (post.isPrivate === '0') {
-        throw forbidden('Please sign in to view this post');
-      } else {
-        throw forbidden();
-      }
-    }
-
-    if (viewer) {
-      // Check if post author banned viewer or was banned by viewer
-      const bannedUserIds = await dbAdapter.getBansAndBannersOfUser(viewer.id);
-      if (bannedUserIds.includes(post.userId)) {
-        throw forbidden();
-      }
-
-      // Check if post is private and viewer cannot read any of post's destination feeds
-      if (post.isPrivate === '1') {
-        const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
-        if (_.isEmpty(_.intersection(post.destinationFeedIds, privateFeedIds))) {
-          throw forbidden();
-        }
-      }
-    }
-
-    ctx.state.post = post;
-    await handlerFunc(ctx);
-  };
 }
