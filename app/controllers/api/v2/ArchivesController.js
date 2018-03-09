@@ -1,15 +1,19 @@
 import _ from 'lodash';
 import expect from 'unexpected';
+import compose from 'koa-compose';
+
 import Mailer from '../../../../lib/mailer'
 import { load as configLoader } from '../../../../config/config'
 import { dbAdapter } from '../../../models';
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
-import { monitored, authRequired } from './helpers';
+import { authRequired, monitored } from '../../middlewares';
 
 const config = configLoader();
 
-export default class ArchivesController {
-  restoration = authRequired(monitored('archives.restoration', async (ctx) => {
+export const restoration = compose([
+  authRequired(),
+  monitored('archives.restoration'),
+  async (ctx) => {
     const { user } = ctx.state;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
     if (!archParams) {
@@ -28,7 +32,7 @@ export default class ArchivesController {
       ...ctx.request.body,
     };
 
-    // There should be only url's that are present in via_sources
+      // There should be only url's that are present in via_sources
     params.via_restore = _.uniq(params.via_restore)
       .filter((u) => archParams.via_sources.find((s) => s.url === u));
 
@@ -52,9 +56,13 @@ export default class ArchivesController {
 
     ctx.status = 202;
     ctx.body = {};
-  }));
+  },
+]);
 
-  activities = authRequired(monitored('archives.start', async (ctx) => {
+export const activities = compose([
+  authRequired(),
+  monitored('archives.activities'),
+  async (ctx) => {
     const { user } = ctx.state;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
     if (!archParams) {
@@ -73,9 +81,12 @@ export default class ArchivesController {
 
     ctx.status = 202;
     ctx.body = {};
-  }));
+  },
+]);
 
-  postByOldName = monitored('archives.postByOldName', async (ctx) => {
+export const postByOldName = compose([
+  monitored('archives.postByOldName'),
+  async (ctx) => {
     const { name } = ctx.params;
     const postId = await dbAdapter.getPostIdByOldName(name);
     if (!postId) {
@@ -83,5 +94,5 @@ export default class ArchivesController {
     }
 
     ctx.body = { postId };
-  });
-}
+  },
+]);
