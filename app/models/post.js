@@ -2,7 +2,7 @@ import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
 
 import { extractHashtags } from '../support/hashtags'
-import { Timeline, PubSub as pubSub } from '../models'
+import { PubSub as pubSub } from '../models'
 import { getRoomsOfPost } from '../pubsub-listener'
 
 
@@ -80,39 +80,57 @@ export function addModel(dbAdapter) {
   }
 
   Post.prototype.create = async function () {
-    this.createdAt = new Date().getTime();
-    this.updatedAt = new Date().getTime();
-    this.bumpedAt = new Date().getTime();
-
-    await this.validate()
+    await this.validate();
 
     const payload = {
       'body':             this.body,
       'userId':           this.userId,
-      'createdAt':        this.createdAt.toString(),
-      'updatedAt':        this.updatedAt.toString(),
-      'bumpedAt':         this.updatedAt.toString(),
-      'commentsDisabled': this.commentsDisabled
+      'commentsDisabled': this.commentsDisabled,
     }
-    this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds)
-    this.destinationFeedIds = this.feedIntIds.slice()
+    const destFeeds = await dbAdapter.getTimelinesByIds(this.timelineIds);
+    this.feedIntIds = destFeeds.map((f) => f.intId);
+    this.destinationFeedIds = this.feedIntIds.slice();
     // save post to the database
-    this.id = await dbAdapter.createPost(payload, this.feedIntIds)
+    this.id = await dbAdapter.createPost(payload, this.feedIntIds);
 
     const newPost = await dbAdapter.getPostById(this.id);
-    this.isPrivate = newPost.isPrivate;
-    this.isProtected = newPost.isProtected;
-    this.isPropagable = newPost.isPropagable;
+    const fieldsToUpdate = [
+      'isPrivate',
+      'isProtected',
+      'isPropagable',
+      'createdAt',
+      'updatedAt',
+      'bumpedAt',
+    ];
+    for (const f of fieldsToUpdate) {
+      this[f] = newPost[f];
+    }
 
-    // save nested resources
-    await this.linkAttachments()
-    await this.processHashtagsOnCreate()
+    await Promise.all([
+      this.linkAttachments(),
+      this.processHashtagsOnCreate(),
+    ]);
 
-    await Timeline.publishPost(this)
+    // Realtime
+    const rtUpdates = destFeeds
+      .filter((f) => f.isDirects())
+      .map((f) => pubSub.updateUnreadDirects(f.userId));
+    rtUpdates.push(pubSub.newPost(this.id));
 
-    await dbAdapter.statsPostCreated(this.userId)
+    // Update groups last activity
+    const { updatedAt } = this;
+    const groupsUpdates = destFeeds
+      // All 'Posts' feeds except of author's are belongs to groups
+      .filter((f) => f.isPosts() && f.userId !== this.userId)
+      .map((f) => dbAdapter.updateUser(f.userId, { updatedAt }))
 
-    return this
+    await Promise.all([
+      ...rtUpdates,
+      ...groupsUpdates,
+      dbAdapter.statsPostCreated(this.userId),
+    ]);
+
+    return this;
   }
 
   Post.prototype.update = async function (params) {

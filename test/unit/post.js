@@ -124,41 +124,6 @@ describe('Post', () => {
         .catch((e) => { done(e) })
     })
 
-    it('should return no posts from blank timeline', (done) => {
-      user.getRiverOfNewsTimeline()
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.be.empty
-          done()
-        })
-        .catch((e) => { done(e) })
-    })
-
-    it('should return valid post from users timeline', (done) => {
-      const post = new Post({
-        body:             'Post',
-        userId:           user.id,
-        timelineIds:      [timelineId],
-        commentsDisabled: '0'
-      })
-
-      post.create()
-        .then(() => user.getRiverOfNewsTimeline())
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.not.be.empty
-          posts.length.should.eql(1)
-
-          const [newPost] = posts;
-          newPost.should.be.an.instanceOf(Post)
-          newPost.should.not.be.empty
-          newPost.should.have.property('body')
-          newPost.body.should.eql(post.body)
-          done()
-        })
-        .catch((e) => { done(e) })
-    })
-
     it('should not create with empty body', (done) => {
       const post = new Post({
         body:             '',

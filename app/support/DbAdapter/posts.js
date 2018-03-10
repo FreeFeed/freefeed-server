@@ -15,6 +15,7 @@ const postsTrait = (superClass) => class extends superClass {
   async createPost(payload, destinationsIntIds) {
     const preparedPayload = prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
+    preparedPayload.feed_ids = destinationsIntIds
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
   }
