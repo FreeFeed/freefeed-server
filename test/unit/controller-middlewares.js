@@ -4,7 +4,7 @@ import expect from 'unexpected';
 import { noop } from 'lodash';
 
 import cleanDB from '../dbCleaner';
-import { postAccessRequired } from '../../app/controllers/middlewares';
+import { postAccessRequired, inputSchemaRequired } from '../../app/controllers/middlewares';
 import { User, Post } from '../../app/models';
 
 describe('Controller middlewares', () => {
@@ -217,6 +217,42 @@ describe('Controller middlewares', () => {
           });
         });
       });
+    });
+  });
+
+  describe('inputSchemaRequired', () => {
+    const schema = {
+      '$schema':  'http://json-schema.org/schema#',
+      type:       'object',
+      required:   ['a'],
+      properties: {
+        a: { type: 'string' },
+        b: { type: 'string', default: 'boo' },
+      }
+    };
+
+    const handler = (ctx) => inputSchemaRequired(schema)(ctx, noop);
+    const ctx = { request: { body: {} } };
+
+    it('should pass the valid request data', async () => {
+      ctx.request.body = { a: 'aaa' };
+      await expect(handler(ctx), 'to be fulfilled');
+    });
+
+    it('should not pass request data without required field', async () => {
+      ctx.request.body = { b: 'bbb' };
+      await expect(handler(ctx), 'to be rejected with', { status: 422 });
+    });
+
+    it('should not pass the invalid request data', async () => {
+      ctx.request.body = { a: 'aaa', b: 223 };
+      await expect(handler(ctx), 'to be rejected with', { status: 422 });
+    });
+
+    it('should complete request data with the defaults', async () => {
+      ctx.request.body = { a: 'aaa' };
+      await handler(ctx);
+      expect(ctx.request.body, 'to equal', { a: 'aaa', b: 'boo' });
     });
   });
 });
