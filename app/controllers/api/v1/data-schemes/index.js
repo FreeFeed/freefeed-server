@@ -1,0 +1,1 @@
+export { postCreateInputSchema } from './posts';
