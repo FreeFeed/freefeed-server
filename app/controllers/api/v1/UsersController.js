@@ -7,7 +7,7 @@ import { NotFoundException, ForbiddenException } from '../../../support/exceptio
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
-import { serializeUsersByIds } from '../v2/helpers';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, targetUserRequired, monitored } from '../../middlewares';
 import { UsersControllerV2 } from '../../../controllers';
 

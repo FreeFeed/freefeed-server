@@ -4,7 +4,7 @@ import compose from 'koa-compose';
 import { dbAdapter } from '../../../models';
 import { serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, postAccessRequired } from '../../middlewares';
-import { userSerializerFunction } from './helpers';
+import { userSerializerFunction } from '../../../serializers/v2/user';
 
 export const show = compose([
   postAccessRequired(),

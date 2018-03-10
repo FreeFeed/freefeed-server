@@ -5,7 +5,7 @@ import { dbAdapter } from '../../../models';
 import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
-import { userSerializerFunction } from './helpers';
+import { userSerializerFunction } from '../../../serializers/v2/user';
 
 const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
 const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars

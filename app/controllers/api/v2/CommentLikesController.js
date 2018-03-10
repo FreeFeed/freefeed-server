@@ -1,6 +1,6 @@
 import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
-import { userSerializerFunction } from './helpers';
+import { userSerializerFunction } from '../../../serializers/v2/user';
 
 export default class CommentLikesController {
   static async like(ctx) {
