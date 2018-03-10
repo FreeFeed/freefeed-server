@@ -22,6 +22,14 @@ const groupAdminTrait = (superClass) => class extends superClass {
     return res;
   }
 
+  async isUserAdminOfGroup(userId, groupId) {
+    const { rows } = await this.database.raw(
+      'select 1 from group_admins where group_id = :groupId and user_id = :userId',
+      { userId, groupId }
+    )
+    return rows.length > 0;
+  }
+
   addAdministratorToGroup(groupId, adminId) {
     const currentTime = new Date().toISOString()
 
