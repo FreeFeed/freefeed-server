@@ -57,7 +57,7 @@ describe('PostsController', () => {
 
     it('should not create a post with empty feeds list', async () => {
       const attempt = funcTestHelper.createAndReturnPostToFeed([], ctx, 'Post body');
-      await expect(attempt, 'to be rejected with', new Error('HTTP/1.1 400'));
+      await expect(attempt, 'to be rejected with', new Error('HTTP/1.1 422'));
     });
 
     it('should create a post with comments disabled', async () => {
@@ -128,8 +128,6 @@ describe('PostsController', () => {
           .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
-            err.response.error.should.have.property('text')
-            JSON.parse(err.response.error.text).err.should.eql("You can't send private messages to friends that are not mutual")
             done()
           })
       })
@@ -516,10 +514,8 @@ describe('PostsController', () => {
         request
           .post(`${app.context.config.host}/v1/posts`)
           .send({ post: { body: 'Post body' }, meta: { feeds: [otherUserName] }, authToken: ctx.authToken })
-          .end((err, res) => {
+          .end((err) => {
             err.status.should.eql(403)
-            res.body.err.should.eql("You can't send private messages to friends that are not mutual")
-
             done()
           })
       })
@@ -532,11 +528,9 @@ describe('PostsController', () => {
             meta:      { feeds: [groupName] },
             authToken: otherUserAuthToken
           })
-          .end((err, res) => {
+          .end((err) => {
             err.should.not.be.empty
             err.status.should.eql(403)
-            res.body.err.should.eql("You can't post to a group to which you aren't subscribed")
-
             done()
           })
       })
