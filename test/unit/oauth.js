@@ -1,8 +1,16 @@
 /* eslint-env node, mocha */
-import expect from 'unexpected';
+import unexpected from 'unexpected';
+import unexpectedSinon from 'unexpected-sinon';
 import { omit } from 'lodash';
 
-import { generateUsername } from '../../config/initializers/passport';
+import { load as configLoader } from '../../config/config';
+import { generateUsername, renderCallbackResponse } from '../../config/initializers/passport';
+import { propagateJsdomErrors } from '../utils/jsdom';
+
+const config = configLoader();
+
+const expect = unexpected.clone()
+  .use(unexpectedSinon);
 
 function getDbAdapter(existingUsername) {
   return {
@@ -15,6 +23,7 @@ function getDbAdapter(existingUsername) {
     }
   };
 }
+
 
 describe('OAuth utils', () => {
   describe('generateUsername()', () => {
@@ -125,6 +134,69 @@ describe('OAuth utils', () => {
           generateUsername(emptyDb, omit(data, 'username', 'email')),
           'to be fulfilled with',
           'ThreeFiddy'
+        );
+      });
+    });
+  });
+
+  describe('renderCallbackResponse()', () => {
+    // The callback script must post a message in any case.
+    context('when neither authToken nor error is provided', () => {
+      it('should return HTML with valid script anyway', () => {
+        const html = renderCallbackResponse({}, config.origin);
+
+        expect(
+          () => propagateJsdomErrors(html),
+          'not to throw'
+        );
+      });
+
+      it('should post a message to the opener anyway', () => {
+        const html = renderCallbackResponse({}, config.origin);
+        const dom = propagateJsdomErrors(html);
+
+        expect(
+          dom.window.opener.postMessage,
+          'to have calls satisfying',
+          () => {
+            dom.window.opener.postMessage({
+              authToken: undefined,
+              error:     undefined,
+            }, config.origin);
+          }
+        );
+      });
+    });
+
+    context('when both authToken and error are provided', () => {
+      it('should return HTML with valid script', () => {
+        const html = renderCallbackResponse({
+          authToken: 'token',
+          error:     new Error('Some error'),
+        }, config.origin);
+
+        expect(
+          () => propagateJsdomErrors(html),
+          'not to throw'
+        );
+      });
+
+      it('should post a message to the opener', () => {
+        const html = renderCallbackResponse({
+          authToken: 'token',
+          error:     new Error('Test error'),
+        }, config.origin);
+        const dom = propagateJsdomErrors(html);
+
+        expect(
+          dom.window.opener.postMessage,
+          'to have calls satisfying',
+          () => {
+            dom.window.opener.postMessage({
+              authToken: 'token',
+              error:     'Test error',
+            }, config.origin);
+          }
         );
       });
     });
