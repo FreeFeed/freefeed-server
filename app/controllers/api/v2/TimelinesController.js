@@ -146,7 +146,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
       }
       if (canViewUser) {
         // Viewer cannot see feeds of users in ban relations with him
-        const banIds = await dbAdapter.getBansAndBannersOfUser(viewerId);
+        const banIds = await dbAdapter.getUsersBansOrWasBannedBy(viewerId);
         canViewUser = !banIds.includes(owner.id);
       }
     }

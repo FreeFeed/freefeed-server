@@ -35,7 +35,7 @@ export function postAccessRequired(map = { postId: 'post' }) {
 
       if (viewer) {
         // Check if post author banned viewer or was banned by viewer
-        const bannedUserIds = await dbAdapter.getBansAndBannersOfUser(viewer.id);
+        const bannedUserIds = await dbAdapter.getUsersBansOrWasBannedBy(viewer.id);
         if (bannedUserIds.includes(post.userId)) {
           throw forbidden();
         }

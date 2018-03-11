@@ -747,7 +747,7 @@ export function addModel(dbAdapter) {
       users = users.filter((u) => !!u.id); // users without id are anonymous
     }
 
-    const authorBans = await dbAdapter.getBansAndBannersOfUser(this.userId);
+    const authorBans = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
     // Author's banned and banners can not see this post
     users = users.filter((u) => !authorBans.includes(u.id));
 

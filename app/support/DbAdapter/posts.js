@@ -148,26 +148,6 @@ const postsTrait = (superClass) => class extends superClass {
   }
 
   /**
-   * Returns uids of users who banned this user or banned by this user.
-   * It is useful for posts visibility check.
-   * @param {String} userId   - UID of user
-   * @return {Array.<String>} - UIDs of users
-   */
-  async getBansAndBannersOfUser(userId) {
-    const sql = `
-      select
-        distinct coalesce( nullif( user_id, :userId ), banned_user_id ) as id
-      from
-        bans 
-      where
-        user_id = :userId
-        or banned_user_id = :userId
-    `;
-    const { rows } = await this.database.raw(sql, { userId });
-    return _.map(rows, 'id');
-  }
-
-  /**
    * Returns integer ids of private feeds that user can view
    * @param {String} userId   - UID of user
    * @return {Array.<Number>} - ids of feeds
@@ -248,7 +228,7 @@ const postsTrait = (superClass) => class extends superClass {
         bannedUsersIds,
       ] = await Promise.all([
         this.getVisiblePrivateFeedIntIds(viewerId),
-        this.getBansAndBannersOfUser(viewerId),
+        this.getUsersBansOrWasBannedBy(viewerId),
       ]);
 
       if (params.withoutDirects) {
