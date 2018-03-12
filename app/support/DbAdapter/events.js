@@ -110,9 +110,24 @@ const eventsTrait = (superClass) => class extends superClass {
     return emailSentMapping;
   }
 
-  addNotificationEmailLogEntry(userIntId, email) {
+  async getDailyBestOfEmailSentAt(userIntIds) {
+    const res = await this.database('sent_emails_log')
+      .select('user_id')
+      .max('sent_at as sent_at')
+      .whereIn('user_id', userIntIds)
+      .andWhere('email_type', 'daily_best_of')
+      .groupBy('user_id');
+
+    const emailSentMapping = {};
+    for (const entry of res) {
+      emailSentMapping[entry.user_id] = entry.sent_at;
+    }
+    return emailSentMapping;
+  }
+
+  addSentEmailLogEntry(userIntId, email, emailType) {
     return this.database('sent_emails_log').insert({
-      email_type: 'notification',
+      email_type: emailType,
       user_id:    userIntId,
       email
     });
