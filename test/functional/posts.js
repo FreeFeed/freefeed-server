@@ -175,9 +175,9 @@ describe('PostsController', () => {
             const body = 'comment'
             funcTestHelper.createComment(body, post.id, zeusCtx.authToken, (err) => {
               err.should.not.be.empty
-              err.status.should.eql(404)
+              err.status.should.eql(403)
               const error = JSON.parse(err.response.error.text)
-              error.err.should.eql('Not found')
+              error.err.should.eql('You can not see this post')
 
               funcTestHelper.getTimeline(`/v2/timelines/${zeusCtx.username}/comments`, zeusCtx.authToken, (err, res) => {
                 res.body.posts.should.eql([])

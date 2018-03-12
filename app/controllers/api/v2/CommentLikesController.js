@@ -25,9 +25,9 @@ export default class CommentLikesController {
       throw new ForbiddenException("You can't like your own comment");
     }
 
-    const isVisible = await post.canShow(ctx.state.user.id);
+    const isVisible = await post.isVisibleFor(ctx.state.user);
     if (!isVisible) {
-      throw new NotFoundException("Can't find post");
+      throw new ForbiddenException('You can not see this post');
     }
 
     const yourBanIds = await ctx.state.user.getBanIds();
@@ -72,9 +72,9 @@ export default class CommentLikesController {
       throw new ForbiddenException("You can't un-like your own comment");
     }
 
-    const isVisible = await post.canShow(ctx.state.user.id);
+    const isVisible = await post.isVisibleFor(ctx.state.user);
     if (!isVisible) {
-      throw new NotFoundException("Can't find post");
+      throw new ForbiddenException('You can not see this post');
     }
 
     const yourBanIds = await ctx.state.user.getBanIds();
@@ -121,9 +121,9 @@ export default class CommentLikesController {
     }
 
     if (viewer) {
-      const isVisible = await post.canShow(viewer.id);
+      const isVisible = await post.isVisibleFor(viewer);
       if (!isVisible) {
-        throw new NotFoundException("Can't find post");
+        throw new ForbiddenException('You can not see this post');
       }
 
       const yourBanIds = await viewer.getBanIds();

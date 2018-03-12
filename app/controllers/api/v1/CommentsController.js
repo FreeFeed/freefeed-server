@@ -21,9 +21,9 @@ export default class CommentsController {
         throw new NotFoundException('Not found')
       }
 
-      const isVisible = await post.canShow(ctx.state.user.id)
+      const isVisible = await post.isVisibleFor(ctx.state.user)
       if (!isVisible) {
-        throw new NotFoundException('Not found')
+        throw new ForbiddenException('You can not see this post');
       }
 
       const author = await dbAdapter.getUserById(post.userId);

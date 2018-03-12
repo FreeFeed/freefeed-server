@@ -1,5 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
+import expect from 'unexpected'
+
 import cleanDB from '../dbCleaner';
 import { dbAdapter, Post, User } from '../../app/models'
 
@@ -622,4 +624,159 @@ describe('Post', () => {
         .catch((e) => { done(e) })
     })
   })
+
+  describe('#isVisibleFor()', () => {
+    let luna, mars, post;
+    beforeEach(async () => {
+      luna = new User({ username: 'Luna', password: 'password' });
+      mars = new User({ username: 'Mars', password: 'password' });
+      await Promise.all([luna.create(), mars.create()]);
+      post = new Post({
+        body:             'Post body',
+        userId:           luna.id,
+        timelineIds:      [await luna.getPostsTimelineId()],
+        commentsDisabled: '0',
+      })
+      await post.create();
+    });
+
+    it('should allow anonymous to view post', async () => {
+      await expect(post.isVisibleFor(null), 'to be fulfilled with', true);
+    });
+
+    it('should allow Mars to view post', async () => {
+      await expect(post.isVisibleFor(mars), 'to be fulfilled with', true);
+    });
+
+    it('should allow Luna to view post', async () => {
+      await expect(post.isVisibleFor(luna), 'to be fulfilled with', true);
+    });
+
+    describe('Luna becomes protected', () => {
+      beforeEach(async () => {
+        await luna.update({ isProtected: '1' });
+        post = await dbAdapter.getPostById(post.id);
+      });
+
+      it('should not allow anonymous to view post', async () => {
+        await expect(post.isVisibleFor(null), 'to be fulfilled with', false);
+      });
+
+      it('should allow Mars to view post', async () => {
+        await expect(post.isVisibleFor(mars), 'to be fulfilled with', true);
+      });
+
+      it('should allow Luna to view post', async () => {
+        await expect(post.isVisibleFor(luna), 'to be fulfilled with', true);
+      });
+    });
+
+    describe('Luna becomes private', () => {
+      beforeEach(async () => {
+        await luna.update({ isPrivate: '1' });
+        post = await dbAdapter.getPostById(post.id);
+      });
+
+      it('should not allow anonymous to view post', async () => {
+        await expect(post.isVisibleFor(null), 'to be fulfilled with', false);
+      });
+
+      it('should not allow Mars to view post', async () => {
+        await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
+      });
+
+      it('should allow Luna to view post', async () => {
+        await expect(post.isVisibleFor(luna), 'to be fulfilled with', true);
+      });
+
+      describe('Mars subscribes to Luna', () => {
+        beforeEach(async () => {
+          await mars.subscribeTo(luna);
+        });
+
+        it('should allow Mars to view post', async () => {
+          await expect(post.isVisibleFor(mars), 'to be fulfilled with', true);
+        });
+      });
+    });
+
+    describe('Luna bans Mars', () => {
+      beforeEach(async () => {
+        await luna.ban(mars.username);
+      });
+
+      it('should allow anonymous to view post', async () => {
+        await expect(post.isVisibleFor(null), 'to be fulfilled with', true);
+      });
+
+      it('should not allow Mars to view post', async () => {
+        await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
+      });
+
+      it('should allow Luna to view post', async () => {
+        await expect(post.isVisibleFor(luna), 'to be fulfilled with', true);
+      });
+    });
+
+    describe('Mars bans Luna', () => {
+      beforeEach(async () => {
+        await mars.ban(luna.username);
+      });
+
+      it('should allow anonymous to view post', async () => {
+        await expect(post.isVisibleFor(null), 'to be fulfilled with', true);
+      });
+
+      it('should not allow Mars to view post', async () => {
+        await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
+      });
+
+      it('should allow Luna to view post', async () => {
+        await expect(post.isVisibleFor(luna), 'to be fulfilled with', true);
+      });
+    });
+
+    describe('Luna and Mars are friends', () => {
+      beforeEach(async () => {
+        await Promise.all([
+          mars.subscribeTo(luna),
+          luna.subscribeTo(mars),
+        ]);
+      });
+
+      describe('Luna writes direct post to mars', () => {
+        beforeEach(async () => {
+          const [
+            lunaDirectFeed,
+            marsDirectFeed,
+          ] = await Promise.all([
+            luna.getDirectsTimeline(),
+            mars.getDirectsTimeline(),
+          ]);
+          post = new Post({
+            body:        'Post body',
+            userId:      luna.id,
+            timelineIds: [
+              lunaDirectFeed.id,
+              marsDirectFeed.id,
+            ],
+            commentsDisabled: '0',
+          })
+          await post.create();
+        });
+
+        it('should not allow anonymous to view post', async () => {
+          await expect(post.isVisibleFor(null), 'to be fulfilled with', false);
+        });
+
+        it('should allow Mars to view post', async () => {
+          await expect(post.isVisibleFor(mars), 'to be fulfilled with', true);
+        });
+
+        it('should allow Luna to view post', async () => {
+          await expect(post.isVisibleFor(luna), 'to be fulfilled with', true);
+        });
+      });
+    });
+  });
 })

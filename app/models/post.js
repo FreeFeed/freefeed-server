@@ -667,38 +667,75 @@ export function addModel(dbAdapter) {
     return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id)
   }
 
-  Post.prototype.canShow = async function (readerId, checkOnlyDestinations = true) {
-    let timelines = await (checkOnlyDestinations ? this.getPostedTo() : this.getTimelines());
-
-    if (!checkOnlyDestinations) {
-      timelines = timelines.filter((timeline) => timeline.isPosts() || timeline.isDirects());
+  /**
+   * isVisibleFor checks visibility of the post for the given viewer
+   * or for anonymous if viewer is null.
+   *
+   *  Viewer CAN NOT see post if:
+   * - viwer is anonymous and post is not public or
+   * - viewer is authorized and
+   *   - post author banned viewer or was banned by viewer or
+   *   - post is private and viewer cannot read any of post's destination feeds
+   *
+   * @param {User|null} viewer
+   * @returns {boolean}
+   */
+  Post.prototype.isVisibleFor = async function (viewer) {
+    // Check if viewer is anonymous and post is not public
+    if (!viewer) {
+      return this.isProtected === '0';
     }
 
-    if (timelines.map((timeline) => timeline.userId).includes(readerId)) {
-      // one of the timelines belongs to the user
-      return true;
-    }
-
-    // skipping someone else's directs
-    const nonDirectTimelines = timelines.filter((timeline) => !timeline.isDirects());
-
-    if (nonDirectTimelines.length === 0) {
+    // Check if post author banned viewer or was banned by viewer
+    const bannedUserIds = await dbAdapter.getUsersBansOrWasBannedBy(viewer.id);
+    if (bannedUserIds.includes(this.userId)) {
       return false;
     }
 
-    const ownerIds = nonDirectTimelines.map((timeline) => timeline.userId);
-    if (await dbAdapter.someUsersArePublic(ownerIds, !readerId)) {
-      return true;
+    // Check if post is private and viewer cannot read any of post's destination feeds
+    if (this.isPrivate === '1') {
+      const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
+      if (_.isEmpty(_.intersection(this.destinationFeedIds, privateFeedIds))) {
+        return false;
+      }
     }
 
-    if (!readerId) {
-      // no public feeds. anonymous can't see
-      return false;
+    return true;
+  }
+
+  /**
+   * Filter users that can not see this post
+   *
+   * Viewer CAN NOT see post if:
+   * - viwer is anonymous and post is not public or
+   * - viewer is authorized and
+   *   - post author banned viewer or was banned by viewer or
+   *   - post is private and viewer cannot read any of post's destination feeds
+   *
+   * @param {User[]} users
+   * @returns {User[]}
+   */
+  Post.prototype.onlyUsersCanSeePost = async function (users) {
+    if (users.length === 0) {
+      return [];
     }
 
-    const timelineIds = nonDirectTimelines.map((timeline) => timeline.id);
-    return await dbAdapter.isUserSubscribedToOneOfTimelines(readerId, timelineIds);
-  };
+    if (this.isProtected === '1') {
+      // Anonymous can not see this post
+      users = users.filter((u) => !!u.id); // users without id are anonymous
+    }
+
+    const authorBans = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
+    // Author's banned and banners can not see this post
+    users = users.filter((u) => !authorBans.includes(u.id));
+
+    if (this.isPrivate === '1') {
+      const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
+      users = users.filter((u) => allowedUserIds.includes(u.id));
+    }
+
+    return users;
+  }
 
   Post.prototype.processHashtagsOnCreate = async function () {
     const postTags = _.uniq(extractHashtags(this.body.toLowerCase()))
@@ -726,37 +763,6 @@ export function addModel(dbAdapter) {
         await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id)
       }
     }
-  }
-
-  /**
-   * Filter users that can not see this post
-   *
-   * Viewer CAN NOT see post if:
-   * - viwer is anonymous and post is not public or
-   * - viewer is authorized and
-   *   - post author banned viewer or was banned by viewer or
-   *   - post is private and viewer cannot read any of post's destination feeds
-   */
-  Post.prototype.onlyUsersCanSeePost = async function (users) {
-    if (users.length === 0) {
-      return [];
-    }
-
-    if (this.isProtected === '1') {
-      // Anonymous can not see this post
-      users = users.filter((u) => !!u.id); // users without id are anonymous
-    }
-
-    const authorBans = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
-    // Author's banned and banners can not see this post
-    users = users.filter((u) => !authorBans.includes(u.id));
-
-    if (this.isPrivate === '1') {
-      const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
-      users = users.filter((u) => allowedUserIds.includes(u.id));
-    }
-
-    return users;
   }
 
   return Post

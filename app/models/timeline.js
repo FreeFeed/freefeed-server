@@ -256,7 +256,7 @@ export function addModel(dbAdapter) {
             return post;
           }
 
-          if (!await post.canShow(this.currentUser, false)) {
+          if (!await post.isVisibleFor(reader)) {
             return null;
           }
         }

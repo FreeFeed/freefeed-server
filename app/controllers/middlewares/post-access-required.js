@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import { ForbiddenException, NotFoundException, ServerErrorException } from '../../support/exceptions';
 import { dbAdapter } from '../../models';
 
@@ -18,35 +17,13 @@ export function postAccessRequired(map = { postId: 'post' }) {
         throw notFound();
       }
 
-      // Viewer CAN NOT see post if:
-      // - viwer is anonymous and post is not public or
-      // - viewer is authorized and
-      //   - post author banned viewer or was banned by viewer or
-      //   - post is private and viewer cannot read any of post's destination feeds
+      const isVisible = await post.isVisibleFor(viewer);
 
-      // Check if viewer is anonymous and post is not public
-      if (!viewer && post.isProtected === '1') {
-        if (post.isPrivate === '0') {
+      if (!isVisible) {
+        if (!viewer && post.isProtected === '1' && post.isPrivate === '0') {
           throw forbidden('Please sign in to view this post');
-        } else {
-          throw forbidden();
         }
-      }
-
-      if (viewer) {
-        // Check if post author banned viewer or was banned by viewer
-        const bannedUserIds = await dbAdapter.getUsersBansOrWasBannedBy(viewer.id);
-        if (bannedUserIds.includes(post.userId)) {
-          throw forbidden();
-        }
-
-        // Check if post is private and viewer cannot read any of post's destination feeds
-        if (post.isPrivate === '1') {
-          const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
-          if (_.isEmpty(_.intersection(post.destinationFeedIds, privateFeedIds))) {
-            throw forbidden();
-          }
-        }
+        throw forbidden();
       }
 
       ctx.state[map[key]] = post;
