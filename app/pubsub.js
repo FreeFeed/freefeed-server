@@ -58,9 +58,8 @@ export default class pubSub {
     await this.publisher.postUpdated(payload)
   }
 
-  async newComment(comment, timelines) {
-    const timelineIds = timelines.map((t) => t.id)
-    const payload = JSON.stringify({ commentId: comment.id, timelineIds })
+  async newComment(comment) {
+    const payload = JSON.stringify({ commentId: comment.id })
     await this.publisher.commentCreated(payload)
   }
 
