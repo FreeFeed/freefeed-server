@@ -39,37 +39,42 @@ export function reportError(ctx) {
   };
 }
 
-export class BadRequestException {
-  constructor(message) {
-    this.message = message || 'Bad Request';
+export class BadRequestException extends Error {
+  constructor(message = 'Bad Request') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
     this.status = 400;
   }
 }
 
-export class NotAuthorizedException {
-  constructor(message) {
-    this.message = message || 'Unauthorized';
+export class NotAuthorizedException extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
     this.status = 401;
   }
 }
 
-export class ForbiddenException {
-  constructor(message) {
-    this.message = message || 'Forbidden';
+export class ForbiddenException extends Error {
+  constructor(message = 'Forbidden') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
     this.status = 403;
   }
 }
 
-export class NotFoundException {
-  constructor(message) {
-    this.message = message || 'Not found';
+export class NotFoundException extends Error {
+  constructor(message = 'Not found') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
     this.status = 404;
   }
 }
 
-export class ValidationException {
-  constructor(message) {
-    this.message = message || 'Invalid';
+export class ValidationException extends Error {
+  constructor(message = 'Invalid') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
     this.status = 422;
   }
 }
