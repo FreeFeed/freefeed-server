@@ -58,7 +58,7 @@
     "mmmagic": "~0.5.0",
     "moment": "~2.21.0",
     "monitor-dog": "1.5.0",
-    "musicmetadata": "2.0.5",
+    "music-metadata": "~0.9.8",
     "mv": "2.1.1",
     "node-cache": "4.1.1",
     "node-fetch": "~2.1.1",
