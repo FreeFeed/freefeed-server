@@ -3,7 +3,7 @@ import { dbAdapter } from '../../models';
 
 export function postAccessRequired(map = { postId: 'post' }) {
   return async (ctx, next) => {
-    const forbidden = (reason = 'You cannot see this post') => new ForbiddenException(reason);
+    const forbidden = (reason = 'You can not see this post') => new ForbiddenException(reason);
     const notFound = (reason = 'Post not found') => new NotFoundException(reason);
     const { user: viewer } = ctx.state;
 
