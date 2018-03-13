@@ -2,6 +2,7 @@ import fs from 'fs'
 import { execFile } from 'child_process';
 
 import { promisify, promisifyAll } from 'bluebird'
+import createDebug from 'debug';
 import gm from 'gm'
 import meta from 'musicmetadata'
 import mime from 'mime-types'
@@ -26,6 +27,8 @@ const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 
 const magic = new mmm.Magic()
 const detectFile = promisify(magic.detectFile, { context: magic })
+
+const debug = createDebug('freefeed:model:attachment');
 
 
 async function mimeTypeDetect(fileName, filePath) {
@@ -255,6 +258,7 @@ export function addModel(dbAdapter) {
     }
 
     this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile)
+    debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
 
     if (supportedImageTypes[this.mimeType]) {
       // Set media properties for 'image' type
@@ -272,6 +276,8 @@ export function addModel(dbAdapter) {
       const readStream = fs.createReadStream(tmpAttachmentFile)
       const asyncMeta = promisify(meta)
       const metadata = await asyncMeta(readStream)
+
+      debug(`Metadata of ${tmpAttachmentFileName}`, metadata);
 
       this.title = metadata.title
 
