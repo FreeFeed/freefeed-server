@@ -1,3 +1,4 @@
+/* eslint babel/semi: "error" */
 import createDebug from 'debug';
 import Raven from 'raven';
 
@@ -28,20 +29,20 @@ export function reportError(ctx) {
     }
 
     if (err && 'message' in err && err.message) {
-      result.err = err.message
+      result.err = err.message;
     } else {
       result.err = 'Internal Server Error';
     }
 
     ctx.status = status;
     ctx.body = result;
-  }
+  };
 }
 
 export class BadRequestException {
   constructor(message) {
-    this.message = message || 'Bad Request'
-    this.status = 400
+    this.message = message || 'Bad Request';
+    this.status = 400;
   }
 }
 
@@ -54,21 +55,21 @@ export class NotAuthorizedException {
 
 export class ForbiddenException {
   constructor(message) {
-    this.message = message || 'Forbidden'
-    this.status = 403
+    this.message = message || 'Forbidden';
+    this.status = 403;
   }
 }
 
 export class NotFoundException {
   constructor(message) {
-    this.message = message || 'Not found'
-    this.status = 404
+    this.message = message || 'Not found';
+    this.status = 404;
   }
 }
 
 export class ValidationException {
   constructor(message) {
-    this.message = message || 'Invalid'
-    this.status = 422
+    this.message = message || 'Invalid';
+    this.status = 422;
   }
 }
