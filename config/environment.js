@@ -72,13 +72,11 @@ exports.init = async function (app) {
   }
 
   app.use(koaBody({
-    multipart: true,
-    formLimit: config.attachments.fileSizeLimit,
-    jsonLimit: config.attachments.fileSizeLimit,
-    textLimit: config.attachments.fileSizeLimit,
-    formidable: {
-      maxFileSize: config.attachments.fileSizeLimit,
-    }
+    multipart:  true,
+    formLimit:  config.attachments.fileSizeLimit,
+    jsonLimit:  config.attachments.fileSizeLimit,
+    textLimit:  config.attachments.fileSizeLimit,
+    formidable: { maxFileSize: config.attachments.fileSizeLimit, }
   }));
   app.use(passport.initialize());
   app.use(originMiddleware);
