@@ -164,6 +164,9 @@ const usersTrait = (superClass) => class extends superClass {
   }
 
   async getFeedOwnersByUsernames(usernames) {
+    if (usernames.length === 0) {
+      return [];
+    }
     usernames = usernames.map((u) => u.toLowerCase());
     const users = await this.database('users').whereIn('username', usernames);
     return users.map(initUserObject);

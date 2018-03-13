@@ -1375,10 +1375,16 @@ describe('EventService', () => {
         await expectMentionEvents(lunaUserModel, []);
       });
 
-      it('should not create mention_in_comment event for mentioned user banned by comment author', async () => {
+      it('should create mention_in_comment event for mentioned user banned by comment author', async () => {
         await banUser(jupiter, mars);
         await createCommentAsync(jupiter, post.id, 'Mentioning @mars');
-        await expectMentionEvents(marsUserModel, []);
+        await expectMentionEvents(marsUserModel, [{
+          user_id:            marsUserModel.intId,
+          event_type:         'mention_in_comment',
+          created_by_user_id: jupiterUserModel.intId,
+          target_user_id:     marsUserModel.intId,
+          post_author_id:     lunaUserModel.intId,
+        }]);
         await expectMentionEvents(lunaUserModel, []);
         await expectMentionEvents(jupiterUserModel, []);
       });
