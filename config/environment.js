@@ -75,7 +75,10 @@ exports.init = async function (app) {
     multipart: true,
     formLimit: config.attachments.fileSizeLimit,
     jsonLimit: config.attachments.fileSizeLimit,
-    textLimit: config.attachments.fileSizeLimit
+    textLimit: config.attachments.fileSizeLimit,
+    formidable: {
+      maxFileSize: config.attachments.fileSizeLimit,
+    }
   }));
   app.use(passport.initialize());
   app.use(originMiddleware);
