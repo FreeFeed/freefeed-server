@@ -3,7 +3,6 @@ import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
 import { dbAdapter, PostSerializer, Post } from '../../../models'
-import { EventService } from '../../../support/EventService'
 import { ForbiddenException, NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
 import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
@@ -54,7 +53,6 @@ export default class PostsController {
       });
 
       await newPost.create();
-      await EventService.onPostCreated(newPost, timelineIds, author);
 
       ctx.params.postId = newPost.id;
 

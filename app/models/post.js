@@ -4,6 +4,7 @@ import _ from 'lodash'
 import { extractHashtags } from '../support/hashtags'
 import { PubSub as pubSub } from '../models'
 import { getRoomsOfPost } from '../pubsub-listener'
+import { EventService } from '../support/EventService';
 
 
 export function addModel(dbAdapter) {
@@ -87,9 +88,16 @@ export function addModel(dbAdapter) {
       'userId':           this.userId,
       'commentsDisabled': this.commentsDisabled,
     }
-    const destFeeds = await dbAdapter.getTimelinesByIds(this.timelineIds);
+    const [
+      destFeeds,
+      author,
+    ] = await Promise.all([
+      dbAdapter.getTimelinesByIds(this.timelineIds),
+      dbAdapter.getUserById(this.userId),
+    ]);
     this.feedIntIds = destFeeds.map((f) => f.intId);
     this.destinationFeedIds = this.feedIntIds.slice();
+
     // save post to the database
     this.id = await dbAdapter.createPost(payload, this.feedIntIds);
 
@@ -111,22 +119,16 @@ export function addModel(dbAdapter) {
       this.processHashtagsOnCreate(),
     ]);
 
-    // Realtime
     const rtUpdates = destFeeds
       .filter((f) => f.isDirects())
       .map((f) => pubSub.updateUnreadDirects(f.userId));
     rtUpdates.push(pubSub.newPost(this.id));
 
-    // Update groups last activity
-    const { updatedAt } = this;
-    const groupsUpdates = destFeeds
-      // All 'Posts' feeds except of author's are belongs to groups
-      .filter((f) => f.isPosts() && f.userId !== this.userId)
-      .map((f) => dbAdapter.updateUser(f.userId, { updatedAt }))
+    await EventService.onPostCreated(newPost, destFeeds.map((f) => f.id), author);
 
     await Promise.all([
       ...rtUpdates,
-      ...groupsUpdates,
+      dbAdapter.setUpdatedAtInGroupsByIds(destFeeds.map((f) => f.userId)),
       dbAdapter.statsPostCreated(this.userId),
     ]);
 
