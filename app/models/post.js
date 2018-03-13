@@ -75,6 +75,7 @@ export function addModel(dbAdapter) {
     set body(newValue) {
       if (!newValue) {
         this.body_ = '';
+        return;
       }
 
       this.body_ = newValue.trim();
