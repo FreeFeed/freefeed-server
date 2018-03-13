@@ -1,12 +1,25 @@
 import createDebug from 'debug';
+import Raven from 'raven';
+
+import { load as configLoader } from '../../config/config';
 
 
+const config = configLoader();
 const debug = createDebug('freefeed:errors');
+
+const sentryIsEnabled = 'sentryDsn' in config;
+
 
 export function reportError(ctx) {
   return (err) => {
     const result = {};
     const status = err && err.status ? err.status : 500;
+
+    if (status === 500) {
+      if (sentryIsEnabled) {
+        Raven.captureException(err, { req: ctx.request });
+      }
+    }
 
     if ('internalQuery' in err) {
       // looks like postgres err
