@@ -1,6 +1,5 @@
 import _ from 'lodash';
 import validator from 'validator'
-import pgFormat from 'pg-format';
 
 import { User, Group, Comment } from '../../models';
 import { initObject, prepareModelPayload } from './utils';
@@ -28,15 +27,24 @@ const usersTrait = (superClass) => class extends superClass {
     await this.cacheFlushUser(userId)
   }
 
-  setUpdatedAtInGroupsByIds = async (groupIds, time) => {
-    const updatedAt = new Date();
-    updatedAt.setTime(time);
+  setUpdatedAtInGroupsByIds = async (groupIds, time = null) => {
+    if (groupIds.length === 0) {
+      return;
+    }
 
-    const sql = pgFormat(`UPDATE "users" SET "updated_at" = ? WHERE "uid" IN (%L) AND "type"='group' RETURNING "uid"`, groupIds);
-    const uids = await this.database.raw(sql, [updatedAt.toISOString()]);
+    let updatedAt = 'now';
+    if (time) {
+      const t = new Date();
+      t.setTime(time);
+      updatedAt = t.toISOString();
+    }
 
-    const flushPromises = uids.rows.map((row) => this.cacheFlushUser(row.uid));
-    await Promise.all(flushPromises);
+    const { rows } = await this.database.raw(
+      `update users set updated_at = :updatedAt where uid = any(:groupIds) and type = 'group' returning uid`,
+      { groupIds, updatedAt }
+    );
+
+    await Promise.all(rows.map((row) => this.cacheFlushUser(row.uid)));
   };
 
   async existsUser(userId) {

@@ -47,11 +47,14 @@ const postsTrait = (superClass) => class extends superClass {
     return parseInt(res[0].count)
   }
 
-  setPostBumpedAt(postId, time) {
-    const d = new Date();
-    d.setTime(time);
-    const payload = { bumped_at: d.toISOString() };
-    return this.database('posts').where('uid', postId).update(payload);
+  setPostBumpedAt(postId, time = null) {
+    let bumped_at = 'now';
+    if (time) {
+      const d = new Date();
+      d.setTime(time);
+      bumped_at = d.toISOString();
+    }
+    return this.database('posts').where('uid', postId).update({ bumped_at });
   }
 
   async deletePost(postId) {
