@@ -1,9 +1,11 @@
 /* eslint babel/semi: "error" */
 import _ from 'lodash';
 import GraphemeBreaker from 'grapheme-breaker';
+import monitor from 'monitor-dog';
 
 import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
+import { EventService } from '../support/EventService';
 
 
 export function addModel(dbAdapter) {
@@ -79,30 +81,52 @@ export function addModel(dbAdapter) {
     }
 
     async create() {
-      this.createdAt = new Date().getTime();
-      this.updatedAt = new Date().getTime();
-
       await this.validate();
 
       const payload = {
-        'body':      this.body,
-        'userId':    this.userId,
-        'postId':    this.postId,
-        'createdAt': this.createdAt.toString(),
-        'updatedAt': this.updatedAt.toString(),
-        'hideType':  this.hideType,
+        'body':     this.body,
+        'userId':   this.userId,
+        'postId':   this.postId,
+        'hideType': this.hideType,
       };
 
       this.id = await dbAdapter.createComment(payload);
+      const newComment = await dbAdapter.getCommentById(this.id);
+      const fieldsToUpdate = [
+        'createdAt',
+        'updatedAt',
+      ];
+      for (const f of fieldsToUpdate) {
+        this[f] = newComment[f];
+      }
 
       const post = await dbAdapter.getPostById(this.postId);
-      const timelines = await post.addComment(this);
 
-      await this.processHashtagsOnCreate();
+      const [
+        authorCommentsFeed,
+        postDestFeeds,
+      ] = await Promise.all([
+        dbAdapter.getUserNamedFeed(this.userId, 'Comments'),
+        post.getPostedTo(),
+      ]);
 
-      await dbAdapter.statsCommentCreated(this.userId);
+      await dbAdapter.insertPostIntoFeeds([authorCommentsFeed.intId], post.id);
 
-      return timelines;
+      const rtUpdates = postDestFeeds
+        .filter((f) => f.isDirects())
+        .map((f) => pubSub.updateUnreadDirects(f.userId));
+
+      await Promise.all([
+        ...rtUpdates,
+        dbAdapter.setPostBumpedAt(post.id),
+        dbAdapter.setUpdatedAtInGroupsByIds(postDestFeeds.map((f) => f.userId)),
+        this.processHashtagsOnCreate(),
+        dbAdapter.statsCommentCreated(this.userId),
+        pubSub.newComment(this),
+        EventService.onCommentCreated(this),
+      ]);
+
+      monitor.increment('users.comments');
     }
 
     async update(params) {

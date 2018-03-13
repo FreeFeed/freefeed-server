@@ -1,73 +1,38 @@
-import monitor from 'monitor-dog'
+import compose from 'koa-compose';
+import monitor from 'monitor-dog';
 
-import { dbAdapter, CommentSerializer, PubSub, Comment } from '../../../models'
-import { EventService } from '../../../support/EventService'
-import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { dbAdapter, CommentSerializer, Comment } from '../../../models';
+import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
+import { serializeComment } from '../../../serializers/v2/comment';
+import { authRequired, inputSchemaRequired, postAccessRequired, monitored } from '../../middlewares';
+import { commentCreateInputSchema } from './data-schemes';
 
 
 export default class CommentsController {
-  static async create(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
+  static create = compose([
+    authRequired(),
+    inputSchemaRequired(commentCreateInputSchema),
+    async (ctx, next) => {
+      // for the postAccessRequired check
+      ctx.params.postId = ctx.request.body.comment.postId;
+      await next();
+    },
+    postAccessRequired(),
+    monitored('comments.create'),
+    async (ctx) => {
+      const { user: author, post } = ctx.state;
+      const { comment: { body, postId } } = ctx.request.body;
 
-    const timer = monitor.timer('comments.create-time')
-
-    try {
-      const post = await dbAdapter.getPostById(ctx.request.body.comment.postId)
-      if (!post) {
-        throw new NotFoundException('Not found')
+      if (post.commentsDisabled === '1' && post.userId !== author.id) {
+        throw new ForbiddenException('Comments disabled');
       }
 
-      const isVisible = await post.isVisibleFor(ctx.state.user)
-      if (!isVisible) {
-        throw new ForbiddenException('You can not see this post');
-      }
+      const comment = new Comment({ body, postId, userId: author.id });
+      await comment.create();
 
-      const author = await dbAdapter.getUserById(post.userId);
-      const banIds = await author.getBanIds();
-
-      if (banIds.includes(ctx.state.user.id)) {
-        throw new ForbiddenException('Author of this post has banned you');
-      }
-
-      const yourBanIds = await ctx.state.user.getBanIds();
-
-      if (yourBanIds.includes(author.id)) {
-        throw new ForbiddenException('You have banned the author of this post');
-      }
-
-      if (post.commentsDisabled === '1' && post.userId !== ctx.state.user.id) {
-        throw new ForbiddenException('Comments disabled')
-      }
-
-      const newComment = ctx.state.user.newComment({
-        body:   ctx.request.body.comment.body,
-        postId: ctx.request.body.comment.postId
-      })
-
-      const timelines = await newComment.create()
-
-      await Promise.all(timelines.map(async (timeline) => {
-        if (timeline.isDirects()) {
-          await PubSub.updateUnreadDirects(timeline.userId)
-        }
-      }))
-
-      await Promise.all([
-        PubSub.newComment(newComment, timelines),
-        EventService.onCommentCreated(newComment)
-      ]);
-      monitor.increment('comments.creates')
-
-      const json = await new CommentSerializer(newComment).promiseToJSON()
-      ctx.body = json
-    } finally {
-      timer.stop()
-    }
-  }
+      ctx.body = await serializeComment(comment);
+    },
+  ]);
 
   static async update(ctx) {
     if (!ctx.state.user) {

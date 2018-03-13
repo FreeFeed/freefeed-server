@@ -91,7 +91,7 @@ describe('CommentsController', () => {
     it('should not create a comment for an invalid post', (done) => {
       const body = 'Comment'
 
-      context.post.id = 'id'
+      context.post.id = '00000000-0000-4000-8000-000000000046'
       funcTestHelper.createCommentCtx(context, body)((err) => {
         err.should.not.be.empty
         err.status.should.eql(404)
