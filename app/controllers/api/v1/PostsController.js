@@ -21,28 +21,7 @@ export default class PostsController {
       } = ctx.request.body;
 
       const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
-
-      const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
-      if (destNames.length !== destUsers.length) {
-        if (destNames.length === 1) {
-          throw new NotFoundException(`Account '${destNames[0]}' was not found`);
-        }
-        throw new NotFoundException('Some of destination users was not found');
-      }
-
-      const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
-      if (destFeeds.some((x) => x.length === 0)) {
-        if (destUsers.length === 1) {
-          const [destUser] = destUsers;
-          if (destUser.isUser()) {
-            throw new ForbiddenException(`You can not send private messages to '${destUser.username}'`);
-          }
-          throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
-        }
-        throw new ForbiddenException('You can not post to some of destination feeds');
-      }
-
-      const timelineIds = _.flatten(destFeeds).map((f) => f.id);
+      const timelineIds = await checkDestNames(destNames, author);
 
       const newPost = new Post({
         userId:           author.id,
@@ -206,4 +185,38 @@ export default class PostsController {
 
     ctx.body = {};
   }
+}
+
+/**
+ * Check post destination names against the given post author
+ * and return ids of destination timelines on success. Throws
+ * HTTP errors if any error happens.
+ *
+ * @param {string[]} destNames
+ * @param {User} author
+ * @returns {string[]}
+ */
+export async function checkDestNames(destNames, author) {
+  const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
+  if (destNames.length !== destUsers.length) {
+    if (destNames.length === 1) {
+      throw new NotFoundException(`Account '${destNames[0]}' was not found`);
+    }
+    throw new NotFoundException('Some of destination users was not found');
+  }
+
+  const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
+  if (destFeeds.some((x) => x.length === 0)) {
+    if (destUsers.length === 1) {
+      const [destUser] = destUsers;
+      if (destUser.isUser()) {
+        throw new ForbiddenException(`You can not send private messages to '${destUser.username}'`);
+      }
+      throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
+    }
+    throw new ForbiddenException('You can not post to some of destination feeds');
+  }
+
+  const timelineIds = _.flatten(destFeeds).map((f) => f.id);
+  return timelineIds;
 }
