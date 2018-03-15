@@ -112,12 +112,14 @@ async function createAttachment(author, imageURL) {
   }
 
   const stream = fs.createWriteStream(filePath, { flags: 'w' });
+  const fileWasWritten = waitStream(stream);
   await pipeline(
     response.body,
     meter(fileSizeLimit),
     stream,
   );
-  await waitStream(stream); // waiting for the file to be written and closed
+  await fileWasWritten; // waiting for the file to be written and closed
+
   const stats = await fs.statAsync(filePath);
 
   const file = {
