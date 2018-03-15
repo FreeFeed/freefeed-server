@@ -2,8 +2,9 @@ import fs from 'fs'
 import { execFile } from 'child_process';
 
 import { promisify, promisifyAll } from 'bluebird'
+import createDebug from 'debug';
 import gm from 'gm'
-import meta from 'musicmetadata'
+import { parseStream as mmParseStream } from 'music-metadata';
 import mime from 'mime-types'
 import mmm from 'mmmagic'
 import readChunk from 'read-chunk'
@@ -26,6 +27,8 @@ const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic })
 
 const magic = new mmm.Magic()
 const detectFile = promisify(magic.detectFile, { context: magic })
+
+const debug = createDebug('freefeed:model:attachment');
 
 
 async function mimeTypeDetect(fileName, filePath) {
@@ -248,12 +251,14 @@ export function addModel(dbAdapter) {
     const supportedAudioTypes = {
       'audio/mpeg':  'mp3',
       'audio/x-m4a': 'm4a',
+      'audio/m4a':   'm4a',
       'audio/mp4':   'm4a',
       'audio/ogg':   'ogg',
       'audio/x-wav': 'wav'
-    }
+    };
 
-    this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile)
+    this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile);
+    debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
 
     if (supportedImageTypes[this.mimeType]) {
       // Set media properties for 'image' type
@@ -263,16 +268,21 @@ export function addModel(dbAdapter) {
       await this.handleImage(tmpAttachmentFile);
     } else if (supportedAudioTypes[this.mimeType]) {
       // Set media properties for 'audio' type
-      this.mediaType = 'audio'
-      this.fileExtension = supportedAudioTypes[this.mimeType]
-      this.noThumbnail = '1'
+      this.mediaType = 'audio';
+      this.fileExtension = supportedAudioTypes[this.mimeType];
+      this.noThumbnail = '1';
+
+      if (this.fileExtension === 'm4a') {
+        this.mimeType = 'audio/mp4';  // mime-type compatible with music-metadata
+      }
 
       // Analyze metadata to get Artist & Title
-      const readStream = fs.createReadStream(tmpAttachmentFile)
-      const asyncMeta = promisify(meta)
-      const metadata = await asyncMeta(readStream)
+      const readStream = fs.createReadStream(tmpAttachmentFile);
+      const { common: metadata } = await mmParseStream(readStream, this.mimeType);
 
-      this.title = metadata.title
+      debug(`Metadata of ${tmpAttachmentFileName}`, metadata);
+
+      this.title = metadata.title;
 
       if (_.isArray(metadata.artist)) {
         [this.artist] = metadata.artist;

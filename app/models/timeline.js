@@ -41,6 +41,7 @@ export function addModel(dbAdapter) {
     set name(newValue) {
       if (!newValue) {
         this.name_ = '';
+        return;
       }
 
       this.name_ = newValue.trim();
