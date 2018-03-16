@@ -4,7 +4,6 @@ import { Readable } from 'stream';
 
 import { fromPairs } from 'lodash';
 import expect from 'unexpected';
-import nock from 'nock';
 import { parse as bytesParse } from 'bytes';
 
 import cleanDB from '../dbCleaner'
@@ -13,7 +12,7 @@ import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
 
 import { load as configLoader } from '../../config/config';
-import { createPostViaBookmarklet, createGroupAsync, createTestUser } from './functional_test_helper'
+import { createPostViaBookmarklet, createGroupAsync, createTestUser, MockHTTPServer } from './functional_test_helper'
 import { postResponse } from './schemaV2-helper';
 import Session from './realtime-session';
 
@@ -99,14 +98,37 @@ describe('BookmarkletController', () => {
     });
 
     describe('Attachments', () => {
+      const server = new MockHTTPServer((ctx) => {
+        const { request: { url } } = ctx;
+        if (url === '/big-cl.jpg') {
+          ctx.status = 200;
+          ctx.response.type = 'image/jpeg';
+          ctx.body = 'sss';
+          ctx.response.length = fileSizeLimit * 2;
+        } else if (url === '/big-body.jpg') {
+          ctx.status = 200;
+          ctx.response.type = 'image/jpeg';
+          ctx.body = getStreamOfLength(fileSizeLimit * 2);
+        } else if (url === '/im%C3%A5ge.png') {
+          ctx.status = 200;
+          ctx.response.type = 'image/png';
+          ctx.body = 'sss';
+        } else if (/\.jpg$/.test(url)) {
+          ctx.status = 200;
+          ctx.response.type = 'image/jpeg';
+          ctx.body = 'sss';
+        } else if (/\.txt$/.test(url)) {
+          ctx.status = 200;
+          ctx.response.type = 'text/plain';
+          ctx.body = 'sss';
+        }
+      });
+
+      before(() => server.start());
+      after(() => server.stop());
+
       it(`should create post with the image attachment`, async () => {
-        nock('http://example.com')
-          .replyContentLength()
-          .get('/image.jpg')
-          // Attachment model doesn't properly check file contents, so use 'sss' here.
-          .reply(200, 'sss', { 'Content-Type': 'image/jpeg' });
-        const result = await callBookmarklet(luna, { title: 'Post', image: 'http://example.com/image.jpg' });
-        expect(result.attachments, 'to have length', 1);
+        const result = await callBookmarklet(luna, { title: 'Post', image: `${server.origin}/image.jpg` });
         expect(result.attachments, 'to satisfy', [{ fileName: 'image.jpg' }]);
       });
 
@@ -116,62 +138,49 @@ describe('BookmarkletController', () => {
         for (let i = 0; i < n;i++) {
           fileNames.push(`image${i}.jpg`);
         }
-        nock('http://example.com')
-          .get(/^\/image\d+\.jpg$/)
-          .times(n)
-          .reply(200, 'sss', { 'Content-Type': 'image/jpeg' });
-        const result = await callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `http://example.com/${name}`) });
-        expect(result.attachments, 'to have length', n);
+        const result = await callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
         expect(result.attachments, 'to satisfy', fromPairs(fileNames.map((fileName, i) => [i, { fileName }])));
       });
 
+      it(`should not create post with too many image attachments`, async () => {
+        const n = config.attachments.maxCount + 5;
+        const fileNames = [];
+        for (let i = 0; i < n;i++) {
+          fileNames.push(`image${i}.jpg`);
+        }
+        const call = callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
+        await expect(call, 'to be rejected with', /^HTTP error 403:/);
+      });
+
       it(`should not create post with non-image attachment`, async () => {
-        nock('http://example.com')
-          .get('/image.jpg')
-          .reply(200, 'sss', { 'Content-Type': 'text/plain' });
-        const call = callBookmarklet(luna, { title: 'Post', images: ['http://example.com/image.jpg'] });
+        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/image.txt`] });
+        await expect(call, 'to be rejected with', /^HTTP error 403:/);
+      });
+
+      it(`should not create post with unexistent attachment`, async () => {
+        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/image.pdf`] });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with image and non-image attachment`, async () => {
-        nock('http://example.com')
-          .get('/image1.jpg')
-          .reply(200, 'sss', { 'Content-Type': 'image/jpeg' });
-        nock('http://example.com')
-          .get('/image2.jpg')
-          .reply(200, 'sss', { 'Content-Type': 'text/plain' });
-        const call = callBookmarklet(luna, { title: 'Post', images: ['http://example.com/image1.jpg', 'http://example.com/image2.jpg'] });
+        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/image1.jpg`, `${server.origin}/image2.txt`] });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with attachment with very large Content-Length`, async () => {
-        nock('http://example.com')
-          .get('/image.jpg')
-          .reply(200, 'sss', {
-            'Content-Type':   'image/jpeg',
-            'Content-Length': fileSizeLimit * 2
-          });
-        const call = callBookmarklet(luna, { title: 'Post', images: ['http://example.com/image.jpg'] });
+        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/big-cl.jpg`] });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with very large attachment without Content-Length`, async () => {
-        nock('http://example.com')
-          .get('/image.jpg')
-          .reply(200,
-            () => getStreamOfLength(fileSizeLimit * 2),
-            { 'Content-Type': 'image/jpeg' }
-          );
-        const call = callBookmarklet(luna, { title: 'Post', images: ['http://example.com/image.jpg'] });
+        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/big-body.jpg`] });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should create post with unescaped unicode image URL`, async () => {
-        nock('http://example.com')
-          .get('/im%C3%A5ge.jpg')
-          .reply(200, 'sss', { 'Content-Type': 'image/jpeg' });
-        const result = await callBookmarklet(luna, { title: 'Post', image: `http://example.com/imåge.jpg` });
+        const result = await callBookmarklet(luna, { title: 'Post', image: `${server.origin}/imåge.png` });
         expect(result.attachments, 'to have length', 1);
+        expect(result.attachments, 'to satisfy', [{ fileName: 'imåge.png' }]);
       });
     });
   });
@@ -187,7 +196,7 @@ async function callBookmarklet(author, body) {
   return respBody;
 }
 
-function getStreamOfLength(length, chunk = Buffer.alloc(128)) {
+function getStreamOfLength(length, chunk = Buffer.alloc(1024)) {
   let bytesLeft = length;
   return new Readable({
     read() {
