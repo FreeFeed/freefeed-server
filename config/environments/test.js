@@ -49,6 +49,7 @@ export function getConfig() {
     storage:       config.media.storage,
     path:          'attachments/', // must have trailing slash
     fileSizeLimit: 10 * 1000 * 1000,
+    maxCount:      20,
     imageSizes:    {
       t: {
         path:   'attachments/thumbnails/', // must have trailing slash
