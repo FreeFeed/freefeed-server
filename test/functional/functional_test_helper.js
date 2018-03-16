@@ -7,6 +7,8 @@ import request  from 'superagent'
 import _ from 'lodash'
 import SocketIO from 'socket.io-client';
 import expect from 'unexpected';
+import { promisifyAll } from 'bluebird';
+import Application from 'koa';
 
 import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
@@ -1014,4 +1016,53 @@ export function noFieldOrEmptyArray(name) {
   return function (obj) {
     return !(name in obj) || (_.isArray(obj[name]) && obj[name].length === 0);
   };
+}
+
+export class MockHTTPServer {
+  port;
+  portRange;
+  startAttempts;
+  _server;
+
+  constructor(handler, params = {}) {
+    const {
+      portRange = [5000, 6000],
+      startAttempts = 5,
+      timeout = 500,
+    } = params;
+
+    this.portRange = portRange;
+    this.startAttempts = startAttempts;
+
+    const app = new Application();
+    app.use(handler);
+
+    this._server = http.createServer(app.callback());
+    this._server.timeout = timeout;
+    promisifyAll(this._server);
+  }
+
+  get origin() {
+    return `http://localhost:${this.port}`;
+  }
+
+  async start() {
+    const [low, high] = this.portRange;
+    for (let i = 0; i < this.startAttempts;i++) {
+      const port = Math.floor((Math.random() * (high - low)) + low);
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await this._server.listenAsync(port);
+        this.port = port;
+        return;
+      } catch (e) {
+        // pass
+      }
+    }
+    throw new Error('Can not start MockHTTPServer');
+  }
+
+  async stop() {
+    await this._server.closeAsync();
+  }
 }
