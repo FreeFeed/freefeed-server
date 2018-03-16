@@ -92,7 +92,7 @@ async function createAttachment(author, imageURL) {
   }
 
   const parsedPath = path.parse(parsedURL.pathname);
-  const originalFileName = parsedPath.base !== '' ? parsedPath.base : 'file';
+  const originalFileName = parsedPath.base !== '' ? decodeURIComponent(parsedPath.base) : 'file';
 
   const bytes = crypto.randomBytes(4).readUInt32LE(0);
   const filePath = `/tmp/pepyatka${bytes}tmp${parsedPath.ext}`;
