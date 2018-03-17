@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniq, uniqBy, noop, values } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniqBy, noop, values } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -375,15 +375,15 @@ export default class PubsubListener {
   };
 
   onCommentLikeNew = async (data) => {
-    await this._sendCommentLikeMsg(data, 'comment_like:new');
+    await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_ADDED);
   };
 
   onCommentLikeRemove = async (data) => {
-    await this._sendCommentLikeMsg(data, 'comment_like:remove');
+    await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_REMOVED);
   };
 
   onGlobalUserUpdate = async (user) => {
-    await this.broadcastMessage(['global:users'], 'global:user:update', { user });
+    await this.broadcastMessage(['global:users'], eventNames.GLOBAL_USER_UPDATED, { user });
   };
 
   // Helpers
