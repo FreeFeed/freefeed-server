@@ -1,10 +1,17 @@
 /* eslint-env node, mocha */
+/* global $pg_database */
 import unexpected from 'unexpected';
 import unexpectedSinon from 'unexpected-sinon';
 import { omit } from 'lodash';
 
 import { load as configLoader } from '../../config/config';
-import { generateUsername, renderCallbackResponse } from '../../config/initializers/passport';
+import {
+  generateUsername,
+  renderCallbackResponse,
+  createUserFromOauth,
+} from '../../config/initializers/passport';
+import cleanDB from '../dbCleaner';
+import { dbAdapter } from '../../app/models';
 import { propagateJsdomErrors } from '../utils/jsdom';
 
 const config = configLoader();
@@ -197,6 +204,70 @@ describe('OAuth utils', () => {
               error:     'Test error',
             }, config.origin);
           }
+        );
+      });
+    });
+  });
+
+  // FIXME: These are integration tests. They probably should not be here, but there's no better place yet.
+  describe('createUserFromOauth()', () => {
+    const fullData = {
+      id:          '124124',
+      username:    'johndoe',
+      emails:      [{ value: 'JohnDoe@testmail.com' }],
+      displayName: 'John Doe',
+    };
+
+    afterEach(async () => {
+      await cleanDB($pg_database);
+    });
+
+    context('when all data is provided', () => {
+      before(async () => {
+        await createUserFromOauth(fullData, 'facebook');
+      });
+
+      it('should create a user', () => {
+        return expect(
+          dbAdapter.getUserByUsername('JohnDoe'),
+          'to be fulfilled with value satisfying',
+          {
+            username:   'johndoe',
+            screenName: 'John Doe',
+            email:      'JohnDoe@testmail.com',
+            providers:  { facebook: fullData },
+          }
+        );
+      });
+    });
+
+    context('when email is not provided', () => {
+      const data = omit(fullData, 'email');
+
+      before(async () => {
+        await createUserFromOauth(data, 'facebook');
+      });
+
+      it('should create a user', () => {
+        return expect(
+          dbAdapter.getUserByUsername('JohnDoe'),
+          'to be fulfilled with value satisfying',
+          {
+            username:   'johndoe',
+            screenName: 'John Doe',
+            providers:  { facebook: data },
+          }
+        );
+      });
+    });
+
+    context('when neither id nor email is present', () => {
+      const data = omit(fullData, 'id', 'emails');
+
+      it('should fail', () => {
+        return expect(
+          createUserFromOauth(data, 'facebook'),
+          'to be rejected',
         );
       });
     });
