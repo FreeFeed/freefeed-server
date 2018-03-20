@@ -1,6 +1,5 @@
 /* eslint babel/semi: "error" */
 export AttachmentsController from './controllers/api/v1/AttachmentsController';
-export CommentsController from './controllers/api/v1/CommentsController';
 export FeedFactoriesController from './controllers/api/v1/FeedFactoriesController';
 export GroupsController from './controllers/api/v1/GroupsController';
 export PasswordsController from './controllers/api/v1/PasswordsController';
