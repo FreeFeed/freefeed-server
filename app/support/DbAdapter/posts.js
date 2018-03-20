@@ -89,6 +89,33 @@ const postsTrait = (superClass) => class extends superClass {
     return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
   }
 
+  /**
+   * Withdraw post from the commentator Comments feed
+   * if there is not other comments from this commentator.
+   *
+   * @param {string} postId
+   * @param {string} commentatorId
+   */
+  async withdrawPostFromCommentsFeed(postId, commentatorId) {
+    await this.database.transaction(async (trx) => {
+      // Lock posts table
+      await trx.raw('select 1 from posts where uid = :postId for update', { postId });
+
+      // Check for another comments from this commentator
+      const { rows } = await trx.raw(
+        `select 1 from comments where post_id = :postId and user_id = :commentatorId limit 1`,
+        { postId, commentatorId }
+      );
+      if (rows.length === 0) {
+        const { intId } = await this.getUserNamedFeed(commentatorId, 'Comments');
+        await trx.raw(
+          `update posts set feed_ids = feed_ids - :intId::int where uid = :postId`,
+          { intId, postId }
+        );
+      }
+    });
+  }
+
   async isPostPresentInTimeline(timelineId, postId) {
     const res = await this.database('posts').where('uid', postId);
     const [postData] = res;

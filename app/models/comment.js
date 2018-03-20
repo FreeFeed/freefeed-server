@@ -158,25 +158,12 @@ export function addModel(dbAdapter) {
     }
 
     async destroy() {
-      await dbAdapter.deleteComment(this.id, this.postId);
-      await pubSub.destroyComment(this.id, this.postId);
-      if (!this.userId) {
-        // there was hidden comment
-        return;
-      }
-      await dbAdapter.statsCommentDeleted(this.userId);
-
-      // Look for other comments from this user in the post:
-      // if this was the last one then remove the post from "user's comments" timeline
-      const post = await dbAdapter.getPostById(this.postId);
-      const comments = await post.getComments();
-
-      if (!_.some(comments, ['userId', this.userId])) {
-        const user = await dbAdapter.getUserById(this.userId);
-        const timelineId = await user.getCommentsTimelineIntId();
-
-        await dbAdapter.withdrawPostFromFeeds([timelineId], this.postId);
-      }
+      await Promise.all([
+        dbAdapter.deleteComment(this.id, this.postId),
+        pubSub.destroyComment(this.id, this.postId),
+        this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
+        this.userId ? dbAdapter.withdrawPostFromCommentsFeed(this.postId, this.userId) : null,
+      ]);
     }
 
     getCreatedBy() {

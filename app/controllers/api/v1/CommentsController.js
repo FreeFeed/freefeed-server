@@ -70,47 +70,40 @@ export async function update(ctx) {
   }
 }
 
-export async function destroy(ctx) {
-  if (!ctx.state.user) {
-    ctx.status = 401;
-    ctx.body = { err: 'Not found' };
-    return
-  }
+export const destroy = compose([
+  authRequired(),
+  monitored('comments.destroy'),
+  async (ctx) => {
+    const { user } = ctx.state;
+    const { commentId } = ctx.params;
 
-  const timer = monitor.timer('comments.destroy-time')
+    const comment = await dbAdapter.getCommentById(commentId);
+    if (!comment) {
+      throw new NotFoundException('Can not find comment');
+    }
 
-  try {
-    const comment = await dbAdapter.getCommentById(ctx.params.commentId)
+    const post = await dbAdapter.getPostById(comment.postId);
+    if (!post) {
+      // Should not be possible
+      throw new NotFoundException('Post not found');
+    }
 
-    if (null === comment) {
-      throw new NotFoundException("Can't find comment")
+    const isPostVisible = await post.isVisibleFor(user);
+    if (!isPostVisible) {
+      throw new ForbiddenException('You can not see this post');
     }
 
     if (!comment.canBeDestroyed()) {
-      throw new ForbiddenException(
-        "You can't destroy deleted comment"
-      )
+      throw new ForbiddenException('You can not destroy a deleted comment');
     }
 
-    if (comment.userId !== ctx.state.user.id) {
-      const post = await dbAdapter.getPostById(comment.postId);
-
-      if (null === post) {
-        throw new NotFoundException("Can't find post")
-      }
-
-      if (post.userId !== ctx.state.user.id) {
-        throw new ForbiddenException(
-          "You don't have permission to delete this comment"
-        )
-      }
+    if (comment.userId !== user.id && post.userId !== user.id) {
+      throw new ForbiddenException("You don't have permission to delete this comment");
     }
 
-    await comment.destroy()
+    await comment.destroy();
+    monitor.increment('comments.destroys');
 
     ctx.body = {};
-    monitor.increment('comments.destroys')
-  } finally {
-    timer.stop()
-  }
-}
+  },
+]);
