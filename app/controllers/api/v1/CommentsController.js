@@ -1,11 +1,11 @@
 import compose from 'koa-compose';
 import monitor from 'monitor-dog';
 
-import { dbAdapter, CommentSerializer, Comment } from '../../../models';
-import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
+import { dbAdapter, Comment } from '../../../models';
+import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions';
 import { serializeComment } from '../../../serializers/v2/comment';
 import { authRequired, inputSchemaRequired, postAccessRequired, monitored } from '../../middlewares';
-import { commentCreateInputSchema } from './data-schemes';
+import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
 
 
 export const create = compose([
@@ -27,48 +27,54 @@ export const create = compose([
     }
 
     const comment = new Comment({ body, postId, userId: author.id });
-    await comment.create();
+
+    try {
+      await comment.create();
+    } catch (e) {
+      throw new BadRequestException(`Can not create comment: ${e.message}`);
+    }
 
     ctx.body = await serializeComment(comment);
   },
 ]);
 
-export async function update(ctx) {
-  if (!ctx.state.user) {
-    ctx.status = 401;
-    ctx.body = { err: 'Not found' };
-    return
-  }
+export const update = compose([
+  authRequired(),
+  inputSchemaRequired(commentUpdateInputSchema),
+  monitored('comments.update'),
+  async (ctx) => {
+    const { user } = ctx.state;
+    const { commentId } = ctx.params;
 
-  const timer = monitor.timer('comments.update-time')
-
-  try {
-    const comment = await dbAdapter.getCommentById(ctx.params.commentId)
-
-    if (null === comment) {
-      throw new NotFoundException("Can't find comment")
+    const comment = await dbAdapter.getCommentById(commentId);
+    if (!comment) {
+      throw new NotFoundException('Can not find comment');
     }
 
-    if (comment.hideType !== Comment.VISIBLE) {
-      throw new ForbiddenException(
-        "You can't update deleted or hidden comment"
-      )
+    const post = await dbAdapter.getPostById(comment.postId);
+    if (!post) {
+      // Should not be possible
+      throw new NotFoundException('Post not found');
     }
 
-    if (comment.userId != ctx.state.user.id) {
-      throw new ForbiddenException(
-        "You can't update another user's comment"
-      )
+    const isPostVisible = await post.isVisibleFor(user);
+    if (!isPostVisible) {
+      throw new ForbiddenException('You can not see this post');
     }
 
-    await comment.update({ body: ctx.request.body.comment.body })
-    const json = await new CommentSerializer(comment).promiseToJSON()
-    ctx.body = json
-    monitor.increment('comments.updates')
-  } finally {
-    timer.stop()
-  }
-}
+    if (comment.userId !== user.id) {
+      throw new ForbiddenException("You can't update another user's comment");
+    }
+
+    try {
+      await comment.update({ body: ctx.request.body.comment.body });
+    } catch (e) {
+      throw new BadRequestException(`Can not update comment: ${e.message}`);
+    }
+
+    ctx.body = await serializeComment(comment);
+  },
+]);
 
 export const destroy = compose([
   authRequired(),

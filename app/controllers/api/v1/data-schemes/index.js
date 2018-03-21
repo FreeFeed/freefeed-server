@@ -1,3 +1,3 @@
 export { postCreateInputSchema } from './posts';
-export { commentCreateInputSchema } from './comments';
+export { commentCreateInputSchema, commentUpdateInputSchema } from './comments';
 export { bookmarkletCreateInputSchema } from './bookmarklet';

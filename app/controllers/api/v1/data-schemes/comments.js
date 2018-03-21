@@ -22,3 +22,25 @@ export const commentCreateInputSchema = {
     }
   }
 };
+
+export const commentUpdateInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type:       'object',
+  required:   ['comment'],
+  properties: {
+    comment: {
+      type:       'object',
+      required:   ['body'],
+      properties: {
+        body: {
+          type:      'string',
+          minLength: 1,
+          pattern:   '\\S'
+        },
+      }
+    }
+  }
+};
