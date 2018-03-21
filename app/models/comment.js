@@ -29,7 +29,7 @@ export function addModel(dbAdapter) {
         case this.DELETED:         return 'Deleted comment';
         case this.HIDDEN_BANNED:   return 'Hidden comment';
         case this.HIDDEN_ARCHIVED: return 'Archived comment';
-        default:                      return 'Hidden comment';
+        default:                   return 'Hidden comment';
       }
     }
 
@@ -124,7 +124,7 @@ export function addModel(dbAdapter) {
         this.processHashtagsOnCreate(),
         dbAdapter.statsCommentCreated(this.userId),
         pubSub.newComment(this),
-        EventService.onCommentCreated(this),
+        EventService.onCommentChanged(this, true),
       ]);
 
       monitor.increment('users.comments');
@@ -142,9 +142,11 @@ export function addModel(dbAdapter) {
       };
       await dbAdapter.updateComment(this.id, payload);
 
-      await this.processHashtagsOnUpdate();
-
-      await pubSub.updateComment(this.id);
+      await Promise.all([
+        this.processHashtagsOnUpdate(),
+        pubSub.updateComment(this.id),
+        EventService.onCommentChanged(this),
+      ]);
 
       return this;
     }

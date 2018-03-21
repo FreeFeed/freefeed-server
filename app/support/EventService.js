@@ -134,7 +134,7 @@ export class EventService {
     await this._processMentionsInPost(post, destinationFeeds, author);
   }
 
-  static async onCommentCreated(comment) {
+  static async onCommentChanged(comment, wasCreated = false) {
     const [
       post,
       mentionEvents,
@@ -142,7 +142,7 @@ export class EventService {
       comment.getPost(),
       getMentionEvents(comment.body, comment.userId, EVENT_TYPES.MENTION_IN_COMMENT, EVENT_TYPES.MENTION_COMMENT_TO),
     ]);
-    const directEvents = await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED);
+    const directEvents = wasCreated ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED) : [];
 
     if (mentionEvents.length === 0 && directEvents.length === 0) {
       return;

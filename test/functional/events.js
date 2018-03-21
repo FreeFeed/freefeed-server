@@ -35,7 +35,8 @@ import {
   unsubscribeFromAsync,
   unsubscribeUserFromMeAsync,
   unbanUser,
-  whoami
+  whoami,
+  updateCommentAsync
 } from '../functional/functional_test_helper'
 import * as schema from './schemaV2-helper'
 import * as realtimeAssertions from './realtime_assertions';
@@ -1411,6 +1412,75 @@ describe('EventService', () => {
           target_user_id:     marsUserModel.intId,
           post_author_id:     lunaUserModel.intId,
         }]);
+      });
+
+      describe('when comment updates', () => {
+        it('should create mention_in_comment when comment without mention updates with mention', async () => {
+          const res = await createCommentAsync(luna, post.id, 'Just a comment').then((r) => r.json());
+          await updateCommentAsync(luna, res.comments.id, 'Just a comment for @mars');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_comment',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
+
+        it('should not create second mention_in_comment when comment updates with the same mention', async () => {
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then((r) => r.json());
+          await updateCommentAsync(luna, res.comments.id, 'Just a comment for @mars!');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_comment',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
+
+        it('should not create mention_comment_to when mention_in_comment already exists for the same user', async () => {
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then((r) => r.json());
+          await updateCommentAsync(luna, res.comments.id, '@mars Just a comment');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_comment',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
+
+        it('should not remove mention_comment_to when mention disappears from the comment', async () => {
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then((r) => r.json());
+          await updateCommentAsync(luna, res.comments.id, 'Just a comment');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_comment',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
+
+        it('should create additional mention_comment_to when a new mention appears in the comment', async () => {
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then((r) => r.json());
+          await updateCommentAsync(luna, res.comments.id, 'Just a comment for @pluto');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_comment',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+          await expectMentionEvents(plutoUserModel, [{
+            user_id:            plutoUserModel.intId,
+            event_type:         'mention_in_comment',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     plutoUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
       });
     });
   });
