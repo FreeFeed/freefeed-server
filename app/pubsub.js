@@ -63,8 +63,8 @@ export default class pubSub {
     await this.publisher.commentCreated(payload)
   }
 
-  async destroyComment(commentId, postId) {
-    const payload = JSON.stringify({ postId, commentId })
+  async destroyComment(commentId, postId, rooms) {
+    const payload = JSON.stringify({ postId, commentId, rooms })
     await this.publisher.commentDestroyed(payload)
   }
 

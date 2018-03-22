@@ -6,6 +6,7 @@ import monitor from 'monitor-dog';
 import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
+import { getRoomsOfPost } from '../pubsub-listener';
 
 
 export function addModel(dbAdapter) {
@@ -160,11 +161,13 @@ export function addModel(dbAdapter) {
     }
 
     async destroy() {
+      const post = await this.getPost();
+      const realtimeRooms = await getRoomsOfPost(post);
       await Promise.all([
         dbAdapter.deleteComment(this.id, this.postId),
-        pubSub.destroyComment(this.id, this.postId),
-        this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
+        pubSub.destroyComment(this.id, this.postId, realtimeRooms),
         this.userId ? dbAdapter.withdrawPostFromCommentsFeed(this.postId, this.userId) : null,
+        this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
       ]);
     }
 
