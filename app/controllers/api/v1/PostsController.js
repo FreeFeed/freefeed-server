@@ -3,7 +3,7 @@ import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
 import { dbAdapter, PostSerializer, Post } from '../../../models'
-import { ForbiddenException, NotAuthorizedException, NotFoundException } from '../../../support/exceptions'
+import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
 import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
 import { postCreateInputSchema } from './data-schemes';
@@ -31,7 +31,11 @@ export default class PostsController {
         timelineIds,
       });
 
-      await newPost.create();
+      try {
+        await newPost.create();
+      } catch (e) {
+        throw new BadRequestException(`Can not create post: ${e.message}`);
+      }
 
       ctx.params.postId = newPost.id;
 
