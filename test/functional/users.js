@@ -551,7 +551,7 @@ describe('UsersController', () => {
         let subscribed;
         beforeEach(async () => {
           subscribed = await funcTestHelper.createTestUser();
-          funcTestHelper.subscribeToAsync(subscribed, user);
+          await funcTestHelper.subscribeToAsync(subscribed, user);
           await funcTestHelper.goPrivate(user);
         });
 
@@ -645,7 +645,7 @@ describe('UsersController', () => {
         let subscribed;
         beforeEach(async () => {
           subscribed = await funcTestHelper.createTestUser();
-          funcTestHelper.subscribeToAsync(subscribed, user);
+          await funcTestHelper.subscribeToAsync(subscribed, user);
           await funcTestHelper.goPrivate(user);
         });
 

@@ -32,7 +32,6 @@ const debug = createDebug('freefeed:model:attachment');
 
 
 async function mimeTypeDetect(fileName, filePath) {
-  const file = `${filePath}/${fileName}`;
   // The file type is detected by checking the magic number of the buffer.
   // It only needs the first 4100 bytes.
   const buffer = await readChunk(filePath, 0, 4100)
@@ -62,7 +61,7 @@ async function mimeTypeDetect(fileName, filePath) {
 
   // otherwise, we'll use the fallback to content-type detected with a file extension provided by the user
   if (mimeType === 'application/octet-stream') {
-    mimeType = mime.lookup(file) || mimeType
+    mimeType = mime.lookup(fileName) || mimeType
   }
 
   return mimeType

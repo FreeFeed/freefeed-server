@@ -1,153 +1,115 @@
-import monitor from 'monitor-dog'
+import compose from 'koa-compose';
+import monitor from 'monitor-dog';
 
-import { dbAdapter, CommentSerializer, PubSub, Comment } from '../../../models'
-import { EventService } from '../../../support/EventService'
-import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { dbAdapter, Comment } from '../../../models';
+import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions';
+import { serializeComment } from '../../../serializers/v2/comment';
+import { authRequired, inputSchemaRequired, postAccessRequired, monitored } from '../../middlewares';
+import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
 
 
-export default class CommentsController {
-  static async create(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
+export const create = compose([
+  authRequired(),
+  inputSchemaRequired(commentCreateInputSchema),
+  async (ctx, next) => {
+    // for the postAccessRequired check
+    ctx.params.postId = ctx.request.body.comment.postId;
+    await next();
+  },
+  postAccessRequired(),
+  monitored('comments.create'),
+  async (ctx) => {
+    const { user: author, post } = ctx.state;
+    const { comment: { body, postId } } = ctx.request.body;
+
+    if (post.commentsDisabled === '1' && post.userId !== author.id) {
+      throw new ForbiddenException('Comments disabled');
     }
 
-    const timer = monitor.timer('comments.create-time')
+    const comment = new Comment({ body, postId, userId: author.id });
 
     try {
-      const post = await dbAdapter.getPostById(ctx.request.body.comment.postId)
-      if (!post) {
-        throw new NotFoundException('Not found')
-      }
-
-      const isVisible = await post.canShow(ctx.state.user.id)
-      if (!isVisible) {
-        throw new NotFoundException('Not found')
-      }
-
-      const author = await dbAdapter.getUserById(post.userId);
-      const banIds = await author.getBanIds();
-
-      if (banIds.includes(ctx.state.user.id)) {
-        throw new ForbiddenException('Author of this post has banned you');
-      }
-
-      const yourBanIds = await ctx.state.user.getBanIds();
-
-      if (yourBanIds.includes(author.id)) {
-        throw new ForbiddenException('You have banned the author of this post');
-      }
-
-      if (post.commentsDisabled === '1' && post.userId !== ctx.state.user.id) {
-        throw new ForbiddenException('Comments disabled')
-      }
-
-      const newComment = ctx.state.user.newComment({
-        body:   ctx.request.body.comment.body,
-        postId: ctx.request.body.comment.postId
-      })
-
-      const timelines = await newComment.create()
-
-      await Promise.all(timelines.map(async (timeline) => {
-        if (timeline.isDirects()) {
-          await PubSub.updateUnreadDirects(timeline.userId)
-        }
-      }))
-
-      await Promise.all([
-        PubSub.newComment(newComment, timelines),
-        EventService.onCommentCreated(newComment, post, ctx.state.user, author, banIds, yourBanIds)
-      ]);
-      monitor.increment('comments.creates')
-
-      const json = await new CommentSerializer(newComment).promiseToJSON()
-      ctx.body = json
-    } finally {
-      timer.stop()
-    }
-  }
-
-  static async update(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
+      await comment.create();
+    } catch (e) {
+      throw new BadRequestException(`Can not create comment: ${e.message}`);
     }
 
-    const timer = monitor.timer('comments.update-time')
+    ctx.body = await serializeComment(comment);
+  },
+]);
+
+export const update = compose([
+  authRequired(),
+  inputSchemaRequired(commentUpdateInputSchema),
+  monitored('comments.update'),
+  async (ctx) => {
+    const { user } = ctx.state;
+    const { commentId } = ctx.params;
+
+    const comment = await dbAdapter.getCommentById(commentId);
+    if (!comment) {
+      throw new NotFoundException('Can not find comment');
+    }
+
+    const post = await dbAdapter.getPostById(comment.postId);
+    if (!post) {
+      // Should not be possible
+      throw new NotFoundException('Post not found');
+    }
+
+    const isPostVisible = await post.isVisibleFor(user);
+    if (!isPostVisible) {
+      throw new ForbiddenException('You can not see this post');
+    }
+
+    if (comment.userId !== user.id) {
+      throw new ForbiddenException("You can't update another user's comment");
+    }
 
     try {
-      const comment = await dbAdapter.getCommentById(ctx.params.commentId)
-
-      if (null === comment) {
-        throw new NotFoundException("Can't find comment")
-      }
-
-      if (comment.hideType !== Comment.VISIBLE) {
-        throw new ForbiddenException(
-          "You can't update deleted or hidden comment"
-        )
-      }
-
-      if (comment.userId != ctx.state.user.id) {
-        throw new ForbiddenException(
-          "You can't update another user's comment"
-        )
-      }
-
-      await comment.update({ body: ctx.request.body.comment.body })
-      const json = await new CommentSerializer(comment).promiseToJSON()
-      ctx.body = json
-      monitor.increment('comments.updates')
-    } finally {
-      timer.stop()
-    }
-  }
-
-  static async destroy(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
+      await comment.update({ body: ctx.request.body.comment.body });
+    } catch (e) {
+      throw new BadRequestException(`Can not update comment: ${e.message}`);
     }
 
-    const timer = monitor.timer('comments.destroy-time')
+    ctx.body = await serializeComment(comment);
+  },
+]);
 
-    try {
-      const comment = await dbAdapter.getCommentById(ctx.params.commentId)
+export const destroy = compose([
+  authRequired(),
+  monitored('comments.destroy'),
+  async (ctx) => {
+    const { user } = ctx.state;
+    const { commentId } = ctx.params;
 
-      if (null === comment) {
-        throw new NotFoundException("Can't find comment")
-      }
-
-      if (!comment.canBeDestroyed()) {
-        throw new ForbiddenException(
-          "You can't destroy deleted comment"
-        )
-      }
-
-      if (comment.userId !== ctx.state.user.id) {
-        const post = await dbAdapter.getPostById(comment.postId);
-
-        if (null === post) {
-          throw new NotFoundException("Can't find post")
-        }
-
-        if (post.userId !== ctx.state.user.id) {
-          throw new ForbiddenException(
-            "You don't have permission to delete this comment"
-          )
-        }
-      }
-
-      await comment.destroy()
-
-      ctx.body = {};
-      monitor.increment('comments.destroys')
-    } finally {
-      timer.stop()
+    const comment = await dbAdapter.getCommentById(commentId);
+    if (!comment) {
+      throw new NotFoundException('Can not find comment');
     }
-  }
-}
+
+    const post = await dbAdapter.getPostById(comment.postId);
+    if (!post) {
+      // Should not be possible
+      throw new NotFoundException('Post not found');
+    }
+
+    const isPostVisible = await post.isVisibleFor(user);
+    if (!isPostVisible) {
+      throw new ForbiddenException('You can not see this post');
+    }
+
+    if (!comment.canBeDestroyed()) {
+      throw new ForbiddenException('You can not destroy a deleted comment');
+    }
+
+    if (comment.userId !== user.id && post.userId !== user.id) {
+      throw new ForbiddenException("You don't have permission to delete this comment");
+    }
+
+    await comment.destroy();
+    monitor.increment('comments.destroys');
+
+    ctx.body = {};
+  },
+]);

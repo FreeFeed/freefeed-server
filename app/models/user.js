@@ -976,6 +976,32 @@ export function addModel(dbAdapter) {
     }
   }
 
+  /**
+   * Checks if the specified user can post to the timeline of this user
+   * returns array of destination (Directs) timelines
+   * or empty array if user can not post to this user.
+   *
+   * @param {string} postingUser
+   * @returns {Timeline[]}
+   */
+  User.prototype.getFeedsToPost = async function (postingUser) {
+    if (this.id === postingUser.id) {
+      // Users always can post to own timeline
+      return [await this.getPostsTimeline()];
+    }
+
+    // Users can send directs only to their mutual friends
+    const isMutual = await dbAdapter.areUsersMutuallySubscribed(this.id, postingUser.id);
+    if (isMutual) {
+      return await Promise.all([
+        this.getDirectsTimeline(),
+        postingUser.getDirectsTimeline(),
+      ]);
+    }
+
+    return [];
+  }
+
   User.prototype.updateLastActivityAt = async function () {
     if (!this.isUser()) {
       // update group lastActivity for all subscribers

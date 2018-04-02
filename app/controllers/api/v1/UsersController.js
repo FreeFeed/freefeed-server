@@ -1,13 +1,16 @@
 import jwt from 'jsonwebtoken'
 import _ from 'lodash'
+import compose from 'koa-compose';
 
 import { dbAdapter, MyProfileSerializer, User } from '../../../models'
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
-import { monitored, authRequired, serializeUsersByIds, targetUserRequired } from '../v2/helpers';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
+import { authRequired, targetUserRequired, monitored } from '../../middlewares';
 import { UsersControllerV2 } from '../../../controllers';
+
 
 const config = configLoader()
 
@@ -115,17 +118,22 @@ export default class UsersController {
     ctx.body = {};
   }
 
-  static acceptRequest = _.flow(authRequired, targetUserRequired)(async (ctx) => {
-    const { user: targetUser, targetUser: subscriber } = ctx.state;
+  static acceptRequest = compose([
+    authRequired(),
+    targetUserRequired(),
+    async (ctx) => {
+      const { user: targetUser, targetUser: subscriber } = ctx.state;
 
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
-    if (!hasRequest) {
-      throw new ForbiddenException('There is no subscription requests');
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
+      if (!hasRequest) {
+        throw new ForbiddenException('There is no subscription requests');
+      }
+      await targetUser.acceptSubscriptionRequest(subscriber.id);
+      await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
+      ctx.body = {};
     }
-    await targetUser.acceptSubscriptionRequest(subscriber.id);
-    await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
-    ctx.body = {};
-  });
+  ]);
+
 
   static async rejectRequest(ctx) {
     if (!ctx.state.user) {
@@ -149,87 +157,83 @@ export default class UsersController {
     ctx.body = {};
   }
 
-  static show = monitored('users.show', async (ctx) => {
-    const { username } = ctx.params;
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
-    if (!user || user.hashedPassword === '') {
-      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
-    }
+  static show = compose([
+    targetUserRequired(),
+    monitored('users.show'),
+    async (ctx) => {
+      const { targetUser } = ctx.state;
 
-    const serUsers = await serializeUsersByIds([user.id]);
-    const users = serUsers.find((u) => u.id === user.id);
-    const admins = serUsers.filter((u) => u.type === 'user');
+      const serUsers = await serializeUsersByIds([targetUser.id]);
+      const users = serUsers.find((u) => u.id === targetUser.id);
+      const admins = serUsers.filter((u) => u.type === 'user');
 
-    ctx.body = { users, admins };
-  });
+      ctx.body = { users, admins };
+    },
+  ]);
 
-  static subscribers = monitored('users.subscribers', async (ctx) => {
-    const viewer = ctx.state.user || null;
+  static subscribers = compose([
+    targetUserRequired(),
+    monitored('users.subscribers'),
+    async (ctx) => {
+      const { user: viewer, targetUser: user } = ctx.state;
 
-    const { username } = ctx.params;
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
-    if (!user || user.hashedPassword === '') {
-      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
-    }
+      if (!viewer && user.isPrivate === '1') {
+        throw new ForbiddenException('User is private')
+      }
 
-    if (!viewer && user.isPrivate === '1') {
-      throw new ForbiddenException('User is private')
-    }
+      if (!viewer && user.isProtected === '1') {
+        throw new ForbiddenException('User is protected')
+      }
 
-    if (!viewer && user.isProtected === '1') {
-      throw new ForbiddenException('User is protected')
-    }
+      const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
 
-    const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+      if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
+        throw new ForbiddenException('User is private')
+      }
 
-    if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
-      throw new ForbiddenException('User is private')
-    }
+      const serUsers = await serializeUsersByIds(subscriberIds);
+      // Sorting by 'random' id to mask actual subscription order
+      const subscribers = _.sortBy(serUsers, 'id');
 
-    const serUsers = await serializeUsersByIds(subscriberIds);
-    // Sorting by 'random' id to mask actual subscription order
-    const subscribers = _.sortBy(serUsers, 'id');
+      ctx.body = { subscribers };
+    },
+  ]);
 
-    ctx.body = { subscribers };
-  });
+  static subscriptions = compose([
+    targetUserRequired(),
+    monitored('users.subscriptions'),
+    async (ctx) => {
+      const { user: viewer, targetUser: user } = ctx.state;
 
-  static subscriptions = monitored('users.subscriptions', async (ctx) => {
-    const viewer = ctx.state.user || null;
+      if (!viewer && user.isPrivate === '1') {
+        throw new ForbiddenException('User is private')
+      }
 
-    const { username } = ctx.params;
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
-    if (!user || user.hashedPassword === '') {
-      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
-    }
+      if (!viewer && user.isProtected === '1') {
+        throw new ForbiddenException('User is protected')
+      }
 
-    if (!viewer && user.isPrivate === '1') {
-      throw new ForbiddenException('User is private')
-    }
+      const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
 
-    if (!viewer && user.isProtected === '1') {
-      throw new ForbiddenException('User is protected')
-    }
+      if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
+        throw new ForbiddenException('User is private')
+      }
 
-    const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+      const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
+      const timelineOwnersIds = timelines.map((t) => t.userId);
 
-    if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
-      throw new ForbiddenException('User is private')
-    }
+      const serUsers = await serializeUsersByIds(timelineOwnersIds, false);
+      // Sorting by 'random' id to mask actual subscription order
+      const subscribers = _.sortBy(serUsers, 'id');
+      const subscriptions = _.sortBy(timelines.map((t) => ({
+        id:   t.id,
+        name: t.name,
+        user: t.userId,
+      })), 'id');
 
-    const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
-    const timelineOwnersIds = timelines.map((t) => t.userId);
-
-    const serUsers = await serializeUsersByIds(timelineOwnersIds, false);
-    // Sorting by 'random' id to mask actual subscription order
-    const subscribers = _.sortBy(serUsers, 'id');
-    const subscriptions = _.sortBy(timelines.map((t) => ({
-      id:   t.id,
-      name: t.name,
-      user: t.userId,
-    })), 'id');
-
-    ctx.body = { subscribers, subscriptions };
-  });
+      ctx.body = { subscribers, subscriptions };
+    },
+  ]);
 
   static async ban(ctx) {
     if (!ctx.state.user) {
@@ -263,83 +267,92 @@ export default class UsersController {
     ctx.body = { status };
   }
 
-  static subscribe = _.flow(authRequired, targetUserRequired, monitored('users.subscribe'))(async (ctx) => {
-    const { user: subscriber, targetUser } = ctx.state;
+  static subscribe = compose([
+    authRequired(),
+    targetUserRequired(),
+    monitored('users.subscribe'),
+    async (ctx) => {
+      const { user: subscriber, targetUser } = ctx.state;
 
-    if (subscriber.id === targetUser.id) {
-      throw new ForbiddenException('You cannot subscribe to yourself');
-    }
-
-    if (targetUser.isPrivate === '1') {
-      throw new ForbiddenException('You cannot subscribe to private feed');
-    }
-
-    const [
-      banIds,
-      theirBanIds,
-    ] = await Promise.all([
-      subscriber.getBanIds(),
-      targetUser.getBanIds(),
-    ]);
-    if (banIds.includes(targetUser.id)) {
-      throw new ForbiddenException('You cannot subscribe to a banned user');
-    }
-    if (theirBanIds.includes(subscriber.id)) {
-      throw new ForbiddenException('This user prevented your from subscribing to them');
-    }
-
-    const success = await subscriber.subscribeTo(targetUser);
-    if (!success) {
-      throw new ForbiddenException('You are already subscribed to that user');
-    }
-
-    // 'subscribe' should return the same response as 'whoami'
-    await UsersControllerV2.whoAmI(ctx);
-  });
-
-  static unsubscribeUser = _.flow(authRequired, targetUserRequired, monitored('users.unsubscribeUser'))(async (ctx) => {
-    const subscriber = ctx.state.user;
-
-    const { username } = ctx.params;
-    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
-    if (!targetUser || !targetUser.isActive) {
-      throw new NotFoundException(`User "${username}" is not found`);
-    }
-
-    const success = await targetUser.unsubscribeFrom(subscriber);
-    if (!success) {
-      throw new ForbiddenException('This user is not subscribed to you');
-    }
-
-    // 'unsubscribeUser' should return the same response as 'whoami'
-    await UsersControllerV2.whoAmI(ctx);
-  });
-
-  static unsubscribe = _.flow(authRequired, targetUserRequired, monitored('users.unsubscribe'))(async (ctx) => {
-    const subscriber = ctx.state.user;
-
-    const { username } = ctx.params;
-    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
-    if (!targetUser || !targetUser.isActive) {
-      throw new NotFoundException(`User "${username}" is not found`);
-    }
-
-    if (targetUser.isGroup()) {
-      const adminIds = await targetUser.getAdministratorIds();
-
-      if (adminIds.includes(subscriber.id)) {
-        throw new ForbiddenException('Group administrators cannot unsubscribe from own groups');
+      if (subscriber.id === targetUser.id) {
+        throw new ForbiddenException('You cannot subscribe to yourself');
       }
-    }
 
-    const success = await subscriber.unsubscribeFrom(targetUser);
-    if (!success) {
-      throw new ForbiddenException('You are not subscribed to that user');
-    }
+      if (targetUser.isPrivate === '1') {
+        throw new ForbiddenException('You cannot subscribe to private feed');
+      }
 
-    // 'unsubscribe' should return the same response as 'whoami'
-    await UsersControllerV2.whoAmI(ctx);
-  });
+      const [
+        banIds,
+        theirBanIds,
+      ] = await Promise.all([
+        subscriber.getBanIds(),
+        targetUser.getBanIds(),
+      ]);
+      if (banIds.includes(targetUser.id)) {
+        throw new ForbiddenException('You cannot subscribe to a banned user');
+      }
+      if (theirBanIds.includes(subscriber.id)) {
+        throw new ForbiddenException('This user prevented your from subscribing to them');
+      }
+
+      const success = await subscriber.subscribeTo(targetUser);
+      if (!success) {
+        throw new ForbiddenException('You are already subscribed to that user');
+      }
+
+      // should return the same response as 'whoami'
+      await UsersControllerV2.whoAmI(ctx);
+    },
+  ]);
+
+  static unsubscribeUser = compose([
+    authRequired(),
+    targetUserRequired(),
+    monitored('users.unsubscribeUser'),
+    async (ctx) => {
+      const subscriber = ctx.state.user;
+
+      const { username } = ctx.params;
+      const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+      if (!targetUser || !targetUser.isActive) {
+        throw new NotFoundException(`User "${username}" is not found`);
+      }
+
+      const success = await targetUser.unsubscribeFrom(subscriber);
+      if (!success) {
+        throw new ForbiddenException('This user is not subscribed to you');
+      }
+
+      // should return the same response as 'whoami'
+      await UsersControllerV2.whoAmI(ctx);
+    },
+  ]);
+
+  static unsubscribe = compose([
+    authRequired(),
+    targetUserRequired(),
+    monitored('users.unsubscribe'),
+    async (ctx) => {
+      const { user: subscriber, targetUser } = ctx.state;
+
+      if (targetUser.isGroup()) {
+        const adminIds = await targetUser.getAdministratorIds();
+
+        if (adminIds.includes(subscriber.id)) {
+          throw new ForbiddenException('Group administrators cannot unsubscribe from own groups');
+        }
+      }
+
+      const success = await subscriber.unsubscribeFrom(targetUser);
+      if (!success) {
+        throw new ForbiddenException('You are not subscribed to that user');
+      }
+
+      // should return the same response as 'whoami'
+      await UsersControllerV2.whoAmI(ctx);
+    },
+  ]);
 
   static async update(ctx) {
     if (!ctx.state.user || ctx.state.user.id != ctx.params.userId) {

@@ -30,12 +30,30 @@ const subscriptionsTrait = (superClass) => class extends superClass {
       .orderBy('s.created_at', 'desc');
   }
 
-  async isUserSubscribedToTimeline(currentUserId, timelineId) {
-    const res = await this.database('subscriptions').where({
-      feed_id: timelineId,
-      user_id: currentUserId
-    }).count()
-    return parseInt(res[0].count) != 0
+  async isUserSubscribedToTimeline(userId, timelineId) {
+    const { rows } = await this.database.raw(
+      'select 1 from subscriptions where feed_id = :timelineId and user_id = :userId',
+      { userId, timelineId }
+    )
+    return rows.length > 0;
+  }
+
+  async areUsersMutuallySubscribed(userAId, userBId) {
+    const { rows } = await this.database.raw(
+      ` 
+      -- A subscribed to B 
+      select 1 from 
+        subscriptions s join feeds f on f.uid = s.feed_id 
+        where s.user_id = :userAId and f.user_id = :userBId and f.name = 'Posts' 
+      union all 
+      -- B subscribed to A 
+      select 1 from 
+        subscriptions s join feeds f on f.uid = s.feed_id 
+        where s.user_id = :userBId and f.user_id = :userAId and f.name = 'Posts' 
+      `,
+      { userAId, userBId }
+    )
+    return rows.length === 2;
   }
 
   async isUserSubscribedToOneOfTimelines(currentUserId, timelineIds) {

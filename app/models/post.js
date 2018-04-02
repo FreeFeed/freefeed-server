@@ -3,9 +3,12 @@ import GraphemeBreaker from 'grapheme-breaker';
 import _ from 'lodash';
 
 import { extractHashtags } from '../support/hashtags';
-import { Timeline, PubSub as pubSub } from '../models';
+import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
+import { EventService } from '../support/EventService';
+import { load as configLoader } from '../../config/config';
 
+const config = configLoader();
 
 export function addModel(dbAdapter) {
   class Post {
@@ -96,40 +99,63 @@ export function addModel(dbAdapter) {
       if (len > 1500) {
         throw new Error('Maximum post-length is 1500 graphemes');
       }
+
+      if (this.attachments && this.attachments.length > config.attachments.maxCount) {
+        throw new Error(`Too many attachments: ${this.attachments.length}, max. ${config.attachments.maxCount}`);
+      }
     }
 
     async create() {
-      this.createdAt = new Date().getTime();
-      this.updatedAt = new Date().getTime();
-      this.bumpedAt = new Date().getTime();
-
       await this.validate();
 
       const payload = {
         'body':             this.body,
         'userId':           this.userId,
-        'createdAt':        this.createdAt.toString(),
-        'updatedAt':        this.updatedAt.toString(),
-        'bumpedAt':         this.updatedAt.toString(),
-        'commentsDisabled': this.commentsDisabled
+        'commentsDisabled': this.commentsDisabled,
       };
-      this.feedIntIds = await dbAdapter.getTimelinesIntIdsByUUIDs(this.timelineIds);
+      const [
+        destFeeds,
+        author,
+      ] = await Promise.all([
+        dbAdapter.getTimelinesByIds(this.timelineIds),
+        dbAdapter.getUserById(this.userId),
+      ]);
+      this.feedIntIds = destFeeds.map((f) => f.intId);
       this.destinationFeedIds = this.feedIntIds.slice();
+
       // save post to the database
       this.id = await dbAdapter.createPost(payload, this.feedIntIds);
 
       const newPost = await dbAdapter.getPostById(this.id);
-      this.isPrivate = newPost.isPrivate;
-      this.isProtected = newPost.isProtected;
-      this.isPropagable = newPost.isPropagable;
+      const fieldsToUpdate = [
+        'isPrivate',
+        'isProtected',
+        'isPropagable',
+        'createdAt',
+        'updatedAt',
+        'bumpedAt',
+      ];
+      for (const f of fieldsToUpdate) {
+        this[f] = newPost[f];
+      }
 
-      // save nested resources
-      await this.linkAttachments();
-      await this.processHashtagsOnCreate();
+      await Promise.all([
+        this.linkAttachments(),
+        this.processHashtagsOnCreate(),
+      ]);
 
-      await Timeline.publishPost(this);
+      const rtUpdates = destFeeds
+        .filter((f) => f.isDirects())
+        .map((f) => pubSub.updateUnreadDirects(f.userId));
+      rtUpdates.push(pubSub.newPost(this.id));
 
-      await dbAdapter.statsPostCreated(this.userId);
+      await EventService.onPostCreated(newPost, destFeeds.map((f) => f.id), author);
+
+      await Promise.all([
+        ...rtUpdates,
+        dbAdapter.setUpdatedAtInGroupsByIds(destFeeds.map((f) => f.userId)),
+        dbAdapter.statsPostCreated(this.userId),
+      ]);
 
       return this;
     }
@@ -651,37 +677,74 @@ export function addModel(dbAdapter) {
       return dbAdapter.isPostPresentInTimeline(hidesTimelineIntId, this.id);
     }
 
-    async canShow(readerId, checkOnlyDestinations = true) {
-      let timelines = await (checkOnlyDestinations ? this.getPostedTo() : this.getTimelines());
-
-      if (!checkOnlyDestinations) {
-        timelines = timelines.filter((timeline) => timeline.isPosts() || timeline.isDirects());
+    /**
+     * isVisibleFor checks visibility of the post for the given viewer
+     * or for anonymous if viewer is null.
+     *
+     *  Viewer CAN NOT see post if:
+     * - viwer is anonymous and post is not public or
+     * - viewer is authorized and
+     *   - post author banned viewer or was banned by viewer or
+     *   - post is private and viewer cannot read any of post's destination feeds
+     *
+     * @param {User|null} viewer
+     * @returns {boolean}
+     */
+    async isVisibleFor(viewer) {
+      // Check if viewer is anonymous and post is not public
+      if (!viewer) {
+        return this.isProtected === '0';
       }
 
-      if (timelines.map((timeline) => timeline.userId).includes(readerId)) {
-        // one of the timelines belongs to the user
-        return true;
-      }
-
-      // skipping someone else's directs
-      const nonDirectTimelines = timelines.filter((timeline) => !timeline.isDirects());
-
-      if (nonDirectTimelines.length === 0) {
+      // Check if post author banned viewer or was banned by viewer
+      const bannedUserIds = await dbAdapter.getUsersBansOrWasBannedBy(viewer.id);
+      if (bannedUserIds.includes(this.userId)) {
         return false;
       }
 
-      const ownerIds = nonDirectTimelines.map((timeline) => timeline.userId);
-      if (await dbAdapter.someUsersArePublic(ownerIds, !readerId)) {
-        return true;
+      // Check if post is private and viewer cannot read any of post's destination feeds
+      if (this.isPrivate === '1') {
+        const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
+        if (_.isEmpty(_.intersection(this.destinationFeedIds, privateFeedIds))) {
+          return false;
+        }
       }
 
-      if (!readerId) {
-        // no public feeds. anonymous can't see
-        return false;
+      return true;
+    }
+
+    /**
+     * Filter users that can not see this post
+     *
+     * Viewer CAN NOT see post if:
+     * - viwer is anonymous and post is not public or
+     * - viewer is authorized and
+     *   - post author banned viewer or was banned by viewer or
+     *   - post is private and viewer cannot read any of post's destination feeds
+     *
+     * @param {User[]} users
+     * @returns {User[]}
+     */
+    async onlyUsersCanSeePost(users) {
+      if (users.length === 0) {
+        return [];
       }
 
-      const timelineIds = nonDirectTimelines.map((timeline) => timeline.id);
-      return await dbAdapter.isUserSubscribedToOneOfTimelines(readerId, timelineIds);
+      if (this.isProtected === '1') {
+        // Anonymous can not see this post
+        users = users.filter((u) => !!u.id); // users without id are anonymous
+      }
+
+      const authorBans = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
+      // Author's banned and banners can not see this post
+      users = users.filter((u) => !authorBans.includes(u.id));
+
+      if (this.isPrivate === '1') {
+        const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
+        users = users.filter((u) => allowedUserIds.includes(u.id));
+      }
+
+      return users;
     }
 
     async processHashtagsOnCreate() {
@@ -710,37 +773,6 @@ export function addModel(dbAdapter) {
           await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id);
         }
       }
-    }
-
-    /**
-     * Filter users that can not see this post
-     *
-     * Viewer CAN NOT see post if:
-     * - viwer is anonymous and post is not public or
-     * - viewer is authorized and
-     *   - post author banned viewer or was banned by viewer or
-     *   - post is private and viewer cannot read any of post's destination feeds
-     */
-    async onlyUsersCanSeePost(users) {
-      if (users.length === 0) {
-        return [];
-      }
-
-      if (this.isProtected === '1') {
-        // Anonymous can not see this post
-        users = users.filter((u) => !!u.id); // users without id are anonymous
-      }
-
-      const authorBans = await dbAdapter.getBansAndBannersOfUser(this.userId);
-      // Author's banned and banners can not see this post
-      users = users.filter((u) => !authorBans.includes(u.id));
-
-      if (this.isPrivate === '1') {
-        const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
-        users = users.filter((u) => allowedUserIds.includes(u.id));
-      }
-
-      return users;
     }
   }
 
