@@ -33,7 +33,7 @@ export default class Session {
     this.socket.emit(event, data);
   }
 
-  sendAsync = (event, data) => {
+  sendAsync(event, data) {
     return new Promise((resolve, reject) => {
       this.socket.emit(event, data, (result) => {
         if (result.success) {
@@ -43,7 +43,7 @@ export default class Session {
         }
       });
     });
-  };
+  }
 
   disconnect() {
     this.socket.disconnect();
