@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isPlainObject, keyBy, map, uniqBy, noop, values } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isPlainObject, isFunction, keyBy, map, uniqBy, noop, values, last } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -70,51 +70,33 @@ export default class PubsubListener {
       debug(`[socket.id=${socket.id}] error`, e);
     });
 
-    socket.on('auth', async (data, callback = noop) => {
-      debug(`[socket.id=${socket.id}] 'auth' request`);
+    onSocketEvent(socket, 'auth', async (data, debugPrefix) => {
+      if (!isPlainObject(data)) {
+        throw new EventHandlingError('request without data');
+      }
 
-      try {
-        if (!isPlainObject(data)) {
-          debug(`[socket.id=${socket.id}] 'auth' request: no data`);
-          return;
-        }
-
-        if (data.authToken && typeof data.authToken === 'string') {
-          try {
-            const decoded = await jwt.verifyAsync(data.authToken, secret);
-            socket.user = await dbAdapter.getUserById(decoded.userId);
-            callback({ success: true });
-            debug(`[socket.id=${socket.id}] 'auth' request: successfully authenticated as ${socket.user.username}`);
-          } catch (e) {
-            socket.user = { id: null };
-            callback({ success: false, message: 'invalid token' });
-            debug(`[socket.id=${socket.id}] 'auth' request: invalid token, signing user out`, data.authToken);
-          }
-        } else {
+      if (data.authToken && typeof data.authToken === 'string') {
+        try {
+          const decoded = await jwt.verifyAsync(data.authToken, secret);
+          socket.user = await dbAdapter.getUserById(decoded.userId);
+          debug(`${debugPrefix}: successfully authenticated as ${socket.user.username}`);
+        } catch (e) {
           socket.user = { id: null };
-          callback({ success: true });
+          throw new Error('invalid token', `invalid token ${data.authToken}, signing user out`);
         }
-      } catch (e) {
-        if (sentryIsEnabled) {
-          Raven.captureException(e, { extra: { err: 'PubsubListener auth error' } });
-        }
-        callback({ success: false, message: e.message });
-        debug(`[socket.id=${socket.id}] 'auth' request: exception ${e}`);
+      } else {
+        socket.user = { id: null };
       }
     });
 
-    socket.on('subscribe', async (data, callback = noop) => {
-      debug(`[socket.id=${socket.id}] 'subscribe' request`);
-
+    onSocketEvent(socket, 'subscribe', async (data, debugPrefix) => {
       if (!isPlainObject(data)) {
-        callback({ success: false, message: 'request without data' });
-        debug(`[socket.id=${socket.id}] 'subscribe' request: no data`);
-        return;
+        throw new EventHandlingError('request without data');
       }
 
       const channelListsPromises = map(data, async (channelIds, channelType) => {
         if (!isArray(channelIds)) {
-          throw new Error(`List of ${channelType} ids has to be an array`);
+          throw new EventHandlingError(`List of ${channelType} ids has to be an array`);
         }
 
         const promises = channelIds.map(async (id) => {
@@ -122,15 +104,24 @@ export default class PubsubListener {
             const t = await dbAdapter.getTimelineById(id);
 
             if (!t) {
-              throw new Error(`User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${id})`);
+              throw new EventHandlingError(
+                `attempt to subscribe to nonexistent timeline`,
+                `User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${id})`
+              );
             }
 
             if (t.isPersonal() && t.userId !== socket.user.id) {
-              throw new Error(`User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${id}) belonging to user ${t.userId}`);
+              throw new EventHandlingError(
+                `attempt to subscribe to someone else's '${t.name}' timeline`,
+                `User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${id}) belonging to user ${t.userId}`
+              );
             }
           } else if (channelType === 'user') {
             if (id !== socket.user.id) {
-              throw new Error(`User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${id})`);
+              throw new EventHandlingError(
+                `attempt to subscribe to someone else's '${channelType}' channel`,
+                `User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${id})`
+              );
             }
           }
 
@@ -140,32 +131,20 @@ export default class PubsubListener {
         return await Promise.all(promises);
       });
 
-      try {
-        const channelLists = await Promise.all(channelListsPromises);
-        await Promise.all(flatten(channelLists).map(async (channelId) => {
-          await socket.joinAsync(channelId);
-          debug(`[socket.id=${socket.id}] 'subscribe' request: successfully subscribed to ${channelId}`);
-        }));
+      const channelLists = await Promise.all(channelListsPromises);
+      await Promise.all(flatten(channelLists).map(async (channelId) => {
+        await socket.joinAsync(channelId);
+        debug(`${debugPrefix}: successfully subscribed to ${channelId}`);
+      }));
 
-        const rooms = buildGroupedListOfSubscriptions(socket);
+      const rooms = buildGroupedListOfSubscriptions(socket);
 
-        callback({ success: true, rooms });
-      } catch (e) {
-        if (sentryIsEnabled) {
-          Raven.captureException(e, { extra: { err: 'PubsubListener subscribe error' } });
-        }
-        callback({ success: false, message: e.message });
-        debug(`[socket.id=${socket.id}] 'subscribe' request: exception ${e}`);
-      }
+      return { rooms };
     });
 
-    socket.on('unsubscribe', async (data, callback = noop) => {
-      debug(`[socket.id=${socket.id}] 'unsubscribe' request`);
-
+    onSocketEvent(socket, 'unsubscribe', async (data, debugPrefix) => {
       if (!isPlainObject(data)) {
-        callback({ success: false, message: 'request without data' });
-        debug(`[socket.id=${socket.id}] 'unsubscribe' request: no data`);
-        return;
+        throw new EventHandlingError('request without data');
       }
 
       const roomsToLeave = [];
@@ -173,21 +152,18 @@ export default class PubsubListener {
         const channelIds = data[channelType];
 
         if (!isArray(channelIds)) {
-          callback({ success: false, message: `List of ${channelType} ids has to be an array` });
-          debug(`[socket.id=${socket.id}] 'unsubscribe' request: got bogus channel list`);
-          return;
+          throw new EventHandlingError(`List of ${channelType} ids has to be an array`, `got bogus channel list`);
         }
         roomsToLeave.push(...channelIds.filter(Boolean).map((id) => `${channelType}:${id}`));
       }
 
       await Promise.all(roomsToLeave.map(async (room) => {
         await socket.leaveAsync(room);
-        debug(`[socket.id=${socket.id}] 'unsubscribe' request: successfully unsubscribed from ${room}`);
+        debug(`${debugPrefix}: successfully unsubscribed from ${room}`);
       }));
 
       const rooms = buildGroupedListOfSubscriptions(socket);
-
-      callback({ success: true, rooms });
+      return { rooms };
     });
   };
 
@@ -540,3 +516,42 @@ function buildGroupedListOfSubscriptions(socket) {
 }
 
 const defaultEmitter = (socket, type, json) => socket.emit(type, json);
+
+class EventHandlingError extends Error {
+  logMessage;
+
+  constructor(message, logMessage = message) {
+    super(message);
+    this.logMessage = logMessage;
+  }
+}
+
+/**
+ * Adds handler for the incoming socket events of given type that
+ * properly handles: callback parameter and it's absence, debug logging
+ * on error, Sentry exceptions capture, and acknowledgment messages.
+ *
+ * @param {object} socket
+ * @param {string} event
+ * @param {function} handler
+ */
+const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, ...extra) => {
+  const debugPrefix = `[socket.id=${socket.id}] '${event}' request`;
+  const callback = isFunction(last(extra)) ? last(extra) : noop;
+
+  try {
+    debug(debugPrefix);
+    const result = await handler(data, debugPrefix);
+    callback({ success: true, ...result });
+  } catch (e) {
+    if (e instanceof EventHandlingError) {
+      debug(`${debugPrefix}: ${e.logMessage}`);
+    } else {
+      debug(`${debugPrefix}: ${e.message}`);
+    }
+    if (sentryIsEnabled) {
+      Raven.captureException(e, { extra: { err: `PubsubListener ${event} error` } });
+    }
+    callback({ success: false, message: e.message });
+  }
+});
