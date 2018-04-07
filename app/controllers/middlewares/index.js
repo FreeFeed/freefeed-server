@@ -1,17 +1,32 @@
-import monitor from 'monitor-dog';
+import monitorDog from 'monitor-dog';
 import { NotAuthorizedException } from '../../support/exceptions';
 
-export function monitored(monitorName) {
+/**
+ * Middleware that monitors requests count and duration
+ *
+ * @param {string|{timer: string, requests: string}} monitorName
+ * @param {object} monitor
+ */
+export function monitored(monitorName, monitor = monitorDog) {
   return async (ctx, next) => {
-    if (!ctx.state.isMonitored) {
+    if (ctx.state.isMonitored) {
       await next();
       return;
     }
     ctx.state.isMonitored = true;
-    const timer = monitor.timer(`${monitorName}-time`);
+
+    let timerName, requestsName;
+    if (typeof monitorName === 'string') {
+      timerName = `${monitorName}-time`;
+      requestsName = `${monitorName}-requests`;
+    } else {
+      ({ timer: timerName, requests: requestsName } = monitorName);
+    }
+
+    const timer = monitor.timer(timerName);
     try {
       await next();
-      monitor.increment(`${monitorName}-requests`);
+      monitor.increment(requestsName);
     } finally {
       timer.stop();
       Reflect.deleteProperty(ctx.state, 'isMonitored');
