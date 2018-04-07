@@ -7,7 +7,6 @@ const commentModel = commentModelMaker(null);
 
 const schema = {
   '$schema': 'http://json-schema.org/schema#',
-  id:        'https://freefeed.net/schemas/user-preferences-schema',
 
   type:       'object',
   properties: {

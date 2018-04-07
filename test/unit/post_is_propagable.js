@@ -70,6 +70,11 @@ describe('Post isPropagable fields', () => {
       const post = await createPost(luna, { body: 'Post body', timelineIds: [selenitesTimeline.id, celestialsTimeline.id, lunaTimeline.id] });
       expect(post.isPropagable, 'to equal', '1');
     });
+
+    it('should create not propagable "public direct" post between Luna and Mars and Celestial group', async () => {
+      const post = await createPost(luna, { body: 'Post body', timelineIds: [lunaDirects.id, marsDirects.id, celestialsTimeline.id] });
+      expect(post.isPropagable, 'to equal', '0');
+    });
   });
 });
 

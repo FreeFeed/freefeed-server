@@ -1,92 +1,47 @@
 import _ from 'lodash'
 import monitor from 'monitor-dog';
+import compose from 'koa-compose';
 
-import { dbAdapter, PostSerializer } from '../../../models'
-import { EventService } from '../../../support/EventService'
+import { dbAdapter, PostSerializer, Post } from '../../../models'
 import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
-import { authRequired, monitored } from '../v2/helpers';
-
+import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
+import { show as showPost } from '../v2/PostsController';
+import { postCreateInputSchema } from './data-schemes';
 
 export default class PostsController {
-  static async create(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static create = compose([
+    authRequired(),
+    inputSchemaRequired(postCreateInputSchema),
+    monitored('posts.create'),
+    async (ctx) => {
+      const { user: author } = ctx.state;
+      const {
+        meta: { commentsDisabled, feeds },
+        post: { body, attachments }
+      } = ctx.request.body;
 
-    const timer = monitor.timer('posts.create-time');
+      const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
+      const timelineIds = await checkDestNames(destNames, author);
 
-    const meta = ctx.request.body.meta || {};
-
-    if (!meta.feeds) {
-      throw new NotAuthorizedException('Cannot publish post to /dev/null');
-    }
-
-    if (!_.isArray(meta.feeds)) {
-      meta.feeds = [meta.feeds];
-    }
-
-    const { feeds } = meta;
-
-    if (feeds.length === 0) {
-      throw new BadRequestException('Cannot publish post to /dev/null');
-    }
-
-    const commentsDisabled = (meta.commentsDisabled ? '1' : '0')
-
-    if (feeds.filter((feed) => !_.isString(feed)).length > 0) {
-      throw new BadRequestException('Bogus "feeds" parameter');
-    }
-
-    try {
-      const promises = feeds.map(async (username) => {
-        const feed = await dbAdapter.getFeedOwnerByUsername(username)
-        if (null === feed) {
-          return null
-        }
-
-        await feed.validateCanPost(ctx.state.user)
-
-        // we are going to publish this message to posts feed if
-        // it's my home feed or group's feed, otherwise this is a
-        // private message that goes to its own feed(s)
-        if (
-          (feed.isUser() && feed.id == ctx.state.user.id) ||
-          !feed.isUser()
-        ) {
-          return feed.getPostsTimelineId()
-        }
-
-        // private post goes to sendee and sender
-        return await Promise.all([
-          feed.getDirectsTimelineId(),
-          ctx.state.user.getDirectsTimelineId()
-        ])
-      })
-      const timelineIds = _.flatten(await Promise.all(promises))
-      _.each(timelineIds, (id, i) => {
-        if (null == id) {
-          throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
-        }
-      })
-
-      const newPost = await ctx.state.user.newPost({
-        body:        ctx.request.body.post.body,
-        attachments: ctx.request.body.post.attachments,
+      const newPost = new Post({
+        userId:           author.id,
+        body,
+        attachments,
+        commentsDisabled: commentsDisabled ? '1' : '0',
         timelineIds,
-        commentsDisabled
-      })
+      });
 
-      await newPost.create()
-      await EventService.onPostCreated(newPost, timelineIds, ctx.state.user);
+      try {
+        await newPost.create();
+      } catch (e) {
+        throw new BadRequestException(`Can not create post: ${e.message}`);
+      }
 
-      const json = new PostSerializer(newPost).promiseToJSON()
-      ctx.body = await json;
+      ctx.params.postId = newPost.id;
 
-      monitor.increment('posts.creates');
-    } finally {
-      timer.stop();
-    }
-  }
+      await showPost(ctx);
+    },
+  ]);
 
   static async update(ctx) {
     if (!ctx.state.user) {
@@ -108,7 +63,10 @@ export default class PostsController {
     ctx.body = json
   }
 
-  static like = _.flow(authRequired, postAccessRequired, monitored('posts.likes'))(
+  static like = compose([
+    authRequired(),
+    postAccessRequired(),
+    monitored('posts.likes'),
     async (ctx) => {
       const { user, post } = ctx.state;
       if (post.userId === user.id) {
@@ -122,10 +80,13 @@ export default class PostsController {
 
       monitor.increment('posts.reactions');
       ctx.body = {};
-    }
-  );
+    },
+  ]);
 
-  static unlike = _.flow(authRequired, postAccessRequired, monitored('posts.unlikes'))(
+  static unlike = compose([
+    authRequired(),
+    postAccessRequired(),
+    monitored('posts.unlikes'),
     async (ctx) => {
       const { user, post } = ctx.state;
       const success = await post.removeLike(user);
@@ -135,8 +96,8 @@ export default class PostsController {
 
       monitor.decrement('posts.reactions');
       ctx.body = {};
-    }
-  );
+    },
+  ]);
 
   static async destroy(ctx) {
     if (!ctx.state.user) {
@@ -230,53 +191,36 @@ export default class PostsController {
   }
 }
 
-export function postAccessRequired(handlerFunc) {
-  return async (ctx) => {
-    const forbidden = (reason = 'You cannot see this post') => new ForbiddenException(reason);
-    const notFound = (reason = 'Post not found') => new NotFoundException(reason);
-
-    if (!ctx.params.postId) {
-      throw notFound(`Post Id is not defined`);
+/**
+ * Check post destination names against the given post author
+ * and return ids of destination timelines on success. Throws
+ * HTTP errors if any error happens.
+ *
+ * @param {string[]} destNames
+ * @param {User} author
+ * @returns {string[]}
+ */
+export async function checkDestNames(destNames, author) {
+  const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
+  if (destNames.length !== destUsers.length) {
+    if (destNames.length === 1) {
+      throw new NotFoundException(`Account '${destNames[0]}' was not found`);
     }
-    const { postId } = ctx.params;
-    const post = await dbAdapter.getPostById(postId);
-    if (!post) {
-      throw notFound();
-    }
+    throw new NotFoundException('Some of destination users was not found');
+  }
 
-    // Viewer CAN NOT see post if:
-    // - viwer is anonymous and post is not public or
-    // - viewer is authorized and
-    //   - post author banned viewer or was banned by viewer or
-    //   - post is private and viewer cannot read any of post's destination feeds
-    const { user: viewer } = ctx.state;
-
-    // Check if viewer is anonymous and post is not public
-    if (!viewer && post.isProtected === '1') {
-      if (post.isPrivate === '0') {
-        throw forbidden('Please sign in to view this post');
-      } else {
-        throw forbidden();
+  const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
+  if (destFeeds.some((x) => x.length === 0)) {
+    if (destUsers.length === 1) {
+      const [destUser] = destUsers;
+      if (destUser.isUser()) {
+        throw new ForbiddenException(`You can not send private messages to '${destUser.username}'`);
       }
+      throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
     }
+    throw new ForbiddenException('You can not post to some of destination feeds');
+  }
 
-    if (viewer) {
-      // Check if post author banned viewer or was banned by viewer
-      const bannedUserIds = await dbAdapter.getBansAndBannersOfUser(viewer.id);
-      if (bannedUserIds.includes(post.userId)) {
-        throw forbidden();
-      }
-
-      // Check if post is private and viewer cannot read any of post's destination feeds
-      if (post.isPrivate === '1') {
-        const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
-        if (_.isEmpty(_.intersection(post.destinationFeedIds, privateFeedIds))) {
-          throw forbidden();
-        }
-      }
-    }
-
-    ctx.state.post = post;
-    await handlerFunc(ctx);
-  };
+  const timelineIds = _.flatten(destFeeds).map((f) => f.id);
+  return timelineIds;
 }

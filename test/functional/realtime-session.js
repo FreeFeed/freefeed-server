@@ -81,4 +81,17 @@ export default class Session {
   async notReceiveWhile(event, ...promises) {
     await Promise.all([this.notReceive(event), ...promises]);
   }
+
+  async receiveSeq(events) {
+    return await events.reduce(async (acc, event) => {
+      const arr = await acc;
+      const resp = await this.receive(event);
+      return [...arr, resp];
+    }, []);
+  }
+
+  async receiveWhileSeq(events, ...promises) {
+    const [result] = await Promise.all([this.receiveSeq(events), ...promises]);
+    return result;
+  }
 }

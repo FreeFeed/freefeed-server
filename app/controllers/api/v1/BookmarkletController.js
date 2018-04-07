@@ -1,137 +1,139 @@
-import crypto from 'crypto'
-import fs from 'fs'
-import path from 'path'
-import url from 'url'
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { URL } from 'url';
 
-import _ from 'lodash'
-import { promisifyAll } from 'bluebird'
-import fetch from 'node-fetch'
-import { wait as waitForStream } from 'promise-streams'
+import compose from 'koa-compose';
+import mediaType from 'media-type';
+import { promisifyAll } from 'bluebird';
+import fetch from 'node-fetch';
+import { wait as waitStream, pipeline } from 'promise-streams';
+import meter from 'stream-meter';
+import { parse as bytesParse } from 'bytes';
 
-import { dbAdapter, PostSerializer } from '../../../models'
-import { NotFoundException } from '../../../support/exceptions'
+import { Post, Comment } from '../../../models';
+import { ForbiddenException } from '../../../support/exceptions';
+import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
+import { show as showPost } from '../v2/PostsController';
+import { load as configLoader } from '../../../../config/config';
+import { bookmarkletCreateInputSchema } from './data-schemes';
+import { checkDestNames } from './PostsController';
 
 
-promisifyAll(fs)
+promisifyAll(fs);
 
-const getAttachment = async function (author, imageUrl) {
-  if (!imageUrl) {
-    return null;
+const config = configLoader();
+const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
+
+export const create = compose([
+  authRequired(),
+  inputSchemaRequired(bookmarkletCreateInputSchema),
+  monitored('bookmarklet.create'),
+  async (ctx) => {
+    const { user: author } = ctx.state;
+    const {
+      meta: { feeds },
+      title: body,
+      comment: commentBody,
+      images,
+      image,
+    } = ctx.request.body;
+
+    const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
+    if (destNames.length === 0) {
+      destNames.push(author.username);
+    }
+    const timelineIds = await checkDestNames(destNames, author);
+
+    // Attachments
+    if (images.length === 0 && image !== '') {
+      // Only use 'image' if 'images' is empty
+      images.push(image);
+    }
+
+    if (images.length > config.attachments.maxCount) {
+      throw new ForbiddenException(`Too many attachments: ${images.length}, max. ${config.attachments.maxCount}`);
+    }
+
+    const attachments = await Promise.all(images.map(async (url) => {
+      try {
+        return await createAttachment(author, url);
+      } catch (e) {
+        throw new ForbiddenException(`Unable to load URL '${url}': ${e.message}`);
+      }
+    }));
+
+    const post = new Post({
+      userId: author.id,
+      body,
+      attachments,
+      timelineIds,
+    });
+    await post.create();
+
+    if (commentBody !== '') {
+      const comment = new Comment({
+        body:   commentBody,
+        postId: post.id,
+        userId: author.id
+      });
+      await comment.create();
+    }
+
+    ctx.params.postId = post.id;
+    await showPost(ctx);
+  },
+]);
+
+async function createAttachment(author, imageURL) {
+  const parsedURL = new URL(imageURL);
+  if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
+    throw new Error('Unsupported URL protocol');
   }
 
-  const p = url.parse(imageUrl)
+  const parsedPath = path.parse(parsedURL.pathname);
+  const originalFileName = parsedPath.base !== '' ? decodeURIComponent(parsedPath.base) : 'file';
 
-  let ext = path.extname(p.pathname).split('.')
-  ext = ext[ext.length - 1]
+  const bytes = crypto.randomBytes(4).readUInt32LE(0);
+  const filePath = `/tmp/pepyatka${bytes}tmp${parsedPath.ext}`;
 
-  const originalFileName = p.pathname.split('/').pop()
+  const response = await fetch(parsedURL.href);
+  if (response.status !== 200) {
+    throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+  }
 
-  const bytes = crypto.randomBytes(4).readUInt32LE(0)
-  const fileName = `pepyatka${bytes}tmp.${ext}`
-  const filePath = `/tmp/${fileName}`
+  const mType = mediaType.fromString(response.headers.get('content-type'));
+  if (mType.type !== 'image') {
+    throw new Error(`Unsupported content type: '${mType.asString() || '-'}'`);
+  }
 
-  const response = await fetch(imageUrl)
+  if (response.headers.has('content-length')) {
+    const contentLength = parseInt(response.headers.get('content-length'));
+    if (!isNaN(contentLength) && contentLength > fileSizeLimit) {
+      throw new Error(`File is too large (${contentLength} bytes, max. ${fileSizeLimit})`);
+    }
+  }
 
-  const fileType = response.headers.get('content-type')
-  const stream = fs.createWriteStream(filePath, { flags: 'w' })
+  const stream = fs.createWriteStream(filePath, { flags: 'w' });
+  const fileWasWritten = waitStream(stream);
+  await pipeline(
+    response.body,
+    meter(fileSizeLimit),
+    stream,
+  );
+  await fileWasWritten; // waiting for the file to be written and closed
 
-  await waitForStream(response.body.pipe(stream))
-  const stats = await fs.statAsync(filePath)
+  const stats = await fs.statAsync(filePath);
 
   const file = {
     name: originalFileName,
     size: stats.size,
-    type: fileType,
-    path: filePath
+    type: mType.asString(),
+    path: filePath,
   }
 
-  const newAttachment = await author.newAttachment({ file })
-  await newAttachment.create()
+  const newAttachment = author.newAttachment({ file });
+  await newAttachment.create();
 
-  return newAttachment.id
-}
-
-const getAttachments = async function (author, imageUrls) {
-  const promises = imageUrls.map((url) => getAttachment(author, url))
-  return await Promise.all(promises)
-}
-
-export default class BookmarkletController {
-  static async create(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return;
-    }
-
-    // TODO: code copypasted (with small change about how to deal with empty feeds) from PostsController#create
-    // need to refactor this part or merge this two controllers
-    const { meta } = ctx.request.body;
-
-    let feeds;
-
-    if (meta && meta.feeds) {
-      feeds = _.isArray(meta.feeds) ? meta.feeds : [meta.feeds];
-    } else { // if no feeds specified post into personal one
-      feeds = [ctx.state.user.username];
-    }
-
-    const promises = feeds.map(async (username) => {
-      const feed = await dbAdapter.getFeedOwnerByUsername(username)
-
-      if (null === feed) {
-        return null
-      }
-
-      await feed.validateCanPost(ctx.state.user)
-
-      // we are going to publish this message to posts feed if
-      // it's my home feed or group's feed, otherwise this is a
-      // private message that goes to its own feed(s)
-      if (
-        (feed.isUser() && feed.id == ctx.state.user.id) ||
-        !feed.isUser()
-      ) {
-        return feed.getPostsTimelineId()
-      }
-
-      // private post goes to sendee and sender
-      return await Promise.all([
-        feed.getDirectsTimelineId(),
-        ctx.state.user.getDirectsTimelineId()
-      ])
-    })
-    const timelineIds = _.flatten(await Promise.all(promises))
-    _.each(timelineIds, (id, i) => {
-      if (null == id) {
-        throw new NotFoundException(`Feed "${feeds[i]}" is not found`)
-      }
-    })
-
-    // Download image(s) and create attachment
-    const imageUrls = ctx.request.body.images || [ctx.request.body.image]
-    const attachments = await getAttachments(ctx.state.user, imageUrls)
-
-    // Create post
-    const newPost = await ctx.state.user.newPost({
-      body: ctx.request.body.title,
-      attachments,
-      timelineIds
-    })
-    await newPost.create()
-
-    // Create comment
-    if (ctx.request.body.comment) {
-      const newComment = await ctx.state.user.newComment({
-        body:   ctx.request.body.comment,
-        postId: newPost.id
-      })
-
-      await newComment.create()
-    }
-
-    // Send response with the created post
-    const json = new PostSerializer(newPost).promiseToJSON();
-    ctx.body = await json;
-  }
+  return newAttachment.id;
 }

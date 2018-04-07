@@ -239,5 +239,30 @@ export function addModel(dbAdapter) {
     }
   }
 
+  /**
+   * Checks if the specified user can post to the timeline of this group
+   * and returns array of destination timelines or empty array if
+   * user can not post to this group.
+   *
+   * @param {string} postingUser
+   * @returns {Timeline[]}
+   */
+  Group.prototype.getFeedsToPost = async function (postingUser) {
+    const timeline = await this.getPostsTimeline();
+    const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
+    if (!isSubscribed) {
+      return [];
+    }
+
+    if (this.isRestricted === '1') {
+      const isAdmin = await dbAdapter.isUserAdminOfGroup(postingUser.id, this.id);
+      if (!isAdmin) {
+        return [];
+      }
+    }
+
+    return [timeline];
+  }
+
   return Group
 }

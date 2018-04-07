@@ -1,9 +1,6 @@
 /* eslint babel/semi: "error" */
 import _ from 'lodash';
 
-import { PubSub as pubSub } from '../models';
-
-
 export function addModel(dbAdapter) {
   class Timeline {
     id;
@@ -44,41 +41,10 @@ export function addModel(dbAdapter) {
     set name(newValue) {
       if (!newValue) {
         this.name_ = '';
+        return;
       }
 
       this.name_ = newValue.trim();
-    }
-
-    /**
-     * Adds the specified post to all timelines where it needs to appear
-     * (the timelines of the feeds to which it is posted, the River of News
-     * timeline of the posting user and the River of News timelines of all
-     * subscribers of the feeds to which it is posted).
-     */
-    static async publishPost(post) {
-      const currentTime = new Date().getTime();
-
-      // We can use post.timelineIds here instead of post.getPostedToIds
-      // because we are about to create that post and have just received
-      // a request from user, so postedToIds == timelineIds here
-      const timelines = await dbAdapter.getTimelinesByIds(post.timelineIds);
-
-      const promises = timelines.map(async (timeline) => {
-        const feed = await timeline.getUser();
-        await feed.updateLastActivityAt();
-
-        if (timeline.isDirects()) {
-          await pubSub.updateUnreadDirects(timeline.userId);
-        }
-
-        return timeline.getSubscribersRiversOfNewsIntIds();
-      });
-
-      const allSubscribedTimelineIds = _.flatten(await Promise.all(promises));
-      const allTimelines = _.uniq(_.union(post.feedIntIds, allSubscribedTimelineIds));
-      await dbAdapter.setPostBumpedAt(post.id, currentTime);
-      await dbAdapter.insertPostIntoFeeds(allTimelines, post.id);
-      await pubSub.newPost(post.id);
     }
 
     static getObjectsByIds(objectIds) {
@@ -291,7 +257,7 @@ export function addModel(dbAdapter) {
             return post;
           }
 
-          if (!await post.canShow(this.currentUser, false)) {
+          if (!await post.isVisibleFor(reader)) {
             return null;
           }
         }

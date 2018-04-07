@@ -1,22 +1,20 @@
 import _ from 'lodash';
+import compose from 'koa-compose';
+
 import { dbAdapter } from '../../../models';
 import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
-import { monitored, authRequired, userSerializerFunction } from './helpers';
+import { monitored, authRequired, targetUserRequired } from '../../middlewares';
+import { userSerializerFunction } from '../../../serializers/v2/user';
 
 const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
 const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
 
 const config = configLoader();
 
-export default class TimelinesController {
-  app = null;
-
-  constructor(app) {
-    this.app = app;
-  }
-
-  bestOf = monitored('timelines.bestof', async (ctx) => {
+export const bestOf = compose([
+  monitored('timelines.bestof'),
+  async (ctx) => {
     const DEFAULT_LIMIT = 30;
 
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
@@ -32,45 +30,31 @@ export default class TimelinesController {
     const postsCollectionJson = await serializePostsCollection(postsObjects, currentUserId);
 
     ctx.body = { ...postsCollectionJson, isLastPage };
-  });
+  },
+]);
 
-  home = authRequired(monitored('timelines.home-v2', async (ctx) => {
+export const ownTimeline = (feedName, params = {}) => compose([
+  authRequired(),
+  monitored(`timelines.${feedName.toLowerCase()}-v2`),
+  async (ctx) => {
     const { user } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(user.id, 'RiverOfNews');
-    ctx.body = await genericTimeline(timeline, user.id, {
-      withLocalBumps: true,
-      ...getCommonParams(ctx),
-    });
-  }));
-
-  myDiscussions = authRequired(monitored('timelines.my_discussions-v2', async (ctx) => {
-    const { user } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(user.id, 'MyDiscussions');
-    ctx.body = await genericTimeline(timeline, user.id, getCommonParams(ctx));
-  }));
-
-  directs = authRequired(monitored('timelines.directs-v2', async (ctx) => {
-    const { user } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(user.id, 'Directs');
-    ctx.body = await genericTimeline(timeline, user.id, getCommonParams(ctx));
-  }));
-
-  userTimeline = (feedName) => monitored(`timelines.${feedName.toLowerCase()}-v2`, async (ctx) => {
-    const { username } = ctx.params;
-    const user = await dbAdapter.getFeedOwnerByUsername(username)
-    if (!user || user.hashedPassword === '') {
-      ctx.status = 404;
-      ctx.body = { err: `User "${username}" is not found` };
-      return;
-    }
-    const viewer = ctx.state.user || null;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+    ctx.body = await genericTimeline(timeline, user.id, { ...params, ...getCommonParams(ctx) });
+  },
+]);
+
+export const userTimeline = (feedName) => compose([
+  targetUserRequired(),
+  monitored(`timelines.${feedName.toLowerCase()}-v2`),
+  async (ctx) => {
+    const { targetUser, user: viewer } = ctx.state;
+    const timeline = await dbAdapter.getUserNamedFeed(targetUser.id, feedName);
     ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
       withoutDirects: (feedName !== 'Posts'),
       ...getCommonParams(ctx),
     });
-  });
-}
+  },
+]);
 
 /**
  * Fetch common timelines parameters from the request
@@ -162,7 +146,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
       }
       if (canViewUser) {
         // Viewer cannot see feeds of users in ban relations with him
-        const banIds = await dbAdapter.getBansAndBannersOfUser(viewerId);
+        const banIds = await dbAdapter.getUsersBansOrWasBannedBy(viewerId);
         canViewUser = !banIds.includes(owner.id);
       }
     }

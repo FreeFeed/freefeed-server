@@ -190,6 +190,39 @@ describe('Realtime #2', () => {
     });
   });
 
+  describe('Luna wrote post, Mars comments it', () => {
+    let post, commentId;
+    beforeEach(async () => {
+      post = await funcTestHelper.createAndReturnPost(luna, 'Luna post');
+      const resp = await funcTestHelper.createCommentAsync(mars, post.id, 'comment');
+      ({ comments: { id: commentId } } = await resp.json());
+    });
+
+    describe('Luna and Mars are subscribed to their MyDiscussions', () => {
+      beforeEach(async () => {
+        const [lunaMDFeed, marsMDFeed] = await Promise.all([
+          dbAdapter.getUserNamedFeed(luna.user.id, 'MyDiscussions'),
+          dbAdapter.getUserNamedFeed(mars.user.id, 'MyDiscussions'),
+        ]);
+        await Promise.all([
+          lunaSession.sendAsync('subscribe', { 'timeline': [lunaMDFeed.id] }),
+          marsSession.sendAsync('subscribe', { 'timeline': [marsMDFeed.id] }),
+        ]);
+      });
+
+      it(`should deliver 'comment:destroy' event when Mars destroys comment`, async () => {
+        const lunaEvent = lunaSession.receive('comment:destroy');
+        const marsEvent = marsSession.receive('comment:destroy');
+        await Promise.all([
+          funcTestHelper.removeCommentAsync(mars, commentId),
+          lunaEvent, marsEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled');
+        expect(marsEvent, 'to be fulfilled');
+      });
+    });
+  });
+
   describe(`'global:users' realtime channel`, () => {
     beforeEach(() => anonSession.sendAsync('subscribe', { 'global': ['users'] }));
 

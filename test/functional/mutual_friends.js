@@ -153,7 +153,7 @@ describe('MutualFriends', () => {
               try {
                 res.body.should.not.be.empty
                 res.body.should.have.property('err')
-                res.body.err.should.eql('Not found')
+                res.body.err.should.eql('You can not see this post')
                 done()
               } catch (e) {
                 done(e)

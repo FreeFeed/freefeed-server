@@ -57,6 +57,26 @@ const bansTrait = (superClass) => class extends superClass {
     return matrix
   }
 
+  /**
+   * Returns uids of users who banned this user or was banned by this user.
+   * It is useful for posts visibility check.
+   * @param {String} userId   - UID of user
+   * @return {Array.<String>} - UIDs of users
+   */
+  async getUsersBansOrWasBannedBy(userId) {
+    const sql = `
+      select
+        distinct coalesce( nullif( user_id, :userId ), banned_user_id ) as id
+      from
+        bans 
+      where
+        user_id = :userId
+        or banned_user_id = :userId
+    `;
+    const { rows } = await this.database.raw(sql, { userId });
+    return rows.map((r) => r.id);
+  }
+
   createUserBan(currentUserId, bannedUserId) {
     const currentTime = new Date().toISOString()
 

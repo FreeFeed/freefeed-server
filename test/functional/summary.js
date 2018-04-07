@@ -121,7 +121,7 @@ describe('SummaryController', () => {
       const response = await funcTestHelper.getSummary(anon, { username: 'chupacabra' });
       response.should.not.be.empty;
       response.should.have.property('err');
-      response.err.should.be.eql('Feed "chupacabra" is not found');
+      response.err.should.be.eql('User "chupacabra" is not found');
     });
 
     it('should show public feeds to anonymous visitor', async () => {

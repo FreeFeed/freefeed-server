@@ -1,9 +1,10 @@
+import compose from 'koa-compose';
+
 import { dbAdapter } from '../../../models'
-import { NotFoundException } from '../../../support/exceptions'
 import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection } from '../../../serializers/v2/post';
 import { serializeUser } from '../../../serializers/v2/user';
-import { monitored, authRequired } from './helpers';
+import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
 const config = configLoader();
 
@@ -15,8 +16,10 @@ const getDays = (d) => {
   return Math.max(MIN_DAYS, Math.min(MAX_DAYS, days));
 };
 
-export default class SummaryController {
-  static generalSummary = authRequired(monitored('summary.general', async (ctx) => {
+export const generalSummary = compose([
+  authRequired(),
+  monitored('summary.general'),
+  async (ctx) => {
     const days = getDays(ctx.params.days);
 
     const currentUser = ctx.state.user;
@@ -39,15 +42,14 @@ export default class SummaryController {
 
     ctx.body = await serializePostsCollection(postsObjects, currentUser.id);
     ctx.body.isLastPage = true;
-  }));
+  },
+]);
 
-  static userSummary = monitored('summary.user', async (ctx) => {
-    const { username } = ctx.params;
-    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
-
-    if (targetUser === null) {
-      throw new NotFoundException(`Feed "${username}" is not found`);
-    }
+export const userSummary = compose([
+  targetUserRequired(),
+  monitored('summary.user'),
+  async (ctx) => {
+    const { targetUser } = ctx.state;
 
     const days = getDays(ctx.params.days);
 
@@ -90,5 +92,5 @@ export default class SummaryController {
         users
       };
     }
-  });
-}
+  },
+]);

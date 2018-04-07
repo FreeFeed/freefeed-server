@@ -15,6 +15,7 @@ const postsTrait = (superClass) => class extends superClass {
   async createPost(payload, destinationsIntIds) {
     const preparedPayload = prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
+    preparedPayload.feed_ids = destinationsIntIds
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
   }
@@ -46,11 +47,14 @@ const postsTrait = (superClass) => class extends superClass {
     return parseInt(res[0].count)
   }
 
-  setPostBumpedAt(postId, time) {
-    const d = new Date();
-    d.setTime(time);
-    const payload = { bumped_at: d.toISOString() };
-    return this.database('posts').where('uid', postId).update(payload);
+  setPostBumpedAt(postId, time = null) {
+    let bumped_at = 'now';
+    if (time) {
+      const d = new Date();
+      d.setTime(time);
+      bumped_at = d.toISOString();
+    }
+    return this.database('posts').where('uid', postId).update({ bumped_at });
   }
 
   async deletePost(postId) {
@@ -83,6 +87,33 @@ const postsTrait = (superClass) => class extends superClass {
 
   withdrawPostFromFeeds(feedIntIds, postUUID) {
     return this.database.raw('UPDATE posts SET feed_ids = (feed_ids - ?) WHERE uid = ?', [feedIntIds, postUUID]);
+  }
+
+  /**
+   * Withdraw post from the commentator Comments feed
+   * if there is not other comments from this commentator.
+   *
+   * @param {string} postId
+   * @param {string} commentatorId
+   */
+  async withdrawPostFromCommentsFeed(postId, commentatorId) {
+    await this.database.transaction(async (trx) => {
+      // Lock posts table
+      await trx.raw('select 1 from posts where uid = :postId for update', { postId });
+
+      // Check for another comments from this commentator
+      const { rows } = await trx.raw(
+        `select 1 from comments where post_id = :postId and user_id = :commentatorId limit 1`,
+        { postId, commentatorId }
+      );
+      if (rows.length === 0) {
+        const { intId } = await this.getUserNamedFeed(commentatorId, 'Comments');
+        await trx.raw(
+          `update posts set feed_ids = feed_ids - :intId::int where uid = :postId`,
+          { intId, postId }
+        );
+      }
+    });
   }
 
   async isPostPresentInTimeline(timelineId, postId) {
@@ -144,26 +175,6 @@ const postsTrait = (superClass) => class extends superClass {
       return initObject(Post, attrs, attrs.id, params)
     })
     return objects
-  }
-
-  /**
-   * Returns uids of users who banned this user or banned by this user.
-   * It is useful for posts visibility check.
-   * @param {String} userId   - UID of user
-   * @return {Array.<String>} - UIDs of users
-   */
-  async getBansAndBannersOfUser(userId) {
-    const sql = `
-      select
-        distinct coalesce( nullif( user_id, :userId ), banned_user_id ) as id
-      from
-        bans 
-      where
-        user_id = :userId
-        or banned_user_id = :userId
-    `;
-    const { rows } = await this.database.raw(sql, { userId });
-    return _.map(rows, 'id');
   }
 
   /**
@@ -247,7 +258,7 @@ const postsTrait = (superClass) => class extends superClass {
         bannedUsersIds,
       ] = await Promise.all([
         this.getVisiblePrivateFeedIntIds(viewerId),
-        this.getBansAndBannersOfUser(viewerId),
+        this.getUsersBansOrWasBannedBy(viewerId),
       ]);
 
       if (params.withoutDirects) {

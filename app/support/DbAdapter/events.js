@@ -23,7 +23,8 @@ const eventsTrait = (superClass) => class extends superClass {
       post_author_id:     postAuthorIntId
     };
 
-    return this.database('events').insert(payload);
+    const insertSQL = this.database('events').insert(payload).toString();
+    return this.database.raw(`${insertSQL} on conflict do nothing`);
   }
 
   getUserEvents(userIntId, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {

@@ -20,7 +20,7 @@ const summaryTrait = (superClass) => class extends superClass {
     if (currentUserId) {
       const [visiblePrivateFeedIntIds, bannedUserIds] = await Promise.all([
         this.getVisiblePrivateFeedIntIds(currentUserId),
-        this.getBansAndBannersOfUser(currentUserId),
+        this.getUsersBansOrWasBannedBy(currentUserId),
       ]);
 
       // Exclude private feeds viewer cannot read
