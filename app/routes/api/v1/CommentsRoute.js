@@ -1,8 +1,7 @@
-import { CommentsController } from '../../../controllers'
-
+import { create, update, destroy } from '../../../controllers/api/v1/CommentsController';
 
 export default function addRoutes(app) {
-  app.post('/v1/comments',            CommentsController.create)
-  app.put('/v1/comments/:commentId', CommentsController.update)
-  app.delete('/v1/comments/:commentId', CommentsController.destroy)
+  app.post('/v1/comments',              create);
+  app.put('/v1/comments/:commentId',    update);
+  app.delete('/v1/comments/:commentId', destroy);
 }

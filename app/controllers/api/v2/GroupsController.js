@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 import { dbAdapter } from '../../../models'
-import { userSerializerFunction } from './helpers'
+import { userSerializerFunction } from '../../../serializers/v2/user';
 
 
 export default class GroupsController {

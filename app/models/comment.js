@@ -1,9 +1,12 @@
 /* eslint babel/semi: "error" */
 import _ from 'lodash';
 import GraphemeBreaker from 'grapheme-breaker';
+import monitor from 'monitor-dog';
 
 import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
+import { EventService } from '../support/EventService';
+import { getRoomsOfPost } from '../pubsub-listener';
 
 
 export function addModel(dbAdapter) {
@@ -27,7 +30,7 @@ export function addModel(dbAdapter) {
         case this.DELETED:         return 'Deleted comment';
         case this.HIDDEN_BANNED:   return 'Hidden comment';
         case this.HIDDEN_ARCHIVED: return 'Archived comment';
-        default:                      return 'Hidden comment';
+        default:                   return 'Hidden comment';
       }
     }
 
@@ -54,6 +57,7 @@ export function addModel(dbAdapter) {
     set body(newValue) {
       if (!newValue) {
         this.body_ = '';
+        return;
       }
 
       this.body_ = newValue.trim();
@@ -79,30 +83,52 @@ export function addModel(dbAdapter) {
     }
 
     async create() {
-      this.createdAt = new Date().getTime();
-      this.updatedAt = new Date().getTime();
-
       await this.validate();
 
       const payload = {
-        'body':      this.body,
-        'userId':    this.userId,
-        'postId':    this.postId,
-        'createdAt': this.createdAt.toString(),
-        'updatedAt': this.updatedAt.toString(),
-        'hideType':  this.hideType,
+        'body':     this.body,
+        'userId':   this.userId,
+        'postId':   this.postId,
+        'hideType': this.hideType,
       };
 
       this.id = await dbAdapter.createComment(payload);
+      const newComment = await dbAdapter.getCommentById(this.id);
+      const fieldsToUpdate = [
+        'createdAt',
+        'updatedAt',
+      ];
+      for (const f of fieldsToUpdate) {
+        this[f] = newComment[f];
+      }
 
       const post = await dbAdapter.getPostById(this.postId);
-      const timelines = await post.addComment(this);
 
-      await this.processHashtagsOnCreate();
+      const [
+        authorCommentsFeed,
+        postDestFeeds,
+      ] = await Promise.all([
+        dbAdapter.getUserNamedFeed(this.userId, 'Comments'),
+        post.getPostedTo(),
+      ]);
 
-      await dbAdapter.statsCommentCreated(this.userId);
+      await dbAdapter.insertPostIntoFeeds([authorCommentsFeed.intId], post.id);
 
-      return timelines;
+      const rtUpdates = postDestFeeds
+        .filter((f) => f.isDirects())
+        .map((f) => pubSub.updateUnreadDirects(f.userId));
+
+      await Promise.all([
+        ...rtUpdates,
+        dbAdapter.setPostBumpedAt(post.id),
+        dbAdapter.setUpdatedAtInGroupsByIds(postDestFeeds.map((f) => f.userId)),
+        this.processHashtagsOnCreate(),
+        dbAdapter.statsCommentCreated(this.userId),
+        pubSub.newComment(this),
+        EventService.onCommentChanged(this, true),
+      ]);
+
+      monitor.increment('users.comments');
     }
 
     async update(params) {
@@ -117,9 +143,11 @@ export function addModel(dbAdapter) {
       };
       await dbAdapter.updateComment(this.id, payload);
 
-      await this.processHashtagsOnUpdate();
-
-      await pubSub.updateComment(this.id);
+      await Promise.all([
+        this.processHashtagsOnUpdate(),
+        pubSub.updateComment(this.id),
+        EventService.onCommentChanged(this),
+      ]);
 
       return this;
     }
@@ -133,25 +161,14 @@ export function addModel(dbAdapter) {
     }
 
     async destroy() {
-      await dbAdapter.deleteComment(this.id, this.postId);
-      await pubSub.destroyComment(this.id, this.postId);
-      if (!this.userId) {
-        // there was hidden comment
-        return;
-      }
-      await dbAdapter.statsCommentDeleted(this.userId);
-
-      // Look for other comments from this user in the post:
-      // if this was the last one then remove the post from "user's comments" timeline
-      const post = await dbAdapter.getPostById(this.postId);
-      const comments = await post.getComments();
-
-      if (!_.some(comments, ['userId', this.userId])) {
-        const user = await dbAdapter.getUserById(this.userId);
-        const timelineId = await user.getCommentsTimelineIntId();
-
-        await dbAdapter.withdrawPostFromFeeds([timelineId], this.postId);
-      }
+      const post = await this.getPost();
+      const realtimeRooms = await getRoomsOfPost(post);
+      await Promise.all([
+        dbAdapter.deleteComment(this.id, this.postId),
+        pubSub.destroyComment(this.id, this.postId, realtimeRooms),
+        this.userId ? dbAdapter.withdrawPostFromCommentsFeed(this.postId, this.userId) : null,
+        this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
+      ]);
     }
 
     getCreatedBy() {

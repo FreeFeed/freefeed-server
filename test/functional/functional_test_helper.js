@@ -7,6 +7,8 @@ import request  from 'superagent'
 import _ from 'lodash'
 import SocketIO from 'socket.io-client';
 import expect from 'unexpected';
+import { promisifyAll } from 'bluebird';
+import Application from 'koa';
 
 import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
@@ -688,24 +690,19 @@ export function enableComments(postId, authToken) {
   return postJson(`/v1/posts/${postId}/enableComments`, { authToken })
 }
 
-export function createPostViaBookmarklet(userContext, title, comment, image, feeds) {
-  const parameters = {
-    authToken: userContext.authToken,
-    title,
-    comment:   comment ? comment : '',
-    image:     ''
-  }
-
-  if (image) {
-    throw new Error('Attachments support is not implemented in test-helper for Bookmarklet-requests')
-  }
-
-  // we do not fill "meta" always, as older clients do not do this
-  if (feeds) {
-    parameters.meta = { feeds }
-  }
-
-  return postJson(`/v1/bookmarklet`, parameters)
+export async function createPostViaBookmarklet(userContext, body) {
+  return await fetch(
+    await apiUrl(`/v1/bookmarklet`),
+    {
+      agent,
+      method:  'POST',
+      headers: {
+        'X-Authentication-Token': userContext.authToken,
+        'Content-Type':           'application/json',
+      },
+      body: JSON.stringify(body)
+    }
+  );
 }
 
 export async function createMockAttachmentAsync(context) {
@@ -1019,4 +1016,53 @@ export function noFieldOrEmptyArray(name) {
   return function (obj) {
     return !(name in obj) || (_.isArray(obj[name]) && obj[name].length === 0);
   };
+}
+
+export class MockHTTPServer {
+  port;
+  portRange;
+  startAttempts;
+  _server;
+
+  constructor(handler, params = {}) {
+    const {
+      portRange = [5000, 6000],
+      startAttempts = 5,
+      timeout = 500,
+    } = params;
+
+    this.portRange = portRange;
+    this.startAttempts = startAttempts;
+
+    const app = new Application();
+    app.use(handler);
+
+    this._server = http.createServer(app.callback());
+    this._server.timeout = timeout;
+    promisifyAll(this._server);
+  }
+
+  get origin() {
+    return `http://localhost:${this.port}`;
+  }
+
+  async start() {
+    const [low, high] = this.portRange;
+    for (let i = 0; i < this.startAttempts;i++) {
+      const port = Math.floor((Math.random() * (high - low)) + low);
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await this._server.listenAsync(port);
+        this.port = port;
+        return;
+      } catch (e) {
+        // pass
+      }
+    }
+    throw new Error('Can not start MockHTTPServer');
+  }
+
+  async stop() {
+    await this._server.closeAsync();
+  }
 }

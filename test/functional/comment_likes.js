@@ -157,37 +157,37 @@ describe('Comment likes', () => {
             it("should not allow Luna to like Mars' comment to Mars' post", async () => {
               const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it("should not allow Luna to like Pluto's comment to Pluto's post", async () => {
               const plutoComment = await writeComment(pluto, plutoPost.id, 'Pluto comment');
               const res = await likeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it("should not allow Luna to like Pluto's comment to Mars' post", async () => {
               const plutoComment = await writeComment(pluto, marsPost.id, 'Pluto comment');
               const res = await likeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
-            it("should allow Mars to like Luna's comment to Luna's post", async () => {
+            it("should not allow Mars to like Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               const res = await likeComment(lunaComment.id, mars);
-              expect(res, 'to satisfy', commentHavingOneLikeExpectation(mars));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
-            it("should allow Pluto to like Luna's comment to Luna's post", async () => {
+            it("should not allow Pluto to like Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               const res = await likeComment(lunaComment.id, pluto);
-              expect(res, 'to satisfy', commentHavingOneLikeExpectation(pluto));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
-            it("should allow Pluto to like Jupiter's comment to Luna's post", async () => {
+            it("should not allow Pluto to like Jupiter's comment to Luna's post", async () => {
               const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
               const res = await likeComment(jupiterComment.id, pluto);
-              expect(res, 'to satisfy', commentHavingOneLikeExpectation(pluto));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it('should not display Luna comment likes of Pluto and Mars', async () => {
@@ -245,7 +245,7 @@ describe('Comment likes', () => {
             it('should not allow non-members to like comment in a private group', async () => {
               const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it('should allow members to like comment in a private restricted group', async () => {
@@ -257,7 +257,7 @@ describe('Comment likes', () => {
             it('should not allow non-members to like comment in a private restricted group', async () => {
               const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
           });
         });
@@ -385,40 +385,40 @@ describe('Comment likes', () => {
             it("should not allow Luna to unlike Mars' comment to Mars' post", async () => {
               const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
               const res = await unlikeComment(marsComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it("should not allow Luna to unlike Pluto's comment to Pluto's post", async () => {
               const plutoComment = await writeComment(pluto, plutoPost.id, 'Pluto comment');
               const res = await unlikeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it("should not allow Luna to unlike Pluto's comment to Mars' post", async () => {
               const plutoComment = await writeComment(pluto, marsPost.id, 'Pluto comment');
               const res = await unlikeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
-            it("should allow Mars to unlike Luna's comment to Luna's post", async () => {
+            it("should not allow Mars to unlike Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               await likeComment(lunaComment.id, mars);
               const res = await unlikeComment(lunaComment.id, mars);
-              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
-            it("should allow Pluto to unlike Luna's comment to Luna's post", async () => {
+            it("should not allow Pluto to unlike Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               await likeComment(lunaComment.id, pluto);
               const res = await unlikeComment(lunaComment.id, pluto);
-              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
-            it("should allow Pluto to unlike Jupiter's comment to Luna's post", async () => {
+            it("should not allow Pluto to unlike Jupiter's comment to Luna's post", async () => {
               const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
               await likeComment(jupiterComment.id, pluto);
               const res = await unlikeComment(jupiterComment.id, pluto);
-              expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it('should not display Luna comment likes of Pluto and Mars', async () => {
@@ -440,7 +440,7 @@ describe('Comment likes', () => {
                 await banUser(luna, jupiter);
 
                 const res = await unlikeComment(jupiterComment.id, luna);
-                expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+                expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
               });
             });
           });
@@ -492,7 +492,7 @@ describe('Comment likes', () => {
             it('should not allow non-members to unlike comment in a private group', async () => {
               const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
               const res = await unlikeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
 
             it('should allow members to unlike comment in a private restricted group', async () => {
@@ -505,7 +505,7 @@ describe('Comment likes', () => {
             it('should not allow non-members to unlike comment in a private restricted group', async () => {
               const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
               const res = await unlikeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
             });
           });
         });
@@ -594,7 +594,7 @@ describe('Comment likes', () => {
         it('should not display comment likes to non-subscribers of private user', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
           const res = await getCommentLikes(marsComment.id, jupiter);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find post"));
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
         });
       });
 
@@ -676,22 +676,22 @@ describe('Comment likes', () => {
 
         it("should not show Luna Pluto's comment likes", async () => {
           const res = await getCommentLikes(plutoComment.id, luna);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
         });
 
         it("should not show Luna Pluto's likes to Jupiter's comment", async () => {
           const res = await getCommentLikes(jupiterComment.id, luna);
-          expect(res, 'to satisfy', commentHavingNoLikesExpectation);
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
         });
 
         it("should show Mars Luna's comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, mars);
-          expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
         });
 
         it("should show Pluto Luna's comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, pluto);
-          expect(res, 'to satisfy', commentHavingOneLikeExpectation(luna));
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
         });
 
         it("should show Pluto Jupiter's comment likes", async () => {

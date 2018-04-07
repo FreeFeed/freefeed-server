@@ -134,12 +134,64 @@ export class EventService {
     await this._processMentionsInPost(post, destinationFeeds, author);
   }
 
-  static async onCommentCreated(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor) {
-    const postDestinationFeeds = await post.getPostedTo();
-    await this._processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds);
-    await this._processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds);
-  }
+  static async onCommentChanged(comment, wasCreated = false) {
+    const [
+      post,
+      mentionEvents,
+    ] = await Promise.all([
+      comment.getPost(),
+      getMentionEvents(comment.body, comment.userId, EVENT_TYPES.MENTION_IN_COMMENT, EVENT_TYPES.MENTION_COMMENT_TO),
+    ]);
+    const directEvents = wasCreated ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED) : [];
 
+    if (mentionEvents.length === 0 && directEvents.length === 0) {
+      return;
+    }
+
+    const [
+      postAuthor,
+      commentAuthor,
+      commentAuthorBanners,
+      destFeeds,
+    ] = await Promise.all([
+      dbAdapter.getUserById(post.userId),
+      dbAdapter.getUserById(comment.userId),
+      dbAdapter.getUserIdsWhoBannedUser(comment.userId),
+      post.getPostedTo(),
+    ]);
+
+    let postGroupIntId = null;
+    if (destFeeds.length === 1) {
+      const feedOwner = await destFeeds[0].getUser();
+      if (feedOwner.isGroup()) {
+        postGroupIntId = feedOwner.intId;
+      }
+    }
+
+    // Leave users who has post and comment access
+    let affectedUsers = _.uniqBy([...mentionEvents, ...directEvents].map(({ user }) => user), 'id');
+    // Only users who can see this post
+    affectedUsers = await post.onlyUsersCanSeePost(affectedUsers);
+    // Only users who can see this comment
+    affectedUsers = affectedUsers.filter((u) => !commentAuthorBanners.includes(u.id));
+
+    // Create events
+    await Promise.all([...mentionEvents, ...directEvents]
+      .filter(({ user }) => affectedUsers.some((u) => u.id === user.id))
+      .map(({ event, user }) => dbAdapter.createEvent(
+        user.intId,
+        event,
+        commentAuthor.intId,
+        user.intId,
+        postGroupIntId,
+        post.id,
+        comment.id,
+        postAuthor.intId,
+      )));
+
+    // Update unread notifications counters
+    await Promise.all(affectedUsers.map((u) => pubSub.updateUnreadNotifications(u.intId)));
+  }
 
   ////////////////////////////////////////////
 
@@ -229,120 +281,6 @@ export class EventService {
     await Promise.all(promises);
   }
 
-  static async _processDirectMessagesForComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds) {
-    const feeds = postDestinationFeeds;
-    const directFeeds = feeds.filter((f) => {
-      return f.isDirects() && f.userId !== commentAuthor.id;
-    });
-
-    if (directFeeds.length > 0) {
-      const directReceiversIds = directFeeds.map((f) => {
-        return f.userId;
-      });
-
-      let directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
-
-      directReceivers = directReceivers.filter((r) => {
-        return !usersBannedByCommentAuthor.includes(r.id);
-      });
-
-      const promises = directReceivers.map(async (receiver) => {
-        let usersBannedByReceiver = [];
-        if (receiver.id === commentAuthor.id) {
-          usersBannedByReceiver = usersBannedByCommentAuthor;
-        } else {
-          usersBannedByReceiver = receiver.id === postAuthor.id ? usersBannedByPostAuthor : (await receiver.getBanIds());
-        }
-
-        if (usersBannedByReceiver.includes(commentAuthor.id)) {
-          return null;
-        }
-        await dbAdapter.createEvent(receiver.intId, EVENT_TYPES.DIRECT_COMMENT_CREATED, commentAuthor.intId, receiver.intId, null, post.id, comment.id, postAuthor.intId);
-        return pubSub.updateUnreadNotifications(receiver.intId);
-      });
-      await Promise.all(promises);
-    }
-  }
-
-  static async _processMentionsInComment(comment, post, commentAuthor, postAuthor, usersBannedByPostAuthor, usersBannedByCommentAuthor, postDestinationFeeds) {
-    let mentions = extractMentionsWithIndices(comment.body);
-
-    if (mentions.length == 0) {
-      return;
-    }
-
-    let  postGroupIntId = null;
-    const feeds = postDestinationFeeds;
-    if (feeds.length === 1) {
-      const feedOwner = await feeds[0].getUser();
-      if (feedOwner.type === 'group') {
-        postGroupIntId = feedOwner.intId;
-      }
-    }
-
-    const postDestinationsFeedsOwners = feeds.map((f) => f.userId);
-    const nonDirectFeeds = feeds.filter((f) => !f.isDirects());
-    const nonDirectFeedsIds = nonDirectFeeds.map((f) => f.id);
-    const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
-    const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
-
-    const replyToUser = mentions.find((m) => m.indices[0] === 0);
-
-    if (replyToUser) {
-      _.remove(mentions, (m) => {
-        return m.username === replyToUser.username && m.indices[0] != 0;
-      });
-    }
-    mentions = _.uniqBy(mentions, 'username');
-
-    const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentions.map((m) => m.username));
-    let usersSubscriptionsStatus = [];
-    if (!postIsPublic) {
-      usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(mentionedUsers.map((u) => u.id), nonDirectFeedsIds);
-    }
-    const promises = mentions.map(async (m) => {
-      const mentionedUser = mentionedUsers.find((u) => u.username === m.username);
-      if (!mentionedUser || mentionedUser.type !== 'user') {
-        return null;
-      }
-
-      if (commentAuthor.id === mentionedUser.id) {
-        return null;
-      }
-
-      if (usersBannedByPostAuthor.includes(mentionedUser.id) || usersBannedByCommentAuthor.includes(mentionedUser.id)) {
-        return null;
-      }
-
-      const usersBannedByCurrentUser = await mentionedUser.getBanIds();
-      if (usersBannedByCurrentUser.includes(commentAuthor.id) || usersBannedByCurrentUser.includes(postAuthor.id)) {
-        return null;
-      }
-
-      if (!postDestinationsFeedsOwners.includes(mentionedUser.id)) {
-        if (nonDirectFeeds.length === 0) {
-          return null;
-        }
-
-        if (!postIsPublic) {
-          const subscriptionStatus = usersSubscriptionsStatus.find((u) => u.uid === mentionedUser.id);
-          if (!subscriptionStatus.is_subscribed) {
-            return null;
-          }
-        }
-      }
-
-      if (m.indices[0] === 0) {
-        await dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_COMMENT_TO, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id, postAuthor.intId);
-      } else {
-        await dbAdapter.createEvent(mentionedUser.intId, EVENT_TYPES.MENTION_IN_COMMENT, commentAuthor.intId, mentionedUser.intId, postGroupIntId, post.id, comment.id, postAuthor.intId);
-      }
-      return pubSub.updateUnreadNotifications(mentionedUser.intId);
-    });
-    await Promise.all(promises);
-  }
-
-
   static async _notifyGroupAdmins(group, adminNotifier) {
     const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
     const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
@@ -352,4 +290,24 @@ export class EventService {
     });
     await Promise.all(promises);
   }
+}
+
+async function getMentionEvents(text, authorId, eventType, firstMentionEventType = eventType) {
+  const mentions = _.uniqBy(extractMentionsWithIndices(text), 'username');
+  let mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentions.map((u) => u.username));
+  // Only users (not groups) and not an event author
+  mentionedUsers = mentionedUsers.filter((u) => u.isUser() && u.id !== authorId);
+  return mentions
+    .map(({ username, indices: [start] }) => ({
+      event: start === 0 ? firstMentionEventType : eventType,
+      user:  mentionedUsers.find((u) => u.username === username),
+    }))
+    .filter(({ user }) => !!user);
+}
+
+async function getDirectEvents(post, authorId, eventType) {
+  const destFeeds = await post.getPostedTo();
+  const directFeeds = destFeeds.filter((f) => f.isDirects() && f.userId !== authorId);
+  const directReceivers = await dbAdapter.getUsersByIds(directFeeds.map((f) => f.userId));
+  return directReceivers.map((user) => ({ event: eventType, user }));
 }

@@ -337,12 +337,10 @@ export default class PubsubListener {
     await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
 
-  onCommentDestroy = async (data) => {
-    const json = { postId: data.postId, commentId: data.commentId };
-    const post = await dbAdapter.getPostById(data.postId);
-
+  onCommentDestroy = async ({ postId, commentId, rooms }) => {
+    const json = { postId, commentId };
+    const post = await dbAdapter.getPostById(postId);
     const type = 'comment:destroy';
-    const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post);
   };
 

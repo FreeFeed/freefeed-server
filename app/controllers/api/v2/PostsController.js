@@ -1,53 +1,16 @@
 import _ from 'lodash';
+import compose from 'koa-compose';
+
 import { dbAdapter } from '../../../models';
-import { NotFoundException, ForbiddenException } from '../../../support/exceptions';
 import { serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
-import { monitored, userSerializerFunction } from './helpers';
+import { monitored, postAccessRequired } from '../../middlewares';
+import { userSerializerFunction } from '../../../serializers/v2/user';
 
-export default class PostsController {
-  /**
-   * Viewer CAN NOT see post if:
-   * - viwer is anonymous and post is not public or
-   * - viewer is authorized and
-   *   - post author banned viewer or was banned by viewer or
-   *   - post is private and viewer cannot read any of post's destination feeds
-   */
-  show = monitored('posts.show-v2', async (ctx) => {
-    const
-      viewer = ctx.state.user,
-      post = await dbAdapter.getPostById(ctx.params.postId),
-      forbidden = (reason = 'You cannot see this post') => new ForbiddenException(reason);
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
-    // Check if viwer is anonymous and post is not public
-    if (!viewer && post.isProtected === '1') {
-      if (post.isPrivate === '0') {
-        // Only return 'forbidden' for the protected post and anonymous viewer
-        // In all other cases return 'not found'
-        throw forbidden('Please sign in to view this post');
-      } else {
-        throw forbidden();
-      }
-    }
-
-    if (viewer) {
-      // Check if post author banned viewer or was banned by viewer
-      const bannedUserIds = await dbAdapter.getBansAndBannersOfUser(viewer.id);
-      if (bannedUserIds.includes(post.userId)) {
-        throw forbidden();
-      }
-
-      // Check if post is private and viewer cannot read any of post's destination feeds
-      if (post.isPrivate === '1') {
-        const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
-        if (_.isEmpty(_.intersection(post.destinationFeedIds, privateFeedIds))) {
-          throw forbidden();
-        }
-      }
-    }
+export const show = compose([
+  postAccessRequired(),
+  monitored('posts.show-v2'),
+  async (ctx) => {
+    const { user:viewer, post } = ctx.state;
 
     const foldComments = ctx.request.query.maxComments !== 'all';
     const foldLikes = ctx.request.query.maxLikes !== 'all';
@@ -59,7 +22,7 @@ export default class PostsController {
       { foldComments, foldLikes, hiddenCommentTypes },
     );
 
-    // The following code is mostly copied from ./TimelinesControlloer.js
+      // The following code is mostly copied from ./TimelinesControlloer.js
 
     const allUserIds = new Set();
 
@@ -113,13 +76,16 @@ export default class PostsController {
       comments,
       attachments,
     };
-  });
+  },
+]);
 
-  opengraph = monitored('posts.opengraph-v2', async (ctx) => {
+export const opengraph = compose([
+  monitored('posts.opengraph-v2'),
+  async (ctx) => {
     const post = await dbAdapter.getPostById(ctx.params.postId);
 
     // OpenGraph is available for public posts that are not protected
-    if (!post || post.isPrivate === '1' || post.isProtected === '1') {
+    if (!post || post.isProtected === '1') {
       ctx.body = '';
       return;
     }
@@ -131,7 +97,7 @@ export default class PostsController {
     const attachments = await dbAdapter.getAttachmentsOfPost(post.id);
 
     if (attachments.length > 0) {
-      for (const item of attachments.map(serializeAttachment)) {
+      for (const item of attachments) {
         if (item.mediaType === 'image') {
           let image_size;
 
@@ -171,5 +137,5 @@ export default class PostsController {
         <meta property="og:image:height" content="${image_h}" />`;
     }
     ctx.body = og;
-  });
-}
+  },
+]);

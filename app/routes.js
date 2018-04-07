@@ -3,7 +3,6 @@ import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
-import Raven from 'raven';
 import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
@@ -36,7 +35,6 @@ import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 promisifyAll(jwt);
 
 const config = configLoader();
-const sentryIsEnabled = 'sentryDsn' in config;
 
 export default function (app) {
   const authDebug = createDebug('freefeed:authentication');
@@ -103,10 +101,6 @@ export default function (app) {
     try {
       await next();
     } catch (e) {
-      if (sentryIsEnabled) {
-        Raven.captureException(e, { req: ctx.request });
-      }
-
       reportError(ctx)(e);
     }
   });
