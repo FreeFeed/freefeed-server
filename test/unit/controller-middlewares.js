@@ -1,11 +1,17 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import expect from 'unexpected';
+import compose from 'koa-compose';
+import unexpected from 'unexpected';
+import unexpectedSinon from 'unexpected-sinon';
 import { noop } from 'lodash';
+import sinon from 'sinon';
 
 import cleanDB from '../dbCleaner';
-import { postAccessRequired, inputSchemaRequired } from '../../app/controllers/middlewares';
+import { postAccessRequired, inputSchemaRequired, monitored } from '../../app/controllers/middlewares';
 import { User, Post } from '../../app/models';
+
+const expect = unexpected.clone();
+expect.use(unexpectedSinon);
 
 describe('Controller middlewares', () => {
   beforeEach(() => cleanDB($pg_database));
@@ -253,6 +259,73 @@ describe('Controller middlewares', () => {
       ctx.request.body = { a: 'aaa' };
       await handler(ctx);
       expect(ctx.request.body, 'to equal', { a: 'aaa', b: 'boo' });
+    });
+  });
+
+  describe('monitored', () => {
+    const timer = { stop: sinon.spy() };
+    const monitor = {
+      increment: sinon.spy(),
+      timer:     sinon.stub().returns(timer),
+    };
+
+    const handler = compose([
+      monitored('test', monitor),
+    ]);
+    const failHandler = compose([
+      monitored('test', monitor),
+      () => { throw new Error(''); },
+    ]);
+    const nestedHandler = compose([
+      monitored('test1', monitor),
+      monitored('test', monitor),
+    ]);
+
+    let ctx;
+    beforeEach(() => {
+      [monitor.increment, monitor.timer, timer.stop].forEach((spy) => spy.resetHistory());
+      ctx = { state: {} };
+    });
+
+    it(`should increment 'test-requests' counter after successiful call`, async () => {
+      await handler(ctx);
+      expect(monitor.increment, 'to have a call satisfying', ['test-requests']);
+    });
+
+    it(`should not increment 'test-requests' counter after failed call`, async () => {
+      try {
+        await failHandler(ctx);
+      } catch (e) {
+        // pass
+      }
+      expect(monitor.increment, 'was not called');
+    });
+
+    it(`should start and stop 'test-time' timer`, async () => {
+      await handler(ctx);
+      expect(monitor.timer, 'to have a call satisfying', ['test-time']);
+      expect(timer.stop, 'was called');
+      expect([monitor.timer, timer.stop], 'given call order');
+    });
+
+    it(`should clear ctx.state.isMonitored flag`, async () => {
+      await handler(ctx);
+      expect(ctx.state, 'to not have key', 'isMonitored');
+    });
+
+    it(`should not call monitor methods in nested call`, async () => {
+      await nestedHandler(ctx);
+      expect(monitor.increment, 'to have a call satisfying', ['test1-requests']);
+      expect(monitor.timer, 'to have a call satisfying', ['test1-time']);
+      expect(monitor.increment, 'was called once');
+      expect(monitor.timer, 'was called once');
+      expect(timer.stop, 'was called once');
+    });
+
+    it(`should use custom counter and timer names`, async () => {
+      await monitored({ timer: 'timerA', requests: 'requestsB' }, monitor)(ctx, noop);
+      expect(monitor.timer, 'to have a call satisfying', ['timerA']);
+      expect(monitor.increment, 'to have a call satisfying', ['requestsB']);
     });
   });
 });
