@@ -248,7 +248,7 @@ export function addModel(dbAdapter) {
    * @returns {Timeline[]}
    */
   Group.prototype.getFeedsToPost = async function (postingUser) {
-    const timeline = await this.getPostsTimeline();
+    const timeline = await dbAdapter.getUserNamedFeed(this.id, 'Posts');
     const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
     if (!isSubscribed) {
       return [];
