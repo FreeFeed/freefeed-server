@@ -1,7 +1,9 @@
+import compose from 'koa-compose';
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
+import { monitored, authRequired } from '../../middlewares';
 
 export default class UsersController {
   static async blockedByMe(ctx) {
@@ -74,15 +76,15 @@ export default class UsersController {
     ctx.body = { message: `Notifications are now marked as read for ${ctx.state.user.id}` };
   }
 
-  static async whoAmI(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return;
-    }
-    const { user } = ctx.state;
-    const timer = monitor.timer('users.whoami-v2');
-    try {
+  static whoAmI = compose([
+    authRequired(),
+    monitored({
+      timer:    'users.whoami-v2',
+      requests: 'users.whoami-v2-requests'
+    }),
+    async (ctx) => {
+      const { user } = ctx.state;
+
       const [
         users,
         timelinesUserSubscribed,
@@ -146,10 +148,8 @@ export default class UsersController {
         });
 
       ctx.body = { users, subscribers, subscriptions, requests, managedGroups };
-    } finally {
-      timer.stop();
-    }
-  }
+    },
+  ]);
 }
 
 const defaultStats = {
