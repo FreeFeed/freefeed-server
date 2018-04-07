@@ -987,15 +987,15 @@ export function addModel(dbAdapter) {
   User.prototype.getFeedsToPost = async function (postingUser) {
     if (this.id === postingUser.id) {
       // Users always can post to own timeline
-      return [await this.getPostsTimeline()];
+      return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
     }
 
     // Users can send directs only to their mutual friends
     const isMutual = await dbAdapter.areUsersMutuallySubscribed(this.id, postingUser.id);
     if (isMutual) {
       return await Promise.all([
-        this.getDirectsTimeline(),
-        postingUser.getDirectsTimeline(),
+        dbAdapter.getUserNamedFeed(this.id, 'Directs'),
+        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
       ]);
     }
 
