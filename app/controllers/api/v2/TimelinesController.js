@@ -33,9 +33,23 @@ export const bestOf = compose([
   },
 ]);
 
+/**
+ * Name for data dog
+ *
+ * @param {string} feedName
+ * @returns {string}
+ */
+function monitoredFeedName(feedName) {
+  switch (feedName) {
+    case 'RiverOfNews':   return 'home';
+    case 'MyDiscussions': return 'my-discussions';
+    default:              return feedName.toLowerCase();
+  }
+}
+
 export const ownTimeline = (feedName, params = {}) => compose([
   authRequired(),
-  monitored(`timelines.${feedName.toLowerCase()}-v2`),
+  monitored(`timelines.${monitoredFeedName(feedName)}-v2`),
   async (ctx) => {
     const { user } = ctx.state;
     const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
