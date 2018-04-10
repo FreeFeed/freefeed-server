@@ -7,7 +7,6 @@ import UserName from './user-name';
 
 export default class PostComment extends React.Component {
   renderBody() {
-    console.log(this.props);
     const authorAndButtons = (
       <span>
         {' -'}&nbsp;

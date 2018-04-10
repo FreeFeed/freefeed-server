@@ -5,26 +5,6 @@ import PostComment from './post-comment.jsx';
 import MoreCommentsWrapper from './more-comments-wrapper.jsx';
 
 export default class PostComments extends React.Component {
-  renderAddCommentLink() {
-    const { props } = this;
-
-    console.log('RENDER_ADD_COMMENT', props.comments.length > 2 && !props.post.omittedComments);
-    if (props.comments.length > 2 && !props.post.omittedComments) {
-      return (
-        <div className="comment">
-          <Link to={props.entryUrl} className="comment-icon fa-stack fa-1x">
-            <i className="fa fa-comment-o fa-stack-1x" />
-            <i className="fa fa-square fa-inverse fa-stack-1x" />
-            <i className="fa fa-plus fa-stack-1x" />
-          </Link>
-          <Link to={props.entryUrl} className="add-comment-link">Add comment</Link>
-        </div>
-      );
-    }
-
-    return false;
-  }
-
   renderComment(comment, me) {
     return (
       <PostComment
@@ -56,17 +36,15 @@ export default class PostComments extends React.Component {
   }
 
   render() {
-    const { post, comments, me } = this.props;
+    const { comments, me } = this.props;
     const first = comments[0];
     const last = comments.length > 1 && comments[comments.length - 1];
-    const canAddComment = !post.commentsDisabled;
 
     return (
       <div className="comments">
         {first ? this.renderComment(first, me) : false}
         {this.renderMiddle(me)}
         {last ? this.renderComment(last, me) : false}
-        {canAddComment ? this.renderAddCommentLink() : false}
       </div>
     );
   }

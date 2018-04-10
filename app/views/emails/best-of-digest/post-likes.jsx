@@ -42,7 +42,7 @@ export default ({likes, post, me}) => {
 
   return (
     <div className="post-likes">
-      <i className="fa fa-heart icon"></i>
+      <img src="cid:faheart" className="fa fa-heart icon" width="15px" height="15px"/>
       <ul className="post-likes-list">{renderedLikes}</ul>
     </div>
   );

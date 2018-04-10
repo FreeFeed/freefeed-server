@@ -52,6 +52,7 @@
       .post .post-body .post-text a {
         color: #000088; }
     .post .post-body .post-footer .post-lock-icon {
+      vertical-align: text-bottom;
       margin-right: 5px; }
     .post .post-body .post-footer .post-protected-icon {
       color: #fff;
@@ -172,6 +173,7 @@
   padding: 0;
   margin: 0 4px 0 19px; }
   .post-likes-list .post-like {
+    margin-left: 0;
     display: inline; }
 
 .comments {

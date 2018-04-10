@@ -135,9 +135,9 @@ export default class Post extends React.Component {
 
           <div className="post-footer">
             {isPrivate ? (
-            <i className="post-lock-icon fa fa-lock" title="This entry is private" />
+              <img src="cid:falock" className="post-lock-icon fa fa-lock" width="10px" height="15px" title="This entry is private"/>
               ) : isProtected ? (
-            <i className="post-lock-icon post-protected-icon fa fa-lock" title="This entry is only visible to FreeFeed users" />
+              <img src="cid:falock" className="post-lock-icon post-protected-icon fa fa-lock" width="10px" height="15px" title="This entry is only visible to FreeFeed users"/>
               ) : false}
             <Link to={canonicalPostURI} className="post-timestamp">
               <TimeDisplay timeStamp={+props.createdAt} />
