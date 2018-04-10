@@ -32,7 +32,7 @@ export async function sendBestOfEmails() {
 
     const digestDate = moment().format('MMMM Do YYYY');
 
-    const preparedPayload = preparePosts(ctx.body);
+    const preparedPayload = preparePosts(ctx.body, u);
     await sendDailyBestOfEmail(u, preparedPayload, digestDate);
 
     debug(`[${u.username}] email is queued: OK`);

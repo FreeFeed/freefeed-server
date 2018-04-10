@@ -13,8 +13,8 @@ const injectSeparator = (array, separator) => {
   const result = [];
 
   array.forEach((item, i) => {
-    result.push(<span key={'item-' + i}>{item}</span>);
-    result.push(React.cloneElement(separator, {key: 'separator-' + i}, separator.props.children));
+    result.push(<span key={`item-${i}`}>{item}</span>);
+    result.push(React.cloneElement(separator, { key: `separator-${i}` }, separator.props.children));
   });
 
   result.pop();
@@ -24,8 +24,8 @@ const injectSeparator = (array, separator) => {
 
 // Replace single newlines with <br/> and trim every line
 const brAndTrim = (text) => {
-  const lines = text.split(/\n/g).map(line => line.trim());
-  return injectSeparator(lines, <br/>);
+  const lines = text.split(/\n/g).map((line) => line.trim());
+  return injectSeparator(lines, <br />);
 };
 
 

@@ -1,10 +1,12 @@
 import React from 'react';
 import classnames from 'classnames';
+import _ from 'lodash';
 
 import PostAttachments from './post-attachments.jsx';
 import PostLikes from './post-likes.jsx';
 import UserName from './user-name.jsx';
 import PieceOfText from './piece-of-text.jsx';
+import PostComments from './post-comments.jsx';
 import TimeDisplay from './time-display.jsx';
 import Link from './link.jsx';
 
@@ -15,7 +17,6 @@ export default class Post extends React.Component {
 
     const profilePicture = props.createdBy.profilePictureMediumUrl;
     const profilePictureSize = 50;
-
 
     const postClass = classnames({
       'post': true,
@@ -53,6 +54,7 @@ export default class Post extends React.Component {
           className="post-recipient"
           user={recipient}
           display={recipientCustomDisplay(recipient)}
+          me={props.user}
         />
         {index < props.recipients.length - 2 ? ', ' : false}
         {index === props.recipients.length - 2 ? ' and ' : false}
@@ -64,7 +66,7 @@ export default class Post extends React.Component {
     const authorOrGroupsRecipients = props.recipients
       .filter((r) => r.id === props.createdBy.id || r.type === 'group')
       .map((r) => {
-        // todo Remove it when we'll have garanty of isPrivate => isProtected
+        // TODO Remove it when we'll have guaranty of isPrivate => isProtected
         if (r.isPrivate === '1') {
           r.isProtected = '1';
         }
@@ -73,6 +75,35 @@ export default class Post extends React.Component {
     const isPublic = authorOrGroupsRecipients.some((r) => r.isProtected === '0');
     const isProtected = !isPublic && authorOrGroupsRecipients.some((r) => r.isPrivate === '0');
     const isPrivate = !isPublic && !isProtected;
+
+    // "Comments disabled" / "Comment"
+    let commentLink;
+    if (props.commentsDisabled === '1') {
+      commentLink = (
+        <span>
+          {' - '}
+          <i>Comments disabled</i>
+        </span>
+      );
+    } else {
+      commentLink = (
+        <span>
+          {' - '}
+          <Link to={canonicalPostURI} className="post-action">Comment</Link>
+        </span>
+      );
+    }
+
+    // "Like" / "Un-like"
+    const didILikePost = _.find(props.usersLikedPost, { id: props.user.id });
+    const likeLink = (
+      <span>
+        {' - '}
+        <Link to={canonicalPostURI} className="post-action">
+          {didILikePost ? 'Un-like' : 'Like'}
+        </Link>
+      </span>
+    );
 
     return (
       <div className={postClass} data-author={props.createdBy.username}>
@@ -84,7 +115,7 @@ export default class Post extends React.Component {
           </div>
           <div className="post-body">
             <div className="post-header">
-              <UserName className="post-author" user={props.createdBy} />
+              <UserName className="post-author" user={props.createdBy} me={props.user}/>
               {recipients.length > 0 ? ' to ' : false}
               {recipients}
             </div>
@@ -111,11 +142,21 @@ export default class Post extends React.Component {
             <Link to={canonicalPostURI} className="post-timestamp">
               <TimeDisplay timeStamp={+props.createdAt} />
             </Link>
+            {commentLink}
+            {likeLink}
           </div>
 
           <PostLikes
             post={props}
             likes={props.usersLikedPost}
+            me={props.user}
+          />
+
+          <PostComments
+            post={props}
+            comments={props.comments}
+            entryUrl={canonicalPostURI}
+            me={props.user}
           />
 
         </div>

@@ -5,9 +5,9 @@ import numeral from 'numeral';
 export default class ImageAttachment extends React.Component {
   render() {
     const { props } = this;
-    const formattedFileSize  = numeral(props.fileSize).format('0.[0] b');
+    const formattedFileSize  = numeral(props.fileSize).format('0.[0] ib');
     const formattedImageSize = (props.imageSizes.o ? `, ${props.imageSizes.o.w}×${props.imageSizes.o.h}px` : '');
-    const nameAndSize        = props.fileName + ' (' + formattedFileSize + formattedImageSize + ')';
+    const nameAndSize        = `${props.fileName} (${formattedFileSize}${formattedImageSize})`;
 
     const imageAttributes = {
       src:    props.imageSizes.t && props.imageSizes.t.url || props.thumbnailUrl,
