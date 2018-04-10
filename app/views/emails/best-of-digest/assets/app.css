@@ -18,6 +18,9 @@
     @media (max-width: 767px) {
       .post .post-userpic {
         margin: 0 10px 3px 0; } }
+    .post .post-userpic img {
+      display: block;
+    }
   .post .post-header {
     font-size: 15px;
     line-height: 20px;

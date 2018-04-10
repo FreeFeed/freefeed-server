@@ -110,7 +110,7 @@ export default class Post extends React.Component {
         <div>
           <div className="post-userpic">
             <Link to={`/${props.createdBy.username}`}>
-              <img className="post-userpic-img" src={profilePicture} width={profilePictureSize} height={profilePictureSize} />
+              <img className="post-userpic-img" src={profilePicture} width={profilePictureSize} height={profilePictureSize} data-inline-ignore />
             </Link>
           </div>
           <div className="post-body">
