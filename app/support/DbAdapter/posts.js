@@ -301,53 +301,61 @@ const postsTrait = (superClass) => class extends superClass {
     const restrictionsSQL = [bansSQL, privacyCondition, noDirectsSQL, createdAtSQL].join(' and ');
 
     const maxOffsetWithLocalBumps = 1000;
+    const smallFeedThreshold = 5;
 
-    if (!params.withLocalBumps || params.offset > maxOffsetWithLocalBumps) {
-      // without local bumps
-      let sql = '';
-      if (timelineName !== 'RiverOfNews') {
-        // Request with CTE for the feed with relatively small number of posts
-        sql = pgFormat(`
-          with filteredPosts as (
+    /**
+     * PostgreSQL is not very good dealing with queries like
+     * `select ... from ... where COND order by ORD limit LIM`
+     * when COND selects only a small amount of all records. See
+     * for example https://stackoverflow.com/a/6038853.
+     *
+     * So we using a following heuristics here: if feed consists of
+     * few (<= 5) source timelines then CTE is used, otherwise
+     * normal 'where' is used.
+     *
+     * @param {number} limit
+     * @param {number} offset
+     * @param {string} sort
+     */
+    const getPostsSQL = (limit, offset, sort) => {
+      if (timelineIntIds.length <= smallFeedThreshold) {
+        // Request with CTE for the relatively small feed
+        return pgFormat(`
+          with posts as (
             select * from posts p where ${sourceConditionSQL}
           )
-          select p.uid
+          select p.uid, p.bumped_at as date
           from 
-            filteredPosts p
+            posts p
           where
             ${restrictionsSQL}
           order by
             p.%I desc
           limit %L offset %L
-        `, `${params.sort}_at`, params.limit, params.offset);
-      } else {
-        // Request without CTE for the RiverOfNews feed
-        sql = pgFormat(`
-          select p.uid
-          from 
-            posts p
-          where
-            ${sourceConditionSQL} and ${restrictionsSQL}
-          order by
-            p.%I desc
-          limit %L offset %L
-        `, `${params.sort}_at`, params.limit, params.offset);
+        `, `${sort}_at`, limit, offset);
       }
-      return (await this.database.raw(sql)).rows.map((r) => r.uid);
-    }
-
-    // with local bumps
-    const fullCount = params.limit + params.offset;
-    const postsSQL = pgFormat(`
+      // Request without CTE for the large (tipically RiverOfNews) feed
+      return pgFormat(`
         select p.uid, p.bumped_at as date
         from 
           posts p
         where
           ${sourceConditionSQL} and ${restrictionsSQL}
         order by
-          p.bumped_at desc
-        limit %L
-    `, fullCount);
+          p.%I desc
+        limit %L offset %L
+      `, `${sort}_at`, limit, offset);
+    };
+
+    if (!params.withLocalBumps || params.offset > maxOffsetWithLocalBumps) {
+      // without local bumps
+      const sql = getPostsSQL(params.limit, params.offset, params.sort);
+      return (await this.database.raw(sql)).rows.map((r) => r.uid);
+    }
+
+    // with local bumps
+    const fullCount = params.limit + params.offset;
+    const postsSQL = getPostsSQL(fullCount, 0, 'bumped');
     const localBumpsSQL = pgFormat(`
         with local_bumps as (
           select post_id, min(created_at) as created_at from local_bumps where user_id = %L group by post_id
