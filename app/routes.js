@@ -42,7 +42,8 @@ export default function (app) {
   const findUser = async (ctx, next) => {
     const authToken = ctx.request.get('x-authentication-token')
       || ctx.request.body.authToken
-      || ctx.request.query.authToken;
+      || ctx.request.query.authToken
+      || ctx.cookies.get(`${config.authTokenPrefix}authToken`);
 
     if (authToken) {
       authDebug('got token', authToken);

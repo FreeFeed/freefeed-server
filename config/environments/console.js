@@ -31,6 +31,9 @@ export function getConfig() {
     frontendPreferencesLimit: 65536,
 
     dynamicRiverOfNews: true,
+
+    // needed for retrieving authToken from cookies (for OAuth callbacks)
+    authTokenPrefix: 'freefeed_',
   };
 
   config.host = `http://localhost:${config.port}`;
