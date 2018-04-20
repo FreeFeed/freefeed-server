@@ -668,6 +668,8 @@ const postsTrait = (superClass) => class extends superClass {
         comm.user_id = null;
         comm.hide_type = Comment.HIDDEN_BANNED;
         comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+        comm.c_likes = '0';
+        comm.has_own_like = null;
       }
 
       const comment = initCommentObject(comm);
