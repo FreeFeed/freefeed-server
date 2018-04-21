@@ -1120,6 +1120,38 @@ describe('Comment likes', () => {
           await expectFeedCommentLikesCountsToBe('home', luna, 3, 1, 2, 1);
           await expectFeedCommentLikesCountsToBe('home', jupiter, 5, 0, 3, 0);
         });
+
+        describe(`when viewer disabled 'hide comments from banned users' option`, () => {
+          beforeEach(async () => {
+            await updateUserAsync(luna, { preferences: { hideCommentsOfTypes: [] } });
+          });
+
+          it(`and first (and liked) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            await banUser(luna, jupiter);
+            await expectFeedCommentLikesCountsToBe('home', luna, 0, 0, 0, 0);
+          });
+
+          it(`and first (and liked by viewer) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            await likeComment(comment.id, luna);
+            await banUser(luna, jupiter);
+            await expectFeedCommentLikesCountsToBe('home', luna, 0, 0, 0, 0);
+          });
+
+          it(`and folded (and liked) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            await likeComment(comment3.id, mars);
+            await likeComment(comment3.id, jupiter);
+            await banUser(luna, pluto);
+            await expectFeedCommentLikesCountsToBe('home', luna, 1, 0, 0, 0);
+          });
+
+          it(`and last (and liked) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            const comment6 = await writeComment(pluto, lunaPost.id, 'Pluto comment 2');
+            await likeComment(comment6.id, mars);
+            await likeComment(comment6.id, jupiter);
+            await banUser(luna, pluto);
+            await expectFeedCommentLikesCountsToBe('home', luna, 1, 0, 0, 0);
+          });
+        });
       });
     });
 
@@ -1261,6 +1293,38 @@ describe('Comment likes', () => {
 
           await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 3, 1, 2, 1);
           await expectSearchResultsCommentLikesCountsToBe('cliked', jupiter, 5, 0, 3, 0);
+        });
+
+        describe(`when viewer disabled 'hide comments from banned users' option`, () => {
+          beforeEach(async () => {
+            await updateUserAsync(luna, { preferences: { hideCommentsOfTypes: [] } });
+          });
+
+          it(`and first (and liked) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            await banUser(luna, jupiter);
+            await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 0, 0, 0, 0);
+          });
+
+          it(`and first (and liked by viewer) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            await likeComment(comment.id, luna);
+            await banUser(luna, jupiter);
+            await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 0, 0, 0, 0);
+          });
+
+          it(`and folded (and liked) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            await likeComment(comment3.id, mars);
+            await likeComment(comment3.id, jupiter);
+            await banUser(luna, pluto);
+            await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 1, 0, 0, 0);
+          });
+
+          it(`and last (and liked) comment's author is banned by viewer [negative OmittedCommentLikes]`, async () => {
+            const comment6 = await writeComment(pluto, lunaPost.id, 'Pluto comment 2');
+            await likeComment(comment6.id, mars);
+            await likeComment(comment6.id, jupiter);
+            await banUser(luna, pluto);
+            await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 1, 0, 0, 0);
+          });
         });
       });
     });
