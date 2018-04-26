@@ -53,10 +53,8 @@ describe('BookmarkletController', () => {
       const group = await createGroupAsync(luna, 'new-shiny-group')
       const response = await callBookmarklet(luna, { title: 'Post', meta: { feeds: [luna.username, group.username] } });
       expect(response.subscriptions, 'to have length', 2);
-      expect(response.subscriptions, 'to satisfy', [
-        { name: 'Posts', user: luna.user.id },
-        { name: 'Posts', user: group.group.id },
-      ]);
+      expect(response.subscriptions, 'to have an item satisfying', { name: 'Posts', user: luna.user.id });
+      expect(response.subscriptions, 'to have an item satisfying', { name: 'Posts', user: group.group.id });
     });
 
     it('should force an error when trying to post into nonexistent groups', async () => {
