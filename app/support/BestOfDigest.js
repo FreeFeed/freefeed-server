@@ -47,7 +47,7 @@ export async function sendBestOfEmails() {
 }
 
 function shouldSendDailyBestOfDigest(digestSentAt) {
-  const wrappedDigestSentAt = moment(digestSentAt);
+  const wrappedDigestSentAt = moment(digestSentAt || 0);
   const wrappedNow = moment();
   const dayAgo = wrappedNow.clone().subtract(1, 'days').add(30, 'minutes');
 
