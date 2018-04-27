@@ -6,6 +6,7 @@ import Feed from './Feed';
 const SummaryEmail = (props) => {
   return (
     <div className="container">
+      <link rel="stylesheet" href="app/views/emails/best-of-digest/assets/app.css"/>
       <div className="loader-container -full">
         <div className="row">
           <div className="content">
