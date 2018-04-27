@@ -1,10 +1,10 @@
 import moment from 'moment';
 import createDebug from 'debug';
-import Router from 'koa-router';
+import _ from 'lodash';
 
 import { dbAdapter } from '../models';
 import { sendDailyBestOfEmail } from '../mailers/BestOfDigestMailer';
-import TimelinesController from '../controllers/api/v2/TimelinesController.js';
+import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 
 
 export async function sendBestOfEmails() {
@@ -15,9 +15,6 @@ export async function sendBestOfEmails() {
 
   const emailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(users.map((u) => u.intId));
 
-  const router = new Router();
-  const timelinesController = new TimelinesController(router);
-
   const promises = users.map(async (u) => {
     const digestSentAt = emailsSentAt[u.intId];
     if (!shouldSendDailyBestOfDigest(digestSentAt)) {
@@ -27,14 +24,16 @@ export async function sendBestOfEmails() {
 
     const ctx = {
       request: { query: {} },
-      state:   { user: u }
+      state:   { user: u },
+      params:  { days: 1 }
     };
 
-    await timelinesController.bestOf(ctx);
+    await generalSummary(ctx);
 
     const digestDate = moment().format('MMMM Do YYYY');
 
-    await sendDailyBestOfEmail(u, ctx.body, digestDate);
+    const preparedPayload = preparePosts(ctx.body);
+    await sendDailyBestOfEmail(u, preparedPayload, digestDate);
 
     debug(`[${u.username}] email is queued: OK`);
 
@@ -53,4 +52,36 @@ function shouldSendDailyBestOfDigest(digestSentAt) {
   const dayAgo = wrappedNow.clone().subtract(1, 'days').add(30, 'minutes');
 
   return wrappedDigestSentAt.isBefore(dayAgo);
+}
+
+function preparePosts(payload, user) {
+  for (const post of payload.posts) {
+    post.createdBy = payload.users.find((user) => user.id === post.createdBy);
+    post.recipients = post.postedTo
+      .map((subscriptionId) => {
+        const userId = (payload.subscriptions[subscriptionId] || {}).user;
+        const subscriptionType = (payload.subscriptions[subscriptionId] || {}).name;
+        const isDirectToSelf = userId === post.createdBy.id && subscriptionType === 'Directs';
+        return !isDirectToSelf ? userId : false;
+      })
+      .map((userId) => payload.subscribers[userId])
+      .filter((user) => user);
+
+    post.attachments = _(post.attachments || []).map((attachmentId) => {
+      return payload.attachments.find((att) => att.id === attachmentId);
+    }).value();
+
+    post.usersLikedPost = _(post.likes || []).map((userId) => {
+      return payload.users.find((user) => user.id === userId);
+    }).value();
+
+    post.comments = _(post.comments || []).map((commentId) => {
+      const comment = payload.comments.find((comment) => comment.id === commentId);
+      comment.createdBy = payload.users.find((user) => user.id === comment.createdBy);
+      return comment;
+    }).value();
+  }
+
+  payload.user = user;
+  return payload;
 }
