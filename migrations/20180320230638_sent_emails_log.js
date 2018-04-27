@@ -8,6 +8,7 @@ export async function up(knex) {
 }
 
 export async function down(knex) {
+  await knex.raw(`delete from sent_emails_log where email_type <> 'notification';`);
   await knex.schema.table('sent_emails_log', (table) => {
     table.dropIndex('', 'sent_emails_log_email_type_idx');
     table.dropColumn('email_type');
