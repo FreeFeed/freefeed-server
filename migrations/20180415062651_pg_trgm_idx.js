@@ -1,5 +1,5 @@
 export async function up(knex) {
-  await knex.raw(`create extension pg_trgm;`);
+  await knex.raw(`CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public`);
   await knex.raw(
     `create index posts_body_trgm_idx
       on posts
@@ -15,5 +15,4 @@ export async function up(knex) {
 export async function down(knex) {
   await knex.raw(`drop index comments_body_trgm_idx;`);
   await knex.raw(`drop index posts_body_trgm_idx;`);
-  await knex.raw(`drop extension pg_trgm;`);
 }
