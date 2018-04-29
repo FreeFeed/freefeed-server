@@ -93,6 +93,12 @@ const usersTrait = (superClass) => class extends superClass {
     return initUserObject(attrs);
   }
 
+  async getUsersByProviderIds(provider, ids) {
+    const attrs = await this.database('users').whereRaw(`providers->'${provider}'->>'id' in ?`, ids);
+    const users = attrs.map((attrs) => initUserObject(attrs));
+    return users;
+  }
+
   async getUserByUsername(username) {
     const feed = await this.getFeedOwnerByUsername(username)
 

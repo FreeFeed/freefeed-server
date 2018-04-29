@@ -2,11 +2,12 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import FacebookStrategy from 'passport-facebook';
 import GoogleStrategy from 'passport-google-oauth20';
 import GithubStrategy from 'passport-github';
-import { get, isString, isEmpty } from 'lodash';
+import { get, set, isString, isEmpty } from 'lodash';
 import jwt from 'jsonwebtoken';
 
 import { dbAdapter, User } from '../../app/models';
 import { load as configLoader } from '../../config/config';
+import { getLongLivedAccessToken } from '../../app/support/facebookGraphApi';
 
 const config = configLoader();
 const oauthConfig = config.oauth || {};
@@ -50,6 +51,18 @@ export function init(passport) {
         enableProof:       true,
       },
       getAuthenticationCallback('facebook')
+    ));
+
+    passport.use('facebook-authz', new FacebookStrategy(
+      {
+        clientID:          oauthConfig.facebookClientId,
+        clientSecret:      oauthConfig.facebookClientSecret,
+        callbackURL:       `${config.host}/v2/oauth/facebook/authz/callback`,
+        profileFields:     ['id', 'displayName', 'name', 'profileUrl', 'emails', 'photos'],
+        passReqToCallback: true,
+        enableProof:       true,
+      },
+      facebookAuthzCallback
     ));
   }
 
@@ -154,6 +167,10 @@ function getAuthenticationCallback(strategyKey) {
     const origin = req.ctx.cookies.get('origin', { signed: true });
     const { user } = req.ctx.state;
 
+    // Cache the access token for querying provider APIs right after registration/login.
+    // For example, if we need to show a list of user's friends.
+    profile.accessToken = token;
+
     if (user) {
       try {
         await user.linkProvider(strategyKey, profile);
@@ -193,6 +210,36 @@ function getAuthenticationCallback(strategyKey) {
       }
     }
   };
+}
+
+async function facebookAuthzCallback(req, token, tokenSecret, profile, done) {
+  const origin = req.ctx.cookies.get('origin', { signed: true });
+  const { user } = req.ctx.state;
+
+  if (!user) {
+    req.ctx.body = renderCallbackResponse({ error: 'Unauthorized' });
+    return;
+  }
+
+  if (user.providers.facebook.id !== profile.id) {
+    req.ctx.body = renderCallbackResponse({ error: 'You are authenticated as a different facebook user' });
+    return;
+  }
+
+  try {
+    // Exchange the short-lived token for a long-lived one.
+    const accessToken = await getLongLivedAccessToken(token);
+
+    // cache accessToken
+    await dbAdapter.updateUser(user.id, { providers: set(user.providers, 'facebook.accessToken', accessToken) });
+
+    req.ctx.body = renderCallbackResponse({ accessToken }, origin);
+  } catch (e) {
+    // Respond with a short-lived token instead.
+    req.ctx.body = renderCallbackResponse({ accessToken: token, error: e }, origin);
+  }
+
+  done(null, null);
 }
 
 export async function createUserFromOauth(profile, strategyKey) {
@@ -251,6 +298,20 @@ export function getAuthParams(strategy) {
     }
     case 'github': {
       params.scope = ['user:email'];
+      break;
+    }
+    default: throw new Error(`Unknown auth strategy '${strategy}'`);
+  }
+
+  return params;
+}
+
+export function getAuthzParams(strategy) {
+  const params = {};
+
+  switch (strategy) {
+    case 'facebook': {
+      params.scope = ['email', 'public_profile', 'user_friends'];
       break;
     }
     default: throw new Error(`Unknown auth strategy '${strategy}'`);
