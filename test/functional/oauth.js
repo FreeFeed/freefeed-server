@@ -116,6 +116,116 @@ describe('OauthController', () => {
     });
   });
 
+
+  describe(`#authorize()`, () => {
+    let authToken;
+    beforeEach(async () => {
+      await new User({ username: 'testuser', password: 'password', providers }).create();
+      const response = await signInAsync({ username: 'testuser', password: 'password' });
+      ({ authToken } = await response.json());
+    });
+
+    afterEach(async () => {
+      await cleanDB($pg_database);
+    });
+
+    for (const provider of ['facebook']) {
+      context(`when provider is "${provider}"`, () => {
+        context('when referer is present', () => {
+          it('should redirect', (done) => {
+            request
+              .get(`${app.context.config.host}/v2/oauth/${provider}/authz`)
+              .set('Referer', 'http://test.test')
+              .query({ authToken })
+              .redirects(0)
+              .end((err, res) => {
+                expect(res.status, 'to equal', 302);
+                done();
+              });
+          });
+        });
+
+        context('when referer is not present', () => {
+          it('should respond with a script postMessage-ing an error about referer', (done) => {
+            request
+              .get(`${app.context.config.host}/v2/oauth/${provider}/authz`)
+              .query({ authToken })
+              .redirects(0)
+              .end((err, res) => {
+                const dom = propagateJsdomErrors(res.text);
+                expect(
+                  dom.window.opener.postMessage,
+                  'to have calls satisfying',
+                  () => {
+                    dom.window.opener.postMessage({ error: 'Referer must be present' }, '*');
+                  }
+                );
+                done();
+              });
+          });
+        });
+      });
+    }
+
+    context('when provider is unknown', () => {
+      it('should respond with 404 Not Found', (done) => {
+        request
+          .get(`${app.context.config.host}/v2/oauth/something/authz`)
+          .end((err, res) => {
+            expect(res.status, 'to equal', 404);
+            done();
+          });
+      });
+    });
+  });
+
+  describe(`#authorizeCallback()`, () => {
+    let authToken;
+    beforeEach(async () => {
+      await new User({ username: 'testuser', password: 'password', providers }).create();
+      const response = await signInAsync({ username: 'testuser', password: 'password' });
+      ({ authToken } = await response.json());
+    });
+
+    afterEach(async () => {
+      await cleanDB($pg_database);
+    });
+
+    // These tests do requests to the provider urls. They will fail if those urls cannot be reached.
+    for (const provider of ['facebook']) {
+      context(`when provider is "${provider}"`, () => {
+        it('should respond with a script postMessage-ing an error from provider', (done) => {
+          request
+            .get(`${app.context.config.host}/v2/oauth/${provider}/authz/callback`)
+            .query({ code: 123, authToken })
+            .end((err, res) => {
+              const dom = propagateJsdomErrors(res.text);
+              expect(
+                dom.window.opener.postMessage,
+                'to have calls satisfying',
+                () => {
+                  dom.window.opener.postMessage({ error: expect.it('to be a', 'string') }, '*');
+                }
+              );
+              done();
+            });
+        });
+      });
+    }
+
+    context('when provider is unknown', () => {
+      it('should respond with 404 Not Found', (done) => {
+        request
+          .get(`${app.context.config.host}/v2/oauth/something/authz/callback`)
+          .query({ code: 123 })
+          .end((err, res) => {
+            expect(res.status, 'to equal', 404);
+            done();
+          });
+      });
+    });
+  });
+
   describe('#link()', () => {
     let authToken;
     beforeEach(async () => {
