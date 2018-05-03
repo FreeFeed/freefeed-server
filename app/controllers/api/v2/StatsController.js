@@ -4,12 +4,26 @@ import { dbAdapter } from '../../../models';
 export default class StatsController {
   static async stats(ctx) {
     const MAX_STATS_PERIOD = 365 * 2; // 2 years
-    const MIN_START_DATE = moment().subtract(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+    const MIN_START_DATE = moment('20150504');  // FreeFeed launched
+
+    const DEFAULT_START_DATE = moment().subtract(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
     const DEFAULT_END_DATE = moment().format('YYYY-MM-DD');
 
     const data = ctx.request.query.data || 'users';
-    const start_date = ctx.request.query.start_date || MIN_START_DATE;
-    const end_date = ctx.request.query.end_date || DEFAULT_END_DATE;
+    let { start_date, end_date } = ctx.request.query;
+
+    if (!start_date) {
+      if (end_date) {
+        start_date = moment(end_date).subtract(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+      } else {
+        start_date = DEFAULT_START_DATE;
+        end_date = DEFAULT_END_DATE;
+      }
+    }
+
+    if (!end_date) {
+      end_date = moment(start_date).add(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+    }
 
     let start = moment(start_date);
     let end = moment(end_date);
@@ -22,6 +36,11 @@ export default class StatsController {
     // adjust if start is before MIN_START_DATE
     if (start.isBefore(MIN_START_DATE)) {
       start = moment(MIN_START_DATE);
+    }
+
+    // adjust if end is before MIN_START_DATE
+    if (end.isBefore(MIN_START_DATE)) {
+      end = moment(MIN_START_DATE);
     }
 
     // fail if end < start
