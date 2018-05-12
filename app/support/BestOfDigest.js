@@ -25,6 +25,10 @@ export async function sendBestOfEmails() {
     const digestDate = moment().format('MMMM Do YYYY');
 
     const dailySummary = await getSummary(u, 1);
+    if (!dailySummary.posts.length) {
+      debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
+      return;
+    }
     await sendDailyBestOfEmail(u, dailySummary, digestDate);
 
     debug(`[${u.username}] email is queued: OK`);
@@ -86,5 +90,8 @@ async function getSummary(user, days) {
   };
 
   await generalSummary(ctx);
+  if (!ctx.body.posts.length) {
+    return ctx.body;
+  }
   return preparePosts(ctx.body, user);
 }
