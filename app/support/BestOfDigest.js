@@ -10,30 +10,22 @@ import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 export async function sendBestOfEmails() {
   const debug = createDebug('freefeed:sendBestOfEmails');
 
-  const users = await dbAdapter.getDailyBestOfDigestRecipients();
-  debug(`getDailyBestOfDigestRecipients returned ${users.length} records`);
+  const dailyDigestRecipients = await dbAdapter.getDailyBestOfDigestRecipients();
+  debug(`getDailyBestOfDigestRecipients returned ${dailyDigestRecipients.length} records`);
 
-  const emailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(users.map((u) => u.intId));
+  const dailyEmailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(dailyDigestRecipients.map((u) => u.intId));
 
-  const promises = users.map(async (u) => {
-    const digestSentAt = emailsSentAt[u.intId];
+  const dailyDigestPromises = dailyDigestRecipients.map(async (u) => {
+    const digestSentAt = dailyEmailsSentAt[u.intId];
     if (!shouldSendDailyBestOfDigest(digestSentAt)) {
       debug(`[${u.username}] shouldSendDailyBestOfDigest() returned falsy value: SKIP`);
       return;
     }
 
-    const ctx = {
-      request: { query: {} },
-      state:   { user: u },
-      params:  { days: 1 }
-    };
-
-    await generalSummary(ctx);
-
     const digestDate = moment().format('MMMM Do YYYY');
 
-    const preparedPayload = preparePosts(ctx.body, u);
-    await sendDailyBestOfEmail(u, preparedPayload, digestDate);
+    const dailySummary = await getSummary(u, 1);
+    await sendDailyBestOfEmail(u, dailySummary, digestDate);
 
     debug(`[${u.username}] email is queued: OK`);
 
@@ -42,7 +34,7 @@ export async function sendBestOfEmails() {
   });
 
   debug('waiting for all promised actions to finish');
-  await Promise.all(promises);
+  await Promise.all(dailyDigestPromises);
   debug('all promised actions are finished');
 }
 
@@ -84,4 +76,15 @@ function preparePosts(payload, user) {
 
   payload.user = user;
   return payload;
+}
+
+async function getSummary(user, days) {
+  const ctx = {
+    request: { query: {} },
+    state:   { user },
+    params:  { days }
+  };
+
+  await generalSummary(ctx);
+  return preparePosts(ctx.body, user);
 }
