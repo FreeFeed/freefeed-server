@@ -99,26 +99,21 @@ export default class PostsController {
     },
   ]);
 
-  static async destroy(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static destroy = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      if (post.userId != user.id) {
+        throw new ForbiddenException("You can't delete another user's post")
+      }
 
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
-
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't delete another user's post")
-    }
-
-    await post.destroy()
-    ctx.body = {};
-
-    monitor.increment('posts.destroys');
-  }
+      await post.destroy()
+      monitor.increment('posts.destroys');
+      ctx.body = {};
+    },
+  ]);
 
   static async hide(ctx) {
     if (!ctx.state.user) {
