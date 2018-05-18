@@ -27,14 +27,8 @@ export async function sendBestOfEmails() {
       continue;
     }
 
-    const ctx = {
-      request: { query: {} },
-      state:   { user: u },
-      params:  { days: 1 }
-    };
-
     debug(`[${u.username}] -> getSummary()`);
-    const dailySummary = await getSummary(u, 1);
+    const dailySummary = await getSummary(u, 1);  // eslint-disable-line no-await-in-loop
 
     if (!dailySummary.posts.length) {
       debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
