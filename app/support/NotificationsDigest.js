@@ -44,8 +44,8 @@ export async function sendEmails() {
     await sendEventsDigestEmail(u, serializedEvents.events, serializedEvents.users, serializedEvents.groups, digestInterval);
     debug(`[${u.username}] email is queued: OK`);
 
-    await dbAdapter.addNotificationEmailLogEntry(u.intId, u.email);
-    debug(`[${u.username}] added entry to notification_email_log`);
+    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'notification');
+    debug(`[${u.username}] added entry to sent_emails_log`);
   });
 
   debug('waiting for all promised actions to finish');
