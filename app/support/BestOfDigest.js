@@ -10,17 +10,17 @@ import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 export async function sendBestOfEmails() {
   const debug = createDebug('freefeed:sendBestOfEmails');
 
-  const users = await dbAdapter.getDailyBestOfDigestRecipients();
-  debug(`getDailyBestOfDigestRecipients returned ${users.length} records`);
+  const dailyDigestRecipients = await dbAdapter.getDailyBestOfDigestRecipients();
+  debug(`getDailyBestOfDigestRecipients returned ${dailyDigestRecipients.length} records`);
 
   const digestDate = moment().format('MMMM Do YYYY');
-  const emailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(users.map((u) => u.intId));
+  const dailyEmailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(dailyDigestRecipients.map((u) => u.intId));
 
   debug('Starting iteration over users');
-  for (const u of users) {
+  for (const u of dailyDigestRecipients) {
     debug(`[${u.username}]…`);
 
-    const digestSentAt = emailsSentAt[u.intId];
+    const digestSentAt = dailyEmailsSentAt[u.intId];
 
     if (!shouldSendDailyBestOfDigest(digestSentAt)) {
       debug(`[${u.username}] shouldSendDailyBestOfDigest() returned falsy value: SKIP`);
@@ -33,14 +33,16 @@ export async function sendBestOfEmails() {
       params:  { days: 1 }
     };
 
-    debug(`[${u.username}] -> generalSummary()`);
-    await generalSummary(ctx);  // eslint-disable-line no-await-in-loop
+    debug(`[${u.username}] -> getSummary()`);
+    const dailySummary = await getSummary(u, 1);
 
-    debug(`[${u.username}] -> preparePosts()`);
-    const preparedPayload = preparePosts(ctx.body, u);
+    if (!dailySummary.posts.length) {
+      debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
+      continue;
+    }
 
     debug(`[${u.username}] -> sendDailyBestOfEmail()`);
-    await sendDailyBestOfEmail(u, preparedPayload, digestDate);  // eslint-disable-line no-await-in-loop
+    await sendDailyBestOfEmail(u, dailySummary, digestDate);  // eslint-disable-line no-await-in-loop
 
     debug(`[${u.username}] -> email is queued`);
 
@@ -88,4 +90,18 @@ function preparePosts(payload, user) {
 
   payload.user = user;
   return payload;
+}
+
+async function getSummary(user, days) {
+  const ctx = {
+    request: { query: {} },
+    state:   { user },
+    params:  { days }
+  };
+
+  await generalSummary(ctx);
+  if (!ctx.body.posts.length) {
+    return ctx.body;
+  }
+  return preparePosts(ctx.body, user);
 }
