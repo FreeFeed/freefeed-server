@@ -11,7 +11,8 @@ import {
   createAndReturnPostToFeed,
   disableComments,
   enableComments,
-  createCommentAsync
+  createCommentAsync,
+  removeCommentAsync
 } from './functional_test_helper';
 
 describe('Group Moderation', () => {
@@ -84,6 +85,29 @@ describe('Group Moderation', () => {
             expect(response.status, 'to be', 403);
           });
         });
+      });
+    });
+
+    describe('Delete comments', () => {
+      let commentId;
+      beforeEach(async () => {
+        const response = await createCommentAsync(luna, post.id, 'My comment');
+        ({ comments: { id: commentId } } = await response.json());
+      });
+
+      it('should allow Luna to delete comment', async () => {
+        const response = await removeCommentAsync(luna, commentId);
+        expect(response.status, 'to be', 200);
+      });
+
+      it('should allow Mars to delete comment', async () => {
+        const response = await removeCommentAsync(mars, commentId);
+        expect(response.status, 'to be', 200);
+      });
+
+      it('should not allow Venus to delete comment', async () => {
+        const response = await removeCommentAsync(venus, commentId);
+        expect(response.status, 'to be', 403);
       });
     });
   });

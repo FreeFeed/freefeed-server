@@ -103,7 +103,7 @@ export const destroy = compose([
       throw new ForbiddenException('You can not destroy a deleted comment');
     }
 
-    if (comment.userId !== user.id && post.userId !== user.id) {
+    if (comment.userId !== user.id && !await post.isAuthorOrGroupAdmin(user)) {
       throw new ForbiddenException("You don't have permission to delete this comment");
     }
 
