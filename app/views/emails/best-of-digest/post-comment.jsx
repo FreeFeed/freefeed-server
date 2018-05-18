@@ -7,12 +7,15 @@ import UserName from './user-name';
 
 export default class PostComment extends React.Component {
   renderBody() {
-    const authorAndButtons = (
-      <span>
-        {' -'}&nbsp;
-        <UserName user={this.props.createdBy} me={this.props.me}/>
-      </span>
-    );
+    let authorAndButtons = '';
+    if (!this.props.hideType) {
+      authorAndButtons = (
+        <span>
+          {' -'}&nbsp;
+          <UserName user={this.props.createdBy} me={this.props.me}/>
+        </span>
+      );
+    }
 
     return (
       <div className="comment-body">
@@ -36,10 +39,7 @@ export default class PostComment extends React.Component {
 
 
     return (
-      <div
-        className={className}
-        data-author={this.props.createdBy.username}
-      >
+      <div className={className}>
         {this.renderBody()}
       </div>
     );
