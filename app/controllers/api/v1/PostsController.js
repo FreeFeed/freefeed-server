@@ -150,45 +150,33 @@ export default class PostsController {
     ctx.body = {};
   }
 
-  static async disableComments(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static disableComments = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (post.userId !== user.id) {
+        throw new ForbiddenException("You can't disable comments for another user's post");
+      }
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      await post.setCommentsDisabled('1');
+      ctx.body = {};
+    },
+  ]);
 
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
+  static enableComments = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (post.userId !== user.id) {
+        throw new ForbiddenException("You can't enable comments for another user's post");
+      }
 
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't disable comments for another user's post")
-    }
-
-    await post.setCommentsDisabled('1')
-
-    ctx.body = {};
-  }
-
-  static async enableComments(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
-
-    const post = await dbAdapter.getPostById(ctx.params.postId)
-
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
-
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't enable comments for another user's post")
-    }
-
-    await post.setCommentsDisabled('0')
-
-    ctx.body = {};
-  }
+      await post.setCommentsDisabled('0');
+      ctx.body = {};
+    },
+  ]);
 }
 
 /**
