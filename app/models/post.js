@@ -774,6 +774,21 @@ export function addModel(dbAdapter) {
         }
       }
     }
+
+    /**
+     * Returns true if user is the post author or one of group(s)
+     * admins if post was posted to group(s).
+     *
+     * @param {User} user
+     * @returns {boolean}
+     */
+    async isAuthorOrGroupAdmin(user) {
+      if (this.userId === user.id) {
+        return true;
+      }
+      const admins = await dbAdapter.getAdminsOfPostGroups(this.id);
+      return admins.some((a) => a.id === user.id);
+    }
   }
 
   return Post;

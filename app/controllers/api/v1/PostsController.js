@@ -155,7 +155,7 @@ export default class PostsController {
     postAccessRequired(),
     async (ctx) => {
       const { user, post } = ctx.state;
-      if (post.userId !== user.id) {
+      if (!await post.isAuthorOrGroupAdmin(user)) {
         throw new ForbiddenException("You can't disable comments for another user's post");
       }
 
@@ -169,7 +169,7 @@ export default class PostsController {
     postAccessRequired(),
     async (ctx) => {
       const { user, post } = ctx.state;
-      if (post.userId !== user.id) {
+      if (!await post.isAuthorOrGroupAdmin(user)) {
         throw new ForbiddenException("You can't enable comments for another user's post");
       }
 

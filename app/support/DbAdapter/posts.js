@@ -738,6 +738,21 @@ const postsTrait = (superClass) => class extends superClass {
     );
     return rows.length > 0;
   }
+
+  async getAdminsOfPostGroups(postUID) {
+    const { rows } = await this.database.raw(
+      `select distinct(ga.user_id) from
+        posts p
+        join feeds f on array[f.id] && p.destination_feed_ids
+        join users owners on owners.uid = f.user_id
+        join group_admins ga on owners.uid = ga.group_id
+      where
+        p.uid = :postUID
+      `, { postUID }
+    );
+    const adminIds = _.map(rows, 'user_id');
+    return this.getUsersByIds(adminIds);
+  }
 };
 
 export default postsTrait;

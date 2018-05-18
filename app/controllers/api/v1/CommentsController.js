@@ -22,7 +22,7 @@ export const create = compose([
     const { user: author, post } = ctx.state;
     const { comment: { body, postId } } = ctx.request.body;
 
-    if (post.commentsDisabled === '1' && post.userId !== author.id) {
+    if (post.commentsDisabled === '1' && !await post.isAuthorOrGroupAdmin(author)) {
       throw new ForbiddenException('Comments disabled');
     }
 
