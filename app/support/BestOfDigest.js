@@ -13,13 +13,18 @@ export async function sendBestOfEmails() {
   const users = await dbAdapter.getDailyBestOfDigestRecipients();
   debug(`getDailyBestOfDigestRecipients returned ${users.length} records`);
 
+  const digestDate = moment().format('MMMM Do YYYY');
   const emailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(users.map((u) => u.intId));
 
-  const promises = users.map(async (u) => {
+  debug('Starting iteration over users');
+  for (const u of users) {
+    debug(`[${u.username}]…`);
+
     const digestSentAt = emailsSentAt[u.intId];
+
     if (!shouldSendDailyBestOfDigest(digestSentAt)) {
       debug(`[${u.username}] shouldSendDailyBestOfDigest() returned falsy value: SKIP`);
-      return;
+      continue;
     }
 
     const ctx = {
@@ -28,22 +33,21 @@ export async function sendBestOfEmails() {
       params:  { days: 1 }
     };
 
-    await generalSummary(ctx);
+    debug(`[${u.username}] -> generalSummary()`);
+    await generalSummary(ctx);  // eslint-disable-line no-await-in-loop
 
-    const digestDate = moment().format('MMMM Do YYYY');
-
+    debug(`[${u.username}] -> preparePosts()`);
     const preparedPayload = preparePosts(ctx.body, u);
-    await sendDailyBestOfEmail(u, preparedPayload, digestDate);
 
-    debug(`[${u.username}] email is queued: OK`);
+    debug(`[${u.username}] -> sendDailyBestOfEmail()`);
+    await sendDailyBestOfEmail(u, preparedPayload, digestDate);  // eslint-disable-line no-await-in-loop
 
-    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'daily_best_of');
-    debug(`[${u.username}] added entry to sent_emails_log`);
-  });
+    debug(`[${u.username}] -> email is queued`);
 
-  debug('waiting for all promised actions to finish');
-  await Promise.all(promises);
-  debug('all promised actions are finished');
+    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'daily_best_of');  // eslint-disable-line no-await-in-loop
+    debug(`[${u.username}] -> added entry to sent_emails_log`);
+  }
+  debug('Finished iterating over users');
 }
 
 export function shouldSendDailyBestOfDigest(digestSentAt, now) {
