@@ -10,40 +10,40 @@ import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 export async function sendBestOfEmails() {
   const debug = createDebug('freefeed:sendBestOfEmails');
 
-  const users = await dbAdapter.getDailyBestOfDigestRecipients();
-  debug(`getDailyBestOfDigestRecipients returned ${users.length} records`);
+  const dailyDigestRecipients = await dbAdapter.getDailyBestOfDigestRecipients();
+  debug(`getDailyBestOfDigestRecipients returned ${dailyDigestRecipients.length} records`);
 
-  const emailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(users.map((u) => u.intId));
+  const digestDate = moment().format('MMMM Do YYYY');
+  const dailyEmailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(dailyDigestRecipients.map((u) => u.intId));
 
-  const promises = users.map(async (u) => {
-    const digestSentAt = emailsSentAt[u.intId];
+  debug('Starting iteration over users');
+  for (const u of dailyDigestRecipients) {
+    debug(`[${u.username}]…`);
+
+    const digestSentAt = dailyEmailsSentAt[u.intId];
+
     if (!shouldSendDailyBestOfDigest(digestSentAt)) {
       debug(`[${u.username}] shouldSendDailyBestOfDigest() returned falsy value: SKIP`);
-      return;
+      continue;
     }
 
-    const ctx = {
-      request: { query: {} },
-      state:   { user: u },
-      params:  { days: 1 }
-    };
+    debug(`[${u.username}] -> getSummary()`);
+    const dailySummary = await getSummary(u, 1);  // eslint-disable-line no-await-in-loop
 
-    await generalSummary(ctx);
+    if (!dailySummary.posts.length) {
+      debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
+      continue;
+    }
 
-    const digestDate = moment().format('MMMM Do YYYY');
+    debug(`[${u.username}] -> sendDailyBestOfEmail()`);
+    await sendDailyBestOfEmail(u, dailySummary, digestDate);  // eslint-disable-line no-await-in-loop
 
-    const preparedPayload = preparePosts(ctx.body, u);
-    await sendDailyBestOfEmail(u, preparedPayload, digestDate);
+    debug(`[${u.username}] -> email is queued`);
 
-    debug(`[${u.username}] email is queued: OK`);
-
-    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'daily_best_of');
-    debug(`[${u.username}] added entry to sent_emails_log`);
-  });
-
-  debug('waiting for all promised actions to finish');
-  await Promise.all(promises);
-  debug('all promised actions are finished');
+    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'daily_best_of');  // eslint-disable-line no-await-in-loop
+    debug(`[${u.username}] -> added entry to sent_emails_log`);
+  }
+  debug('Finished iterating over users');
 }
 
 export function shouldSendDailyBestOfDigest(digestSentAt, now) {
@@ -84,4 +84,18 @@ function preparePosts(payload, user) {
 
   payload.user = user;
   return payload;
+}
+
+async function getSummary(user, days) {
+  const ctx = {
+    request: { query: {} },
+    state:   { user },
+    params:  { days }
+  };
+
+  await generalSummary(ctx);
+  if (!ctx.body.posts.length) {
+    return ctx.body;
+  }
+  return preparePosts(ctx.body, user);
 }
