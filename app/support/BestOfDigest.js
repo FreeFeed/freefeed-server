@@ -3,7 +3,7 @@ import createDebug from 'debug';
 import _ from 'lodash';
 
 import { dbAdapter } from '../models';
-import { sendDailyBestOfEmail } from '../mailers/BestOfDigestMailer';
+import { sendDailyBestOfEmail, sendWeeklyBestOfEmail } from '../mailers/BestOfDigestMailer';
 import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 
 
@@ -16,7 +16,8 @@ export async function sendBestOfEmails() {
   const dailyDigestRecipients = await dbAdapter.getDailyBestOfDigestRecipients();
   debug(`getDailyBestOfDigestRecipients returned ${dailyDigestRecipients.length} records`);
 
-  const digestDate = moment().format('MMMM Do YYYY');
+  const dailyDigestDate = moment().format('MMMM Do YYYY');
+  const weeklyDigestDate = moment().subtract(7, 'days').format('MMMM Do YYYY');
   const weeklyEmailsSentAt = await dbAdapter.getWeeklyBestOfEmailSentAt(weeklyDigestRecipients.map((u) => u.intId));
   const dailyEmailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(dailyDigestRecipients.map((u) => u.intId));
 
@@ -38,11 +39,11 @@ export async function sendBestOfEmails() {
     }
 
     debug(`[${u.username}] -> sendDailyBestOfEmail()`);
-    await sendDailyBestOfEmail(u, weeklySummary, digestDate);  // eslint-disable-line no-await-in-loop
+    await sendWeeklyBestOfEmail(u, weeklySummary, weeklyDigestDate);  // eslint-disable-line no-await-in-loop
 
     debug(`[${u.username}] -> email is queued`);
 
-    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'weekly_best_of');
+    await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'weekly_best_of');  // eslint-disable-line no-await-in-loop
     weeklyEmailsSentAt[u.intId] = moment();
 
     debug(`[${u.username}] -> added entry to sent_emails_log`);
@@ -67,7 +68,7 @@ export async function sendBestOfEmails() {
     }
 
     debug(`[${u.username}] -> sendDailyBestOfEmail()`);
-    await sendDailyBestOfEmail(u, dailySummary, digestDate);  // eslint-disable-line no-await-in-loop
+    await sendDailyBestOfEmail(u, dailySummary, dailyDigestDate);  // eslint-disable-line no-await-in-loop
 
     debug(`[${u.username}] -> email is queued`);
 

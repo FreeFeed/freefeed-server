@@ -62,7 +62,6 @@ describe('BestOfDigest', () => {
           await expect(shouldSendDailyBestOfDigest(sentAt, weeklyDigestSentAt, now), 'to be', false);
         });
       });
-
     });
 
     describe('if weekly digest sent today', () => {
