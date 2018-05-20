@@ -141,6 +141,7 @@ describe('UsersControllerV2', () => {
         subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
         subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
         preferences:                 expect.it('to satisfy', (data) => expect(validateUserPrefs(data), 'to be an object')),
+        providers:                   expect.it('to be an object'),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {

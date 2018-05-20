@@ -22,6 +22,9 @@ export function getConfig() {
     frontendPreferencesLimit: 65536,
 
     dynamicRiverOfNews: true,
+
+    // needed for retrieving authToken from cookies (for OAuth callbacks)
+    authTokenPrefix: 'freefeed_',
   };
 
   config.host = `http://localhost:${config.port}`;
@@ -85,6 +88,15 @@ export function getConfig() {
     host:    'localhost',
     port:    6379,
     options: {}
+  };
+
+  config.oauth = {
+    facebookClientId:     'test',
+    facebookClientSecret: 'test',
+    googleClientId:       'test',
+    googleClientSecret:   'test',
+    githubClientId:       'test',
+    githubClientSecret:   'test',
   };
 
   config.postgres = postgresConfig;

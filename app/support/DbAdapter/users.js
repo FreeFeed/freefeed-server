@@ -88,6 +88,17 @@ const usersTrait = (superClass) => class extends superClass {
     return users
   }
 
+  async getUserByProviderId(provider, id) {
+    const attrs = await this.database('users').first().whereRaw(`providers->'${provider}'->>'id' = ?`, id);
+    return initUserObject(attrs);
+  }
+
+  async getUsersByProviderIds(provider, ids) {
+    const attrs = await this.database('users').whereRaw(`providers->'${provider}'->>'id' in ?`, ids);
+    const users = attrs.map((attrs) => initUserObject(attrs));
+    return users;
+  }
+
   async getUserByUsername(username) {
     const feed = await this.getFeedOwnerByUsername(username)
 
@@ -347,6 +358,7 @@ const USER_COLUMNS = {
   resetPasswordExpiresAt: 'reset_password_expires_at',
   frontendPreferences:    'frontend_preferences',
   preferences:            'preferences',
+  providers:              'providers',
 };
 
 const USER_COLUMNS_MAPPING = {
@@ -400,6 +412,7 @@ const USER_FIELDS = {
   subscribed_feed_ids:       'subscribedFeedIds',
   private_meta:              'privateMeta',
   preferences:               'preferences',
+  providers:                 'providers',
 };
 
 const USER_FIELDS_MAPPING = {

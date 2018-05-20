@@ -38,6 +38,7 @@ export function addModel(dbAdapter) {
     this.description = params.description || ''
     this.frontendPreferences = params.frontendPreferences || {}
     this.preferences = validateUserPrefs(params.preferences, true);
+    this.providers = params.providers || {};
 
     if (!_.isUndefined(params.hashedPassword)) {
       this.hashedPassword = params.hashedPassword
@@ -324,7 +325,7 @@ export function addModel(dbAdapter) {
     await Promise.all(promises)
   }
 
-  User.prototype.create = async function (skip_stoplist) {
+  User.prototype.create = async function (skip_stoplist, generate_password = false) {
     this.createdAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
     this.screenName = this.screenName || this.username
@@ -332,7 +333,14 @@ export function addModel(dbAdapter) {
     await this.validateOnCreate(skip_stoplist)
 
     const timer = monitor.timer('users.create-time')
-    await this.initPassword()
+
+    if (generate_password) {
+      const bytes = await crypto.randomBytesAsync(24)
+      const password = bytes.toString('base64')
+      this.hashedPassoword = await bcrypt.hash(password, 10)
+    } else {
+      await this.initPassword();
+    }
 
     const payload = {
       'username':            this.username,
@@ -347,6 +355,7 @@ export function addModel(dbAdapter) {
       'hashedPassword':      this.hashedPassword,
       'frontendPreferences': JSON.stringify({}),
       'preferences':         this.preferences,
+      'providers':           this.providers,
     };
 
     [this.id, this.intId] = await dbAdapter.createUser(payload);
@@ -1108,6 +1117,16 @@ export function addModel(dbAdapter) {
   User.prototype.getUnreadNotificationsNumber = function () {
     return dbAdapter.getUnreadEventsNumber(this.id);
   };
+
+  User.prototype.linkProvider = async function (providerName, profile) {
+    this.providers[providerName] = profile;
+    await dbAdapter.updateUser(this.id, { providers: this.providers });
+  }
+
+  User.prototype.unlinkProvider = async function (provider) {
+    Reflect.deleteProperty(this.providers, provider);
+    await dbAdapter.updateUser(this.id, { providers: this.providers });
+  }
 
   return User
 }
