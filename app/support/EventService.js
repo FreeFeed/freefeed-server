@@ -193,6 +193,70 @@ export class EventService {
     await Promise.all(affectedUsers.map((u) => pubSub.updateUnreadNotifications(u.intId)));
   }
 
+  static async onCommentDestroyed(comment, destroyedBy) {
+    if (destroyedBy.id === comment.userId) {
+      return;
+    }
+
+    const [
+      post,
+      commentAuthor,
+      destroyerGroups,
+    ] = await Promise.all([
+      comment.getPost(),
+      dbAdapter.getUserById(comment.userId),
+      destroyedBy.getManagedGroups(),
+    ]);
+
+    const [
+      postGroupAdmins,
+      postAuthor,
+      postGroups,
+    ] = await Promise.all([
+      dbAdapter.getAdminsOfPostGroups(post.id),
+      dbAdapter.getUserById(post.userId),
+      post.getGroupsPostedTo(),
+    ]);
+
+    // Message to the comment author
+    {
+      // Is post belongs to any group managed by destroyer?
+      const groups = _.intersectionBy(destroyerGroups, postGroups, 'id');
+      await dbAdapter.createEvent(
+        commentAuthor.intId,
+        EVENT_TYPES.COMMENT_MODERATED,
+        destroyedBy.intId,
+        null,
+        groups.length === 0 ? null : groups[0].intId,
+        post.id,
+        null,
+        postAuthor.intId,
+      );
+    }
+
+    if (post.userId === destroyedBy.id || postGroups.length === 0) {
+      return;
+    }
+
+    // Messages to other groups admins (but not to comment author and not to destroyer)
+    const otherAdmins = postGroupAdmins.filter((a) => a.id !== destroyedBy.id && a.id !== comment.userId);
+
+    await Promise.all(otherAdmins.map(async (a) => {
+      const managedGroups = await a.getManagedGroups();
+      const groups = _.intersectionBy(managedGroups, postGroups, 'id');
+      await dbAdapter.createEvent(
+        a.intId,
+        EVENT_TYPES.COMMENT_DELETED_BY_ANOTHER_ADMIN,
+        destroyedBy.intId,
+        commentAuthor.intId,
+        groups[0].intId,
+        post.id,
+        null,
+        postAuthor.intId,
+      );
+    }));
+  }
+
   ////////////////////////////////////////////
 
   static async _processDirectMessagesForPost(post, destinationFeeds, author) {

@@ -4,6 +4,7 @@ import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app';
+import { EVENT_TYPES } from '../../app/support/EventTypes';
 import {
   createTestUsers,
   createGroupAsync,
@@ -12,7 +13,10 @@ import {
   disableComments,
   enableComments,
   createCommentAsync,
-  removeCommentAsync
+  removeCommentAsync,
+  promoteToAdmin,
+  createTestUser,
+  getUserEvents
 } from './functional_test_helper';
 
 describe('Group Moderation', () => {
@@ -22,11 +26,11 @@ describe('Group Moderation', () => {
 
   beforeEach(() => cleanDB($pg_database));
 
-  describe('Mars creates group Celestials, Luna writes post to group, Venus is stranger', () => {
-    let luna, mars, venus, post;
+  describe('Mars creates group Celestials, Luna writes post to group, Venus is a stranger', () => {
+    let luna, mars, venus, celestials, post;
     beforeEach(async () => {
       [luna, mars, venus] = await createTestUsers(3);
-      const { group: celestials } = await createGroupAsync(mars, 'celestials', 'Celestials');
+      celestials = await createGroupAsync(mars, 'celestials', 'Celestials');
       await subscribeToAsync(luna, celestials);
       post = await createAndReturnPostToFeed([celestials], luna, 'My post');
     });
@@ -91,8 +95,7 @@ describe('Group Moderation', () => {
     describe('Delete comments', () => {
       let commentId;
       beforeEach(async () => {
-        const response = await createCommentAsync(luna, post.id, 'My comment');
-        ({ comments: { id: commentId } } = await response.json());
+        commentId = await createCommentAndReturnId(luna, post.id);
       });
 
       it('should allow Luna to delete comment', async () => {
@@ -110,5 +113,110 @@ describe('Group Moderation', () => {
         expect(response.status, 'to be', 403);
       });
     });
+
+    describe('Delete comments: notifications', () => {
+      describe('Mars and Jupiter are admins of Celestials and Gods, Luna wrote post to both groups, Mars and Luna comments post', () => {
+        let jupiter, gods;
+        let marsCommentId, lunaCommentId;
+        const commentModerationEvents = [EVENT_TYPES.COMMENT_MODERATED, EVENT_TYPES.COMMENT_DELETED_BY_ANOTHER_ADMIN];
+
+        beforeEach(async () => {
+          jupiter = await createTestUser();
+          gods = await createGroupAsync(mars, 'gods', 'Gods');
+          await Promise.all([
+            subscribeToAsync(luna, gods),
+            promoteToAdmin({ username: 'celestials' }, mars, jupiter),
+            promoteToAdmin({ username: 'gods' }, mars, jupiter),
+          ]);
+          post = await createAndReturnPostToFeed([{ username: 'celestials' }, { username: 'gods' }], luna, 'My post');
+          [
+            marsCommentId,
+            lunaCommentId,
+          ] = await Promise.all([
+            createCommentAndReturnId(mars, post.id),
+            createCommentAndReturnId(luna, post.id),
+          ]);
+        });
+
+        it('should not create notifications when Mars removes their comment', async () => {
+          await removeCommentAsync(mars, marsCommentId);
+          const marsEvents = await getFilteredEvents(mars, commentModerationEvents);
+          const lunaEvents = await getFilteredEvents(luna, commentModerationEvents);
+          const jupiterEvents = await getFilteredEvents(jupiter, commentModerationEvents);
+          expect(marsEvents, 'to be empty');
+          expect(lunaEvents, 'to be empty');
+          expect(jupiterEvents, 'to be empty');
+        });
+
+        it('should create only Mars notification when Luna removes Mars comment', async () => {
+          await removeCommentAsync(luna, marsCommentId);
+          const marsEvents = await getFilteredEvents(mars, commentModerationEvents);
+          const lunaEvents = await getFilteredEvents(luna, commentModerationEvents);
+          const jupiterEvents = await getFilteredEvents(jupiter, commentModerationEvents);
+          expect(marsEvents, 'to satisfy', [
+            {
+              event_type:      EVENT_TYPES.COMMENT_MODERATED,
+              created_user_id: luna.user.id,
+              post_id:         post.id,
+            }
+          ]);
+          expect(lunaEvents, 'to be empty');
+          expect(jupiterEvents, 'to be empty');
+        });
+
+        it('should create only Mars notification when Jupiter removes Mars comment', async () => {
+          await removeCommentAsync(jupiter, marsCommentId);
+          const marsEvents = await getFilteredEvents(mars, commentModerationEvents);
+          const lunaEvents = await getFilteredEvents(luna, commentModerationEvents);
+          const jupiterEvents = await getFilteredEvents(jupiter, commentModerationEvents);
+          expect(marsEvents, 'to satisfy', [
+            {
+              event_type:      EVENT_TYPES.COMMENT_MODERATED,
+              created_user_id: jupiter.user.id,
+              post_id:         post.id,
+              group_id:        expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            }
+          ]);
+          expect(lunaEvents, 'to be empty');
+          expect(jupiterEvents, 'to be empty');
+        });
+
+        it('should create Luna and Jupiter notification when Mars removes Luna comment', async () => {
+          await removeCommentAsync(mars, lunaCommentId);
+          const marsEvents = await getFilteredEvents(mars, commentModerationEvents);
+          const lunaEvents = await getFilteredEvents(luna, commentModerationEvents);
+          const jupiterEvents = await getFilteredEvents(jupiter, commentModerationEvents);
+          expect(marsEvents, 'to be empty');
+          expect(lunaEvents, 'to satisfy', [
+            {
+              event_type:      EVENT_TYPES.COMMENT_MODERATED,
+              created_user_id: mars.user.id,
+              post_id:         post.id,
+              group_id:        expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            }
+          ]);
+          expect(jupiterEvents, 'to satisfy', [
+            {
+              event_type:       EVENT_TYPES.COMMENT_DELETED_BY_ANOTHER_ADMIN,
+              created_user_id:  mars.user.id,
+              affected_user_id: luna.user.id,
+              post_id:          post.id,
+              group_id:         expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            }
+          ]);
+        });
+      });
+    });
   });
 });
+
+async function createCommentAndReturnId(userCtx, postId) {
+  const response = await createCommentAsync(userCtx, postId, 'Just a comment');
+  const { comments: { id: commentId } } = await response.json();
+  return commentId;
+}
+
+async function getFilteredEvents(userCtx, eventTypes) {
+  const resp = await getUserEvents(userCtx);
+  return resp.Notifications.filter((n) => eventTypes.includes(n.event_type));
+}

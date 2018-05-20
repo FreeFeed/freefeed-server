@@ -107,7 +107,7 @@ export const destroy = compose([
       throw new ForbiddenException("You don't have permission to delete this comment");
     }
 
-    await comment.destroy();
+    await comment.destroy(user);
     monitor.increment('comments.destroys');
 
     ctx.body = {};
