@@ -753,6 +753,25 @@ const postsTrait = (superClass) => class extends superClass {
     const adminIds = _.map(rows, 'user_id');
     return this.getUsersByIds(adminIds);
   }
+
+  /**
+   * Return all groups post posted to or empty array
+   *
+   * @returns {Array.<User>}
+   */
+  async getPostGroups(postUID) {
+    const { rows } = await this.database.raw(
+      `select distinct(owners.uid) from
+        posts p
+        join feeds f on array[f.id] && p.destination_feed_ids
+        join users owners on owners.uid = f.user_id and owners.type = 'group'
+      where
+        p.uid = :postUID
+      `, { postUID }
+    );
+    const adminIds = _.map(rows, 'uid');
+    return this.getUsersByIds(adminIds);
+  }
 };
 
 export default postsTrait;
