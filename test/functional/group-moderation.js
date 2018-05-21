@@ -16,7 +16,9 @@ import {
   removeCommentAsync,
   promoteToAdmin,
   createTestUser,
-  getUserEvents
+  getUserEvents,
+  deletePostAsync,
+  fetchPost
 } from './functional_test_helper';
 
 describe('Group Moderation', () => {
@@ -202,6 +204,72 @@ describe('Group Moderation', () => {
               affected_user_id: luna.user.id,
               post_id:          post.id,
               group_id:         expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            }
+          ]);
+        });
+      });
+    });
+
+    describe('Delete post completely from all its feeds', () => {
+      it('should allow Luna to delete their post', async () => {
+        const response = await deletePostAsync(luna, post.id);
+        expect(response.status, 'to be', 200);
+
+        const postResponse = await fetchPost(post.id, null, { returnError: true });
+        expect(postResponse.status, 'to be', 404);
+      });
+
+      it('should allow Mars to delete Luna post', async () => {
+        const response = await deletePostAsync(mars, post.id);
+        expect(response.status, 'to be', 200);
+
+        const postResponse = await fetchPost(post.id, null, { returnError: true });
+        expect(postResponse.status, 'to be', 404);
+      });
+
+      it('should not allow Venus to delete Luna post', async () => {
+        const response = await deletePostAsync(venus, post.id);
+        expect(response.status, 'to be', 403);
+      });
+
+      describe('Notifications (Jupiter is also admin of Celestials)', () => {
+        const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_DELETED_BY_ANOTHER_ADMIN];
+
+        let jupiter;
+        beforeEach(async () => {
+          jupiter = await createTestUser();
+          await promoteToAdmin({ username: 'celestials' }, mars, jupiter);
+        });
+
+        it('should not create notifications when Luna deletes their post', async () => {
+          await deletePostAsync(luna, post.id);
+          const lunaEvents = await getFilteredEvents(luna, postModerationEvents);
+          const marsEvents = await getFilteredEvents(mars, postModerationEvents);
+          const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
+          expect(lunaEvents, 'to be empty');
+          expect(marsEvents, 'to be empty');
+          expect(jupiterEvents, 'to be empty');
+        });
+
+        it('should create Luna and Jupiter notifications when Mars deletes Luna post', async () => {
+          await deletePostAsync(mars, post.id);
+          const lunaEvents = await getFilteredEvents(luna, postModerationEvents);
+          const marsEvents = await getFilteredEvents(mars, postModerationEvents);
+          const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
+          expect(lunaEvents, 'to satisfy', [
+            {
+              event_type:      EVENT_TYPES.POST_MODERATED,
+              created_user_id: mars.user.id,
+              group_id:        celestials.group.id,
+            }
+          ]);
+          expect(marsEvents, 'to be empty');
+          expect(jupiterEvents, 'to satisfy', [
+            {
+              event_type:       EVENT_TYPES.POST_DELETED_BY_ANOTHER_ADMIN,
+              created_user_id:  mars.user.id,
+              affected_user_id: luna.user.id,
+              group_id:         celestials.group.id,
             }
           ]);
         });

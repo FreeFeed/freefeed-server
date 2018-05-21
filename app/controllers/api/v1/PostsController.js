@@ -105,13 +105,41 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      if (post.userId != user.id) {
+      if (!await post.isAuthorOrGroupAdmin(user)) {
         throw new ForbiddenException("You can't delete another user's post")
       }
 
-      await post.destroy()
-      monitor.increment('posts.destroys');
-      ctx.body = {};
+      // Post's author deletes post
+      if (post.userId === user.id) {
+        await post.destroy()
+        monitor.increment('posts.destroys');
+        ctx.body = {};
+        return;
+      }
+
+      // Group admin deletes post
+      const [
+        postDestinations,
+        userManagedGroups,
+      ] = await Promise.all([
+        post.getPostedTo(),
+        user.getManagedGroups(),
+      ]);
+      const groupsPostsFeeds = await Promise.all(
+        userManagedGroups.map((g) => dbAdapter.getUserNamedFeed(g.id, 'Posts'))
+      );
+
+      const feedsToRemain = _.differenceBy(postDestinations, groupsPostsFeeds, 'id');
+      if (feedsToRemain.length === 0) {
+        // No feeds left, deleting post
+        await post.destroy(user)
+        monitor.increment('posts.destroys');
+        ctx.body = {};
+        return;
+      }
+
+      // TODO: make partial removal
+      throw new Error('Partial removal is not implemented yet');
     },
   ]);
 

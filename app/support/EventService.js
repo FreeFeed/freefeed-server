@@ -257,6 +257,53 @@ export class EventService {
     }));
   }
 
+  static async onPostDestroyed(post, destroyedBy, params = {}) {
+    const { groups: postGroups = [] } = params;
+
+    if (destroyedBy.id === post.userId) {
+      return;
+    }
+
+    const postAuthor = await dbAdapter.getUserById(post.userId);
+
+    // Message to the post author
+    await dbAdapter.createEvent(
+      postAuthor.intId,
+      EVENT_TYPES.POST_MODERATED,
+      destroyedBy.intId,
+      null,
+      postGroups.length === 0 ? null : postGroups[0].intId,
+      null,
+      null,
+      null,
+    );
+
+    if (postGroups.length === 0) {
+      return;
+    }
+
+    const groupAdminLists = await Promise.all(postGroups.map((g) => g.getAdministrators()));
+    const groupAdmins = _.uniqBy(_.flatten(groupAdminLists), 'id');
+
+    // Messages to other groups admins (but not to post author and not to destroyer)
+    const otherAdmins = groupAdmins.filter((a) => a.id !== destroyedBy.id && a.id !== post.userId);
+
+    await Promise.all(otherAdmins.map(async (a) => {
+      const managedGroups = await a.getManagedGroups();
+      const groups = _.intersectionBy(managedGroups, postGroups, 'id');
+      await dbAdapter.createEvent(
+        a.intId,
+        EVENT_TYPES.POST_DELETED_BY_ANOTHER_ADMIN,
+        destroyedBy.intId,
+        postAuthor.intId,
+        groups[0].intId,
+        null,
+        null,
+        null,
+      );
+    }));
+  }
+
   ////////////////////////////////////////////
 
   static async _processDirectMessagesForPost(post, destinationFeeds, author) {

@@ -206,13 +206,15 @@ export function addModel(dbAdapter) {
       return this;
     }
 
-    async destroy() {
+    async destroy(destroyedBy = null) {
       const [
         realtimeRooms,
         comments,
+        groups,
       ] = await Promise.all([
         getRoomsOfPost(this),
         this.getComments(),
+        this.getGroupsPostedTo(),
         dbAdapter.statsPostDeleted(this.userId, this.id),  // needs data in DB
       ]);
 
@@ -222,7 +224,10 @@ export function addModel(dbAdapter) {
       await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id);
       await dbAdapter.deletePost(this.id);
 
-      await pubSub.destroyPost(this.id, realtimeRooms);
+      await Promise.all([
+        pubSub.destroyPost(this.id, realtimeRooms),
+        destroyedBy ? EventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
+      ]);
     }
 
     getCreatedBy() {
