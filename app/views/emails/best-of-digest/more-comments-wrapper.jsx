@@ -9,9 +9,8 @@ const MoreCommentsWrapper = (props) => (
   </div>
 );
 
-function getText({ omittedComments, omittedCommentLikes }) {
-  const omittedLikes = omittedCommentLikes > 0 ? ` with ${omittedCommentLikes} like${plural(omittedCommentLikes)}` : "";
-  return `${omittedComments} more comment${plural(omittedComments)}${omittedLikes}`;
+function getText({ omittedComments }) {
+  return `${omittedComments} more comment${plural(omittedComments)}`;
 }
 
 function plural(count) {
