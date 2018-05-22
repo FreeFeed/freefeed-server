@@ -3,7 +3,7 @@ import unexpected from 'unexpected';
 import unexpectedMoment from 'unexpected-moment';
 import moment from 'moment';
 
-import { shouldSendDailyBestOfDigest, shouldSendWeeklyBestOfDigest } from '../../../app/support/BestOfDigest';
+import { shouldSendDailyBestOfDigest, shouldSendWeeklyBestOfDigest, canMakeBestOfEmail } from '../../../app/support/BestOfDigest';
 
 const expect = unexpected.clone()
   .use(unexpectedMoment);
@@ -151,6 +151,33 @@ describe('BestOfDigest', () => {
         it('should not send weekly summary email', async () => {
           await expect(shouldSendWeeklyBestOfDigest(sentAt, now), 'to be', false);
         });
+      });
+    });
+  });
+
+  describe('canMakeBestOfEmail()', () => {
+    describe('when summaryPayload is null', () => {
+      it('should return false', async () => {
+        await expect(canMakeBestOfEmail(null), 'to be', false);
+        await expect(canMakeBestOfEmail(undefined), 'to be', false);
+      });
+    });
+
+    describe('when summaryPayload has inappropriate structure', () => {
+      it('should return false', async () => {
+        await expect(canMakeBestOfEmail({ a: 'a', b: 1 }), 'to be', false);
+      });
+    });
+
+    describe('when summaryPayload contains zero number of posts', () => {
+      it('should return false', async () => {
+        await expect(canMakeBestOfEmail({ posts: [] }), 'to be', false);
+      });
+    });
+
+    describe('when summaryPayload contains non-zero number of posts', () => {
+      it('should return true', async () => {
+        await expect(canMakeBestOfEmail({ posts: [{}] }), 'to be', true);
       });
     });
   });

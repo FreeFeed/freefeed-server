@@ -33,7 +33,7 @@ export async function sendBestOfEmails() {
     debug(`[${u.username}] -> getSummary()`);
     const weeklySummary = await getSummary(u, 7);  // eslint-disable-line no-await-in-loop
 
-    if (!weeklySummary.posts.length) {
+    if (!canMakeBestOfEmail(weeklySummary)) {
       debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
       continue;
     }
@@ -62,7 +62,7 @@ export async function sendBestOfEmails() {
     debug(`[${u.username}] -> getSummary()`);
     const dailySummary = await getSummary(u, 1);  // eslint-disable-line no-await-in-loop
 
-    if (!dailySummary.posts.length) {
+    if (!canMakeBestOfEmail(dailySummary)) {
       debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
       continue;
     }
@@ -98,6 +98,14 @@ export function shouldSendDailyBestOfDigest(dailyDigestSentAt, weeklyDigestSentA
   const dayAgo = wrappedNow.clone().subtract(1, 'days').add(30, 'minutes');
 
   return wrappedDailyDigestSentAt.isBefore(dayAgo) && wrappedWeeklyDigestSentAt.isBefore(dayAgo);
+}
+
+export function canMakeBestOfEmail(summaryPayload) {
+  if (!summaryPayload || !summaryPayload.posts || !summaryPayload.posts.length) {
+    return false;
+  }
+
+  return true;
 }
 
 function preparePosts(payload, user) {
@@ -140,7 +148,7 @@ async function getSummary(user, days) {
   };
 
   await generalSummary(ctx);
-  if (!ctx.body.posts.length) {
+  if (!_.get(ctx, 'body.posts', []).length) {
     return ctx.body;
   }
   return preparePosts(ctx.body, user);
