@@ -160,31 +160,50 @@ export function addModel(dbAdapter) {
       return this;
     }
 
+    /**
+     * Update Post object
+     * This method updates only properties that are listen in params
+     *
+     * @param {object} params
+     * @returns {Post}
+     */
     async update(params) {
-      // Reflect post changes and validate
+      const editableProperties = ['body', 'attachments'];
+      if (!editableProperties.some((p) => p in params)) {
+        // Nothing changed
+        return this;
+      }
+
       this.updatedAt = new Date().getTime();
-      this.body = params.body;
+      const payload = { updatedAt: this.updatedAt.toString() };
+      const afterUpdate = [];
+
+      if ('body' in params) {
+        this.body = params.body;
+        payload.body = this.body;
+
+        // Update post hashtags
+        afterUpdate.push(() => this.processHashtagsOnUpdate());
+      }
+
+      if ('attachments' in params) {
+        // Calculate changes in attachments
+        const oldAttachments = await this.getAttachmentIds() || [];
+        const newAttachments = params.attachments || [];
+        const removedAttachments = _.difference(oldAttachments, newAttachments);
+
+        // Update post attachments in DB
+        afterUpdate.push(() => this.linkAttachments(newAttachments));
+        afterUpdate.push(() => this.unlinkAttachments(removedAttachments));
+      }
+
       await this.validate();
 
-      // Calculate changes in attachments
-      const oldAttachments = await this.getAttachmentIds() || [];
-      const newAttachments = params.attachments || [];
-      const removedAttachments = oldAttachments.filter((i) => !newAttachments.includes(i));
-
-      // Update post body in DB
-      const payload = {
-        'body':      this.body,
-        'updatedAt': this.updatedAt.toString()
-      };
+      // Update post in DB
       await dbAdapter.updatePost(this.id, payload);
 
-      // Update post attachments in DB
-      await Promise.all([
-        this.linkAttachments(newAttachments),
-        this.unlinkAttachments(removedAttachments)
-      ]);
-
-      await this.processHashtagsOnUpdate();
+      // Perform afterUpdate actions
+      await Promise.all(afterUpdate.map((f) => f()));
 
       // Finally, publish changes
       await pubSub.updatePost(this.id);
