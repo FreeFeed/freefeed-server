@@ -169,7 +169,7 @@ export const timelineResponse = {
     posts:       expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
     subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
   }),
-  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
+  users:         expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
   admins:        expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
   posts:         expect.it('to be an array').and('to be empty').or('to have items satisfying', post),
   comments:      expect.it('to be an array').and('to be empty').or('to have items satisfying', comment),
