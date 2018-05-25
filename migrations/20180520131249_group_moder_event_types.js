@@ -30,18 +30,18 @@ export async function up(knex) {
     'managed_group_subscription_rejected'::text,
     
     'comment_moderated'::text,
-    'comment_deleted_by_another_admin'::text,
+    'comment_moderated_by_another_admin'::text,
     'post_moderated'::text,
-    'post_deleted_by_another_admin'::text
+    'post_moderated_by_another_admin'::text
     ]))`);
 }
 
 export async function down(knex) {
   await knex.raw(`delete from events where event_type in (
     'comment_moderated',
-    'comment_deleted_by_another_admin',
+    'comment_moderated_by_another_admin',
     'post_moderated',
-    'post_deleted_by_another_admin'
+    'post_moderated_by_another_admin'
   )`);
   await knex.raw('ALTER TABLE events DROP CONSTRAINT events_event_type_check');
   await knex.raw(`ALTER TABLE events ADD CONSTRAINT events_event_type_check CHECK (event_type = ANY (ARRAY[

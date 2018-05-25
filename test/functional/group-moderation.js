@@ -21,6 +21,9 @@ import {
   fetchPost
 } from './functional_test_helper';
 
+const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN];
+const commentModerationEvents = [EVENT_TYPES.COMMENT_MODERATED, EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN];
+
 describe('Group Moderation', () => {
   before(async () => {
     await getSingleton();
@@ -120,7 +123,6 @@ describe('Group Moderation', () => {
       describe('Mars and Jupiter are admins of Celestials and Gods, Luna wrote post to both groups, Mars and Luna comments post', () => {
         let jupiter, gods;
         let marsCommentId, lunaCommentId;
-        const commentModerationEvents = [EVENT_TYPES.COMMENT_MODERATED, EVENT_TYPES.COMMENT_DELETED_BY_ANOTHER_ADMIN];
 
         beforeEach(async () => {
           jupiter = await createTestUser();
@@ -199,7 +201,7 @@ describe('Group Moderation', () => {
           ]);
           expect(jupiterEvents, 'to satisfy', [
             {
-              event_type:       EVENT_TYPES.COMMENT_DELETED_BY_ANOTHER_ADMIN,
+              event_type:       EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN,
               created_user_id:  mars.user.id,
               affected_user_id: luna.user.id,
               post_id:          post.id,
@@ -233,8 +235,6 @@ describe('Group Moderation', () => {
       });
 
       describe('Notifications (Jupiter is also admin of Celestials)', () => {
-        const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_DELETED_BY_ANOTHER_ADMIN];
-
         let jupiter;
         beforeEach(async () => {
           jupiter = await createTestUser();
@@ -266,7 +266,7 @@ describe('Group Moderation', () => {
           expect(marsEvents, 'to be empty');
           expect(jupiterEvents, 'to satisfy', [
             {
-              event_type:       EVENT_TYPES.POST_DELETED_BY_ANOTHER_ADMIN,
+              event_type:       EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
               created_user_id:  mars.user.id,
               affected_user_id: luna.user.id,
               group_id:         celestials.group.id,

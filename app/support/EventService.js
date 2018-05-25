@@ -246,7 +246,7 @@ export class EventService {
       const groups = _.intersectionBy(managedGroups, postGroups, 'id');
       await dbAdapter.createEvent(
         a.intId,
-        EVENT_TYPES.COMMENT_DELETED_BY_ANOTHER_ADMIN,
+        EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN,
         destroyedBy.intId,
         commentAuthor.intId,
         groups[0].intId,
@@ -293,7 +293,7 @@ export class EventService {
       const groups = _.intersectionBy(managedGroups, postGroups, 'id');
       await dbAdapter.createEvent(
         a.intId,
-        EVENT_TYPES.POST_DELETED_BY_ANOTHER_ADMIN,
+        EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
         destroyedBy.intId,
         postAuthor.intId,
         groups[0].intId,

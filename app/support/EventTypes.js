@@ -29,10 +29,10 @@ export const EVENT_TYPES = {
   MANAGED_GROUP_SUBSCRIPTION_APPROVED: 'managed_group_subscription_approved',
   MANAGED_GROUP_SUBSCRIPTION_REJECTED: 'managed_group_subscription_rejected',
 
-  COMMENT_MODERATED:                'comment_moderated',
-  COMMENT_DELETED_BY_ANOTHER_ADMIN: 'comment_deleted_by_another_admin',
-  POST_MODERATED:                   'post_moderated',
-  POST_DELETED_BY_ANOTHER_ADMIN:    'post_deleted_by_another_admin',
+  COMMENT_MODERATED:                  'comment_moderated',
+  COMMENT_MODERATED_BY_ANOTHER_ADMIN: 'comment_moderated_by_another_admin',
+  POST_MODERATED:                     'post_moderated',
+  POST_MODERATED_BY_ANOTHER_ADMIN:    'post_moderated_by_another_admin',
 };
 
 export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user', 'user_unsubscribed'];
