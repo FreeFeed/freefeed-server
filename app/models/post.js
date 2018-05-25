@@ -182,6 +182,8 @@ export function addModel(dbAdapter) {
       const payload = { updatedAt: this.updatedAt.toString() };
       const afterUpdate = [];
 
+      let realtimeRooms = await getRoomsOfPost(this);
+
       if ('body' in params) {
         this.body = params.body;
         payload.body = this.body;
@@ -215,6 +217,12 @@ export function addModel(dbAdapter) {
             const removedFeeds = await dbAdapter.getTimelinesByIntIds(removedFeedIds);
             afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy, { removedFeeds }));
           }
+
+          // Publishing changes to the old AND new realtime rooms
+          afterUpdate.push(async () => {
+            const rooms = await getRoomsOfPost(this);
+            realtimeRooms = _.union(realtimeRooms, rooms);
+          });
         }
       }
 
@@ -226,9 +234,8 @@ export function addModel(dbAdapter) {
       // Perform afterUpdate actions
       await Promise.all(afterUpdate.map((f) => f()));
 
-      // TODO: Publish changes to the old groups
       // Finally, publish changes
-      await pubSub.updatePost(this.id);
+      await pubSub.updatePost(this.id, realtimeRooms);
 
       return this;
     }

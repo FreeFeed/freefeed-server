@@ -302,12 +302,12 @@ export default class PubsubListener {
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
 
-  onPostUpdate = async (data) => {
-    const post = await dbAdapter.getPostById(data.postId);
+  onPostUpdate = async ({ postId, rooms = null }) => {
+    const post = await dbAdapter.getPostById(postId);
     const json = await new PostSerializer(post).promiseToJSON();
 
     const type = 'post:update';
-    const rooms = await getRoomsOfPost(post);
+    rooms = rooms || await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
 

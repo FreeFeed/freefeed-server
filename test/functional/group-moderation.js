@@ -1,10 +1,12 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import { dbAdapter, PubSub } from '../../app/models';
 import {
   createTestUsers,
   createGroupAsync,
@@ -21,13 +23,15 @@ import {
   fetchPost,
   fetchTimeline
 } from './functional_test_helper';
+import Session from './realtime-session';
 
 const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN];
 const commentModerationEvents = [EVENT_TYPES.COMMENT_MODERATED, EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN];
 
 describe('Group Moderation', () => {
+  let app;
   before(async () => {
-    await getSingleton();
+    app = await getSingleton();
   });
 
   beforeEach(() => cleanDB($pg_database));
@@ -397,6 +401,67 @@ describe('Group Moderation', () => {
                 }
               ]);
               expect(jupiterEvents, 'to be empty');
+            });
+          });
+
+          describe('Realtime events', () => {
+            let port;
+
+            before(() => {
+              port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+              const pubsubAdapter = new PubSubAdapter($database)
+              PubSub.setPublisher(pubsubAdapter)
+            });
+
+            let rtSession;
+            beforeEach(async () => {
+              rtSession = await Session.create(port, 'Anon session');
+            });
+            afterEach(() => rtSession.disconnect());
+
+            describe('Viewer subscribes to Luna Posts channel', () => {
+              beforeEach(async () => {
+                const feed = await dbAdapter.getUserNamedFeed(luna.user.id, 'Posts');
+                await rtSession.sendAsync('subscribe', { timeline: [feed.id] });
+              });
+
+              it(`should deliver 'post:update' event when Mars removes post`, async () => {
+                const test = rtSession.receiveWhile(
+                  'post:update',
+                  deletePostAsync(mars, post.id),
+                );
+                await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
+              });
+            });
+
+            describe('Viewer subscribes to Celestials Posts channel', () => {
+              beforeEach(async () => {
+                const feed = await dbAdapter.getUserNamedFeed(celestials.group.id, 'Posts');
+                await rtSession.sendAsync('subscribe', { timeline: [feed.id] });
+              });
+
+              it(`should deliver 'post:update' event when Mars removes post`, async () => {
+                const test = rtSession.receiveWhile(
+                  'post:update',
+                  deletePostAsync(mars, post.id),
+                );
+                await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
+              });
+            });
+
+            describe('Viewer subscribes to Gods Posts channel', () => {
+              beforeEach(async () => {
+                const feed = await dbAdapter.getUserNamedFeed(gods.group.id, 'Posts');
+                await rtSession.sendAsync('subscribe', { timeline: [feed.id] });
+              });
+
+              it(`should deliver 'post:update' event when Mars removes post`, async () => {
+                const test = rtSession.receiveWhile(
+                  'post:update',
+                  deletePostAsync(mars, post.id),
+                );
+                await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
+              });
             });
           });
         });
