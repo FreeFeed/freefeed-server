@@ -787,15 +787,17 @@ export function initPostObject(attrs, params) {
 }
 
 const POST_COLUMNS = {
-  createdAt:        'created_at',
-  updatedAt:        'updated_at',
-  bumpedAt:         'bumped_at',
-  userId:           'user_id',
-  body:             'body',
-  commentsDisabled: 'comments_disabled',
-  isPrivate:        'is_private',
-  isProtected:      'is_protected',
-  isPropagable:     'is_propagable',
+  createdAt:          'created_at',
+  updatedAt:          'updated_at',
+  bumpedAt:           'bumped_at',
+  userId:             'user_id',
+  body:               'body',
+  commentsDisabled:   'comments_disabled',
+  isPrivate:          'is_private',
+  isProtected:        'is_protected',
+  isPropagable:       'is_propagable',
+  feedIntIds:         'feed_ids',
+  destinationFeedIds: 'destination_feed_ids',
 }
 
 const POST_COLUMNS_MAPPING = {

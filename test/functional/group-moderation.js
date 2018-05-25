@@ -18,7 +18,8 @@ import {
   createTestUser,
   getUserEvents,
   deletePostAsync,
-  fetchPost
+  fetchPost,
+  fetchTimeline
 } from './functional_test_helper';
 
 const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN];
@@ -272,6 +273,132 @@ describe('Group Moderation', () => {
               group_id:         celestials.group.id,
             }
           ]);
+        });
+      });
+
+      describe('Remove post from groups but not delete it', () => {
+        describe('Luna wrote post to their feed, Celestial and Gods groups; Mars is admin of both groups, Jupiter is admin of Gods', () => {
+          let jupiter, gods;
+
+          beforeEach(async () => {
+            jupiter = await createTestUser();
+            gods = await createGroupAsync(mars, 'gods', 'Gods');
+            await Promise.all([
+              subscribeToAsync(luna, gods),
+              promoteToAdmin({ username: 'gods' }, mars, jupiter),
+            ]);
+            await deletePostAsync(luna, post.id); // delete an old post
+            post = await createAndReturnPostToFeed([luna, celestials, gods], luna, 'My post');
+          });
+
+          it('should allow Luna to delete their post', async () => {
+            const response = await deletePostAsync(luna, post.id);
+            expect(response.status, 'to be', 200);
+
+            const postResponse = await fetchPost(post.id, null, { returnError: true });
+            expect(postResponse.status, 'to be', 404);
+          });
+
+          describe('Mars removes Luna post from managed groups', () => {
+            beforeEach(async () => {
+              await deletePostAsync(mars, post.id);
+            });
+
+            it('should return post to viewer', async () => {
+              const postResponse = await fetchPost(post.id, null, { returnError: true });
+              expect(postResponse, 'to satisfy', { posts: { id: post.id } });
+            });
+
+            it('should return post in Luna feed', async () => {
+              const postResponse = await fetchTimeline(luna.username);
+              expect(postResponse.posts, 'to have an item satisfying', { id: post.id });
+            });
+
+            it('should not return post in Celestials feed', async () => {
+              const postResponse = await fetchTimeline(celestials.username);
+              expect(postResponse.posts, 'to be empty');
+            });
+
+            it('should not return post in Gods feed', async () => {
+              const postResponse = await fetchTimeline(gods.username);
+              expect(postResponse.posts, 'to be empty');
+            });
+
+            it('should create Luna and Jupiter notifications', async () => {
+              const lunaEvents = await getFilteredEvents(luna, postModerationEvents);
+              const marsEvents = await getFilteredEvents(mars, postModerationEvents);
+              const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
+              expect(lunaEvents, 'to satisfy', [
+                {
+                  event_type:      EVENT_TYPES.POST_MODERATED,
+                  created_user_id: mars.user.id,
+                  group_id:        expect.it('to be one of', [gods.group.id, celestials.group.id]),
+                  post_id:         post.id,
+                }
+              ]);
+              expect(marsEvents, 'to be empty');
+              expect(jupiterEvents, 'to satisfy', [
+                {
+                  event_type:       EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+                  created_user_id:  mars.user.id,
+                  affected_user_id: luna.user.id,
+                  group_id:         gods.group.id,
+                  post_id:          post.id,
+                }
+              ]);
+            });
+          });
+
+
+          describe('Jupiter removes Luna post from managed groups', () => {
+            beforeEach(async () => {
+              await deletePostAsync(jupiter, post.id);
+            });
+
+            it('should return post to viewer', async () => {
+              const postResponse = await fetchPost(post.id, null, { returnError: true });
+              expect(postResponse, 'to satisfy', { posts: { id: post.id } });
+            });
+
+            it('should return post in Luna feed', async () => {
+              const postResponse = await fetchTimeline(luna.username);
+              expect(postResponse.posts, 'to have an item satisfying', { id: post.id });
+            });
+
+            it('should return post in Celestials feed', async () => {
+              const postResponse = await fetchTimeline(celestials.username);
+              expect(postResponse.posts, 'to have an item satisfying', { id: post.id });
+            });
+
+            it('should not return post in Gods feed', async () => {
+              const postResponse = await fetchTimeline(gods.username);
+              expect(postResponse.posts, 'to be empty');
+            });
+
+            it('should create Luna and Mars notifications', async () => {
+              const lunaEvents = await getFilteredEvents(luna, postModerationEvents);
+              const marsEvents = await getFilteredEvents(mars, postModerationEvents);
+              const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
+              expect(lunaEvents, 'to satisfy', [
+                {
+                  event_type:      EVENT_TYPES.POST_MODERATED,
+                  created_user_id: jupiter.user.id,
+                  group_id:        gods.group.id,
+                  post_id:         post.id,
+                }
+              ]);
+              expect(marsEvents, 'to satisfy', [
+                {
+                  event_type:       EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+                  created_user_id:  jupiter.user.id,
+                  affected_user_id: luna.user.id,
+                  group_id:         gods.group.id,
+                  post_id:          post.id,
+                }
+              ]);
+              expect(jupiterEvents, 'to be empty');
+            });
+          });
         });
       });
     });

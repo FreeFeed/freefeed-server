@@ -138,8 +138,12 @@ export default class PostsController {
         return;
       }
 
-      // TODO: make partial removal
-      throw new Error('Partial removal is not implemented yet');
+      // Partial removal: remove post only from several feeds
+      await post.update({
+        destinationFeedIds: _.map(feedsToRemain, 'intId'),
+        updatedBy:          user,
+      });
+      ctx.body = {};
     },
   ]);
 

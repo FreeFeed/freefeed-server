@@ -168,7 +168,11 @@ export function addModel(dbAdapter) {
      * @returns {Post}
      */
     async update(params) {
-      const editableProperties = ['body', 'attachments'];
+      const editableProperties = [
+        'body',
+        'attachments',
+        'destinationFeedIds',
+      ];
       if (!editableProperties.some((p) => p in params)) {
         // Nothing changed
         return this;
@@ -197,6 +201,23 @@ export function addModel(dbAdapter) {
         afterUpdate.push(() => this.unlinkAttachments(removedAttachments));
       }
 
+      if ('destinationFeedIds' in params) {
+        const removedFeedIds = _.difference(this.destinationFeedIds, params.destinationFeedIds);
+        if (removedFeedIds.length > 0) {
+          this.destinationFeedIds = params.destinationFeedIds;
+          this.feedIntIds = _.union(this.feedIntIds, this.destinationFeedIds);
+          this.feedIntIds = _.difference(this.feedIntIds, removedFeedIds);
+
+          payload.destinationFeedIds = this.destinationFeedIds;
+          payload.feedIntIds = this.feedIntIds;
+
+          if (params.updatedBy) {
+            const removedFeeds = await dbAdapter.getTimelinesByIntIds(removedFeedIds);
+            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy, { removedFeeds }));
+          }
+        }
+      }
+
       await this.validate();
 
       // Update post in DB
@@ -205,6 +226,7 @@ export function addModel(dbAdapter) {
       // Perform afterUpdate actions
       await Promise.all(afterUpdate.map((f) => f()));
 
+      // TODO: Publish changes to the old groups
       // Finally, publish changes
       await pubSub.updatePost(this.id);
 

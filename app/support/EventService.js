@@ -304,6 +304,60 @@ export class EventService {
     }));
   }
 
+  static async onPostFeedsChanged(post, changedBy, params = {}) {
+    const { removedFeeds = [] } = params;
+
+    if (changedBy.id === post.userId || removedFeeds.length === 0) {
+      return;
+    }
+
+    const removedFeedOwners = await Promise.all(
+      removedFeeds
+        .filter((f) => f.isPosts())
+        .map((f) => f.getUser())
+    );
+    const removedFromGroups = removedFeedOwners.filter((o) => o.isGroup());
+
+    const postAuthor = await dbAdapter.getUserById(post.userId);
+
+    // Message to the post author
+    await dbAdapter.createEvent(
+      postAuthor.intId,
+      EVENT_TYPES.POST_MODERATED,
+      changedBy.intId,
+      null,
+      removedFromGroups.length === 0 ? null : removedFromGroups[0].intId,
+      post.id,
+      null,
+      null,
+    );
+
+    if (post.userId === changedBy.id || removedFromGroups.length === 0) {
+      return;
+    }
+
+    const groupAdminLists = await Promise.all(removedFromGroups.map((g) => g.getAdministrators()));
+    const groupAdmins = _.uniqBy(_.flatten(groupAdminLists), 'id');
+
+    // Messages to other groups admins (but not to post author and not to destroyer)
+    const otherAdmins = groupAdmins.filter((a) => a.id !== changedBy.id && a.id !== post.userId);
+
+    await Promise.all(otherAdmins.map(async (a) => {
+      const managedGroups = await a.getManagedGroups();
+      const groups = _.intersectionBy(managedGroups, removedFromGroups, 'id');
+      await dbAdapter.createEvent(
+        a.intId,
+        EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+        changedBy.intId,
+        postAuthor.intId,
+        groups[0].intId,
+        post.id,
+        null,
+        postAuthor.intId,
+      );
+    }));
+  }
+
   ////////////////////////////////////////////
 
   static async _processDirectMessagesForPost(post, destinationFeeds, author) {
