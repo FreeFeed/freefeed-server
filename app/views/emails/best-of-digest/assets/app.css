@@ -192,21 +192,13 @@
     margin-left: 19px; }
   .comment .more-comments-link {
     font-style: italic; }
+  .comment .comment-likes-container {
+    float: left; }
 
 .loader-container {
   position: relative; }
 
-.comment-icon, .comment-icon:hover {
-  text-decoration: none; }
-
-.comment-icon.fa-stack {
-  width: 14px;
-  margin-top: 1px;
-  margin-right: 6px;
-  line-height: 1em;
-  padding-top: 4px; }
-
-.comment-icon .fa-plus, .comment-icon .fa-square {
-  font-size: 60%;
-  top: 7px;
-  left: 4px; }
+.comment-icon {
+  text-decoration: none;
+  vertical-align: text-bottom;
+  margin-right: 5px; }

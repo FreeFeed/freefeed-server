@@ -3,6 +3,7 @@ import classnames from 'classnames';
 
 import PieceOfText from './piece-of-text';
 import UserName from './user-name';
+import CommentBubble from './comment-bubble';
 
 
 export default class PostComment extends React.Component {
@@ -27,6 +28,18 @@ export default class PostComment extends React.Component {
     );
   }
 
+  renderCommentBubble() {
+    if (this.props.hideType) {
+      return false;
+    }
+    return (
+      <CommentBubble
+        commentId={this.props.id}
+        createdAt={this.props.createdAt}
+      />
+    );
+  }
+
   render() {
     const className = classnames({
       'comment': true,
@@ -40,6 +53,7 @@ export default class PostComment extends React.Component {
 
     return (
       <div className={className}>
+        {this.renderCommentBubble()}
         {this.renderBody()}
       </div>
     );
