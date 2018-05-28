@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>The best of your FreeFeed for <%= digest.date %></title>
+    <title>The best of your FreeFeed for the week of  <%= digest.date %></title>
 
 
     <style type="text/css">
@@ -80,12 +80,12 @@
                             <td class="content-wrap" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 20px;" valign="top">
                                 <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                     <tr style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                                        <td class="content-block" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top"><a href="<%= baseUrl %>" style="font-weight: bold;color:#333;text-decoration: none; font-size:21px;">FreeFeed</a> <span style="color:#333;text-decoration: none; font-size:21px;">| Best of day</span>
+                                        <td class="content-block" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top"><a href="<%= baseUrl %>" style="font-weight: bold;color:#333;text-decoration: none; font-size:21px;">FreeFeed</a> <span style="color:#333;text-decoration: none; font-size:21px;">| Best of week</span>
                                         </td>
                                     </tr>
                                     <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                         <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                                            Hello <%- recipient.username %>, the entries below were popular among your friends. You are receiving this FreeFeed digest daily. You can unsubscribe in your email preferences.
+                                            Hello <%- recipient.username %>, the entries below were popular among your friends this week. You are receiving this FreeFeed digest weekly. You can receive it more frequently or unsubscribe in your email preferences.
                                         </td>
                                     </tr>
                                     <%- digest.body %>

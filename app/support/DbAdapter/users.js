@@ -314,6 +314,13 @@ const usersTrait = (superClass) => class extends superClass {
       .whereRaw(`preferences -> 'sendDailyBestOfDigest' = 'true'::jsonb`);
     return users.map(initUserObject);
   }
+
+  async getWeeklyBestOfDigestRecipients() {
+    const users = await this.database('users')
+      .where('type', 'user')
+      .whereRaw(`preferences -> 'sendWeeklyBestOfDigest' = 'true'::jsonb`);
+    return users.map(initUserObject);
+  }
 };
 
 export default usersTrait;
