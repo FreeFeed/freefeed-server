@@ -56,7 +56,7 @@
         color: #000088; }
     .post .post-body .post-footer .post-lock-icon {
       vertical-align: text-bottom;
-      margin-right: 5px; }
+      margin-right: 3px; }
     .post .post-body .post-footer .post-protected-icon {
       color: #fff;
       text-shadow: 1px 1px 0 #888, -1px -1px 0 #888, 1px -1px 0 #888, -1px 1px 0 #888; }
@@ -201,4 +201,4 @@
 .comment-icon {
   text-decoration: none;
   vertical-align: text-bottom;
-  margin-right: 5px; }
+  margin-right: 3px; }

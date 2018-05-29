@@ -18,8 +18,8 @@ export default class CommentBubble extends React.Component {
           <img
             src="cid:facommento"
             className="comment-icon fa fa-comment-o"
-            width="14px"
-            height="14px"
+            width="16px"
+            height="16px"
             id={`comment-${this.props.commentId}`}
           />
         </TimeDisplay>
@@ -29,8 +29,8 @@ export default class CommentBubble extends React.Component {
           <img
             src="cid:facommento"
             className="comment-icon fa fa-comment-o"
-            width="14px"
-            height="14px"
+            width="16px"
+            height="16px"
           />
         </span>
       )
