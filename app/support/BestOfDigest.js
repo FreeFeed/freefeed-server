@@ -113,12 +113,13 @@ function preparePosts(payload, user) {
     post.createdBy = payload.users.find((user) => user.id === post.createdBy);
     post.recipients = post.postedTo
       .map((subscriptionId) => {
-        const userId = (payload.subscriptions[subscriptionId] || {}).user;
-        const subscriptionType = (payload.subscriptions[subscriptionId] || {}).name;
+        const subscription = payload.subscriptions.find((subscription) => subscription.id === subscriptionId) || {};
+        const userId = subscription.user;
+        const subscriptionType = subscription.name;
         const isDirectToSelf = userId === post.createdBy.id && subscriptionType === 'Directs';
         return !isDirectToSelf ? userId : false;
       })
-      .map((userId) => payload.subscribers[userId])
+      .map((userId) => payload.subscribers.find((subscriber) => subscriber.id === userId))
       .filter((user) => user);
 
     post.attachments = _(post.attachments || []).map((attachmentId) => {
