@@ -27,7 +27,6 @@ export default class PostComments extends React.Component {
         <MoreCommentsWrapper
           omittedComments={foldedCount}
           entryUrl={entryUrl}
-          omittedCommentLikes={post.omittedCommentLikes}
         />
       );
     }

@@ -35,6 +35,11 @@ const schema = {
       default: false,
       type:    'boolean',
     },
+    sendWeeklyBestOfDigest: {
+      title:   'Send weekly Best Of digest email for current user',
+      default: false,
+      type:    'boolean',
+    },
   },
   additionalProperties: false,
 };
