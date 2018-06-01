@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy, difference } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -239,6 +239,10 @@ export default class PubsubListener {
   };
 
   async broadcastMessage(rooms, type, json, post = null, emitter = defaultEmitter) {
+    if (rooms.length === 0) {
+      return;
+    }
+
     let destSockets = Object.values(this.io.sockets.connected)
       .filter((socket) => rooms.some((r) => r in socket.rooms));
 
@@ -248,7 +252,26 @@ export default class PubsubListener {
 
     let users = destSockets.map((s) => s.user);
     if (post) {
-      users = await post.onlyUsersCanSeePost(users);
+      const usersWhoCanSeePost = await post.onlyUsersCanSeePost(users);
+
+      // It is possible that after the update of the posts
+      // destinations it will became invisible for the some users.
+      // In this case send 'post:destroy' to such users.
+      if (type === 'post:update') {
+        const blindUsers = difference(users, usersWhoCanSeePost);
+        const blindUsersRooms = flatten(
+          destSockets
+            .filter((s) => blindUsers.includes((s.user)))
+            .map((s) => Object.keys(s.rooms))
+        );
+        await this.broadcastMessage(
+          intersection(rooms, blindUsersRooms),
+          'post:destroy',
+          { meta: { postId: post.id } },
+        );
+      }
+
+      users = usersWhoCanSeePost;
       destSockets = destSockets.filter((s) => users.includes((s.user)));
     }
 

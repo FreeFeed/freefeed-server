@@ -21,7 +21,9 @@ import {
   getUserEvents,
   deletePostAsync,
   fetchPost,
-  fetchTimeline
+  fetchTimeline,
+  goPrivate,
+  mutualSubscriptions
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -461,6 +463,70 @@ describe('Group Moderation', () => {
                   deletePostAsync(mars, post.id),
                 );
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
+              });
+            });
+
+            describe('Luna becomes private, Mars is a friend', () => {
+              let lunaSession, marsSession, jupiterSession;
+              beforeEach(async () => {
+                await mutualSubscriptions([luna, mars]);
+                await goPrivate(luna);
+                [lunaSession, marsSession, jupiterSession] = await Promise.all([
+                  Session.create(port, 'Luna session'),
+                  Session.create(port, 'Mars session'),
+                  Session.create(port, 'Jupiter session'),
+                ]);
+
+                await Promise.all([
+                  lunaSession.sendAsync('auth', { authToken: luna.authToken }),
+                  marsSession.sendAsync('auth', { authToken: mars.authToken }),
+                  jupiterSession.sendAsync('auth', { authToken: jupiter.authToken }),
+                ]);
+              });
+              afterEach(() => [lunaSession, marsSession, jupiterSession].forEach((s) => s.disconnect()));
+
+              describe('Viewers are subscribed to Gods Posts channel', () => {
+                beforeEach(async () => {
+                  const feed = await dbAdapter.getUserNamedFeed(gods.group.id, 'Posts');
+                  await Promise.all([
+                    rtSession.sendAsync('subscribe', { timeline: [feed.id] }),
+                    lunaSession.sendAsync('subscribe', { timeline: [feed.id] }),
+                    marsSession.sendAsync('subscribe', { timeline: [feed.id] }),
+                    jupiterSession.sendAsync('subscribe', { timeline: [feed.id] }),
+                  ]);
+                });
+
+                it(`should deliver 'post:destroy' event to anonymous when Mars removes post`, async () => {
+                  const test = rtSession.receiveWhile(
+                    'post:destroy',
+                    deletePostAsync(mars, post.id),
+                  );
+                  await expect(test, 'when fulfilled', 'to satisfy', { meta: { postId: post.id } });
+                });
+
+                it(`should deliver 'post:destroy' event to Jupiter when Mars removes post`, async () => {
+                  const test = jupiterSession.receiveWhile(
+                    'post:destroy',
+                    deletePostAsync(mars, post.id),
+                  );
+                  await expect(test, 'when fulfilled', 'to satisfy', { meta: { postId: post.id } });
+                });
+
+                it(`should deliver 'post:update' event to Luna when Mars removes post`, async () => {
+                  const test = lunaSession.receiveWhile(
+                    'post:update',
+                    deletePostAsync(mars, post.id),
+                  );
+                  await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
+                });
+
+                it(`should deliver 'post:update' event to Mars when Mars removes post`, async () => {
+                  const test = marsSession.receiveWhile(
+                    'post:update',
+                    deletePostAsync(mars, post.id),
+                  );
+                  await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
+                });
               });
             });
           });
