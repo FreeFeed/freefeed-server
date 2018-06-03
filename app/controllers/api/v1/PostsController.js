@@ -109,11 +109,13 @@ export default class PostsController {
         throw new ForbiddenException("You can't delete another user's post")
       }
 
+      let postStillAvailable = false;
+
       // Post's author deletes post
       if (post.userId === user.id) {
         await post.destroy()
         monitor.increment('posts.destroys');
-        ctx.body = {};
+        ctx.body = { postStillAvailable };
         return;
       }
 
@@ -134,7 +136,7 @@ export default class PostsController {
         // No feeds left, deleting post
         await post.destroy(user)
         monitor.increment('posts.destroys');
-        ctx.body = {};
+        ctx.body = { postStillAvailable };
         return;
       }
 
@@ -143,7 +145,10 @@ export default class PostsController {
         destinationFeedIds: _.map(feedsToRemain, 'intId'),
         updatedBy:          user,
       });
-      ctx.body = {};
+
+      postStillAvailable = await (await dbAdapter.getPostById(post.id)).isVisibleFor(user);
+
+      ctx.body = { postStillAvailable };
     },
   ]);
 

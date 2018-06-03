@@ -223,6 +223,7 @@ describe('Group Moderation', () => {
       it('should allow Luna to delete their post', async () => {
         const response = await deletePostAsync(luna, post.id);
         expect(response.status, 'to be', 200);
+        expect(await response.json(), 'to satisfy', { postStillAvailable: false });
 
         const postResponse = await fetchPost(post.id, null, { returnError: true });
         expect(postResponse.status, 'to be', 404);
@@ -231,6 +232,7 @@ describe('Group Moderation', () => {
       it('should allow Mars to delete Luna post', async () => {
         const response = await deletePostAsync(mars, post.id);
         expect(response.status, 'to be', 200);
+        expect(await response.json(), 'to satisfy', { postStillAvailable: false });
 
         const postResponse = await fetchPost(post.id, null, { returnError: true });
         expect(postResponse.status, 'to be', 404);
@@ -305,6 +307,12 @@ describe('Group Moderation', () => {
             expect(postResponse.status, 'to be', 404);
           });
 
+          it('should allow Mars to remove Luna post from Mars groups', async () => {
+            const response = await deletePostAsync(mars, post.id);
+            expect(response.status, 'to be', 200);
+            expect(await response.json(), 'to satisfy', { postStillAvailable: true });
+          });
+
           describe('Mars removes Luna post from managed groups', () => {
             beforeEach(async () => {
               await deletePostAsync(mars, post.id);
@@ -355,6 +363,17 @@ describe('Group Moderation', () => {
             });
           });
 
+          describe('Luna becomes private, Mars is not a friend', () => {
+            beforeEach(async () => {
+              await goPrivate(luna);
+            });
+
+            it('should return { postStillAvailable: false } to Mars', async () => {
+              const response = await deletePostAsync(mars, post.id);
+              expect(response.status, 'to be', 200);
+              expect(await response.json(), 'to satisfy', { postStillAvailable: false });
+            });
+          });
 
           describe('Jupiter removes Luna post from managed groups', () => {
             beforeEach(async () => {
