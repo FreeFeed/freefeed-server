@@ -6,6 +6,7 @@ import { dbAdapter } from '../models';
 import { sendDailyBestOfEmail, sendWeeklyBestOfEmail } from '../mailers/BestOfDigestMailer';
 import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 
+const BESTOF_DIGEST_POSTS_LIMIT = 15;
 
 export async function sendBestOfEmails() {
   const debug = createDebug('freefeed:sendBestOfEmails');
@@ -143,7 +144,7 @@ function preparePosts(payload, user) {
 
 async function getSummary(user, days) {
   const ctx = {
-    request: { query: {} },
+    request: { query: { limit: BESTOF_DIGEST_POSTS_LIMIT } },
     state:   { user },
     params:  { days }
   };
