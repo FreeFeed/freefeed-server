@@ -165,7 +165,7 @@ export function addModel(dbAdapter) {
       const realtimeRooms = await getRoomsOfPost(post);
       await dbAdapter.deleteComment(this.id, this.postId);
       if (this.userId) {
-        dbAdapter.withdrawPostFromCommentsFeed(this.postId, this.userId);
+        dbAdapter.withdrawPostFromCommentsFeedIfNoMoreComments(this.postId, this.userId);
       }
       await Promise.all([
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
