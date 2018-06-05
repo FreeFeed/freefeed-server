@@ -163,10 +163,12 @@ export function addModel(dbAdapter) {
     async destroy() {
       const post = await this.getPost();
       const realtimeRooms = await getRoomsOfPost(post);
+      await dbAdapter.deleteComment(this.id, this.postId);
+      if (this.userId) {
+        dbAdapter.withdrawPostFromCommentsFeedIfNoMoreComments(this.postId, this.userId);
+      }
       await Promise.all([
-        dbAdapter.deleteComment(this.id, this.postId),
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
-        this.userId ? dbAdapter.withdrawPostFromCommentsFeed(this.postId, this.userId) : null,
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
       ]);
     }
