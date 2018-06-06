@@ -26,7 +26,8 @@ describe('SessionController', () => {
     beforeEach(async () => {
       userData = {
         username: 'Luna',
-        password: 'password'
+        password: 'password',
+        email:    'luna@luna.space',
       }
       user = new User(userData);
       await user.create();
@@ -58,6 +59,55 @@ describe('SessionController', () => {
       const data = await result.json();
       expect(data, 'not to have key', 'authToken');
       expect(data, 'to have key', 'err');
+    });
+
+    it('should sign in with an altered-case username', async () => {
+      const resp = await sessionRequest('lUnA', userData.password);
+      expect(resp.status, 'to equal', 200);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { users: { id: user.id } });
+    });
+
+    it('should not sign in with an altered-case password', async () => {
+      const resp = await sessionRequest(userData.username, 'passWorD');
+      expect(resp.status, 'to equal', 401);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { err: 'The password you provided does not match the password in our system.' });
+    });
+
+    it('should sign in with a spaces around username', async () => {
+      const resp = await sessionRequest(` ${userData.username} `, userData.password);
+      expect(resp.status, 'to equal', 200);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { users: { id: user.id } });
+    });
+
+    it('should not sign in with a spaces around password', async () => {
+      const resp = await sessionRequest(userData.username, ` ${userData.password} `);
+      expect(resp.status, 'to equal', 401);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { err: 'The password you provided does not match the password in our system.' });
+    });
+
+    it('should sign in with a email instead of username', async () => {
+      const resp = await sessionRequest(userData.email, userData.password);
+      expect(resp.status, 'to equal', 200);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { users: { id: user.id } });
+    });
+
+    it('should sign in with an altered-case email', async () => {
+      const resp = await sessionRequest('lUnA@luna.space', userData.password);
+      expect(resp.status, 'to equal', 200);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { users: { id: user.id } });
+    });
+
+    it('should sign in with a spaces around email', async () => {
+      const resp = await sessionRequest(` ${userData.email} `, userData.password);
+      expect(resp.status, 'to equal', 200);
+      const respBody = await resp.json();
+      expect(respBody, 'to satisfy', { users: { id: user.id } });
     });
   });
 });
