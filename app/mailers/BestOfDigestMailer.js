@@ -42,7 +42,7 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
     debug('Error occurred while trying to inline styles', err, html);
   });
 
-  const attachments = [fa['fa-heart'], fa['fa-lock']];
+  const attachments = [fa['fa-heart'], fa['fa-lock'], fa['fa-comment-o'], fa['post-protected']];
 
   return Mailer.sendMail(user, `The best of your FreeFeed for the week of ${digestDate}`, {
     digest: {
