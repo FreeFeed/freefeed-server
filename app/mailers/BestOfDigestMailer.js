@@ -27,8 +27,9 @@ export async function sendDailyBestOfEmail(user, data, digestDate) {
       body: emailBodyWithInlineStyles,
       date: digestDate
     },
-    recipient: user,
-    baseUrl:   config.host,
+    recipient:    user,
+    baseUrl:      config.host,
+    mailerConfig: { subjectTransformation: (subject) => subject, },
   }, `${config.appRoot}/app/scripts/views/mailer/dailyBestOfDigest.ejs`, true, attachments);
 }
 
@@ -48,7 +49,8 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
       body: emailBodyWithInlineStyles,
       date: digestDate
     },
-    recipient: user,
-    baseUrl:   config.host,
+    recipient:    user,
+    baseUrl:      config.host,
+    mailerConfig: { subjectTransformation: (subject) => subject, },
   }, `${config.appRoot}/app/scripts/views/mailer/weeklyBestOfDigest.ejs`, true, attachments);
 }
