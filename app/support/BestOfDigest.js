@@ -17,8 +17,8 @@ export async function sendBestOfEmails() {
   const dailyDigestRecipients = await dbAdapter.getDailyBestOfDigestRecipients();
   debug(`getDailyBestOfDigestRecipients returned ${dailyDigestRecipients.length} records`);
 
-  const dailyDigestDate = moment().format('MMMM Do YYYY');
-  const weeklyDigestDate = moment().subtract(7, 'days').format('MMMM Do YYYY');
+  const dailyDigestDate = moment().format('MMMM Do');
+  const weeklyDigestDate = moment().subtract(7, 'days').format('MMMM Do');
   const weeklyEmailsSentAt = await dbAdapter.getWeeklyBestOfEmailSentAt(weeklyDigestRecipients.map((u) => u.intId));
   const dailyEmailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(dailyDigestRecipients.map((u) => u.intId));
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import Linkify from './linkify.jsx';
 
 // Separator element for "paragraphs"
 const paragraphBreak = <div className="p-break"><br/></div>;
@@ -45,7 +46,7 @@ export default class PieceOfText extends React.Component {
 
   render() {
     return (this.props.text ? (
-      <span dir="auto">{getExpandedText(this.props.text)}</span>
+      <Linkify>{getExpandedText(this.props.text)}</Linkify>
     ) : <span/>);
   }
 }

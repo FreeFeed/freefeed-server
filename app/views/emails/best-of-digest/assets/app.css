@@ -11,6 +11,8 @@
   line-height: 19px;
   position: relative; }
   .post a {
+    text-decoration: none;
+    cursor: pointer;
     color: #555599; }
   .post .post-userpic {
     float: left;
@@ -194,6 +196,9 @@
     font-style: italic; }
   .comment .comment-likes-container {
     float: left; }
+  .more-comments-wrapper {
+    padding-left: 18px;
+  }
 
 .loader-container {
   position: relative; }
@@ -202,3 +207,10 @@
   text-decoration: none;
   vertical-align: text-bottom;
   margin-right: 3px; }
+
+.arrow-span {
+  background-color: #eee;
+  border-radius: .25em;
+  cursor: pointer;
+  padding: 0 0.2em;
+}
