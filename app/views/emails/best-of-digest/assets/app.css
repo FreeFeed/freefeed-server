@@ -194,6 +194,9 @@
     font-style: italic; }
   .comment .comment-likes-container {
     float: left; }
+  .more-comments-wrapper {
+    padding-left: 18px;
+  }
 
 .loader-container {
   position: relative; }
