@@ -11,6 +11,8 @@
   line-height: 19px;
   position: relative; }
   .post a {
+    text-decoration: none;
+    cursor: pointer;
     color: #555599; }
   .post .post-userpic {
     float: left;
