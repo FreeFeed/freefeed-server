@@ -96,7 +96,7 @@ const postsTrait = (superClass) => class extends superClass {
    * @param {string} postId
    * @param {string} commentatorId
    */
-  async withdrawPostFromCommentsFeed(postId, commentatorId) {
+  async withdrawPostFromCommentsFeedIfNoMoreComments(postId, commentatorId) {
     await this.database.transaction(async (trx) => {
       // Lock posts table
       await trx.raw('select 1 from posts where uid = :postId for update', { postId });
