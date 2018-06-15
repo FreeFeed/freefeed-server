@@ -13,7 +13,9 @@ import pgFormat from 'pg-format';
  * - L is number of likes
  */
 const summaryTrait = (superClass) => class extends superClass {
-  async getSummaryPosts(currentUserId, days, timelineIntIds, activityIntIds = []) {
+  async getSummaryPosts(currentUserId, days, timelineIntIds, activityIntIds = [], limit = null) {
+    const DEFAULT_LIMIT = 30;
+    limit = limit || DEFAULT_LIMIT;
     let privacyFilter = 'AND NOT posts.is_protected';
     let banFilter = '';
 
@@ -77,7 +79,7 @@ const summaryTrait = (superClass) => class extends superClass {
         ORDER BY
           metric DESC
         LIMIT
-          30
+          ${limit}
       `;
 
     const res = await this.database.raw(sql);

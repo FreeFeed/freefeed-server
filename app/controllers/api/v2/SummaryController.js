@@ -21,6 +21,7 @@ export const generalSummary = compose([
   monitored('summary.general'),
   async (ctx) => {
     const days = getDays(ctx.params.days);
+    const limit = parseInt(ctx.request.query.limit, 10) || null;
 
     const currentUser = ctx.state.user;
 
@@ -36,7 +37,7 @@ export const generalSummary = compose([
     }
 
     // Get posts current user subscribed to
-    const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, days, destinations, activities);
+    const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, days, destinations, activities, limit);
 
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUser.id });
 
