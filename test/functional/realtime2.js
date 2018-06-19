@@ -396,4 +396,36 @@ describe('Realtime #2', () => {
       });
     });
   });
+
+  describe(`Subscribe/unsubscribe acknowledgements`, () => {
+    describe(`Luna subscribes to post 1`, () => {
+      it('should have post 1 in response', async () => {
+        const ack = await lunaSession.sendAsync('subscribe', { post: ['1'] });
+        expect(ack, 'to equal', { success: true, rooms: { post: ['1'] } });
+      });
+    });
+
+    describe(`Luna subscribes to posts 1 and 2 in the same request`, () => {
+      it('should have post 1 and 2 in response', async () => {
+        const ack = await lunaSession.sendAsync('subscribe', { post: ['1', '2'] });
+        expect(ack, 'to equal', { success: true, rooms: { post: ['1', '2'] } });
+      });
+    });
+
+    describe(`Luna subscribes to posts 1 and 2 in two requests`, () => {
+      it('should have post 1 and 2 in response', async () => {
+        await lunaSession.sendAsync('subscribe', { post: ['1'] });
+        const ack = await lunaSession.sendAsync('subscribe', { post: ['2'] });
+        expect(ack, 'to equal', { success: true, rooms: { post: ['1', '2'] } });
+      });
+    });
+
+    describe(`Luna subscribes to posts 1, 2 and 3 and unsubsribes from post 2`, () => {
+      it('should have post 1 and 3 in response', async () => {
+        await lunaSession.sendAsync('subscribe', { post: ['1', '2', '3'] });
+        const ack = await lunaSession.sendAsync('unsubscribe', { post: ['2'] });
+        expect(ack, 'to equal', { success: true, rooms: { post: ['1', '3'] } });
+      });
+    });
+  });
 });
