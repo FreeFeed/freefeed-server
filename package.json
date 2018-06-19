@@ -50,7 +50,7 @@
     "juice": "~4.2.3",
     "knex": "~0.14.4",
     "koa": "~2.5.0",
-    "koa-body": "2.5.0",
+    "koa-body": "~4.0.3",
     "koa-methodoverride": "2.0.0",
     "koa-morgan": "1.0.1",
     "koa-passport": "4.0.1",
