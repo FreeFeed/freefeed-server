@@ -40,7 +40,7 @@
     "classnames": "~2.2.5",
     "console-stamp": "~0.2.6",
     "debug": "3.1.0",
-    "ejs": "2.5.7",
+    "ejs": "~2.6.1",
     "ff-url-finder": "~2.3.6",
     "file-type": "~7.6.0",
     "gifsicle": "3.0.4",
