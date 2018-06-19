@@ -133,6 +133,7 @@
     display: none; }
 
 .image-attachments .image-attachment-img {
+  display: block;
   max-width: 525px;
   max-height: 175px; }
   @media (max-width: 400px) {
