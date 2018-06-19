@@ -965,9 +965,9 @@ cache-base@^1.0.1:
     union-value "^1.0.0"
     unset-value "^1.0.0"
 
-cache-manager-redis@0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/cache-manager-redis/-/cache-manager-redis-0.5.0.tgz#9a902655e8a710da93563efd4ceda01f1e60758d"
+cache-manager-redis@~0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/cache-manager-redis/-/cache-manager-redis-0.6.0.tgz#b364b8e855b287edae1b07780addb9bc9860ebce"
   dependencies:
     cache-manager "^2.2.0"
     redis-url "^1.2.1"

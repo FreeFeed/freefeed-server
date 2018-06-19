@@ -37,7 +37,7 @@ const usersCacheTrait = (superClass) => class extends superClass {
     const uniqIds = _.uniq(ids);
     let cachedUsers;
     if (this.cache.store.name === 'redis') {
-      const { client, done } = await this.cache.store.getClientAsync();
+      const { client, done } = await this.cache.store.getClient();
       try {
         const cacheKeys = ids.map((id) => `user_${id}`);
         const result = await client.mgetAsync(cacheKeys);
