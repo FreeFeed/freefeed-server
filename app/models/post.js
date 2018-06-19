@@ -160,34 +160,82 @@ export function addModel(dbAdapter) {
       return this;
     }
 
+    /**
+     * Update Post object
+     * This method updates only properties that are listen in params
+     *
+     * @param {object} params
+     * @returns {Post}
+     */
     async update(params) {
-      // Reflect post changes and validate
+      const editableProperties = [
+        'body',
+        'attachments',
+        'destinationFeedIds',
+      ];
+      if (!editableProperties.some((p) => p in params)) {
+        // Nothing changed
+        return this;
+      }
+
       this.updatedAt = new Date().getTime();
-      this.body = params.body;
+      const payload = { updatedAt: this.updatedAt.toString() };
+      const afterUpdate = [];
+
+      let realtimeRooms = await getRoomsOfPost(this);
+
+      if ('body' in params) {
+        this.body = params.body;
+        payload.body = this.body;
+
+        // Update post hashtags
+        afterUpdate.push(() => this.processHashtagsOnUpdate());
+      }
+
+      if ('attachments' in params) {
+        // Calculate changes in attachments
+        const oldAttachments = await this.getAttachmentIds() || [];
+        const newAttachments = params.attachments || [];
+        const removedAttachments = _.difference(oldAttachments, newAttachments);
+
+        // Update post attachments in DB
+        afterUpdate.push(() => this.linkAttachments(newAttachments));
+        afterUpdate.push(() => this.unlinkAttachments(removedAttachments));
+      }
+
+      if ('destinationFeedIds' in params) {
+        const removedFeedIds = _.difference(this.destinationFeedIds, params.destinationFeedIds);
+        if (removedFeedIds.length > 0) {
+          this.destinationFeedIds = params.destinationFeedIds;
+          this.feedIntIds = _.union(this.feedIntIds, this.destinationFeedIds);
+          this.feedIntIds = _.difference(this.feedIntIds, removedFeedIds);
+
+          payload.destinationFeedIds = this.destinationFeedIds;
+          payload.feedIntIds = this.feedIntIds;
+
+          if (params.updatedBy) {
+            const removedFeeds = await dbAdapter.getTimelinesByIntIds(removedFeedIds);
+            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy, { removedFeeds }));
+          }
+
+          // Publishing changes to the old AND new realtime rooms
+          afterUpdate.push(async () => {
+            const rooms = await getRoomsOfPost(this);
+            realtimeRooms = _.union(realtimeRooms, rooms);
+          });
+        }
+      }
+
       await this.validate();
 
-      // Calculate changes in attachments
-      const oldAttachments = await this.getAttachmentIds() || [];
-      const newAttachments = params.attachments || [];
-      const removedAttachments = oldAttachments.filter((i) => !newAttachments.includes(i));
-
-      // Update post body in DB
-      const payload = {
-        'body':      this.body,
-        'updatedAt': this.updatedAt.toString()
-      };
+      // Update post in DB
       await dbAdapter.updatePost(this.id, payload);
 
-      // Update post attachments in DB
-      await Promise.all([
-        this.linkAttachments(newAttachments),
-        this.unlinkAttachments(removedAttachments)
-      ]);
-
-      await this.processHashtagsOnUpdate();
+      // Perform afterUpdate actions
+      await Promise.all(afterUpdate.map((f) => f()));
 
       // Finally, publish changes
-      await pubSub.updatePost(this.id);
+      await pubSub.updatePost(this.id, realtimeRooms);
 
       return this;
     }
@@ -206,13 +254,15 @@ export function addModel(dbAdapter) {
       return this;
     }
 
-    async destroy() {
+    async destroy(destroyedBy = null) {
       const [
         realtimeRooms,
         comments,
+        groups,
       ] = await Promise.all([
         getRoomsOfPost(this),
         this.getComments(),
+        this.getGroupsPostedTo(),
         dbAdapter.statsPostDeleted(this.userId, this.id),  // needs data in DB
       ]);
 
@@ -222,7 +272,10 @@ export function addModel(dbAdapter) {
       await dbAdapter.withdrawPostFromFeeds(this.feedIntIds, this.id);
       await dbAdapter.deletePost(this.id);
 
-      await pubSub.destroyPost(this.id, realtimeRooms);
+      await Promise.all([
+        pubSub.destroyPost(this.id, realtimeRooms),
+        destroyedBy ? EventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
+      ]);
     }
 
     getCreatedBy() {
@@ -277,6 +330,15 @@ export function addModel(dbAdapter) {
       this.postedTo = await dbAdapter.getTimelinesByIntIds(this.destinationFeedIds);
 
       return this.postedTo;
+    }
+
+    /**
+     * Return all groups post posted to or empty array
+     *
+     * @returns {Array.<User>}
+     */
+    async getGroupsPostedTo() {
+      return await dbAdapter.getPostGroups(this.id);
     }
 
     /**
@@ -773,6 +835,21 @@ export function addModel(dbAdapter) {
           await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id);
         }
       }
+    }
+
+    /**
+     * Returns true if user is the post author or one of group(s)
+     * admins if post was posted to group(s).
+     *
+     * @param {User} user
+     * @returns {boolean}
+     */
+    async isAuthorOrGroupAdmin(user) {
+      if (this.userId === user.id) {
+        return true;
+      }
+      const admins = await dbAdapter.getAdminsOfPostGroups(this.id);
+      return admins.some((a) => a.id === user.id);
     }
   }
 

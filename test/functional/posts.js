@@ -1117,7 +1117,8 @@ describe('PostsController', () => {
           '_method': 'delete'
         })
         .end((err, res) => {
-          res.body.should.be.empty
+          res.body.should.have.property('postStillAvailable')
+          res.body.postStillAvailable.should.eql(false)
           res.status.should.eql(200)
 
           request
