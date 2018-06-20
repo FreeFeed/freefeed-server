@@ -39,7 +39,7 @@ export async function sendBestOfEmails() {
       continue;
     }
 
-    debug(`[${u.username}] -> sendDailyBestOfEmail()`);
+    debug(`[${u.username}] -> sendWeeklyBestOfEmail()`);
     await sendWeeklyBestOfEmail(u, weeklySummary, weeklyDigestDate);  // eslint-disable-line no-await-in-loop
 
     debug(`[${u.username}] -> email is queued`);
