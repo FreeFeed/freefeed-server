@@ -152,6 +152,14 @@
   .image-attachments .image-attachment-link:hover {
     border-color: #aaa; }
 
+.image-attachments .show-more {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-color: #8ab;
+  vertical-align: middle;
+  margin-bottom: 8px; }
+
 .image-attachments.single-image .attachment {
   height: auto;
   line-height: normal; }
