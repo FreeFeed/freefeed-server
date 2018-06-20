@@ -130,6 +130,7 @@ export default class Post extends React.Component {
         <div className="post-body">
           <PostAttachments
             postId={props.id}
+            postLink={canonicalPostURI}
             attachments={props.attachments}
           />
 

@@ -57,12 +57,15 @@
       .post .post-body .post-text a {
         color: #000088; }
     .post .post-body .post-footer .post-lock-icon {
+      max-width: 16px;
       vertical-align: text-bottom;
       margin-right: 3px; }
     .post .post-body .post-footer .post-protected-icon {
+      max-width: 16px;
       color: #fff;
       text-shadow: 1px 1px 0 #888, -1px -1px 0 #888, 1px -1px 0 #888, -1px 1px 0 #888; }
     .post .post-body .post-footer .post-direct-icon {
+      max-width: 16px;
       margin-right: 0.33em; }
     .post .post-body .post-footer .post-timestamp {
       color: #666; }
@@ -133,6 +136,7 @@
     display: none; }
 
 .image-attachments .image-attachment-img {
+  display: block;
   max-width: 525px;
   max-height: 175px; }
   @media (max-width: 400px) {
@@ -150,6 +154,15 @@
   padding: 1px; }
   .image-attachments .image-attachment-link:hover {
     border-color: #aaa; }
+
+.image-attachments .show-more {
+  display: inline-block;
+  width: 24px;
+  max-width: 24px;
+  height: 24px;
+  background-color: #8ab;
+  vertical-align: middle;
+  margin-bottom: 8px; }
 
 .image-attachments.single-image .attachment {
   height: auto;
@@ -171,6 +184,7 @@
   .post-likes .icon {
     margin-top: 2px;
     float: left;
+    max-width: 16px;
     color: #ffb914; }
 
 .post-likes-list {
@@ -204,6 +218,7 @@
   position: relative; }
 
 .comment-icon {
+  max-width: 16px;
   text-decoration: none;
   vertical-align: text-bottom;
   margin-right: 3px; }
