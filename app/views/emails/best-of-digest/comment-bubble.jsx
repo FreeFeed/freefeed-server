@@ -16,7 +16,7 @@ export default class CommentBubble extends React.Component {
       ? (
         <TimeDisplay className="comment-time" timeStamp={+this.props.createdAt} timeAgoInTitle={false}>
           <img
-            src="cid:facommento"
+            src="cid:facommento@2x"
             className="comment-icon fa fa-comment-o"
             width="16px"
             height="16px"
@@ -27,7 +27,7 @@ export default class CommentBubble extends React.Component {
       : (
         <span className="comment-time">
           <img
-            src="cid:facommento"
+            src="cid:facommento@2x"
             className="comment-icon fa fa-comment-o"
             width="16px"
             height="16px"
