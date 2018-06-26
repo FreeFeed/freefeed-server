@@ -21,7 +21,7 @@ export default class AttachmentsController {
       return
     }
 
-    const fileHandlerPromises = _.map(ctx.request.body.files, async (file) => {
+    const fileHandlerPromises = _.map(ctx.request.files, async (file) => {
       try {
         const newAttachment = await ctx.state.user.newAttachment({ file });
         await newAttachment.create();

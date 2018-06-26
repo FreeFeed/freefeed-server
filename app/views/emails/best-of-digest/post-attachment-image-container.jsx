@@ -32,7 +32,7 @@ export default class ImageAttachmentsContainer extends React.Component {
         {isSingleImage ? false : (
           <div className="show-more">
             <Link to={this.props.postLink}>
-              <img src="cid:fachevronright" className="fa fa-chevron-circle-right icon" width="24px" height="24px"/>
+              <img src="cid:fachevronright@2x" className="fa fa-chevron-circle-right icon" width="24px" height="24px"/>
             </Link>
           </div>
           )}

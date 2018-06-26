@@ -1,4 +1,4 @@
-const CHANNEL_NAMES = {
+export const eventNames = {
   USER_UPDATE:          'user:update',
   POST_CREATED:         'post:new',
   POST_UPDATED:         'post:update',
@@ -23,69 +23,69 @@ export class PubSubAdapter {
   ///////////////////////////////////////////////////
 
   userUpdated(payload) {
-    return this._publish(CHANNEL_NAMES.USER_UPDATE, payload)
+    return this._publish(eventNames.USER_UPDATE, payload)
   }
 
   ///////////////////////////////////////////////////
 
   postCreated(payload) {
-    return this._publish(CHANNEL_NAMES.POST_CREATED, payload)
+    return this._publish(eventNames.POST_CREATED, payload)
   }
 
   postUpdated(payload) {
-    return this._publish(CHANNEL_NAMES.POST_UPDATED, payload)
+    return this._publish(eventNames.POST_UPDATED, payload)
   }
 
   postDestroyed(payload) {
-    return this._publish(CHANNEL_NAMES.POST_DESTROYED, payload)
+    return this._publish(eventNames.POST_DESTROYED, payload)
   }
 
   postHidden(payload) {
-    return this._publish(CHANNEL_NAMES.POST_HIDDEN, payload)
+    return this._publish(eventNames.POST_HIDDEN, payload)
   }
 
   postUnhidden(payload) {
-    return this._publish(CHANNEL_NAMES.POST_UNHIDDEN, payload)
+    return this._publish(eventNames.POST_UNHIDDEN, payload)
   }
 
   ///////////////////////////////////////////////////
 
   commentCreated(payload) {
-    return this._publish(CHANNEL_NAMES.COMMENT_CREATED, payload)
+    return this._publish(eventNames.COMMENT_CREATED, payload)
   }
 
   commentUpdated(payload) {
-    return this._publish(CHANNEL_NAMES.COMMENT_UPDATED, payload)
+    return this._publish(eventNames.COMMENT_UPDATED, payload)
   }
 
   commentDestroyed(payload) {
-    return this._publish(CHANNEL_NAMES.COMMENT_DESTROYED, payload)
+    return this._publish(eventNames.COMMENT_DESTROYED, payload)
   }
 
   ///////////////////////////////////////////////////
 
   likeAdded(payload) {
-    return this._publish(CHANNEL_NAMES.LIKE_ADDED, payload)
+    return this._publish(eventNames.LIKE_ADDED, payload)
   }
 
   likeRemoved(payload) {
-    return this._publish(CHANNEL_NAMES.LIKE_REMOVED, payload)
+    return this._publish(eventNames.LIKE_REMOVED, payload)
   }
 
   ///////////////////////////////////////////////////
 
   commentLikeAdded(payload) {
-    return this._publish(CHANNEL_NAMES.COMMENT_LIKE_ADDED, payload);
+    return this._publish(eventNames.COMMENT_LIKE_ADDED, payload);
   }
 
   commentLikeRemoved(payload) {
-    return this._publish(CHANNEL_NAMES.COMMENT_LIKE_REMOVED, payload);
+    return this._publish(eventNames.COMMENT_LIKE_REMOVED, payload);
   }
 
   ///////////////////////////////////////////////////
 
   globalUserUpdated(payload) {
-    return this._publish(CHANNEL_NAMES.GLOBAL_USER_UPDATED, payload);
+    return this._publish(eventNames.GLOBAL_USER_UPDATED, payload);
   }
 
   ///////////////////////////////////////////////////
@@ -94,5 +94,3 @@ export class PubSubAdapter {
     return this.redisClient.publishAsync(channel, payload)
   }
 }
-
-PubSubAdapter.CHANNEL_NAMES = CHANNEL_NAMES

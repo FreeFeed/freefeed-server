@@ -99,26 +99,58 @@ export default class PostsController {
     },
   ]);
 
-  static async destroy(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static destroy = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      if (!await post.isAuthorOrGroupAdmin(user)) {
+        throw new ForbiddenException("You can't delete another user's post")
+      }
 
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
+      let postStillAvailable = false;
 
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't delete another user's post")
-    }
+      // Post's author deletes post
+      if (post.userId === user.id) {
+        await post.destroy()
+        monitor.increment('posts.destroys');
+        ctx.body = { postStillAvailable };
+        return;
+      }
 
-    await post.destroy()
-    ctx.body = {};
+      // Group admin deletes post
+      const [
+        postDestinations,
+        userManagedGroups,
+      ] = await Promise.all([
+        post.getPostedTo(),
+        user.getManagedGroups(),
+      ]);
+      const groupsPostsFeeds = await Promise.all(
+        userManagedGroups.map((g) => dbAdapter.getUserNamedFeed(g.id, 'Posts'))
+      );
 
-    monitor.increment('posts.destroys');
-  }
+      const feedsToRemain = _.differenceBy(postDestinations, groupsPostsFeeds, 'id');
+      if (feedsToRemain.length === 0) {
+        // No feeds left, deleting post
+        await post.destroy(user)
+        monitor.increment('posts.destroys');
+        ctx.body = { postStillAvailable };
+        return;
+      }
+
+      // Partial removal: remove post only from several feeds
+      await post.update({
+        destinationFeedIds: _.map(feedsToRemain, 'intId'),
+        updatedBy:          user,
+      });
+
+      postStillAvailable = await (await dbAdapter.getPostById(post.id)).isVisibleFor(user);
+
+      ctx.body = { postStillAvailable };
+    },
+  ]);
 
   static async hide(ctx) {
     if (!ctx.state.user) {
@@ -150,45 +182,33 @@ export default class PostsController {
     ctx.body = {};
   }
 
-  static async disableComments(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static disableComments = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (!await post.isAuthorOrGroupAdmin(user)) {
+        throw new ForbiddenException("You can't disable comments for another user's post");
+      }
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      await post.setCommentsDisabled('1');
+      ctx.body = {};
+    },
+  ]);
 
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
+  static enableComments = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (!await post.isAuthorOrGroupAdmin(user)) {
+        throw new ForbiddenException("You can't enable comments for another user's post");
+      }
 
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't disable comments for another user's post")
-    }
-
-    await post.setCommentsDisabled('1')
-
-    ctx.body = {};
-  }
-
-  static async enableComments(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
-
-    const post = await dbAdapter.getPostById(ctx.params.postId)
-
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
-
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't enable comments for another user's post")
-    }
-
-    await post.setCommentsDisabled('0')
-
-    ctx.body = {};
-  }
+      await post.setCommentsDisabled('0');
+      ctx.body = {};
+    },
+  ]);
 }
 
 /**

@@ -278,7 +278,7 @@ export function addModel(dbAdapter) {
 
       // Analyze metadata to get Artist & Title
       const readStream = fs.createReadStream(tmpAttachmentFile);
-      const { common: metadata } = await mmParseStream(readStream, this.mimeType);
+      const { common: metadata } = await mmParseStream(readStream, this.mimeType, { mergeTagHeaders: true });
 
       debug(`Metadata of ${tmpAttachmentFileName}`, metadata);
 
