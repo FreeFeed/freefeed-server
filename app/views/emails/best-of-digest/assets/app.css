@@ -57,15 +57,15 @@
       .post .post-body .post-text a {
         color: #000088; }
     .post .post-body .post-footer .post-lock-icon {
-      max-width: 16px;
+      width: 16px!important;
       vertical-align: text-bottom;
       margin-right: 3px; }
     .post .post-body .post-footer .post-protected-icon {
-      max-width: 16px;
+      width: 16px!important;
       color: #fff;
       text-shadow: 1px 1px 0 #888, -1px -1px 0 #888, 1px -1px 0 #888, -1px 1px 0 #888; }
     .post .post-body .post-footer .post-direct-icon {
-      max-width: 16px;
+      width: 16px!important;
       margin-right: 0.33em; }
     .post .post-body .post-footer .post-timestamp {
       color: #666; }
@@ -184,7 +184,7 @@
   .post-likes .icon {
     margin-top: 2px;
     float: left;
-    max-width: 16px;
+    width: 16px!important;
     color: #ffb914; }
 
 .post-likes-list {
@@ -218,7 +218,7 @@
   position: relative; }
 
 .comment-icon {
-  max-width: 16px;
+  width: 16px!important;
   text-decoration: none;
   vertical-align: text-bottom;
   margin-right: 3px; }
