@@ -738,6 +738,40 @@ const postsTrait = (superClass) => class extends superClass {
     );
     return rows.length > 0;
   }
+
+  async getAdminsOfPostGroups(postUID) {
+    const { rows } = await this.database.raw(
+      `select distinct(ga.user_id) from
+        posts p
+        join feeds f on array[f.id] && p.destination_feed_ids
+        join users owners on owners.uid = f.user_id
+        join group_admins ga on owners.uid = ga.group_id
+      where
+        p.uid = :postUID
+      `, { postUID }
+    );
+    const adminIds = _.map(rows, 'user_id');
+    return this.getUsersByIds(adminIds);
+  }
+
+  /**
+   * Return all groups post posted to or empty array
+   *
+   * @returns {Array.<User>}
+   */
+  async getPostGroups(postUID) {
+    const { rows } = await this.database.raw(
+      `select distinct(owners.uid) from
+        posts p
+        join feeds f on array[f.id] && p.destination_feed_ids
+        join users owners on owners.uid = f.user_id and owners.type = 'group'
+      where
+        p.uid = :postUID
+      `, { postUID }
+    );
+    const adminIds = _.map(rows, 'uid');
+    return this.getUsersByIds(adminIds);
+  }
 };
 
 export default postsTrait;
@@ -753,15 +787,17 @@ export function initPostObject(attrs, params) {
 }
 
 const POST_COLUMNS = {
-  createdAt:        'created_at',
-  updatedAt:        'updated_at',
-  bumpedAt:         'bumped_at',
-  userId:           'user_id',
-  body:             'body',
-  commentsDisabled: 'comments_disabled',
-  isPrivate:        'is_private',
-  isProtected:      'is_protected',
-  isPropagable:     'is_propagable',
+  createdAt:          'created_at',
+  updatedAt:          'updated_at',
+  bumpedAt:           'bumped_at',
+  userId:             'user_id',
+  body:               'body',
+  commentsDisabled:   'comments_disabled',
+  isPrivate:          'is_private',
+  isProtected:        'is_protected',
+  isPropagable:       'is_propagable',
+  feedIntIds:         'feed_ids',
+  destinationFeedIds: 'destination_feed_ids',
 }
 
 const POST_COLUMNS_MAPPING = {

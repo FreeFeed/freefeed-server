@@ -53,8 +53,8 @@ export default class pubSub {
     await this.publisher.postDestroyed(payload)
   }
 
-  async updatePost(postId) {
-    const payload = JSON.stringify({ postId })
+  async updatePost(postId, rooms = null) {
+    const payload = JSON.stringify({ postId, rooms })
     await this.publisher.postUpdated(payload)
   }
 

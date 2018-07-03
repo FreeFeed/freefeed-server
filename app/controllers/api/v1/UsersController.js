@@ -402,7 +402,7 @@ export default class UsersController {
       return
     }
 
-    const fileHandlerPromises = Object.values(ctx.request.body.files).map(async (file) => {
+    const fileHandlerPromises = Object.values(ctx.request.files).map(async (file) => {
       await ctx.state.user.updateProfilePicture(file)
       ctx.body = { message: 'Your profile picture has been updated' };
     });

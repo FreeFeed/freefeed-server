@@ -51,7 +51,6 @@ class DbAdapterBase {
 
     promisifyAll(this.cache);
     promisifyAll(this.memoryCache);
-    promisifyAll(this.cache.store);
   }
 }
 

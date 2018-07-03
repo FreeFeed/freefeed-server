@@ -146,7 +146,7 @@ export default class GroupsController {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
 
-    const fileHandlerPromises = Object.values(ctx.request.body.files).map(async (file) => {
+    const fileHandlerPromises = Object.values(ctx.request.files).map(async (file) => {
       await group.updateProfilePicture(file);
       ctx.body = { message: 'The profile picture of the group has been updated' };
     });

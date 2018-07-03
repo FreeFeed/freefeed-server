@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy, difference, noop, values, last } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -10,6 +10,7 @@ import Raven from 'raven';
 
 import { load as configLoader } from '../config/config';
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
+import { eventNames } from './support/PubSubAdapter';
 
 
 promisifyAll(jwt);
@@ -17,7 +18,6 @@ promisifyAll(jwt);
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
-const noOp = () => {};
 
 export default class PubsubListener {
   app;
@@ -57,77 +57,46 @@ export default class PubsubListener {
       }
       debug('redis error', err);
     });
-    redisClient.subscribe(
-      'user:update',
-      'post:new', 'post:update', 'post:destroy', 'post:hide', 'post:unhide',
-      'comment:new', 'comment:update', 'comment:destroy',
-      'like:new', 'like:remove', 'comment_like:new', 'comment_like:remove',
-      'global:user:update',
-    );
+    redisClient.subscribe(values(eventNames));
 
     redisClient.on('message', this.onRedisMessage);
   }
 
   onConnect = (socket) => {
+    promisifyAll(socket);
     const { secret } = config;
 
     socket.on('error', (e) => {
       debug(`[socket.id=${socket.id}] error`, e);
     });
 
-    socket.on('auth', async (data, callback) => {
-      debug(`[socket.id=${socket.id}] 'auth' request`);
-
-      if (!isFunction(callback)) {
-        callback = noOp;
+    onSocketEvent(socket, 'auth', async (data, debugPrefix) => {
+      if (!isPlainObject(data)) {
+        throw new EventHandlingError('request without data');
       }
 
-      try {
-        if (!isPlainObject(data)) {
-          debug(`[socket.id=${socket.id}] 'auth' request: no data`);
-          return;
-        }
-
-        if (data.authToken && typeof data.authToken === 'string') {
-          try {
-            const decoded = await jwt.verifyAsync(data.authToken, secret);
-            socket.user = await dbAdapter.getUserById(decoded.userId);
-            callback({ success: true });
-            debug(`[socket.id=${socket.id}] 'auth' request: successfully authenticated as ${socket.user.username}`);
-          } catch (e) {
-            socket.user = { id: null };
-            callback({ success: false, message: 'invalid token' });
-            debug(`[socket.id=${socket.id}] 'auth' request: invalid token, signing user out`, data.authToken);
-          }
-        } else {
+      if (data.authToken && typeof data.authToken === 'string') {
+        try {
+          const decoded = await jwt.verifyAsync(data.authToken, secret);
+          socket.user = await dbAdapter.getUserById(decoded.userId);
+          debug(`${debugPrefix}: successfully authenticated as ${socket.user.username}`);
+        } catch (e) {
           socket.user = { id: null };
-          callback({ success: true });
+          throw new Error('invalid token', `invalid token ${data.authToken}, signing user out`);
         }
-      } catch (e) {
-        if (sentryIsEnabled) {
-          Raven.captureException(e, { extra: { err: 'PubsubListener auth error' } });
-        }
-        callback({ success: false, message: e.message });
-        debug(`[socket.id=${socket.id}] 'auth' request: exception ${e}`);
+      } else {
+        socket.user = { id: null };
       }
     });
 
-    socket.on('subscribe', async (data, callback) => {
-      debug(`[socket.id=${socket.id}] 'subscribe' request`);
-
-      if (!isFunction(callback)) {
-        callback = noOp;
-      }
-
+    onSocketEvent(socket, 'subscribe', async (data, debugPrefix) => {
       if (!isPlainObject(data)) {
-        callback({ success: false, message: 'request without data' });
-        debug(`[socket.id=${socket.id}] 'subscribe' request: no data`);
-        return;
+        throw new EventHandlingError('request without data');
       }
 
       const channelListsPromises = map(data, async (channelIds, channelType) => {
         if (!isArray(channelIds)) {
-          throw new Error(`List of ${channelType} ids has to be an array`);
+          throw new EventHandlingError(`List of ${channelType} ids has to be an array`);
         }
 
         const promises = channelIds.map(async (id) => {
@@ -135,15 +104,24 @@ export default class PubsubListener {
             const t = await dbAdapter.getTimelineById(id);
 
             if (!t) {
-              throw new Error(`User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${id})`);
+              throw new EventHandlingError(
+                `attempt to subscribe to nonexistent timeline`,
+                `User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${id})`
+              );
             }
 
             if (t.isPersonal() && t.userId !== socket.user.id) {
-              throw new Error(`User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${id}) belonging to user ${t.userId}`);
+              throw new EventHandlingError(
+                `attempt to subscribe to someone else's '${t.name}' timeline`,
+                `User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${id}) belonging to user ${t.userId}`
+              );
             }
           } else if (channelType === 'user') {
             if (id !== socket.user.id) {
-              throw new Error(`User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${id})`);
+              throw new EventHandlingError(
+                `attempt to subscribe to someone else's '${channelType}' channel`,
+                `User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${id})`
+              );
             }
           }
 
@@ -153,79 +131,62 @@ export default class PubsubListener {
         return await Promise.all(promises);
       });
 
-      try {
-        const channelLists = await Promise.all(channelListsPromises);
-        flatten(channelLists).map((channelId) => {
-          socket.join(channelId);
-          debug(`[socket.id=${socket.id}] 'subscribe' request: successfully subscribed to ${channelId}`);
-        });
+      const channelLists = await Promise.all(channelListsPromises);
+      await Promise.all(flatten(channelLists).map(async (channelId) => {
+        await socket.joinAsync(channelId);
+        debug(`${debugPrefix}: successfully subscribed to ${channelId}`);
+      }));
 
-        const rooms = buildGroupedListOfSubscriptions(socket);
+      const rooms = buildGroupedListOfSubscriptions(socket);
 
-        callback({ success: true, rooms });
-      } catch (e) {
-        if (sentryIsEnabled) {
-          Raven.captureException(e, { extra: { err: 'PubsubListener subscribe error' } });
-        }
-        callback({ success: false, message: e.message });
-        debug(`[socket.id=${socket.id}] 'subscribe' request: exception ${e}`);
-      }
+      return { rooms };
     });
 
-    socket.on('unsubscribe', (data, callback) => {
-      debug(`[socket.id=${socket.id}] 'unsubscribe' request`);
-
-      if (!isFunction(callback)) {
-        callback = noOp;
-      }
-
+    onSocketEvent(socket, 'unsubscribe', async (data, debugPrefix) => {
       if (!isPlainObject(data)) {
-        callback({ success: false, message: 'request without data' });
-        debug(`[socket.id=${socket.id}] 'unsubscribe' request: no data`);
-        return;
+        throw new EventHandlingError('request without data');
       }
 
+      const roomsToLeave = [];
       for (const channelType of Object.keys(data)) {
         const channelIds = data[channelType];
 
         if (!isArray(channelIds)) {
-          callback({ success: false, message: `List of ${channelType} ids has to be an array` });
-          debug(`[socket.id=${socket.id}] 'unsubscribe' request: got bogus channel list`);
-          return;
+          throw new EventHandlingError(`List of ${channelType} ids has to be an array`, `got bogus channel list`);
         }
-
-        channelIds.filter(Boolean).forEach((id) => {
-          socket.leave(`${channelType}:${id}`);
-          debug(`[socket.id=${socket.id}] 'unsubscribe' request: successfully unsubscribed from ${channelType}:${id}`);
-        });
+        roomsToLeave.push(...channelIds.filter(Boolean).map((id) => `${channelType}:${id}`));
       }
 
-      const rooms = buildGroupedListOfSubscriptions(socket);
+      await Promise.all(roomsToLeave.map(async (room) => {
+        await socket.leaveAsync(room);
+        debug(`${debugPrefix}: successfully unsubscribed from ${room}`);
+      }));
 
-      callback({ success: true, rooms });
+      const rooms = buildGroupedListOfSubscriptions(socket);
+      return { rooms };
     });
   };
 
   onRedisMessage = async (channel, msg) => {
     const messageRoutes = {
-      'user:update': this.onUserUpdate,
+      [eventNames.USER_UPDATE]: this.onUserUpdate,
 
-      'post:new':     this.onPostNew,
-      'post:update':  this.onPostUpdate,
-      'post:destroy': this.onPostDestroy,
-      'post:hide':    this.onPostHide,
-      'post:unhide':  this.onPostUnhide,
+      [eventNames.POST_CREATED]:   this.onPostNew,
+      [eventNames.POST_UPDATED]:   this.onPostUpdate,
+      [eventNames.POST_DESTROYED]: this.onPostDestroy,
+      [eventNames.POST_HIDDEN]:    this.onPostHide,
+      [eventNames.POST_UNHIDDEN]:  this.onPostUnhide,
 
-      'comment:new':     this.onCommentNew,
-      'comment:update':  this.onCommentUpdate,
-      'comment:destroy': this.onCommentDestroy,
+      [eventNames.COMMENT_CREATED]:   this.onCommentNew,
+      [eventNames.COMMENT_UPDATED]:   this.onCommentUpdate,
+      [eventNames.COMMENT_DESTROYED]: this.onCommentDestroy,
 
-      'like:new':            this.onLikeNew,
-      'like:remove':         this.onLikeRemove,
-      'comment_like:new':    this.onCommentLikeNew,
-      'comment_like:remove': this.onCommentLikeRemove,
+      [eventNames.LIKE_ADDED]:           this.onLikeNew,
+      [eventNames.LIKE_REMOVED]:         this.onLikeRemove,
+      [eventNames.COMMENT_LIKE_ADDED]:   this.onCommentLikeNew,
+      [eventNames.COMMENT_LIKE_REMOVED]: this.onCommentLikeRemove,
 
-      'global:user:update': this.onGlobalUserUpdate,
+      [eventNames.GLOBAL_USER_UPDATED]: this.onGlobalUserUpdate,
     };
 
     try {
@@ -239,6 +200,10 @@ export default class PubsubListener {
   };
 
   async broadcastMessage(rooms, type, json, post = null, emitter = defaultEmitter) {
+    if (rooms.length === 0) {
+      return;
+    }
+
     let destSockets = Object.values(this.io.sockets.connected)
       .filter((socket) => rooms.some((r) => r in socket.rooms));
 
@@ -248,7 +213,26 @@ export default class PubsubListener {
 
     let users = destSockets.map((s) => s.user);
     if (post) {
-      users = await post.onlyUsersCanSeePost(users);
+      const usersWhoCanSeePost = await post.onlyUsersCanSeePost(users);
+
+      // It is possible that after the update of the posts
+      // destinations it will became invisible for the some users.
+      // In this case send 'post:destroy' to such users.
+      if (type === 'post:update') {
+        const blindUsers = difference(users, usersWhoCanSeePost);
+        const blindUsersRooms = flatten(
+          destSockets
+            .filter((s) => blindUsers.includes((s.user)))
+            .map((s) => Object.keys(s.rooms))
+        );
+        await this.broadcastMessage(
+          intersection(rooms, blindUsersRooms),
+          'post:destroy',
+          { meta: { postId: post.id } },
+        );
+      }
+
+      users = usersWhoCanSeePost;
       destSockets = destSockets.filter((s) => users.includes((s.user)));
     }
 
@@ -267,9 +251,9 @@ export default class PubsubListener {
       if (post && user.id) {
         const banIds = bansMap.get(user.id) || [];
         if (
-          ((type === 'comment:new' || type === 'comment:update') && banIds.includes(json.comments.createdBy))
-          || ((type === 'like:new') && banIds.includes(json.users.id))
-          || ((type === 'comment_like:new' || type === 'comment_like:remove') &&
+          ((type === eventNames.COMMENT_CREATED || type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
+          || ((type === eventNames.LIKE_ADDED) && banIds.includes(json.users.id))
+          || ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
             (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
         ) {
           return;
@@ -289,7 +273,7 @@ export default class PubsubListener {
   // Message-handlers follow
   onPostDestroy = async ({ postId, rooms }) => {
     const json = { meta: { postId } };
-    const type = 'post:destroy';
+    const type = eventNames.POST_DESTROYED;
     await this.broadcastMessage(rooms, type, json);
   };
 
@@ -297,17 +281,17 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(data.postId);
     const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:new';
+    const type = eventNames.POST_CREATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
 
-  onPostUpdate = async (data) => {
-    const post = await dbAdapter.getPostById(data.postId);
+  onPostUpdate = async ({ postId, rooms = null }) => {
+    const post = await dbAdapter.getPostById(postId);
     const json = await new PostSerializer(post).promiseToJSON();
 
-    const type = 'post:update';
-    const rooms = await getRoomsOfPost(post);
+    const type = eventNames.POST_UPDATED;
+    rooms = rooms || await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
 
@@ -322,7 +306,7 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(comment.postId);
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:new';
+    const type = eventNames.COMMENT_CREATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
@@ -332,7 +316,7 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(comment.postId);
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
 
-    const type = 'comment:update';
+    const type = eventNames.COMMENT_UPDATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
@@ -340,7 +324,7 @@ export default class PubsubListener {
   onCommentDestroy = async ({ postId, commentId, rooms }) => {
     const json = { postId, commentId };
     const post = await dbAdapter.getPostById(postId);
-    const type = 'comment:destroy';
+    const type = eventNames.COMMENT_DESTROYED;
     await this.broadcastMessage(rooms, type, json, post);
   };
 
@@ -355,7 +339,7 @@ export default class PubsubListener {
     const json = await new LikeSerializer(user).promiseToJSON();
     json.meta = { postId };
 
-    const type = 'like:new';
+    const type = eventNames.LIKE_ADDED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post);
   };
@@ -363,7 +347,7 @@ export default class PubsubListener {
   onLikeRemove = async ({ userId, postId, rooms }) => {
     const json = { meta: { userId, postId } };
     const post = await dbAdapter.getPostById(postId);
-    const type = 'like:remove';
+    const type = eventNames.LIKE_REMOVED;
     await this.broadcastMessage(rooms, type, json, post);
   };
 
@@ -373,7 +357,7 @@ export default class PubsubListener {
     const json = { meta: { postId } };
     const post = await dbAdapter.getPostById(postId);
 
-    const type = 'post:hide';
+    const type = eventNames.POST_HIDDEN;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
@@ -384,21 +368,21 @@ export default class PubsubListener {
     const json = { meta: { postId } };
     const post = await dbAdapter.getPostById(postId);
 
-    const type = 'post:unhide';
+    const type = eventNames.POST_UNHIDDEN;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
 
   onCommentLikeNew = async (data) => {
-    await this._sendCommentLikeMsg(data, 'comment_like:new');
+    await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_ADDED);
   };
 
   onCommentLikeRemove = async (data) => {
-    await this._sendCommentLikeMsg(data, 'comment_like:remove');
+    await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_REMOVED);
   };
 
   onGlobalUserUpdate = async (user) => {
-    await this.broadcastMessage(['global:users'], 'global:user:update', { user });
+    await this.broadcastMessage(['global:users'], eventNames.GLOBAL_USER_UPDATED, { user });
   };
 
   // Helpers
@@ -412,7 +396,7 @@ export default class PubsubListener {
     }
 
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
-    if (msgType === 'comment_like:new') {
+    if (msgType === eventNames.COMMENT_LIKE_ADDED) {
       json.comments.userId = data.likerUUID;
     } else {
       json.comments.userId = data.unlikerUUID;
@@ -440,7 +424,7 @@ export default class PubsubListener {
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
 
-    if (type !== 'post:new') {
+    if (type !== eventNames.POST_CREATED) {
       const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
       if (isHidden) {
         json.posts.isHidden = true;
@@ -555,3 +539,42 @@ function buildGroupedListOfSubscriptions(socket) {
 }
 
 const defaultEmitter = (socket, type, json) => socket.emit(type, json);
+
+class EventHandlingError extends Error {
+  logMessage;
+
+  constructor(message, logMessage = message) {
+    super(message);
+    this.logMessage = logMessage;
+  }
+}
+
+/**
+ * Adds handler for the incoming socket events of given type that
+ * properly handles: callback parameter and it's absence, debug logging
+ * on error, Sentry exceptions capture, and acknowledgment messages.
+ *
+ * @param {object} socket
+ * @param {string} event
+ * @param {function} handler
+ */
+const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, ...extra) => {
+  const debugPrefix = `[socket.id=${socket.id}] '${event}' request`;
+  const callback = isFunction(last(extra)) ? last(extra) : noop;
+
+  try {
+    debug(debugPrefix);
+    const result = await handler(data, debugPrefix);
+    callback({ success: true, ...result });
+  } catch (e) {
+    if (e instanceof EventHandlingError) {
+      debug(`${debugPrefix}: ${e.logMessage}`);
+    } else {
+      debug(`${debugPrefix}: ${e.message}`);
+    }
+    if (sentryIsEnabled) {
+      Raven.captureException(e, { extra: { err: `PubsubListener ${event} error` } });
+    }
+    callback({ success: false, message: e.message });
+  }
+});

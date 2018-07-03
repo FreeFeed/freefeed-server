@@ -9,6 +9,7 @@ export default (props) => {
     <ImageAttachmentsContainer
       attachments={imageAttachments}
       postId={props.postId}
+      postLink={props.postLink}
       />
   ) : false;
 

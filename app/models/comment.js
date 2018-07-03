@@ -160,7 +160,7 @@ export function addModel(dbAdapter) {
       return this.hideType !== Comment.DELETED;
     }
 
-    async destroy() {
+    async destroy(destroyedBy = null) {
       const post = await this.getPost();
       const realtimeRooms = await getRoomsOfPost(post);
       await dbAdapter.deleteComment(this.id, this.postId);
@@ -170,6 +170,7 @@ export function addModel(dbAdapter) {
       await Promise.all([
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
+        destroyedBy ? EventService.onCommentDestroyed(this, destroyedBy) : null,
       ]);
     }
 

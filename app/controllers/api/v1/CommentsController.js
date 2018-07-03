@@ -22,7 +22,7 @@ export const create = compose([
     const { user: author, post } = ctx.state;
     const { comment: { body, postId } } = ctx.request.body;
 
-    if (post.commentsDisabled === '1' && post.userId !== author.id) {
+    if (post.commentsDisabled === '1' && !await post.isAuthorOrGroupAdmin(author)) {
       throw new ForbiddenException('Comments disabled');
     }
 
@@ -103,11 +103,11 @@ export const destroy = compose([
       throw new ForbiddenException('You can not destroy a deleted comment');
     }
 
-    if (comment.userId !== user.id && post.userId !== user.id) {
+    if (comment.userId !== user.id && !await post.isAuthorOrGroupAdmin(user)) {
       throw new ForbiddenException("You don't have permission to delete this comment");
     }
 
-    await comment.destroy();
+    await comment.destroy(user);
     monitor.increment('comments.destroys');
 
     ctx.body = {};
