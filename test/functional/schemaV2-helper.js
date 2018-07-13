@@ -30,7 +30,8 @@ export const groupBasic = {
 
 export const user = {
   ...userBasic,
-  statistics: expect.it('to be an object'),
+  statistics:     expect.it('to be an object'),
+  directsFromAll: expect.it('to be a boolean'),
 };
 
 export const group = {
