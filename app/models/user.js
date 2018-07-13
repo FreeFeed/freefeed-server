@@ -990,16 +990,22 @@ export function addModel(dbAdapter) {
       return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
     }
 
-    // Users can send directs only to their mutual friends
-    const isMutual = await dbAdapter.areUsersMutuallySubscribed(this.id, postingUser.id);
-    if (isMutual) {
-      return await Promise.all([
-        dbAdapter.getUserNamedFeed(this.id, 'Directs'),
-        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
-      ]);
+    if (!this.preferences.directsFromAll) {
+      const friendIds = await this.getFriendIds();
+      if (!friendIds.includes(postingUser.id)) {
+        return [];
+      }
     }
 
-    return [];
+    const banIds = await this.getBanIds();
+    if (banIds.includes(postingUser.id)) {
+      return [];
+    }
+
+    return await Promise.all([
+      dbAdapter.getUserNamedFeed(this.id, 'Directs'),
+      dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
+    ]);
   }
 
   User.prototype.updateLastActivityAt = async function () {
