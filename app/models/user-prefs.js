@@ -40,6 +40,11 @@ const schema = {
       default: false,
       type:    'boolean',
     },
+    directsFromAll: {
+      title:   'Accept direct messages from all users',
+      default: false,
+      type:    'boolean',
+    }
   },
   additionalProperties: false,
 };
