@@ -9,7 +9,12 @@ export function init(passport) {
     passwordField: 'password'
   }, async (username, clearPassword, done) => {
     try {
-      const user = await dbAdapter.getUserByUsername(username);
+      let user;
+      if (username.indexOf('@') === -1) {
+        user = await dbAdapter.getUserByUsername(username.trim());
+      } else {
+        user = await dbAdapter.getUserByEmail(username.trim());
+      }
 
       if (!user) {
         // db inconsistency. got id, but didn't find object

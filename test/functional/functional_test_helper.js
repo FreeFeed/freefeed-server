@@ -1,5 +1,6 @@
 import http from 'http';
 import { createReadStream } from 'fs';
+import { stringify as qsStringify } from 'querystring';
 
 import fetch from 'node-fetch'
 import FormData from 'form-data';
@@ -357,6 +358,18 @@ const agent = new http.Agent({
   keepAliveMsecs: 5000,
   maxSockets:     50,
 });
+
+export async function sessionRequest(username, password) {
+  return await fetch(
+    await apiUrl('/v1/session'),
+    {
+      agent,
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    qsStringify({ username, password }),
+    }
+  );
+}
 
 export async function getSubscribersAsync(username, userContext) {
   const relativeUrl = `/v1/users/${username}/subscribers`
