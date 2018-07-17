@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import compose from 'koa-compose';
 
-import { dbAdapter, MyProfileSerializer, User } from '../../../models'
-import { NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import { dbAdapter, MyProfileSerializer, User, Group } from '../../../models'
+import { NotFoundException, ForbiddenException, ValidationException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -31,6 +31,13 @@ export default class UsersController {
       await recaptchaVerify(ctx.request.body.captcha, ip);
     }
 
+    const invitationId = ctx.request.body.invitation;
+    let invitation;
+    if (invitationId) {
+      invitation = await dbAdapter.getInvitation(invitationId);
+      invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
+    }
+
     const user = new User(params)
     await user.create(false)
 
@@ -51,6 +58,10 @@ export default class UsersController {
 
     const json = await new MyProfileSerializer(user).promiseToJSON()
     ctx.body = { ...json, authToken };
+
+    if (invitation) {
+      await useInvitation(user, invitation);
+    }
   }
 
   static async sudoCreate(ctx) {
@@ -409,4 +420,70 @@ export default class UsersController {
 
     await Promise.all(fileHandlerPromises);
   }
+}
+
+async function validateInvitationAndSelectUsers(invitation, invitationId) {
+  if (!invitation) {
+    throw new NotFoundException(`Invitation "${invitationId}" not found`);
+  }
+
+  if (invitation.registrations_count > 0 && invitation.single_use) {
+    throw new ValidationException(`Somebody has already used invitation "${invitationId}"`);
+  }
+
+
+  const userNames = invitation.recommendations.users || [];
+  const groupNames = invitation.recommendations.groups || [];
+
+  const users = await dbAdapter.getFeedOwnersByUsernames(userNames);
+  const publicUsers = [];
+  const privateUsers = [];
+  for (const user of users) {
+    if (!(user instanceof User)) {
+      throw new ValidationException(`User not found "${user.username}"`);
+    }
+
+    if (user.isPrivate === '1') {
+      privateUsers.push(user);
+    } else {
+      publicUsers.push(user);
+    }
+  }
+
+  const groups = await dbAdapter.getFeedOwnersByUsernames(groupNames);
+  const publicGroups = [];
+  const privateGroups = [];
+  for (const group of groups) {
+    if (!(group instanceof Group)) {
+      throw new ValidationException(`Group not found "${group.username}"`);
+    }
+
+    if (group.isPrivate === 1) {
+      privateGroups.push(group);
+    } else {
+      publicGroups.push(group);
+    }
+  }
+
+  return { ...invitation, publicUsers, privateUsers, publicGroups, privateGroups };
+}
+
+async function useInvitation(newUser, invitation) {
+  await Promise.all(invitation.publicUsers.map((recommendedUser) => {
+    return newUser.subscribeTo(recommendedUser);
+  }));
+
+  await Promise.all(invitation.publicGroups.map((recommendedGroup) => {
+    return newUser.subscribeTo(recommendedGroup);
+  }));
+
+  await Promise.all(invitation.privateUsers.map(async (recommendedUser) => {
+    await newUser.sendSubscriptionRequest(recommendedUser.id);
+    return EventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
+  }));
+
+  await Promise.all(invitation.privateGroups.map(async (recommendedGroup) => {
+    await newUser.sendPrivateGroupSubscriptionRequest(recommendedGroup.id);
+    return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
+  }));
 }
