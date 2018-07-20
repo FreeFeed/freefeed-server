@@ -7,7 +7,7 @@ import { userSerializerFunction } from '../../../serializers/v2/user';
 export default class InvitationsController {
   static async getInvitation(ctx) {
     const invitation = await dbAdapter.getInvitation(ctx.params.secureId);
-    if (null === invitation) {
+    if (!invitation) {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
 
@@ -30,18 +30,7 @@ export default class InvitationsController {
       return;
     }
 
-    const users = await dbAdapter.getFeedOwnersByUsernames(ctx.request.body.users || []);
-    const groups = await dbAdapter.getFeedOwnersByUsernames(ctx.request.body.groups || []);
-
-    const wrongUsers = _.difference(ctx.request.body.users, users.filter((u) => u.type === 'user').map((u) => u.username));
-    if (wrongUsers.length) {
-      throw new ValidationException(`Users not found: ${wrongUsers}`);
-    }
-
-    const wrongGroups = _.difference(ctx.request.body.groups, groups.filter((u) => u.type === 'group').map((u) => u.username));
-    if (wrongGroups.length) {
-      throw new ValidationException(`Groups not found: ${wrongGroups}`);
-    }
+    await validateInvitation(ctx.request);
 
     const [invitationId] = await dbAdapter.createInvitation(
       ctx.state.user.intId,
@@ -58,6 +47,9 @@ export default class InvitationsController {
 }
 
 async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
+  userNames = userNames || [];
+  groupNames = groupNames || [];
+
   const [{ uid: authorUUID }] = await dbAdapter.getUsersIdsByIntIds([authorIntId]);
   const recommendedUsersAndGroups = await dbAdapter.getFeedOwnersByUsernames(userNames.concat(groupNames));
   const userIds = recommendedUsersAndGroups.map((u) => u.id);
@@ -76,4 +68,31 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
     users,
     groups
   };
+}
+
+async function validateInvitation(request) {
+  const users = await dbAdapter.getFeedOwnersByUsernames(request.body.users || []);
+  const groups = await dbAdapter.getFeedOwnersByUsernames(request.body.groups || []);
+
+  const wrongUsers = _.difference(request.body.users, users.filter((u) => u.type === 'user').map((u) => u.username));
+  if (wrongUsers.length) {
+    throw new ValidationException(`Users not found: ${wrongUsers}`);
+  }
+
+  const wrongGroups = _.difference(request.body.groups, groups.filter((u) => u.type === 'group').map((u) => u.username));
+  if (wrongGroups.length) {
+    throw new ValidationException(`Groups not found: ${wrongGroups}`);
+  }
+
+  if (!request.body.message || !request.body.message.length) {
+    throw new Error('Invitation message must not be empty');
+  }
+
+  if (!request.body.lang || !request.body.lang.length) {
+    throw new Error('Invitation lang must not be empty');
+  }
+
+  if (!request.body.hasOwnProperty('singleUse')) {
+    throw new Error('Invitation singleUse must not be empty');
+  }
 }
