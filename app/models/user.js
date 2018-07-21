@@ -337,7 +337,7 @@ export function addModel(dbAdapter) {
     const payload = {
       'username':            this.username,
       'screenName':          this.screenName,
-      'email':               this.email,
+      'email':               this.email ? this.email : null,
       'type':                this.type,
       'isPrivate':           '0',
       'isProtected':         '0',
