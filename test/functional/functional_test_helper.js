@@ -1031,6 +1031,28 @@ export function noFieldOrEmptyArray(name) {
   };
 }
 
+// ************************
+// Invitations
+// ************************
+
+export async function createInvitation(creatorContext, invitation) {
+  const headers = { 'Content-Type': 'application/json' } ;
+  if (creatorContext) {
+    headers['X-Authentication-Token'] = creatorContext.authToken;
+  }
+  const url = await apiUrl(`/v2/invitations`);
+  return fetch(url, { agent, method: 'POST', headers, body: JSON.stringify(invitation) });
+}
+
+export async function getInvitation(secureId, viewerContext) {
+  const headers = {};
+  if (viewerContext) {
+    headers['X-Authentication-Token'] = viewerContext.authToken;
+  }
+  const url = await apiUrl(`/v2/invitations/${secureId}`);
+  return fetch(url, { agent, method: 'GET', headers });
+}
+
 export class MockHTTPServer {
   port;
   portRange;

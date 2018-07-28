@@ -458,7 +458,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
       throw new ValidationException(`Group not found "${group.username}"`);
     }
 
-    if (group.isPrivate === 1) {
+    if (group.isPrivate === '1') {
       privateGroups.push(group);
     } else {
       publicGroups.push(group);

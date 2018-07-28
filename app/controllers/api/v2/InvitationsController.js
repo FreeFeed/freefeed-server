@@ -85,14 +85,14 @@ async function validateInvitation(request) {
   }
 
   if (!request.body.message || !request.body.message.length) {
-    throw new Error('Invitation message must not be empty');
+    throw new ValidationException('Invitation message must not be empty');
   }
 
   if (!request.body.lang || !request.body.lang.length) {
-    throw new Error('Invitation lang must not be empty');
+    throw new ValidationException('Invitation lang must not be empty');
   }
 
-  if (!request.body.hasOwnProperty('singleUse')) {
-    throw new Error('Invitation singleUse must not be empty');
+  if (!request.body.hasOwnProperty('singleUse') || !_.isBoolean(request.body.singleUse)) {
+    throw new ValidationException('Invitation singleUse must not be empty');
   }
 }
