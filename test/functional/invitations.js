@@ -18,7 +18,7 @@ import {
   whoami,
   createInvitation,
   getInvitation,
-  //getUserEvents
+  getUserEvents
 } from './functional_test_helper';
 import * as schema from './schemaV2-helper';
 
@@ -72,11 +72,7 @@ describe('Invitations', () => {
             };
             const res = await createInvitation(luna, invitation);
             const resJson = await res.json();
-            expect(resJson, 'to satisfy', {
-              invitation: {
-                registrations_count: 0,
-              }
-            });
+            expect(resJson, 'to satisfy', { invitation: { registrations_count: 0 } });
           });
         });
 
@@ -246,10 +242,10 @@ describe('Invitations', () => {
       });
 
       describe('for already used singleUse invitation', () => {
-        let luna, mars, singleUseInvitationSecureId;
+        let luna, singleUseInvitationSecureId;
 
         beforeEach(async () => {
-          [luna, mars] = await Promise.all([
+          [luna] = await Promise.all([
             createUserAsync('luna', 'pw'),
             createUserAsync('mars', 'pw'),
             createUserAsync('jupiter', 'pw'),
@@ -393,9 +389,6 @@ describe('Invitations', () => {
                     .and('to have an item satisfying', { username: 'luna' })
                     .and('to have an item satisfying', { username: 'solarsystem' })
               });
-
-              /* let r = await getUserEvents(pluto);
-              console.log(r);*/
             });
 
             it('create subscription requests to recommended private users/groups', async () => {
@@ -412,14 +405,15 @@ describe('Invitations', () => {
             it('increment registrations counter', async () => {
               const invitationRes = await getInvitation(invitationSecureId, luna);
               const invitationJson = await invitationRes.json();
-              expect(invitationJson, 'to satisfy', {
-                invitation: {
-                  registrations_count: 1,
-                }
-              });
+              expect(invitationJson, 'to satisfy', { invitation: { registrations_count: 1 } });
             });
 
-            xit('create event for invitation issuer');
+            it('create event for invitation creator', async () => {
+              const events = await getUserEvents(luna);
+              expect(events, 'to have key', 'Notifications');
+              expect(events.Notifications, 'to be an', 'array');
+              expect(events.Notifications, 'to have an item satisfying', { event_type: 'invitation_used' });
+            });
           });
         });
 
@@ -471,9 +465,7 @@ describe('Invitations', () => {
               const response2 = await createUserAsyncPost(user2);
               expect(response2.status, 'to be', 422);
               const errJson = await response2.json();
-              expect(errJson, 'to satisfy', {
-                err: `Somebody has already used invitation "${singleUseInvitationSecureId}"`
-              });
+              expect(errJson, 'to satisfy', { err: `Somebody has already used invitation "${singleUseInvitationSecureId}"` });
             });
           });
         });
