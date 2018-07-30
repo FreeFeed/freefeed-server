@@ -469,6 +469,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
 }
 
 async function useInvitation(newUser, invitation) {
+  await dbAdapter.useInvitation(invitation.secure_id);
   await Promise.all(invitation.publicUsers.map((recommendedUser) => {
     return newUser.subscribeTo(recommendedUser);
   }));

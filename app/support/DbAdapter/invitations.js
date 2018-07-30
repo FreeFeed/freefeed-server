@@ -26,6 +26,11 @@ const invitationsTrait = (superClass) => class extends superClass {
 
     return this.database('invitations').insert(payload).returning('secure_id');
   }
+
+  useInvitation(secureId) {
+    return this.database
+      .raw('UPDATE invitations SET registrations_count = registrations_count + 1 where secure_id=?;', [secureId]);
+  }
 };
 
 export default invitationsTrait;

@@ -61,6 +61,23 @@ describe('Invitations', () => {
             const res = await createInvitation(luna, invitation);
             expect(res, 'to exhaustively satisfy', invitationExpectation);
           });
+
+          it('reg counter should be zero', async () => {
+            const invitation = {
+              message:   'Welcome to Freefeed!',
+              lang:      'en',
+              singleUse: false,
+              users:     ['luna', 'mars', 'jupiter'],
+              groups:    []
+            };
+            const res = await createInvitation(luna, invitation);
+            const resJson = await res.json();
+            expect(resJson, 'to satisfy', {
+              invitation: {
+                registrations_count: 0,
+              }
+            });
+          });
         });
 
         describe('invalid payload', () => {
@@ -228,8 +245,32 @@ describe('Invitations', () => {
         });
       });
 
-      xdescribe('for already used singleUse invitation', () => {
-        it('should return invitation');
+      describe('for already used singleUse invitation', () => {
+        let luna, mars, singleUseInvitationSecureId;
+
+        beforeEach(async () => {
+          [luna, mars] = await Promise.all([
+            createUserAsync('luna', 'pw'),
+            createUserAsync('mars', 'pw'),
+            createUserAsync('jupiter', 'pw'),
+          ]);
+
+          const invitation = {
+            message:   'Welcome to Freefeed!',
+            lang:      'en',
+            singleUse: true,
+            users:     ['luna', 'mars'],
+            groups:    []
+          };
+          const newInvitationRes = await createInvitation(luna, invitation);
+          const newInvitationResJson = await newInvitationRes.json();
+          singleUseInvitationSecureId = newInvitationResJson.invitation.secure_id;
+        });
+
+        it('should return invitation', async () => {
+          const invitationRes = await getInvitation(singleUseInvitationSecureId, null);
+          expect(invitationRes, 'to exhaustively satisfy', invitationExpectation);
+        });
       });
 
       describe('for existing invitation', () => {
@@ -369,18 +410,71 @@ describe('Invitations', () => {
             });
 
             it('increment registrations counter', async () => {
-
+              const invitationRes = await getInvitation(invitationSecureId, luna);
+              const invitationJson = await invitationRes.json();
+              expect(invitationJson, 'to satisfy', {
+                invitation: {
+                  registrations_count: 1,
+                }
+              });
             });
 
-            it('create event for invitation issuer');
+            xit('create event for invitation issuer');
           });
-
-          xdescribe('should register user only once if singleUse = true', () => {});
         });
 
-        xdescribe('invalid invitation', () => {
+        describe('invalid invitation', () => {
+          let singleUseInvitationSecureId;
+          beforeEach(async () => {
+            const invitation = {
+              message:   'Welcome to Freefeed!',
+              lang:      'en',
+              singleUse: true,
+              users:     ['luna', 'mars'],
+              groups:    ['solarsystem', 'celestials']
+            };
+            const newInvitationRes = await createInvitation(luna, invitation);
+            const newInvitationResJson = await newInvitationRes.json();
+            singleUseInvitationSecureId = newInvitationResJson.invitation.secure_id;
+          });
+
+          describe('non-existent invitation', () => {
+            it('should return 404', async () => {
+              const user1 = {
+                username:   'pluto',
+                password:   'pw',
+                invitation: '918abb80-f0bd-490d-989a-2486032648dd'
+              };
+
+              const response1 = await createUserAsyncPost(user1);
+              expect(response1.status, 'to be', 404);
+            });
+          });
+
           describe('already used invitation', () => {
-            it('should not register user and return validation error');
+            it('should not register user and return validation error', async () => {
+              const user1 = {
+                username:   'pluto',
+                password:   'pw',
+                invitation: singleUseInvitationSecureId
+              };
+
+              const response1 = await createUserAsyncPost(user1);
+              expect(response1.status, 'to be', 200);
+
+              const user2 = {
+                username:   'pluto1',
+                password:   'pw',
+                invitation: singleUseInvitationSecureId
+              };
+
+              const response2 = await createUserAsyncPost(user2);
+              expect(response2.status, 'to be', 422);
+              const errJson = await response2.json();
+              expect(errJson, 'to satisfy', {
+                err: `Somebody has already used invitation "${singleUseInvitationSecureId}"`
+              });
+            });
           });
         });
       });
