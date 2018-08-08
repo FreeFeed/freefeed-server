@@ -30,10 +30,7 @@ const selfUserFields = [
 ];
 
 export async function serializeSelfUser(user) {
-  const result = {
-    ...pick(user, selfUserFields),
-    directsFromAll: user.preferences.directsFromAll,
-  };
+  const result = pick(user, selfUserFields);
 
   [
     result.banIds,
@@ -52,10 +49,7 @@ export async function serializeSelfUser(user) {
 
 export function serializeUser(user) {
   if (user.type === 'user') {
-    return {
-      ...pick(user, commonUserFields),
-      directsFromAll: user.preferences.directsFromAll,
-    };
+    return pick(user, commonUserFields);
   }
   return pick(user, commonGroupFields);
 }

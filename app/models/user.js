@@ -84,6 +84,9 @@ export function addModel(dbAdapter) {
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
 
+  User.ACCEPT_DIRECTS_FROM_ALL     = 'all';
+  User.ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
+
   Reflect.defineProperty(User.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
@@ -990,15 +993,17 @@ export function addModel(dbAdapter) {
       return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
     }
 
-    if (!this.preferences.directsFromAll) {
+    if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
       const friendIds = await this.getFriendIds();
       if (!friendIds.includes(postingUser.id)) {
         return [];
       }
-    }
-
-    const banIds = await this.getBanIds();
-    if (banIds.includes(postingUser.id)) {
+    } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
+      const banIds = await this.getBanIds();
+      if (banIds.includes(postingUser.id)) {
+        return [];
+      }
+    } else {
       return [];
     }
 

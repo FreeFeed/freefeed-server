@@ -2,8 +2,10 @@ import Ajv from 'ajv';
 import { cloneDeep } from 'lodash';
 
 import { addModel as commentModelMaker } from './comment';
+import { addModel as userModelMaker } from './user';
 
 const commentModel = commentModelMaker(null);
+const userModel = userModelMaker(null);
 
 const schema = {
   '$schema': 'http://json-schema.org/schema#',
@@ -40,10 +42,14 @@ const schema = {
       default: false,
       type:    'boolean',
     },
-    directsFromAll: {
+    acceptDirectsFrom: {
       title:   'Accept direct messages from all users',
-      default: false,
-      type:    'boolean',
+      default: userModel.ACCEPT_DIRECTS_FROM_FRIENDS,
+      type:    'string',
+      enum:    [
+        userModel.ACCEPT_DIRECTS_FROM_ALL,
+        userModel.ACCEPT_DIRECTS_FROM_FRIENDS,
+      ],
     }
   },
   additionalProperties: false,

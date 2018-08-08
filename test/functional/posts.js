@@ -134,7 +134,7 @@ describe('PostsController', () => {
 
       describe('Luna accepts private messages from any user', () => {
         beforeEach(async () => {
-          await funcTestHelper.updateUserAsync(ctx, { preferences: { directsFromAll: true } });
+          await funcTestHelper.updateUserAsync(ctx, { preferences: { acceptDirectsFrom: 'all' } });
         });
 
         it('should accept private message from Mars', async () => {
