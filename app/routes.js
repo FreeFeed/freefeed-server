@@ -1,6 +1,4 @@
 /* eslint babel/semi: "error" */
-import { promisifyAll } from 'bluebird';
-import jwt from 'jsonwebtoken';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
@@ -8,7 +6,7 @@ import Router from 'koa-router';
 import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
-import { dbAdapter } from './models';
+import { getUserByToken } from './support/tokens';
 import { reportError } from './support/exceptions';
 
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
@@ -37,8 +35,6 @@ import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AccessTokensRoute from './routes/api/v2/AccessTokensRoute';
 
 
-promisifyAll(jwt);
-
 const config = configLoader();
 
 export default function (app) {
@@ -52,8 +48,7 @@ export default function (app) {
       authDebug('got token', authToken);
 
       try {
-        const decoded = await jwt.verifyAsync(authToken, config.secret);
-        const user = await dbAdapter.getUserById(decoded.userId);
+        const user = await getUserByToken(authToken);
 
         if (user && user.isActive) {
           ctx.state.user = user;

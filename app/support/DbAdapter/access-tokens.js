@@ -36,6 +36,18 @@ const accessTokensTrait = (superClass) => class extends superClass {
       .update('status', 'revoked')
       .where('uid', tokenId);
   }
+
+  async getUserIdByAccessToken(code) {
+    const res = await this.database
+      .first('user_id')
+      .from('access_tokens')
+      .where({ code, status: 'active' });
+
+    if (res === undefined) {
+      return null;
+    }
+    return res.user_id;
+  }
 };
 
 export default accessTokensTrait;
