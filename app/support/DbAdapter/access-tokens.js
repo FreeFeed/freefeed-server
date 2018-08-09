@@ -38,15 +38,17 @@ const accessTokensTrait = (superClass) => class extends superClass {
   }
 
   async getUserIdByAccessToken(code) {
+    // Update last_used_at for this token AND select user_id at the same time
     const res = await this.database
-      .first('user_id')
-      .from('access_tokens')
-      .where({ code, status: 'active' });
+      .table('access_tokens')
+      .update('last_used_at', 'now')
+      .where({ code, status: 'active' })
+      .returning('user_id');
 
-    if (res === undefined) {
+    if (res.length === 0) {
       return null;
     }
-    return res.user_id;
+    return res[0];
   }
 };
 
