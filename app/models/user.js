@@ -980,11 +980,37 @@ export function addModel(dbAdapter) {
   }
 
   /**
+   * Returns true if postingUser can send direct message to
+   * this user.
+   *
+   * @param {User|null} postingUser
+   * @returns {boolean}
+   */
+  User.prototype.acceptsDirectsFrom = async function (postingUser) {
+    if (!postingUser || this.id === postingUser.id) {
+      return false;
+    }
+
+    if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
+      const friendIds = await this.getFriendIds();
+      if (friendIds.includes(postingUser.id)) {
+        return true;
+      }
+    } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
+      const banIds = await this.getBanIds();
+      if (!banIds.includes(postingUser.id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Checks if the specified user can post to the timeline of this user
    * returns array of destination (Directs) timelines
    * or empty array if user can not post to this user.
    *
-   * @param {string} postingUser
+   * @param {User} postingUser
    * @returns {Timeline[]}
    */
   User.prototype.getFeedsToPost = async function (postingUser) {
@@ -993,17 +1019,7 @@ export function addModel(dbAdapter) {
       return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
     }
 
-    if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
-      const friendIds = await this.getFriendIds();
-      if (!friendIds.includes(postingUser.id)) {
-        return [];
-      }
-    } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
-      const banIds = await this.getBanIds();
-      if (banIds.includes(postingUser.id)) {
-        return [];
-      }
-    } else {
+    if (!await this.acceptsDirectsFrom(postingUser)) {
       return [];
     }
 
