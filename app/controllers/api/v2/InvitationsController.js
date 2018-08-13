@@ -17,9 +17,12 @@ export default class InvitationsController {
       invitation.author
     );
 
+    invitation.author = invitationUsers.authorUUID;
+
     ctx.body = {
       invitation,
-      ...invitationUsers
+      users:  invitationUsers.users,
+      groups: invitationUsers.groups
     };
   }
 
@@ -66,7 +69,8 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
 
   return {
     users,
-    groups
+    groups,
+    authorUUID
   };
 }
 

@@ -482,7 +482,7 @@ const invitationExpectation = async (obj) => {
     invitation: expect.it('to satisfy', {
       id:              expect.it('to be a number'),
       secure_id:       expect.it('to satisfy', schema.UUID),
-      author:          expect.it('to be a number'),
+      author:          expect.it('to satisfy', schema.UUID),
       message:         expect.it('to be a string'),
       lang:            expect.it('to be a string'),
       single_use:      expect.it('to be a boolean'),
