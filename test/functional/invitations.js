@@ -325,7 +325,7 @@ describe('Invitations', () => {
 
   describe('UsersControllerV1', () => {
     describe('#create', () => {
-      describe('when invitationId provided', () => {
+      describe('when only invitationId provided', () => {
         let luna, mars, invitationSecureId;
 
         beforeEach(async () => {
@@ -466,6 +466,90 @@ describe('Invitations', () => {
               expect(response2.status, 'to be', 422);
               const errJson = await response2.json();
               expect(errJson, 'to satisfy', { err: `Somebody has already used invitation "${singleUseInvitationSecureId}"` });
+            });
+          });
+        });
+      });
+
+      describe('when invitationId and cancel_subscription provided', () => {
+        let luna, mars, invitationSecureId;
+
+        beforeEach(async () => {
+          [luna, mars] = await Promise.all([
+            createUserAsync('luna', 'pw'),
+            createUserAsync('mars', 'pw'),
+            createUserAsync('jupiter', 'pw'),
+          ]);
+
+          await Promise.all([
+            createGroupAsync(mars, 'solarsystem', 'Solar System', false,  false),
+            createGroupAsync(luna, 'celestials', 'Celestials', true,  false)
+          ]);
+
+          await updateUserAsync(mars, { isProtected: '0', isPrivate: '1' });
+
+          const invitation = {
+            message:   'Welcome to Freefeed!',
+            lang:      'en',
+            singleUse: false,
+            users:     ['luna', 'mars'],
+            groups:    ['solarsystem', 'celestials']
+          };
+          const res = await createInvitation(luna, invitation);
+          const responseJson = await res.json();
+          invitationSecureId = responseJson.invitation.secure_id;
+        });
+
+        describe('cancel_subscription: true', () => {
+          describe('should register user and', () => {
+            let pluto;
+
+            beforeEach(async () => {
+              const user = {
+                username:            'pluto',
+                password:            'pw',
+                invitation:          invitationSecureId,
+                cancel_subscription: true
+              };
+
+              const response = await createUserAsyncPost(user);
+              expect(response.status, 'to be', 200);
+              const data = await response.json();
+
+              const userData = data.users;
+              userData.password = user.password;
+
+              pluto = {
+                authToken: data.authToken,
+                user:      userData,
+                username:  user.username.toLowerCase(),
+                password:  user.password
+              };
+            });
+
+            it('should not subscribe him to recommended users/groups', async () => {
+              const res = await whoami(pluto.authToken);
+              const whoAmIResponseJson = await res.json();
+              expect(whoAmIResponseJson, 'to satisfy', { subscribers: expect.it('to be an', 'array').and('to be empty') });
+            });
+
+            it('should not create subscription requests to recommended private users/groups', async () => {
+              const res = await whoami(pluto.authToken);
+              const whoAmIResponseJson = await res.json();
+              expect(whoAmIResponseJson, 'to satisfy', { requests: expect.it('to be an', 'array').and('to be empty') });
+            });
+
+            it('increment registrations counter', async () => {
+              const invitationRes = await getInvitation(invitationSecureId, luna);
+              const invitationJson = await invitationRes.json();
+              expect(invitationJson, 'to satisfy', { invitation: { registrations_count: 1 } });
+            });
+
+            it('create event for invitation creator', async () => {
+              const events = await getUserEvents(luna);
+              expect(events, 'to have key', 'Notifications');
+              expect(events.Notifications, 'to be an', 'array');
+              expect(events.Notifications, 'to have an item satisfying', { event_type: 'invitation_used' });
             });
           });
         });

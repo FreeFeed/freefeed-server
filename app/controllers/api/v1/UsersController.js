@@ -60,7 +60,7 @@ export default class UsersController {
     ctx.body = { ...json, authToken };
 
     if (invitation) {
-      await useInvitation(user, invitation);
+      await useInvitation(user, invitation, ctx.request.body.cancel_subscription);
     }
   }
 
@@ -468,9 +468,14 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
   return { ...invitation, publicUsers, privateUsers, publicGroups, privateGroups };
 }
 
-async function useInvitation(newUser, invitation) {
+async function useInvitation(newUser, invitation, cancel_subscription = false) {
   await dbAdapter.useInvitation(invitation.secure_id);
   await EventService.onInvitationUsed(invitation.author, newUser.intId);
+
+  if (cancel_subscription) {
+    return;
+  }
+
   await Promise.all(invitation.publicUsers.map((recommendedUser) => {
     return newUser.subscribeTo(recommendedUser);
   }));
