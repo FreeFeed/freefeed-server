@@ -45,7 +45,7 @@ export default class PostComment extends React.Component {
       'comment': true,
       'highlighted': false,
       'omit-bubble': false,
-      'is-hidden': false,
+      'is-hidden': !!this.props.hideType,
       'highlight-from-url': false,
       'my-comment': false
     });
