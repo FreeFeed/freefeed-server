@@ -127,10 +127,13 @@
     "you-dont-need-lodash-underscore/find": 2,
     "you-dont-need-lodash-underscore/find-index": 2,
     "you-dont-need-lodash-underscore/includes": 2,
+    "you-dont-need-lodash-underscore/index-of": 2,
     "you-dont-need-lodash-underscore/keys": 2,
     "you-dont-need-lodash-underscore/repeat": 2,
+    "you-dont-need-lodash-underscore/reverse": 2,
     "you-dont-need-lodash-underscore/to-lower": 2,
     "you-dont-need-lodash-underscore/to-upper": 2,
-    "you-dont-need-lodash-underscore/trim": 2
+    "you-dont-need-lodash-underscore/trim": 2,
+    "you-dont-need-lodash-underscore/values": 2
   }
 }
