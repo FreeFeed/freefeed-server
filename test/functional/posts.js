@@ -1082,8 +1082,8 @@ describe('PostsController', () => {
                   res.body.should.have.property('posts')
                   res.body.posts.length.should.eql(1)
 
-                  const [post] = res.body.posts;
-                  post.should.not.have.property('isHidden')
+                  const [firstPost] = res.body.posts;
+                  firstPost.should.not.have.property('isHidden')
                   done()
                 })
               })

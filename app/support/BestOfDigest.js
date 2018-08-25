@@ -109,14 +109,14 @@ export function canMakeBestOfEmail(summaryPayload) {
   return true;
 }
 
-function preparePosts(payload, user) {
+function preparePosts(payload, recipient) {
   for (const post of payload.posts) {
     post.createdBy = payload.users.find((user) => user.id === post.createdBy);
     post.recipients = post.postedTo
       .map((subscriptionId) => {
-        const subscription = payload.subscriptions.find((subscription) => subscription.id === subscriptionId) || {};
-        const userId = subscription.user;
-        const subscriptionType = subscription.name;
+        const theSubscription = payload.subscriptions.find((subscription) => subscription.id === subscriptionId) || {};
+        const userId = theSubscription.user;
+        const subscriptionType = theSubscription.name;
         const isDirectToSelf = userId === post.createdBy.id && subscriptionType === 'Directs';
         return !isDirectToSelf ? userId : false;
       })
@@ -132,13 +132,13 @@ function preparePosts(payload, user) {
     }).value();
 
     post.comments = _(post.comments || []).map((commentId) => {
-      const comment = payload.comments.find((comment) => comment.id === commentId);
-      comment.createdBy = payload.users.find((user) => user.id === comment.createdBy);
-      return comment;
+      const theComment = payload.comments.find((comment) => comment.id === commentId);
+      theComment.createdBy = payload.users.find((user) => user.id === theComment.createdBy);
+      return theComment;
     }).value();
   }
 
-  payload.user = user;
+  payload.user = recipient;
   return payload;
 }
 

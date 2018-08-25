@@ -8,7 +8,7 @@ import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 import validator from 'validator'
-import uuid from 'uuid'
+import uuidv4 from 'uuid/v4';
 
 import { load as configLoader } from '../../config/config'
 import { getS3 } from '../support/s3';
@@ -838,7 +838,7 @@ export function addModel(dbAdapter) {
       throw new BadRequestException('Not an image file')
     }
 
-    this.profilePictureUuid = uuid.v4()
+    this.profilePictureUuid = uuidv4();
 
     const sizes = [
       User.PROFILE_PICTURE_SIZE_LARGE,

@@ -73,6 +73,7 @@
         "message": "consider using [...arr] or { ...obj } instead"
       }
     ],
+    "no-shadow": [2, { "allow": ["err", "res"] }],
     "no-spaced-func": 2,
     "no-tabs": 2,
     "no-template-curly-in-string": 2,

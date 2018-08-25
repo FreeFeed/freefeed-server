@@ -17,7 +17,7 @@ describe('Timeline', () => {
       })
 
       timeline.create()
-        .then((timeline) => {
+        .then(() => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
           timeline.should.have.property('id')
@@ -40,7 +40,7 @@ describe('Timeline', () => {
       const timeline = new Timeline({ name, userId })
 
       timeline.create()
-        .then((timeline) => dbAdapter.getTimelineById(timeline.id))
+        .then(() => dbAdapter.getTimelineById(timeline.id))
         .then((newTimeline) => {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty
@@ -76,7 +76,7 @@ describe('Timeline', () => {
       })
 
       timeline.create()
-        .then((timeline) => dbAdapter.getTimelineById(timeline.id))
+        .then(() => dbAdapter.getTimelineById(timeline.id))
         .then((newTimeline) => {
           newTimeline.should.be.an.instanceOf(Timeline)
           newTimeline.should.not.be.empty

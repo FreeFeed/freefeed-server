@@ -98,8 +98,8 @@ export async function serializeUsersByIds(userIds, withAdmins = true) {
   ]);
 
   // Create serializer
-  const serializeUser = userSerializerFunction(usersAssoc, statsAssoc, adminsAssoc);
+  const getSerializedUserById = userSerializerFunction(usersAssoc, statsAssoc, adminsAssoc);
 
   // Serialize
-  return Object.keys(usersAssoc).map(serializeUser);
+  return Object.keys(usersAssoc).map(getSerializedUserById);
 }

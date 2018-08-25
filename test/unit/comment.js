@@ -73,31 +73,24 @@ describe('Comment', () => {
       user = post = null;
     })
 
-    it('should create without error', (done) => {
+    it('should create without error', async () => {
       const comment = new Comment({
         body:   'Comment body',
         userId: user.id,
         postId: post.id
-      })
+      });
 
-      comment.create()
-        .then(() => {
-          comment.should.be.an.instanceOf(Comment)
-          comment.should.not.be.empty
-          comment.should.have.property('id')
+      await comment.create();
+      comment.should.be.an.instanceOf(Comment);
+      comment.should.not.be.empty;
+      comment.should.have.property('id');
 
-          return comment
-        })
-        .then((comment) => dbAdapter.getCommentById(comment.id))
-        .then((newComment) => {
-          newComment.should.be.an.instanceOf(Comment)
-          newComment.should.not.be.empty
-          newComment.should.have.property('id')
-          newComment.id.should.eql(comment.id)
-          done()
-        })
-        .catch((e) => { done(e) })
-    })
+      const newComment = await dbAdapter.getCommentById(comment.id);
+      newComment.should.be.an.instanceOf(Comment);
+      newComment.should.not.be.empty;
+      newComment.should.have.property('id');
+      newComment.id.should.eql(comment.id);
+    });
 
     it('should ignore whitespaces in body', (done) => {
       const body = '   Comment body    '

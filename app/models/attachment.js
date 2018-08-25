@@ -44,13 +44,13 @@ async function mimeTypeDetect(fileName, filePath) {
   // legacy mmmagic based detection
   let mimeType = 'application/octet-stream';
   try {
-    mimeType = await detectMime(filePath)
+    mimeType = await detectMime(filePath);
 
     if (mimeType === 'application/octet-stream') {
-      const fileType = await detectFile(filePath)
+      const typeOfFile = await detectFile(filePath);
 
-      if (fileType.startsWith('Audio file with ID3')) {
-        mimeType = 'audio/mpeg'
+      if (typeOfFile.startsWith('Audio file with ID3')) {
+        mimeType = 'audio/mpeg';
       }
     }
   } catch (e) {

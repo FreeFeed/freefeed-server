@@ -63,7 +63,7 @@ describe('Post', () => {
       })
 
       post.create()
-        .then((post) => {
+        .then(() => {
           post.should.be.an.instanceOf(Post)
           post.should.not.be.empty
           post.should.have.property('id')
@@ -96,7 +96,7 @@ describe('Post', () => {
       })
 
       post.create()
-        .then((post) => dbAdapter.getPostById(post.id))
+        .then(() => dbAdapter.getPostById(post.id))
         .then((newPost) => {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -117,7 +117,7 @@ describe('Post', () => {
       })
 
       post.create()
-        .then((post) => post.getSubscribedTimelineIds())
+        .then(() => post.getSubscribedTimelineIds())
         .then((timelines) => {
           timelines.should.not.be.empty
           timelines.length.should.eql(2)
@@ -167,7 +167,7 @@ describe('Post', () => {
       })
 
       post.create()
-        .then((post) => {
+        .then(() => {
           post.should.be.an.instanceOf(Post)
           post.should.not.be.empty
           post.should.have.property('id')
@@ -212,7 +212,7 @@ describe('Post', () => {
       })
 
       post.create()
-        .then((post) => dbAdapter.getPostById(post.id))
+        .then(() => dbAdapter.getPostById(post.id))
         .then((newPost) => {
           newPost.should.be.an.instanceOf(Post)
           newPost.should.not.be.empty
@@ -306,16 +306,16 @@ describe('Post', () => {
     })
 
     it('should add user to likes', async () => {
-      await post.addLike(userA)
-      const users = await post.getLikes()
+      await post.addLike(userA);
+      const likers = await post.getLikes();
 
-      users.should.not.be.empty
-      users.length.should.eql(1)
+      likers.should.not.be.empty;
+      likers.length.should.eql(1);
 
-      const [user] = users;
-      user.should.have.property('id')
-      user.id.should.eql(userA.id)
-    })
+      const [user] = likers;
+      user.should.have.property('id');
+      user.id.should.eql(userA.id);
+    });
 
     it('should be possible to get all likes', async () => {
       for (let i = 0; i < 10; i++) {
@@ -598,29 +598,28 @@ describe('Post', () => {
     })
 
     it('should destroy without error', (done) => {
-      let post = new Post({
+      const post = new Post({
         body:             'Post body',
         userId:           user.id,
         timelineIds:      [timelineId],
         commentsDisabled: '0'
-      })
+      });
 
       post.create()
-        .then((newPost) => {
+        .then(() => {
           const commentAttrs = {
             body:   'Comment body',
             postId: post.id
           }
 
-          post = newPost
           return user.newComment(commentAttrs)
         })
         .then((comment) => comment.create())
         .then(() => post.destroy())
         .then(() => dbAdapter.getPostById(post.id))
-        .then((post) => {
-          (post === null).should.be.true
-          done()
+        .then((postById) => {
+          (postById === null).should.be.true;
+          done();
         })
         .catch((e) => { done(e) })
     })
