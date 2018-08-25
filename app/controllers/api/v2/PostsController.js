@@ -22,7 +22,7 @@ export const show = compose([
       { foldComments, foldLikes, hiddenCommentTypes },
     );
 
-      // The following code is mostly copied from ./TimelinesControlloer.js
+    // The following code is mostly copied from ./TimelinesControlloer.js
 
     const allUserIds = new Set();
 
