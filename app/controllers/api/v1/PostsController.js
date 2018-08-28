@@ -2,11 +2,11 @@ import _ from 'lodash'
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
-import { dbAdapter, PostSerializer, Post } from '../../../models'
+import { dbAdapter, Post } from '../../../models'
 import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
 import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
-import { postCreateInputSchema } from './data-schemes';
+import { postCreateInputSchema, postUpdateInputSchema } from './data-schemes';
 
 export default class PostsController {
   static create = compose([
@@ -43,25 +43,25 @@ export default class PostsController {
     },
   ]);
 
-  static async update(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static update = compose([
+    authRequired(),
+    postAccessRequired(),
+    inputSchemaRequired(postUpdateInputSchema),
+    monitored('posts.update'),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (post.userId != user.id) {
+        throw new ForbiddenException("You can't update another user's post")
+      }
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      await post.update({
+        body:        ctx.request.body.post.body,
+        attachments: ctx.request.body.post.attachments
+      })
 
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't update another user's post")
-    }
-
-    await post.update({
-      body:        ctx.request.body.post.body,
-      attachments: ctx.request.body.post.attachments
-    })
-
-    const json = await new PostSerializer(post).promiseToJSON()
-    ctx.body = json
-  }
+      await showPost(ctx);
+    },
+  ]);
 
   static like = compose([
     authRequired(),
