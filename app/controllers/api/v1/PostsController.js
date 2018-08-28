@@ -229,6 +229,16 @@ export async function checkDestNames(destNames, author) {
     throw new NotFoundException('Some of destination users was not found');
   }
 
+  // Checking if this will be a regular post or a direct message.
+  // Mixed posts ("public directs") are prohibited.
+  const isMixed = destUsers
+    .map((u) => u.isGroup() || u.id === author.id)
+    .some((v, i, arr) => v !== arr[0]);
+
+  if (isMixed) {
+    throw new ForbiddenException(`You can not create "public directs"`);
+  }
+
   const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
   if (destFeeds.some((x) => x.length === 0)) {
     if (destUsers.length === 1) {
