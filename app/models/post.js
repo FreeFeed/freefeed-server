@@ -173,7 +173,9 @@ export function addModel(dbAdapter) {
         'attachments',
         'destinationFeedIds',
       ];
-      if (!editableProperties.some((p) => p in params)) {
+      // It is important to use "!= null" here and below because
+      // params[p] can exists but have a null or undefined value.
+      if (!editableProperties.some((p) => params[p] != null)) {
         // Nothing changed
         return this;
       }
@@ -184,7 +186,7 @@ export function addModel(dbAdapter) {
 
       let realtimeRooms = await getRoomsOfPost(this);
 
-      if ('body' in params) {
+      if (params.body != null) {
         this.body = params.body;
         payload.body = this.body;
 
@@ -192,7 +194,7 @@ export function addModel(dbAdapter) {
         afterUpdate.push(() => this.processHashtagsOnUpdate());
       }
 
-      if ('attachments' in params) {
+      if (params.attachments != null) {
         // Calculate changes in attachments
         const oldAttachments = await this.getAttachmentIds() || [];
         const newAttachments = params.attachments || [];
@@ -203,9 +205,10 @@ export function addModel(dbAdapter) {
         afterUpdate.push(() => this.unlinkAttachments(removedAttachments));
       }
 
-      if ('destinationFeedIds' in params) {
+      if (params.destinationFeedIds != null) {
         const removedFeedIds = _.difference(this.destinationFeedIds, params.destinationFeedIds);
-        if (removedFeedIds.length > 0) {
+        const addedFeedIds = _.difference(params.destinationFeedIds, this.destinationFeedIds);
+        if (removedFeedIds.length > 0 || addedFeedIds.length > 0) {
           this.destinationFeedIds = params.destinationFeedIds;
           this.feedIntIds = _.union(this.feedIntIds, this.destinationFeedIds);
           this.feedIntIds = _.difference(this.feedIntIds, removedFeedIds);

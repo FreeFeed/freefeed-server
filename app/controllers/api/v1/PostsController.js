@@ -54,10 +54,32 @@ export default class PostsController {
         throw new ForbiddenException("You can't update another user's post")
       }
 
-      await post.update({
-        body:        ctx.request.body.post.body,
-        attachments: ctx.request.body.post.attachments
-      })
+      const { body, attachments, feeds } = ctx.request.body.post;
+
+      let { destinationFeedIds } = post;
+      if (feeds) {
+        const destUids = await checkDestNames(feeds, user);
+        const [destFeeds, isDirect] = await Promise.all([
+          dbAdapter.getTimelinesByIds(destUids),
+          post.isStrictlyDirect(),
+        ]);
+
+        destinationFeedIds = destFeeds.map((f) => f.intId);
+
+        if (isDirect) {
+          if (!destFeeds[0].isDirects()) {
+            throw new ForbiddenException('You can not update direct post to regular one');
+          }
+
+          if (_.difference(post.destinationFeedIds, destinationFeedIds).length != 0) {
+            throw new ForbiddenException('You can not remove any receivers from direct post');
+          }
+        } else if (destFeeds[0].isDirects()) {
+          throw new ForbiddenException('You can not update regular post to direct one');
+        }
+      }
+
+      await post.update({ body, attachments, destinationFeedIds })
 
       await showPost(ctx);
     },
@@ -240,7 +262,8 @@ export async function checkDestNames(destNames, author) {
   }
 
   const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
-  if (destFeeds.some((x) => x.length === 0)) {
+  const deniedNames = destFeeds.map((x, i) => x.length === 0 ? destNames[i] : '').filter(Boolean);
+  if (deniedNames.length > 0) {
     if (destUsers.length === 1) {
       const [destUser] = destUsers;
       if (destUser.isUser()) {
@@ -248,7 +271,7 @@ export async function checkDestNames(destNames, author) {
       }
       throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
     }
-    throw new ForbiddenException('You can not post to some of destination feeds');
+    throw new ForbiddenException(`You can not post to some of destinations: ${deniedNames.join(',')}`);
   }
 
   const timelineIds = _.flatten(destFeeds).map((f) => f.id);

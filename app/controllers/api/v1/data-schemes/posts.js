@@ -64,6 +64,11 @@ export const postUpdateInputSchema = {
         attachments: {
           type:  'array',
           items: { '$ref': '#/definitions/uuid' }
+        },
+        feeds: {
+          type:     'array',
+          minItems: 1,
+          items:    { '$ref': '#/definitions/accountName' }
         }
       }
     }
