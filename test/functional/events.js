@@ -36,7 +36,9 @@ import {
   unsubscribeUserFromMeAsync,
   unbanUser,
   whoami,
-  updateCommentAsync
+  updateCommentAsync,
+  updatePostAsync,
+  getUnreadDirectsNumber
 } from '../functional/functional_test_helper'
 import * as schema from './schemaV2-helper'
 import * as realtimeAssertions from './realtime_assertions';
@@ -960,6 +962,36 @@ describe('EventService', () => {
           target_user_id:     plutoUserModel.intId,
           post_author_id:     lunaUserModel.intId,
         }]);
+      });
+
+      describe('Luna send direct to Mars', () => {
+        beforeEach(async () => {
+          await markAllDirectsAsRead(jupiter);
+          await markAllDirectsAsRead(pluto);
+          luna.post = await createAndReturnPostToFeed([mars], luna, 'Direct');
+        })
+        it('should create direct event on direct post when Luna adds recipients', async () => {
+          await updatePostAsync(luna, { feeds: [mars.username, jupiter.username, pluto.username] });
+          await expectPostEvents(jupiterUserModel, [{
+            user_id:            jupiterUserModel.intId,
+            event_type:         'direct',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     jupiterUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+          await expectPostEvents(plutoUserModel, [{
+            user_id:            plutoUserModel.intId,
+            event_type:         'direct',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     plutoUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+          let unread;
+          ({ unread } = await getUnreadDirectsNumber(jupiter).then((r) => r.json()));
+          expect(unread, 'to be', '1');
+          ({ unread } = await getUnreadDirectsNumber(pluto).then((r) => r.json()));
+          expect(unread, 'to be', '1');
+        });
       });
     });
 

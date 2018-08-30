@@ -216,9 +216,17 @@ export function addModel(dbAdapter) {
           payload.destinationFeedIds = this.destinationFeedIds;
           payload.feedIntIds = this.feedIntIds;
 
-          if (params.updatedBy) {
-            const removedFeeds = await dbAdapter.getTimelinesByIntIds(removedFeedIds);
-            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy, { removedFeeds }));
+          {
+            const [
+              postAuthor,
+              removedFeeds,
+              addedFeeds,
+            ] = await Promise.all([
+              this.getCreatedBy(),
+              dbAdapter.getTimelinesByIntIds(removedFeedIds),
+              dbAdapter.getTimelinesByIntIds(addedFeedIds),
+            ]);
+            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, { addedFeeds, removedFeeds }));
           }
 
           // Publishing changes to the old AND new realtime rooms

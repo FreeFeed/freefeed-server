@@ -305,7 +305,12 @@ export class EventService {
   }
 
   static async onPostFeedsChanged(post, changedBy, params = {}) {
-    const { removedFeeds = [] } = params;
+    const { addedFeeds = [], removedFeeds = [] } = params;
+
+    if (addedFeeds.length > 0) {
+      const postAuthor = await post.getCreatedBy();
+      await this._processDirectMessagesForPost(post, addedFeeds, postAuthor);
+    }
 
     if (changedBy.id === post.userId || removedFeeds.length === 0) {
       return;
