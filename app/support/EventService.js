@@ -358,6 +358,11 @@ export class EventService {
     }));
   }
 
+  static async onInvitationUsed(fromUserIntId, newUserIntId) {
+    await dbAdapter.createEvent(fromUserIntId, EVENT_TYPES.INVITATION_USED, newUserIntId, newUserIntId);
+    await pubSub.updateUnreadNotifications(fromUserIntId);
+  }
+
   ////////////////////////////////////////////
 
   static async _processDirectMessagesForPost(post, destinationFeeds, author) {

@@ -15,3 +15,4 @@ export ArchivesStatsControllerV2 from './controllers/api/v2/ArchivesStatsControl
 export SearchController from './controllers/api/v2/SearchController';
 export EventsController from './controllers/api/v2/EventsController';
 export CommentLikesController from './controllers/api/v2/CommentLikesController';
+export InvitationsController from './controllers/api/v2/InvitationsController';
