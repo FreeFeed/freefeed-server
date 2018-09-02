@@ -407,10 +407,10 @@ describe('FullTextSearch', () => {
       return post.create();
     }
 
-    const _createComment = async (commenter, commentBody, post) => {
+    const _createComment = async (commenter, commentBody, thePost) => {
       const comment = await commenter.newComment({
         body:   commentBody,
-        postId: post.id
+        postId: thePost.id
       });
 
       return comment.create();
@@ -1456,10 +1456,10 @@ describe('FullTextSearch', () => {
       return post.create();
     }
 
-    const _createComment = async (commenter, commentBody, post) => {
+    const _createComment = async (commenter, commentBody, thePost) => {
       const comment = await commenter.newComment({
         body:   commentBody,
-        postId: post.id
+        postId: thePost.id
       });
 
       return comment.create();

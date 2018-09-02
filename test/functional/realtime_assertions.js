@@ -67,9 +67,9 @@ class Session {
 
 export const name = 'unexpected-realtime';
 
-export function installInto(expect) {
+export function installInto(unexpected) {
   // Types
-  expect.addType({
+  unexpected.addType({
     name:     'userContext',
     base:     'object',
     identify: (ctx) => ctx !== null && typeof ctx === 'object' && 'authToken' in ctx,
@@ -81,14 +81,14 @@ export function installInto(expect) {
     }
   });
 
-  expect.addType({
+  unexpected.addType({
     name:     'realtimeSession',
     base:     'object',
     identify: (sess) => sess !== null && typeof sess === 'object' && sess instanceof Session,
     inspect:  (sess, depth, output, inspect) => output.text('Session(').append(inspect(sess.context, depth)).text(')'),
   });
 
-  expect.addType({
+  unexpected.addType({
     name:     'method',
     base:     'function',
     identify: (m) => m !== null && typeof m === 'function',
@@ -96,7 +96,7 @@ export function installInto(expect) {
   });
 
   // Pre-conditions
-  expect.addAssertion('<userContext> when subscribed to timeline <string> <assertion>', async (expect, viewer, timeline) => {
+  unexpected.addAssertion('<userContext> when subscribed to timeline <string> <assertion>', async (expect, viewer, timeline) => {
     const session = await Session.create(viewer);
     await session.sendAsync('subscribe', { 'timeline': [timeline] });
     try {
@@ -106,7 +106,7 @@ export function installInto(expect) {
     }
   });
 
-  expect.addAssertion('<userContext> when subscribed to user <string> <assertion>', async (expect, viewer, userUUID) => {
+  unexpected.addAssertion('<userContext> when subscribed to user <string> <assertion>', async (expect, viewer, userUUID) => {
     const session = await Session.create(viewer);
     await session.sendAsync('subscribe', { 'user': [userUUID] });
     try {
@@ -117,7 +117,7 @@ export function installInto(expect) {
     }
   });
 
-  expect.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
+  unexpected.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
     const session = await Session.create(viewer);
     await session.sendAsync('subscribe', { 'post': [postId] });
     try {
@@ -127,7 +127,7 @@ export function installInto(expect) {
     }
   });
 
-  expect.addAssertion('<realtimeSession> when authorized as <userContext> <assertion>', async (expect, session, user) => {
+  unexpected.addAssertion('<realtimeSession> when authorized as <userContext> <assertion>', async (expect, session, user) => {
     await session.sendAsync('auth', { authToken: user.authToken });
     try {
       return await expect.shift(session);
@@ -136,18 +136,18 @@ export function installInto(expect) {
     }
   });
 
-  expect.addAssertion('<realtimeSession> with post having id <string> <assertion>', (expect, session, postId) => {
+  unexpected.addAssertion('<realtimeSession> with post having id <string> <assertion>', (expect, session, postId) => {
     session.context.postId = postId;
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> with comment having id <string> <assertion>', (expect, session, commentId) => {
+  unexpected.addAssertion('<realtimeSession> with comment having id <string> <assertion>', (expect, session, commentId) => {
     session.context.commentId = commentId;
     return expect.shift(session);
   });
 
   // Assertions
-  expect.addAssertion('<realtimeSession> [not] to receive event <string>', async (expect, session, event) => {
+  unexpected.addAssertion('<realtimeSession> [not] to receive event <string>', async (expect, session, event) => {
     if (!expect.flags['not']) {
       try {
         return await session.receive(event);
@@ -166,7 +166,7 @@ export function installInto(expect) {
     return null;
   });
 
-  expect.addAssertion('<realtimeSession> to get post:* events from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> to get post:* events from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
 
     // Create post
@@ -193,7 +193,7 @@ export function installInto(expect) {
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get post:update events from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get post:update events from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 
@@ -208,7 +208,7 @@ export function installInto(expect) {
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> not to get post:* events from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> not to get post:* events from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
 
     // Create post
@@ -218,7 +218,7 @@ export function installInto(expect) {
     ]);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get comment:* events from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get comment:* events from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 
@@ -233,7 +233,7 @@ export function installInto(expect) {
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get comment:update events from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get comment:update events from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 
@@ -248,7 +248,7 @@ export function installInto(expect) {
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get like:* events from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get like:* events from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 
@@ -261,7 +261,7 @@ export function installInto(expect) {
     ]);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get comment_like:new event from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get comment_like:new event from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 
@@ -276,7 +276,7 @@ export function installInto(expect) {
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get comment_like:remove event from <userContext>', async (expect, session, publisher) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get comment_like:remove event from <userContext>', async (expect, session, publisher) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 
@@ -291,7 +291,7 @@ export function installInto(expect) {
     return expect.shift(session);
   });
 
-  expect.addAssertion('<realtimeSession> [not] to get user:update event when called <method>', async (expect, session, method) => {
+  unexpected.addAssertion('<realtimeSession> [not] to get user:update event when called <method>', async (expect, session, method) => {
     expect.errorMode = 'nested';
     const noEvents = expect.flags['not'];
 

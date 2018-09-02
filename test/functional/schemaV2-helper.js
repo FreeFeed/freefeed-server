@@ -136,17 +136,19 @@ export const attachmentGeneral = {
   imageSizes: expect.it('to be empty'),
 };
 
-export const attachment = (obj) =>
-  expect(obj, 'to be an object')
-    .and('to satisfy', attachmentCommons)
-    .and('to satisfy', (obj) => {
-      switch (obj.mediaType) {
-        case 'image':   return expect(obj, 'to exhaustively satisfy', attachmentImage);
-        case 'audio':   return expect(obj, 'to exhaustively satisfy', attachmentAudio);
-        case 'general': return expect(obj, 'to exhaustively satisfy', attachmentGeneral);
-      }
-      return null;
-    });
+const properAttachmentType = (obj) => {
+  switch (obj.mediaType) {
+    case 'image':   return expect(obj, 'to exhaustively satisfy', attachmentImage);
+    case 'audio':   return expect(obj, 'to exhaustively satisfy', attachmentAudio);
+    case 'general': return expect(obj, 'to exhaustively satisfy', attachmentGeneral);
+  }
+  return null;
+};
+
+export const attachment = (obj) => {
+  return expect(obj, 'to be an object')
+    .and('to satisfy', properAttachmentType);
+};
 
 export const postResponse = {
   posts:         expect.it('to satisfy', post),

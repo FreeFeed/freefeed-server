@@ -32,7 +32,7 @@ export const restoration = compose([
       ...ctx.request.body,
     };
 
-      // There should be only url's that are present in via_sources
+    // There should be only url's that are present in via_sources
     params.via_restore = _.uniq(params.via_restore)
       .filter((u) => archParams.via_sources.find((s) => s.url === u));
 

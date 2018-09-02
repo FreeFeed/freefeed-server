@@ -214,6 +214,11 @@
     padding-left: 18px;
   }
 
+.comment.is-hidden .comment-body {
+  font-style: italic;
+  color: #bbb;
+}
+
 .loader-container {
   position: relative; }
 

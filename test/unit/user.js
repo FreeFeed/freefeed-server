@@ -17,7 +17,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.validPassword('password'))
+        .then(() => user.validPassword('password'))
         .then((valid) => {
           valid.should.eql(true)
           done()
@@ -32,7 +32,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.validPassword('drowssap'))
+        .then(() => user.validPassword('drowssap'))
         .then((valid) => {
           valid.should.eql(false)
           done()
@@ -226,7 +226,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.update({ screenName, description }))
+        .then(() => user.update({ screenName, description }))
         .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -247,7 +247,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.update({ email: null }))
+        .then(() => user.update({ email: null }))
         .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -266,7 +266,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.update({}))
+        .then(() => user.update({}))
         .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -284,7 +284,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.update({ screenName: '' }))
+        .then(() => user.update({ screenName: '' }))
         .then(() => { done(new Error('FAIL')) })
         .catch((e) => {
           e.message.should.eql(`"" is not a valid display name. Names must be between 3 and 25 characters long.`)
@@ -301,7 +301,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => {
+        .then(() => {
           user.should.be.an.instanceOf(User)
           user.should.not.be.empty
           user.should.have.property('id')
@@ -328,7 +328,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => {
+        .then(() => {
           user.should.be.an.instanceOf(User)
           user.should.not.be.empty
           user.should.have.property('id')
@@ -357,7 +357,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => {
+        .then(() => {
           user.should.be.an.instanceOf(User)
           user.should.not.be.empty
           user.should.have.property('id')
@@ -453,10 +453,10 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.update({ email: user.email }))
+        .then(() => user.update({ email: user.email }))
         .then(() => dbAdapter.getUserByEmail('noreply@example.com'))
-        .then((user) => {
-          expect(user).to.be.a('null')
+        .then((userByEmail) => {
+          expect(userByEmail).to.be.a('null')
           done()
         })
         .catch((e) => { done(e) })
@@ -471,7 +471,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.updateResetPasswordToken())
+        .then(() => user.updateResetPasswordToken())
         .then((token) => dbAdapter.getUserByResetToken(token))
         .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
@@ -490,7 +490,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.updateResetPasswordToken())
+        .then(() => user.updateResetPasswordToken())
         .then(() => dbAdapter.getUserByResetToken('token'))
         .then((e) => {
           expect(e).to.be.a('null')
@@ -519,7 +519,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => dbAdapter.getUserById(user.id))
+        .then(() => dbAdapter.getUserById(user.id))
         .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -539,7 +539,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => dbAdapter.getUserByUsername(user.username))
+        .then(() => dbAdapter.getUserByUsername(user.username))
         .then((newUser) => {
           newUser.should.be.an.instanceOf(User)
           newUser.should.not.be.empty
@@ -559,7 +559,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.getRiverOfNewsTimeline())
+        .then(() => user.getRiverOfNewsTimeline())
         .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
@@ -579,7 +579,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.getLikesTimeline())
+        .then(() => user.getLikesTimeline())
         .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
@@ -599,7 +599,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.getPostsTimeline())
+        .then(() => user.getPostsTimeline())
         .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
@@ -619,7 +619,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.getCommentsTimeline())
+        .then(() => user.getCommentsTimeline())
         .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
           timeline.should.not.be.empty
@@ -656,10 +656,10 @@ describe('User', () => {
       const attrs = { body: 'Post body' }
       user.newPost(attrs)
         .then((newPost) => {
-          post = newPost
-          return newPost.create()
+          post = newPost;
+          return newPost.create();
         })
-        .then((post) => post.addLike(user))
+        .then(() => post.addLike(user))
         .then(() => user.getMyDiscussionsTimeline())
         .then((timeline) => {
           timeline.should.be.an.instanceOf(Timeline)
@@ -690,7 +690,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.getTimelines())
+        .then(() => user.getTimelines())
         .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
           timelines.length.should.be.eql(7)
@@ -813,7 +813,7 @@ describe('User', () => {
       })
 
       user.create()
-        .then((user) => user.getPublicTimelineIds())
+        .then(() => user.getPublicTimelineIds())
         .then((timelines) => {
           timelines.should.not.be.empty
           timelines.length.should.eql(3)

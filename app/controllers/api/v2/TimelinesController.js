@@ -218,7 +218,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   allSubscribers.forEach((s) => allUserIds.add(s));
 
   const allGroupAdmins = canViewUser ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds]) : {};
-  _.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+  Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
   const [
     allUsersAssoc,

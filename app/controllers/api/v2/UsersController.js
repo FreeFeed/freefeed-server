@@ -111,7 +111,7 @@ export default class UsersController {
 
       const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
       const subscriptionsUIDs = _.map(subscriptions, 'user'); // UIDs of users our user subscribed to
-      const groupRequestersUIDs = [].concat(..._.values(pendingGroupRequests));
+      const groupRequestersUIDs = [].concat(...Object.values(pendingGroupRequests));
 
       const allUIDs = _.union(
         subscribersUIDs,

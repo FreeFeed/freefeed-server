@@ -41,7 +41,7 @@ export default class GroupsController {
     const allUserIds = new Set(groups.map((it) => it.id));
 
     const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
-    _.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+    Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
     const [
       allUsersAssoc,

@@ -21,9 +21,9 @@ export async function serializeEvents(events) {
   });
 
   const allUserIds = new Set();
-  _.values(userIdsMapping).forEach((id) => allUserIds.add(id));
+  Object.values(userIdsMapping).forEach((id) => allUserIds.add(id));
   const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
-  _.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+  Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
   const [allUsersAssoc, allStatsAssoc] = await Promise.all([
     dbAdapter.getUsersByIdsAssoc([...allUserIds]),

@@ -80,16 +80,16 @@ describe('Privates', () => {
                     res.body.should.have.property('posts')
                     res.body.posts.length.should.eql(1)
 
-                    const [_post] = res.body.posts;
-                    _post.body.should.eql(post)
+                    const [firstLikedPost] = res.body.posts;
+                    firstLikedPost.body.should.eql(post);
                     request
-                      .get(`${app.context.config.host}/v2/posts/${_post.id}`)
+                      .get(`${app.context.config.host}/v2/posts/${firstLikedPost.id}`)
                       .query({ authToken: zeusContext.authToken })
                       .end((err, res) => {
-                        _.isUndefined(res).should.be.false
-                        res.body.should.not.be.empty
-                        res.body.posts.body.should.eql(_post.body)
-                        done()
+                        _.isUndefined(res).should.be.false;
+                        res.body.should.not.be.empty;
+                        res.body.posts.body.should.eql(firstLikedPost.body);
+                        done();
                       })
                   })
                 })
@@ -301,9 +301,9 @@ describe('Privates', () => {
                         res.body.should.have.property('posts')
                         res.body.posts.length.should.eql(1)
 
-                        const [post] = res.body.posts;
-                        post.body.should.eql(post.body)
-                        done()
+                        const [firstHomePost] = res.body.posts;
+                        firstHomePost.body.should.eql(firstHomePost.body);
+                        done();
                       })
                     })
                 })
@@ -652,23 +652,23 @@ describe('Privates', () => {
           res.body.should.have.property('posts')
           res.body.posts.length.should.eql(1)
 
-          const [post] = res.body.posts;
-          post.body.should.eql(post.body)
+          const [firstHomePost] = res.body.posts;
+          firstHomePost.body.should.eql(firstHomePost.body);
           // post should be visible to owner
           request
-            .get(`${app.context.config.host}/v2/posts/${post.id}`)
+            .get(`${app.context.config.host}/v2/posts/${firstHomePost.id}`)
             .query({ authToken: lunaContext.authToken })
             .end((err, res) => {
-              res.body.should.not.be.empty
-              res.body.posts.body.should.eql(post.body)
+              res.body.should.not.be.empty;
+              res.body.posts.body.should.eql(firstHomePost.body);
               // post should be visible to subscribers
               request
-                .get(`${app.context.config.host}/v2/posts/${post.id}`)
+                .get(`${app.context.config.host}/v2/posts/${firstHomePost.id}`)
                 .query({ authToken: lunaContext.authToken })
                 .end((err, res) => {
-                  res.body.should.not.be.empty
-                  res.body.posts.body.should.eql(post.body)
-                  done()
+                  res.body.should.not.be.empty;
+                  res.body.posts.body.should.eql(firstHomePost.body);
+                  done();
                 })
             })
         })
