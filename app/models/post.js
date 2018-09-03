@@ -7,6 +7,7 @@ import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { load as configLoader } from '../../config/config';
+import { List, intersection as listIntersection } from '../support/open-lists';
 
 const config = configLoader();
 
@@ -803,21 +804,24 @@ export function addModel(dbAdapter) {
         return [];
       }
 
-      if (this.isProtected === '1') {
-        // Anonymous can not see this post
-        users = users.filter((u) => !!u.id); // users without id are anonymous
+      const allowedIds = await this.usersCanSeePostIds();
+      return users.filter(({ id }) => allowedIds.includes(id));
+    }
+
+    /**
+     * Returns ids of all users who can see this post.
+     * Ids are returned as (possible open) list defined in support/open-lists.js
+     *
+     * @returns {List}
+     */
+    async usersCanSeePostIds() {
+      const bannedIds = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
+      const allExceptBanned = new List(bannedIds, false);
+      if (this.isPrivate === '0') {
+        return allExceptBanned;
       }
-
-      const authorBans = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
-      // Author's banned and banners can not see this post
-      users = users.filter((u) => !authorBans.includes(u.id));
-
-      if (this.isPrivate === '1') {
-        const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
-        users = users.filter((u) => allowedUserIds.includes(u.id));
-      }
-
-      return users;
+      const allowedIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
+      return listIntersection(allowedIds, allExceptBanned);
     }
 
     async processHashtagsOnCreate() {
