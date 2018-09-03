@@ -186,6 +186,7 @@ export function addModel(dbAdapter) {
       const afterUpdate = [];
 
       let realtimeRooms = await getRoomsOfPost(this);
+      const usersCanSeePostBeforeIds = await this.usersCanSeePostIds();
 
       if (params.body != null) {
         this.body = params.body;
@@ -247,7 +248,7 @@ export function addModel(dbAdapter) {
       await Promise.all(afterUpdate.map((f) => f()));
 
       // Finally, publish changes
-      await pubSub.updatePost(this.id, realtimeRooms);
+      await pubSub.updatePost(this.id, realtimeRooms, usersCanSeePostBeforeIds);
 
       return this;
     }
