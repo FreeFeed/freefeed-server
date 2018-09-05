@@ -33,6 +33,8 @@ export const EVENT_TYPES = {
   COMMENT_MODERATED_BY_ANOTHER_ADMIN: 'comment_moderated_by_another_admin',
   POST_MODERATED:                     'post_moderated',
   POST_MODERATED_BY_ANOTHER_ADMIN:    'post_moderated_by_another_admin',
+
+  INVITATION_USED: 'invitation_used',
 };
 
 export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user', 'user_unsubscribed'];
