@@ -240,6 +240,15 @@ export function addModel(dbAdapter) {
   }
 
   /**
+   * Always returns false for groups (groups cannot receive directs).
+   *
+   * @returns {boolean}
+   */
+  Group.prototype.acceptsDirectsFrom = function () {
+    return false;
+  }
+
+  /**
    * Checks if the specified user can post to the timeline of this group
    * and returns array of destination timelines or empty array if
    * user can not post to this group.

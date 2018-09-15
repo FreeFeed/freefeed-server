@@ -16,6 +16,8 @@ import {
   sendRequestToJoinGroup,
   updateUserAsync,
   createTestUsers,
+  getUserAsync,
+  banUser,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 import * as schema from './schemaV2-helper';
@@ -232,5 +234,61 @@ describe('UsersControllerV2', () => {
       expect(res, 'to satisfy', { status: 422 });
     });
   })
+
+  describe('"acceptsDirects" flag', () => {
+    let luna, mars;
+
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(2);
+    });
+
+    const getLunaInfo = async (anon = false) => {
+      const resp = await getUserAsync(anon ? {} : mars, luna.username);
+      return await resp.json();
+    };
+
+    it('should not accept directs from anonymous', async () => {
+      const info = await getLunaInfo(true);
+      expect(info, 'to satisfy', { acceptsDirects: false });
+    });
+
+    it('should not accept directs from non-friends', async () => {
+      const info = await getLunaInfo();
+      expect(info, 'to satisfy', { acceptsDirects: false });
+    });
+
+    describe('Luna subscribed to Mars', () => {
+      beforeEach(async () => {
+        await subscribeToAsync(luna, mars);
+      });
+
+      it('should accept directs from friends', async () => {
+        const info = await getLunaInfo();
+        expect(info, 'to satisfy', { acceptsDirects: true });
+      });
+    });
+
+    describe('Luna accepts directs from all', () => {
+      beforeEach(async () => {
+        await updateUserAsync(luna, { preferences: { acceptDirectsFrom: 'all' } });
+      });
+
+      it('should accept directs from non-friends', async () => {
+        const info = await getLunaInfo();
+        expect(info, 'to satisfy', { acceptsDirects: true });
+      });
+
+      describe('Luna bans Mars', () => {
+        beforeEach(async () => {
+          await banUser(luna, mars);
+        });
+
+        it('should not accept directs from non-friends', async () => {
+          const info = await getLunaInfo();
+          expect(info, 'to satisfy', { acceptsDirects: false });
+        });
+      });
+    });
+  });
 })
 

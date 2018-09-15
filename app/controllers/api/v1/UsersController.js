@@ -172,13 +172,14 @@ export default class UsersController {
     targetUserRequired(),
     monitored('users.show'),
     async (ctx) => {
-      const { targetUser } = ctx.state;
+      const { targetUser, user: viewer } = ctx.state;
 
       const serUsers = await serializeUsersByIds([targetUser.id]);
       const users = serUsers.find((u) => u.id === targetUser.id);
       const admins = serUsers.filter((u) => u.type === 'user');
+      const acceptsDirects = await targetUser.acceptsDirectsFrom(viewer);
 
-      ctx.body = { users, admins };
+      ctx.body = { users, admins, acceptsDirects };
     },
   ]);
 

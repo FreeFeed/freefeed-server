@@ -132,6 +132,39 @@ describe('PostsController', () => {
           })
       })
 
+      describe('Luna accepts private messages from any user', () => {
+        beforeEach(async () => {
+          await funcTestHelper.updateUserAsync(ctx, { preferences: { acceptDirectsFrom: 'all' } });
+        });
+
+        it('should accept private message from Mars', async () => {
+          const req = funcTestHelper.createAndReturnPostToFeed([ctx.user], marsCtx, 'Hello');
+          await expect(req, 'to be fulfilled with', { body: 'Hello' });
+        });
+
+        describe('Luna bans Mars', () => {
+          beforeEach(async () => {
+            await funcTestHelper.banUser(ctx, marsCtx);
+          });
+
+          it('should not accept private message from Mars', async () => {
+            const req = funcTestHelper.createAndReturnPostToFeed([ctx.user], marsCtx, 'Hello');
+            await expect(req, 'to be rejected');
+          });
+        });
+      });
+
+      describe('Luna is subscribed to Mars', () => {
+        beforeEach(async () => {
+          await funcTestHelper.subscribeToAsync(ctx, marsCtx);
+        });
+
+        it('should accept private message from Mars', async () => {
+          const req = funcTestHelper.createAndReturnPostToFeed([ctx.user], marsCtx, 'Hello');
+          await expect(req, 'to be fulfilled with', { body: 'Hello' });
+        });
+      });
+
       describe('for mutual friends', () => {
         beforeEach(async () => {
           await funcTestHelper.mutualSubscriptions([marsCtx, ctx])
