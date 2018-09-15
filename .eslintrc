@@ -13,7 +13,7 @@
     "es6": true
   },
   "parserOptions": {
-    "ecmaVersion": 2017,
+    "ecmaVersion": 2018,
     "sourceType": "module",
     "ecmaFeatures": {
       "jsx": true
@@ -54,6 +54,7 @@
     "lodash/prefer-map": 2,
     "lodash/unwrap": 2,
     "max-statements-per-line": [2, { "max": 1 }],
+    "no-async-promise-executor": 2,
     "no-await-in-loop": 2,
     "no-control-regex": 0,
     "no-debugger": 2,
@@ -61,6 +62,7 @@
     "no-else-return": 2,
     "no-global-assign": 2,
     "no-lonely-if": 2,
+    "no-misleading-character-class": 2,
     "no-mixed-operators": 2,
     "no-multiple-empty-lines": 2,
     "no-native-reassign": 2,
@@ -73,6 +75,7 @@
         "message": "consider using [...arr] or { ...obj } instead"
       }
     ],
+    "no-shadow": [2, { "allow": ["err", "res"] }],
     "no-spaced-func": 2,
     "no-tabs": 2,
     "no-template-curly-in-string": 2,
@@ -93,6 +96,7 @@
     "prefer-const": 2,
     "prefer-destructuring": 2,
     "prefer-numeric-literals": 1,
+    "prefer-object-spread": 2,
     "prefer-reflect": 1,
     "prefer-rest-params": 2,
     "prefer-spread": 2,
@@ -123,10 +127,13 @@
     "you-dont-need-lodash-underscore/find": 2,
     "you-dont-need-lodash-underscore/find-index": 2,
     "you-dont-need-lodash-underscore/includes": 2,
+    "you-dont-need-lodash-underscore/index-of": 2,
     "you-dont-need-lodash-underscore/keys": 2,
     "you-dont-need-lodash-underscore/repeat": 2,
+    "you-dont-need-lodash-underscore/reverse": 2,
     "you-dont-need-lodash-underscore/to-lower": 2,
     "you-dont-need-lodash-underscore/to-upper": 2,
-    "you-dont-need-lodash-underscore/trim": 2
+    "you-dont-need-lodash-underscore/trim": 2,
+    "you-dont-need-lodash-underscore/values": 2
   }
 }

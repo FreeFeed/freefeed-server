@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import fetch from 'node-fetch'
-import _ from 'lodash'
 import request from 'superagent'
 import expect from 'unexpected'
 
@@ -176,7 +175,7 @@ describe('UsersControllerV2', () => {
         ).then((r) => r.json());
         const subscribersIds = subscribers.map((s) => s.id);
         const readersIds = readers.map((fr) => fr.user.id);
-        _.reverse(readersIds);
+        readersIds.reverse();
         expect(subscribersIds, 'to equal', readersIds);
       });
     });
@@ -201,7 +200,7 @@ describe('UsersControllerV2', () => {
         ).then((r) => r.json());
         const feedOwnerIds = feeds.map((f) => f.user);
         const friendsIds = friends.map((fr) => fr.user.id);
-        _.reverse(friendsIds);
+        friendsIds.reverse();
         expect(feedOwnerIds, 'to equal', friendsIds);
       });
     });

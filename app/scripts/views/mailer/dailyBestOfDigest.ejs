@@ -88,7 +88,11 @@
                                             Hello <%- recipient.username %>, the entries below were popular among your friends. You are receiving this FreeFeed digest daily. You can unsubscribe in your <a href="<%= baseUrl %>/settings#notifications" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; text-decoration: underline; margin: 0;">email preferences</a>.
                                         </td>
                                     </tr>
-                                    <%- digest.body %>
+                                    <tr>
+                                        <td>
+                                            <%- digest.body %>
+                                        </td>
+                                    </tr>
                                 </table>
                             </td>
                         </tr>

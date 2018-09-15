@@ -8,7 +8,7 @@ import GraphemeBreaker from 'grapheme-breaker'
 import _ from 'lodash'
 import monitor from 'monitor-dog'
 import validator from 'validator'
-import uuid from 'uuid'
+import uuidv4 from 'uuid/v4';
 
 import { load as configLoader } from '../../config/config'
 import { getS3 } from '../support/s3';
@@ -624,10 +624,10 @@ export function addModel(dbAdapter) {
 
   User.prototype.getTimelines = async function (params) {
     const timelineIds = await this.getTimelineIds()
-    const timelines = await dbAdapter.getTimelinesByIds(_.values(timelineIds), params)
+    const timelines = await dbAdapter.getTimelinesByIds(Object.values(timelineIds), params);
     const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
     const sortedTimelines = _.sortBy(timelines, (tl) => {
-      return _.indexOf(timelinesOrder, tl.name)
+      return timelinesOrder.indexOf(tl.name);
     })
 
     return sortedTimelines
@@ -838,7 +838,7 @@ export function addModel(dbAdapter) {
       throw new BadRequestException('Not an image file')
     }
 
-    this.profilePictureUuid = uuid.v4()
+    this.profilePictureUuid = uuidv4();
 
     const sizes = [
       User.PROFILE_PICTURE_SIZE_LARGE,

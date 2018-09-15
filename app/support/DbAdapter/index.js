@@ -28,6 +28,7 @@ import eventsTrait from './events';
 import commentLikesTrait from './comment-likes';
 import allGroupsTrait from './all-groups';
 import summaryTrait from './summary';
+import invitationsTrait from './invitations';
 
 promisifyAll(redis.RedisClient.prototype);
 promisifyAll(redis.Multi.prototype);
@@ -77,4 +78,5 @@ export const DbAdapter = _.flow([
   commentLikesTrait,
   allGroupsTrait,
   summaryTrait,
+  invitationsTrait,
 ])(DbAdapterBase);

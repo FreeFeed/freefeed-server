@@ -177,10 +177,8 @@ export default class GroupsController {
       throw new ForbiddenException('Subscription request already sent')
     }
 
-    const followedGroups = await ctx.state.user.getFollowedGroups()
-    const followedGroupIds = followedGroups.map((group) => {
-      return group.id
-    })
+    const followedGroups = await ctx.state.user.getFollowedGroups();
+    const followedGroupIds = followedGroups.map((followedGroup) => followedGroup.id);
 
     if (followedGroupIds.includes(group.id)) {
       throw new ForbiddenException('You are already subscribed to that group')

@@ -88,12 +88,12 @@ describe('Attachment', () => {
       }
     }
 
-    const createAndCheckAttachment = async (file, post, user) => {
+    const createAndCheckAttachment = async (file, thePost, theUser) => {
       const attachment = new Attachment({
         file,
-        postId: post.id,
-        userId: user.id
-      })
+        postId: thePost.id,
+        userId: theUser.id
+      });
 
       await attachment.create()
 

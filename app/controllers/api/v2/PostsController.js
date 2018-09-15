@@ -22,7 +22,7 @@ export const show = compose([
       { foldComments, foldLikes, hiddenCommentTypes },
     );
 
-      // The following code is mostly copied from ./TimelinesControlloer.js
+    // The following code is mostly copied from ./TimelinesControlloer.js
 
     const allUserIds = new Set();
 
@@ -51,7 +51,7 @@ export const show = compose([
     postWithStuff.destinations.forEach((d) => allUserIds.add(d.user));
 
     const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
-    _.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+    Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
     const [
       allUsersAssoc,

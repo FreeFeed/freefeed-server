@@ -229,7 +229,7 @@ export class DataProvider {
       const cursor = pg.query(new PgCursor(sql));
       const read = promisify(cursor.read).bind(cursor);
 
-      while (true) {
+      while (true) {  // eslint-disable-line no-constant-condition
         const rows = await read(100);
 
         if (rows.length === 0) {
@@ -280,7 +280,7 @@ export class DataProvider {
       const cursor = pg.query(new PgCursor(sql));
       const read = promisify(cursor.read).bind(cursor);
 
-      while (true) {
+      while (true) {  // eslint-disable-line no-constant-condition
         const rows = await read(100);
 
         if (rows.length === 0) {
@@ -365,7 +365,7 @@ export class DataProvider {
       const cursor = pg.query(new PgCursor(sql, [user.id]));
       const read = promisify(cursor.read).bind(cursor);
 
-      while (true) {
+      while (true) {  // eslint-disable-line no-constant-condition
         const rows = await read(100);
 
         if (rows.length === 0) {

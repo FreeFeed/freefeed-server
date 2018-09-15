@@ -23,14 +23,12 @@ describe('Group', () => {
       const ownerId = groupAdmin.id
 
       group.create(ownerId)
-        .then((group) => {
+        .then(() => {
           group.should.be.an.instanceOf(Group)
           group.should.not.be.empty
           group.should.have.property('id')
-
-          return group
         })
-        .then((group) => dbAdapter.getGroupById(group.id))
+        .then(() => dbAdapter.getGroupById(group.id))
         .then((newGroup) => {
           newGroup.should.be.an.instanceOf(Group)
           newGroup.should.not.be.empty
@@ -143,13 +141,13 @@ describe('Group', () => {
       })
 
       group.create()
-        .then((group) => group.update({}))
-        .then((newGroup) => {
-          newGroup.should.be.an.instanceOf(Group)
-          newGroup.should.not.be.empty
-          newGroup.should.have.property('id')
-          newGroup.screenName.should.eql(screenName)
-          done()
+        .then(() => group.update({}))
+        .then(() => {
+          group.should.be.an.instanceOf(Group);
+          group.should.not.be.empty;
+          group.should.have.property('id');
+          group.screenName.should.eql(screenName);
+          done();
         })
         .catch((e) => { done(e) })
     })

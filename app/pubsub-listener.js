@@ -26,7 +26,7 @@ export default class PubsubListener {
   constructor(server, app) {
     this.app = app;
 
-    this.io = IoServer(server);
+    this.io = IoServer(server, { wsEngine: 'uws' });
     this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
 
     this.io.on('error', (err) => {

@@ -174,7 +174,7 @@ export function addModel(dbAdapter) {
         if (absentPostIds.length > 0) {
           let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, { currentUser: this.currentUser });
           localBumpedPosts = _.sortBy(localBumpedPosts, (post) => {
-            return _.indexOf(absentPostIds, post.id);
+            return absentPostIds.indexOf(post.id);
           });
           posts = localBumpedPosts.concat(posts);
         }
