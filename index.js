@@ -5,7 +5,6 @@ import consoleStamp from 'console-stamp';
 import { getSingleton as initApp } from './app/app';
 
 
-require('babel-runtime/core-js/promise').default = bb;
 global.Promise = bb;
 
 bb.config({ longStackTraces: process.env.NODE_ENV !== 'production' });

@@ -84,6 +84,9 @@ export function addModel(dbAdapter) {
   User.PROFILE_PICTURE_SIZE_LARGE = 75
   User.PROFILE_PICTURE_SIZE_MEDIUM = 50
 
+  User.ACCEPT_DIRECTS_FROM_ALL     = 'all';
+  User.ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
+
   Reflect.defineProperty(User.prototype, 'username', {
     get: function () { return this.username_ },
     set: function (newValue) {
@@ -977,11 +980,37 @@ export function addModel(dbAdapter) {
   }
 
   /**
+   * Returns true if postingUser can send direct message to
+   * this user.
+   *
+   * @param {User|null} postingUser
+   * @returns {boolean}
+   */
+  User.prototype.acceptsDirectsFrom = async function (postingUser) {
+    if (!postingUser || this.id === postingUser.id) {
+      return false;
+    }
+
+    if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
+      const friendIds = await this.getFriendIds();
+      if (friendIds.includes(postingUser.id)) {
+        return true;
+      }
+    } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
+      const banIds = await this.getBanIds();
+      if (!banIds.includes(postingUser.id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Checks if the specified user can post to the timeline of this user
    * returns array of destination (Directs) timelines
    * or empty array if user can not post to this user.
    *
-   * @param {string} postingUser
+   * @param {User} postingUser
    * @returns {Timeline[]}
    */
   User.prototype.getFeedsToPost = async function (postingUser) {
@@ -990,16 +1019,14 @@ export function addModel(dbAdapter) {
       return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
     }
 
-    // Users can send directs only to their mutual friends
-    const isMutual = await dbAdapter.areUsersMutuallySubscribed(this.id, postingUser.id);
-    if (isMutual) {
-      return await Promise.all([
-        dbAdapter.getUserNamedFeed(this.id, 'Directs'),
-        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
-      ]);
+    if (!await this.acceptsDirectsFrom(postingUser)) {
+      return [];
     }
 
-    return [];
+    return await Promise.all([
+      dbAdapter.getUserNamedFeed(this.id, 'Directs'),
+      dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
+    ]);
   }
 
   User.prototype.updateLastActivityAt = async function () {

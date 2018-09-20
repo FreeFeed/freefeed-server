@@ -3,7 +3,6 @@ import bb from 'bluebird';
 
 import { sendBestOfEmails } from '../app/support/BestOfDigest';
 
-require('babel-runtime/core-js/promise').default = bb;
 global.Promise = bb;
 bb.coroutine.addYieldHandler((value) => bb.resolve(value));
 bb.onPossiblyUnhandledRejection((e) => {

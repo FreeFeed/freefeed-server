@@ -48,7 +48,10 @@ export async function serializeSelfUser(user) {
 }
 
 export function serializeUser(user) {
-  return pick(user, user.type === 'group' ? commonGroupFields : commonUserFields);
+  if (user.type === 'user') {
+    return pick(user, commonUserFields);
+  }
+  return pick(user, commonGroupFields);
 }
 
 const defaultStats = {
