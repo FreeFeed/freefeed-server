@@ -2,11 +2,11 @@ import _ from 'lodash'
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
-import { dbAdapter, PostSerializer, Post } from '../../../models'
+import { dbAdapter, Post } from '../../../models'
 import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
 import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
-import { postCreateInputSchema } from './data-schemes';
+import { postCreateInputSchema, postUpdateInputSchema } from './data-schemes';
 
 export default class PostsController {
   static create = compose([
@@ -43,25 +43,47 @@ export default class PostsController {
     },
   ]);
 
-  static async update(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static update = compose([
+    authRequired(),
+    postAccessRequired(),
+    inputSchemaRequired(postUpdateInputSchema),
+    monitored('posts.update'),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+      if (post.userId != user.id) {
+        throw new ForbiddenException("You can't update another user's post")
+      }
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      const { body, attachments, feeds } = ctx.request.body.post;
 
-    if (post.userId != ctx.state.user.id) {
-      throw new ForbiddenException("You can't update another user's post")
-    }
+      let { destinationFeedIds } = post;
+      if (feeds) {
+        const destUids = await checkDestNames(feeds, user);
+        const [destFeeds, isDirect] = await Promise.all([
+          dbAdapter.getTimelinesByIds(destUids),
+          post.isStrictlyDirect(),
+        ]);
 
-    await post.update({
-      body:        ctx.request.body.post.body,
-      attachments: ctx.request.body.post.attachments
-    })
+        destinationFeedIds = destFeeds.map((f) => f.intId);
 
-    const json = await new PostSerializer(post).promiseToJSON()
-    ctx.body = json
-  }
+        if (isDirect) {
+          if (!destFeeds[0].isDirects()) {
+            throw new ForbiddenException('You can not update direct post to regular one');
+          }
+
+          if (_.difference(post.destinationFeedIds, destinationFeedIds).length != 0) {
+            throw new ForbiddenException('You can not remove any receivers from direct post');
+          }
+        } else if (destFeeds[0].isDirects()) {
+          throw new ForbiddenException('You can not update regular post to direct one');
+        }
+      }
+
+      await post.update({ body, attachments, destinationFeedIds })
+
+      await showPost(ctx);
+    },
+  ]);
 
   static like = compose([
     authRequired(),
@@ -229,8 +251,19 @@ export async function checkDestNames(destNames, author) {
     throw new NotFoundException('Some of destination users was not found');
   }
 
+  // Checking if this will be a regular post or a direct message.
+  // Mixed posts ("public directs") are prohibited.
+  const isMixed = destUsers
+    .map((u) => u.isGroup() || u.id === author.id)
+    .some((v, i, arr) => v !== arr[0]);
+
+  if (isMixed) {
+    throw new ForbiddenException(`You can not create "public directs"`);
+  }
+
   const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
-  if (destFeeds.some((x) => x.length === 0)) {
+  const deniedNames = destFeeds.map((x, i) => x.length === 0 ? destNames[i] : '').filter(Boolean);
+  if (deniedNames.length > 0) {
     if (destUsers.length === 1) {
       const [destUser] = destUsers;
       if (destUser.isUser()) {
@@ -238,7 +271,7 @@ export async function checkDestNames(destNames, author) {
       }
       throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
     }
-    throw new ForbiddenException('You can not post to some of destination feeds');
+    throw new ForbiddenException(`You can not post to some of destinations: ${deniedNames.join(',')}`);
   }
 
   const timelineIds = _.flatten(destFeeds).map((f) => f.id);

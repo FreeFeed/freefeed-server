@@ -1001,6 +1001,87 @@ describe('PostsController', () => {
         data.posts.attachments.should.eql(anotherPost.attachments)
       }
     })
+
+    describe('Destination feeds change', () => {
+      let luna, mars, yole, celestials, evilmartians, post;
+      beforeEach(async () => {
+        [luna, mars, yole] = await funcTestHelper.createTestUsers(3);
+        await funcTestHelper.mutualSubscriptions([luna, mars]);
+        await funcTestHelper.mutualSubscriptions([luna, yole]);
+        celestials = await funcTestHelper.createGroupAsync(luna, 'celestials');
+        evilmartians = await funcTestHelper.createGroupAsync(mars, 'evilmartians');
+      });
+
+      const updatePost = async (postObj, userContext, parameters) => {
+        const res = await funcTestHelper.updatePostAsync({ ...userContext, post: postObj }, parameters);
+        const body = await res.json();
+        if (res.status != 200) {
+          expect.fail(`Error updating post (${res.status}): ${body.err}`);
+        }
+        return body;
+      };
+
+      const postedToUsernames = (postResp) => {
+        const { posts: { postedTo }, subscriptions, subscribers, users } = postResp;
+        return postedTo
+          .map((feedId) => subscriptions.find((feed) => feed.id == feedId).user)
+          .map((userId) => [...users, ...subscribers].find((user) => user.id == userId).username);
+      };
+
+      describe('Luna creates post in their feed', () => {
+        beforeEach(async () => {
+          post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post body');
+        });
+
+        it('should be able to change destinations of regular post', async () => {
+          let res = await updatePost(post, luna, { feeds: [luna.username, celestials.username] });
+          expect(postedToUsernames(res).sort(), 'to equal', [luna.username, celestials.username].sort());
+
+          res = await updatePost(post, luna, { feeds: [celestials.username] });
+          expect(postedToUsernames(res), 'to equal', [celestials.username]);
+
+          res = await updatePost(post, luna, { feeds: [luna.username] });
+          expect(postedToUsernames(res), 'to equal', [luna.username]);
+        });
+
+        it('should not be able to add a group to post when Luna not in the group', async () => {
+          const call = updatePost(post, luna, { feeds: [luna.username, evilmartians.username] });
+          await expect(call, 'to be rejected with', /\(403\)/);
+        });
+
+        it('should not be able to add a direct recipient to post', async () => {
+          const call = updatePost(post, luna, { feeds: [luna.username, mars.username] });
+          await expect(call, 'to be rejected with', /\(403\)/);
+        });
+      });
+
+      describe('Luna creates direct post', () => {
+        beforeEach(async () => {
+          post = await funcTestHelper.createAndReturnPostToFeed([mars], luna, 'Post body');
+        });
+
+        it('should be able to add recipient to direct post', async () => {
+          const res = await updatePost(post, luna, { feeds: [mars.username, yole.username] });
+          expect(postedToUsernames(res).sort(), 'to equal', [luna.username, mars.username, yole.username].sort());
+        });
+      });
+
+      describe('Luna creates direct post with two recipients', () => {
+        beforeEach(async () => {
+          post = await funcTestHelper.createAndReturnPostToFeed([mars, yole], luna, 'Post body');
+        });
+
+        it('should not be able to remove recipient from direct post', async () => {
+          const call = updatePost(post, luna, { feeds: [mars.username] });
+          await expect(call, 'to be rejected with', /\(403\)/);
+        });
+
+        it('should not be able to add a group as recipient', async () => {
+          const call = updatePost(post, luna, { feeds: [mars.username, yole.username, celestials.username] });
+          await expect(call, 'to be rejected with', /\(403\)/);
+        });
+      });
+    });
   })
 
   describe('#show()', () => {
