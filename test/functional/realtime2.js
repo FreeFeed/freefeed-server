@@ -428,4 +428,100 @@ describe('Realtime #2', () => {
       });
     });
   });
+
+  describe('Change post destinations', () => {
+    let jupiter,
+      jupiterSession;
+
+    beforeEach(async () => {
+      jupiter = await funcTestHelper.createUserAsync('jupiter', 'pw');
+
+      jupiterSession = await Session.create(port, 'Jupiter session');
+      await jupiterSession.sendAsync('auth', { authToken: jupiter.authToken });
+    });
+
+    describe('Mars and Jupiter are subscribed to their homefeeds', () => {
+      beforeEach(async () => {
+        const [
+          marsHomefeed,
+          jupiterHomefeed,
+        ] = await Promise.all([
+          dbAdapter.getUserNamedFeed(mars.user.id, 'RiverOfNews'),
+          dbAdapter.getUserNamedFeed(jupiter.user.id, 'RiverOfNews'),
+        ]);
+        await Promise.all([
+          marsSession.sendAsync('subscribe', { 'timeline': [marsHomefeed.id] }),
+          jupiterSession.sendAsync('subscribe', { 'timeline': [jupiterHomefeed.id] }),
+        ]);
+      });
+
+      afterEach(() => [lunaSession, marsSession, anonSession].forEach((s) => s.disconnect()));
+
+      describe('Luna have a private account, Mars subscribed to group, Anon listening to group', () => {
+        let celestials;
+        beforeEach(async () => {
+          [celestials] = await Promise.all([
+            funcTestHelper.createGroupAsync(luna, 'celestials'),
+            funcTestHelper.goPrivate(luna),
+          ]);
+          const [celestialFeed] = await Promise.all([
+            dbAdapter.getUserNamedFeed(celestials.group.id, 'Posts'),
+            funcTestHelper.subscribeToAsync(mars, celestials),
+          ]);
+          await anonSession.sendAsync('subscribe', { 'timeline': [celestialFeed.id] });
+        });
+
+        it(`should send 'post:new' event to Mars when post becomes public`, async () => {
+          luna.post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post');
+          const test = marsSession.receiveWhile(
+            'post:new',
+            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
+          );
+          await expect(test, 'to be fulfilled');
+        });
+
+        it(`should send 'post:new' event to Anon when post becomes public`, async () => {
+          luna.post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post');
+          const test = anonSession.receiveWhile(
+            'post:new',
+            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
+          );
+          await expect(test, 'to be fulfilled');
+        });
+
+        it(`should send 'post:destroy' event to Mars when post becomes private`, async () => {
+          luna.post = await funcTestHelper.createAndReturnPostToFeed([luna, celestials], luna, 'Post');
+          const test = marsSession.receiveWhile(
+            'post:destroy',
+            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username] }),
+          );
+          await expect(test, 'to be fulfilled');
+        });
+
+        it(`should send 'post:destroy' event to Anon when post becomes private`, async () => {
+          luna.post = await funcTestHelper.createAndReturnPostToFeed([luna, celestials], luna, 'Post');
+          const test = anonSession.receiveWhile(
+            'post:destroy',
+            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username] }),
+          );
+          await expect(test, 'to be fulfilled');
+        });
+      });
+
+      describe('Luna, Mars and Jupiter are friends', () => {
+        beforeEach(async () => {
+          await funcTestHelper.mutualSubscriptions([luna, mars, jupiter]);
+        });
+
+        it(`should send 'post:new' event to Jupiter when he becomes a direct recipient`, async () => {
+          luna.post = await funcTestHelper.createAndReturnPostToFeed([mars], luna, 'Direct');
+          const test = jupiterSession.receiveWhile(
+            'post:new',
+            funcTestHelper.updatePostAsync(luna, { feeds: [mars.username, jupiter.username] }),
+          );
+          await expect(test, 'to be fulfilled');
+        });
+      })
+    });
+  });
 });

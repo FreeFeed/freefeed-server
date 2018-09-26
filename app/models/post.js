@@ -7,6 +7,7 @@ import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { load as configLoader } from '../../config/config';
+import { List, intersection as listIntersection } from '../support/open-lists';
 
 const config = configLoader();
 
@@ -173,7 +174,9 @@ export function addModel(dbAdapter) {
         'attachments',
         'destinationFeedIds',
       ];
-      if (!editableProperties.some((p) => p in params)) {
+      // It is important to use "!= null" here and below because
+      // params[p] can exists but have a null or undefined value.
+      if (!editableProperties.some((p) => params[p] != null)) {
         // Nothing changed
         return this;
       }
@@ -183,8 +186,9 @@ export function addModel(dbAdapter) {
       const afterUpdate = [];
 
       let realtimeRooms = await getRoomsOfPost(this);
+      const usersCanSeePostBeforeIds = await this.usersCanSeePostIds();
 
-      if ('body' in params) {
+      if (params.body != null) {
         this.body = params.body;
         payload.body = this.body;
 
@@ -192,7 +196,7 @@ export function addModel(dbAdapter) {
         afterUpdate.push(() => this.processHashtagsOnUpdate());
       }
 
-      if ('attachments' in params) {
+      if (params.attachments != null) {
         // Calculate changes in attachments
         const oldAttachments = await this.getAttachmentIds() || [];
         const newAttachments = params.attachments || [];
@@ -203,9 +207,10 @@ export function addModel(dbAdapter) {
         afterUpdate.push(() => this.unlinkAttachments(removedAttachments));
       }
 
-      if ('destinationFeedIds' in params) {
+      if (params.destinationFeedIds != null) {
         const removedFeedIds = _.difference(this.destinationFeedIds, params.destinationFeedIds);
-        if (removedFeedIds.length > 0) {
+        const addedFeedIds = _.difference(params.destinationFeedIds, this.destinationFeedIds);
+        if (removedFeedIds.length > 0 || addedFeedIds.length > 0) {
           this.destinationFeedIds = params.destinationFeedIds;
           this.feedIntIds = _.union(this.feedIntIds, this.destinationFeedIds);
           this.feedIntIds = _.difference(this.feedIntIds, removedFeedIds);
@@ -213,9 +218,17 @@ export function addModel(dbAdapter) {
           payload.destinationFeedIds = this.destinationFeedIds;
           payload.feedIntIds = this.feedIntIds;
 
-          if (params.updatedBy) {
-            const removedFeeds = await dbAdapter.getTimelinesByIntIds(removedFeedIds);
-            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy, { removedFeeds }));
+          {
+            const [
+              postAuthor,
+              removedFeeds,
+              addedFeeds,
+            ] = await Promise.all([
+              this.getCreatedBy(),
+              dbAdapter.getTimelinesByIntIds(removedFeedIds),
+              dbAdapter.getTimelinesByIntIds(addedFeedIds),
+            ]);
+            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, { addedFeeds, removedFeeds }));
           }
 
           // Publishing changes to the old AND new realtime rooms
@@ -235,7 +248,7 @@ export function addModel(dbAdapter) {
       await Promise.all(afterUpdate.map((f) => f()));
 
       // Finally, publish changes
-      await pubSub.updatePost(this.id, realtimeRooms);
+      await pubSub.updatePost(this.id, realtimeRooms, usersCanSeePostBeforeIds);
 
       return this;
     }
@@ -792,21 +805,24 @@ export function addModel(dbAdapter) {
         return [];
       }
 
-      if (this.isProtected === '1') {
-        // Anonymous can not see this post
-        users = users.filter((u) => !!u.id); // users without id are anonymous
+      const allowedIds = await this.usersCanSeePostIds();
+      return users.filter(({ id }) => allowedIds.includes(id));
+    }
+
+    /**
+     * Returns ids of all users who can see this post.
+     * Ids are returned as (possible open) list defined in support/open-lists.js
+     *
+     * @returns {List}
+     */
+    async usersCanSeePostIds() {
+      const bannedIds = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
+      const allExceptBanned = new List(bannedIds, false);
+      if (this.isPrivate === '0') {
+        return allExceptBanned;
       }
-
-      const authorBans = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
-      // Author's banned and banners can not see this post
-      users = users.filter((u) => !authorBans.includes(u.id));
-
-      if (this.isPrivate === '1') {
-        const allowedUserIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
-        users = users.filter((u) => allowedUserIds.includes(u.id));
-      }
-
-      return users;
+      const allowedIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
+      return listIntersection(allowedIds, allExceptBanned);
     }
 
     async processHashtagsOnCreate() {
