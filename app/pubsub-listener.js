@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy, difference, noop, values, last } from 'lodash';
+import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy, noop, values, last, omit } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -11,6 +11,7 @@ import Raven from 'raven';
 import { load as configLoader } from '../config/config';
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
 import { eventNames } from './support/PubSubAdapter';
+import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
 
 
 promisifyAll(jwt);
@@ -213,26 +214,59 @@ export default class PubsubListener {
 
     let users = destSockets.map((s) => s.user);
     if (post) {
-      const usersWhoCanSeePost = await post.onlyUsersCanSeePost(users);
+      if (type === eventNames.POST_UPDATED) {
+        let userIds = users.map((u) => u.id);
+        const jsonToSend = omit(json, ['newUserIds', 'removedUserIds']);
+        if (json.newUserIds && !json.newUserIds.isEmpty()) {
+          // Users who listen to post rooms but
+          // could not see post before. They should
+          // receive a 'post:new' event.
 
-      // It is possible that after the update of the posts
-      // destinations it will became invisible for the some users.
-      // In this case send 'post:destroy' to such users.
-      if (type === 'post:update') {
-        const blindUsers = difference(users, usersWhoCanSeePost);
-        const blindUsersRooms = flatten(
-          destSockets
-            .filter((s) => blindUsers.includes((s.user)))
-            .map((s) => Object.keys(s.rooms))
-        );
-        await this.broadcastMessage(
-          intersection(rooms, blindUsersRooms),
-          'post:destroy',
-          { meta: { postId: post.id } },
-        );
+          const newUserIds = listIntersection(json.newUserIds, userIds).items;
+          const newUserRooms = flatten(
+            destSockets
+              .filter((s) => newUserIds.includes((s.user.id)))
+              .map((s) => Object.keys(s.rooms))
+          );
+
+          await this.broadcastMessage(
+            newUserRooms,
+            eventNames.POST_CREATED,
+            jsonToSend,
+            post,
+            this._postEventEmitter,
+          );
+
+          userIds = listDifference(userIds, newUserIds).items;
+        }
+
+        if (json.removedUserIds && !json.removedUserIds.isEmpty()) {
+          // Users who listen to post rooms but
+          // can not see post anymore. They should
+          // receive a 'post:destroy' event.
+
+          const removedUserIds = listIntersection(json.removedUserIds, userIds).items;
+          const removedUserRooms = flatten(
+            destSockets
+              .filter((s) => removedUserIds.includes((s.user.id)))
+              .map((s) => Object.keys(s.rooms))
+          );
+
+          await this.broadcastMessage(
+            removedUserRooms,
+            eventNames.POST_DESTROYED,
+            { meta: { postId: post.id } },
+          );
+
+          userIds = listDifference(userIds, removedUserIds).items;
+        }
+
+        json = jsonToSend;
+        users = users.filter((u) => userIds.includes(u.id));
+      } else {
+        users = await post.onlyUsersCanSeePost(users);
       }
 
-      users = usersWhoCanSeePost;
       destSockets = destSockets.filter((s) => users.includes((s.user)));
     }
 
@@ -286,13 +320,30 @@ export default class PubsubListener {
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
 
-  onPostUpdate = async ({ postId, rooms = null }) => {
+  onPostUpdate = async ({ postId, rooms = null, usersBeforeIds = null }) => {
     const post = await dbAdapter.getPostById(postId);
-    const json = await new PostSerializer(post).promiseToJSON();
+    const postJson = await new PostSerializer(post).promiseToJSON();
 
-    const type = eventNames.POST_UPDATED;
-    rooms = rooms || await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
+    if (!rooms) {
+      rooms = await getRoomsOfPost(post);
+    }
+
+    if (usersBeforeIds) {
+      // It is possible that after the update of the posts
+      // destinations it will become invisible or visible for the some users.
+      // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
+      const currentUserIds = await post.usersCanSeePostIds();
+      postJson.newUserIds = listDifference(currentUserIds, usersBeforeIds);
+      postJson.removedUserIds = listDifference(usersBeforeIds, currentUserIds);
+    }
+
+    await this.broadcastMessage(
+      rooms,
+      eventNames.POST_UPDATED,
+      postJson,
+      post,
+      this._postEventEmitter,
+    );
   };
 
   onCommentNew = async ({ commentId }) => {
