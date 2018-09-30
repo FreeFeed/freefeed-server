@@ -359,6 +359,10 @@ const agent = new http.Agent({
   maxSockets:     50,
 });
 
+export async function performRequest(relativePath, params) {
+  return await fetch(await apiUrl(relativePath), { agent, ...params });
+}
+
 export async function sessionRequest(username, password) {
   return await fetch(
     await apiUrl('/v1/session'),

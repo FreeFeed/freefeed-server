@@ -84,6 +84,8 @@
     "react-dom": "~16.4.1",
     "read-chunk": "~3.0.0",
     "redis": "~2.8.0",
+    "sbd": "~1.0.14",
+    "social-text-tokenizer": "~1.0.0",
     "socket.io": "~2.1.1",
     "socket.io-redis": "~5.2.0",
     "stream-meter": "~1.0.4",
@@ -91,7 +93,8 @@
     "url": "0.11.0",
     "uuid": "~3.3.2",
     "uws": "10.148.1",
-    "validator": "~10.7.0"
+    "validator": "~10.7.0",
+    "xmlbuilder": "~10.0.0"
   },
   "devDependencies": {
     "babel-eslint": "~9.0.0",
