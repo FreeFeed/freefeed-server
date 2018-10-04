@@ -506,6 +506,30 @@ describe('Realtime #2', () => {
           );
           await expect(test, 'to be fulfilled');
         });
+
+        describe(`Mars have a session #2 subscribed to Mars feed, both sessions are subscribed to 'foo:bar'`, () => {
+          let secondMarsSession;
+
+          beforeEach(async () => {
+            secondMarsSession = await Session.create(port, 'Mars session');
+            await secondMarsSession.sendAsync('auth', { authToken: mars.authToken });
+            await Promise.all([
+              secondMarsSession.sendAsync('subscribe', { 'foo': ['bar'] }),
+              marsSession.sendAsync('subscribe', { 'foo': ['bar'] }),
+            ]);
+          });
+
+          afterEach(() => secondMarsSession.disconnect());
+
+          it(`should not leak 'post:new' event to session #2 when post becomes public`, async () => {
+            luna.post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post');
+            const test = secondMarsSession.notReceiveWhile(
+              'post:new',
+              funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
+            );
+            await expect(test, 'to be fulfilled');
+          });
+        });
       });
 
       describe('Luna, Mars and Jupiter are friends', () => {

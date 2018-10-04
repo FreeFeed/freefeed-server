@@ -230,7 +230,7 @@ export default class PubsubListener {
           );
 
           await this.broadcastMessage(
-            newUserRooms,
+            intersection(newUserRooms, rooms),
             eventNames.POST_CREATED,
             jsonToSend,
             post,
@@ -253,7 +253,7 @@ export default class PubsubListener {
           );
 
           await this.broadcastMessage(
-            removedUserRooms,
+            intersection(removedUserRooms, rooms),
             eventNames.POST_DESTROYED,
             { meta: { postId: post.id } },
           );
