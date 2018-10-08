@@ -1,4 +1,5 @@
 import { bestOf, ownTimeline, userTimeline } from '../../../controllers/api/v2/TimelinesController';
+import { timelineRSS } from '../../../controllers/api/v2/TimelinesRSS';
 
 export default function addRoutes(app) {
   app.get('/v2/bestof',                       bestOf);
@@ -8,4 +9,5 @@ export default function addRoutes(app) {
   app.get('/v2/timelines/:username',          userTimeline('Posts'))
   app.get('/v2/timelines/:username/likes',    userTimeline('Likes'))
   app.get('/v2/timelines/:username/comments', userTimeline('Comments'))
+  app.get('/v2/timelines-rss/:username',      timelineRSS)
 }

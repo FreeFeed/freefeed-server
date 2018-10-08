@@ -6,10 +6,9 @@ import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 import { userSerializerFunction } from '../../../serializers/v2/user';
-import { timelineAsRSS } from './TimelinesRSS';
 
-const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
-const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
+export const ORD_UPDATED = 'bumped';
+export const ORD_CREATED = 'created';
 
 const config = configLoader();
 
@@ -68,11 +67,6 @@ export const userTimeline = (feedName) => compose([
       withoutDirects: (feedName !== 'Posts'),
       ...getCommonParams(ctx),
     });
-
-    if (feedName === 'Posts' && ctx.request.query.format === 'rss') {
-      ctx.type = 'application/xml';
-      ctx.body = timelineAsRSS(ctx.body);
-    }
   },
 ]);
 

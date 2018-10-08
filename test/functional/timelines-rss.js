@@ -111,7 +111,7 @@ const fetchUserTimelineAsRSS = async (userContext, viewerContext = null) => {
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
-  const response = await performRequest(`/v2/timelines/${userContext.username}?format=rss`, { headers });
+  const response = await performRequest(`/v2/timelines-rss/${userContext.username}`, { headers });
   if (response.status !== 200) {
     const { err } = await response.json();
     expect.fail('HTTP error (code {0}): {1}', response.status, err);

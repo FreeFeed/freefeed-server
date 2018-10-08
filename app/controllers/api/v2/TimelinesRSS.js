@@ -1,13 +1,29 @@
+import compose from 'koa-compose';
 import builder from 'xmlbuilder';
 
 import { load as configLoader } from '../../../../config/config';
 import { extractTitle, getBodyHTML } from '../../../support/rss-text-parser';
+import { monitored } from '../../middlewares';
+import { userTimeline, ORD_CREATED } from './TimelinesController';
 
 const config = configLoader();
 const SERVICE_NAME = 'FreeFeed.net';
 const TITILE_MAX_LEN = 60;
 
-export function timelineAsRSS(data) {
+export const timelineRSS = compose([
+  monitored('timelines.rss'),
+  async (ctx) => {
+    ctx.request.sort = ORD_CREATED;
+    await userTimeline('Posts')(ctx);
+    if (ctx.status !== 200) {
+      return;
+    }
+    ctx.type = 'application/xml';
+    ctx.body = timelineToRSS(ctx.body);
+  },
+]);
+
+function timelineToRSS(data) {
   const ownerId = data.timelines.user;
   const owner = data.users.find((u) => u.id === ownerId);
   const rss = builder.create('rss')
