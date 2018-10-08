@@ -26,27 +26,34 @@ export const timelineRSS = compose([
 function timelineToRSS(data) {
   const ownerId = data.timelines.user;
   const owner = data.users.find((u) => u.id === ownerId);
+  const isGroup = owner.type === 'group';
+  const feedTitle = isGroup ? `Posts in group ${owner.username}` : `Posts of ${owner.username}`;
   const rss = builder.create('rss')
     .att('version', '2.0')
   const channel = rss
     .ele('channel')
-    .ele('title', {}, `${owner.username} @ ${SERVICE_NAME}`).up()
+    .ele('title', {}, `${feedTitle} @ ${SERVICE_NAME}`).up()
     .ele('link', {}, `${config.host}/${owner.username}`).up()
     .ele('description', {}, owner.description).up();
   if (owner.profilePictureLargeUrl !== '') {
     channel.ele('image')
       .ele('url', {}, owner.profilePictureLargeUrl).up()
-      .ele('title', {}, `${owner.username} @ ${SERVICE_NAME}`).up()
+      .ele('title', {}, `${feedTitle} @ ${SERVICE_NAME}`).up()
       .ele('link', {}, `${config.host}/${owner.username}`).up();
   }
 
   for (const postID of data.timelines.posts) {
     const post = data.posts.find((p) => p.id === postID);
+    const author = data.users.find((u) => u.id === post.createdBy);
+    let title = extractTitle(post.body, TITILE_MAX_LEN);
+    if (isGroup) {
+      title = `${author.username}: ${title}`;
+    }
     const item = channel.ele('item')
       .ele('guid', {}, `freefeed:post:${post.id}`).up()
       .ele('pubDate', {}, new Date(+post.createdAt).toGMTString()).up()
       .ele('link', {}, `${config.host}/${owner.username}/${post.id}`).up()
-      .ele('title', {}, extractTitle(post.body, TITILE_MAX_LEN)).up()
+      .ele('title', {}, title).up()
       .ele('description', {}, getBodyHTML(post.body)).up();
     for (const attID of post.attachments) {
       const attach = data.attachments.find((a) => a.id === attID);
