@@ -99,6 +99,8 @@ export function getConfig() {
     }
   };
   config.profilePictures = {
+    defaultProfilePictureMediumUrl: 'http://placekitten.com/50/50',
+
     url:     config.media.url,
     storage: config.media.storage,
     path:    'profilepics/' // must have trailing slash

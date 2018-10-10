@@ -2,6 +2,7 @@ import React from 'react';
 import classnames from 'classnames';
 import _ from 'lodash';
 
+import { load as configLoader } from '../../../../config/config';
 import PostAttachments from './post-attachments.jsx';
 import PostLikes from './post-likes.jsx';
 import UserName from './user-name.jsx';
@@ -10,12 +11,14 @@ import PostComments from './post-comments.jsx';
 import TimeDisplay from './time-display.jsx';
 import Link from './link.jsx';
 
+const config = configLoader();
+
 export default class Post extends React.Component {
 
   render() {
     const { props } = this;
 
-    const profilePicture = props.createdBy.profilePictureMediumUrl;
+    const profilePicture = props.createdBy.profilePictureMediumUrl || config.profilePictures.defaultProfilePictureMediumUrl;
     const profilePictureSize = 50;
 
     const postClass = classnames({
