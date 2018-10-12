@@ -3,7 +3,7 @@ import _ from 'lodash'
 import compose from 'koa-compose';
 
 import { dbAdapter, MyProfileSerializer, User, Group } from '../../../models'
-import { NotFoundException, ForbiddenException, ValidationException } from '../../../support/exceptions'
+import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -366,28 +366,37 @@ export default class UsersController {
     },
   ]);
 
-  static async update(ctx) {
-    if (!ctx.state.user || ctx.state.user.id != ctx.params.userId) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
+  static update = compose([
+    authRequired(),
+    monitored('users.update'),
+    async (ctx) => {
+      const { state: { user }, request: { body }, params } = ctx;
 
-    const attrs = _.reduce(
-      ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences', 'preferences'],
-      (acc, key) => {
-        if (key in ctx.request.body.user) {
+      if (params.userId !== user.id) {
+        throw new NotAuthorizedException();
+      }
+
+      const attrs = [
+        'screenName',
+        'email',
+        'isPrivate',
+        'isProtected',
+        'description',
+        'frontendPreferences',
+        'preferences',
+      ].reduce((acc, key) => {
+        if (key in body.user) {
           acc[key] = ctx.request.body.user[key];
         }
-        return acc
-      },
-      {}
-    )
+        return acc;
+      }, {});
 
-    const user = await ctx.state.user.update(attrs)
-    const json = await new MyProfileSerializer(user).promiseToJSON()
-    ctx.body = json
-  }
+      await user.update(attrs);
+
+      // should return the same response as 'whoami'
+      await UsersControllerV2.whoAmI(ctx);
+    },
+  ]);
 
   static async updatePassword(ctx) {
     if (!ctx.state.user) {

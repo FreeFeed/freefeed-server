@@ -267,6 +267,39 @@ describe('TimelinesControllerV2', () => {
         const { posts } = await fetchPost(luna.post.id);
         expect(posts.attachments, 'to equal', postData.attachments);
       });
+
+      describe('Luna wrote another post', () => {
+        let post1, post2;
+        beforeEach(async () => {
+          post1 = luna.post;
+          post2 = await createAndReturnPost(luna, 'Luna post 2');
+        });
+
+        it('should not allow to rebind attachment from post1 to post2', async () => {
+          luna.post = post1;
+          await updatePostAsync(luna, { body: post1.body, attachments: [attId1] });
+          luna.post = post2;
+          const resp = await updatePostAsync(luna, { body: post2.body, attachments: [attId1] });
+          expect(resp.status, 'to be', 403);
+        });
+      });
+
+      describe('Mars also wrote post', () => {
+        let mars;
+        beforeEach(async () => {
+          mars = await createUserAsync('mars', 'pw');
+          mars.post = await createAndReturnPost(mars, 'Mars post');
+        });
+
+        it('should not allow Mars to steal Luna attachments', async () => {
+          const postData = {
+            body:        mars.post.body,
+            attachments: [attId1, attId2],
+          };
+          const resp = await updatePostAsync(mars, postData);
+          expect(resp.status, 'to be', 403);
+        });
+      });
     });
 
     describe('Luna wrote post and hide it', () => {
