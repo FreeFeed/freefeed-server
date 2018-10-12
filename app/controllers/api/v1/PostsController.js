@@ -79,6 +79,16 @@ export default class PostsController {
         }
       }
 
+      if (attachments) {
+        const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
+        if (attObjects.some((a) => a.userId !== user.id)) {
+          throw new ForbiddenException('You can not use attachments created by other user');
+        }
+        if (attObjects.some((a) => a.postId && a.postId !== post.id)) {
+          throw new ForbiddenException('You can not use attachments from another post');
+        }
+      }
+
       await post.update({ body, attachments, destinationFeedIds })
 
       await showPost(ctx);
