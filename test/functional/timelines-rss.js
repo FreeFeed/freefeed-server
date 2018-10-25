@@ -7,7 +7,22 @@ import { unescape as htmlUnescape } from 'lodash';
 import cleanDB from '../dbCleaner';
 import { load as configLoader } from '../../config/config';
 import { textToHTML } from '../../app/support/rss-text-parser';
-import { createUserAsync, performRequest, updateUserAsync, createAndReturnPost, createMockAttachmentAsync, updatePostAsync, createCommentAsync, createGroupAsync, createAndReturnPostToFeed, subscribeToAsync } from './functional_test_helper';
+import {
+  createUserAsync,
+  performRequest,
+  updateUserAsync,
+  createAndReturnPost,
+  createMockAttachmentAsync,
+  updatePostAsync,
+  createCommentAsync,
+  createGroupAsync,
+  createAndReturnPostToFeed,
+  subscribeToAsync,
+  createTestUsers,
+  goProtected,
+  goPrivate,
+  mutualSubscriptions,
+} from './functional_test_helper';
 
 const config = configLoader();
 
@@ -233,6 +248,58 @@ describe('TimelinesAsRSS', () => {
         { name: 'title', content: `${luna.username}: Luna post` },
         { name: 'description' },
       ]);
+    });
+  });
+
+  describe('Access control', () => {
+    let luna, mars, pluto;
+    beforeEach(async () => {
+      [luna, mars, pluto] = await createTestUsers(3);
+      await mutualSubscriptions([luna, pluto]);
+      await createAndReturnPost(luna, `Tiger, tiger, burning bright`);
+    });
+
+    describe('Luna is protected user', () => {
+      beforeEach(async () => await goProtected(luna));
+
+      it('should not show Luna posts to anonymous', async () => {
+        const resp = parseXML(await fetchUserTimelineAsRSS(luna));
+        const channel = findNode(resp.root, 'channel');
+        const items = channel.children.filter(({ name }) => name === 'item');
+        expect(items, 'to have length', 0);
+      });
+
+      it('should show Luna posts to Mars', async () => {
+        const resp = parseXML(await fetchUserTimelineAsRSS(luna, mars));
+        const channel = findNode(resp.root, 'channel');
+        const items = channel.children.filter(({ name }) => name === 'item');
+        expect(items, 'to have length', 1);
+      });
+    });
+
+    describe('Luna is private user', () => {
+      beforeEach(async () => await goPrivate(luna));
+
+      it('should not show Luna posts to anonymous', async () => {
+        const resp = parseXML(await fetchUserTimelineAsRSS(luna));
+        const channel = findNode(resp.root, 'channel');
+        const items = channel.children.filter(({ name }) => name === 'item');
+        expect(items, 'to have length', 0);
+      });
+
+      it('should not show Luna posts to Mars', async () => {
+        const resp = parseXML(await fetchUserTimelineAsRSS(luna, mars));
+        const channel = findNode(resp.root, 'channel');
+        const items = channel.children.filter(({ name }) => name === 'item');
+        expect(items, 'to have length', 0);
+      });
+
+      it('should show Luna posts to Pluto', async () => {
+        const resp = parseXML(await fetchUserTimelineAsRSS(luna, pluto));
+        const channel = findNode(resp.root, 'channel');
+        const items = channel.children.filter(({ name }) => name === 'item');
+        expect(items, 'to have length', 1);
+      });
     });
   });
 });
