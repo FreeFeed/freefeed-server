@@ -40,7 +40,7 @@ function joinStrings(parts, maxLen) {
   return parts.slice(1).reduce((sum, p) => (sum.length + p.length - 1) >= maxLen ? sum : `${sum} ${p}`, parts[0]);
 }
 
-export function getBodyHTML(text) {
+export function textToHTML(text) {
   const lines = text
     .trim()
     .split(/[\u0000-\u001f\u0085\u2028\u2029]/)
