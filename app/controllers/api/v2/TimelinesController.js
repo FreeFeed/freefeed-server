@@ -7,8 +7,8 @@ import { serializePostsCollection, serializePost, serializeComment, serializeAtt
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
-const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
-const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
+export const ORD_UPDATED = 'bumped';
+export const ORD_CREATED = 'created';
 
 const config = configLoader();
 
