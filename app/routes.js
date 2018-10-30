@@ -1,6 +1,8 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
+import conditional from 'koa-conditional-get';
+import etag from 'koa-etag';
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
 import createDebug from 'debug';
@@ -106,6 +108,11 @@ export default function (app) {
       reportError(ctx)(e);
     }
   });
+
+  // naive (hash-based) implementation of ETags for dynamic content
+  app.use(conditional());
+  app.use(etag());
+
   app.use(router.routes());
   app.use(router.allowedMethods());
 }
