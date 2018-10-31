@@ -5,6 +5,7 @@ import expect from 'unexpected'
 import cleanDB from '../dbCleaner'
 import { dbAdapter, User, Group } from '../../app/models'
 
+
 describe('Post Privacy Flags', () => {
   beforeEach(() => cleanDB($pg_database))
 

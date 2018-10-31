@@ -2,6 +2,7 @@ import { flow } from 'lodash';
 import { extractHashtagsWithIndices } from './hashtags'
 import { SEARCH_SCOPES } from './SearchConstants'
 
+
 const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*(me|[A-Za-z0-9]{3,})\\s?';
 const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';

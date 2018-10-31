@@ -5,6 +5,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import * as helper from './functional_test_helper';
 
+
 describe('Local bumps', () => {
   beforeEach(() => cleanDB($pg_database));
 

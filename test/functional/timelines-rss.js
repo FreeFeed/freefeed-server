@@ -25,6 +25,7 @@ import {
   mutualSubscriptions,
 } from './functional_test_helper';
 
+
 const config = configLoader();
 
 describe('TimelinesAsRSS', () => {

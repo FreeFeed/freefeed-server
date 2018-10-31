@@ -3,6 +3,7 @@ import { dbAdapter } from '../../../models';
 import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 import { serializeEvents } from '../../../serializers/v2/event';
 
+
 const EVENT_GROUPS = {
   mentions:      ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
   bans:          ['banned_user', 'unbanned_user'],

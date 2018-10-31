@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException, ServerErrorException } from '../../support/exceptions';
 import { dbAdapter } from '../../models';
 
+
 export function postAccessRequired(map = { postId: 'post' }) {
   return async (ctx, next) => {
     const forbidden = (reason = 'You can not see this post') => new ForbiddenException(reason);

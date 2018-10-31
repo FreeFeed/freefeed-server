@@ -4,6 +4,7 @@ import { SearchQueryParser } from '../../../support/SearchQueryParser'
 import { SEARCH_SCOPES } from '../../../support/SearchConstants'
 import { serializePostsCollection } from '../../../serializers/v2/post';
 
+
 export default class SearchController {
   app = null;
 

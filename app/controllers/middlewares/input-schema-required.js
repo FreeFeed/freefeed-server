@@ -2,6 +2,7 @@ import Ajv from 'ajv';
 
 import { ValidationException } from '../../support/exceptions';
 
+
 const ajv = new Ajv({ allErrors: true, useDefaults: true });
 
 export function inputSchemaRequired(schema) {

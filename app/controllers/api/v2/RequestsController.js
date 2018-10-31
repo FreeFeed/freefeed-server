@@ -2,6 +2,7 @@ import { dbAdapter } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { NotFoundException } from '../../../support/exceptions'
 
+
 export default class RequestsController {
   static async revokeRequest(ctx) {
     if (!ctx.state.user) {

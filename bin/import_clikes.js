@@ -2,6 +2,7 @@
 import fs from 'fs';
 import bluebird from 'bluebird';
 
+
 global.Promise = bluebird;
 global.Promise.onPossiblyUnhandledRejection((e) => {
   throw e;
@@ -10,6 +11,7 @@ global.Promise.onPossiblyUnhandledRejection((e) => {
 Promise.promisifyAll(fs);
 
 import { postgres, dbAdapter } from '../app/models'
+
 
 async function main() {
   process.stdout.write(`Started\n`);

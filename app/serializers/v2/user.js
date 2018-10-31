@@ -2,6 +2,7 @@ import { pick, uniq } from 'lodash';
 
 import { dbAdapter } from '../../models';
 
+
 const commonUserFields = [
   'id',
   'username',

@@ -8,6 +8,7 @@ import { serializePostsCollection, serializePost, serializeComment, serializeAtt
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
+
 export const ORD_UPDATED = 'bumped';
 export const ORD_CREATED = 'created';
 

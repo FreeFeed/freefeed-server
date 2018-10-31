@@ -8,6 +8,7 @@ import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from
 import { show as showPost } from '../v2/PostsController';
 import { postCreateInputSchema, postUpdateInputSchema } from './data-schemes';
 
+
 export default class PostsController {
   static create = compose([
     authRequired(),

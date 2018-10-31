@@ -16,6 +16,7 @@ import { createPostViaBookmarklet, createGroupAsync, createTestUser, MockHTTPSer
 import { postResponse } from './schemaV2-helper';
 import Session from './realtime-session';
 
+
 const config = configLoader();
 const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
 

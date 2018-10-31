@@ -1,5 +1,6 @@
 import _ from 'lodash';
 
+
 export const unexistedUID = '00000000-0000-0000-C000-000000000046';
 
 export function initObject(classDef, attrs, id, params) {

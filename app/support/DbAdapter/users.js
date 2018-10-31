@@ -4,6 +4,7 @@ import validator from 'validator'
 import { User, Group, Comment } from '../../models';
 import { initObject, prepareModelPayload } from './utils';
 
+
 const usersTrait = (superClass) => class extends superClass {
   async createUser(payload) {
     const preparedPayload = prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)

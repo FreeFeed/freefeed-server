@@ -13,6 +13,7 @@ import cleanDB from '../dbCleaner'
 import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
+
 chai.use(chaiFS)
 
 const { expect } = chai;

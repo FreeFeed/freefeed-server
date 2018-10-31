@@ -3,6 +3,7 @@ import createDebug from 'debug';
 import Mailer from '../../lib/mailer';
 import { load as configLoader } from '../../config/config';
 
+
 const config = configLoader();
 
 export function sendEventsDigestEmail(user, events, users, groups, digestInterval) {

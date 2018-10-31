@@ -3,6 +3,7 @@ import { dbAdapter, PubSub as pubSub } from '../models'
 import { extractMentions, extractMentionsWithIndices } from './mentions'
 import { EVENT_TYPES } from './EventTypes';
 
+
 export class EventService {
   static async onUserBanned(initiatorIntId, bannedUserIntId, hasRequestedSubscription = false) {
     await dbAdapter.createEvent(initiatorIntId, EVENT_TYPES.USER_BANNED, initiatorIntId, bannedUserIntId);

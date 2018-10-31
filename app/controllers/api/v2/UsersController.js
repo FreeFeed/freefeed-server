@@ -5,6 +5,7 @@ import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
 import { monitored, authRequired } from '../../middlewares';
 
+
 export default class UsersController {
   static async blockedByMe(ctx) {
     if (!ctx.state.user) {

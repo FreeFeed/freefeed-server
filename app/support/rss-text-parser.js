@@ -15,6 +15,7 @@ import {
 } from 'social-text-tokenizer';
 import { load as configLoader } from '../../config/config';
 
+
 const config = configLoader();
 
 export function extractTitle(text, maxLen) {

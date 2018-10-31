@@ -5,6 +5,7 @@ import moment from 'moment';
 
 import { shouldSendDailyBestOfDigest, shouldSendWeeklyBestOfDigest, canMakeBestOfEmail } from '../../../app/support/BestOfDigest';
 
+
 const expect = unexpected.clone()
   .use(unexpectedMoment);
 

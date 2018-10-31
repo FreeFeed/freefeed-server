@@ -4,6 +4,7 @@ import { join } from 'path';
 
 import { load as configLoader } from '../config/config'
 
+
 after(() => cleanDir(configLoader().attachments.storage.rootDir));
 
 /**

@@ -1,6 +1,7 @@
 import { NotFoundException, ServerErrorException } from '../../support/exceptions';
 import { dbAdapter } from '../../models';
 
+
 export function targetUserRequired(map = { username: 'targetUser' }) {
   return async (ctx, next) => {
     await Promise.all(Object.keys(map).map(async (key) => {

@@ -1,6 +1,7 @@
 import { reduce, uniqBy, pick, map, keyBy } from 'lodash';
 import { PostSerializer, dbAdapter } from '../../models';
 
+
 export const serializePostsCollection = async (postsObjects, viewerUUID = null) => {
   const postsCollection = await Promise.all(postsObjects.map((post) => new PostSerializer(post).promiseToJSON()));
   const postsCollectionJson = {

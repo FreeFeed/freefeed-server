@@ -7,6 +7,7 @@ import { load as configLoader } from '../../config/config';
 import { SummaryEmail } from '../views/emails/best-of-digest/SummaryEmail.jsx';
 import { fa } from '../views/emails/best-of-digest/assets/font-awesome-base64';
 
+
 promisifyAll(juice);
 
 const config = configLoader();

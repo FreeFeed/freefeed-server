@@ -9,6 +9,7 @@ import { EventService } from '../support/EventService';
 import { load as configLoader } from '../../config/config';
 import { List, intersection as listIntersection } from '../support/open-lists';
 
+
 const config = configLoader();
 
 export function addModel(dbAdapter) {

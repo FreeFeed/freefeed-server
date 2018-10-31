@@ -3,6 +3,7 @@ import expect from 'unexpected'
 
 import { extractTitle } from '../../app/support/rss-text-parser';
 
+
 describe('extractTitle function', () => {
   const maxLen = 35;
 

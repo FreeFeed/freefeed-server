@@ -43,6 +43,7 @@ import {
 import * as schema from './schemaV2-helper'
 import * as realtimeAssertions from './realtime_assertions';
 
+
 const expect = origExpect.clone().use(realtimeAssertions);
 
 describe('EventService', () => {

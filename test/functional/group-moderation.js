@@ -27,6 +27,7 @@ import {
 } from './functional_test_helper';
 import Session from './realtime-session';
 
+
 const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN];
 const commentModerationEvents = [EVENT_TYPES.COMMENT_MODERATED, EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN];
 

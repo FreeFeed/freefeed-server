@@ -4,6 +4,7 @@ import { cloneDeep } from 'lodash';
 import { addModel as commentModelMaker } from './comment';
 import { addModel as userModelMaker } from './user';
 
+
 const commentModel = commentModelMaker(null);
 const userModel = userModelMaker(null);
 

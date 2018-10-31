@@ -6,6 +6,7 @@ import { serializePost, serializeComment, serializeAttachment } from '../../../s
 import { monitored, postAccessRequired } from '../../middlewares';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
+
 export const show = compose([
   postAccessRequired(),
   monitored('posts.show-v2'),

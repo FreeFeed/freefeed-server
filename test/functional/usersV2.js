@@ -22,6 +22,7 @@ import {
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 import * as schema from './schemaV2-helper';
 
+
 describe('UsersControllerV2', () => {
   let app
 

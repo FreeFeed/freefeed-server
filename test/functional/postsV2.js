@@ -21,6 +21,7 @@ import {
   hidePost,
 } from './functional_test_helper'
 
+
 describe('TimelinesControllerV2', () => {
   let app;
   let fetchPostOpenGraph;

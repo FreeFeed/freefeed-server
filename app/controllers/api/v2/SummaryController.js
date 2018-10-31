@@ -6,6 +6,7 @@ import { serializePostsCollection } from '../../../serializers/v2/post';
 import { serializeUser } from '../../../serializers/v2/user';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
+
 const config = configLoader();
 
 const getDays = (d) => {

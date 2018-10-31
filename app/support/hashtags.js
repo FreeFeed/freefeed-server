@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import URLFinder from 'ff-url-finder';
 
+
 const finder = new URLFinder();
 finder.withHashTags = true;
 

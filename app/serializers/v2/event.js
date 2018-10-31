@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { dbAdapter } from '../../models';
 import { userSerializerFunction } from './user';
 
+
 export async function serializeEvents(events) {
   const [userIdsMapping, postIdsMapping, commentIdsMapping] = await getIntIdsMappings(events);
 

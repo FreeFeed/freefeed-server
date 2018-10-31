@@ -1,6 +1,7 @@
 /* eslint babel/semi: "error" */
 import _ from 'lodash';
 
+
 export function addModel(dbAdapter) {
   class Timeline {
     id;

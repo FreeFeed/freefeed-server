@@ -15,6 +15,7 @@ import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
 import * as schema from './schemaV2-helper';
 
+
 const apiUrl = async (relativeUrl) => {
   const app = await initApp()
   return `${app.context.config.host}${relativeUrl}`

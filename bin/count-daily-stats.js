@@ -3,12 +3,14 @@ import moment from 'moment';
 import bluebird from 'bluebird';
 import pgFormat from 'pg-format';
 
+
 global.Promise = bluebird;
 global.Promise.onPossiblyUnhandledRejection((e) => {
   throw e;
 });
 
 import { postgres } from '../app/models'
+
 
 async function get_first_action_date(type) {
   let res;

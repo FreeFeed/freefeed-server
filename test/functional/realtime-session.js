@@ -1,5 +1,6 @@
 import SocketIO from 'socket.io-client';
 
+
 const eventTimeout = 2000;
 const silenceTimeout = 500;
 
