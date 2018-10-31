@@ -1,5 +1,4 @@
-import _ from 'lodash'
-import s from 'underscore.string'
+import _ from 'lodash';
 
 
 export const AbstractSerializer = function (object, strategy) {
@@ -20,7 +19,7 @@ AbstractSerializer.prototype = {
       return null
     }
     if (!this.object[field]) {
-      const fieldName = s(field).capitalize().value();
+      const fieldName = _.capitalize(field);
       const name = `get${fieldName}`
       const method = this.object[name]
 
