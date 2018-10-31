@@ -12,7 +12,7 @@ promisifyAll(_redis.Multi.prototype);
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
-let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
+const database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
 export default database;
 
 database.on('connect', log('connect'));
@@ -47,9 +47,4 @@ export function connect() {
 
 export function redis() {
   return redis;
-}
-
-export function disconnect() {
-  _redis.end();
-  database = null;
 }
