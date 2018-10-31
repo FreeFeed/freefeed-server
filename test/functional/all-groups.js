@@ -104,6 +104,7 @@ describe('All groups', () => {
       let response, pubicGroupResp, protectedGroupResp;
       before(() => {
         response = authResponse;
+
         if (response.groups && _.isArray(response.groups)) {
           pubicGroupResp     = response.groups.find((g) => g.id === pubicGroup.id);
           protectedGroupResp = response.groups.find((g) => g.id === protectedGroup.id);

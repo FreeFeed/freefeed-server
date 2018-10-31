@@ -87,6 +87,7 @@ async function create_metric(metric, to_date, get_metric) {
 
     dt = next_date;
   }
+
   process.stdout.write(`Creating stats for ${metric}: done\n\n`);
 }
 

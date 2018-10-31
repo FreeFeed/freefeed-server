@@ -19,16 +19,19 @@ export default class RequestsController {
     }
 
     const subscriptionRequestFound = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, followedFeedOwner.id)
+
     if (!subscriptionRequestFound) {
       throw new NotFoundException(`Subscription request to "${followedFeedOwnerName}" is not found`)
     }
 
     await followedFeedOwner.rejectSubscriptionRequest(ctx.state.user.id)
+
     if (followedFeedOwner.type === 'user') {
       await EventService.onSubscriptionRequestRevoked(ctx.state.user.intId, followedFeedOwner.intId);
     } else {
       await EventService.onGroupSubscriptionRequestRevoked(ctx.state.user.intId, followedFeedOwner);
     }
+
     ctx.body = { err: null, status: 'success' };
   }
 }

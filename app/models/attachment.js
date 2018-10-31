@@ -43,6 +43,7 @@ async function mimeTypeDetect(fileName, filePath) {
 
   // legacy mmmagic based detection
   let mimeType = 'application/octet-stream';
+
   try {
     mimeType = await detectMime(filePath);
 
@@ -190,6 +191,7 @@ export function addModel(dbAdapter) {
       if (this.noThumbnail === '1') {
         return this.url
       }
+
       return this.getResizedImageUrl('t')
     }
   })
@@ -306,6 +308,7 @@ export function addModel(dbAdapter) {
 
   const fitIntoBounds = (size, bounds) => {
     let width, height;
+
     if (size.width * bounds.height > size.height * bounds.width) {
       width  = bounds.width;  // eslint-disable-line prefer-destructuring
       height = Math.max(1, Math.round(size.height * bounds.width / size.width));
@@ -313,6 +316,7 @@ export function addModel(dbAdapter) {
       width  = Math.max(1, Math.round(size.width * bounds.height / size.height));
       height = bounds.height;  // eslint-disable-line prefer-destructuring
     }
+
     return { width, height };
   }
 
@@ -344,6 +348,7 @@ export function addModel(dbAdapter) {
       // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
       // The first three options are fine, the rest should be fixed.
       const orientation = await originalImage.orientationAsync();
+
       if (!['unknown', 'Unknown', 'TopLeft'].includes(orientation)) {
         const img = originalImage
           .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
@@ -358,11 +363,14 @@ export function addModel(dbAdapter) {
     }
 
     const thumbIds = [];
+
     for (const sizeId of Object.keys(config.attachments.imageSizes)) {
       const { bounds } = config.attachments.imageSizes[sizeId];
+
       if (originalSize.width <= bounds.width && originalSize.height <= bounds.height) {
         continue;
       }
+
       const size = fitIntoBounds(originalSize, bounds);
       this.imageSizes[sizeId] = {
         w:   size.width,
@@ -376,6 +384,7 @@ export function addModel(dbAdapter) {
       // No thumbnails
       return;
     }
+
     this.noThumbnail = '0';
 
     if (this.mimeType === 'image/gif') {
@@ -396,6 +405,7 @@ export function addModel(dbAdapter) {
       if (originalImage === null) {
         originalImage = promisifyAll(gm(originalFile));
       }
+
       for (const sizeId of thumbIds) {
         const { w, h } = this.imageSizes[sizeId];
         await originalImage  // eslint-disable-line no-await-in-loop
@@ -453,6 +463,7 @@ export function addModel(dbAdapter) {
 
 async function getImageSize(fileName) {
   const input = fs.createReadStream(fileName);
+
   try {
     const { width, height } = await probe(input);
     return { width, height };

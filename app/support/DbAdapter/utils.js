@@ -10,10 +10,13 @@ export function initObject(classDef, attrs, id, params) {
 export function prepareModelPayload(payload, namesMapping, valuesMapping) {
   return _.transform(payload, (result, val, key) => {
     let mappedVal = val;
+
     if (valuesMapping[key]) {
       mappedVal = valuesMapping[key](val);
     }
+
     const mappedKey = namesMapping[key];
+
     if (mappedKey) {
       result[mappedKey] = mappedVal;
     }

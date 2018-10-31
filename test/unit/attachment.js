@@ -126,6 +126,7 @@ describe('Attachment', () => {
       newAttachment.getPath().should.be.equal(`${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`)
 
       const stats = await stat(newAttachment.getPath())
+
       if (file.size >= 0) {
         stats.size.should.be.equal(file.size)
       } else {

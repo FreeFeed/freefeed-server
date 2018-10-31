@@ -29,6 +29,7 @@ const eventsTrait = (superClass) => class extends superClass {
 
   getUserEvents(userIntId, eventTypes = null, limit = null, offset = null, startDate = null, endDate = null) {
     let query = this.database('events').where('user_id', userIntId)
+
     if (eventTypes && eventTypes.length > 0) {
       query = query.whereIn('event_type', eventTypes);
     }
@@ -48,22 +49,27 @@ const eventsTrait = (superClass) => class extends superClass {
     if (offset) {
       query = query.offset(offset);
     }
+
     return query.orderBy('created_at', 'desc').orderBy('id', 'desc');
   }
 
   async _getGroupIntIdByUUID(groupUUID) {
     const res = await this.database('users').returning('id').first().where('uid', groupUUID).andWhere('type', 'group');
+
     if (!res) {
       return null;
     }
+
     return res.id;
   }
 
   async _getPostIntIdByUUID(postUUID) {
     const res = await this.database('posts').returning('id').first().where('uid', postUUID);
+
     if (!res) {
       return null;
     }
+
     return res.id;
   }
 
@@ -104,9 +110,11 @@ const eventsTrait = (superClass) => class extends superClass {
       .groupBy('user_id');
 
     const emailSentMapping = {};
+
     for (const entry of res) {
       emailSentMapping[entry.user_id] = entry.sent_at;
     }
+
     return emailSentMapping;
   }
 
@@ -119,9 +127,11 @@ const eventsTrait = (superClass) => class extends superClass {
       .groupBy('user_id');
 
     const emailSentMapping = {};
+
     for (const entry of res) {
       emailSentMapping[entry.user_id] = entry.sent_at;
     }
+
     return emailSentMapping;
   }
 
@@ -134,9 +144,11 @@ const eventsTrait = (superClass) => class extends superClass {
       .groupBy('user_id');
 
     const emailSentMapping = {};
+
     for (const entry of res) {
       emailSentMapping[entry.user_id] = entry.sent_at;
     }
+
     return emailSentMapping;
   }
 

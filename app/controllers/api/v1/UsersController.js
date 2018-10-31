@@ -22,6 +22,7 @@ export default class UsersController {
     }
 
     params.hashedPassword = ctx.request.body.password_hash
+
     if (!config.acceptHashedPasswordsOnly) {
       params.password = ctx.request.body.password
     }
@@ -33,6 +34,7 @@ export default class UsersController {
 
     const invitationId = ctx.request.body.invitation;
     let invitation;
+
     if (invitationId) {
       invitation = await dbAdapter.getInvitation(invitationId);
       invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
@@ -71,6 +73,7 @@ export default class UsersController {
     }
 
     params.hashedPassword = ctx.request.body.password_hash
+
     if (!config.acceptHashedPasswordsOnly) {
       params.password = ctx.request.body.password
     }
@@ -136,9 +139,11 @@ export default class UsersController {
       const { user: targetUser, targetUser: subscriber } = ctx.state;
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
+
       if (!hasRequest) {
         throw new ForbiddenException('There is no subscription requests');
       }
+
       await targetUser.acceptSubscriptionRequest(subscriber.id);
       await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
       ctx.body = {};
@@ -160,9 +165,11 @@ export default class UsersController {
     }
 
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id)
+
     if (!hasRequest) {
       throw new Error('Invalid')
     }
+
     await ctx.state.user.rejectSubscriptionRequest(user.id)
     await EventService.onSubscriptionRequestRejected(user.intId, ctx.state.user.intId);
     ctx.body = {};
@@ -301,14 +308,17 @@ export default class UsersController {
         subscriber.getBanIds(),
         targetUser.getBanIds(),
       ]);
+
       if (banIds.includes(targetUser.id)) {
         throw new ForbiddenException('You cannot subscribe to a banned user');
       }
+
       if (theirBanIds.includes(subscriber.id)) {
         throw new ForbiddenException('This user prevented your from subscribing to them');
       }
 
       const success = await subscriber.subscribeTo(targetUser);
+
       if (!success) {
         throw new ForbiddenException('You are already subscribed to that user');
       }
@@ -327,11 +337,13 @@ export default class UsersController {
 
       const { username } = ctx.params;
       const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+
       if (!targetUser || !targetUser.isActive) {
         throw new NotFoundException(`User "${username}" is not found`);
       }
 
       const success = await targetUser.unsubscribeFrom(subscriber);
+
       if (!success) {
         throw new ForbiddenException('This user is not subscribed to you');
       }
@@ -357,6 +369,7 @@ export default class UsersController {
       }
 
       const success = await subscriber.unsubscribeFrom(targetUser);
+
       if (!success) {
         throw new ForbiddenException('You are not subscribed to that user');
       }
@@ -388,6 +401,7 @@ export default class UsersController {
         if (key in body.user) {
           acc[key] = ctx.request.body.user[key];
         }
+
         return acc;
       }, {});
 
@@ -448,6 +462,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
   const users = await dbAdapter.getFeedOwnersByUsernames(userNames);
   const publicUsers = [];
   const privateUsers = [];
+
   for (const user of users) {
     if (!(user instanceof User)) {
       throw new ValidationException(`User not found "${user.username}"`);
@@ -463,6 +478,7 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
   const groups = await dbAdapter.getFeedOwnersByUsernames(groupNames);
   const publicGroups = [];
   const privateGroups = [];
+
   for (const group of groups) {
     if (!(group instanceof Group)) {
       throw new ValidationException(`Group not found "${group.username}"`);

@@ -215,10 +215,12 @@ const searchTrait = (superClass) => class extends superClass {
 
   _getCommentSearchCondition(parsedQuery, textSearchConfigName) {
     const searchConditions = []
+
     if (parsedQuery.query.length > 2) {
       const sql = pgFormat(`to_tsvector(%L, comments.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query)
       searchConditions.push(sql)
     }
+
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
         const regex = `([[:<:]]|\\W|^)${_.escapeRegExp(quote)}([[:>:]]|\\W|$)`;

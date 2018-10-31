@@ -52,6 +52,7 @@ export function serializeUser(user) {
   if (user.type === 'user') {
     return pick(user, commonUserFields);
   }
+
   return pick(user, commonGroupFields);
 }
 
@@ -70,9 +71,11 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
   return (id) => {
     const obj = serializeUser(allUsers[id]);
     obj.statistics = allStats[id] || defaultStats;
+
     if (obj.type === 'group') {
       obj.administrators = allGroupAdmins[obj.id] || [];
     }
+
     return obj;
   };
 }
@@ -86,6 +89,7 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
  */
 export async function serializeUsersByIds(userIds, withAdmins = true) {
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds);
+
   if (withAdmins) {
     // Complement userIds array by the group admins
     Object.values(adminsAssoc).forEach((ids) => ids.forEach((s) => userIds.push(s)));

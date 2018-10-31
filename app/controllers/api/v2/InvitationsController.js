@@ -7,6 +7,7 @@ import { userSerializerFunction } from '../../../serializers/v2/user';
 export default class InvitationsController {
   static async getInvitation(ctx) {
     const invitation = await dbAdapter.getInvitation(ctx.params.secureId);
+
     if (!invitation) {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
@@ -79,11 +80,13 @@ async function validateInvitation(request) {
   const groups = await dbAdapter.getFeedOwnersByUsernames(request.body.groups || []);
 
   const wrongUsers = _.difference(request.body.users, users.filter((u) => u.type === 'user').map((u) => u.username));
+
   if (wrongUsers.length) {
     throw new ValidationException(`Users not found: ${wrongUsers}`);
   }
 
   const wrongGroups = _.difference(request.body.groups, groups.filter((u) => u.type === 'group').map((u) => u.username));
+
   if (wrongGroups.length) {
     throw new ValidationException(`Groups not found: ${wrongGroups}`);
   }

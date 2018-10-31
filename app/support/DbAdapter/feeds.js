@@ -82,6 +82,7 @@ const feedsTrait = (superClass) => class extends superClass {
     if (!validator.isUUID(id, 4)) {
       return null
     }
+
     const attrs = await this.database('feeds').first().where('uid', id);
     return initTimelineObject(attrs, params);
   }
@@ -125,9 +126,11 @@ const feedsTrait = (superClass) => class extends superClass {
 
   async getTimelinesUserSubscribed(userId, feedType = null) {
     const where = { 's.user_id': userId };
+
     if (feedType !== null) {
       where['f.name'] = feedType;
     }
+
     const records = await this.database
       .select('f.*')
       .from('subscriptions as s')
@@ -200,6 +203,7 @@ function initTimelineObject(attrs, params) {
   if (!attrs) {
     return null;
   }
+
   attrs = prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING);
   return initObject(Timeline, attrs, attrs.id, params);
 }

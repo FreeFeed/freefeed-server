@@ -18,6 +18,7 @@ const commentsTrait = (superClass) => class extends superClass {
     if (!validator.isUUID(id, 4)) {
       return null
     }
+
     const attrs = await this.database('comments').first().where('uid', id)
     return initCommentObject(attrs);
   }
@@ -32,9 +33,11 @@ const commentsTrait = (superClass) => class extends superClass {
     }
 
     const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
+
     if (!res) {
       return null;
     }
+
     return res.id;
   }
 
@@ -74,11 +77,14 @@ const commentsTrait = (superClass) => class extends superClass {
 
     if (viewerUserId) {
       const hiddenCommentTypes = viewer.getHiddenCommentTypes();
+
       if (hiddenCommentTypes.length > 0) {
         if (hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && bannedUsersIds.length > 0) {
           query = query.where('user_id', 'not in', bannedUsersIds);
         }
+
         const ht = hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+
         if (ht.length > 0) {
           query = query.where('hide_type', 'not in', ht);
         }
@@ -93,6 +99,7 @@ const commentsTrait = (superClass) => class extends superClass {
           comm.hide_type = Comment.HIDDEN_BANNED;
           comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
         }
+
         return comm;
       });
     return comments.map(initCommentObject);
@@ -112,15 +119,19 @@ const commentsTrait = (superClass) => class extends superClass {
       hideType:    Comment.DELETED,
       ...params,
     };
+
     if (params.postId === null) {
       throw new Error(`Undefined postId of comment`);
     }
+
     if (params.hideType !== Comment.DELETED && params.hideType !== Comment.HIDDEN_ARCHIVED) {
       throw new Error(`Invalid hideType of comment: ${params.hideType}`);
     }
+
     if (params.hideType === Comment.HIDDEN_ARCHIVED && !params.userId === null && params.oldUsername === null) {
       throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
     }
+
     if (params.hideType === Comment.HIDDEN_ARCHIVED && params.body === null) {
       throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
     }
@@ -152,6 +163,7 @@ export function initCommentObject(attrs) {
   if (!attrs) {
     return null;
   }
+
   attrs = prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING);
   return initObject(Comment, attrs, attrs.id);
 }

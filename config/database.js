@@ -32,6 +32,7 @@ function logAndQuit(type) {
     if (sentryIsEnabled) {
       Raven.captureException(args, { extra: { err: 'Unknown Redis error. Switching off server.' } });
     }
+
     debug(type, args);
     process.exit(1);
   };

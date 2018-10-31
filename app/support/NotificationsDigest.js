@@ -26,6 +26,7 @@ export async function sendEmails() {
     }
 
     let digestInterval = `${notificationsQueryDate.format('MMM Do YYYY')} - ${moment().format('MMM Do YYYY')}`;
+
     if (notificationsQueryDate.isSameOrAfter(moment().subtract(1, 'days'), 'hours')) {
       digestInterval = notificationsQueryDate.format('MMM Do YYYY');
     }
@@ -33,6 +34,7 @@ export async function sendEmails() {
     debug(`[${u.username}] looking for notifications since ${digestInterval}…`);
 
     const events = await dbAdapter.getUserEvents(u.intId, DIGEST_EVENT_TYPES, null, null, notificationsQueryDate);
+
     if (!events.length) {
       debug(`[${u.username}] no relevant notifications found: SKIP`);
       return;

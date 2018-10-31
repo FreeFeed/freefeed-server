@@ -18,6 +18,7 @@ AbstractSerializer.prototype = {
     if (!this.object) {
       return null
     }
+
     if (!this.object[field]) {
       const fieldName = _.capitalize(field);
       const name = `get${fieldName}`
@@ -26,6 +27,7 @@ AbstractSerializer.prototype = {
       if (method) {
         return await Reflect.apply(method, this.object, []);
       }
+
       return null
     }
 
@@ -53,11 +55,13 @@ AbstractSerializer.prototype = {
 
     for (const object of objects) {
       let selectedSerializer
+
       if (serializer) {
         selectedSerializer = new serializer(object)
       } else {
         selectedSerializer = new AbstractSerializer(object, strategy)
       }
+
       const promise = selectedSerializer.promiseToJSON(root, level + 1)
       promises.push(promise)
     }
@@ -74,12 +78,14 @@ AbstractSerializer.prototype = {
       const inArray = _.some(root[node], (item) => (item.id == object.id))
 
       let selectedSerializer
+
       if (!inArray) {
         if (serializer) {
           selectedSerializer = new serializer(object)
         } else {
           selectedSerializer = new AbstractSerializer(object, strategy)
         }
+
         const promise = selectedSerializer.promiseToJSON(root, level + 1)
         promises.push(promise)
       }
@@ -125,13 +131,16 @@ AbstractSerializer.prototype = {
     }
 
     const fieldValue = await this.getField(field)
+
     if (!Array.isArray(fieldValue)) {
       if (this.strategy[field].embed) {
         if (fieldValue) {
           return processWithRoot([fieldValue], true)
         }
+
         return null
       }
+
       return new this.strategy[field].through(fieldValue).promiseToJSON()
     }
 
@@ -154,9 +163,11 @@ AbstractSerializer.prototype = {
       if (!root[this.RELATIONS_STORAGE]) {
         root[this.RELATIONS_STORAGE] = {}
       }
+
       this.strategy[field].objectIdsKey = tempIdsStorageName
 
       root[this.RELATIONS_STORAGE][modelName] = this.strategy[field]
+
       if (typeof root[tempIdsStorageName] === 'undefined') {
         root[tempIdsStorageName] = modelIds
       } else {
@@ -165,11 +176,13 @@ AbstractSerializer.prototype = {
     }
 
     const fieldValue = await this.getField(field)
+
     if (!Array.isArray(fieldValue)) {
       if (fieldValue) {
         storeTempModelIds([fieldValue])
         return fieldValue
       }
+
       return null
     }
 
@@ -184,6 +197,7 @@ AbstractSerializer.prototype = {
   processNode: async function (root, field, level) {
     const fieldType = this.decideNode(field)
     let res
+
     switch (fieldType) {
       case this.END_POINT:
         res = await this.getField(field)
@@ -216,8 +230,10 @@ AbstractSerializer.prototype = {
 
     const nodeProcessor = async (fieldName) => {
       const res = await this.processNode(root, fieldName, level + 1)
+
       if (res != null) {
         const currentStrategy = this.strategy[fieldName]
+
         if (currentStrategy && currentStrategy['relation'] && currentStrategy['customFieldName']) {
           fieldName = currentStrategy['customFieldName']
         }
@@ -228,6 +244,7 @@ AbstractSerializer.prototype = {
 
     const { name } = this;
     const promises = []
+
     for (const fieldName of this.strategy.select) {
       promises.push(nodeProcessor(fieldName))
     }
@@ -245,6 +262,7 @@ AbstractSerializer.prototype = {
 
   loadRelations: function (root, level) {
     const relations = root[this.RELATIONS_STORAGE]
+
     if (!relations) {
       return null
     }
@@ -256,6 +274,7 @@ AbstractSerializer.prototype = {
       let existingObjectsIds = []
 
       const existingObjects = root[descr.relKey]
+
       if (Array.isArray(existingObjects) && existingObjects.length > 0) {
         existingObjectsIds = existingObjects.map((obj) => obj.id)
         relatedObjectsIds = _.difference(relatedObjectsIds, existingObjectsIds)

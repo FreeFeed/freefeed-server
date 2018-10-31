@@ -56,6 +56,7 @@ export default class PubsubListener {
       if (sentryIsEnabled) {
         Raven.captureException(err, { extra: { err: 'PubsubListener Redis subscriber error' } });
       }
+
       debug('redis error', err);
     });
     redisClient.subscribe(values(eventNames));
@@ -149,12 +150,14 @@ export default class PubsubListener {
       }
 
       const roomsToLeave = [];
+
       for (const channelType of Object.keys(data)) {
         const channelIds = data[channelType];
 
         if (!isArray(channelIds)) {
           throw new EventHandlingError(`List of ${channelType} ids has to be an array`, `got bogus channel list`);
         }
+
         roomsToLeave.push(...channelIds.filter(Boolean).map((id) => `${channelType}:${id}`));
       }
 
@@ -196,6 +199,7 @@ export default class PubsubListener {
       if (sentryIsEnabled) {
         Raven.captureException(e, { extra: { err: 'PubsubListener Redis message handler error' } });
       }
+
       debug(`onRedisMessage: error while processing ${channel} request`, e);
     }
   };
@@ -213,10 +217,12 @@ export default class PubsubListener {
     }
 
     let users = destSockets.map((s) => s.user);
+
     if (post) {
       if (type === eventNames.POST_UPDATED) {
         let userIds = users.map((u) => u.id);
         const jsonToSend = omit(json, ['newUserIds', 'removedUserIds']);
+
         if (json.newUserIds && !json.newUserIds.isEmpty()) {
           // Users who listen to post rooms but
           // could not see post before. They should
@@ -284,6 +290,7 @@ export default class PubsubListener {
       // Bans
       if (post && user.id) {
         const banIds = bansMap.get(user.id) || [];
+
         if (
           ((type === eventNames.COMMENT_CREATED || type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
           || ((type === eventNames.LIKE_ADDED) && banIds.includes(json.users.id))
@@ -447,6 +454,7 @@ export default class PubsubListener {
     }
 
     const json = await new PubsubCommentSerializer(comment).promiseToJSON();
+
     if (msgType === eventNames.COMMENT_LIKE_ADDED) {
       json.comments.userId = data.likerUUID;
     } else {
@@ -477,10 +485,12 @@ export default class PubsubListener {
 
     if (type !== eventNames.POST_CREATED) {
       const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
+
       if (isHidden) {
         json.posts.isHidden = true;
       }
     }
+
     defaultEmitter(socket, type, json);
   };
 
@@ -497,6 +507,7 @@ export default class PubsubListener {
     postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
 
     const commentIds = postPayload.posts.comments;
+
     if (!commentIds || commentIds.length == 0) {
       return postPayload;
     }
@@ -515,6 +526,7 @@ export default class PubsubListener {
         comment.likes      = parseInt(commentLikes[comment.id].c_likes);
         comment.hasOwnLike = commentLikes[comment.id].has_own_like;
       }
+
       return comment;
     });
 
@@ -564,6 +576,7 @@ export async function getRoomsOfPost(post) {
 
   // All feeds related to post
   let feeds = [];
+
   if (config.dynamicRiverOfNews) {
     feeds = uniqBy([...materialFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
   } else {
@@ -623,9 +636,11 @@ const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, 
     } else {
       debug(`${debugPrefix}: ${e.message}`);
     }
+
     if (sentryIsEnabled) {
       Raven.captureException(e, { extra: { err: `PubsubListener ${event} error` } });
     }
+
     callback({ success: false, message: e.message });
   }
 });

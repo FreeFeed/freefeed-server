@@ -299,6 +299,7 @@ describe('Controller middlewares', () => {
       } catch (e) {
         // pass
       }
+
       expect(monitor.increment, 'was not called');
     });
 

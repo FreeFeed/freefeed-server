@@ -47,6 +47,7 @@ export default class GroupsController {
 
     // starting iteration from the second admin
     const promises = [];
+
     for (let i = 1; i < admins.length; i++) {
       const adminId = admins[i].id;
 
@@ -70,11 +71,13 @@ export default class GroupsController {
     const attrs = GroupsController._filteredParams(ctx.request.body.user, ['screenName', 'description', 'isPrivate', 'isProtected', 'isRestricted'])
 
     const group = await dbAdapter.getGroupById(ctx.params.userId)
+
     if (null === group) {
       throw new NotFoundException("Can't find group")
     }
 
     const adminIds = await group.getAdministratorIds()
+
     if (!adminIds.includes(ctx.state.user.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
@@ -99,6 +102,7 @@ export default class GroupsController {
     }
 
     const adminIds = await group.getAdministratorIds()
+
     if (!adminIds.includes(ctx.state.user.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
@@ -142,6 +146,7 @@ export default class GroupsController {
     }
 
     const adminIds = await group.getAdministratorIds()
+
     if (!adminIds.includes(ctx.state.user.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
@@ -173,6 +178,7 @@ export default class GroupsController {
     }
 
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, group.id)
+
     if (hasRequest) {
       throw new ForbiddenException('Subscription request already sent')
     }
@@ -205,16 +211,19 @@ export default class GroupsController {
     }
 
     const adminIds = await group.getAdministratorIds()
+
     if (!adminIds.includes(ctx.state.user.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
 
     const user = await dbAdapter.getUserByUsername(userName)
+
     if (null === user) {
       throw new NotFoundException(`User "${userName}" is not found`)
     }
 
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
+
     if (!hasRequest) {
       throw new Error('Subscription request is not found')
     }
@@ -240,16 +249,19 @@ export default class GroupsController {
     }
 
     const adminIds = await group.getAdministratorIds()
+
     if (!adminIds.includes(ctx.state.user.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
 
     const user = await dbAdapter.getUserByUsername(userName)
+
     if (null === user) {
       throw new NotFoundException(`User "${userName}" is not found`)
     }
 
     const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
+
     if (!hasRequest) {
       throw new Error('Invalid')
     }
@@ -275,11 +287,13 @@ export default class GroupsController {
     }
 
     const adminIds = await group.getAdministratorIds()
+
     if (!adminIds.includes(ctx.state.user.id)) {
       throw new ForbiddenException("You aren't an administrator of this group")
     }
 
     const user = await dbAdapter.getUserByUsername(userName)
+
     if (null === user) {
       throw new NotFoundException(`User "${userName}" is not found`)
     }
@@ -289,6 +303,7 @@ export default class GroupsController {
     }
 
     const success = await user.unsubscribeFrom(group);
+
     if (!success) {
       throw new ForbiddenException('This user is not subscribed to that group');
     }

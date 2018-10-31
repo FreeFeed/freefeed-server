@@ -14,9 +14,11 @@ export function extractMentionsWithIndices(text) {
   if (typeof text !== 'string' || text === '') {
     return [];
   }
+
   const parsed = finder.parse(text);
   const mentions = [];
   let pos = 0;
+
   for (const p of parsed) {
     if (p.type === 'atLink' && p.username.length >= 3 && p.username.length <= 25) {
       mentions.push({
@@ -24,8 +26,10 @@ export function extractMentionsWithIndices(text) {
         indices:  [pos, pos + p.text.length],
       });
     }
+
     pos += p.text.length;
   }
+
   return mentions;
 }
 

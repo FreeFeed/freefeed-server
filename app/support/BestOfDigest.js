@@ -24,6 +24,7 @@ export async function sendBestOfEmails() {
   const dailyEmailsSentAt = await dbAdapter.getDailyBestOfEmailSentAt(dailyDigestRecipients.map((u) => u.intId));
 
   debug('Starting iteration over weekly digest recipients');
+
   for (const u of weeklyDigestRecipients) {
     debug(`[${u.username}]…`);
 
@@ -50,9 +51,11 @@ export async function sendBestOfEmails() {
 
     debug(`[${u.username}] -> added entry to sent_emails_log`);
   }
+
   debug('Finished iterating over weekly digest recipients');
 
   debug('Starting iteration over daily digest recipients');
+
   for (const u of dailyDigestRecipients) {
     debug(`[${u.username}]…`);
 
@@ -77,6 +80,7 @@ export async function sendBestOfEmails() {
     await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'daily_best_of');  // eslint-disable-line no-await-in-loop
     debug(`[${u.username}] -> added entry to sent_emails_log`);
   }
+
   debug('Finished iterating over daily digest recipients');
 }
 
@@ -84,6 +88,7 @@ export function shouldSendWeeklyBestOfDigest(weeklyDigestSentAt, now) {
   const weeklyEmailDay = 'Monday';
   const wrappedWeeklyDigestSentAt = moment(weeklyDigestSentAt || 0);
   const wrappedNow = moment(now);
+
   if (wrappedNow.day() !== moment().day(weeklyEmailDay).day()) {
     return false;
   }
@@ -151,8 +156,10 @@ async function getSummary(user, days) {
   };
 
   await generalSummary(ctx);
+
   if (!_.get(ctx, 'body.posts', []).length) {
     return ctx.body;
   }
+
   return preparePosts(ctx.body, user);
 }

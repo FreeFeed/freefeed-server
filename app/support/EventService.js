@@ -8,6 +8,7 @@ export class EventService {
   static async onUserBanned(initiatorIntId, bannedUserIntId, hasRequestedSubscription = false) {
     await dbAdapter.createEvent(initiatorIntId, EVENT_TYPES.USER_BANNED, initiatorIntId, bannedUserIntId);
     await dbAdapter.createEvent(bannedUserIntId, EVENT_TYPES.BANNED_BY, initiatorIntId, bannedUserIntId);
+
     if (hasRequestedSubscription) {
       await this.onSubscriptionRequestRejected(bannedUserIntId, initiatorIntId);
     }
@@ -71,11 +72,13 @@ export class EventService {
       if (adminUser.intId === newAdminIntId) {
         return null;
       }
+
       await dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_PROMOTED, initiatorIntId, newAdminIntId, group.intId);
 
       if (adminUser.intId !== initiatorIntId) {
         await pubSub.updateUnreadNotifications(adminUser.intId);
       }
+
       return null;
     });
   }
@@ -85,10 +88,13 @@ export class EventService {
       if (adminUser.intId === formerAdminIntId) {
         return null;
       }
+
       await dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.GROUP_ADMIN_DEMOTED, initiatorIntId, formerAdminIntId, group.intId);
+
       if (adminUser.intId !== initiatorIntId) {
         await pubSub.updateUnreadNotifications(adminUser.intId);
       }
+
       return null;
     });
   }
@@ -110,6 +116,7 @@ export class EventService {
   static async onGroupSubscriptionRequestApproved(adminIntId, group, requesterIntId) {
     await this._notifyGroupAdmins(group, async (adminUser) => {
       await dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_APPROVED, adminIntId, requesterIntId, group.intId);
+
       if (adminUser.intId !== adminIntId) {
         await pubSub.updateUnreadNotifications(adminUser.intId);
       }
@@ -121,6 +128,7 @@ export class EventService {
   static async onGroupSubscriptionRequestRejected(adminIntId, group, requesterIntId) {
     await this._notifyGroupAdmins(group, async (adminUser) => {
       await dbAdapter.createEvent(adminUser.intId, EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_REJECTED, adminIntId, requesterIntId, group.intId);
+
       if (adminUser.intId !== adminIntId) {
         await pubSub.updateUnreadNotifications(adminUser.intId);
       }
@@ -162,8 +170,10 @@ export class EventService {
     ]);
 
     let postGroupIntId = null;
+
     if (destFeeds.length === 1) {
       const feedOwner = await destFeeds[0].getUser();
+
       if (feedOwner.isGroup()) {
         postGroupIntId = feedOwner.intId;
       }
@@ -398,9 +408,11 @@ export class EventService {
     }
 
     let postGroupIntId = null;
+
     if (destinationFeeds.length === 1) {
       const [postFeed] = destinationFeeds;
       const feedOwner = await postFeed.getUser();
+
       if (feedOwner.type === 'group') {
         postGroupIntId = feedOwner.intId;
       }
@@ -416,6 +428,7 @@ export class EventService {
     const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentionedUsernames);
 
     let usersSubscriptionsStatus = [];
+
     if (!postIsPublic) {
       usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(mentionedUsers.map((u) => u.id), nonDirectFeedsIds);
     }
@@ -434,6 +447,7 @@ export class EventService {
       }
 
       const usersBannedByCurrentUser = await user.getBanIds();
+
       if (usersBannedByCurrentUser.includes(author.id)) {
         return null;
       }
@@ -445,6 +459,7 @@ export class EventService {
 
         if (!postIsPublic) {
           const subscriptionStatus = usersSubscriptionsStatus.find((u) => u.uid === user.id);
+
           if (!subscriptionStatus.is_subscribed) {
             return null;
           }

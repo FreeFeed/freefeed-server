@@ -38,6 +38,7 @@ export const show = compose([
     };
 
     const { intId: hidesFeedId } = viewer ? await dbAdapter.getUserNamedFeed(viewer.id, 'Hides') : { intId: 0 };
+
     if (postWithStuff.post.feedIntIds.includes(hidesFeedId)) {
       sPost.isHidden = true; // present only if true
     }
@@ -137,6 +138,7 @@ export const opengraph = compose([
         <meta property="og:image:width" content="${image_w}" />
         <meta property="og:image:height" content="${image_h}" />`;
     }
+
     ctx.body = og;
   },
 ]);

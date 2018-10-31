@@ -49,6 +49,7 @@ export default function (app) {
 
     if (authToken) {
       authDebug('got token', authToken);
+
       try {
         const decoded = await jwt.verifyAsync(authToken, config.secret);
         const user = await dbAdapter.getUserById(decoded.userId);

@@ -298,10 +298,12 @@ describe('Post', () => {
       await userC.subscribeTo(userA)
 
       const promises = [];
+
       for (let i = 0; i < 10; i++) {
         const user = new User({ username: `lunokhod${i}`, password: 'password' })
         promises.push(user.create())
       }
+
       users = await Promise.all(promises)
     })
 

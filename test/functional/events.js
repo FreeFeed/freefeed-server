@@ -57,6 +57,7 @@ describe('EventService', () => {
     const userEvents = await dbAdapter.getUserEvents(user.intId, requestedEventTypes);
     expect(userEvents, 'to be an', 'array');
     expect(userEvents, 'to have length', expectedEvents.length);
+
     for (const i in userEvents) {
       expect(userEvents[i], 'to satisfy', expectedEvents[i]);
     }
@@ -1711,9 +1712,11 @@ describe('EventsController', () => {
     describe('events pagination', () => {
       beforeEach(async () => {
         const promises = [];
+
         for (let i = 0; i < 40; i++) {
           promises.push(dbAdapter.createEvent(lunaUserModel.intId, 'banned_user', lunaUserModel.intId, marsUserModel.intId));
         }
+
         await Promise.all(promises);
       });
 
@@ -1722,6 +1725,7 @@ describe('EventsController', () => {
         let events = res['Notifications'];
         expect(events, 'to be an array');
         expect(events, 'to have length', 30);
+
         for (let i = 0; i < 30; i++) {
           expect(events[i], 'to satisfy', {
             event_type:       'banned_user',
@@ -1729,12 +1733,14 @@ describe('EventsController', () => {
             affected_user_id: mars.user.id,
           });
         }
+
         expect(res, 'to satisfy', { isLastPage: false });
 
         res = await getUserEvents(luna, null, null, 30);
         events = res['Notifications'];
         expect(events, 'to be an array');
         expect(events, 'to have length', 11);
+
         for (let i = 0; i < 10; i++) {
           expect(events[i], 'to satisfy', {
             event_type:       'banned_user',
@@ -1742,6 +1748,7 @@ describe('EventsController', () => {
             affected_user_id: mars.user.id,
           });
         }
+
         expect(events[10], 'to satisfy', {
           event_type:       'user_subscribed',
           created_user_id:  mars.user.id,

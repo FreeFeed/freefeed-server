@@ -46,11 +46,13 @@ async function getIntIdsMappings(events) {
   let usersIntIds = [];
   let postsIntIds = [];
   let commentsIntIds = [];
+
   for (const e of events) {
     usersIntIds.push(e.user_id, e.created_by_user_id, e.target_user_id, e.group_id, e.post_author_id);
     postsIntIds.push(e.post_id);
     commentsIntIds.push(e.comment_id);
   }
+
   usersIntIds = _(usersIntIds).compact().uniq().value();
   postsIntIds = _(postsIntIds).compact().uniq().value();
   commentsIntIds = _(commentsIntIds).compact().uniq().value();
@@ -63,14 +65,18 @@ async function getIntIdsMappings(events) {
   const userIdsMapping = {};
   const postIdsMapping = {};
   const commentIdsMapping = {};
+
   for (const el of userIds) {
     userIdsMapping[el.id] = el.uid;
   }
+
   for (const el of postIds) {
     postIdsMapping[el.id] = el.uid;
   }
+
   for (const el of commentIds) {
     commentIdsMapping[el.id] = el.uid;
   }
+
   return [userIdsMapping, postIdsMapping, commentIdsMapping];
 }

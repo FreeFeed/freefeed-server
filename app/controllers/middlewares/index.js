@@ -13,9 +13,11 @@ export function monitored(monitorName, monitor = monitorDog) {
       await next();
       return;
     }
+
     ctx.state.isMonitored = true;
 
     let timerName, requestsName;
+
     if (typeof monitorName === 'string') {
       timerName = `${monitorName}-time`;
       requestsName = `${monitorName}-requests`;
@@ -24,6 +26,7 @@ export function monitored(monitorName, monitor = monitorDog) {
     }
 
     const timer = monitor.timer(timerName);
+
     try {
       await next();
       monitor.increment(requestsName);
@@ -39,6 +42,7 @@ export function authRequired() {
     if (!ctx.state.user) {
       throw new NotAuthorizedException();
     }
+
     await next();
   };
 }

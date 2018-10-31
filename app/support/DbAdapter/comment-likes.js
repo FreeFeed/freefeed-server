@@ -41,6 +41,7 @@ const commentLikesTrait = (superClass) => class extends superClass {
       const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserUUID);
       query = query.where('users.uid', 'not in', subquery);
     }
+
     let commentLikesData = await query;
 
     if (viewerUserUUID) {
@@ -56,6 +57,7 @@ const commentLikesTrait = (superClass) => class extends superClass {
         return 0;
       });
     }
+
     return commentLikesData;
   }
 

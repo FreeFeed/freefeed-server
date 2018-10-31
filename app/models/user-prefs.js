@@ -71,12 +71,15 @@ const check = ajv.compile(schema);
 export function valiate(data = {}, safe = false) {
   data = cloneDeep(data);
   const valid = check(data);
+
   if (valid) {
     return data;
   }
+
   if (safe) {
     // Return all defaults
     return valiate();
   }
+
   throw new Error(ajv.errorsText(check.errors));
 }

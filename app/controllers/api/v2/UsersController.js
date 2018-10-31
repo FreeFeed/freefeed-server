@@ -32,7 +32,9 @@ export default class UsersController {
       ctx.body = { err: 'Not found' };
       return
     }
+
     const timer = monitor.timer('users.unread-directs')
+
     try {
       const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(ctx.state.user.id)
       ctx.body = { unread: unreadDirectsNumber };
@@ -165,9 +167,11 @@ function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
   return (id) => {
     const obj = serializeUser(allUsers[id]);
     obj.statistics = allStats[id] || defaultStats;
+
     if (obj.type === 'group') {
       obj.administrators = allGroupAdmins[obj.id] || [];
     }
+
     return obj;
   };
 }

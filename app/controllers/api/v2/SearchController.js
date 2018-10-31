@@ -54,6 +54,7 @@ export default class SearchController {
         }
 
         targetUser = await dbAdapter.getUserByUsername(preparedQuery.username)
+
         if (!targetUser) {
           throw new NotFoundException(`User "${preparedQuery.username}" is not found`)
         }
@@ -65,6 +66,7 @@ export default class SearchController {
         if (targetUser.id != currentUserId) {
           const userPostsFeedId = await targetUser.getPostsTimelineId()
           isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(currentUserId, userPostsFeedId)
+
           if (!isSubscribed && targetUser.isPrivate == '1') {
             throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`)
           }
@@ -77,12 +79,14 @@ export default class SearchController {
 
       case SEARCH_SCOPES.VISIBLE_GROUP_POSTS: {
         targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group)
+
         if (!targetGroup) {
           throw new NotFoundException(`Group "${preparedQuery.group}" is not found`)
         }
 
         const groupPostsFeedId = await targetGroup.getPostsTimelineId()
         isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId)
+
         if (!isSubscribed && targetGroup.isPrivate == '1') {
           throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`)
         }
@@ -94,6 +98,7 @@ export default class SearchController {
     }
 
     const isLastPage = foundPosts.length <= requestedLimit;
+
     if (!isLastPage) {
       foundPosts.length = requestedLimit;
     }

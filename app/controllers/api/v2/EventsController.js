@@ -50,6 +50,7 @@ export default class EventsController {
     );
 
     const isLastPage = events.length <= params.limit;
+
     if (!isLastPage) {
       events.length = params.limit;
     }
@@ -69,15 +70,19 @@ function getQueryParams(ctx) {
   const offset = parseInt(ctx.request.query.offset, 10) || 0;
   const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_EVENTS_LIMIT;
   let eventGroups = ctx.request.query.filter || [];
+
   if (!_.isArray(eventGroups)) {
     eventGroups = [eventGroups];
   }
+
   let eventTypes = [];
+
   if (eventGroups.length === 0) {
     eventTypes = ALLOWED_EVENT_TYPES.slice();
   } else {
     for (const g of eventGroups) {
       const mapping = EVENT_GROUPS[g];
+
       if (mapping) {
         eventTypes.push(...mapping);
       }
@@ -85,6 +90,7 @@ function getQueryParams(ctx) {
   }
 
   eventTypes = _(eventTypes).intersection(ALLOWED_EVENT_TYPES).uniq().value();
+
   if (eventTypes.length === 0) {
     eventTypes = null;
   }

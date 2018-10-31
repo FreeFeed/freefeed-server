@@ -18,6 +18,7 @@ function cleanDir(dirName) {
   for (const fileName of readdirSync(dirName)) {
     const path = join(dirName, fileName);
     const isDirectory = statSync(path).isDirectory();
+
     if (isDirectory) {
       cleanDir(path);
     } else {

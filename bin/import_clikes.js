@@ -17,6 +17,7 @@ async function main() {
   process.stdout.write(`Started\n`);
 
   const [,, dataFilePath] = process.argv;
+
   if (!dataFilePath) {
     return;
   }
@@ -56,6 +57,7 @@ async function main() {
       throw e;
     }
   }
+
   process.stdout.write(`\n`);
 }
 

@@ -103,6 +103,7 @@ async function _insertCommentLikesInfo(postsPayload, viewerUUID) {
       likesCount = parseInt(likeInfo.c_likes);
       hasOwnLike = likeInfo.has_own_like;
     }
+
     comment.likes = likesCount;
     comment.hasOwnLike = hasOwnLike;
     return comment;
@@ -117,15 +118,18 @@ function _modifyPostsPayload(postsPayload, postCLikesDict, commentLikesDict) {
   return map(postsPayload, (post) => {
     let [allLikes, ownLikes, omittedLikes, omittedOwn] = [0, 0, 0, 0];
     const commentLikesForPost = postCLikesDict[post.id];
+
     if (commentLikesForPost) {
       allLikes = parseInt(commentLikesForPost.post_c_likes_count);
       ownLikes = parseInt(commentLikesForPost.own_c_likes_count);
+
       if (allLikes > 0) {
         omittedLikes = allLikes;
         omittedOwn = ownLikes;
 
         for (const commentId of post.comments) {
           const likeInfo = commentLikesDict[commentId];
+
           if (likeInfo) {
             omittedLikes -= parseInt(likeInfo.c_likes);
             omittedOwn -= likeInfo.has_own_like * 1;

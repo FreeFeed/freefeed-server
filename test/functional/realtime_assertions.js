@@ -100,6 +100,7 @@ export function installInto(unexpected) {
   unexpected.addAssertion('<userContext> when subscribed to timeline <string> <assertion>', async (expect, viewer, timeline) => {
     const session = await Session.create(viewer);
     await session.sendAsync('subscribe', { 'timeline': [timeline] });
+
     try {
       return await expect.shift(session);
     } finally {
@@ -110,6 +111,7 @@ export function installInto(unexpected) {
   unexpected.addAssertion('<userContext> when subscribed to user <string> <assertion>', async (expect, viewer, userUUID) => {
     const session = await Session.create(viewer);
     await session.sendAsync('subscribe', { 'user': [userUUID] });
+
     try {
       session.context.subscribedUserId = userUUID;
       return await expect.shift(session);
@@ -121,6 +123,7 @@ export function installInto(unexpected) {
   unexpected.addAssertion('<userContext> when subscribed to post <string> <assertion>', async (expect, viewer, postId) => {
     const session = await Session.create(viewer);
     await session.sendAsync('subscribe', { 'post': [postId] });
+
     try {
       return await expect.shift(session);
     } finally {
@@ -130,6 +133,7 @@ export function installInto(unexpected) {
 
   unexpected.addAssertion('<realtimeSession> when authorized as <userContext> <assertion>', async (expect, session, user) => {
     await session.sendAsync('auth', { authToken: user.authToken });
+
     try {
       return await expect.shift(session);
     } finally {
@@ -155,6 +159,7 @@ export function installInto(unexpected) {
       } catch (e) {
         // pass
       }
+
       expect.fail();
     } else {
       try {
@@ -162,8 +167,10 @@ export function installInto(unexpected) {
       } catch (e) {
         return null;
       }
+
       expect.fail();
     }
+
     return null;
   });
 

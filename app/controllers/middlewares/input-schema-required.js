@@ -11,6 +11,7 @@ export function inputSchemaRequired(schema) {
     if (!check(ctx.request.body)) {
       throw new ValidationException(ajv.errorsText(check.errors));
     }
+
     await next();
   };
 }
