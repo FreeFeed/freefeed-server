@@ -12,7 +12,7 @@
     "lint": "eslint app bin config test",
     "reset-test-db": "babel-node bin/clean_test_db.js && knex --env test migrate:latest",
     "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
-    "mocha": "cross-env NODE_ENV=test mocha --opts test/mocha.opts test/unit test/functional",
+    "mocha": "cross-env NODE_ENV=test mocha --opts test/mocha.opts test/unit test/functional test/cleanup.js",
     "test-just": "cross-env NODE_ENV=test mocha",
     "console": "babel-node bin/console",
     "coverage": "cross-env NODE_ENV=test istanbul cover _mocha -- -R spec",
