@@ -41,4 +41,14 @@ export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user', 'use
 export const ALLOWED_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), INVISIBLE_EVENT_TYPES);
 export const NOT_COUNTABLE_EVENT_TYPES = [...INVISIBLE_EVENT_TYPES, 'banned_user', 'unbanned_user', 'group_created', 'direct', 'direct_comment'];
 export const COUNTABLE_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), NOT_COUNTABLE_EVENT_TYPES);
-export const DIGEST_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), [...INVISIBLE_EVENT_TYPES, 'banned_user', 'unbanned_user', 'group_created']);
+export const DIGEST_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), [
+  ...INVISIBLE_EVENT_TYPES,
+  'banned_user',
+  'unbanned_user',
+  'group_created',
+  'comment_moderated',
+  'comment_moderated_by_another_admin',
+  'post_moderated',
+  'post_moderated_by_another_admin',
+  'invitation_used'
+]);
