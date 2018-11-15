@@ -1,8 +1,9 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
+import { escape as urlEscape } from 'querystring';
 import expect from 'unexpected';
 import parseXML from 'xml-parser';
-import { unescape as htmlUnescape } from 'lodash';
+import { unescape as htmlUnescape, escape as htmlEscape } from 'lodash';
 
 import cleanDB from '../dbCleaner';
 import { load as configLoader } from '../../config/config';
@@ -302,6 +303,37 @@ describe('TimelinesAsRSS', () => {
       });
     });
   });
+
+  describe('Autodiscovery metatags', () => {
+    let luna, celestials;
+    beforeEach(async () => {
+      luna = await createUserAsync('luna', 'pw');
+      celestials = await createGroupAsync(luna, 'celestials', 'Celestials');
+    });
+
+    it('should return metatag for user', async () => {
+      const meta = await fetchMetatags(luna.username);
+
+      const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(luna.username)}`;
+      const rssTitle =  `Posts of ${luna.username}`;
+      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}">`;
+      expect(meta, 'to contain', tag);
+    });
+
+    it('should return metatag for group', async () => {
+      const meta = await fetchMetatags(celestials.username);
+
+      const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(celestials.username)}`;
+      const rssTitle =  `Posts in group ${celestials.username}`;
+      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}">`;
+      expect(meta, 'to contain', tag);
+    });
+
+    it('should not return metatag for unexisting user', async () => {
+      const meta = await fetchMetatags('evita');
+      expect(meta, 'not to contain', `<link rel="alternate" type="application/rss+xml"`);
+    });
+  });
 });
 
 const fetchUserTimelineAsRSS = async (userContext, viewerContext = null) => {
@@ -317,6 +349,16 @@ const fetchUserTimelineAsRSS = async (userContext, viewerContext = null) => {
   expect(response.headers.get('Content-Type'), 'to be', 'application/xml');
   return await response.text();
 };
+
+async function fetchMetatags(username) {
+  const response = await performRequest(`/v2/timelines-metatags/${username}`);
+  if (response.status !== 200) {
+    const { err } = await response.json();
+    expect.fail('HTTP error (code {0}): {1}', response.status, err);
+  }
+  return await response.text();
+}
+
 
 function findNode(node, ...nodeNames) {
   if (nodeNames.length === 0) {
