@@ -1,3 +1,4 @@
+import { escape as urlEscape } from 'querystring';
 import _ from 'lodash';
 import compose from 'koa-compose';
 
@@ -67,6 +68,22 @@ export const userTimeline = (feedName) => compose([
       withoutDirects: (feedName !== 'Posts'),
       ...getCommonParams(ctx),
     });
+  },
+]);
+
+export const metatags = compose([
+  monitored(`timelines-metatags`),
+  async (ctx) => {
+    const { username } = ctx.params;
+    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+    if (!targetUser || !targetUser.isActive) {
+      ctx.body = '';
+      return;
+    }
+
+    const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(targetUser.username)}`;
+    const rssTitle = targetUser.isUser() ? `Posts of ${targetUser.username}` : `Posts in group ${targetUser.username}`;
+    ctx.body = `<link rel="alternate" type="application/rss+xml" title="${_.escape(rssTitle)}" href="${_.escape(rssURL)}">`;
   },
 ]);
 
