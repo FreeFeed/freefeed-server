@@ -1,21 +1,21 @@
-import fs from 'fs'
+import fs from 'fs';
 import { execFile } from 'child_process';
 
-import { promisify, promisifyAll } from 'bluebird'
+import { promisify, promisifyAll } from 'bluebird';
 import createDebug from 'debug';
-import gm from 'gm'
+import gm from 'gm';
 import { parseStream as mmParseStream } from 'music-metadata';
-import mime from 'mime-types'
-import mmm from 'mmmagic'
-import readChunk from 'read-chunk'
-import fileType from 'file-type'
-import _ from 'lodash'
+import mime from 'mime-types';
+import mmm from 'mmmagic';
+import readChunk from 'read-chunk';
+import fileType from 'file-type';
+import _ from 'lodash';
 import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 
 import { getS3 } from '../support/s3';
-import { load as configLoader } from '../../config/config'
+import { load as configLoader } from '../../config/config';
 
 
 const config = configLoader()
@@ -33,9 +33,9 @@ const debug = createDebug('freefeed:model:attachment');
 
 async function mimeTypeDetect(fileName, filePath) {
   // The file type is detected by checking the magic number of the buffer.
-  // It only needs the first 4100 bytes.
-  const buffer = await readChunk(filePath, 0, 4100)
-  const info = fileType(buffer)
+  // It only needs the first "minimumBytes" bytes.
+  const buffer = await readChunk(filePath, 0, fileType.minimumBytes);
+  const info = fileType(buffer);
 
   if (info && info.mime && info.mime !== 'application/octet-stream') {
     return info.mime;
