@@ -114,26 +114,31 @@ async function createAttachment(author, imageURL) {
     }
   }
 
-  const stream = fs.createWriteStream(filePath, { flags: 'w' });
-  const fileWasWritten = waitStream(stream);
-  await pipeline(
-    response.body,
-    meter(fileSizeLimit),
-    stream,
-  );
-  await fileWasWritten; // waiting for the file to be written and closed
+  try {
+    const stream = fs.createWriteStream(filePath, { flags: 'w' });
+    const fileWasWritten = waitStream(stream);
+    await pipeline(
+      response.body,
+      meter(fileSizeLimit),
+      stream,
+    );
+    await fileWasWritten; // waiting for the file to be written and closed
 
-  const stats = await fs.statAsync(filePath);
+    const stats = await fs.statAsync(filePath);
 
-  const file = {
-    name: originalFileName,
-    size: stats.size,
-    type: mType.asString(),
-    path: filePath,
+    const file = {
+      name: originalFileName,
+      size: stats.size,
+      type: mType.asString(),
+      path: filePath,
+    }
+
+    const newAttachment = author.newAttachment({ file });
+    await newAttachment.create();
+
+    return newAttachment.id;
+  } catch (e) {
+    await fs.unlinkAsync(filePath);
+    throw e;
   }
-
-  const newAttachment = author.newAttachment({ file });
-  await newAttachment.create();
-
-  return newAttachment.id;
 }
