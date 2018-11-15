@@ -35,6 +35,7 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 
+
 promisifyAll(jwt);
 
 const config = configLoader();
@@ -48,6 +49,7 @@ export default function (app) {
 
     if (authToken) {
       authDebug('got token', authToken);
+
       try {
         const decoded = await jwt.verifyAsync(authToken, config.secret);
         const user = await dbAdapter.getUserById(decoded.userId);

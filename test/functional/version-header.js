@@ -5,6 +5,7 @@ import expect from 'unexpected'
 import { getSingleton } from '../../app/app'
 import { version as serverVersion } from '../../package.json';
 
+
 describe('Server version header', () => {
   let app
 

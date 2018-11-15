@@ -11,6 +11,7 @@ import { PubSub } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
 import { allGroupsResponse } from './schemaV2-helper';
 
+
 describe('All groups', () => {
   let app;
   before(async () => {
@@ -103,6 +104,7 @@ describe('All groups', () => {
       let response, pubicGroupResp, protectedGroupResp;
       before(() => {
         response = authResponse;
+
         if (response.groups && _.isArray(response.groups)) {
           pubicGroupResp     = response.groups.find((g) => g.id === pubicGroup.id);
           protectedGroupResp = response.groups.find((g) => g.id === protectedGroup.id);

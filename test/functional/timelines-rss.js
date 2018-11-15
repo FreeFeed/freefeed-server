@@ -25,6 +25,7 @@ import {
   mutualSubscriptions,
 } from './functional_test_helper';
 
+
 const config = configLoader();
 
 describe('TimelinesAsRSS', () => {
@@ -146,11 +147,13 @@ describe('TimelinesAsRSS', () => {
     it('should return RSS with a post with many comments of post author', async () => {
       const post = await createAndReturnPost(luna, `Tiger, tiger, burning bright`);
       const comments = [];
+
       for (let i = 0; i < 5; i++) {
         // eslint-disable-next-line no-await-in-loop
         await createCommentAsync(luna, post.id, `Comment ${i + 1}`);
         comments.push(`Comment ${i + 1}`);
       }
+
       const resp = parseXML(await fetchUserTimelineAsRSS(luna));
       const description = htmlUnescape(findNode(resp.root, 'item', 'description').content);
       expect(description, 'to be', [
@@ -169,12 +172,15 @@ describe('TimelinesAsRSS', () => {
       const mars = await createUserAsync('mars', 'pw')
       const post = await createAndReturnPost(luna, `Tiger, tiger, burning bright`);
       const comments = [];
+
       for (let i = 0; i < 3; i++) {
         // eslint-disable-next-line no-await-in-loop
         await createCommentAsync(luna, post.id, `Comment ${i + 1}`);
         comments.push(`Comment ${i + 1}`);
       }
+
       await createCommentAsync(mars, post.id, `Comment from Mars!`);
+
       for (let i = 0; i < 3; i++) {
         // eslint-disable-next-line no-await-in-loop
         await createCommentAsync(luna, post.id, `Comment 3+${i + 1}`);
@@ -338,24 +344,30 @@ describe('TimelinesAsRSS', () => {
 
 const fetchUserTimelineAsRSS = async (userContext, viewerContext = null) => {
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const response = await performRequest(`/v2/timelines-rss/${userContext.username}`, { headers });
+
   if (response.status !== 200) {
     const { err } = await response.json();
     expect.fail('HTTP error (code {0}): {1}', response.status, err);
   }
+
   expect(response.headers.get('Content-Type'), 'to be', 'application/xml');
   return await response.text();
 };
 
 async function fetchMetatags(username) {
   const response = await performRequest(`/v2/timelines-metatags/${username}`);
+
   if (response.status !== 200) {
     const { err } = await response.json();
     expect.fail('HTTP error (code {0}): {1}', response.status, err);
   }
+
   return await response.text();
 }
 
@@ -364,15 +376,20 @@ function findNode(node, ...nodeNames) {
   if (nodeNames.length === 0) {
     return node;
   }
+
   const [nodeName, ...otherNames] = nodeNames;
+
   if (node.name === nodeName) {
     return findNode(node, ...otherNames);
   }
+
   for (const child of node.children) {
     const found = findNode(child, ...nodeNames);
+
     if (found) {
       return findNode(found, ...otherNames);
     }
   }
+
   return null;
 }

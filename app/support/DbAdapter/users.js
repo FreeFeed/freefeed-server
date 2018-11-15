@@ -4,6 +4,7 @@ import validator from 'validator'
 import { User, Group, Comment } from '../../models';
 import { initObject, prepareModelPayload } from './utils';
 
+
 const usersTrait = (superClass) => class extends superClass {
   async createUser(payload) {
     const preparedPayload = prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING)
@@ -33,6 +34,7 @@ const usersTrait = (superClass) => class extends superClass {
     }
 
     let updatedAt = 'now';
+
     if (time) {
       const t = new Date();
       t.setTime(time);
@@ -114,6 +116,7 @@ const usersTrait = (superClass) => class extends superClass {
     }
 
     const now = new Date().getTime()
+
     if (attrs.reset_password_expires_at < now) {
       return null
     }
@@ -141,9 +144,11 @@ const usersTrait = (superClass) => class extends superClass {
     }
 
     const res = await this.database('users').returning('id').first().where('uid', userUUID);
+
     if (!res) {
       return null;
     }
+
     return res.id;
   }
 
@@ -151,6 +156,7 @@ const usersTrait = (superClass) => class extends superClass {
     if (!validator.isUUID(id, 4)) {
       return null
     }
+
     return initUserObject(await this.fetchUser(id));
   }
 
@@ -175,6 +181,7 @@ const usersTrait = (superClass) => class extends superClass {
     if (usernames.length === 0) {
       return [];
     }
+
     usernames = usernames.map((u) => u.toLowerCase());
     const users = await this.database('users').whereIn('username', usernames);
     return users.map(initUserObject);
@@ -230,10 +237,13 @@ const usersTrait = (superClass) => class extends superClass {
     const params = await this.database('archives')
       .first('old_username', 'has_archive', 'via_sources', 'recovery_status', 'restore_comments_and_likes')
       .where({ user_id: userId });
+
     if (!params) {
       return null;
     }
+
     params.hidden_comments_count = 0;
+
     if (!params.restore_comments_and_likes) {
       const sql = `select count(*) from
         hidden_comments h
@@ -242,6 +252,7 @@ const usersTrait = (superClass) => class extends superClass {
       const res = await this.database.raw(sql, { hideType: Comment.HIDDEN_ARCHIVED, userId, oldUsername: params.old_username });
       params.hidden_comments_count = parseInt(res.rows[0].count);
     }
+
     return params;
   }
 
@@ -263,6 +274,7 @@ const usersTrait = (superClass) => class extends superClass {
     if (userIds.length === 0) {
       return false;
     }
+
     const { rows } = await this.database.raw(
       `select 1 from users
       where
@@ -331,6 +343,7 @@ export function initUserObject(attrs) {
   if (!attrs) {
     return null;
   }
+
   attrs = prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING);
   return initObject(attrs.type === 'group' ? Group : User, attrs, attrs.id);
 }

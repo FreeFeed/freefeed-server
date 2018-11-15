@@ -17,6 +17,7 @@ import {
   removeCommentAsync,
 } from './functional_test_helper';
 
+
 describe('Hidden comments', () => {
   before(async () => {
     await getSingleton();

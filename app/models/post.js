@@ -9,6 +9,7 @@ import { EventService } from '../support/EventService';
 import { load as configLoader } from '../../config/config';
 import { List, intersection as listIntersection } from '../support/open-lists';
 
+
 const config = configLoader();
 
 export function addModel(dbAdapter) {
@@ -136,6 +137,7 @@ export function addModel(dbAdapter) {
         'updatedAt',
         'bumpedAt',
       ];
+
       for (const f of fieldsToUpdate) {
         this[f] = newPost[f];
       }
@@ -174,6 +176,7 @@ export function addModel(dbAdapter) {
         'attachments',
         'destinationFeedIds',
       ];
+
       // It is important to use "!= null" here and below because
       // params[p] can exists but have a null or undefined value.
       if (!editableProperties.some((p) => params[p] != null)) {
@@ -210,6 +213,7 @@ export function addModel(dbAdapter) {
       if (params.destinationFeedIds != null) {
         const removedFeedIds = _.difference(this.destinationFeedIds, params.destinationFeedIds);
         const addedFeedIds = _.difference(params.destinationFeedIds, this.destinationFeedIds);
+
         if (removedFeedIds.length > 0 || addedFeedIds.length > 0) {
           this.destinationFeedIds = params.destinationFeedIds;
           this.feedIntIds = _.union(this.feedIntIds, this.destinationFeedIds);
@@ -303,6 +307,7 @@ export function addModel(dbAdapter) {
       const feed = await dbAdapter.getFeedOwnerById(this.userId);
 
       const feeds = [feed.getRiverOfNewsTimelineId()];
+
       if (!groupOnly) {
         feeds.push(feed.getPostsTimelineId());
       }
@@ -515,6 +520,7 @@ export function addModel(dbAdapter) {
 
     async getOmittedComments() {
       let length = this.commentsCount;
+
       if (length == null) {
         length = await dbAdapter.getPostCommentsCount(this.id);
       }
@@ -536,6 +542,7 @@ export function addModel(dbAdapter) {
       const { length } = comments;
       let visibleCommentsIds = commentsIds;
       let visibleComments = comments;
+
       if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
         const firstNCommentIds = commentsIds.slice(0, this.maxComments - 1);
         const firstNComments   = comments.slice(0, this.maxComments - 1);
@@ -629,6 +636,7 @@ export function addModel(dbAdapter) {
 
     async getOmittedLikes() {
       let length = this.likesCount;
+
       if (length == null) {
         length = await dbAdapter.getPostLikesCount(this.id);
       }
@@ -673,6 +681,7 @@ export function addModel(dbAdapter) {
      */
     async addLike(user) {
       const success = await dbAdapter.likePost(this.id, user.id);
+
       if (!success) {
         return false;
       }
@@ -713,9 +722,11 @@ export function addModel(dbAdapter) {
      */
     async removeLike(user) {
       const success = await dbAdapter.unlikePost(this.id, user.id);
+
       if (!success) {
         return false;
       }
+
       const [
         realtimeRooms,
         timelineId,
@@ -773,6 +784,7 @@ export function addModel(dbAdapter) {
 
       // Check if post author banned viewer or was banned by viewer
       const bannedUserIds = await dbAdapter.getUsersBansOrWasBannedBy(viewer.id);
+
       if (bannedUserIds.includes(this.userId)) {
         return false;
       }
@@ -780,6 +792,7 @@ export function addModel(dbAdapter) {
       // Check if post is private and viewer cannot read any of post's destination feeds
       if (this.isPrivate === '1') {
         const privateFeedIds = await dbAdapter.getVisiblePrivateFeedIntIds(viewer.id);
+
         if (_.isEmpty(_.intersection(this.destinationFeedIds, privateFeedIds))) {
           return false;
         }
@@ -818,9 +831,11 @@ export function addModel(dbAdapter) {
     async usersCanSeePostIds() {
       const bannedIds = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
       const allExceptBanned = new List(bannedIds, false);
+
       if (this.isPrivate === '0') {
         return allExceptBanned;
       }
+
       const allowedIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
       return listIntersection(allowedIds, allExceptBanned);
     }
@@ -831,6 +846,7 @@ export function addModel(dbAdapter) {
       if (!postTags || postTags.length == 0) {
         return;
       }
+
       await dbAdapter.linkPostHashtagsByNames(postTags, this.id);
     }
 
@@ -847,6 +863,7 @@ export function addModel(dbAdapter) {
         if (tagsToUnlink.length > 0) {
           await dbAdapter.unlinkPostHashtagsByNames(tagsToUnlink, this.id);
         }
+
         if (tagsToLink.length > 0) {
           await dbAdapter.linkPostHashtagsByNames(tagsToLink, this.id);
         }
@@ -864,6 +881,7 @@ export function addModel(dbAdapter) {
       if (this.userId === user.id) {
         return true;
       }
+
       const admins = await dbAdapter.getAdminsOfPostGroups(this.id);
       return admins.some((a) => a.id === user.id);
     }

@@ -1,6 +1,7 @@
 import moment from 'moment';
 import { dbAdapter } from '../../../models';
 
+
 export default class StatsController {
   static async stats(ctx) {
     const MAX_STATS_PERIOD = 365 * 2; // 2 years

@@ -9,6 +9,7 @@ import { DummyPublisher } from '../../app/pubsub';
 import { PubSub, dbAdapter, Comment } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
 
+
 describe('Archives', () => {
   let app;
   before(async () => {
@@ -210,9 +211,11 @@ async function getWhoAmI(app, user) {
 
 async function postRestoration(app, user = null, body = {}) {
   const headers = { 'Content-Type': 'application/json' };
+
   if (user) {
     headers['X-Authentication-Token'] = user.authToken;
   }
+
   return await fetch(
     `${app.context.config.host}/v2/archives/restoration`,
     {
@@ -225,9 +228,11 @@ async function postRestoration(app, user = null, body = {}) {
 
 async function putActivities(app, user = null, restore = true) {
   const headers = { 'Content-Type': 'application/json' };
+
   if (user) {
     headers['X-Authentication-Token'] = user.authToken;
   }
+
   return await fetch(
     `${app.context.config.host}/v2/archives/activities`,
     {

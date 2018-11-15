@@ -10,6 +10,7 @@ import { monitored } from '../../middlewares';
 import { serializeComment } from '../../../serializers/v2/post';
 import { userTimeline, ORD_CREATED } from './TimelinesController';
 
+
 const config = configLoader();
 const SERVICE_NAME = 'FreeFeed.net';
 const TITILE_MAX_LEN = 60;
@@ -20,9 +21,11 @@ export const timelineRSS = compose([
   async (ctx) => {
     ctx.request.sort = ORD_CREATED;
     await userTimeline('Posts')(ctx);
+
     if (ctx.status !== 200) {
       return;
     }
+
     ctx.type = 'application/xml';
     ctx.body = await timelineToRSS(ctx.body, ctx);
   },
@@ -48,15 +51,18 @@ async function timelineToRSS(data, ctx) {
     .ele('link', {}, `${config.host}/${urlEscape(owner.username)}`).up();
 
   const postMakers = await Promise.all(data.timelines.posts.map((postId) => postItemMaker(postId, data, ctx)));
+
   for (const mk of postMakers) {
     mk(channel);
   }
+
   return rss.end({ pretty: true });
 }
 
 function attachMimeType({ url, mediaType }) {
   const m = /\.(\w+)$/.exec(url)
   const ext = m ? m[1] : '';
+
   if (mediaType === 'image') {
     if (ext === 'png') {
       return 'image/png';
@@ -65,6 +71,7 @@ function attachMimeType({ url, mediaType }) {
     } else if (ext === 'svg') {
       return 'image/svg+xml';
     }
+
     return 'image/jpeg';
   } else if (mediaType === 'audio') {
     if (ext === 'm4a') {
@@ -74,8 +81,10 @@ function attachMimeType({ url, mediaType }) {
     } else if (ext === 'wav') {
       return 'audio/x-wav';
     }
+
     return 'audio/mpeg';
   }
+
   return 'application/octet-stream';
 }
 
@@ -87,6 +96,7 @@ async function postItemMaker(postId, data, ctx) {
   const post = data.posts.find((p) => p.id === postId);
   const author = data.users.find((u) => u.id === post.createdBy);
   let title = extractTitle(post.body, TITILE_MAX_LEN);
+
   if (isGroup) {
     title = `${author.username}: ${title}`;
   }
@@ -114,6 +124,7 @@ async function postItemMaker(postId, data, ctx) {
     });
     descriptionLines.push(`<p class="freefeed-images">${tags.join(' ')}</p>`);
   }
+
   descriptionLines.push(...audioAtts.map(
     (a) => `<p class="freefeed-attachment">🎵 <a href="${htmlEscape(a.url)}">${htmlEscape(a.title ? `${a.title} (${a.fileName})` : a.fileName)}</a></p>`)
   );
@@ -122,6 +133,7 @@ async function postItemMaker(postId, data, ctx) {
   );
 
   let comments = post.comments.map((id) => data.comments.find((c) => c.id === id));
+
   if (
     post.comments.length > 0 &&
     comments[0].createdBy === post.createdBy &&
@@ -130,11 +142,14 @@ async function postItemMaker(postId, data, ctx) {
     if (post.omittedComments > 0) {
       comments = await loadAllComments(postId, ctx);
     }
+
     let prevTime = +post.createdAt;
+
     for (const comment of comments) {
       if ((+comment.createdAt) - prevTime >= ommitBubblesThreshold || comment.createdBy !== post.createdBy) {
         break;
       }
+
       prevTime = +comment.createdAt;
       descriptionLines.push([`<div class="freefeed-comment" style="margin-left: 1em; margin-top: 2em;">${textToHTML(comment.body)}</div>`]);
     }
@@ -148,6 +163,7 @@ async function postItemMaker(postId, data, ctx) {
       .ele('author', {}, author.username).up()
       .ele('title', {}, title).up()
       .ele('description', {}, descriptionLines.join('\n')).up();
+
     for (const attach of attachments) {
       item.ele('enclosure')
         .att('url', attach.url)

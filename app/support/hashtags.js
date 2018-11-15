@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import URLFinder from 'ff-url-finder';
 
+
 const finder = new URLFinder();
 finder.withHashTags = true;
 
@@ -14,9 +15,11 @@ export function extractHashtagsWithIndices(text) {
   if (typeof text !== 'string' || text === '') {
     return [];
   }
+
   const parsed = finder.parse(text);
   const hashtags = [];
   let pos = 0;
+
   for (const p of parsed) {
     if (p.type === 'hashTag') {
       hashtags.push({
@@ -24,8 +27,10 @@ export function extractHashtagsWithIndices(text) {
         indices: [pos, pos + p.text.length],
       });
     }
+
     pos += p.text.length
   }
+
   return hashtags;
 }
 

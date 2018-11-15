@@ -857,11 +857,13 @@ describe('User', () => {
         for (let i = 0; i < nUsers; i++) {
           users.push(new User({ username: `user${i}`, password: 'password' }));
         }
+
         await Promise.all(users.map((u) => u.create()));
       });
 
       it(`should mutually subscribe ${nUsers} users to each other`, async () => {
         const subscriptions = [];
+
         for (const user1 of users) {
           for (const user2 of users) {
             if (user1 !== user2) {
@@ -869,12 +871,16 @@ describe('User', () => {
             }
           }
         }
+
         const results = await Promise.all(subscriptions);
         expect(results).to.not.include(false);
+
         for (let i = 0; i < nUsers; i++) {
           expect(users[i].subscribedFeedIds).to.have.lengthOf(3 * (nUsers - 1));
         }
+
         const stats = await Promise.all(users.map((u) => u.getStatistics()));
+
         for (let i = 0; i < nUsers; i++) {
           expect(stats[i].subscriptions).to.equal(`${nUsers - 1}`);
           expect(stats[i].subscribers).to.equal(`${nUsers - 1}`);
@@ -943,9 +949,11 @@ describe('User', () => {
         for (let i = 0; i < nUsers; i++) {
           users.push(new User({ username: `user${i}`, password: 'password' }));
         }
+
         await Promise.all(users.map((u) => u.create()));
 
         const subscriptions = [];
+
         for (const user1 of users) {
           for (const user2 of users) {
             if (user1 !== user2) {
@@ -953,11 +961,13 @@ describe('User', () => {
             }
           }
         }
+
         await Promise.all(subscriptions);
       });
 
       it(`should mutually unsubscribe ${nUsers} users from each other`, async () => {
         const actions = [];
+
         for (const user1 of users) {
           for (const user2 of users) {
             if (user1 !== user2) {
@@ -965,12 +975,16 @@ describe('User', () => {
             }
           }
         }
+
         const results = await Promise.all(actions);
         expect(results).to.not.include(false);
+
         for (let i = 0; i < nUsers; i++) {
           expect(users[i].subscribedFeedIds).to.be.empty;
         }
+
         const stats = await Promise.all(users.map((u) => u.getStatistics()));
+
         for (let i = 0; i < nUsers; i++) {
           expect(stats[i].subscriptions).to.equal('0');
           expect(stats[i].subscribers).to.equal('0');

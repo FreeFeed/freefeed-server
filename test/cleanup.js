@@ -4,6 +4,7 @@ import { join } from 'path';
 
 import { load as configLoader } from '../config/config'
 
+
 after(() => cleanDir(configLoader().attachments.storage.rootDir));
 
 /**
@@ -17,6 +18,7 @@ function cleanDir(dirName) {
   for (const fileName of readdirSync(dirName)) {
     const path = join(dirName, fileName);
     const isDirectory = statSync(path).isDirectory();
+
     if (isDirectory) {
       cleanDir(path);
     } else {

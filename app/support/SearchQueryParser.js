@@ -2,6 +2,7 @@ import { flow } from 'lodash';
 import { extractHashtagsWithIndices } from './hashtags'
 import { SEARCH_SCOPES } from './SearchConstants'
 
+
 const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*(me|[A-Za-z0-9]{3,})\\s?';
 const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
@@ -48,6 +49,7 @@ export class SearchQueryParser {
       queryObject.username = targetUsername
       return
     }
+
     if (targetGroupname) {
       queryObject.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS
       queryObject.group = targetGroupname
@@ -80,6 +82,7 @@ export class SearchQueryParser {
     const quotedQueryRegex = new RegExp(QUOTE_PATTERN, 'ig')
     const quotes = []
     let quote
+
     while ((quote = quotedQueryRegex.exec(query)) !== null) {
       quotes.push(quote[1])
     }
@@ -99,6 +102,7 @@ export class SearchQueryParser {
     for (const s of hashtagSubstrings) {
       query = query.replace(s, '')
     }
+
     queryObject.query = query
     queryObject.hashtags = hashtags.map((h) => h.hashtag)
   }

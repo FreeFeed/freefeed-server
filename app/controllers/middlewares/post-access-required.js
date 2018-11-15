@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException, ServerErrorException } from '../../support/exceptions';
 import { dbAdapter } from '../../models';
 
+
 export function postAccessRequired(map = { postId: 'post' }) {
   return async (ctx, next) => {
     const forbidden = (reason = 'You can not see this post') => new ForbiddenException(reason);
@@ -11,8 +12,10 @@ export function postAccessRequired(map = { postId: 'post' }) {
       if (!ctx.params[key]) {
         throw new ServerErrorException(`Server misconfiguration: the required parameter '${key}' is missing`);
       }
+
       const { [key]: postId } = ctx.params;
       const post = await dbAdapter.getPostById(postId);
+
       if (!post) {
         throw notFound();
       }
@@ -23,6 +26,7 @@ export function postAccessRequired(map = { postId: 'post' }) {
         if (!viewer && post.isProtected === '1' && post.isPrivate === '0') {
           throw forbidden('Please sign in to view this post');
         }
+
         throw forbidden();
       }
 

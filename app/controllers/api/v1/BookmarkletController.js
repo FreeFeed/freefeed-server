@@ -40,9 +40,11 @@ export const create = compose([
     } = ctx.request.body;
 
     const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
+
     if (destNames.length === 0) {
       destNames.push(author.username);
     }
+
     const timelineIds = await checkDestNames(destNames, author);
 
     // Attachments
@@ -87,6 +89,7 @@ export const create = compose([
 
 async function createAttachment(author, imageURL) {
   const parsedURL = new URL(imageURL);
+
   if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
     throw new Error('Unsupported URL protocol');
   }
@@ -98,17 +101,20 @@ async function createAttachment(author, imageURL) {
   const filePath = `/tmp/pepyatka${bytes}tmp${parsedPath.ext}`;
 
   const response = await fetch(parsedURL.href);
+
   if (response.status !== 200) {
     throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
   }
 
   const mType = mediaType.fromString(response.headers.get('content-type'));
+
   if (mType.type !== 'image') {
     throw new Error(`Unsupported content type: '${mType.asString() || '-'}'`);
   }
 
   if (response.headers.has('content-length')) {
     const contentLength = parseInt(response.headers.get('content-length'));
+
     if (!isNaN(contentLength) && contentLength > fileSizeLimit) {
       throw new Error(`File is too large (${contentLength} bytes, max. ${fileSizeLimit})`);
     }
