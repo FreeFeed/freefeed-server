@@ -1,4 +1,8 @@
+import { load as configLoader } from '../../../../../config/config'
 import definitions from './definitions';
+
+
+const config = configLoader();
 
 /**
  * Bookmarklet schema is based on schemas used by the following
@@ -30,10 +34,12 @@ export const bookmarkletCreateInputSchema = {
       default: ''
     },
     images: {
-      title:   'URLs of images to attach to the post',
-      type:    'array',
-      default: [],
-      items:   { type: 'string' }
+      title:       'URLs of images to attach to the post',
+      type:        'array',
+      default:     [],
+      items:       { type: 'string' },
+      maxItems:    config.attachments.maxCount,
+      uniqueItems: true,
     },
     image: {
       title:   'URLs of a single image to attach to the post',

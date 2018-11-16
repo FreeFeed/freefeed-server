@@ -53,10 +53,6 @@ export const create = compose([
       images.push(image);
     }
 
-    if (images.length > config.attachments.maxCount) {
-      throw new ForbiddenException(`Too many attachments: ${images.length}, max. ${config.attachments.maxCount}`);
-    }
-
     const attachments = await Promise.all(images.map(async (url) => {
       try {
         return await createAttachment(author, url);

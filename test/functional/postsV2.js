@@ -7,7 +7,6 @@ import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
-import { load as configLoader } from '../../config/config'
 import {
   createUserAsync,
   createAndReturnPost,
@@ -20,11 +19,8 @@ import {
   createMockAttachmentAsync,
   updatePostAsync,
   hidePost,
-  performRequest,
 } from './functional_test_helper'
 
-
-const config = configLoader();
 
 describe('TimelinesControllerV2', () => {
   let app;
@@ -307,81 +303,6 @@ describe('TimelinesControllerV2', () => {
           const resp = await updatePostAsync(mars, postData);
           expect(resp.status, 'to be', 403);
         });
-      });
-    });
-
-    describe('Too many attachments', () => {
-      let luna;
-      let attIds;
-      beforeEach(async () => {
-        luna = await createUserAsync('luna', 'pw');
-        luna.post = await createAndReturnPost(luna, 'Luna post');
-        const attCount = config.attachments.maxCount + 1;
-        attIds = (
-          await Promise.all([...new Array(attCount)].map(() => createMockAttachmentAsync(luna)))
-        ).map((att) => att.id);
-      });
-
-      it('should create post with maximum attachment count', async () => {
-        const resp = await performRequest('/v1/posts', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            authToken: luna.authToken,
-            meta:      { feeds: [luna.username] },
-            post:      {
-              body:        'Body',
-              attachments: attIds.slice(0, config.attachments.maxCount),
-            },
-          }),
-        });
-
-        expect(resp.status, 'to be', 200);
-      });
-
-      it('should not create post with too many attachments', async () => {
-        const resp = await performRequest('/v1/posts', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            authToken: luna.authToken,
-            meta:      { feeds: [luna.username] },
-            post:      {
-              body:        'Body',
-              attachments: attIds,
-            },
-          }),
-        });
-
-        expect(resp.status, 'to be', 400);
-      });
-
-      it('should not update post with too many attachments', async () => {
-        const resp = await performRequest('/v1/posts', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            authToken: luna.authToken,
-            meta:      { feeds: [luna.username] },
-            post:      {
-              body:        'Body',
-              attachments: attIds.slice(0, config.attachments.maxCount),
-            },
-          }),
-        });
-        expect(resp.status, 'to be', 200);
-        const post = (await resp.json()).posts;
-
-
-        const resp2 = await performRequest(`/v1/posts/${post.id}`, {
-          method:  'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            authToken: luna.authToken,
-            post:      { attachments: attIds },
-          }),
-        });
-        expect(resp2.status, 'to be', 400);
       });
     });
 
