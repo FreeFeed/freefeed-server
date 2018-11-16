@@ -205,6 +205,10 @@ export function addModel(dbAdapter) {
         const newAttachments = params.attachments || [];
         const removedAttachments = _.difference(oldAttachments, newAttachments);
 
+        if (newAttachments.length > config.attachments.maxCount) {
+          throw new Error(`Too many attachments: ${newAttachments.length}, max. ${config.attachments.maxCount}`);
+        }
+
         // Update post attachments in DB
         afterUpdate.push(() => this.linkAttachments(newAttachments));
         afterUpdate.push(() => this.unlinkAttachments(removedAttachments));

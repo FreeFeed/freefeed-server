@@ -94,7 +94,11 @@ export default class PostsController {
         }
       }
 
-      await post.update({ body, attachments, destinationFeedIds })
+      try {
+        await post.update({ body, attachments, destinationFeedIds })
+      } catch (e) {
+        throw new BadRequestException(`Can not create post: ${e.message}`);
+      }
 
       await showPost(ctx);
     },
