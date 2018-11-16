@@ -20,7 +20,7 @@ AbstractSerializer.prototype = {
     }
 
     if (!this.object[field]) {
-      const fieldName = _.capitalize(field);
+      const fieldName = _.upperFirst(field);
       const name = `get${fieldName}`
       const method = this.object[name]
 
