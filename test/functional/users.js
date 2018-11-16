@@ -15,6 +15,7 @@ import { load as configLoader } from '../../config/config'
 import * as funcTestHelper from './functional_test_helper'
 import * as schema from './schemaV2-helper';
 
+
 const mkdirpAsync = promisify(mkdirp)
 const config = configLoader()
 
@@ -506,15 +507,19 @@ describe('UsersController', () => {
     let user;
     const getSubscriptions = async (viewerCtx = null) => {
       const headers = {};
+
       if (viewerCtx !== null) {
         headers['X-Authentication-Token'] = viewerCtx.authToken;
       }
+
       const resp = await fetch(`${app.context.config.host}/v1/users/${user.username}/subscriptions`, { headers });
       const json = await resp.json();
+
       if (!resp.ok) {
         const message = json.err ? `${resp.status} ${resp.statusText}: ${json.err}` : `${resp.status} ${resp.statusText}`;
         throw new Error(message);
       }
+
       expect(json, 'to exhaustively satisfy', schema.userSubscriptionsResponse);
       return json;
     };
@@ -577,6 +582,7 @@ describe('UsersController', () => {
 
       it('should return valid types of feeds', async () => {
         const { subscriptions: feeds } = await getSubscriptions();
+
         for (const { name } of feeds) {
           expect(name, 'to be one of', ['Posts', 'Comments', 'Likes']);
         }
@@ -600,15 +606,19 @@ describe('UsersController', () => {
     let user;
     const getSubscribers = async (viewerCtx = null) => {
       const headers = {};
+
       if (viewerCtx !== null) {
         headers['X-Authentication-Token'] = viewerCtx.authToken;
       }
+
       const resp = await fetch(`${app.context.config.host}/v1/users/${user.username}/subscribers`, { headers });
       const json = await resp.json();
+
       if (!resp.ok) {
         const message = json.err ? `${resp.status} ${resp.statusText}: ${json.err}` : `${resp.status} ${resp.statusText}`;
         throw new Error(message);
       }
+
       expect(json, 'to exhaustively satisfy', schema.userSubscribersResponse);
       return json;
     };
@@ -1021,10 +1031,12 @@ describe('UsersController', () => {
       it('should validate frontendPreferences size', async () => {
         const validPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit - 100) } }
         const invalidPrefs = { 'net.freefeed': { 'userProperty': '!'.repeat(config.frontendPreferencesLimit + 1) } }
+
         {
           const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: validPrefs })
           response.status.should.eql(200)
         }
+
         {
           const response = await funcTestHelper.updateUserAsync({ user, authToken }, { frontendPreferences: invalidPrefs })
           response.status.should.eql(422)

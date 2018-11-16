@@ -21,6 +21,7 @@ import {
   hidePost,
 } from './functional_test_helper'
 
+
 describe('TimelinesControllerV2', () => {
   let app;
   let fetchPostOpenGraph;
@@ -51,6 +52,7 @@ describe('TimelinesControllerV2', () => {
           for (let n = 0; n < nComments; n++) {
             await createCommentAsync(luna, lunaPost.id, `Comment ${n + 1}`);  // eslint-disable-line no-await-in-loop
           }
+
           const post = await fetchPost(lunaPost.id, null, { allComments });
           expect(post.posts.comments, 'to have length', expComments);
           expect(post.posts.omittedComments, 'to equal', expOmitted);
@@ -77,9 +79,11 @@ describe('TimelinesControllerV2', () => {
         let users;
         beforeEach(async () => {
           const promises = [];
+
           for (let n = 0; n < 5; n++) {
             promises.push(createUserAsync(`username${n + 1}`, 'pw'));
           }
+
           users = await Promise.all(promises);
         });
 
@@ -266,6 +270,39 @@ describe('TimelinesControllerV2', () => {
         await updatePostAsync(luna, postData);
         const { posts } = await fetchPost(luna.post.id);
         expect(posts.attachments, 'to equal', postData.attachments);
+      });
+
+      describe('Luna wrote another post', () => {
+        let post1, post2;
+        beforeEach(async () => {
+          post1 = luna.post;
+          post2 = await createAndReturnPost(luna, 'Luna post 2');
+        });
+
+        it('should not allow to rebind attachment from post1 to post2', async () => {
+          luna.post = post1;
+          await updatePostAsync(luna, { body: post1.body, attachments: [attId1] });
+          luna.post = post2;
+          const resp = await updatePostAsync(luna, { body: post2.body, attachments: [attId1] });
+          expect(resp.status, 'to be', 403);
+        });
+      });
+
+      describe('Mars also wrote post', () => {
+        let mars;
+        beforeEach(async () => {
+          mars = await createUserAsync('mars', 'pw');
+          mars.post = await createAndReturnPost(mars, 'Mars post');
+        });
+
+        it('should not allow Mars to steal Luna attachments', async () => {
+          const postData = {
+            body:        mars.post.body,
+            attachments: [attId1, attId2],
+          };
+          const resp = await updatePostAsync(mars, postData);
+          expect(resp.status, 'to be', 403);
+        });
       });
     });
 

@@ -21,9 +21,11 @@ export function addModel(dbAdapter) {
     this.updatedAt = params.updatedAt
     this.isPrivate = params.isPrivate
     this.isProtected = params.isProtected
+
     if (this.isPrivate === '1') {
       this.isProtected = '1'
     }
+
     this.isRestricted = params.isRestricted
     this.type = 'group'
     this.profilePictureUuid = params.profilePictureUuid || ''
@@ -233,6 +235,7 @@ export function addModel(dbAdapter) {
 
     if (this.isRestricted === '1') {
       const adminIds = await this.getAdministratorIds()
+
       if (!adminIds.includes(postingUser.id)) {
         throw new ForbiddenException("You can't post to a restricted group")
       }
@@ -259,12 +262,14 @@ export function addModel(dbAdapter) {
   Group.prototype.getFeedsToPost = async function (postingUser) {
     const timeline = await dbAdapter.getUserNamedFeed(this.id, 'Posts');
     const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
+
     if (!isSubscribed) {
       return [];
     }
 
     if (this.isRestricted === '1') {
       const isAdmin = await dbAdapter.isUserAdminOfGroup(postingUser.id, this.id);
+
       if (!isAdmin) {
         return [];
       }

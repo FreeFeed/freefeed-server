@@ -2,6 +2,7 @@ import expect from 'unexpected'
 
 import { Comment } from '../../app/models'
 
+
 export const boolString = (v) => expect(v, 'to be a string').and('to be one of', ['0', '1']);
 
 export const timeStampString = (v) => expect(v, 'to be a string').and('to match', /^\d+$/);
@@ -70,12 +71,15 @@ const postBasic = {
 
 export const post = (obj) => {
   const tpl = { ...postBasic };
+
   if (obj && typeof obj === 'object' && obj.isHidden) {
     tpl.isHidden = expect.it('to be', true);
   }
+
   if (obj && typeof obj === 'object' && obj.friendfeedUrl) {
     tpl.friendfeedUrl = expect.it('to be a string');
   }
+
   return expect(obj, 'to exhaustively satisfy', tpl);
 };
 
@@ -142,6 +146,7 @@ const properAttachmentType = (obj) => {
     case 'audio':   return expect(obj, 'to exhaustively satisfy', attachmentAudio);
     case 'general': return expect(obj, 'to exhaustively satisfy', attachmentGeneral);
   }
+
   return null;
 };
 

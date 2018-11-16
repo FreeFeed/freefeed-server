@@ -33,6 +33,7 @@ const summaryTrait = (superClass) => class extends superClass {
     }
 
     let postSourceCondition = `posts.feed_ids && '{${timelineIntIds.join(',')}}'`;
+
     if (activityIntIds.length > 0) {
       postSourceCondition = `(${postSourceCondition} or posts.is_propagable and posts.feed_ids && '{${activityIntIds.join(',')}}')`;
     }

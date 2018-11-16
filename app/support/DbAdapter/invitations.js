@@ -9,6 +9,7 @@ const invitationsTrait = (superClass) => class extends superClass {
     if (!validator.isUUID(secureId, 4)) {
       return null;
     }
+
     return this.database('invitations').first().where('secure_id', secureId);
   }
 

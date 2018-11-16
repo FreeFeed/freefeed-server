@@ -31,6 +31,7 @@ async function main(username) {
 
   process.stdout.write(`Writing data to file…\n`);
   const dirname = `${process.cwd()}/export-${username}`;
+
   if (!fs.existsSync(dirname)) {
     fs.mkdirSync(dirname);
   }
@@ -47,6 +48,7 @@ async function main(username) {
 
   // attachments
   const attachmentsDir = `${process.cwd()}/export-${username}/attachments`;
+
   if (!fs.existsSync(attachmentsDir)) {
     fs.mkdirSync(attachmentsDir);
   }
@@ -72,6 +74,7 @@ async function main(username) {
 
     await Promise.all(promises);
   }
+
   process.stdout.write(`DONE\n`);
 }
 
@@ -82,8 +85,10 @@ main(process.argv[2])
   })
   .catch((e) => {
     process.stderr.write(`${e.message}\n`);
+
     if (e.constructor !== SimpleError) {
       process.stderr.write(e.stack);
     }
+
     process.exit(1);
   });

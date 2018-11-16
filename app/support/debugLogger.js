@@ -18,5 +18,6 @@ export function stylize(msg, ...colors) {
     const color = colors.shift();
     return `\u001b[${inspect.colors[color][0]}m${stylize(msg, ...colors)}\u001b[${inspect.colors[color][1]}m`;
   }
+
   return msg;
 }

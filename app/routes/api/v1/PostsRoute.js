@@ -1,6 +1,7 @@
 import { PostsController } from '../../../controllers'
 import deprecated from '../../../controllers/api/v1/Deprecated';
 
+
 export default function addRoutes(app) {
   app.post('/v1/posts',                PostsController.create)
   app.get('/v1/posts/:postId',        deprecated('Please use /v2/posts/:postId'))

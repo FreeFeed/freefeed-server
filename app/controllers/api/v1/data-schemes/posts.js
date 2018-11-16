@@ -1,4 +1,8 @@
+import { load as configLoader } from '../../../../../config/config'
 import definitions from './definitions';
+
+
+const config = configLoader();
 
 export const postCreateInputSchema = {
   '$schema': 'http://json-schema.org/schema#',
@@ -18,9 +22,11 @@ export const postCreateInputSchema = {
           pattern:   '\\S'
         },
         attachments: {
-          type:    'array',
-          default: [],
-          items:   { '$ref': '#/definitions/uuid' }
+          type:        'array',
+          default:     [],
+          items:       { '$ref': '#/definitions/uuid' },
+          maxItems:    config.attachments.maxCount,
+          uniqueItems: true,
         }
       }
     },
@@ -62,8 +68,10 @@ export const postUpdateInputSchema = {
           pattern:   '\\S'
         },
         attachments: {
-          type:  'array',
-          items: { '$ref': '#/definitions/uuid' }
+          type:        'array',
+          items:       { '$ref': '#/definitions/uuid' },
+          maxItems:    config.attachments.maxCount,
+          uniqueItems: true,
         },
         feeds: {
           type:     'array',

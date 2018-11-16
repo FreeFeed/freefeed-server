@@ -1,3 +1,4 @@
+import { escape as urlEscape } from 'querystring';
 import _ from 'lodash';
 import compose from 'koa-compose';
 
@@ -7,8 +8,9 @@ import { serializePostsCollection, serializePost, serializeComment, serializeAtt
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
-const ORD_UPDATED = 'bumped'; // eslint-disable-line no-unused-vars
-const ORD_CREATED = 'created'; // eslint-disable-line no-unused-vars
+
+export const ORD_UPDATED = 'bumped';
+export const ORD_CREATED = 'created';
 
 const config = configLoader();
 
@@ -23,9 +25,11 @@ export const bestOf = compose([
 
     const foundPosts = await dbAdapter.bestPosts(ctx.state.user, offset, limit + 1);
     const isLastPage = foundPosts.length <= limit;
+
     if (!isLastPage) {
       foundPosts.length = limit;
     }
+
     const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
     const postsCollectionJson = await serializePostsCollection(postsObjects, currentUserId);
 
@@ -70,6 +74,23 @@ export const userTimeline = (feedName) => compose([
   },
 ]);
 
+export const metatags = compose([
+  monitored(`timelines-metatags`),
+  async (ctx) => {
+    const { username } = ctx.params;
+    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+
+    if (!targetUser || !targetUser.isActive) {
+      ctx.body = '';
+      return;
+    }
+
+    const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(targetUser.username)}`;
+    const rssTitle = targetUser.isUser() ? `Posts of ${targetUser.username}` : `Posts in group ${targetUser.username}`;
+    ctx.body = `<link rel="alternate" type="application/rss+xml" title="${_.escape(rssTitle)}" href="${_.escape(rssURL)}">`;
+  },
+]);
+
 /**
  * Fetch common timelines parameters from the request
  *
@@ -90,21 +111,29 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   const viewer = ctx.state.user;
 
   let limit = parseInt(query.limit, 10);
+
   if (isNaN(limit) || limit < 0 || limit > 120) {
     limit = 30;
   }
+
   let offset = parseInt(query.offset, 10);
+
   if (isNaN(offset) || offset < 0) {
     offset = 0;
   }
+
   let createdBefore = new Date(query['created-before']);
+
   if (isNaN(createdBefore)) {
     createdBefore = null;
   }
+
   let createdAfter = new Date(query['created-after']);
+
   if (isNaN(createdAfter)) {
     createdAfter = null;
   }
+
   const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
   const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
@@ -158,6 +187,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
         const subscribers = await dbAdapter.getUserSubscribersIds(owner.id);
         canViewUser = subscribers.includes(viewerId);
       }
+
       if (canViewUser) {
         // Viewer cannot see feeds of users in ban relations with him
         const banIds = await dbAdapter.getUsersBansOrWasBannedBy(viewerId);
@@ -176,6 +206,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     [];
 
   const isLastPage = postsIds.length <= params.limit;
+
   if (!isLastPage) {
     postsIds.length = params.limit;
   }

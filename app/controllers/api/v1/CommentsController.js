@@ -47,17 +47,20 @@ export const update = compose([
     const { commentId } = ctx.params;
 
     const comment = await dbAdapter.getCommentById(commentId);
+
     if (!comment) {
       throw new NotFoundException('Can not find comment');
     }
 
     const post = await dbAdapter.getPostById(comment.postId);
+
     if (!post) {
       // Should not be possible
       throw new NotFoundException('Post not found');
     }
 
     const isPostVisible = await post.isVisibleFor(user);
+
     if (!isPostVisible) {
       throw new ForbiddenException('You can not see this post');
     }
@@ -84,17 +87,20 @@ export const destroy = compose([
     const { commentId } = ctx.params;
 
     const comment = await dbAdapter.getCommentById(commentId);
+
     if (!comment) {
       throw new NotFoundException('Can not find comment');
     }
 
     const post = await dbAdapter.getPostById(comment.postId);
+
     if (!post) {
       // Should not be possible
       throw new NotFoundException('Post not found');
     }
 
     const isPostVisible = await post.isVisibleFor(user);
+
     if (!isPostVisible) {
       throw new ForbiddenException('You can not see this post');
     }

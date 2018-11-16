@@ -965,6 +965,7 @@ describe('PostsController', () => {
         const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
         newPost.attachments.push(attachmentResponse.id)
       }
+
       {
         const attachmentResponse = await funcTestHelper.createMockAttachmentAsync(context)
         newPost.attachments.push(attachmentResponse.id)
@@ -1015,9 +1016,11 @@ describe('PostsController', () => {
       const updatePost = async (postObj, userContext, parameters) => {
         const res = await funcTestHelper.updatePostAsync({ ...userContext, post: postObj }, parameters);
         const body = await res.json();
+
         if (res.status != 200) {
           expect.fail(`Error updating post (${res.status}): ${body.err}`);
         }
+
         return body;
       };
 
@@ -1129,9 +1132,11 @@ describe('PostsController', () => {
 
       beforeEach(async () => {
         const promises = [];
+
         for (let i = 0; i < 10; i++) {
           promises.push(funcTestHelper.createUserAsync(`lunokhod${i}`, 'password'))
         }
+
         users = await Promise.all(promises)
 
         await Promise.all(_.flatMap(users, (u) => [

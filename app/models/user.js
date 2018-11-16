@@ -47,9 +47,11 @@ export function addModel(dbAdapter) {
 
     this.isPrivate = params.isPrivate
     this.isProtected = params.isProtected
+
     if (this.isPrivate === '1') {
       this.isProtected = '1'
     }
+
     this.resetPasswordToken = params.resetPasswordToken
     this.resetPasswordSentAt = params.resetPasswordSentAt
 
@@ -77,6 +79,7 @@ export function addModel(dbAdapter) {
         this.hashedPassword = await bcrypt.hash(password, 10)
         password = null
       }
+
       return this
     }
   }
@@ -178,10 +181,12 @@ export function addModel(dbAdapter) {
 
   User.prototype.newPost = async function (attrs) {
     attrs.userId = this.id
+
     if (!attrs.timelineIds || !attrs.timelineIds[0]) {
       const timelineId = await this.getPostsTimelineId()
       attrs.timelineIds = [timelineId]
     }
+
     return new Post(attrs)
   }
 
@@ -274,6 +279,7 @@ export function addModel(dbAdapter) {
     // Check size
     const prefString = JSON.stringify(frontendPreferences)
     const len = GraphemeBreaker.countBreaks(prefString)
+
     if (len > config.frontendPreferencesLimit) {
       return false
     }
@@ -283,6 +289,7 @@ export function addModel(dbAdapter) {
     if (!_.isPlainObject(frontendPreferences)) {
       return false
     }
+
     for (const prop in frontendPreferences) {
       if (!frontendPreferences[prop] || typeof frontendPreferences[prop] !== 'object') {
         return false
@@ -428,6 +435,7 @@ export function addModel(dbAdapter) {
       if (!_.isPlainObject(params.preferences)) {
         throw new ValidationException(`Invalid 'preferences': must be a plain object`);
       }
+
       try {
         payload.preferences = validateUserPrefs({ ...this.preferences, ...params.preferences });
       } catch (e) {
@@ -700,6 +708,7 @@ export function addModel(dbAdapter) {
     // reject if and only if there is a pending request
     const requestIds = await this.getSubscriptionRequestIds()
     let bannedUserHasRequestedSubscription = false;
+
     if (requestIds.includes(user.id)) {
       bannedUserHasRequestedSubscription = true;
       promises.push(this.rejectSubscriptionRequest(user.id))
@@ -742,9 +751,11 @@ export function addModel(dbAdapter) {
       ...params
     };
     const subscribedFeedIds = await dbAdapter.subscribeUserToUser(this.id, targetUser.id);
+
     if (!subscribedFeedIds) {
       return false;
     }
+
     this.subscribedFeedIds = subscribedFeedIds;
 
     await Promise.all([
@@ -754,6 +765,7 @@ export function addModel(dbAdapter) {
     ]);
 
     monitor.increment('users.subscriptions');
+
     if (!params.noEvents) {
       if (targetUser.isUser()) {
         await EventService.onUserSubscribed(this.intId, targetUser.intId);
@@ -761,6 +773,7 @@ export function addModel(dbAdapter) {
         await EventService.onGroupSubscribed(this.intId, targetUser);
       }
     }
+
     return true;
   }
 
@@ -777,9 +790,11 @@ export function addModel(dbAdapter) {
    */
   User.prototype.unsubscribeFrom = async function (targetUser) {
     const subscribedFeedIds = await dbAdapter.unsubscribeUserFromUser(this.id, targetUser.id);
+
     if (!subscribedFeedIds) {
       return false;
     }
+
     this.subscribedFeedIds = subscribedFeedIds;
 
     await Promise.all([
@@ -801,6 +816,7 @@ export function addModel(dbAdapter) {
 
   User.prototype.calculateStatsValues = async function () {
     let res
+
     try {
       res = await dbAdapter.getUserStats(this.id)
     } catch (e) {
@@ -815,6 +831,7 @@ export function addModel(dbAdapter) {
     if (!this.statsValues) {
       this.statsValues = await this.calculateStatsValues()
     }
+
     return this.statsValues
   }
 
@@ -943,6 +960,7 @@ export function addModel(dbAdapter) {
       if (_.isEmpty(this.profilePictureUuid)) {
         return '';
       }
+
       return config.profilePictures.url
           + config.profilePictures.path
           + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE);
@@ -954,6 +972,7 @@ export function addModel(dbAdapter) {
       if (_.isEmpty(this.profilePictureUuid)) {
         return '';
       }
+
       return config.profilePictures.url
           + config.profilePictures.path
           + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM);
@@ -993,15 +1012,18 @@ export function addModel(dbAdapter) {
 
     if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
       const friendIds = await this.getFriendIds();
+
       if (friendIds.includes(postingUser.id)) {
         return true;
       }
     } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
       const banIds = await this.getBanIds();
+
       if (!banIds.includes(postingUser.id)) {
         return true;
       }
     }
+
     return false;
   }
 
@@ -1078,21 +1100,25 @@ export function addModel(dbAdapter) {
 
   User.prototype.getFollowedGroups = async function () {
     const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
+
     if (timelinesIds.length === 0) {
       return [];
     }
 
     const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
+
     if (timelines.length === 0) {
       return [];
     }
 
     const timelineOwnerIds = _(timelines).map('userId').uniq().value()
+
     if (timelineOwnerIds.length === 0) {
       return [];
     }
 
     const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
+
     if (timelineOwners.length === 0) {
       return [];
     }

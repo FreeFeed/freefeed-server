@@ -8,6 +8,7 @@ import { dbAdapter } from '../../../models';
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
 import { authRequired, monitored } from '../../middlewares';
 
+
 const config = configLoader();
 
 export const restoration = compose([
@@ -16,12 +17,15 @@ export const restoration = compose([
   async (ctx) => {
     const { user } = ctx.state;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
+
     if (!archParams) {
       throw new ForbiddenException('You have no archive record');
     }
+
     if (!archParams.has_archive) {
       throw new ForbiddenException('You have not Clio archive');
     }
+
     if (archParams.recovery_status != 0) {
       throw new ForbiddenException('Archive restoration is already in progress or finished');
     }
@@ -65,6 +69,7 @@ export const activities = compose([
   async (ctx) => {
     const { user } = ctx.state;
     const archParams = await dbAdapter.getUserArchiveParams(user.id);
+
     if (!archParams) {
       throw new ForbiddenException('You have no archive record');
     }
@@ -89,6 +94,7 @@ export const postByOldName = compose([
   async (ctx) => {
     const { name } = ctx.params;
     const postId = await dbAdapter.getPostIdByOldName(name);
+
     if (!postId) {
       throw new NotFoundException('Post not found');
     }

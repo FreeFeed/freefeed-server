@@ -85,6 +85,7 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     if (timelineIds.length === 0) {
       return [];
     }
+
     const { rows } = await this.database.raw(
       `select distinct user_id from subscriptions where feed_id = any(:timelineIds)`,
       { timelineIds },
@@ -140,6 +141,7 @@ const subscriptionsTrait = (superClass) => class extends superClass {
       if (!rows.some((row) => row.feed_id === allFeeds.Posts)) {
         return;
       }
+
       subscribedFeedIds = await updateSubscribedFeedIds(trx, subscriberId);
     });
 

@@ -34,12 +34,15 @@ const hashtagsTrait = (superClass) => class extends superClass {
 
     const nonExistingTagNames = _.difference(targetTagNames, existingTagNames)
     let tags = existingTags.map((t) => t.id)
+
     if (nonExistingTagNames.length > 0) {
       const createdTags = await this.createHashtags(nonExistingTagNames)
+
       if (createdTags.length > 0) {
         tags = tags.concat(createdTags)
       }
     }
+
     return tags
   }
 
@@ -59,6 +62,7 @@ const hashtagsTrait = (superClass) => class extends superClass {
     if (!names || names.length == 0) {
       return []
     }
+
     const payload = names.map((name) => {
       return pgFormat(`(%L)`, name.toLowerCase())
     }).join(',')
@@ -83,10 +87,13 @@ const hashtagsTrait = (superClass) => class extends superClass {
     if (tagIds.length == 0) {
       return false
     }
+
     let entityType = 'post'
+
     if (!fromPost) {
       entityType = 'comment'
     }
+
     return this.database('hashtag_usages').where('hashtag_id', 'in', tagIds).where('entity_id', entityId).where('type', entityType).del()
   }
 
@@ -94,10 +101,13 @@ const hashtagsTrait = (superClass) => class extends superClass {
     if (!names || names.length == 0) {
       return false
     }
+
     const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+
     if (!hashtagIds || hashtagIds.length == 0) {
       return false
     }
+
     return this.linkHashtags(hashtagIds, postId)
   }
 
@@ -105,10 +115,13 @@ const hashtagsTrait = (superClass) => class extends superClass {
     if (!names || names.length == 0) {
       return false
     }
+
     const hashtagIds = await this.getHashtagIdsByNames(names)
+
     if (!hashtagIds || hashtagIds.length == 0) {
       return false
     }
+
     return this.unlinkHashtags(hashtagIds, postId)
   }
 
@@ -116,10 +129,13 @@ const hashtagsTrait = (superClass) => class extends superClass {
     if (!names || names.length == 0) {
       return false
     }
+
     const hashtagIds = await this.getOrCreateHashtagIdsByNames(names)
+
     if (!hashtagIds || hashtagIds.length == 0) {
       return false
     }
+
     return this.linkHashtags(hashtagIds, commentId, false)
   }
 
@@ -127,10 +143,13 @@ const hashtagsTrait = (superClass) => class extends superClass {
     if (!names || names.length == 0) {
       return false
     }
+
     const hashtagIds = await this.getHashtagIdsByNames(names)
+
     if (!hashtagIds || hashtagIds.length == 0) {
       return false
     }
+
     return this.unlinkHashtags(hashtagIds, commentId, false)
   }
 };

@@ -16,6 +16,7 @@ import { createPostViaBookmarklet, createGroupAsync, createTestUser, MockHTTPSer
 import { postResponse } from './schemaV2-helper';
 import Session from './realtime-session';
 
+
 const config = configLoader();
 const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
 
@@ -98,6 +99,7 @@ describe('BookmarkletController', () => {
     describe('Attachments', () => {
       const server = new MockHTTPServer((ctx) => {
         const { request: { url } } = ctx;
+
         if (url === '/big-cl.jpg') {
           ctx.status = 200;
           ctx.response.type = 'image/jpeg';
@@ -133,9 +135,11 @@ describe('BookmarkletController', () => {
       it(`should create post with N image attachments in proper order`, async () => {
         const n = 5;
         const fileNames = [];
+
         for (let i = 0; i < n;i++) {
           fileNames.push(`image${i}.jpg`);
         }
+
         const result = await callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
         expect(result.attachments, 'to satisfy', fromPairs(fileNames.map((fileName, i) => [i, { fileName }])));
       });
@@ -143,11 +147,13 @@ describe('BookmarkletController', () => {
       it(`should not create post with too many image attachments`, async () => {
         const n = config.attachments.maxCount + 5;
         const fileNames = [];
+
         for (let i = 0; i < n;i++) {
           fileNames.push(`image${i}.jpg`);
         }
+
         const call = callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
-        await expect(call, 'to be rejected with', /^HTTP error 403:/);
+        await expect(call, 'to be rejected with', /^HTTP error 422:/);
       });
 
       it(`should not create post with non-image attachment`, async () => {
@@ -187,9 +193,11 @@ describe('BookmarkletController', () => {
 async function callBookmarklet(author, body) {
   const response = await createPostViaBookmarklet(author, body);
   const respBody = await response.json();
+
   if (response.status !== 200) {
     throw new Error(`HTTP error ${response.status}: ${respBody.err}`);
   }
+
   expect(respBody, 'to exhaustively satisfy', postResponse);
   return respBody;
 }

@@ -10,6 +10,7 @@ import cleanDB from '../dbCleaner';
 import { postAccessRequired, inputSchemaRequired, monitored } from '../../app/controllers/middlewares';
 import { User, Post } from '../../app/models';
 
+
 const expect = unexpected.clone();
 expect.use(unexpectedSinon);
 
@@ -298,6 +299,7 @@ describe('Controller middlewares', () => {
       } catch (e) {
         // pass
       }
+
       expect(monitor.increment, 'was not called');
     });
 

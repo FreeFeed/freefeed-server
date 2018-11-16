@@ -1,5 +1,6 @@
 import definitions from './definitions';
 
+
 export const commentCreateInputSchema = {
   '$schema': 'http://json-schema.org/schema#',
 

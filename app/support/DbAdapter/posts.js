@@ -29,6 +29,7 @@ const postsTrait = (superClass) => class extends superClass {
     if (!validator.isUUID(id, 4)) {
       return null
     }
+
     const attrs = await this.database('posts').first().where('uid', id)
     return initPostObject(attrs, params)
   }
@@ -49,11 +50,13 @@ const postsTrait = (superClass) => class extends superClass {
 
   setPostBumpedAt(postId, time = null) {
     let bumped_at = 'now';
+
     if (time) {
       const d = new Date();
       d.setTime(time);
       bumped_at = d.toISOString();
     }
+
     return this.database('posts').where('uid', postId).update({ bumped_at });
   }
 
@@ -70,6 +73,7 @@ const postsTrait = (superClass) => class extends superClass {
   async getPostUsagesInTimelines(postId) {
     const res = await this.database('posts').where('uid', postId)
     const [attrs] = res;
+
     if (!attrs) {
       return []
     }
@@ -106,6 +110,7 @@ const postsTrait = (superClass) => class extends superClass {
         `select 1 from comments where post_id = :postId and user_id = :commentatorId limit 1`,
         { postId, commentatorId }
       );
+
       if (rows.length === 0) {
         const { intId } = await this.getUserNamedFeed(commentatorId, 'Comments');
         await trx.raw(
@@ -150,6 +155,7 @@ const postsTrait = (superClass) => class extends superClass {
       if (!commentsCount[group.post_id]) {
         commentsCount[group.post_id] = 0
       }
+
       commentsCount[group.post_id] += parseInt(group.comments_count)
     }
 
@@ -162,6 +168,7 @@ const postsTrait = (superClass) => class extends superClass {
       if (!likesCount[group.post_id]) {
         likesCount[group.post_id] = 0
       }
+
       likesCount[group.post_id] += parseInt(group.likes_count)
     }
 
@@ -275,21 +282,27 @@ const postsTrait = (superClass) => class extends superClass {
 
     const sourceConditionParts = [];
     sourceConditionParts.push(pgFormat('p.feed_ids && %L', `{${timelineIntIds.join(',')}}`));
+
     if (params.activityFeedIds.length > 0) {
       sourceConditionParts.push(pgFormat('p.feed_ids && %L and p.is_propagable', `{${params.activityFeedIds.join(',')}}`));
     }
+
     if (myPostsSQL) {
       sourceConditionParts.push(myPostsSQL);
     }
+
     const sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
 
     const createdAtParts = [];
+
     if (params.createdBefore) {
       createdAtParts.push(pgFormat('p.created_at < %L', params.createdBefore));
     }
+
     if (params.createdAfter) {
       createdAtParts.push(pgFormat('p.created_at > %L', params.createdAfter));
     }
+
     const createdAtSQL = createdAtParts.length === 0 ? 'true' : createdAtParts.join(' and ');
     const privacyCondition = viewerId ?
       pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`)
@@ -334,6 +347,7 @@ const postsTrait = (superClass) => class extends superClass {
           limit %L offset %L
         `, `${sort}_at`, limit, offset);
       }
+
       // Request without CTE for the large (tipically RiverOfNews) feed
       return pgFormat(`
         select p.uid, p.bumped_at as date
@@ -380,40 +394,52 @@ const postsTrait = (superClass) => class extends superClass {
 
     // merge these two sorted arrays
     const result = [];
+
     {
       const idsCounted = new Set();
       let i = 0, j = 0;
+
       while (i < postsData.length && j < localBumpsData.length) {
         if (postsData[i].date > localBumpsData[j].date) {
           const { uid } = postsData[i];
+
           if (!idsCounted.has(uid)) {
             result.push(uid);
             idsCounted.add(uid);
           }
+
           i++;
         } else {
           const { uid } = localBumpsData[j];
+
           if (!idsCounted.has(uid)) {
             result.push(uid);
             idsCounted.add(uid);
           }
+
           j++;
         }
       }
+
       while (i < postsData.length) {
         const { uid } = postsData[i];
+
         if (!idsCounted.has(uid)) {
           result.push(uid);
           idsCounted.add(uid);
         }
+
         i++;
       }
+
       while (j < localBumpsData.length) {
         const { uid } = localBumpsData[j];
+
         if (!idsCounted.has(uid)) {
           result.push(uid);
           idsCounted.add(uid);
         }
+
         j++;
       }
     }
@@ -550,9 +576,11 @@ const postsTrait = (superClass) => class extends superClass {
     ]);
 
     const nobodyIsBanned = bannedUsersIds.length === 0;
+
     if (nobodyIsBanned) {
       bannedUsersIds.push(unexistedUID);
     }
+
     if (friendsIds.length === 0) {
       friendsIds.push(unexistedUID);
     }
@@ -581,11 +609,14 @@ const postsTrait = (superClass) => class extends superClass {
 
     // Don't show comments that viewer don't want to see
     let hideCommentsSQL = 'true';
+
     if (params.hiddenCommentTypes.length > 0) {
       if (params.hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && !nobodyIsBanned) {
         hideCommentsSQL = pgFormat('user_id not in (%L)', bannedUsersIds);
       }
+
       const ht = params.hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+
       if (ht.length > 0) {
         hideCommentsSQL += pgFormat(' and hide_type not in (%L)', ht);
       }
@@ -644,6 +675,7 @@ const postsTrait = (superClass) => class extends superClass {
       results[post.uid].post.commentLikes = 0;
       results[post.uid].post.ownCommentLikes = 0;
       const commentLikesForPost = postsCommentLikes.find((el) => el.uid === post.uid);
+
       if (commentLikesForPost) {
         results[post.uid].post.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
         results[post.uid].post.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
@@ -717,9 +749,11 @@ const postsTrait = (superClass) => class extends superClass {
     const rec = await this.database('archive_post_names')
       .first('post_id')
       .where({ old_post_name: oldName });
+
     if (rec) {
       return rec.post_id;
     }
+
     return null;
   }
 
@@ -782,6 +816,7 @@ export function initPostObject(attrs, params) {
   if (!attrs) {
     return null;
   }
+
   attrs = prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING);
   return initObject(Post, attrs, attrs.id, params);
 }
@@ -821,6 +856,7 @@ const POST_COLUMNS_MAPPING = {
     if (validator.isUUID(user_id, 4)) {
       return user_id
     }
+
     return null
   },
   isPrivate:    (is_private) => {return is_private === '1'},

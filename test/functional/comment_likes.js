@@ -1177,9 +1177,11 @@ describe('Comment likes', () => {
         ]);
 
         const promises = [];
+
         for (let n = 0; n < 6; n++) {
           promises.push(createUserAsync(`username${n + 1}`, 'pw'));
         }
+
         const users = await Promise.all(promises);
         users.push(...[jupiter, pluto, mars, neptune]);
         await Promise.all(users.map((u) => like(lunaPost.id, u.authToken)));
@@ -1339,18 +1341,22 @@ const createComment = () => async (userContext, postId, body) => {
 
 const fetchPost = (app) => async (postId, viewerContext = null, allComments = false) => {
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const response = await fetch(`${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`, { method: 'GET', headers });
   return response;
 };
 
 const fetchTimeline = (app) => async (path, viewerContext = null) => {
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const response = await fetch(`${app.context.config.host}/v2/timelines/${path}`, { headers });
   return response;
 };

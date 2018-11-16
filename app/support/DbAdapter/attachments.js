@@ -18,6 +18,7 @@ const attachmentsTrait = (superClass) => class extends superClass {
     if (!validator.isUUID(id, 4)) {
       return null
     }
+
     const attrs = await this.database('attachments').first().where('uid', id)
     return initAttachmentObject(attrs);
   }
@@ -66,6 +67,7 @@ export function initAttachmentObject(attrs) {
   if (!attrs) {
     return null;
   }
+
   attrs = prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING);
   return initObject(Attachment, attrs, attrs.id);
 }
@@ -105,12 +107,14 @@ const ATTACHMENT_COLUMNS_MAPPING = {
     if (validator.isUUID(post_id, 4)) {
       return post_id
     }
+
     return null
   },
   userId: (user_id) => {
     if (validator.isUUID(user_id, 4)) {
       return user_id
     }
+
     return null
   }
 }
