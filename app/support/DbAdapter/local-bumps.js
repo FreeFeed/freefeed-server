@@ -13,6 +13,7 @@ const localBumpsTrait = (superClass) => class extends superClass {
     if (userIds.length === 0) {
       return;
     }
+
     // Insert multiple rows from array at once
     await this.database.raw(
       `insert into local_bumps (post_id, user_id) 
@@ -23,6 +24,7 @@ const localBumpsTrait = (superClass) => class extends superClass {
 
   async getUserLocalBumps(userId, newerThan) {
     const time = new Date()
+
     if (newerThan) {
       time.setTime(newerThan)
     }

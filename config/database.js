@@ -12,7 +12,7 @@ promisifyAll(_redis.Multi.prototype);
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
-let database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
+const database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
 export default database;
 
 database.on('connect', log('connect'));
@@ -32,6 +32,7 @@ function logAndQuit(type) {
     if (sentryIsEnabled) {
       Raven.captureException(args, { extra: { err: 'Unknown Redis error. Switching off server.' } });
     }
+
     debug(type, args);
     process.exit(1);
   };
@@ -47,9 +48,4 @@ export function connect() {
 
 export function redis() {
   return redis;
-}
-
-export function disconnect() {
-  _redis.end();
-  database = null;
 }

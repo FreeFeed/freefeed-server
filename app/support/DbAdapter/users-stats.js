@@ -35,9 +35,11 @@ const usersStatsTrait = (superClass) => class extends superClass {
    */
   async getUsersStatsAssoc(ids) {
     const idToStat = {};
+
     if (_.isEmpty(ids)) {
       return idToStat;
     }
+
     const uniqIds = _.compact(_.uniq(ids));
     const cachedStats = await Promise.all(uniqIds.map((id) => this.statsCache.getAsync(id)));
 
@@ -120,6 +122,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
     if (!postLikers.includes(authorId)) {
       return this.decrementStatsCounter(authorId, 'posts_count')
     }
+
     return null
   }
 

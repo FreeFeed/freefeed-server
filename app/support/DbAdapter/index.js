@@ -30,6 +30,7 @@ import allGroupsTrait from './all-groups';
 import summaryTrait from './summary';
 import invitationsTrait from './invitations';
 
+
 promisifyAll(redis.RedisClient.prototype);
 promisifyAll(redis.Multi.prototype);
 

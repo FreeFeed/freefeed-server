@@ -1,6 +1,7 @@
 /* eslint babel/semi: "error" */
 import _ from 'lodash';
 
+
 export function addModel(dbAdapter) {
   class Timeline {
     id;
@@ -122,6 +123,7 @@ export function addModel(dbAdapter) {
       }
 
       let feedIds = [this.intId];
+
       if (customFeedIds) {
         feedIds = customFeedIds;
       }
@@ -151,18 +153,21 @@ export function addModel(dbAdapter) {
       const feedOwner = await this.getUser();
 
       let posts;
+
       if (this.name !== 'MyDiscussions') {
         posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser });
       } else {
         const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()]);
         posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser }, myDiscussionsFeedSourcesIds);
       }
+
       const postIds = posts.map((p) => {
         return p.id;
       });
 
       if (reader && this.name === 'RiverOfNews') {
         let oldestPostTime;
+
         if (posts[posts.length - 1]) {
           oldestPostTime = posts[posts.length - 1].bumpedAt;
         }
@@ -171,6 +176,7 @@ export function addModel(dbAdapter) {
         const localBumpedPostIds = localBumps.map((bump) => bump.postId);
 
         const absentPostIds = _.difference(localBumpedPostIds, postIds);
+
         if (absentPostIds.length > 0) {
           let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, { currentUser: this.currentUser });
           localBumpedPosts = _.sortBy(localBumpedPosts, (post) => {

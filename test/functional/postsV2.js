@@ -21,6 +21,7 @@ import {
   hidePost,
 } from './functional_test_helper'
 
+
 describe('TimelinesControllerV2', () => {
   let app;
   let fetchPostOpenGraph;
@@ -51,6 +52,7 @@ describe('TimelinesControllerV2', () => {
           for (let n = 0; n < nComments; n++) {
             await createCommentAsync(luna, lunaPost.id, `Comment ${n + 1}`);  // eslint-disable-line no-await-in-loop
           }
+
           const post = await fetchPost(lunaPost.id, null, { allComments });
           expect(post.posts.comments, 'to have length', expComments);
           expect(post.posts.omittedComments, 'to equal', expOmitted);
@@ -77,9 +79,11 @@ describe('TimelinesControllerV2', () => {
         let users;
         beforeEach(async () => {
           const promises = [];
+
           for (let n = 0; n < 5; n++) {
             promises.push(createUserAsync(`username${n + 1}`, 'pw'));
           }
+
           users = await Promise.all(promises);
         });
 

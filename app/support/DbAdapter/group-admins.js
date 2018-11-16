@@ -17,6 +17,7 @@ const groupAdminTrait = (superClass) => class extends superClass {
       if (!res.hasOwnProperty(group_id)) {
         res[group_id] = [];
       }
+
       res[group_id].push(user_id);
     });
     return res;
@@ -76,6 +77,7 @@ const groupAdminTrait = (superClass) => class extends superClass {
       if (!res.hasOwnProperty(group_id)) {
         res[group_id] = [];
       }
+
       res[group_id].push(user_id);
     });
     return res;

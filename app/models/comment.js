@@ -98,6 +98,7 @@ export function addModel(dbAdapter) {
         'createdAt',
         'updatedAt',
       ];
+
       for (const f of fieldsToUpdate) {
         this[f] = newComment[f];
       }
@@ -164,9 +165,11 @@ export function addModel(dbAdapter) {
       const post = await this.getPost();
       const realtimeRooms = await getRoomsOfPost(post);
       await dbAdapter.deleteComment(this.id, this.postId);
+
       if (this.userId) {
         dbAdapter.withdrawPostFromCommentsFeedIfNoMoreComments(this.postId, this.userId);
       }
+
       await Promise.all([
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,

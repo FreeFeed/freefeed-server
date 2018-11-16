@@ -2,6 +2,7 @@ import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
+
 export default class CommentLikesController {
   static async like(ctx) {
     if (!ctx.state.user) {
@@ -11,31 +12,37 @@ export default class CommentLikesController {
     }
 
     const comment = await dbAdapter.getCommentById(ctx.params.commentId);
+
     if (null === comment) {
       throw new NotFoundException("Can't find comment");
     }
 
     const post = await dbAdapter.getPostById(comment.postId);
+
     if (null === post) {
       throw new NotFoundException("Can't find post");
     }
 
     const commentAuthorId = comment.userId;
+
     if (commentAuthorId === ctx.state.user.id) {
       throw new ForbiddenException("You can't like your own comment");
     }
 
     const isVisible = await post.isVisibleFor(ctx.state.user);
+
     if (!isVisible) {
       throw new ForbiddenException('You can not see this post');
     }
 
     const yourBanIds = await ctx.state.user.getBanIds();
+
     if (yourBanIds.includes(commentAuthorId)) {
       throw new ForbiddenException('You have banned the author of this comment');
     }
 
     const userLikedComment = await dbAdapter.hasUserLikedComment(comment.id, ctx.state.user.id);
+
     if (userLikedComment) {
       throw new ForbiddenException("You can't like comment that you have already liked");
     }
@@ -58,31 +65,37 @@ export default class CommentLikesController {
     }
 
     const comment = await dbAdapter.getCommentById(ctx.params.commentId);
+
     if (null === comment) {
       throw new NotFoundException("Can't find comment");
     }
 
     const post = await dbAdapter.getPostById(comment.postId);
+
     if (null === post) {
       throw new NotFoundException("Can't find post");
     }
 
     const commentAuthorId = comment.userId;
+
     if (commentAuthorId === ctx.state.user.id) {
       throw new ForbiddenException("You can't un-like your own comment");
     }
 
     const isVisible = await post.isVisibleFor(ctx.state.user);
+
     if (!isVisible) {
       throw new ForbiddenException('You can not see this post');
     }
 
     const yourBanIds = await ctx.state.user.getBanIds();
+
     if (yourBanIds.includes(commentAuthorId)) {
       throw new ForbiddenException('You have banned the author of this comment');
     }
 
     const userLikedComment = await dbAdapter.hasUserLikedComment(comment.id, ctx.state.user.id);
+
     if (!userLikedComment) {
       throw new ForbiddenException("You can't un-like comment that you haven't yet liked");
     }
@@ -100,33 +113,40 @@ export default class CommentLikesController {
   static async likes(ctx) {
     const viewer = ctx.state.user;
     const comment = await dbAdapter.getCommentById(ctx.params.commentId);
+
     if (null === comment) {
       throw new NotFoundException("Can't find comment");
     }
+
     const commentAuthorId = comment.userId;
 
     const post = await dbAdapter.getPostById(comment.postId);
+
     if (null === post) {
       throw new NotFoundException("Can't find post");
     }
 
     if (!viewer && post.isProtected === '1') {
       ctx.status = 403;
+
       if (post.isPrivate === '0') {
         ctx.body = { err: 'Please sign in to view this post' };
       } else {
         ctx.body = { err: 'You cannot see this post' };
       }
+
       return;
     }
 
     if (viewer) {
       const isVisible = await post.isVisibleFor(viewer);
+
       if (!isVisible) {
         throw new ForbiddenException('You can not see this post');
       }
 
       const yourBanIds = await viewer.getBanIds();
+
       if (yourBanIds.includes(commentAuthorId)) {
         throw new ForbiddenException('You have banned the author of this comment');
       }

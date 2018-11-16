@@ -9,6 +9,7 @@ import { promisify } from 'bluebird';
 import Raven from 'raven';
 import createDebug from 'debug';
 
+import { version as serverVersion } from '../package.json';
 import { originMiddleware } from './initializers/origin';
 import { load as configLoader } from './config';
 import { selectDatabase } from './database';
@@ -90,6 +91,11 @@ exports.init = async function (app) {
 
     return undefined;  // otherwise, no need to override
   }));
+
+  app.use(async (ctx, next) => {
+    ctx.response.set('X-Freefeed-Server', serverVersion);
+    await next();
+  });
 
   const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' });
   app.use(morgan('combined', { stream: accessLogStream }));

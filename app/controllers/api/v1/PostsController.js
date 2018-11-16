@@ -8,6 +8,7 @@ import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from
 import { show as showPost } from '../v2/PostsController';
 import { postCreateInputSchema, postUpdateInputSchema } from './data-schemes';
 
+
 export default class PostsController {
   static create = compose([
     authRequired(),
@@ -50,6 +51,7 @@ export default class PostsController {
     monitored('posts.update'),
     async (ctx) => {
       const { user, post } = ctx.state;
+
       if (post.userId != user.id) {
         throw new ForbiddenException("You can't update another user's post")
       }
@@ -57,6 +59,7 @@ export default class PostsController {
       const { body, attachments, feeds } = ctx.request.body.post;
 
       let { destinationFeedIds } = post;
+
       if (feeds) {
         const destUids = await checkDestNames(feeds, user);
         const [destFeeds, isDirect] = await Promise.all([
@@ -81,15 +84,21 @@ export default class PostsController {
 
       if (attachments) {
         const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
+
         if (attObjects.some((a) => a.userId !== user.id)) {
           throw new ForbiddenException('You can not use attachments created by other user');
         }
+
         if (attObjects.some((a) => a.postId && a.postId !== post.id)) {
           throw new ForbiddenException('You can not use attachments from another post');
         }
       }
 
-      await post.update({ body, attachments, destinationFeedIds })
+      try {
+        await post.update({ body, attachments, destinationFeedIds })
+      } catch (e) {
+        throw new BadRequestException(`Can not create post: ${e.message}`);
+      }
 
       await showPost(ctx);
     },
@@ -101,11 +110,13 @@ export default class PostsController {
     monitored('posts.likes'),
     async (ctx) => {
       const { user, post } = ctx.state;
+
       if (post.userId === user.id) {
         throw new ForbiddenException("You can't like your own post");
       }
 
       const success = await post.addLike(user);
+
       if (!success) {
         throw new ForbiddenException("You can't like post that you have already liked");
       }
@@ -122,6 +133,7 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
       const success = await post.removeLike(user);
+
       if (!success) {
         throw new ForbiddenException("You can't un-like post that you haven't yet liked");
       }
@@ -164,6 +176,7 @@ export default class PostsController {
       );
 
       const feedsToRemain = _.differenceBy(postDestinations, groupsPostsFeeds, 'id');
+
       if (feedsToRemain.length === 0) {
         // No feeds left, deleting post
         await post.destroy(user)
@@ -219,6 +232,7 @@ export default class PostsController {
     postAccessRequired(),
     async (ctx) => {
       const { user, post } = ctx.state;
+
       if (!await post.isAuthorOrGroupAdmin(user)) {
         throw new ForbiddenException("You can't disable comments for another user's post");
       }
@@ -233,6 +247,7 @@ export default class PostsController {
     postAccessRequired(),
     async (ctx) => {
       const { user, post } = ctx.state;
+
       if (!await post.isAuthorOrGroupAdmin(user)) {
         throw new ForbiddenException("You can't enable comments for another user's post");
       }
@@ -254,10 +269,12 @@ export default class PostsController {
  */
 export async function checkDestNames(destNames, author) {
   const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
+
   if (destNames.length !== destUsers.length) {
     if (destNames.length === 1) {
       throw new NotFoundException(`Account '${destNames[0]}' was not found`);
     }
+
     throw new NotFoundException('Some of destination users was not found');
   }
 
@@ -273,14 +290,18 @@ export async function checkDestNames(destNames, author) {
 
   const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
   const deniedNames = destFeeds.map((x, i) => x.length === 0 ? destNames[i] : '').filter(Boolean);
+
   if (deniedNames.length > 0) {
     if (destUsers.length === 1) {
       const [destUser] = destUsers;
+
       if (destUser.isUser()) {
         throw new ForbiddenException(`You can not send private messages to '${destUser.username}'`);
       }
+
       throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
     }
+
     throw new ForbiddenException(`You can not post to some of destinations: ${deniedNames.join(',')}`);
   }
 

@@ -39,16 +39,18 @@ export { Serializer }         from './serializers/serializer';
 
 const config = configLoader();
 
-export let PubSub;
+let _PubSub;
 
 if (config.disableRealtime) {
-  PubSub = new pubSubStub();
+  _PubSub = new pubSubStub();
 } else {
   const database = redisConnection();
   const pubsubAdapter = new PubSubAdapter(database);
 
-  PubSub = new pubSub(pubsubAdapter);
+  _PubSub = new pubSub(pubsubAdapter);
 }
+
+export const PubSub = _PubSub;
 
 export const User          = userModel(dbAdapter);
 export const Group         = groupModel(dbAdapter);

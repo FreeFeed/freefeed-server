@@ -16,13 +16,16 @@ const usersCacheTrait = (superClass) => class extends superClass {
 
   async fetchUser(id) {
     let attrs = await this.getCachedUserAttrs(id);
+
     if (!attrs) {
       // Cache miss, read from the database
       attrs = await this.database('users').first().where('uid', id) || null;
+
       if (attrs) {
         await this.cache.set(`user_${id}`, attrs);
       }
     }
+
     return attrs;
   }
 
@@ -31,13 +34,17 @@ const usersCacheTrait = (superClass) => class extends superClass {
    */
   async fetchUsersAssoc(ids) {
     const idToUser = {};
+
     if (_.isEmpty(ids)) {
       return idToUser;
     }
+
     const uniqIds = _.uniq(ids);
     let cachedUsers;
+
     if (this.cache.store.name === 'redis') {
       const { client, done } = await this.cache.store.getClient();
+
       try {
         const cacheKeys = ids.map((id) => `user_${id}`);
         const result = await client.mgetAsync(cacheKeys);
@@ -85,6 +92,7 @@ function fixCachedUserAttrs(attrs) {
   if (!attrs) {
     return null;
   }
+
   // Convert dates back to the Date type
   attrs['created_at'] = fixDateType(attrs['created_at']);
   attrs['updated_at'] = fixDateType(attrs['updated_at']);

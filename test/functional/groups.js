@@ -352,6 +352,7 @@ describe('GroupsController', () => {
             done(err);
             return;
           }
+
           res.status.should.eql(200)
           res.body.should.not.be.empty
           request
@@ -362,6 +363,7 @@ describe('GroupsController', () => {
                 done(err);
                 return;
               }
+
               res.should.not.be.empty
               res.body.users.profilePictureLargeUrl.should.not.be.empty
               done()

@@ -10,6 +10,7 @@ export function init(passport) {
   }, async (username, clearPassword, done) => {
     try {
       let user;
+
       if (username.indexOf('@') === -1) {
         user = await dbAdapter.getUserByUsername(username.trim());
       } else {

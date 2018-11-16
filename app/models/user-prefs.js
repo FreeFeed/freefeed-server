@@ -4,6 +4,7 @@ import { cloneDeep } from 'lodash';
 import { addModel as commentModelMaker } from './comment';
 import { addModel as userModelMaker } from './user';
 
+
 const commentModel = commentModelMaker(null);
 const userModel = userModelMaker(null);
 
@@ -70,12 +71,15 @@ const check = ajv.compile(schema);
 export function valiate(data = {}, safe = false) {
   data = cloneDeep(data);
   const valid = check(data);
+
   if (valid) {
     return data;
   }
+
   if (safe) {
     // Return all defaults
     return valiate();
   }
+
   throw new Error(ajv.errorsText(check.errors));
 }

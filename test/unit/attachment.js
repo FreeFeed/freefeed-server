@@ -13,6 +13,7 @@ import cleanDB from '../dbCleaner'
 import { dbAdapter, User, Attachment } from '../../app/models'
 import { load as configLoader } from '../../config/config'
 
+
 chai.use(chaiFS)
 
 const { expect } = chai;
@@ -125,6 +126,7 @@ describe('Attachment', () => {
       newAttachment.getPath().should.be.equal(`${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`)
 
       const stats = await stat(newAttachment.getPath())
+
       if (file.size >= 0) {
         stats.size.should.be.equal(file.size)
       } else {

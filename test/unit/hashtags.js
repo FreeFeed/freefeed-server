@@ -4,6 +4,7 @@ import expect from 'unexpected';
 
 import { extractHashtags, extractHashtagsWithIndices } from '../../app/support/hashtags';
 
+
 describe('Hashtags parser', () => {
   const cases = [
     { text: 'abc #def #ee gh', result: [{ hashtag: 'def', indices: [4, 8] }, { hashtag: 'ee', indices: [9, 12] }] },

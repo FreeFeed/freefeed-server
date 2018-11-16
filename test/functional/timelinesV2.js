@@ -26,6 +26,7 @@ import {
   fetchTimeline,
 } from './functional_test_helper'
 
+
 describe('TimelinesControllerV2', () => {
   let app;
 
@@ -423,6 +424,7 @@ describe('TimelinesControllerV2', () => {
 
     const nonEmptyExpected = (anonymous = true) => async () => {
       const viewer = anonymous ? null : luna;
+
       {
         const feed = await fetchUserTimeline('Posts', mars, viewer);
         expect(feed.timelines.posts, 'to have length', 1);
@@ -430,11 +432,13 @@ describe('TimelinesControllerV2', () => {
         expect(feed.timelines.subscribers, 'to be non-empty');
         expect(feed.timelines.subscribers, 'to contain', venus.user.id);
       }
+
       {
         const feed = await fetchUserTimeline('Comments', mars, viewer);
         expect(feed.timelines.posts, 'to have length', 1);
         expect(feed.timelines.posts[0], 'to equal', postCommentedByMars.id);
       }
+
       {
         const feed = await fetchUserTimeline('Likes', mars, viewer);
         expect(feed.timelines.posts, 'to have length', 1);
@@ -444,15 +448,18 @@ describe('TimelinesControllerV2', () => {
 
     const emptyExpected = (anonymous = true) => async () => {
       const viewer = anonymous ? null : luna;
+
       {
         const feed = await fetchUserTimeline('Posts', mars, viewer);
         expect(feed.timelines.posts, 'to be empty');
         expect(feed.timelines.subscribers, 'to be empty');
       }
+
       {
         const feed = await fetchUserTimeline('Comments', mars, viewer);
         expect(feed.timelines.posts, 'to be empty');
       }
+
       {
         const feed = await fetchUserTimeline('Likes', mars, viewer);
         expect(feed.timelines.posts, 'to be empty');
@@ -600,11 +607,14 @@ const fetchDirects = _.partial(fetchTimeline, 'filter/directs');
 
 const fetchUserTimeline = (name, userContext, viewerContext = null) => {
   let path = userContext.username;
+
   if (name === 'Comments') {
     path = `${path}/comments`;
   }
+
   if (name === 'Likes') {
     path = `${path}/likes`;
   }
+
   return fetchTimeline(path, viewerContext);
 };

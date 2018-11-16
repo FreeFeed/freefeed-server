@@ -222,6 +222,7 @@ export class DataProvider {
     };
 
     process.stdout.write(`- getting user's posts: `);
+
     {  // User's posts
       const timeline = await user.getPostsTimeline();
 
@@ -270,9 +271,11 @@ export class DataProvider {
         }
       }
     }
+
     process.stdout.write('\n');
 
     process.stdout.write(`- getting user's direct messages: `);
+
     {  // Direct messages
       const timeline = await user.getDirectsTimeline();
 
@@ -350,10 +353,12 @@ export class DataProvider {
         }
       }
     }
+
     process.stdout.write('\n');
 
     const downloadUrls = [];
     process.stdout.write(`- getting user's attachments: `);
+
     {
       const attachmentTypes = {
         'audio':   'AudioObject',
@@ -384,6 +389,7 @@ export class DataProvider {
           const attResourceId = `urn:uuid:${attachmentRow.uid}`;
 
           let downloadUrl = `${config.attachments.url}${config.attachments.path}${attachmentRow.uid}`;
+
           if (attachmentRow.file_extension) {
             downloadUrl = `${downloadUrl}.${attachmentRow.file_extension}`;
           }
@@ -408,9 +414,11 @@ export class DataProvider {
         }
       }
     }
+
     process.stdout.write('\n');
 
     process.stdout.write(`- storing additional user-resources\n`);
+
     for (const otherUser of [...otherUsers]) {
       const userId = `urn:uuid:${otherUser.uid}`;
 

@@ -1,6 +1,7 @@
 import { FeedFactoriesController, UsersController } from '../../../controllers'
 import deprecated from '../../../controllers/api/v1/Deprecated';
 
+
 export default function addRoutes(app) {
   app.post('/v1/users',                         UsersController.create);
   app.post('/v1/users/sudo',                    UsersController.sudoCreate);

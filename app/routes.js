@@ -1,6 +1,8 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
+import conditional from 'koa-conditional-get';
+import etag from 'koa-etag';
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
 import createDebug from 'debug';
@@ -33,6 +35,7 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 
+
 promisifyAll(jwt);
 
 const config = configLoader();
@@ -46,6 +49,7 @@ export default function (app) {
 
     if (authToken) {
       authDebug('got token', authToken);
+
       try {
         const decoded = await jwt.verifyAsync(authToken, config.secret);
         const user = await dbAdapter.getUserById(decoded.userId);
@@ -106,6 +110,11 @@ export default function (app) {
       reportError(ctx)(e);
     }
   });
+
+  // naive (hash-based) implementation of ETags for dynamic content
+  app.use(conditional());
+  app.use(etag());
+
   app.use(router.routes());
   app.use(router.allowedMethods());
 }

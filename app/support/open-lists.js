@@ -36,6 +36,7 @@ export function difference(list1, list2) {
   if (Array.isArray(list1)) {
     list1 = new List(list1);
   }
+
   if (Array.isArray(list2)) {
     list2 = new List(list2);
   }
@@ -53,6 +54,7 @@ export function difference(list1, list2) {
     // ^[1,2] - ^[2,3,4] = [3,4]
     return new List(_.difference(list2.items, list1.items));
   }
+
   // unreachable
   return new List();
 }
@@ -66,6 +68,7 @@ export function union(list1, list2) {
   if (Array.isArray(list1)) {
     list1 = new List(list1);
   }
+
   if (Array.isArray(list2)) {
     list2 = new List(list2);
   }
@@ -83,6 +86,7 @@ export function union(list1, list2) {
     // ^[1,2] + ^[2,3,4] = ^[2]
     return new List(_.intersection(list2.items, list1.items), true);
   }
+
   // unreachable
   return new List();
 }
@@ -96,6 +100,7 @@ export function intersection(list1, list2) {
   if (Array.isArray(list1)) {
     list1 = new List(list1);
   }
+
   if (Array.isArray(list2)) {
     list2 = new List(list2);
   }
@@ -113,6 +118,7 @@ export function intersection(list1, list2) {
     // ^[1,2] & ^[2,3,4] = ^[1,2,3,4]
     return new List(_.union(list2.items, list1.items), true);
   }
+
   // unreachable
   return new List();
 }

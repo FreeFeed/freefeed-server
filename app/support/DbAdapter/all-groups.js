@@ -78,9 +78,11 @@ const allGroupsTrait = (superClass) => class extends superClass {
     postsRows.forEach(({ author, destinations, fade }) => {
       destinations.forEach((dest) => {
         incMapValue(postsByMonthMap, dest, fade);
+
         if (!postsAuthorsMap.has(dest)) {
           postsAuthorsMap.set(dest, new Map());
         }
+
         incMapValue(postsAuthorsMap.get(dest), author, fade);
       });
     });

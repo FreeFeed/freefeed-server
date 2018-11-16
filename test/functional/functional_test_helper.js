@@ -15,6 +15,7 @@ import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
 import * as schema from './schemaV2-helper';
 
+
 const apiUrl = async (relativeUrl) => {
   const app = await initApp()
   return `${app.context.config.host}${relativeUrl}`
@@ -51,6 +52,7 @@ export function createUser(username, password, attributes, callback) {
               luna.password = user.password
               callback(res.body.authToken, luna)
             }
+
             done()
           })
       })
@@ -334,6 +336,7 @@ export function getTimelinePaged(timelinePath, authToken, offset, limit, callbac
 export function getSubscribers(username, authToken, callback) {
   return function (done) {
     const sendParams = {};
+
     if (authToken) {
       sendParams.authToken = authToken
     }
@@ -358,6 +361,10 @@ const agent = new http.Agent({
   keepAliveMsecs: 5000,
   maxSockets:     50,
 });
+
+export async function performRequest(relativePath, params) {
+  return await fetch(await apiUrl(relativePath), { agent, ...params });
+}
 
 export async function sessionRequest(username, password) {
   return await fetch(
@@ -398,6 +405,7 @@ export async function getSubscriptionsAsync(username, userContext) {
 export function getSubscriptions(username, authToken, callback) {
   return function (done) {
     const sendParams = {};
+
     if (authToken) {
       sendParams.authToken = authToken
     }
@@ -472,9 +480,11 @@ export function createTestUser() {
 
 export function createTestUsers(count) {
   const promises = [];
+
   for (let i = 0; i < count; i++) {
     promises.push(createTestUser());
   }
+
   return Promise.all(promises);
 }
 
@@ -893,27 +903,33 @@ export async function markAllNotificationsAsRead(user) {
 
 export async function likeComment(commentId, likerContext = null) {
   const headers = {} ;
+
   if (likerContext) {
     headers['X-Authentication-Token'] = likerContext.authToken;
   }
+
   const url = await apiUrl(`/v2/comments/${commentId}/like`);
   return fetch(url, { agent, method: 'POST', headers });
 }
 
 export async function unlikeComment(commentId, unlikerContext = null) {
   const headers = {} ;
+
   if (unlikerContext) {
     headers['X-Authentication-Token'] = unlikerContext.authToken;
   }
+
   const url = await apiUrl(`/v2/comments/${commentId}/unlike`);
   return fetch(url, { agent, method: 'POST', headers });
 }
 
 export async function getCommentLikes(commentId, viewerContext = null) {
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const url = await apiUrl(`/v2/comments/${commentId}/likes`);
   return fetch(url, { agent, method: 'GET', headers });
 }
@@ -938,6 +954,7 @@ const PromisifiedIO = (host, options, events) => {
             // do nothing
           }
         }
+
         resolve();
       });
 
@@ -950,6 +967,7 @@ const PromisifiedIO = (host, options, events) => {
           try {
             args.push(client);
             const result = events[k](...args);
+
             if (result instanceof Promise) {
               result.catch((e) => {
                 reject(e);
@@ -988,40 +1006,50 @@ export async function fetchPost(postId, viewerContext = null, params = {}) {
     ...params,
   };
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const response = await fetch(
     await apiUrl(`/${params.apiVersion}/posts/${postId}?maxComments=${params.allComments ? 'all' : ''}&maxLikes=${params.allLikes ? 'all' : ''}`),
     { agent, headers }
   );
   const post = await response.json();
+
   if (response.status !== 200) {
     if (params.returnError) {
       return response;
     }
+
     expect.fail('HTTP error (code {0}): {1}', response.status, post.err);
   }
+
   if (params.apiVersion === 'v2') {
     expect(post, 'to exhaustively satisfy', schema.postResponse);
   }
+
   return post;
 }
 
 export async function fetchTimeline(path, viewerContext = null) {
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const response = await fetch(
     await apiUrl(`/v2/timelines/${path}`),
     { agent, headers }
   );
   const feed = await response.json();
+
   // console.log(feed);
   if (response.status !== 200) {
     expect.fail('HTTP error (code {0}): {1}', response.status, feed.err);
   }
+
   expect(feed, 'to exhaustively satisfy', schema.timelineResponse);
   return feed;
 }
@@ -1045,18 +1073,22 @@ export function noFieldOrEmptyArray(name) {
 
 export async function createInvitation(creatorContext, invitation) {
   const headers = { 'Content-Type': 'application/json' } ;
+
   if (creatorContext) {
     headers['X-Authentication-Token'] = creatorContext.authToken;
   }
+
   const url = await apiUrl(`/v2/invitations`);
   return fetch(url, { agent, method: 'POST', headers, body: JSON.stringify(invitation) });
 }
 
 export async function getInvitation(secureId, viewerContext) {
   const headers = {};
+
   if (viewerContext) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
+
   const url = await apiUrl(`/v2/invitations/${secureId}`);
   return fetch(url, { agent, method: 'GET', headers });
 }
@@ -1091,8 +1123,10 @@ export class MockHTTPServer {
 
   async start() {
     const [low, high] = this.portRange;
+
     for (let i = 0; i < this.startAttempts;i++) {
       const port = Math.floor((Math.random() * (high - low)) + low);
+
       try {
         // eslint-disable-next-line no-await-in-loop
         await this._server.listenAsync(port);
@@ -1102,6 +1136,7 @@ export class MockHTTPServer {
         // pass
       }
     }
+
     throw new Error('Can not start MockHTTPServer');
   }
 

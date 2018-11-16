@@ -5,6 +5,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import * as helper from './functional_test_helper';
 
+
 describe('Local bumps', () => {
   beforeEach(() => cleanDB($pg_database));
 
@@ -19,6 +20,7 @@ describe('Local bumps', () => {
 
       // Mars posts
       marsPosts = [];
+
       for (let i = 0; i < nPosts; i++) {
         const { id } = await helper.createAndReturnPost(mars, 'post');  // eslint-disable-line no-await-in-loop
         marsPosts.push(id);
@@ -28,10 +30,12 @@ describe('Local bumps', () => {
 
       // Luna posts
       lunaPosts = [];
+
       for (let i = 0; i < nPosts; i++) {
         const { id } = await helper.createAndReturnPost(luna, 'post');  // eslint-disable-line no-await-in-loop
         lunaPosts.push(id);
       }
+
       lunaDefaultHomefeed = [...lunaPosts].reverse();
     };
 
@@ -40,10 +44,12 @@ describe('Local bumps', () => {
 
       // Mars posts in group
       marsPostsInGroup = [];
+
       for (let i = 0; i < nPosts; i++) {
         const { id } = await helper.createAndReturnPostToFeed(celestials, mars, 'post');  // eslint-disable-line no-await-in-loop
         marsPostsInGroup.push(id);
       }
+
       groupDefaultFeed = [...marsPostsInGroup].reverse();
     };
 
@@ -165,9 +171,11 @@ async function expectHomefeed(userContext, postIds) {
 function bump(item, array) {
   array = array.slice(); // clone
   const p = array.indexOf(item);
+
   if (p >= 0) {
     array.splice(p, 1);
   }
+
   return [item, ...array];
 }
 
