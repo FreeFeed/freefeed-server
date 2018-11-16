@@ -6,11 +6,8 @@ import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
-import { load as configLoader } from '../../config/config';
 import { List, intersection as listIntersection } from '../support/open-lists';
 
-
-const config = configLoader();
 
 export function addModel(dbAdapter) {
   class Post {
@@ -100,10 +97,6 @@ export function addModel(dbAdapter) {
 
       if (len > 1500) {
         throw new Error('Maximum post-length is 1500 graphemes');
-      }
-
-      if (this.attachments && this.attachments.length > config.attachments.maxCount) {
-        throw new Error(`Too many attachments: ${this.attachments.length}, max. ${config.attachments.maxCount}`);
       }
     }
 
@@ -204,10 +197,6 @@ export function addModel(dbAdapter) {
         const oldAttachments = await this.getAttachmentIds() || [];
         const newAttachments = params.attachments || [];
         const removedAttachments = _.difference(oldAttachments, newAttachments);
-
-        if (newAttachments.length > config.attachments.maxCount) {
-          throw new Error(`Too many attachments: ${newAttachments.length}, max. ${config.attachments.maxCount}`);
-        }
 
         // Update post attachments in DB
         afterUpdate.push(() => this.linkAttachments(newAttachments));

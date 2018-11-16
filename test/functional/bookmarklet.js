@@ -153,7 +153,7 @@ describe('BookmarkletController', () => {
         }
 
         const call = callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
-        await expect(call, 'to be rejected with', /^HTTP error 403:/);
+        await expect(call, 'to be rejected with', /^HTTP error 422:/);
       });
 
       it(`should not create post with non-image attachment`, async () => {
