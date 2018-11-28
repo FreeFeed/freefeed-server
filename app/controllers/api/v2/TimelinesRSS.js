@@ -120,6 +120,12 @@ async function postItemMaker(postId, data, ctx) {
   if (imageAtts.length > 0) {
     const tags = imageAtts.map((a) => {
       const sz = a.imageSizes.t || a.imageSizes.o;
+
+      if (!sz) {
+        // Some very old images has empty imageSizes object
+        return `<a href="${htmlEscape(a.url)}"><img src="${htmlEscape(a.url)}"></a>`;
+      }
+
       return `<a href="${htmlEscape(a.url)}"><img src="${htmlEscape(sz.url)}" width="${htmlEscape(sz.w)}" height="${htmlEscape(sz.h)}"></a>`;
     });
     descriptionLines.push(`<p class="freefeed-images">${tags.join(' ')}</p>`);

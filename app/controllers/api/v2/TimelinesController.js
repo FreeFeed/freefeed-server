@@ -87,7 +87,7 @@ export const metatags = compose([
 
     const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(targetUser.username)}`;
     const rssTitle = targetUser.isUser() ? `Posts of ${targetUser.username}` : `Posts in group ${targetUser.username}`;
-    ctx.body = `<link rel="alternate" type="application/rss+xml" title="${_.escape(rssTitle)}" href="${_.escape(rssURL)}">`;
+    ctx.body = `<link rel="alternate" type="application/rss+xml" title="${_.escape(rssTitle)}" href="${_.escape(rssURL)}" data-react-helmet="true">`;
   },
 ]);
 
