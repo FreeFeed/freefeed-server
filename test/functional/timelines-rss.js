@@ -322,7 +322,7 @@ describe('TimelinesAsRSS', () => {
 
       const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(luna.username)}`;
       const rssTitle =  `Posts of ${luna.username}`;
-      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}">`;
+      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}" data-react-helmet="true">`;
       expect(meta, 'to contain', tag);
     });
 
@@ -331,7 +331,7 @@ describe('TimelinesAsRSS', () => {
 
       const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(celestials.username)}`;
       const rssTitle =  `Posts in group ${celestials.username}`;
-      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}">`;
+      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}" data-react-helmet="true">`;
       expect(meta, 'to contain', tag);
     });
 
