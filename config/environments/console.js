@@ -25,6 +25,10 @@ export function getConfig() {
     appRoot:                   '.',
     acceptHashedPasswordsOnly: false,
 
+    // Configure koa app to trust proxy headers:
+    // X-Forwarded-Host, X-Forwarded-Proto and X-Forwarded-For
+    trustProxyHeaders: false,
+
     onboardingUsername: 'welcome',
     recaptcha:          { enabled: false },
 
