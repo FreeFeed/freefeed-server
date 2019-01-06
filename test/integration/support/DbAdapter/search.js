@@ -639,65 +639,63 @@ describe('FullTextSearch', () => {
         return dbAdapter.searchUserPosts(query, (await targetUserPromise).id, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
       };
 
-      describe('full text search', () => {
-        it('should not find post from banned user', async () => {
-          await _createPost(mars, 'Lazy green fox jumps over the #lazy dog');
-          await luna.ban('mars');
+      it('should not find post from banned user', async () => {
+        await _createPost(mars, 'Lazy green fox jumps over the #lazy dog');
+        await luna.ban('mars');
 
-          await Promise.all([
-            expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
-          ]);
-        });
+        await Promise.all([
+          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
+      });
 
-        it("should not find post from banned user by banned user's comment match", async () => {
-          const post = await _createPost(mars, 'Lazy sloth');
-          await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
-          await luna.ban('mars');
+      it("should not find post from banned user by banned user's comment match", async () => {
+        const post = await _createPost(mars, 'Lazy sloth');
+        await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
+        await luna.ban('mars');
 
-          await Promise.all([
-            expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
-          ]);
-        });
+        await Promise.all([
+          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
+      });
 
-        it("should not find post from banned user by other user's comment match", async () => {
-          const post = await _createPost(mars, 'Lazy sloth');
-          await _createComment(jupiter, 'Very #lazy fox', post);
-          await luna.ban('mars');
+      it("should not find post from banned user by other user's comment match", async () => {
+        const post = await _createPost(mars, 'Lazy sloth');
+        await _createComment(jupiter, 'Very #lazy fox', post);
+        await luna.ban('mars');
 
-          await Promise.all([
-            expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
-          ]);
-        });
+        await Promise.all([
+          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
+      });
 
-        it("should not find post from banned user by viewer's comment match", async () => {
-          const post = await _createPost(mars, 'Lazy sloth');
-          await _createComment(luna, 'Very #lazy fox', post);
-          await luna.ban('mars');
+      it("should not find post from banned user by viewer's comment match", async () => {
+        const post = await _createPost(mars, 'Lazy sloth');
+        await _createComment(luna, 'Very #lazy fox', post);
+        await luna.ban('mars');
 
-          await Promise.all([
-            expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
-          ]);
-        });
+        await Promise.all([
+          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
+      });
 
-        it("should not find visible post by banned user's comment match", async () => {
-          const post = await _createPost(jupiter, 'Lazy sloth');
-          await _createComment(mars, 'Very #lazy fox', post);
-          await luna.ban('mars');
+      it("should not find visible post by banned user's comment match", async () => {
+        const post = await _createPost(jupiter, 'Lazy sloth');
+        await _createComment(mars, 'Very #lazy fox', post);
+        await luna.ban('mars');
 
-          await Promise.all([
-            expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-            expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
-          ]);
-        });
+        await Promise.all([
+          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
       });
     });
 
@@ -966,10 +964,10 @@ describe('FullTextSearch', () => {
   });
 
   describe('group post search', () => {
-    let luna, mars, jupiter, post;
+    let luna, mars, jupiter;
 
     const _createGroupPost = async (author, groupPostsFeedId, text) => {
-      post = await author.newPost({ body: text, timelineIds: [groupPostsFeedId] });
+      const post = await author.newPost({ body: text, timelineIds: [groupPostsFeedId] });
       return post.create();
     };
 
@@ -987,17 +985,20 @@ describe('FullTextSearch', () => {
       mars = new User({ username: 'Mars', password: 'password' });
       jupiter = new User({ username: 'Jupiter', password: 'password' });
 
-      await luna.create();
-      await mars.create();
-      await jupiter.create();
+      await Promise.all([
+        luna.create(),
+        mars.create(),
+        jupiter.create(),
+      ]);
     });
 
     describe('public posts search with specified group', () => {
-      let group, groupTimelineId;
+      let groupTimelineId;
 
       beforeEach(async () => {
-        group = new Group({ username: 'search-dev' });
+        const group = new Group({ username: 'search-dev' });
         await group.create(luna.id, false);
+
         groupTimelineId = await group.getPostsTimelineId();
         return mars.subscribeTo(group);
       });
@@ -1012,139 +1013,66 @@ describe('FullTextSearch', () => {
         return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, [], bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
-      describe('full text search', () => {
-        it('should find post in specified group', async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+      it('should find post in specified group', async () => {
+        const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
 
-          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it('should find post in specified group by comment match', async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it("should find post in specified group by viewer's comment match", async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-          await _createComment(luna, 'Very lazy fox', post);
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it('should find post only in specified group', async () => {
-          const group2 = new Group({ username: 'search-dev2' });
-          await group2.create(luna.id, false);
-          const group2TimelineId = await group2.getPostsTimelineId();
-          await mars.subscribeTo(group2);
-
-          await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
-          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
+        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
       });
 
-      describe('exact match search', () => {
-        it('should find post in specified group', async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+      it('should find post in specified group by comment match', async () => {
+        const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+        await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
 
-          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it('should find post in specified group by comment match', async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-          await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it("should find post in specified group by viewer's comment match", async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-          await _createComment(luna, 'Very lazy fox', post);
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it('should find post only in specified group', async () => {
-          const group2 = new Group({ username: 'search-dev2' });
-          await group2.create(luna.id, false);
-          const group2TimelineId = await group2.getPostsTimelineId();
-          await mars.subscribeTo(group2);
-
-          await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
-          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
+        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
       });
 
-      describe('hashtag search', () => {
-        it('should find post in specified group', async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
+      it("should find post in specified group by viewer's comment match", async () => {
+        const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+        await _createComment(luna, 'Very #lazy fox', post);
 
-          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
+        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+      });
 
-        it('should find post in specified group by comment match', async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-          await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
+      it('should find post only in specified group', async () => {
+        const group2 = new Group({ username: 'search-dev2' });
+        await group2.create(luna.id, false);
+        const group2TimelineId = await group2.getPostsTimelineId();
+        await mars.subscribeTo(group2);
 
-          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
+        await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the #lazy pig');
+        const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
 
-        it("should find post in specified group by viewer's comment match", async () => {
-          await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-          await _createComment(luna, 'Very lazy #fox', post);
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
-
-        it('should find post only in specified group', async () => {
-          const group2 = new Group({ username: 'search-dev2' });
-          await group2.create(luna.id, false);
-          const group2TimelineId = await group2.getPostsTimelineId();
-          await mars.subscribeTo(group2);
-
-          await _createGroupPost(mars, group2TimelineId, 'Lazy green #fox jumps over the lazy pig');
-          await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
-
-          const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
-          searchResults.length.should.eql(1);
-          searchResults[0].body.should.eql(post.body);
-        });
+        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+          .and('when fulfilled', 'to have an item satisfying', { body: post.body });
       });
     });
 
     describe('private posts search with specified group', () => {
-      let group, groupTimelineId;
+      let groupTimelineId;
 
       beforeEach(async () => {
-        group = new Group({ username: 'search-dev', isPrivate: '1' });
+        const group = new Group({ username: 'search-dev', isPrivate: '1' });
         await group.create(luna.id, false);
+
         groupTimelineId = await group.getPostsTimelineId();
         return mars.subscribeTo(group);
       });
@@ -1160,189 +1088,77 @@ describe('FullTextSearch', () => {
         return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
-      describe('full text search', () => {
-        describe('for group subscribers', () => {
-          it('should find post in specified group', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+      describe('for group subscribers', () => {
+        it('should find post in specified group', async () => {
+          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
 
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it('should find post in specified group by comment match', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it("should find post in specified group by viewer's comment match", async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(luna, 'Very lazy fox', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it('should find post only in specified group', async () => {
-            const group2 = new Group({ username: 'search-dev2' });
-            await group2.create(luna.id, false);
-            const group2TimelineId = await group2.getPostsTimelineId();
-            await mars.subscribeTo(group2);
-            await jupiter.subscribeTo(group2);
-
-            await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
+          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
         });
 
-        describe('for non-subscribers', () => {
-          it('should not find post in specified group', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+        it('should find post in specified group by comment match', async () => {
+          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
 
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', jupiter);
-            searchResults.length.should.eql(0);
-          });
+          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        });
 
-          it('should not find post in specified group by comment match', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
+        it("should find post in specified group by viewer's comment match", async () => {
+          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(luna, 'Very #lazy fox', post);
 
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', jupiter);
-            searchResults.length.should.eql(0);
-          });
+          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        });
+
+        it('should find post only in specified group', async () => {
+          const group2 = new Group({ username: 'search-dev2' });
+          await group2.create(luna.id, false);
+          const group2TimelineId = await group2.getPostsTimelineId();
+          await mars.subscribeTo(group2);
+          await jupiter.subscribeTo(group2);
+
+          await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the #lazy pig');
+          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
+
+          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
         });
       });
 
-      describe('exact match search', () => {
-        describe('for group subscribers', () => {
-          it('should find post in specified group', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+      describe('for non-subscribers', () => {
+        it('should not find post in specified group', async () => {
+          await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
 
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it('should find post in specified group by comment match', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it("should find post in specified group by viewer's comment match", async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(luna, 'Very lazy fox', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it('should find post only in specified group', async () => {
-            const group2 = new Group({ username: 'search-dev2' });
-            await group2.create(luna.id, false);
-            const group2TimelineId = await group2.getPostsTimelineId();
-            await mars.subscribeTo(group2);
-            await jupiter.subscribeTo(group2);
-
-            await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the lazy pig');
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
+          await expect(_searchPrivateGroupPosts('group: search-dev fox', jupiter), 'when fulfilled', 'to have length', 0);
+          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', jupiter), 'when fulfilled', 'to have length', 0);
+          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', jupiter), 'when fulfilled', 'to have length', 0);
         });
 
-        describe('for non-subscribers', () => {
-          it('should not find post in specified group', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the lazy dog');
+        it('should not find post in specified group by comment match', async () => {
+          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
+          await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
 
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', jupiter);
-            searchResults.length.should.eql(0);
-          });
-
-          it('should not find post in specified group by comment match', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(mars, 'Lazy green fox jumps over the lazy dog', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', jupiter);
-            searchResults.length.should.eql(0);
-          });
-        });
-      });
-
-      describe('hashtag search', () => {
-        describe('for group subscribers', () => {
-          it('should find post in specified group', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it('should find post in specified group by comment match', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it("should find post in specified group by viewer's comment match", async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(luna, 'Very lazy #fox', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-
-          it('should find post only in specified group', async () => {
-            const group2 = new Group({ username: 'search-dev2' });
-            await group2.create(luna.id, false);
-            const group2TimelineId = await group2.getPostsTimelineId();
-            await mars.subscribeTo(group2);
-            await jupiter.subscribeTo(group2);
-
-            await _createGroupPost(mars, group2TimelineId, 'Lazy green #fox jumps over the lazy pig');
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
-            searchResults.length.should.eql(1);
-            searchResults[0].body.should.eql(post.body);
-          });
-        });
-
-        describe('for non-subscribers', () => {
-          it('should not find post in specified group', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy green #fox jumps over the lazy dog');
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', jupiter);
-            searchResults.length.should.eql(0);
-          });
-
-          it('should not find post in specified group by comment match', async () => {
-            await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
-            await _createComment(mars, 'Lazy green #fox jumps over the lazy dog', post);
-
-            const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', jupiter);
-            searchResults.length.should.eql(0);
-          });
+          await expect(_searchPrivateGroupPosts('group: search-dev fox', jupiter), 'when fulfilled', 'to have length', 0);
+          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', jupiter), 'when fulfilled', 'to have length', 0);
+          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', jupiter), 'when fulfilled', 'to have length', 0);
         });
       });
     });
