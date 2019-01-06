@@ -2,7 +2,7 @@
 import _ from 'lodash';
 import expect from 'unexpected';
 
-import { extractMentions, extractMentionsWithIndices } from '../../app/support/mentions';
+import { extractMentions, extractMentionsWithIndices } from '../../../app/support/mentions';
 
 
 describe('Mentions parser', () => {

@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import cleanDB from '../dbCleaner'
-import { User, Group, dbAdapter } from '../../app/models'
-import { SearchQueryParser } from '../../app/support/SearchQueryParser'
+import cleanDB from '../../../dbCleaner'
+import { User, Group, dbAdapter } from '../../../../app/models'
+import { SearchQueryParser } from '../../../../app/support/SearchQueryParser'
 
 
 describe('FullTextSearch', () => {

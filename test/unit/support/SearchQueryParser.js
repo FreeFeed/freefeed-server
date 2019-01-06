@@ -2,8 +2,8 @@
 import { expect } from 'chai';
 import { forEach } from 'lodash';
 
-import { SearchQueryParser } from '../../app/support/SearchQueryParser';
-import { SEARCH_SCOPES } from '../../app/support/SearchConstants';
+import { SearchQueryParser } from '../../../app/support/SearchQueryParser';
+import { SEARCH_SCOPES } from '../../../app/support/SearchConstants';
 
 /**
  * Based on friendfeed.com search spec:

@@ -6,9 +6,9 @@ import unexpectedSinon from 'unexpected-sinon';
 import { noop } from 'lodash';
 import sinon from 'sinon';
 
-import cleanDB from '../dbCleaner';
-import { postAccessRequired, inputSchemaRequired, monitored } from '../../app/controllers/middlewares';
-import { User, Post } from '../../app/models';
+import cleanDB from '../../dbCleaner';
+import { postAccessRequired, inputSchemaRequired, monitored } from '../../../app/controllers/middlewares';
+import { User, Post } from '../../../app/models';
 
 
 const expect = unexpected.clone();

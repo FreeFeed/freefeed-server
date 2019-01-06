@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import cleanDB from '../dbCleaner'
-import { dbAdapter, User, Group } from '../../app/models'
+import cleanDB from '../../dbCleaner'
+import { dbAdapter, User, Group } from '../../../app/models'
 
 
 describe('Group', () => {
