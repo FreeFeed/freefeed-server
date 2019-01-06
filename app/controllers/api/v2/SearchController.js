@@ -18,7 +18,7 @@ export default class SearchController {
 
     let foundPosts = [],
       isSubscribed = false,
-      targetUser,
+      targetUser = null,
       targetGroup,
       offset,
       limit;
@@ -57,7 +57,23 @@ export default class SearchController {
         throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`);
       }
 
-      foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
+      let targetUserId = null;
+
+      if (preparedQuery.username) {
+        if (preparedQuery.username === 'me') {
+          throw new NotFoundException(`Please sign in to use 'from:me' operator`);
+        }
+
+        targetUser = await dbAdapter.getUserByUsername(preparedQuery.username);
+
+        if (!targetUser) {
+          throw new NotFoundException(`User "${preparedQuery.username}" is not found`);
+        }
+
+        targetUserId = targetUser.id;
+      }
+
+      foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
     } else if (preparedQuery.username) {
       if (preparedQuery.username === 'me') {
         throw new NotFoundException(`Please sign in to use 'from:me' operator`);

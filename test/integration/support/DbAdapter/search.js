@@ -809,7 +809,7 @@ describe('FullTextSearch', () => {
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
 
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
       };
 
       it('should not find post from banned user', async () => {
@@ -895,6 +895,7 @@ describe('FullTextSearch', () => {
         return dbAdapter.searchGroupPosts(
           query,
           groupPostsFeedId,
+          null,
           (await refetchedUserPromise).subscribedFeedIds,
           await bannedUserIdsPromise,
           await feedsBannedForUser,
@@ -1008,7 +1009,7 @@ describe('FullTextSearch', () => {
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], bannedUserIds, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, [], bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
       describe('full text search', () => {
@@ -1156,7 +1157,7 @@ describe('FullTextSearch', () => {
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
       describe('full text search', () => {

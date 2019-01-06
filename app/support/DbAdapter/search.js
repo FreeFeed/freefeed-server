@@ -113,7 +113,7 @@ const searchTrait = (superClass) => class extends superClass {
     return res.rows;
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
+  async searchGroupPosts(query, groupFeedId, authorId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
