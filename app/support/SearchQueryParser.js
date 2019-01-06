@@ -1,7 +1,7 @@
 /* eslint babel/semi: "error" */
 import { flow } from 'lodash';
+
 import { extractHashtagsWithIndices } from './hashtags';
-import { SEARCH_SCOPES } from './SearchConstants';
 
 
 const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
@@ -22,7 +22,6 @@ export class SearchQueryParser {
     query = decodeURIComponent(query);
 
     const parseResult = {
-      scope:    SEARCH_SCOPES.ALL_VISIBLE_POSTS,
       query,
       username: '',
       group:    '',
@@ -46,13 +45,11 @@ export class SearchQueryParser {
     }
 
     if (targetUsername) {
-      queryObject.scope = SEARCH_SCOPES.VISIBLE_USER_POSTS;
       queryObject.username = targetUsername;
       return;
     }
 
     if (targetGroupname) {
-      queryObject.scope = SEARCH_SCOPES.VISIBLE_GROUP_POSTS;
       queryObject.group = targetGroupname;
     }
   }
