@@ -91,5 +91,21 @@ describe('SearchController', () => {
         expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
       });
     });
+
+    describe('There is a group', () => {
+      before(async () => {
+        const group = await funcTestHelper.createGroupAsync(lunaContext, 'lunagroup');
+        await funcTestHelper.subscribeToAsync(marsContext, group);
+        await Promise.all([
+          funcTestHelper.createAndReturnPostToFeed(group, lunaContext, 'hello from luna'),
+          funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'hello from mars'),
+        ]);
+      });
+
+      it('should find only post to group', async () => {
+        await expect(funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+        await expect(funcTestHelper.performSearch(lunaContext, 'from:me group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+      });
+    });
   });
 });
