@@ -27,18 +27,7 @@ describe('SearchQueryParser', () => {
 
     forEach(expectations, (output, input) => {
       it(`should correctly parse "${input}"`, () => {
-        const result = SearchQueryParser.parse(input);
-
-        expect(result.scope, 'to equal', output.scope);
-        expect(result.query, 'to equal', output.query);
-
-        if ('username' in output) {
-          expect(result.username, 'to equal', output.username);
-        }
-
-        if ('group' in output) {
-          expect(result.group, 'to equal', output.group);
-        }
+        expect(SearchQueryParser.parse(input), 'to satisfy', output);
       });
     });
   });
@@ -49,18 +38,7 @@ describe('SearchQueryParser', () => {
 
     forEach(expectations, (output, input) => {
       it(`should correctly parse "${input}"`, () => {
-        const result = SearchQueryParser.parse(input, defaultUsername);
-
-        expect(result.scope, 'to equal', output.scope);
-        expect(result.query, 'to equal', output.query);
-
-        if ('username' in output) {
-          expect(result.username, 'to equal', output.username);
-        }
-
-        if ('group' in output) {
-          expect(result.group, 'to equal', output.group);
-        }
+        expect(SearchQueryParser.parse(input, defaultUsername), 'to satisfy', output);
       });
     });
   });
