@@ -15,16 +15,15 @@ describe('SearchController', () => {
   before(async () => {
     await getSingleton();
     PubSub.setPublisher(new DummyPublisher());
+    await cleanDB($pg_database);
   });
-
-  beforeEach(() => cleanDB($pg_database));
 
   describe('#search()', () => {
     let lunaContext = {};
     let marsContext = {};
     const anonContext = {};
 
-    beforeEach(async () => {
+    before(async () => {
       [lunaContext, marsContext] = await Promise.all([
         funcTestHelper.createUserAsync('luna', 'pw'),
         funcTestHelper.createUserAsync('mars', 'pw')
@@ -78,7 +77,7 @@ describe('SearchController', () => {
     });
 
     describe('Luna is private', () => {
-      beforeEach(async () => {
+      before(async () => {
         await funcTestHelper.goPrivate(lunaContext);
       });
 
