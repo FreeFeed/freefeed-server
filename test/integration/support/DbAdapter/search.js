@@ -1010,7 +1010,10 @@ describe('FullTextSearch', () => {
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, [], bannedUserIds, await feedsBannedForUser, 0, 30);
+
+        const author = query.username ? (await dbAdapter.getUserByUsername(query.username)).id : null;
+
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, author, [], bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
       it('should find post in specified group', async () => {
@@ -1063,6 +1066,32 @@ describe('FullTextSearch', () => {
           .and('when fulfilled', 'to have an item satisfying', { body: post.body });
         await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 1)
           .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+      });
+
+      describe('by specified author', () => {
+        const _createPost = async (author, text) => {
+          const post = await author.newPost({ body: text });
+          return post.create();
+        };
+
+        it('should find post only in specified group', async () => {
+          const group2 = new Group({ username: 'search-dev2' });
+          await group2.create(luna.id, false);
+          const group2TimelineId = await group2.getPostsTimelineId();
+          await mars.subscribeTo(group2);
+
+          await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the #lazy pig');
+          await _createPost(mars, 'Lazy green fox jumps over the #lazy pig');
+          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
+          await _createGroupPost(jupiter, groupTimelineId, 'Lazy green fox jumps over the #lazy jupiter');
+
+          await expect(_searchPublicGroupPosts('group: search-dev from:mars fox', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPublicGroupPosts('group: search-dev from:mars "fox"', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+          await expect(_searchPublicGroupPosts('group: search-dev from:mars #lazy', luna), 'when fulfilled', 'to have length', 1)
+            .and('when fulfilled', 'to have an item satisfying', { body: post.body });
+        });
       });
     });
 

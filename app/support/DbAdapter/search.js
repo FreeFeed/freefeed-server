@@ -157,8 +157,14 @@ const searchTrait = (superClass) => class extends superClass {
       subQueries = [...subQueries, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
     }
 
+    let authorCondition = '';
+
+    if (authorId) {
+      authorCondition = `WHERE "found_posts"."user_id"='${authorId}'`;
+    }
+
     const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
+      `select * from (${subQueries.join(' union ')}) as found_posts ${authorCondition} order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     );
     return res.rows;
   }
