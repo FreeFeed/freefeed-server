@@ -46,7 +46,6 @@ export class SearchQueryParser {
 
     if (targetUsername) {
       queryObject.username = targetUsername;
-      return;
     }
 
     if (targetGroupname) {
