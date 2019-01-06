@@ -1,5 +1,5 @@
 /* eslint-env node, mocha */
-import { expect } from 'chai';
+import expect from 'unexpected';
 import { forEach } from 'lodash';
 
 import { SearchQueryParser } from '../../../app/support/SearchQueryParser';
@@ -29,15 +29,15 @@ describe('SearchQueryParser', () => {
     it(`should parse "${input}"`, () => {
       const result = SearchQueryParser.parse(input, output.defaultUsername ? output.defaultUsername : null);
 
-      expect(result.scope).to.equal(output.scope);
-      expect(result.query).to.equal(output.query);
+      expect(result.scope, 'to equal', output.scope);
+      expect(result.query, 'to equal', output.query);
 
       if (output.scope === SEARCH_SCOPES.VISIBLE_USER_POSTS) {
-        expect(result.username).to.equal(output.username);
+        expect(result.username, 'to equal', output.username);
       }
 
       if (output.scope === SEARCH_SCOPES.VISIBLE_GROUP_POSTS) {
-        expect(result.group).to.equal(output.group);
+        expect(result.group, 'to equal', output.group);
       }
     });
   });
