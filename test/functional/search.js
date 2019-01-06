@@ -1,6 +1,8 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 /* eslint babel/semi: "error" */
+import expect from 'unexpected';
+
 import cleanDB from '../dbCleaner';
 
 import { getSingleton } from '../../app/app';
@@ -37,59 +39,42 @@ describe('SearchController', () => {
 
     it('should search posts', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'hello');
-      response.should.not.be.empty;
-      response.should.have.property('posts');
-      response.posts.length.should.be.eql(2);
+      expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
     it('should search user\'s posts', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from:luna hello');
-      response.should.not.be.empty;
-      response.should.have.property('posts');
-      response.posts.length.should.be.eql(1);
-      response.posts[0].body.should.be.eql('hello from luna');
+      expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
     });
 
     it('should search own posts with from:me', async () => {
       const response = await funcTestHelper.performSearch(lunaContext, 'from:me hello');
-      response.should.not.be.empty;
-      response.should.have.property('posts');
-      response.posts.length.should.be.eql(1);
-      response.posts[0].body.should.be.eql('hello from luna');
+      expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
     });
 
     it('should not search anonymously with from:me', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from:me hello');
-      response.should.not.be.empty;
-      response.should.have.property('err');
+      expect(response, 'to have key', 'err');
     });
 
     it('should search hashtags with different casing', async () => {
       const response = await funcTestHelper.performSearch(anonContext, '#hashtaga');
-      response.should.not.be.empty;
-      response.should.have.property('posts');
-      response.posts.length.should.be.eql(2);
+      expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
     it('should return first page with isLastPage = false', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 0 });
-      response.should.not.be.empty;
-      response.should.have.property('isLastPage');
-      response.isLastPage.should.be.eql(false);
+      expect(response, 'to satisfy', { isLastPage: false });
     });
 
     it('should return last page with isLastPage = true', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 2 });
-      response.should.not.be.empty;
-      response.should.have.property('isLastPage');
-      response.isLastPage.should.be.eql(true);
+      expect(response, 'to satisfy', { isLastPage: true });
     });
 
     it('should return the only page with isLastPage = true', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from luna');
-      response.should.not.be.empty;
-      response.should.have.property('isLastPage');
-      response.isLastPage.should.be.eql(true);
+      expect(response, 'to satisfy', { isLastPage: true });
     });
 
     describe('Luna is private', () => {
@@ -99,18 +84,12 @@ describe('SearchController', () => {
 
       it(`should search user's posts`, async () => {
         const response = await funcTestHelper.performSearch(lunaContext, 'from:luna hello');
-        response.should.not.be.empty;
-        response.should.have.property('posts');
-        response.posts.length.should.be.eql(1);
-        response.posts[0].body.should.be.eql('hello from luna');
+        expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
       });
 
       it('should search own posts with from:me', async () => {
         const response = await funcTestHelper.performSearch(lunaContext, 'from:me hello');
-        response.should.not.be.empty;
-        response.should.have.property('posts');
-        response.posts.length.should.be.eql(1);
-        response.posts[0].body.should.be.eql('hello from luna');
+        expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
       });
     });
   });
