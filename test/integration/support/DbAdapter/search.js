@@ -428,9 +428,11 @@ describe('FullTextSearch', () => {
       mars = new User({ username: 'Mars', password: 'password' });
       jupiter = new User({ username: 'Jupiter', password: 'password' });
 
-      await luna.create();
-      await mars.create();
-      await jupiter.create();
+      await Promise.all([
+        luna.create(),
+        mars.create(),
+        jupiter.create(),
+      ]);
     });
 
     describe('public posts search', () => {
