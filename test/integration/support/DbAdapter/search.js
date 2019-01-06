@@ -1,304 +1,305 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import cleanDB from '../../../dbCleaner'
-import { User, Group, dbAdapter } from '../../../../app/models'
-import { SearchQueryParser } from '../../../../app/support/SearchQueryParser'
+/* eslint babel/semi: "error" */
+import cleanDB from '../../../dbCleaner';
+import { User, Group, dbAdapter } from '../../../../app/models';
+import { SearchQueryParser } from '../../../../app/support/SearchQueryParser';
 
 
 describe('FullTextSearch', () => {
-  beforeEach(() => cleanDB($pg_database))
+  beforeEach(() => cleanDB($pg_database));
 
   describe('public users Luna, Mars', () => {
-    const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
+    const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'];
 
     let luna, mars, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds, marsVisibleFeedIds, bannedByMarsUserIds;
 
     beforeEach(async () => {
-      luna    = new User({ username: 'Luna', password: 'password' })
-      mars    = new User({ username: 'Mars', password: 'password' })
+      luna    = new User({ username: 'Luna', password: 'password' });
+      mars    = new User({ username: 'Mars', password: 'password' });
 
       await Promise.all([luna.create(), mars.create()]);
 
-      lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds
-      bannedByLunaUserIds = await luna.getBanIds()
+      lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds;
+      bannedByLunaUserIds = await luna.getBanIds();
 
-      marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
-      bannedByMarsUserIds = await mars.getBanIds()
+      marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
+      bannedByMarsUserIds = await mars.getBanIds();
 
-      lunaPosts = []
+      lunaPosts = [];
 
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
         lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
-    })
+    });
 
     describe('Luna and Mars are not friends', () => {
       it("Mars can find Luna's posts", async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it('Luna can find own posts', async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it("Mars can find Luna's posts in 'luna' scope", async () => {
-        const query = SearchQueryParser.parse('baker from:luna')
+        const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it("Luna can find own posts in 'luna' scope", async () => {
-        const query = SearchQueryParser.parse('baker from:luna')
+        const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
-    })
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
+    });
 
     describe('Luna and Mars are friends', () => {
       beforeEach(async () => {
         await Promise.all([luna.subscribeTo(mars), mars.subscribeTo(luna)]);
-        lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds
-        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
-      })
+        lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds;
+        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
+      });
 
       it("Mars can find Luna's posts", async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it('Luna can find own posts', async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it("Mars can find Luna's posts in 'luna' scope", async () => {
-        const query = SearchQueryParser.parse('baker from:luna')
+        const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it("Luna can find own posts in 'luna' scope", async () => {
-        const query = SearchQueryParser.parse('baker from:luna')
+        const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
-    })
-  })
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
+    });
+  });
 
 
   describe('private user Luna, public user Mars, not visible to anonymous Saturn, stranger Jupiter, anonymous Uranus', () => {
-    const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog']
-    const saturnPostsContent = ['Eagle', 'Fire', 'Gigantic']
-    const marsPostsContent = ['Humidity', 'Icicle', 'Job']
+    const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'];
+    const saturnPostsContent = ['Eagle', 'Fire', 'Gigantic'];
+    const marsPostsContent = ['Humidity', 'Icicle', 'Job'];
 
     let luna, mars, jupiter, saturn, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds,
       marsVisibleFeedIds, bannedByMarsUserIds, jupiterVisibleFeedIds, bannedByJupiterUserIds, saturnPosts, marsPosts;
 
     beforeEach(async () => {
-      luna    = new User({ username: 'Luna', password: 'password' })
-      mars    = new User({ username: 'Mars', password: 'password' })
-      jupiter = new User({ username: 'Jupiter', password: 'password' })
-      saturn  = new User({ username: 'Saturn', password: 'password' })
+      luna    = new User({ username: 'Luna', password: 'password' });
+      mars    = new User({ username: 'Mars', password: 'password' });
+      jupiter = new User({ username: 'Jupiter', password: 'password' });
+      saturn  = new User({ username: 'Saturn', password: 'password' });
 
-      await Promise.all([luna.create(), mars.create(), jupiter.create(), saturn.create()])
-      await luna.update({ isPrivate: '1' })
-      await saturn.update({ isProtected: '1' })
+      await Promise.all([luna.create(), mars.create(), jupiter.create(), saturn.create()]);
+      await luna.update({ isPrivate: '1' });
+      await saturn.update({ isProtected: '1' });
 
-      lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds
-      bannedByLunaUserIds = await luna.getBanIds()
+      lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds;
+      bannedByLunaUserIds = await luna.getBanIds();
 
-      marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
-      bannedByMarsUserIds = await mars.getBanIds()
+      marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
+      bannedByMarsUserIds = await mars.getBanIds();
 
-      lunaPosts = []
+      lunaPosts = [];
 
       for (const body of lunaPostsContent) {
         const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
         lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
 
-      saturnPosts = []
+      saturnPosts = [];
 
       for (const body of saturnPostsContent) {
         const post = await saturn.newPost({ body });  // eslint-disable-line no-await-in-loop
         saturnPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
 
-      marsPosts = []
+      marsPosts = [];
 
       for (const body of marsPostsContent) {
         const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
         marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
       }
-    })
+    });
 
     describe('Luna and Mars are not friends', () => {
       it("Mars can't find Luna's posts", async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.be.empty
-      })
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.be.empty;
+      });
 
       it('Luna can find own posts', async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
-    })
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
+    });
 
     describe('Saturn doesn\'t like people who are not logged in', () => {
       beforeEach(async () => {
-        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
-        jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds
-        bannedByJupiterUserIds = await jupiter.getBanIds()
-      })
+        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
+        jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds;
+        bannedByJupiterUserIds = await jupiter.getBanIds();
+      });
 
       it("Mars can find Saturn's posts", async () => {
-        const query = SearchQueryParser.parse('gigantic')
+        const query = SearchQueryParser.parse('gigantic');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(saturnPosts[2].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(saturnPosts[2].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(saturnPosts[2].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(saturnPosts[2].body);
+      });
 
       it("Uranus can't find Saturn's posts", async () => {
-        const query = SearchQueryParser.parse('gigantic')
+        const query = SearchQueryParser.parse('gigantic');
 
-        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30)
-        searchResults.should.be.empty
-      })
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+        searchResults.should.be.empty;
+      });
 
       it("Uranus can find Mars' posts", async () => {
-        const query = SearchQueryParser.parse('icicle')
+        const query = SearchQueryParser.parse('icicle');
 
-        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(marsPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(marsPosts[1].body)
-      })
-    })
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(marsPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(marsPosts[1].body);
+      });
+    });
 
     describe('Luna and Mars are friends', () => {
       beforeEach(async () => {
         await Promise.all([luna.subscribeTo(mars), mars.subscribeTo(luna)]);
-        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds
-        jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds
-        bannedByJupiterUserIds = await jupiter.getBanIds()
-      })
+        marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
+        jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds;
+        bannedByJupiterUserIds = await jupiter.getBanIds();
+      });
 
       it("Mars can find Luna's posts", async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it('Luna can find own posts', async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it("Mars can find Luna's posts in 'luna' scope", async () => {
-        const query = SearchQueryParser.parse('baker from:luna')
+        const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30)
-        searchResults.should.not.be.empty
-        searchResults.length.should.eql(1)
-        searchResults[0].should.have.property('uid')
-        searchResults[0].uid.should.eql(lunaPosts[1].id)
-        searchResults[0].should.have.property('body')
-        searchResults[0].body.should.eql(lunaPosts[1].body)
-      })
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        searchResults.should.not.be.empty;
+        searchResults.length.should.eql(1);
+        searchResults[0].should.have.property('uid');
+        searchResults[0].uid.should.eql(lunaPosts[1].id);
+        searchResults[0].should.have.property('body');
+        searchResults[0].body.should.eql(lunaPosts[1].body);
+      });
 
       it("Jupiter can't find Luna's posts", async () => {
-        const query = SearchQueryParser.parse('baker')
+        const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, jupiter.id, jupiterVisibleFeedIds, bannedByJupiterUserIds, 0, 30)
-        searchResults.should.be.empty
-      })
-    })
-  })
+        const searchResults = await dbAdapter.searchPosts(query, jupiter.id, jupiterVisibleFeedIds, bannedByJupiterUserIds, 0, 30);
+        searchResults.should.be.empty;
+      });
+    });
+  });
 
   describe('search patterns', () => {
     const searchFor = (term) => {
@@ -319,12 +320,12 @@ describe('FullTextSearch', () => {
 
       {
         const searchResults = await searchFor('"oob"');
-        searchResults.length.should.eql(0)
+        searchResults.length.should.eql(0);
       }
 
       {
         const searchResults = await searchFor('"hello foob"');
-        searchResults.length.should.eql(0)
+        searchResults.length.should.eql(0);
       }
     });
 
@@ -334,12 +335,12 @@ describe('FullTextSearch', () => {
 
       {
         const searchResults = await searchFor('"hello"');
-        searchResults.length.should.eql(1)
+        searchResults.length.should.eql(1);
       }
 
       {
         const searchResults = await searchFor('"foobar"');
-        searchResults.length.should.eql(1)
+        searchResults.length.should.eql(1);
       }
     });
 
@@ -349,7 +350,7 @@ describe('FullTextSearch', () => {
 
       {
         const searchResults = await searchFor('"hello, dolly. goodbye"');
-        searchResults.length.should.eql(0)
+        searchResults.length.should.eql(0);
       }
     });
 
@@ -393,7 +394,7 @@ describe('FullTextSearch', () => {
       bodies.should.include(postTexts[2]);
       bodies.should.include(postTexts[3]);
     });
-  })
+  });
 
   describe('banned users content', () => {
     let luna, mars, jupiter, post;
@@ -401,17 +402,17 @@ describe('FullTextSearch', () => {
     const _becomeFriends = async (user1, user2) => {
       await user1.subscribeTo(user2);
       return user2.subscribeTo(user1);
-    }
+    };
 
     const _createPost = async (author, text) => {
       post = await author.newPost({ body: text });
       return post.create();
-    }
+    };
 
     const _createGroupPost = async (author, groupPostsFeedId, text) => {
       post = await author.newPost({ body: text, timelineIds: [groupPostsFeedId] });
       return post.create();
-    }
+    };
 
     const _createComment = async (commenter, commentBody, thePost) => {
       const comment = await commenter.newComment({
@@ -420,7 +421,7 @@ describe('FullTextSearch', () => {
       });
 
       return comment.create();
-    }
+    };
 
     beforeEach(async () => {
       luna = new User({ username: 'Luna', password: 'password' });
@@ -489,7 +490,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicPosts('fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should not find post from banned user', async () => {
@@ -540,7 +541,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicPosts('"fox"', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should not find post from banned user', async () => {
@@ -591,8 +592,8 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicPosts('#fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
-    })
+      });
+    });
 
     describe('private posts search', () => {
       beforeEach(async () => {
@@ -662,7 +663,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivatePosts('fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should not find post from banned user', async () => {
@@ -713,7 +714,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivatePosts('"fox"', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should not find post from banned user', async () => {
@@ -764,8 +765,8 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivatePosts('#fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
-    })
+      });
+    });
 
     describe('public posts search with specified author', () => {
       const _searchPublicUserPosts = async (term, viewer) => {
@@ -825,7 +826,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicUserPosts('from: jupiter fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should not find post from banned user', async () => {
@@ -876,7 +877,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicUserPosts('from: mars "fox"', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should not find post from banned user', async () => {
@@ -927,8 +928,8 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicUserPosts('from: mars #fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
-    })
+      });
+    });
 
     describe('private posts search with specified author', () => {
       beforeEach(async () => {
@@ -999,7 +1000,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivateUserPosts('from: jupiter fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should not find post from banned user', async () => {
@@ -1050,7 +1051,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivateUserPosts('from: mars "fox"', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should not find post from banned user', async () => {
@@ -1101,8 +1102,8 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivateUserPosts('from: mars #fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
-    })
+      });
+    });
 
     describe('public posts search with specified group', () => {
       let group, groupTimelineId;
@@ -1173,7 +1174,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicGroupPosts('group: search-dev fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should not find post from banned user', async () => {
@@ -1224,7 +1225,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicGroupPosts('group: search-dev "fox"', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should not find post from banned user', async () => {
@@ -1275,8 +1276,8 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPublicGroupPosts('group: search-dev #fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
-    })
+      });
+    });
 
     describe('private posts search with specified group', () => {
       let group, groupTimelineId;
@@ -1348,7 +1349,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should not find post from banned user', async () => {
@@ -1399,7 +1400,7 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', luna);
           searchResults.length.should.eql(0);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should not find post from banned user', async () => {
@@ -1450,9 +1451,9 @@ describe('FullTextSearch', () => {
           const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', luna);
           searchResults.length.should.eql(0);
         });
-      })
-    })
-  })
+      });
+    });
+  });
 
   describe('group post search', () => {
     let luna, mars, jupiter, post;
@@ -1460,7 +1461,7 @@ describe('FullTextSearch', () => {
     const _createGroupPost = async (author, groupPostsFeedId, text) => {
       post = await author.newPost({ body: text, timelineIds: [groupPostsFeedId] });
       return post.create();
-    }
+    };
 
     const _createComment = async (commenter, commentBody, thePost) => {
       const comment = await commenter.newComment({
@@ -1469,7 +1470,7 @@ describe('FullTextSearch', () => {
       });
 
       return comment.create();
-    }
+    };
 
     beforeEach(async () => {
       luna = new User({ username: 'Luna', password: 'password' });
@@ -1540,7 +1541,7 @@ describe('FullTextSearch', () => {
           searchResults.length.should.eql(1);
           searchResults[0].body.should.eql(post.body);
         });
-      })
+      });
 
       describe('exact match search', () => {
         it('should find post in specified group', async () => {
@@ -1582,7 +1583,7 @@ describe('FullTextSearch', () => {
           searchResults.length.should.eql(1);
           searchResults[0].body.should.eql(post.body);
         });
-      })
+      });
 
       describe('hashtag search', () => {
         it('should find post in specified group', async () => {
@@ -1624,8 +1625,8 @@ describe('FullTextSearch', () => {
           searchResults.length.should.eql(1);
           searchResults[0].body.should.eql(post.body);
         });
-      })
-    })
+      });
+    });
 
     describe('private posts search with specified group', () => {
       let group, groupTimelineId;
@@ -1689,7 +1690,7 @@ describe('FullTextSearch', () => {
             searchResults.length.should.eql(1);
             searchResults[0].body.should.eql(post.body);
           });
-        })
+        });
 
         describe('for non-subscribers', () => {
           it('should not find post in specified group', async () => {
@@ -1706,8 +1707,8 @@ describe('FullTextSearch', () => {
             const searchResults = await _searchPrivateGroupPosts('group: search-dev fox', jupiter);
             searchResults.length.should.eql(0);
           });
-        })
-      })
+        });
+      });
 
       describe('exact match search', () => {
         describe('for group subscribers', () => {
@@ -1751,7 +1752,7 @@ describe('FullTextSearch', () => {
             searchResults.length.should.eql(1);
             searchResults[0].body.should.eql(post.body);
           });
-        })
+        });
 
         describe('for non-subscribers', () => {
           it('should not find post in specified group', async () => {
@@ -1768,8 +1769,8 @@ describe('FullTextSearch', () => {
             const searchResults = await _searchPrivateGroupPosts('group: search-dev "fox"', jupiter);
             searchResults.length.should.eql(0);
           });
-        })
-      })
+        });
+      });
 
       describe('hashtag search', () => {
         describe('for group subscribers', () => {
@@ -1813,7 +1814,7 @@ describe('FullTextSearch', () => {
             searchResults.length.should.eql(1);
             searchResults[0].body.should.eql(post.body);
           });
-        })
+        });
 
         describe('for non-subscribers', () => {
           it('should not find post in specified group', async () => {
@@ -1830,8 +1831,8 @@ describe('FullTextSearch', () => {
             const searchResults = await _searchPrivateGroupPosts('group: search-dev #fox', jupiter);
             searchResults.length.should.eql(0);
           });
-        })
-      })
-    })
-  })
+        });
+      });
+    });
+  });
 });

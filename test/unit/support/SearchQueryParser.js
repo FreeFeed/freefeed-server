@@ -1,4 +1,5 @@
 /* eslint-env node, mocha */
+/* eslint babel/semi: "error" */
 import expect from 'unexpected';
 import { forEach } from 'lodash';
 
