@@ -14,7 +14,8 @@ describe('FullTextSearch', () => {
   describe('public users Luna, Mars', () => {
     const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'];
 
-    let luna, mars, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds, marsVisibleFeedIds, bannedByMarsUserIds;
+    let luna, mars, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds, marsVisibleFeedIds, bannedByMarsUserIds,
+      feedsBannedForLuna, feedsBannedForMars;
 
     beforeEach(async () => {
       luna    = new User({ username: 'Luna', password: 'password' });
@@ -24,9 +25,11 @@ describe('FullTextSearch', () => {
 
       lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds;
       bannedByLunaUserIds = await luna.getBanIds();
+      feedsBannedForLuna = await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(luna.id);
 
       marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
       bannedByMarsUserIds = await mars.getBanIds();
+      feedsBannedForMars = await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(mars.id);
 
       lunaPosts = [];
 
@@ -40,7 +43,7 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -52,7 +55,7 @@ describe('FullTextSearch', () => {
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -64,7 +67,7 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -76,7 +79,7 @@ describe('FullTextSearch', () => {
       it("Luna can find own posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -96,7 +99,7 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -108,7 +111,7 @@ describe('FullTextSearch', () => {
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -120,7 +123,7 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -132,7 +135,7 @@ describe('FullTextSearch', () => {
       it("Luna can find own posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -149,6 +152,7 @@ describe('FullTextSearch', () => {
     const marsPostsContent = ['Humidity', 'Icicle', 'Job'];
 
     let luna, mars, jupiter, saturn, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds,
+      feedsBannedForJupiter, feedsBannedForLuna, feedsBannedForMars,
       marsVisibleFeedIds, bannedByMarsUserIds, jupiterVisibleFeedIds, bannedByJupiterUserIds, saturnPosts, marsPosts;
 
     beforeEach(async () => {
@@ -163,9 +167,11 @@ describe('FullTextSearch', () => {
 
       lunaVisibleFeedIds = (await dbAdapter.getUserById(luna.id)).subscribedFeedIds;
       bannedByLunaUserIds = await luna.getBanIds();
+      feedsBannedForLuna = await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(luna.id);
 
       marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
       bannedByMarsUserIds = await mars.getBanIds();
+      feedsBannedForMars = await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(mars.id);
 
       lunaPosts = [];
 
@@ -193,14 +199,14 @@ describe('FullTextSearch', () => {
       it("Mars can't find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.be.empty;
       });
 
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -220,7 +226,7 @@ describe('FullTextSearch', () => {
       it("Mars can find Saturn's posts", async () => {
         const query = SearchQueryParser.parse('gigantic');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -232,14 +238,14 @@ describe('FullTextSearch', () => {
       it("Uranus can't find Saturn's posts", async () => {
         const query = SearchQueryParser.parse('gigantic');
 
-        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], [], 0, 30);
         searchResults.should.be.empty;
       });
 
       it("Uranus can find Mars' posts", async () => {
         const query = SearchQueryParser.parse('icicle');
 
-        const searchResults = await dbAdapter.searchPosts(query, null, [], [], 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, null, [], [], [], 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -255,12 +261,13 @@ describe('FullTextSearch', () => {
         marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
         jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds;
         bannedByJupiterUserIds = await jupiter.getBanIds();
+        feedsBannedForJupiter = await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(jupiter.id);
       });
 
       it("Mars can find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -272,7 +279,7 @@ describe('FullTextSearch', () => {
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -284,7 +291,7 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.have.property('uid');
@@ -296,7 +303,7 @@ describe('FullTextSearch', () => {
       it("Jupiter can't find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, jupiter.id, jupiterVisibleFeedIds, bannedByJupiterUserIds, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(query, jupiter.id, jupiterVisibleFeedIds, bannedByJupiterUserIds, feedsBannedForJupiter, 0, 30);
         searchResults.should.be.empty;
       });
     });
@@ -305,7 +312,7 @@ describe('FullTextSearch', () => {
   describe('search patterns', () => {
     const searchFor = (term) => {
       const query = SearchQueryParser.parse(term);
-      return dbAdapter.searchPosts(query, null, [], [], 0, 30);
+      return dbAdapter.searchPosts(query, null, [], [], [], 0, 30);
     };
 
     let luna;
@@ -441,14 +448,26 @@ describe('FullTextSearch', () => {
     describe('public posts search', () => {
       const _searchPublicPosts = async (term, viewer) => {
         const bannedUserIdsPromise = viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
         const query = SearchQueryParser.parse(term);
 
-        return dbAdapter.searchPosts(query, null, [], await bannedUserIdsPromise, 0, 30);
+        return dbAdapter.searchPosts(query, null, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
       };
 
       it('should not find post from banned user', async () => {
         await _createPost(mars, 'Lazy green fox jumps over the #lazy dog');
         await luna.ban('mars');
+
+        await Promise.all([
+          expect(_searchPublicPosts('fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicPosts('"fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicPosts('#lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
+      });
+
+      it('should not find posts in feed of user who banned us', async () => {
+        await _createPost(mars, 'Lazy green fox jumps over the #lazy dog');
+        await mars.ban('luna');
 
         await Promise.all([
           expect(_searchPublicPosts('fox', luna), 'when fulfilled', 'to have length', 0),
@@ -493,6 +512,18 @@ describe('FullTextSearch', () => {
         ]);
       });
 
+      it(`should not find posts in feed of user who banned us by viewer's comment match`, async () => {
+        const post = await _createPost(mars, 'Lazy sloth');
+        await _createComment(luna, 'Very #lazy fox', post);
+        await mars.ban('luna');
+
+        await Promise.all([
+          expect(_searchPublicPosts('fox', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicPosts('"fox"', luna), 'when fulfilled', 'to have length', 0),
+          expect(_searchPublicPosts('#lazy', luna), 'when fulfilled', 'to have length', 0),
+        ]);
+      });
+
       it("should not find visible post by banned user's comment match", async () => {
         const post = await _createPost(jupiter, 'Lazy sloth');
         await _createComment(mars, 'Very #lazy fox', post);
@@ -524,6 +555,7 @@ describe('FullTextSearch', () => {
       const _searchPrivatePosts = async (term, viewer) => {
         const refetchedUserPromise = dbAdapter.getUserById(viewer.id);
         const bannedUserIdsPromise = viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
         const query = SearchQueryParser.parse(term);
 
         return dbAdapter.searchPosts(
@@ -531,6 +563,7 @@ describe('FullTextSearch', () => {
           viewer.id,
           (await refetchedUserPromise).subscribedFeedIds,
           await bannedUserIdsPromise,
+          await feedsBannedForUser,
           0,
           30
         );
@@ -599,10 +632,11 @@ describe('FullTextSearch', () => {
     describe('public posts search with specified author', () => {
       const _searchPublicUserPosts = async (term, viewer) => {
         const bannedUserIdsPromise = viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
         const query = SearchQueryParser.parse(term);
         const targetUserPromise = dbAdapter.getUserByUsername(query.username);
 
-        return dbAdapter.searchUserPosts(query, (await targetUserPromise).id, [], await bannedUserIdsPromise, 0, 30);
+        return dbAdapter.searchUserPosts(query, (await targetUserPromise).id, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
       };
 
       describe('full text search', () => {
@@ -685,10 +719,11 @@ describe('FullTextSearch', () => {
       const _searchPrivateUserPosts = async (term, viewer) => {
         const visibleFeedIds = (await dbAdapter.getUserById(viewer.id)).subscribedFeedIds;
         const bannedUserIds = await viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
 
         const query = SearchQueryParser.parse(term);
         const targetUser = await dbAdapter.getUserByUsername(query.username);
-        return dbAdapter.searchUserPosts(query, targetUser.id, visibleFeedIds, bannedUserIds, 0, 30);
+        return dbAdapter.searchUserPosts(query, targetUser.id, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
       it('should not find post from banned user', async () => {
@@ -768,12 +803,13 @@ describe('FullTextSearch', () => {
 
       const _searchPublicGroupPosts = async (term, viewer) => {
         const bannedUserIdsPromise = viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
 
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
 
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], await bannedUserIdsPromise, 0, 30);
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
       };
 
       it('should not find post from banned user', async () => {
@@ -850,6 +886,7 @@ describe('FullTextSearch', () => {
       const _searchPrivateGroupPosts = async (term, viewer) => {
         const refetchedUserPromise = dbAdapter.getUserById(viewer.id);
         const bannedUserIdsPromise = viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
 
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
@@ -860,6 +897,7 @@ describe('FullTextSearch', () => {
           groupPostsFeedId,
           (await refetchedUserPromise).subscribedFeedIds,
           await bannedUserIdsPromise,
+          await feedsBannedForUser,
           0,
           30
         );
@@ -965,11 +1003,12 @@ describe('FullTextSearch', () => {
 
       const _searchPublicGroupPosts = async (term, viewer) => {
         const bannedUserIds = await viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
 
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], bannedUserIds, 0, 30);
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, [], bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
       describe('full text search', () => {
@@ -1112,11 +1151,12 @@ describe('FullTextSearch', () => {
       const _searchPrivateGroupPosts = async (term, viewer) => {
         const visibleFeedIds = (await dbAdapter.getUserById(viewer.id)).subscribedFeedIds;
         const bannedUserIds = await viewer.getBanIds();
+        const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
 
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, visibleFeedIds, bannedUserIds, 0, 30);
+        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
       };
 
       describe('full text search', () => {

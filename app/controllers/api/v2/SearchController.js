@@ -39,13 +39,14 @@ export default class SearchController {
     limit++;
 
     const bannedUserIds = ctx.state.user ? await ctx.state.user.getBanIds() : [];
+    const feedIntIdsBannedForUser = ctx.state.user ? await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(ctx.state.user.id) : [];
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
     const isAnonymous = !ctx.state.user;
     const visibleFeedIds = ctx.state.user ? [await ctx.state.user.getPostsTimelineIntId(), ...ctx.state.user.subscribedFeedIds] : [];
 
     switch (preparedQuery.scope) {
       case SEARCH_SCOPES.ALL_VISIBLE_POSTS: {
-        foundPosts = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, offset, limit);
+        foundPosts = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
         break;
       }
 
@@ -73,7 +74,7 @@ export default class SearchController {
           }
         }
 
-        foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, offset, limit);
+        foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
 
         break;
       }
@@ -92,7 +93,7 @@ export default class SearchController {
           throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`);
         }
 
-        foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, visibleFeedIds, bannedUserIds, offset, limit);
+        foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
 
         break;
       }

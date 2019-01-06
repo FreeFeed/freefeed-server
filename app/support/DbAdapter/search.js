@@ -7,9 +7,9 @@ import pgFormat from 'pg-format';
 ///////////////////////////////////////////////////
 
 const searchTrait = (superClass) => class extends superClass {
-  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, offset, limit) {
+  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
@@ -67,9 +67,9 @@ const searchTrait = (superClass) => class extends superClass {
     return res.rows;
   }
 
-  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, offset, limit) {
+  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
@@ -113,9 +113,9 @@ const searchTrait = (superClass) => class extends superClass {
     return res.rows;
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, offset, limit) {
+  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
@@ -163,12 +163,18 @@ const searchTrait = (superClass) => class extends superClass {
     return res.rows;
   }
 
-  _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds) {
-    if (bannedUserIds.length === 0) {
-      return '';
+  _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser) {
+    let q = '';
+
+    if (bannedUserIds.length > 0) {
+      q += pgFormat('AND "posts"."user_id" NOT IN (%L) ', bannedUserIds);
     }
 
-    return pgFormat('and posts.user_id not in (%L) ', bannedUserIds);
+    if (feedIntIdsBannedForUser.length > 0) {
+      q += pgFormat('AND "feeds"."id" NOT IN (%L) ', feedIntIdsBannedForUser);
+    }
+
+    return q;
   }
 
   _getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds) {
