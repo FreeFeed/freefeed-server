@@ -2,8 +2,8 @@
 /* global $pg_database */
 import expect from 'unexpected'
 
-import cleanDB from '../dbCleaner'
-import { dbAdapter, User, Group } from '../../app/models'
+import cleanDB from '../../../dbCleaner'
+import { dbAdapter, User, Group } from '../../../../app/models'
 
 
 describe('Post Privacy Flags', () => {

@@ -39,6 +39,15 @@ const bansTrait = (superClass) => class extends superClass {
       .where('bans.user_id', userId);
   }
 
+  async getFeedsIntIdsOfUsersWhoBannedViewer(viewerId) {
+    return await this.database
+      .pluck('feeds.id')
+      .from('feeds')
+      .innerJoin('bans', 'bans.user_id', 'feeds.user_id')
+      .where('feeds.name', 'Posts')
+      .where('bans.banned_user_id', viewerId);
+  }
+
   async getBanMatrixByUsersForPostReader(bannersUserIds, targetUserId) {
     let res = [];
 

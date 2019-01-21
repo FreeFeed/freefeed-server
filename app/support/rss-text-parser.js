@@ -82,6 +82,6 @@ function linkify(text) {
       return `<a href="${htmlEscape(token.href)}">${htmlEscape(token.pretty)}</a>`
     }
 
-    return token.text;
+    return htmlEscape(token.text);
   }).join('');
 }

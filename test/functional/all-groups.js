@@ -93,9 +93,9 @@ describe('All groups', () => {
       it('should return a proper structure', () => expect(response, 'to exhaustively satisfy', allGroupsResponse));
       it('should return only one group',     () => expect(response.groups, 'to have length', 1));
       it('it should be Public group',        () => expect(response.groups[0].id, 'to equal', pubicGroup.id));
-      it('shoud be 3 subscribers in Public group', () => expect(response.groups[0].subscribers, 'to equal', 3));
-      it('shoud be about 2 posts in Public group', () => expect(response.groups[0].postsByMonth, 'to be close to', 2, 1e-5));
-      it('Public group shoud have author variety about 50%', () => {
+      it('should be 3 subscribers in Public group', () => expect(response.groups[0].subscribers, 'to equal', 3));
+      it('should be about 2 posts in Public group', () => expect(response.groups[0].postsByMonth, 'to be close to', 2, 1e-5));
+      it('Public group should have author variety about 50%', () => {
         expect(response.groups[0].authorsVariety, 'to be close to', 1 / 2, 1e-5);
       });
     });
@@ -116,14 +116,14 @@ describe('All groups', () => {
       it('it should be Public and Protected groups', () => {
         expect(_.map(response.groups, 'id'), 'to contain', pubicGroup.id, protectedGroup.id);
       });
-      it('shoud be 3 subscribers in Public group',    () => expect(pubicGroupResp.subscribers, 'to equal', 3));
-      it('shoud be 3 subscribers in Protected group', () => expect(protectedGroupResp.subscribers, 'to equal', 3));
-      it('shoud be about 2 posts in Public group',    () => expect(pubicGroupResp.postsByMonth, 'to be close to', 2, 1e-5));
-      it('shoud be about 3 posts in Protected group', () => expect(protectedGroupResp.postsByMonth, 'to be close to', 3, 1e-5));
-      it('Public group shoud have author variety about 50%',    () => {
+      it('should be 3 subscribers in Public group',    () => expect(pubicGroupResp.subscribers, 'to equal', 3));
+      it('should be 3 subscribers in Protected group', () => expect(protectedGroupResp.subscribers, 'to equal', 3));
+      it('should be about 2 posts in Public group',    () => expect(pubicGroupResp.postsByMonth, 'to be close to', 2, 1e-5));
+      it('should be about 3 posts in Protected group', () => expect(protectedGroupResp.postsByMonth, 'to be close to', 3, 1e-5));
+      it('Public group should have author variety about 50%',    () => {
         expect(pubicGroupResp.authorsVariety, 'to be close to', 1 / 2, 1e-5);
       });
-      it('Protected group shoud have author variety about 50%', () => {
+      it('Protected group should have author variety about 50%', () => {
         expect(protectedGroupResp.authorsVariety, 'to be close to', 2 / 3, 1e-5);
       });
     });

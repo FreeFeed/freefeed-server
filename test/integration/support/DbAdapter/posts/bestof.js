@@ -2,8 +2,8 @@
 /* global $pg_database */
 import _ from 'lodash'
 
-import cleanDB from '../dbCleaner'
-import { dbAdapter, User } from '../../app/models'
+import cleanDB from '../../../../dbCleaner'
+import { dbAdapter, User } from '../../../../../app/models'
 
 
 describe('BestOf', () => {

@@ -3,7 +3,7 @@
   "name": "freefeed-server",
   "description": "FreeFeed is an open source FriendFeed clone (yes, it is free and open!) based on Pepyatka open-source FriendFeed clone (yes, that one is also free and open). Basically, this is a social real-time feed aggregator that allows you to share cute kittens, coordinate upcoming events, discuss any other cool stuff on the Internet or setup a private Pepyatka instance in your company.",
   "homepage": "https://freefeed.net",
-  "version": "1.57.2",
+  "version": "1.57.3",
   "private": true,
   "scripts": {
     "start": "babel-node index.js",
@@ -12,7 +12,7 @@
     "lint": "eslint app bin config test",
     "reset-test-db": "babel-node bin/clean_test_db.js && knex --env test migrate:latest",
     "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
-    "mocha": "cross-env NODE_ENV=test mocha --opts test/mocha.opts test/unit test/functional test/cleanup.js",
+    "mocha": "cross-env NODE_ENV=test mocha --opts test/mocha.opts test/unit test/integration test/functional test/cleanup.js",
     "test-just": "cross-env NODE_ENV=test mocha",
     "console": "babel-node bin/console",
     "coverage": "cross-env NODE_ENV=test istanbul cover _mocha -- -R spec",
