@@ -113,7 +113,7 @@ const searchTrait = (superClass) => class extends superClass {
     return res.rows;
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
+  async searchGroupPosts(query, groupFeedId, authorId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
     const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
@@ -157,8 +157,14 @@ const searchTrait = (superClass) => class extends superClass {
       subQueries = [...subQueries, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
     }
 
+    let authorCondition = '';
+
+    if (authorId) {
+      authorCondition = `WHERE "found_posts"."user_id"='${authorId}'`;
+    }
+
     const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
+      `select * from (${subQueries.join(' union ')}) as found_posts ${authorCondition} order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     );
     return res.rows;
   }
