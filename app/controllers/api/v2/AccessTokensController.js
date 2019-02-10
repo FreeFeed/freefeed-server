@@ -37,12 +37,14 @@ export const revokeToken = compose([
   monitored('tokens.revoke'),
   async (ctx) => {
     const currentUserId = ctx.state.user.id;
-    const tokenId = ctx.request.body.tokenId; // eslint-disable-line prefer-destructuring
+    const { tokenId } = ctx.params;
 
     const token = await dbAdapter.getAccessTokenById(currentUserId, tokenId);
+
     if (token === null) {
       throw new NotFoundException("Can't find token");
     }
+
     if (token.status !== 'active') {
       throw new ForbiddenException('Token is already revoked');
     }
