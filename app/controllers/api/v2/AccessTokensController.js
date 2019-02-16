@@ -8,7 +8,7 @@ import { NotFoundException, ForbiddenException } from '../../../support/exceptio
 
 
 export const getTokens = compose([
-  authRequired(),
+  authRequired(true),
   monitored('tokens.get'),
   async (ctx) => {
     const currentUserId = ctx.state.user.id;
@@ -18,7 +18,7 @@ export const getTokens = compose([
 ]);
 
 export const createToken = compose([
-  authRequired(),
+  authRequired(true),
   monitored('tokens.create'),
   async (ctx) => {
     const currentUserId = ctx.state.user.id;
@@ -33,7 +33,7 @@ export const createToken = compose([
 ]);
 
 export const revokeToken = compose([
-  authRequired(),
+  authRequired(true),
   monitored('tokens.revoke'),
   async (ctx) => {
     const currentUserId = ctx.state.user.id;

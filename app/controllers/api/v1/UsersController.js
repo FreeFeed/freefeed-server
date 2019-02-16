@@ -405,6 +405,11 @@ export default class UsersController {
         return acc;
       }, {});
 
+      // Email change requires full access token
+      if (attrs.email && (attrs.email !== ctx.state.user.email) && !ctx.state.user.hasFullAccess) {
+        throw new NotAuthorizedException();
+      }
+
       await user.update(attrs);
 
       // should return the same response as 'whoami'

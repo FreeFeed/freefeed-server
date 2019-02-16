@@ -37,9 +37,13 @@ export function monitored(monitorName, monitor = monitorDog) {
   };
 }
 
-export function authRequired() {
+export function authRequired(fullAccessRequired = false) {
   return async (ctx, next) => {
     if (!ctx.state.user) {
+      throw new NotAuthorizedException();
+    }
+
+    if (fullAccessRequired && !ctx.state.user.hasFullAccess) {
       throw new NotAuthorizedException();
     }
 
