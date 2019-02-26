@@ -220,7 +220,7 @@ const searchTrait = (superClass) => class extends superClass {
     }
 
     if (searchConditions.length == 0) {
-      return ' 1=0 ';
+      return ' 1=1 ';
     }
 
     return `${searchConditions.join(' and ')} `;
@@ -255,7 +255,7 @@ const searchTrait = (superClass) => class extends superClass {
     }
 
     if (searchConditions.length == 0) {
-      return ' 1=0 ';
+      return ' 1=1 ';
     }
 
     return `${searchConditions.join(' and ')} `;

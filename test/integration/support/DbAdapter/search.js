@@ -87,6 +87,24 @@ describe('FullTextSearch', () => {
         searchResults[0].should.have.property('body');
         searchResults[0].body.should.eql(lunaPosts[1].body);
       });
+
+      describe('there are some posts by mars', () => {
+        beforeEach(async () => {
+          const marsPostContents = ['Something', 'Else'];
+
+          for (const body of marsPostContents) {
+            const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
+            await post.create();                        // eslint-disable-line no-await-in-loop
+          }
+        });
+
+        it('Luna can find all of her posts', async () => {
+          const query = SearchQueryParser.parse('from:luna');
+
+          const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+          expect(searchResults, 'to have length', 4);
+        });
+      });
     });
 
     describe('Luna and Mars are friends', () => {

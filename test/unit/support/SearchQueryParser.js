@@ -24,6 +24,7 @@ describe('SearchQueryParser', () => {
       'group:solar-system foo bar':          { query: 'foo & bar', group: 'solar-system' },
       'foo group:solar-system bar':          { query: 'foo & bar', group: 'solar-system' },
       'foo group:solar-system bar from: me': { query: 'foo & bar', username: 'me', group: 'solar-system' },
+      'from:luna group:solar-system':        { username: 'luna', group: 'solar-system' },
     };
 
     forEach(expectations, (output, input) => {
@@ -38,6 +39,7 @@ describe('SearchQueryParser', () => {
     const expectations = {
       'from:me test':                     { query: 'test', username: 'luna' },
       'from:me test group: solar-system': { query: 'test', username: 'luna', group: 'solar-system' },
+      'from:me group: solar-system':      { username: 'luna', group: 'solar-system' },
     };
 
     forEach(expectations, (output, input) => {
