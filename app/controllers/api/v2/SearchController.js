@@ -1,4 +1,6 @@
 /* eslint babel/semi: "error" */
+import trim from 'lodash/trim';
+
 import { dbAdapter } from '../../../models';
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions';
 import { SearchQueryParser } from '../../../support/SearchQueryParser';
@@ -43,7 +45,10 @@ export default class SearchController {
     const isAnonymous = !ctx.state.user;
     const visibleFeedIds = ctx.state.user ? [await ctx.state.user.getPostsTimelineIntId(), ...ctx.state.user.subscribedFeedIds] : [];
 
-    if (preparedQuery.group) {
+    if (trim(ctx.request.query.qs).length === 0) {
+      // block "empty" queries for now, as they're too slow
+      foundPosts = [];
+    } else if (preparedQuery.group) {
       targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group);
 
       if (!targetGroup) {
