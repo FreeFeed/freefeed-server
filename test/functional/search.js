@@ -1,116 +1,116 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import cleanDB from '../dbCleaner'
+/* eslint babel/semi: "error" */
+import expect from 'unexpected';
 
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
-import * as funcTestHelper from './functional_test_helper'
+import cleanDB from '../dbCleaner';
+
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
+import { PubSub } from '../../app/models';
+import * as funcTestHelper from './functional_test_helper';
 
 
 describe('SearchController', () => {
   before(async () => {
-    await getSingleton()
-    PubSub.setPublisher(new DummyPublisher())
-  })
-
-  beforeEach(() => cleanDB($pg_database))
+    await getSingleton();
+    PubSub.setPublisher(new DummyPublisher());
+    await cleanDB($pg_database);
+  });
 
   describe('#search()', () => {
-    let lunaContext = {}
-    let marsContext = {}
-    const anonContext = {}
+    let lunaContext = {};
+    let marsContext = {};
+    const anonContext = {};
 
-    beforeEach(async () => {
+    before(async () => {
       [lunaContext, marsContext] = await Promise.all([
         funcTestHelper.createUserAsync('luna', 'pw'),
         funcTestHelper.createUserAsync('mars', 'pw')
-      ])
+      ]);
       await Promise.all([
         funcTestHelper.createPostWithCommentsDisabled(lunaContext, 'hello from luna', false),
         funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashTagA from luna', false),
         funcTestHelper.createPostWithCommentsDisabled(marsContext, 'hello from mars', false)
-      ])
-      await funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashtaga from luna again', false)
-    })
+      ]);
+      await funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashtaga from luna again', false);
+    });
 
     it('should search posts', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'hello')
-      response.should.not.be.empty
-      response.should.have.property('posts')
-      response.posts.length.should.be.eql(2)
-    })
+      const response = await funcTestHelper.performSearch(anonContext, 'hello');
+      expect(response, 'to satisfy', { posts: [{}, {}] });
+    });
+
+    it('should not allow empty query', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, '');
+      expect(response, 'to satisfy', { posts: [] });
+    });
 
     it('should search user\'s posts', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from:luna hello')
-      response.should.not.be.empty
-      response.should.have.property('posts')
-      response.posts.length.should.be.eql(1)
-      response.posts[0].body.should.be.eql('hello from luna')
-    })
+      const response = await funcTestHelper.performSearch(anonContext, 'from:luna hello');
+      expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+    });
 
     it('should search own posts with from:me', async () => {
-      const response = await funcTestHelper.performSearch(lunaContext, 'from:me hello')
-      response.should.not.be.empty
-      response.should.have.property('posts')
-      response.posts.length.should.be.eql(1)
-      response.posts[0].body.should.be.eql('hello from luna')
-    })
+      const response = await funcTestHelper.performSearch(lunaContext, 'from:me hello');
+      expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+    });
 
     it('should not search anonymously with from:me', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from:me hello')
-      response.should.not.be.empty
-      response.should.have.property('err')
-    })
+      const response = await funcTestHelper.performSearch(anonContext, 'from:me hello');
+      expect(response, 'to have key', 'err');
+    });
 
     it('should search hashtags with different casing', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, '#hashtaga')
-      response.should.not.be.empty
-      response.should.have.property('posts')
-      response.posts.length.should.be.eql(2)
-    })
+      const response = await funcTestHelper.performSearch(anonContext, '#hashtaga');
+      expect(response, 'to satisfy', { posts: [{}, {}] });
+    });
 
     it('should return first page with isLastPage = false', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 0 })
-      response.should.not.be.empty
-      response.should.have.property('isLastPage')
-      response.isLastPage.should.be.eql(false)
-    })
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 0 });
+      expect(response, 'to satisfy', { isLastPage: false });
+    });
 
     it('should return last page with isLastPage = true', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 2 })
-      response.should.not.be.empty
-      response.should.have.property('isLastPage')
-      response.isLastPage.should.be.eql(true)
-    })
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 2 });
+      expect(response, 'to satisfy', { isLastPage: true });
+    });
 
     it('should return the only page with isLastPage = true', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna')
-      response.should.not.be.empty
-      response.should.have.property('isLastPage')
-      response.isLastPage.should.be.eql(true)
-    })
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna');
+      expect(response, 'to satisfy', { isLastPage: true });
+    });
 
     describe('Luna is private', () => {
-      beforeEach(async () => {
+      before(async () => {
         await funcTestHelper.goPrivate(lunaContext);
       });
 
       it(`should search user's posts`, async () => {
         const response = await funcTestHelper.performSearch(lunaContext, 'from:luna hello');
-        response.should.not.be.empty;
-        response.should.have.property('posts');
-        response.posts.length.should.be.eql(1);
-        response.posts[0].body.should.be.eql('hello from luna');
+        expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
       });
 
       it('should search own posts with from:me', async () => {
         const response = await funcTestHelper.performSearch(lunaContext, 'from:me hello');
-        response.should.not.be.empty;
-        response.should.have.property('posts');
-        response.posts.length.should.be.eql(1);
-        response.posts[0].body.should.be.eql('hello from luna');
+        expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
       });
     });
-  })
+
+    describe('There is a group', () => {
+      before(async () => {
+        const group = await funcTestHelper.createGroupAsync(lunaContext, 'lunagroup');
+        await funcTestHelper.subscribeToAsync(marsContext, group);
+        await Promise.all([
+          funcTestHelper.createAndReturnPostToFeed(group, lunaContext, 'hello from luna'),
+          funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'hello from mars'),
+        ]);
+      });
+
+      it('should find only post to group', async () => {
+        await expect(funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+        await expect(funcTestHelper.performSearch(lunaContext, 'from:me group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+      });
+    });
+  });
 });

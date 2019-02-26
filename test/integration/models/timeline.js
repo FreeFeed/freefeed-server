@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
 import uuid from 'uuid'
-import cleanDB from '../dbCleaner'
-import { dbAdapter, Timeline, User } from '../../app/models'
+import cleanDB from '../../dbCleaner'
+import { dbAdapter, Timeline, User } from '../../../app/models'
 
 
 describe('Timeline', () => {

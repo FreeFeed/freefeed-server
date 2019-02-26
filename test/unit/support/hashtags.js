@@ -2,7 +2,7 @@
 import _ from 'lodash';
 import expect from 'unexpected';
 
-import { extractHashtags, extractHashtagsWithIndices } from '../../app/support/hashtags';
+import { extractHashtags, extractHashtagsWithIndices } from '../../../app/support/hashtags';
 
 
 describe('Hashtags parser', () => {

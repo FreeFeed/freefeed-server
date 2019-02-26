@@ -484,7 +484,7 @@ const postsTrait = (superClass) => class extends superClass {
         this.getUserIdsWhoBannedUser(currentUser.id)
       ]);
 
-      bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(iBanned);
+      bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(iBanned, []);
 
       if (bannedMe.length > 0) {
         usersWhoBannedMeFilter = pgFormat('AND "feeds"."user_id" NOT IN (%L) ', bannedMe);

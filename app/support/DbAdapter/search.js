@@ -1,3 +1,4 @@
+/* eslint babel/semi: "error" */
 import _ from 'lodash';
 import pgFormat from 'pg-format';
 
@@ -6,16 +7,16 @@ import pgFormat from 'pg-format';
 ///////////////////////////////////////////////////
 
 const searchTrait = (superClass) => class extends superClass {
-  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, offset, limit) {
+  async searchPosts(query, currentUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
-    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
-    const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected'
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
+    const publicOrVisibleForAnonymous = currentUserId ? 'not users.is_private' : 'not users.is_protected';
 
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
-      visibleFeedIds = 'NULL'
+      visibleFeedIds = 'NULL';
     }
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
@@ -62,16 +63,16 @@ const searchTrait = (superClass) => class extends superClass {
 
     const res = await this.database.raw(
       `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
-    )
-    return res.rows
+    );
+    return res.rows;
   }
 
-  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, offset, limit) {
+  async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
-    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
@@ -108,19 +109,19 @@ const searchTrait = (superClass) => class extends superClass {
 
     const res = await this.database.raw(
       `select * from (${subQueries.join(' union ')}) as found_posts where found_posts.user_id='${targetUserId}' order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
-    )
-    return res.rows
+    );
+    return res.rows;
   }
 
-  async searchGroupPosts(query, groupFeedId, visibleFeedIds, bannedUserIds, offset, limit) {
+  async searchGroupPosts(query, groupFeedId, authorId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
     const { textSearchConfigName } = this.database.client.config;
-    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds)
-    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName)
-    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName)
+    const bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser);
+    const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
+    const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
+    const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
 
     if (!visibleFeedIds || visibleFeedIds.length == 0) {
-      visibleFeedIds = 'NULL'
+      visibleFeedIds = 'NULL';
     }
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
@@ -156,18 +157,30 @@ const searchTrait = (superClass) => class extends superClass {
       subQueries = [...subQueries, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
     }
 
-    const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
-    )
-    return res.rows
-  }
+    let authorCondition = '';
 
-  _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds) {
-    if (bannedUserIds.length === 0) {
-      return '';
+    if (authorId) {
+      authorCondition = `WHERE "found_posts"."user_id"='${authorId}'`;
     }
 
-    return pgFormat('and posts.user_id not in (%L) ', bannedUserIds);
+    const res = await this.database.raw(
+      `select * from (${subQueries.join(' union ')}) as found_posts ${authorCondition} order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
+    );
+    return res.rows;
+  }
+
+  _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser) {
+    let q = '';
+
+    if (bannedUserIds.length > 0) {
+      q += pgFormat('AND "posts"."user_id" NOT IN (%L) ', bannedUserIds);
+    }
+
+    if (feedIntIdsBannedForUser.length > 0) {
+      q += pgFormat('AND "feeds"."id" NOT IN (%L) ', feedIntIdsBannedForUser);
+    }
+
+    return q;
   }
 
   _getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds) {
@@ -175,23 +188,23 @@ const searchTrait = (superClass) => class extends superClass {
       return '';
     }
 
-    return pgFormat(`and comments.user_id not in (%L) `, bannedUserIds)
+    return pgFormat(`and comments.user_id not in (%L) `, bannedUserIds);
   }
 
   _getTextSearchCondition(parsedQuery, textSearchConfigName) {
-    const searchConditions = []
+    const searchConditions = [];
 
     if (parsedQuery.query.length > 2) {
-      const sql = pgFormat(`to_tsvector(%L, posts.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query)
-      searchConditions.push(sql)
+      const sql = pgFormat(`to_tsvector(%L, posts.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query);
+      searchConditions.push(sql);
     }
 
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
         const regex = `([[:<:]]|\\W|^)${_.escapeRegExp(quote)}([[:>:]]|\\W|$)`;
-        return pgFormat(`posts.body ~ %L`, regex)
+        return pgFormat(`posts.body ~ %L`, regex);
       });
-      searchConditions.push(`${quoteConditions.join(' and ')}`)
+      searchConditions.push(`${quoteConditions.join(' and ')}`);
     }
 
     if (parsedQuery.hashtags.length > 0) {
@@ -200,33 +213,33 @@ const searchTrait = (superClass) => class extends superClass {
             select u.entity_id from hashtag_usages as u where u.hashtag_id in (
               select hashtags.id from hashtags where hashtags.name = %L
             ) and u.type = 'post'
-          )`, tag)
-      })
+          )`, tag);
+      });
 
-      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+      searchConditions.push(`${hashtagConditions.join(' and ')}`);
     }
 
     if (searchConditions.length == 0) {
-      return ' 1=0 '
+      return ' 1=1 ';
     }
 
-    return `${searchConditions.join(' and ')} `
+    return `${searchConditions.join(' and ')} `;
   }
 
   _getCommentSearchCondition(parsedQuery, textSearchConfigName) {
-    const searchConditions = []
+    const searchConditions = [];
 
     if (parsedQuery.query.length > 2) {
-      const sql = pgFormat(`to_tsvector(%L, comments.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query)
-      searchConditions.push(sql)
+      const sql = pgFormat(`to_tsvector(%L, comments.body) @@ to_tsquery(%L, %L)`, textSearchConfigName, textSearchConfigName, parsedQuery.query);
+      searchConditions.push(sql);
     }
 
     if (parsedQuery.quotes.length > 0) {
       const quoteConditions = parsedQuery.quotes.map((quote) => {
         const regex = `([[:<:]]|\\W|^)${_.escapeRegExp(quote)}([[:>:]]|\\W|$)`;
-        return pgFormat(`comments.body ~ %L`, regex)
+        return pgFormat(`comments.body ~ %L`, regex);
       });
-      searchConditions.push(`${quoteConditions.join(' and ')}`)
+      searchConditions.push(`${quoteConditions.join(' and ')}`);
     }
 
     if (parsedQuery.hashtags.length > 0) {
@@ -235,17 +248,17 @@ const searchTrait = (superClass) => class extends superClass {
             select u.entity_id from hashtag_usages as u where u.hashtag_id in (
               select hashtags.id from hashtags where hashtags.name = %L
             ) and u.type = 'comment'
-          )`, tag)
-      })
+          )`, tag);
+      });
 
-      searchConditions.push(`${hashtagConditions.join(' and ')}`)
+      searchConditions.push(`${hashtagConditions.join(' and ')}`);
     }
 
     if (searchConditions.length == 0) {
-      return ' 1=0 '
+      return ' 1=1 ';
     }
 
-    return `${searchConditions.join(' and ')} `
+    return `${searchConditions.join(' and ')} `;
   }
 };
 

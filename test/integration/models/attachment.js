@@ -9,9 +9,9 @@ import chai from 'chai'
 import chaiFS from 'chai-fs'
 import _ from 'lodash';
 
-import cleanDB from '../dbCleaner'
-import { dbAdapter, User, Attachment } from '../../app/models'
-import { load as configLoader } from '../../config/config'
+import cleanDB from '../../dbCleaner'
+import { dbAdapter, User, Attachment } from '../../../app/models'
+import { load as configLoader } from '../../../config/config'
 
 
 chai.use(chaiFS)
@@ -166,7 +166,7 @@ describe('Attachment', () => {
         'sample':                              '9'
       };
 
-      const srcPrefix = path.resolve(__dirname, '../fixtures');
+      const srcPrefix = path.resolve(__dirname, '../../fixtures');
       const targetPrefix = '/tmp/upload_12345678901234567890123456789012_';
 
       await Promise.all(_.map(filesToUpload, async (target, src) => {

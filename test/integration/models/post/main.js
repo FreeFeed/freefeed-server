@@ -2,8 +2,8 @@
 /* global $pg_database, $should */
 import expect from 'unexpected'
 
-import cleanDB from '../dbCleaner';
-import { dbAdapter, Post, User } from '../../app/models'
+import cleanDB from '../../../dbCleaner';
+import { dbAdapter, Post, User } from '../../../../app/models'
 
 
 describe('Post', () => {
