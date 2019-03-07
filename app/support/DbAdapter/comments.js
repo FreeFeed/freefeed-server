@@ -15,7 +15,7 @@ const commentsTrait = (superClass) => class extends superClass {
   }
 
   async getCommentById(id) {
-    if (!validator.isUUID(id, 4)) {
+    if (!validator.isUUID(id)) {
       return null
     }
 
@@ -28,7 +28,7 @@ const commentsTrait = (superClass) => class extends superClass {
   }
 
   async _getCommentIntIdByUUID(commentUUID) {
-    if (!validator.isUUID(commentUUID, 4)) {
+    if (!validator.isUUID(commentUUID)) {
       return null;
     }
 

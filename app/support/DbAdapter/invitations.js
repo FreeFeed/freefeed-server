@@ -6,7 +6,7 @@ import validator from 'validator';
 
 const invitationsTrait = (superClass) => class extends superClass {
   getInvitation(secureId) {
-    if (!validator.isUUID(secureId, 4)) {
+    if (!validator.isUUID(secureId)) {
       return null;
     }
 
