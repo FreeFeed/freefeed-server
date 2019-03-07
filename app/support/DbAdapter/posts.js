@@ -26,7 +26,7 @@ const postsTrait = (superClass) => class extends superClass {
   }
 
   async getPostById(id, params) {
-    if (!validator.isUUID(id, 4)) {
+    if (!validator.isUUID(id)) {
       return null
     }
 
@@ -853,7 +853,7 @@ const POST_COLUMNS_MAPPING = {
   },
   commentsDisabled: (comments_disabled) => {return comments_disabled === '1'},
   userId:           (user_id) => {
-    if (validator.isUUID(user_id, 4)) {
+    if (validator.isUUID(user_id)) {
       return user_id
     }
 

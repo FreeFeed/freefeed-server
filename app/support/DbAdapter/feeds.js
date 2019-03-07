@@ -79,7 +79,7 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getTimelineById(id, params) {
-    if (!validator.isUUID(id, 4)) {
+    if (!validator.isUUID(id)) {
       return null
     }
 

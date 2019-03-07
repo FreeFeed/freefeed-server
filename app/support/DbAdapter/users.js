@@ -139,7 +139,7 @@ const usersTrait = (superClass) => class extends superClass {
   }
 
   async _getUserIntIdByUUID(userUUID) {
-    if (!validator.isUUID(userUUID, 4)) {
+    if (!validator.isUUID(userUUID)) {
       return null;
     }
 
@@ -153,7 +153,7 @@ const usersTrait = (superClass) => class extends superClass {
   }
 
   async getFeedOwnerById(id) {
-    if (!validator.isUUID(id, 4)) {
+    if (!validator.isUUID(id)) {
       return null
     }
 
