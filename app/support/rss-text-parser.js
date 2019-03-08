@@ -23,13 +23,13 @@ export function extractTitle(text, maxLen) {
   const [line] = text.split(/[\u0000-\u001f\u0085\u2028\u2029]/, 1);
 
   if (line.length <= maxLen) {
-    return line;
+    return trimPeriod(line);
   }
 
   const ss = sentences(line);
 
   if (ss[0].length < maxLen) {
-    return joinStrings(ss, maxLen);
+    return trimPeriod(joinStrings(ss, maxLen));
   }
 
   const words = ss[0].split(/\s+/);
@@ -42,7 +42,21 @@ export function extractTitle(text, maxLen) {
 }
 
 function joinStrings(parts, maxLen) {
-  return parts.slice(1).reduce((sum, p) => (sum.length + p.length - 1) >= maxLen ? sum : `${sum} ${p}`, parts[0]);
+  let [result] = parts;
+
+  for (const p of parts.slice(1)) {
+    if (result.length + p.length - 1 >= maxLen) {
+      break;
+    }
+
+    result = `${result} ${p}`;
+  }
+
+  return trimPeriod(result);
+}
+
+function trimPeriod(text) {
+  return text.replace(/([^.])\.$/, '$1');
 }
 
 export function textToHTML(text) {
