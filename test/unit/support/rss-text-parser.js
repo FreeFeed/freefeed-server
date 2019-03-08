@@ -14,9 +14,9 @@ describe('extractTitle function', () => {
       'Tiger, tiger, burning bright',
     ],
     [
-      'should return the first sentence of long line',
+      'should return the first sentence (without final period) of long line',
       'Tiger, tiger, burning bright. In the forests of the night',
-      'Tiger, tiger, burning bright.',
+      'Tiger, tiger, burning bright',
     ],
     [
       'should split a long sentence',
@@ -27,6 +27,16 @@ describe('extractTitle function', () => {
       'should cut a long word',
       'TigertigerburningbrightIntheforestsofthenight',
       'TigertigerburningbrightIntheforest\u2026',
+    ],
+    [
+      'should stop on first sentence',
+      'Tiger! Tiger burning bright in the forests of the night. What immortal?',
+      'Tiger!',
+    ],
+    [
+      'should stop on second sentence',
+      'Tiger! Tiger burning bright! In the forests of the night, What immortal?',
+      'Tiger! Tiger burning bright!',
     ],
   ];
 
