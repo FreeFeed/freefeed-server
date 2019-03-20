@@ -1,3 +1,5 @@
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FFreeFeed%2Ffreefeed-server.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FFreeFeed%2Ffreefeed-server?ref=badge_shield)
+
 FreeFeed Server
 ===============
 
@@ -53,3 +55,7 @@ Copyright and license
 ---------------------
 
 FreeFeed is licensed under the MIT License.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FFreeFeed%2Ffreefeed-server.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FFreeFeed%2Ffreefeed-server?ref=badge_large)
