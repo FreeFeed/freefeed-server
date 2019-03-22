@@ -41,6 +41,11 @@ describe('SearchController', () => {
       expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
+    it('should not allow empty query', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, '');
+      expect(response, 'to satisfy', { posts: [] });
+    });
+
     it('should search user\'s posts', async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from:luna hello');
       expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });

@@ -15,7 +15,7 @@ const attachmentsTrait = (superClass) => class extends superClass {
   }
 
   async getAttachmentById(id) {
-    if (!validator.isUUID(id, 4)) {
+    if (!validator.isUUID(id)) {
       return null
     }
 
@@ -104,14 +104,14 @@ const ATTACHMENT_COLUMNS_MAPPING = {
     return parseInt(file_size, 10)
   },
   postId: (post_id) => {
-    if (validator.isUUID(post_id, 4)) {
+    if (validator.isUUID(post_id)) {
       return post_id
     }
 
     return null
   },
   userId: (user_id) => {
-    if (validator.isUUID(user_id, 4)) {
+    if (validator.isUUID(user_id)) {
       return user_id
     }
 

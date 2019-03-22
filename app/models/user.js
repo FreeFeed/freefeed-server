@@ -495,12 +495,8 @@ export function addModel(dbAdapter) {
     return [this]
   }
 
-  User.prototype.getMyDiscussionsTimeline = async function (params) {
-    const myDiscussionsTimelineId = await this.getMyDiscussionsTimelineIntId()
-
-    const feed = await dbAdapter.getTimelineByIntId(myDiscussionsTimelineId, params)
-    feed.posts = await feed.getPosts(feed.offset, feed.limit)
-    return feed
+  User.prototype.getMyDiscussionsTimeline = function () {
+    return dbAdapter.getUserNamedFeed(this.id, 'MyDiscussions');
   }
 
   User.prototype.getGenericTimelineId = async function (name) {
@@ -530,13 +526,8 @@ export function addModel(dbAdapter) {
     return intIds[0];
   }
 
-  User.prototype.getGenericTimeline = async function (name, params) {
-    const timelineId = await this[`get${name}TimelineId`](params)
-
-    const timeline = await dbAdapter.getTimelineById(timelineId, params)
-    timeline.posts = await timeline.getPosts(timeline.offset, timeline.limit)
-
-    return timeline
+  User.prototype.getGenericTimeline = function (name) {
+    return dbAdapter.getUserNamedFeed(this.id, name);
   }
 
   User.prototype.getMyDiscussionsTimelineIntId = function () {
@@ -559,29 +550,8 @@ export function addModel(dbAdapter) {
     return this.getGenericTimelineIntId('RiverOfNews', params)
   }
 
-  User.prototype.getRiverOfNewsTimeline = async function (params) {
-    const [banIds, timelineId, hidesTimelineIntId] = await Promise.all([
-      this.getBanIds(),
-      this.getRiverOfNewsTimelineId(),
-      this.getHidesTimelineIntId(params)
-    ]);
-
-    const riverOfNewsTimeline = await dbAdapter.getTimelineById(timelineId, params);
-    const posts = await riverOfNewsTimeline.getPosts(riverOfNewsTimeline.offset, riverOfNewsTimeline.limit);
-
-    riverOfNewsTimeline.posts = posts.map((post) => {
-      if (banIds.includes(post.userId)) {
-        return null;
-      }
-
-      if (post.feedIntIds.includes(hidesTimelineIntId)) {
-        post.isHidden = true;
-      }
-
-      return post;
-    });
-
-    return riverOfNewsTimeline;
+  User.prototype.getRiverOfNewsTimeline = function () {
+    return dbAdapter.getUserNamedFeed(this.id, 'RiverOfNews');
   };
 
   User.prototype.getLikesTimelineId = function () {
