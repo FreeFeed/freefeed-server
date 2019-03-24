@@ -241,11 +241,11 @@ const postsTrait = (superClass) => class extends superClass {
       offset:          0,
       sort:            'bumped',
       withLocalBumps:  false,
-      withMyPosts:     false,
       withoutDirects:  false,
       createdBefore:   null,
       createdAfter:    null,
       activityFeedIds: [],
+      authorsIds:      [],
       ...params,
     };
 
@@ -257,7 +257,7 @@ const postsTrait = (superClass) => class extends superClass {
     let  bannedUsersIds = [];
     // Additional condition for params.withoutDirects option
     let noDirectsSQL = 'true';
-    let myPostsSQL = null;
+    let postsAuthorsSQL = null;
 
     if (viewerId) {
       [
@@ -274,9 +274,9 @@ const postsTrait = (superClass) => class extends superClass {
         noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
       }
 
-      if (params.withMyPosts) {
-        // Show viewer own posts
-        myPostsSQL = pgFormat('p.user_id = %L', viewerId);
+      if (params.authorsIds.length > 0) {
+        // Also show posts from these authors
+        postsAuthorsSQL = pgFormat('p.user_id in (%L)', params.authorsIds);
       }
     }
 
@@ -287,8 +287,8 @@ const postsTrait = (superClass) => class extends superClass {
       sourceConditionParts.push(pgFormat('p.feed_ids && %L and p.is_propagable', `{${params.activityFeedIds.join(',')}}`));
     }
 
-    if (myPostsSQL) {
-      sourceConditionParts.push(myPostsSQL);
+    if (postsAuthorsSQL) {
+      sourceConditionParts.push(postsAuthorsSQL);
     }
 
     const sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
