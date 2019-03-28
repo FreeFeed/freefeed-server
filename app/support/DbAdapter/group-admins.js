@@ -72,17 +72,33 @@ const groupAdminTrait = (superClass) => class extends superClass {
   /**
    * Returns plain object with group UIDs as keys and arrays of admin UIDs as values
    */
-  async getGroupsAdministratorsIds(groupIds) {
-    const rows = await this.database.select('group_id', 'user_id').from('group_admins').where('group_id', 'in', groupIds);
-    const res = {};
-    rows.forEach(({ group_id, user_id }) => {
-      if (!res.hasOwnProperty(group_id)) {
-        res[group_id] = [];
-      }
+  async getGroupsAdministratorsIds(groupIds, viewerId = null) {
+    const result = {};
 
-      res[group_id].push(user_id);
-    });
-    return res;
+    if (groupIds.length === 0) {
+      return result;
+    }
+
+    const groupsVisibility = await this.getGroupsVisibility(groupIds, viewerId);
+    const visibleGroups = [];
+
+    for (const uid of Object.keys(groupsVisibility)) {
+      result[uid] = [];
+
+      if (groupsVisibility[uid]) {
+        visibleGroups.push(uid);
+      }
+    }
+
+    if (visibleGroups.length > 0) {
+      const rows = await this.database.select('group_id', 'user_id').from('group_admins').where('group_id', 'in', visibleGroups);
+
+      for (const { group_id, user_id } of rows) {
+        result[group_id].push(user_id);
+      }
+    }
+
+    return result;
   }
 
   async isUserAdminOfGroup(userId, groupId) {
