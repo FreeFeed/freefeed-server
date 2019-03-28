@@ -181,7 +181,7 @@ export default class UsersController {
     async (ctx) => {
       const { targetUser, user: viewer } = ctx.state;
 
-      const serUsers = await serializeUsersByIds([targetUser.id]);
+      const serUsers = await serializeUsersByIds([targetUser.id], true, viewer && viewer.id);
       const users = serUsers.find((u) => u.id === targetUser.id);
       const admins = serUsers.filter((u) => u.type === 'user');
       const acceptsDirects = await targetUser.acceptsDirectsFrom(viewer);
@@ -210,7 +210,7 @@ export default class UsersController {
         throw new ForbiddenException('User is private')
       }
 
-      const serUsers = await serializeUsersByIds(subscriberIds);
+      const serUsers = await serializeUsersByIds(subscriberIds, true, viewer && viewer.id);
       // Sorting by 'random' id to mask actual subscription order
       const subscribers = _.sortBy(serUsers, 'id');
 
@@ -238,10 +238,15 @@ export default class UsersController {
         throw new ForbiddenException('User is private')
       }
 
-      const timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
-      const timelineOwnersIds = timelines.map((t) => t.userId);
+      let timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
+      let timelineOwnersIds = timelines.map((t) => t.userId);
 
-      const serUsers = await serializeUsersByIds(timelineOwnersIds, false);
+      // Leave only users and groups visible to viewer
+      const groupsVisibility = await dbAdapter.getGroupsVisibility(timelineOwnersIds, viewer && viewer.id);
+      timelineOwnersIds = timelineOwnersIds.filter((id) => groupsVisibility[id] !== false);
+      timelines = timelines.filter(({ userId }) => groupsVisibility[userId] !== false);
+
+      const serUsers = await serializeUsersByIds(timelineOwnersIds, false, viewer && viewer.id);
       // Sorting by 'random' id to mask actual subscription order
       const subscribers = _.sortBy(serUsers, 'id');
       const subscriptions = _.sortBy(timelines.map((t) => ({

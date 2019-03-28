@@ -366,6 +366,44 @@ export async function performRequest(relativePath, params) {
   return await fetch(await apiUrl(relativePath), { agent, ...params });
 }
 
+/**
+ * Bulletproof HTTP JSON request
+ *
+ * @param {string} method
+ * @param {string} relativePath
+ * @param {any} [body]
+ * @param {object} [headers]
+ */
+export async function performJSONRequest(method, relativePath, body = undefined, headers = {}) {
+  method = method.toUpperCase();
+
+  if (body != undefined && method !== 'GET' && method !== 'HEAD') {
+    body = JSON.stringify(body);
+    headers['Content-Type'] = 'application/json';
+  } else {
+    body = undefined;
+  }
+
+  const response = await performRequest(relativePath, { method, body, headers });
+  const textResponse = await response.text();
+
+  try {
+    const json = JSON.parse(textResponse);
+
+    if (typeof json === 'object' && json !== null) {
+      json.__httpCode = response.status;
+    }
+
+    return json;
+  } catch (e) {
+    return {
+      err:        `JSON parsing error: ${e.message}`,
+      textResponse,
+      __httpCode: response.status,
+    };
+  }
+}
+
 export async function sessionRequest(username, password) {
   return await fetch(
     await apiUrl('/v1/session'),
