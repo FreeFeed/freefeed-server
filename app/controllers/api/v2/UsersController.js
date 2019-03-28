@@ -132,7 +132,7 @@ export default class UsersController {
         dbAdapter.getUsersByIdsAssoc(allUIDs),
         dbAdapter.getUsersStatsAssoc(allUIDs),
       ]);
-      const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'));
+      const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'), user.id);
 
       const fillUser = getUserFiller(allUsers, allStats, allGroupAdmins);
 

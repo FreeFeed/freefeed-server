@@ -11,7 +11,7 @@ export const show = compose([
   postAccessRequired(),
   monitored('posts.show-v2'),
   async (ctx) => {
-    const { user:viewer, post } = ctx.state;
+    const { user: viewer, post } = ctx.state;
 
     const foldComments = ctx.request.query.maxComments !== 'all';
     const foldLikes = ctx.request.query.maxLikes !== 'all';
@@ -52,7 +52,7 @@ export const show = compose([
     postWithStuff.comments.forEach((c) => allUserIds.add(c.userId));
     postWithStuff.destinations.forEach((d) => allUserIds.add(d.user));
 
-    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
+    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewer && viewer.id);
     Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
     const [
