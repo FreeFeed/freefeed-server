@@ -55,7 +55,7 @@ export default class EventsController {
       events.length = params.limit;
     }
 
-    const serializedData = await serializeEvents(events);
+    const serializedData = await serializeEvents(events, ctx.state.user.id);
 
     ctx.body = {
       Notifications: serializedData.events,

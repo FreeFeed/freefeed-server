@@ -3,7 +3,7 @@ import { dbAdapter } from '../../models';
 import { userSerializerFunction } from './user';
 
 
-export async function serializeEvents(events) {
+export async function serializeEvents(events, viewerId = null) {
   const [userIdsMapping, postIdsMapping, commentIdsMapping] = await getIntIdsMappings(events);
 
   const serializedEvents = events.map((e) => {
@@ -23,7 +23,7 @@ export async function serializeEvents(events) {
 
   const allUserIds = new Set();
   Object.values(userIdsMapping).forEach((id) => allUserIds.add(id));
-  const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
+  const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId);
   Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
   const [allUsersAssoc, allStatsAssoc] = await Promise.all([
