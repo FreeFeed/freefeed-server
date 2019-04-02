@@ -10,8 +10,8 @@ import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, dbAdapter } from '../../app/models'
 import {
   HOMEFEED_MODE_CLASSIC,
-  HOMEFEED_MODE_ONLY_FRIENDS,
-  HOMEFEED_MODE_ALL_FRIENDS_ACTIVITY,
+  HOMEFEED_MODE_FRIENDS_ONLY,
+  HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
 } from '../../app/controllers/api/v2/TimelinesController';
 import {
   createUserAsync,
@@ -133,13 +133,13 @@ describe('TimelinesControllerV2', () => {
           expect(homefeed.comments, 'to have length', 1);
         });
 
-        it('should not return post commented by friend in "only-friends" mode', async () => {
+        it('should not return post commented by friend in "friends-only" mode', async () => {
           const post1 = await createAndReturnPost(mars, 'Mars post');
           const post2 = await createAndReturnPost(luna, 'Luna post');
           const post3 = await createAndReturnPost(venus, 'Venus post');
           await createCommentAsync(mars, post3.id, 'Comment');
 
-          const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_ONLY_FRIENDS);
+          const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ONLY);
           expect(homefeed.timelines.posts, 'to equal', [post2.id, post1.id]);
           expect(homefeed.comments, 'to have length', 0);
         });
@@ -159,13 +159,13 @@ describe('TimelinesControllerV2', () => {
           expect(venusPost.likes, 'to have length', 1);
         });
 
-        it('should not return post liked by friend in "only-friends" mode', async () => {
+        it('should not return post liked by friend in "friends-only" mode', async () => {
           const post1 = await createAndReturnPost(mars, 'Mars post');
           const post2 = await createAndReturnPost(luna, 'Luna post');
           const post3 = await createAndReturnPost(venus, 'Venus post');
           await like(post3.id, mars.authToken);
 
-          const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_ONLY_FRIENDS);
+          const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ONLY);
           expect(homefeed.timelines.posts, 'to equal', [post2.id, post1.id]);
         });
 
@@ -243,11 +243,11 @@ describe('TimelinesControllerV2', () => {
             expect(homefeed.timelines.posts[0], 'to be', post.id);
           });
 
-          it('should not return post liked by Luna in "only-friends" mode', async () => {
+          it('should not return post liked by Luna in "friends-only" mode', async () => {
             const post = await createAndReturnPost(venus, 'Venus post');
             await like(post.id, luna.authToken);
 
-            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_ONLY_FRIENDS);
+            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ONLY);
             expect(homefeed.timelines.posts, 'to be empty');
           });
 
@@ -260,11 +260,11 @@ describe('TimelinesControllerV2', () => {
             expect(homefeed.timelines.posts[0], 'to be', post.id);
           });
 
-          it('should not return post commented by Luna in "only-friends" mode', async () => {
+          it('should not return post commented by Luna in "friends-only" mode', async () => {
             const post = await createAndReturnPost(venus, 'Venus post');
             await createCommentAsync(luna, post.id, 'Comment');
 
-            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_ONLY_FRIENDS);
+            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ONLY);
             expect(homefeed.timelines.posts, 'to be empty');
           });
         });
@@ -314,19 +314,19 @@ describe('TimelinesControllerV2', () => {
             expect(homefeed.timelines.posts[0], 'to equal', selenitesPost.id);
           });
 
-          it('should return timeline with liked posts from Celestials group in "all-friends-activity" mode', async () => {
+          it('should return timeline with liked posts from Celestials group in "friends-all-activity" mode', async () => {
             await like(celestialsPost.id, mars.authToken);
             await like(selenitesPost.id, mars.authToken);
 
-            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_ALL_FRIENDS_ACTIVITY);
+            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY);
             expect(homefeed.timelines.posts, 'to equal', [celestialsPost.id, selenitesPost.id]);
           });
 
-          it('should return timeline with Mars posts from Celestials group in "all-friends-activity" mode', async () => {
+          it('should return timeline with Mars posts from Celestials group in "friends-all-activity" mode', async () => {
             await subscribeToAsync(mars, { username: 'celestials' });
             const marsCelestialsPost = await createAndReturnPostToFeed({ username: 'celestials' }, mars, 'Post');
 
-            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_ALL_FRIENDS_ACTIVITY);
+            const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY);
             expect(homefeed.timelines.posts, 'to equal', [marsCelestialsPost.id, selenitesPost.id]);
           });
         });

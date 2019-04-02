@@ -17,7 +17,7 @@ export const ORD_CREATED = 'created';
  *
  * Displays posts from Posts/Directs feeds subscribed to by viewer.
  */
-export const HOMEFEED_MODE_ONLY_FRIENDS = 'only-friends';
+export const HOMEFEED_MODE_FRIENDS_ONLY = 'friends-only';
 
 /**
  * "Classic" homefeed mode
@@ -34,7 +34,7 @@ export const HOMEFEED_MODE_CLASSIC = 'classic';
  * from Comments/Likes feeds subscribed to by viewer. Also displays all posts
  * created by users subscribed to by viewer.
  */
-export const HOMEFEED_MODE_ALL_FRIENDS_ACTIVITY = 'all-friends-activity';
+export const HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY = 'friends-all-activity';
 
 const config = configLoader();
 
@@ -162,9 +162,9 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
   const homefeedMode = [
-    HOMEFEED_MODE_ONLY_FRIENDS,
+    HOMEFEED_MODE_FRIENDS_ONLY,
     HOMEFEED_MODE_CLASSIC,
-    HOMEFEED_MODE_ALL_FRIENDS_ACTIVITY,
+    HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   ].includes(query['homefeed-mode']) ? query['homefeed-mode'] : HOMEFEED_MODE_CLASSIC;
   const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
   return { limit, offset, sort, homefeedMode, withMyPosts, hiddenCommentTypes, createdBefore, createdAfter };
@@ -236,7 +236,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     timelineIds.length = 0;
     timelineIds.push(...destinations);
 
-    if (params.homefeedMode === HOMEFEED_MODE_ALL_FRIENDS_ACTIVITY) {
+    if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
       timelineIds.push(...activities);
       const friendsIds = await dbAdapter.getUserFriendIds(viewerId);
       authorsIds.push(...friendsIds);
