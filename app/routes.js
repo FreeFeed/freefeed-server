@@ -95,9 +95,10 @@ export default function (app) {
   CommentLikesRoute(router);
   InvitationsRoute(router);
 
-  router.use('/v[0-9]+/*', (ctx) => {
+  // Not Found route for API URIs
+  router.all('/v(\\d+)/*', (ctx) => {
     ctx.status = 404;
-    ctx.body = { err: `API method not found: '${ctx.req.path}'` };
+    ctx.body = { err: `API method not found: '${ctx.url}'` };
   });
 
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
