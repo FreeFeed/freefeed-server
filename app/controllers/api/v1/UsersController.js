@@ -190,6 +190,20 @@ export default class UsersController {
     },
   ]);
 
+  static showMe = compose([
+    authRequired(),
+    monitored('users.show-me'),
+    async (ctx) => {
+      const { user } = ctx.state;
+
+      const serUsers = await serializeUsersByIds([user.id]);
+      const users = serUsers.find((u) => u.id === user.id);
+      const admins = serUsers.filter((u) => u.type === 'user');
+
+      ctx.body = { users, admins, acceptsDirects: false };
+    },
+  ]);
+
   static subscribers = compose([
     targetUserRequired(),
     monitored('users.subscribers'),
