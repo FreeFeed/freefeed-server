@@ -20,5 +20,10 @@ export default {
       { '$ref': '#/definitions/userName' },
       { '$ref': '#/definitions/groupName' }
     ]
-  }
+  },
+  nonEmptyString: {
+    type:      'string',
+    minLength: 1,
+    pattern:   '\\S'
+  },
 };

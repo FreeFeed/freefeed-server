@@ -30,6 +30,7 @@ import ArchivesRoute from './routes/api/v2/ArchivesRoute';
 import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
+import AppTokensRoute from './routes/api/v2/AppTokens';
 
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
@@ -75,6 +76,7 @@ export default function (app) {
   NotificationsRoute(router);
   CommentLikesRoute(router);
   InvitationsRoute(router);
+  AppTokensRoute(router);
 
   // Not Found route for API URIs
   router.all('/v(\\d+)/*', (ctx) => {
