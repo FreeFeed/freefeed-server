@@ -1,12 +1,15 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
-import { AppTokenV1, dbAdapter } from '../../app/models';
+import { getSingleton } from '../../app/app';
+import { AppTokenV1, dbAdapter, PubSub } from '../../app/models';
 import { appTokensScopes } from '../../app/models/app-tokens-scopes';
-import { performRequest, createTestUsers } from './functional_test_helper';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import { performRequest, createTestUsers, createTestUser, goPrivate, createAndReturnPost, createCommentAsync } from './functional_test_helper';
 import { UUID, appTokenInfo } from './schemaV2-helper';
+import Session from './realtime-session';
 
 
 describe('App tokens controller', () => {
@@ -255,6 +258,77 @@ describe('App tokens controller', () => {
         });
       });
     });
+  });
+});
+
+describe('Realtime', () => {
+  let port;
+  let luna, post, session, token, token2;
+
+  before(async () => {
+    await cleanDB($pg_database);
+    const app = await getSingleton();
+    port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database);
+    PubSub.setPublisher(pubsubAdapter);
+
+    luna = await createTestUser();
+    await goPrivate(luna);
+
+    token = new AppTokenV1({
+      userId: luna.user.id,
+      title:  'App with realtime',
+      scopes: ['read-realtime'],
+    });
+    token2 = new AppTokenV1({
+      userId: luna.user.id,
+      title:  'App without realtime',
+      scopes: ['read-my-info'],
+    });
+    await Promise.all([token, token2].map((t) => t.create()));
+
+    post = await createAndReturnPost(luna, 'Luna post');
+  });
+
+  beforeEach(async () => {
+    session = await Session.create(port, 'Luna session');
+    await session.sendAsync('subscribe', { post: [post.id] });
+  });
+  afterEach(() => session.disconnect());
+
+  it('sould not deliver post event to anonymous session', async () => {
+    const test = session.notReceiveWhile(
+      'comment:new',
+      createCommentAsync(luna, post.id, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled');
+  });
+
+  it('sould deliver post event to session with Luna session token', async () => {
+    await session.sendAsync('auth', { authToken: luna.authToken });
+    const test = session.receiveWhile(
+      'comment:new',
+      createCommentAsync(luna, post.id, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled');
+  });
+
+  it('sould deliver post event to session with correct app token', async () => {
+    await session.sendAsync('auth', { authToken: token.tokenString() });
+    const test = session.receiveWhile(
+      'comment:new',
+      createCommentAsync(luna, post.id, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled');
+  });
+
+  it('sould not deliver post event to session with incorrect app token', async () => {
+    await session.sendAsync('auth', { authToken: token2.tokenString() });
+    const test = session.notReceiveWhile(
+      'comment:new',
+      createCommentAsync(luna, post.id, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled');
   });
 });
 
