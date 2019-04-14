@@ -112,6 +112,13 @@ export function addAppTokenV1Model(dbAdapter) {
       await dbAdapter.registerAppTokenUsage(this.id, { ip, userAgent, debounce: appTokenUsageDebounce });
     }
 
+    static addLogPayload(ctx, payload) {
+      ctx.state.appTokenLogPayload = {
+        ...(ctx.state.appTokenLogPayload || {}),
+        ...payload,
+      };
+    }
+
     async logRequest(ctx) {
       if (['GET', 'HEAD', 'OPTIONS'].includes(ctx.method) || (ctx.status && ctx.status >= 400)) {
         return;

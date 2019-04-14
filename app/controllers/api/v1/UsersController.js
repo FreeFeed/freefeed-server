@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import compose from 'koa-compose';
 
-import { dbAdapter, MyProfileSerializer, User, Group } from '../../../models'
+import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0 } from '../../../models'
 import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
@@ -55,11 +55,11 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const { secret } = config;
-    const authToken = jwt.sign({ userId: user.id }, secret)
-
     const json = await new MyProfileSerializer(user).promiseToJSON()
+    const authToken = new SessionTokenV0(user.id).tokenString();
+
     ctx.body = { ...json, authToken };
+    AppTokenV1.addLogPayload(ctx, { userId: user.id });
 
     if (invitation) {
       await useInvitation(user, invitation, ctx.request.body.cancel_subscription);

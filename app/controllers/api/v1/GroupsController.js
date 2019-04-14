@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { dbAdapter, Group, GroupSerializer } from '../../../models'
+import { dbAdapter, Group, GroupSerializer, AppTokenV1 } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 
@@ -26,6 +26,7 @@ export default class GroupsController {
     await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
     const json = await new GroupSerializer(group).promiseToJSON()
     ctx.body = json;
+    AppTokenV1.addLogPayload(ctx, { groupId: group.id });
   }
 
   static async sudoCreate(ctx) {
