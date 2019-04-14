@@ -13,6 +13,8 @@ import { addModel as groupModel } from './models/group';
 import { addModel as postModel } from './models/post';
 import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
+import { addAppTokenV1Model } from './models/auth-tokens';
+
 import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
 import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer';
 import { addSerializer as commentSerializer } from './serializers/v1/CommentSerializer';
@@ -56,6 +58,8 @@ export const Post          = postModel(dbAdapter);
 export const Timeline      = timelineModel(dbAdapter);
 export const Attachment    = attachmentModel(dbAdapter);
 export const Comment       = commentModel(dbAdapter);
+export { AuthToken, SessionTokenV0 } from './models/auth-tokens';
+export const AppTokenV1    = addAppTokenV1Model(dbAdapter);
 
 export const AdminSerializer               = adminSerializer();
 export const UserSerializer                = userSerializer();

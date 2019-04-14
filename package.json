@@ -70,6 +70,7 @@
     "music-metadata": "~3.5.2",
     "mv": "2.1.1",
     "n3": "~1.0.4",
+    "netmask": "~1.0.6",
     "node-cache": "~4.2.0",
     "node-fetch": "~2.3.0",
     "nodemailer": "~4.6.8",
@@ -132,6 +133,7 @@
     "socket.io-client": "~2.2.0",
     "superagent": "1.8.3",
     "unexpected": "~10.39.0",
+    "unexpected-date": "~1.2.1",
     "unexpected-moment": "~3.2.1",
     "unexpected-sinon": "~10.10.1",
     "xml-parser": "~1.2.1"
