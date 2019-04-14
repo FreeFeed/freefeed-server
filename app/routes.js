@@ -1,11 +1,8 @@
 /* eslint babel/semi: "error" */
-import { promisifyAll } from 'bluebird';
-import jwt from 'jsonwebtoken';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
-import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
 
@@ -34,45 +31,29 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 
+import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
-promisifyAll(jwt);
 
 const config = configLoader();
 
 export default function (app) {
-  const authDebug = createDebug('freefeed:authentication');
-  const findUser = async (ctx, next) => {
-    const authToken = ctx.request.get('x-authentication-token')
-      || ctx.request.body.authToken
-      || ctx.request.query.authToken;
-
-    if (authToken) {
-      authDebug('got token', authToken);
-
-      try {
-        const decoded = await jwt.verifyAsync(authToken, config.secret);
-        const user = await dbAdapter.getUserById(decoded.userId);
-
-        if (user && user.isActive) {
-          ctx.state.user = user;
-          authDebug(`authenticated as ${user.username}`);
-        }
-      } catch (e) {
-        authDebug(`invalid token. the user will be treated as anonymous: ${e.message}`);
-      }
-    }
-
-    await next();
-  };
-
   const router = new Router();
 
   // unauthenticated routes
   PasswordsRoute(router);
   SessionRoute(router);
 
+  // Fix for ctx._matchedRoute
+  // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
+  // See https://github.com/ZijianHe/koa-router/issues/246
+  router.use((ctx, next) => {
+    ctx._matchedRoute = ctx.matched.find((layer) => layer.methods.includes(ctx.method)).path;
+    return next();
+  });
+
   // [at least optionally] authenticated routes
-  router.use(findUser);
+  router.use(withAuthToken);
+
   AttachmentsRoute(router);
   BookmarkletRoute(router);
   CommentsRoute(router);
