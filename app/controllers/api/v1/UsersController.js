@@ -402,21 +402,27 @@ export default class UsersController {
     authRequired(),
     monitored('users.update'),
     async (ctx) => {
-      const { state: { user }, request: { body }, params } = ctx;
+      const { state: { user, authToken }, request: { body }, params } = ctx;
 
       if (params.userId !== user.id) {
         throw new NotAuthorizedException();
       }
 
-      const attrs = [
+      const attrNames = [
         'screenName',
-        'email',
         'isPrivate',
         'isProtected',
         'description',
         'frontendPreferences',
         'preferences',
-      ].reduce((acc, key) => {
+      ];
+
+      // Only full access tokens can change email
+      if (authToken.hasFullAccess()) {
+        attrNames.push('email');
+      }
+
+      const attrs = attrNames.reduce((acc, key) => {
         if (key in body.user) {
           acc[key] = ctx.request.body.user[key];
         }

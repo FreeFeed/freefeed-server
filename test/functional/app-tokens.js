@@ -7,7 +7,16 @@ import { getSingleton } from '../../app/app';
 import { AppTokenV1, dbAdapter, PubSub } from '../../app/models';
 import { appTokensScopes } from '../../app/models/app-tokens-scopes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
-import { performRequest, createTestUsers, createTestUser, goPrivate, createAndReturnPost, createCommentAsync } from './functional_test_helper';
+import {
+  performRequest,
+  createTestUsers,
+  createTestUser,
+  goPrivate,
+  createAndReturnPost,
+  createCommentAsync,
+  updateUserAsync,
+  whoami,
+} from './functional_test_helper';
 import { UUID, appTokenInfo } from './schemaV2-helper';
 import Session from './realtime-session';
 
@@ -329,6 +338,60 @@ describe('Realtime', () => {
       createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
+  });
+});
+
+describe('Full access', () => {
+  let luna, token;
+
+  before(async () => {
+    await cleanDB($pg_database);
+
+    luna = await createTestUser();
+    await $pg_database.raw(
+      `update users set private_meta = '{"foo":"bar"}' where uid = :userId`,
+      { userId: luna.user.id },
+    );
+
+    token = new AppTokenV1({
+      userId: luna.user.id,
+      title:  'App',
+      scopes: ['read-my-info', 'manage-profile'],
+    });
+    await token.create();
+  });
+
+  it('should update users email with session token', async () => {
+    await updateUserAsync(luna, { screenName: 'Name1', email: 'name1@host.org' });
+    const u = await dbAdapter.getUserById(luna.user.id);
+    expect(u, 'to satisfy', {
+      id:         luna.user.id,
+      screenName: 'Name1',
+      email:      'name1@host.org',
+    });
+  });
+
+  it('should not update users email with app token', async () => {
+    await updateUserAsync(
+      { ...luna, authToken: token.tokenString() },
+      { screenName: 'Name2', email: 'name2@host.org' },
+    );
+    const u = await dbAdapter.getUserById(luna.user.id);
+    expect(u, 'to satisfy', {
+      id:         luna.user.id,
+      screenName: 'Name2',
+      email:      'name1@host.org',
+    });
+  });
+
+  it('should return privateMeta in whoami with session token', async () => {
+    const resp = await whoami(luna.authToken).then((r) => r.json());
+    expect(resp.users.privateMeta, 'to equal', { foo: 'bar' });
+  });
+
+  it('should not return privateMeta in whoami with app token', async () => {
+    const resp = await whoami(token.tokenString()).then((r) => r.json());
+    expect(resp.users.privateMeta, 'to equal', {});
   });
 });
 
