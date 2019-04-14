@@ -41,7 +41,7 @@ export async function withAuthToken(ctx, next) {
     // Update IP and User-Agent
     await authToken.registerUsage({
       ip:        ctx.ip,
-      userAgent: ctx.headers['user-agent'],
+      userAgent: ctx.headers['user-agent'] || '<undefined>',
     });
 
     await next();
