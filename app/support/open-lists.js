@@ -84,7 +84,7 @@ export function union(list1, list2) {
     return new List(_.difference(list1.items, list2.items), false);
   } else if (!list1.inclusive && !list2.inclusive) {
     // ^[1,2] + ^[2,3,4] = ^[2]
-    return new List(_.intersection(list2.items, list1.items), true);
+    return new List(_.intersection(list2.items, list1.items), false);
   }
 
   // unreachable
@@ -116,7 +116,7 @@ export function intersection(list1, list2) {
     return new List(_.difference(list2.items, list1.items));
   } else if (!list1.inclusive && !list2.inclusive) {
     // ^[1,2] & ^[2,3,4] = ^[1,2,3,4]
-    return new List(_.union(list2.items, list1.items), true);
+    return new List(_.union(list1.items, list2.items), false);
   }
 
   // unreachable
