@@ -42,7 +42,7 @@ export async function sendEmails() {
 
     debug(`[${u.username}] found ${events.length} notifications`);
 
-    const serializedEvents = await serializeEvents(events);
+    const serializedEvents = await serializeEvents(events, u.id);
     await sendEventsDigestEmail(u, serializedEvents.events, serializedEvents.users, serializedEvents.groups, digestInterval);
     debug(`[${u.username}] email is queued: OK`);
 
