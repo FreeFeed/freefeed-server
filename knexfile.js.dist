@@ -11,6 +11,7 @@ module.exports = {
   development: {
     client: 'postgresql',
     connection: {
+      host:     'localhost',
       database: 'freefeed',
       user:     'freefeed',
       password: 'freefeed'
@@ -28,6 +29,7 @@ module.exports = {
   test: {
     client: 'postgresql',
     connection: {
+      host:     'localhost',
       database: 'freefeed_test',
       user:     'postgres',
       password: ''
@@ -45,6 +47,7 @@ module.exports = {
   staging: {
     client: 'postgresql',
     connection: {
+      host:     'localhost',
       database: 'my_db',
       user:     'username',
       password: 'password'
@@ -62,6 +65,7 @@ module.exports = {
   production: {
     client: 'postgresql',
     connection: {
+      host:     'localhost',
       database: 'my_db',
       user:     'username',
       password: 'password'

@@ -12,6 +12,30 @@ import { userSerializerFunction } from '../../../serializers/v2/user';
 export const ORD_UPDATED = 'bumped';
 export const ORD_CREATED = 'created';
 
+/**
+ * "Only friends" homefeed mode
+ *
+ * Displays posts from Posts/Directs feeds subscribed to by viewer.
+ */
+export const HOMEFEED_MODE_FRIENDS_ONLY = 'friends-only';
+
+/**
+ * "Classic" homefeed mode
+ *
+ * Displays posts from Posts/Directs feeds and propagable posts
+ * from Comments/Likes feeds subscribed to by viewer.
+ */
+export const HOMEFEED_MODE_CLASSIC = 'classic';
+
+/**
+ * "All friends activity" homefeed mode
+ *
+ * Displays posts from Posts/Directs feeds and all (not only propagable) posts
+ * from Comments/Likes feeds subscribed to by viewer. Also displays all posts
+ * created by users subscribed to by viewer.
+ */
+export const HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY = 'friends-all-activity';
+
 const config = configLoader();
 
 export const bestOf = compose([
@@ -100,6 +124,7 @@ export const metatags = compose([
  * @param {string} [ctx.request.query.sort]           - Sort mode ('created' or 'updated')
  * @param {string} [ctx.request.query.with-my-posts]  - For filter/discussions only: return viewer's own
  *                                                      posts even without his likes or comments (default: no)
+ * @param {string} [ctx.request.query.homefeed-mode]  - For RiverOfNews only: homefeed selection mode
  * @param {string} [ctx.request.query.created-before] - Show only posts created before this datetime (ISO 8601)
  * @param {string} [ctx.request.query.created-after]  - Show only posts created after this datetime (ISO 8601)
  * @param {string} defaultSort                        - Default sort mode
@@ -136,8 +161,13 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
 
   const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
   const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
+  const homefeedMode = [
+    HOMEFEED_MODE_FRIENDS_ONLY,
+    HOMEFEED_MODE_CLASSIC,
+    HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+  ].includes(query['homefeed-mode']) ? query['homefeed-mode'] : HOMEFEED_MODE_CLASSIC;
   const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
-  return { limit, offset, sort, withMyPosts, hiddenCommentTypes, createdBefore, createdAfter };
+  return { limit, offset, sort, homefeedMode, withMyPosts, hiddenCommentTypes, createdBefore, createdAfter };
 }
 
 async function genericTimeline(timeline, viewerId = null, params = {}) {
@@ -145,6 +175,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     limit:              30,
     offset:             0,
     sort:               ORD_UPDATED,
+    homefeedMode:       HOMEFEED_MODE_CLASSIC,
     withLocalBumps:     false,  // consider viewer local bumps (for RiverOfNews)
     withoutDirects:     false,  // do not show direct messages (for Likes and Comments)
     withMyPosts:        false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
@@ -168,6 +199,12 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
 
   const timelineIds = [timeline.intId];
   const activityFeedIds = [];
+  const authorsIds = [];
+
+  if (params.withMyPosts) {
+    authorsIds.push(viewerId);
+  }
+
   const owner = await timeline.getUser();
   let canViewUser = true;
 
@@ -198,11 +235,22 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
     const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(viewerId);
     timelineIds.length = 0;
     timelineIds.push(...destinations);
-    activityFeedIds.push(...activities);
+
+    if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
+      timelineIds.push(...activities);
+      const friendsIds = await dbAdapter.getUserFriendIds(viewerId);
+      authorsIds.push(...friendsIds);
+
+      if (!authorsIds.includes(viewerId)) {
+        authorsIds.push(viewerId);
+      }
+    } else if (params.homefeedMode === HOMEFEED_MODE_CLASSIC) {
+      activityFeedIds.push(...activities);
+    }
   }
 
   const postsIds = canViewUser ?
-    await dbAdapter.getTimelinePostsIds(timeline.name, timelineIds, viewerId, { ...params, activityFeedIds, limit: params.limit + 1 }) :
+    await dbAdapter.getTimelinePostsIds(timeline.name, timelineIds, viewerId, { ...params, authorsIds, activityFeedIds, limit: params.limit + 1 }) :
     [];
 
   const isLastPage = postsIds.length <= params.limit;
@@ -248,7 +296,7 @@ async function genericTimeline(timeline, viewerId = null, params = {}) {
   allSubscribers.push(...timelines.subscribers);
   allSubscribers.forEach((s) => allUserIds.add(s));
 
-  const allGroupAdmins = canViewUser ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds]) : {};
+  const allGroupAdmins = canViewUser ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId) : {};
   Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
   const [

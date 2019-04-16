@@ -34,13 +34,14 @@ export default class GroupsController {
   }
 
   static async allGroups(ctx) {
-    const withProtected = !!ctx.state.user;
+    const { user: viewer } = ctx.state;
+    const withProtected = !!viewer;
     const groups = await dbAdapter.getAllGroups({ withProtected });
     ctx.body = { groups };
 
     const allUserIds = new Set(groups.map((it) => it.id));
 
-    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds]);
+    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewer && viewer.id);
     Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
     const [
