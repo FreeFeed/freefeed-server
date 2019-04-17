@@ -235,7 +235,7 @@ const postsTrait = (superClass) => class extends superClass {
   /**
    * Returns UIDs of timelines posts
    */
-  async getTimelinePostsIds(timelineName, timelineIntIds, viewerId = null, params = {}) {
+  async getTimelinePostsIds(timelineIntIds, viewerId = null, params = {}) {
     params = {
       limit:           30,
       offset:          0,
