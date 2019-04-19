@@ -190,6 +190,12 @@ export const timelineResponse = {
   isLastPage: expect.it('to be a boolean'),
 };
 
+export const everythingResponse = {
+  ...timelineResponse,
+  timelines: expect.it('to be null'),
+  admins:    expect.it('to be an array').and('to be empty'),
+};
+
 export const allGroupsResponse = {
   withProtected: expect.it('to be a boolean'),
   groups:        expect.it('to be an array').and('to be empty').or('to have items satisfying', {
