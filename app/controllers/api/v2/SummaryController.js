@@ -1,13 +1,10 @@
 import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models'
-import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection } from '../../../serializers/v2/post';
 import { serializeUser } from '../../../serializers/v2/user';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
-
-const config = configLoader();
 
 const getDays = (d) => {
   const DEFAULT_DAYS = 7;
@@ -29,13 +26,8 @@ export const generalSummary = compose([
     let destinations = [];
     let activities  = [];
 
-    if (config.dynamicRiverOfNews) {
-      // Get timelines that forms a "RiverOfNews" of current user
-      ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id));
-    } else {
-      // Get timeline "RiverOfNews" of current user
-      destinations = await dbAdapter.getUserNamedFeedsIntIds(currentUser.id, ['RiverOfNews']);
-    }
+    // Get timelines that forms a "RiverOfNews" of current user
+    ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id));
 
     // Get posts current user subscribed to
     const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, days, destinations, activities, limit);

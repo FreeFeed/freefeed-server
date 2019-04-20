@@ -34,8 +34,6 @@ export function getConfig() {
     // sentryDsn: '',
 
     frontendPreferencesLimit: 65536,
-
-    dynamicRiverOfNews: true,
   };
 
   config.host = `http://localhost:${config.port}`;
