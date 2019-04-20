@@ -704,9 +704,10 @@ export function addModel(dbAdapter) {
         dbAdapter.statsLikeCreated(user.id),
       ]);
 
-      if (this.isPropagable === '1') {
-        // Local bumps
-        const prevRONs = await this.getRiverOfNewsTimelines();
+      // Local bumps
+      // We bump post in the widest homefeed mode (HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY)
+      {
+        const prevRONs = await this.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY);
         const prevRONsOwners = _.map(prevRONs, 'userId');
         const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([likesTimeline.id]);
         usersSubscribedToLikeFeed.push(user.id); // user always implicitly subscribed to their feeds
