@@ -7,6 +7,7 @@ import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { List, intersection as listIntersection } from '../support/open-lists';
+import { HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY } from './timeline';
 
 
 export function addModel(dbAdapter) {
@@ -356,9 +357,10 @@ export function addModel(dbAdapter) {
      * Returns all RiverOfNews timelines this post belongs to.
      * Timelines are calculated dynamically.
      *
+     * @param {string} [mode] one of HOMEFEED_MODE_constants
      * @return {Timeline[]}
      */
-    async getRiverOfNewsTimelines() {
+    async getRiverOfNewsTimelines(mode = HOMEFEED_MODE_CLASSIC) {
       const postFeeds = await this.getTimelines();
       const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
       const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
@@ -368,9 +370,24 @@ export function addModel(dbAdapter) {
        * - post author
        * - users subscribed to post destinations feeds ('Posts')
        * - owners of post destinations feeds ('Posts' and 'Directs')
-       * - (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+       * - and:
+       *  + if mode === HOMEFEED_MODE_CLASSIC
+       *       (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments')
+       *  + if mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+       *       users subscribed to post activity feeds ('Likes' and 'Comments') and to author's 'Posts' feed
        */
-      const riverOfNewsSourceIds = [...destinations, ...(this.isPropagable === '1' ? activities : [])].map((f) => f.id);
+      const riverOfNewsSources = [...destinations];
+
+      if (mode === HOMEFEED_MODE_CLASSIC) {
+        (this.isPropagable === '1') && riverOfNewsSources.push(...activities);
+      }
+
+      if (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
+        riverOfNewsSources.push(...activities);
+        riverOfNewsSources.push(await dbAdapter.getUserNamedFeed(this.userId, 'Posts'));
+      }
+
+      const riverOfNewsSourceIds = riverOfNewsSources.map((f) => f.id);
       const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
       const destinationOwnerIds = destinations.map((f) => f.userId);
       return await dbAdapter.getUsersNamedTimelines(
