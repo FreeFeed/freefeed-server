@@ -135,10 +135,9 @@ export default class PubsubListener {
       });
 
       const channelLists = await Promise.all(channelListsPromises);
-      await Promise.all(flatten(channelLists).map(async (channelId) => {
-        await socket.joinAsync(channelId);
-        debug(`${debugPrefix}: successfully subscribed to ${channelId}`);
-      }));
+      const roomsToSubscribe = flatten(channelLists);
+      await socket.joinAsync(roomsToSubscribe);
+      debug(`${debugPrefix}: successfully subscribed to ${roomsToSubscribe.join(', ')}`);
 
       const rooms = buildGroupedListOfSubscriptions(socket);
 
