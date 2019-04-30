@@ -1,5 +1,7 @@
 import _ from 'lodash'
+
 import { dbAdapter, PubSub as pubSub } from '../models'
+
 import { extractMentions, extractMentionsWithIndices } from './mentions'
 import { EVENT_TYPES } from './EventTypes';
 

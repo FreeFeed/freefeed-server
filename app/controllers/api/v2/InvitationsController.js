@@ -1,4 +1,5 @@
 import _ from 'lodash';
+
 import { dbAdapter } from '../../../models';
 import { NotFoundException, ValidationException } from '../../../support/exceptions';
 import { userSerializerFunction } from '../../../serializers/v2/user';

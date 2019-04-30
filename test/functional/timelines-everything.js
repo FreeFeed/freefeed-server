@@ -3,6 +3,7 @@
 import expect from 'unexpected'
 
 import cleanDB from '../dbCleaner';
+
 import * as schema from './schemaV2-helper';
 import { performRequest, createTestUsers, createAndReturnPost, goProtected, goPrivate, unbanUser, banUser } from './functional_test_helper';
 

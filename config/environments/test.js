@@ -1,4 +1,5 @@
 import stubTransport from 'nodemailer-stub-transport';
+
 import { test as postgresConfig } from '../../knexfile';
 
 

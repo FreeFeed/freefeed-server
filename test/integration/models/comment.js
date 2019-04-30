@@ -1,6 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
 import { isNull } from 'lodash'
+
 import cleanDB from '../../dbCleaner'
 import { dbAdapter, Comment, Post, User } from '../../../app/models'
 

@@ -1,6 +1,7 @@
 import compose from 'koa-compose';
 import _ from 'lodash'
 import monitor from 'monitor-dog'
+
 import { dbAdapter, PubSub as pubSub } from '../../../models'
 import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
 import { monitored, authRequired } from '../../middlewares';

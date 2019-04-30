@@ -2,6 +2,7 @@ import _ from 'lodash';
 import validator from 'validator'
 
 import { User, Group, Comment } from '../../models';
+
 import { initObject, prepareModelPayload } from './utils';
 
 

@@ -10,6 +10,7 @@ import Raven from 'raven';
 import createDebug from 'debug';
 
 import { version as serverVersion } from '../package.json';
+
 import { originMiddleware } from './initializers/origin';
 import { load as configLoader } from './config';
 import { selectDatabase } from './database';

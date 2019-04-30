@@ -9,6 +9,7 @@ import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
 import { load as configLoader } from '../../config/config'
+
 import * as funcTestHelper from './functional_test_helper'
 
 

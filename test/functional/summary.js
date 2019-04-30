@@ -4,6 +4,7 @@ import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub } from '../../app/models'
+
 import * as funcTestHelper from './functional_test_helper'
 
 

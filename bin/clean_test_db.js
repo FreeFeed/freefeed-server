@@ -1,5 +1,6 @@
 #!/usr/bin/env babel-node
 import knexLib from 'knex';
+
 import config from '../knexfile';
 
 

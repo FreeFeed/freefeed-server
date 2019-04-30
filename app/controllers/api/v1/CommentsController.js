@@ -5,6 +5,7 @@ import { dbAdapter, Comment } from '../../../models';
 import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions';
 import { serializeComment } from '../../../serializers/v2/comment';
 import { authRequired, inputSchemaRequired, postAccessRequired, monitored } from '../../middlewares';
+
 import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
 
 

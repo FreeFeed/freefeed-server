@@ -4,6 +4,7 @@ import expect from 'unexpected'
 
 
 import cleanDB from '../dbCleaner';
+
 import {
   createTestUsers,
   createGroupAsync,

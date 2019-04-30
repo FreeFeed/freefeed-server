@@ -7,6 +7,7 @@ import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
 import { PubSub, User } from '../../app/models'
+
 import { sessionRequest } from './functional_test_helper';
 
 

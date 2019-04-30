@@ -6,6 +6,7 @@ import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSub, Comment } from '../../app/models';
+
 import {
   fetchPost,
   fetchTimeline,

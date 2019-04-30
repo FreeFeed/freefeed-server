@@ -3,6 +3,7 @@ import validator from 'validator'
 import pgFormat from 'pg-format';
 
 import { Post, Comment } from '../../models';
+
 import { initObject, prepareModelPayload, unexistedUID } from './utils';
 import { COMMENT_FIELDS, initCommentObject } from './comments';
 import { ATTACHMENT_FIELDS, initAttachmentObject } from './attachments';

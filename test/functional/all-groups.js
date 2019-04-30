@@ -9,6 +9,7 @@ import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSub } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
+
 import { allGroupsResponse } from './schemaV2-helper';
 
 

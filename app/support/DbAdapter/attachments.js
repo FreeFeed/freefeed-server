@@ -1,6 +1,7 @@
 import validator from 'validator'
 
 import { Attachment } from '../../models';
+
 import { initObject, prepareModelPayload } from './utils';
 
 ///////////////////////////////////////////////////

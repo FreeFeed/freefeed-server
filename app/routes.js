@@ -8,9 +8,9 @@ import Router from 'koa-router';
 import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
+
 import { dbAdapter } from './models';
 import { reportError } from './support/exceptions';
-
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute';
 import CommentsRoute from './routes/api/v1/CommentsRoute';
@@ -20,7 +20,6 @@ import PostsRoute from './routes/api/v1/PostsRoute';
 import SessionRoute from './routes/api/v1/SessionRoute';
 import TimelinesRoute from './routes/api/v1/TimelinesRoute';
 import UsersRoute from './routes/api/v1/UsersRoute';
-
 import GroupsRouteV2 from './routes/api/v2/GroupsRoute';
 import RequestsRouteV2 from './routes/api/v2/RequestsRoute';
 import SearchRoute from './routes/api/v2/SearchRoute';
