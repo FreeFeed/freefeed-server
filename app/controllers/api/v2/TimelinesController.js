@@ -242,7 +242,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
           canViewUser = !banIds.includes(owner.id);
         }
       }
-    } else if (timeline.name === 'RiverOfNews' && config.dynamicRiverOfNews) {
+    } else if (timeline.name === 'RiverOfNews') {
       const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(viewerId);
       timelineIds.length = 0;
       timelineIds.push(...destinations);

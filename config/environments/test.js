@@ -20,8 +20,6 @@ export function getConfig() {
     recaptcha:          { enabled: false },
 
     frontendPreferencesLimit: 65536,
-
-    dynamicRiverOfNews: true,
   };
 
   config.host = `http://localhost:${config.port}`;

@@ -575,13 +575,7 @@ export async function getRoomsOfPost(post) {
   const materialFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments() || f.isPosts() || f.isDirects());
 
   // All feeds related to post
-  let feeds = [];
-
-  if (config.dynamicRiverOfNews) {
-    feeds = uniqBy([...materialFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
-  } else {
-    feeds = uniqBy([...postFeeds, ...myDiscussionsFeeds], 'id');
-  }
+  const feeds = uniqBy([...materialFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
 
   const rooms = feeds.map((t) => `timeline:${t.id}`);
   rooms.push(`post:${post.id}`);
