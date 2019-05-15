@@ -6,7 +6,7 @@ init:
 	@sed 's/localhost/db/g' knexfile.js.dist > knexfile.js
 	@mkdir -p public/files/attachments/thumbnails
 	@mkdir -p public/files/attachments/thumbnails2
-	@docker run -it --rm -v $(shell pwd):/server -w /server $(base_image) npm install
+	@docker run -it --rm -v $(shell pwd):/server -w /server $(base_image) yarn install
 
 docker-shell:
 	@docker run -it --rm -v $(shell pwd):/server -w /server $(base_image) bash
