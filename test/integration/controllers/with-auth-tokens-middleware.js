@@ -133,6 +133,35 @@ describe('withAuthToken middleware', () => {
     await luna.create();
   });
 
+  describe('Token souces', () => {
+    let authToken;
+    before(() => authToken = new SessionTokenV0(luna.id).tokenString());
+
+    it('should accept token in ctx.query.authToken', async () => {
+      const ctx = { query: { authToken }, request: { body: {} }, headers: {}, state: {} };
+      await withAuthToken(ctx, () => null);
+      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
+    });
+
+    it('should accept token in ctx.request.body.authToken', async () => {
+      const ctx = { query: { }, request: { body: { authToken } }, headers: {}, state: {} };
+      await withAuthToken(ctx, () => null);
+      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
+    });
+
+    it(`should accept token in 'x-authentication-token' header`, async () => {
+      const ctx = { query: { }, request: { body: { } }, headers: { 'x-authentication-token': authToken }, state: {} };
+      await withAuthToken(ctx, () => null);
+      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
+    });
+
+    it(`should accept token in 'authorization' header`, async () => {
+      const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `Bearer ${authToken}` }, state: {} };
+      await withAuthToken(ctx, () => null);
+      expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
+    });
+  });
+
   describe('AppTokenV1', () => {
     let token;
 

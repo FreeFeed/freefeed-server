@@ -16,9 +16,15 @@ const sentryIsEnabled = 'sentryDsn' in config;
 const authDebug = createDebug('freefeed:authentication');
 
 export async function withAuthToken(ctx, next) {
-  const jwtToken = ctx.headers['x-authentication-token']
-  || ctx.request.body.authToken
-  || ctx.query.authToken;
+  let jwtToken;
+
+  if (ctx.headers['authorization'] && ctx.headers['authorization'].startsWith('Bearer ')) {
+    jwtToken = ctx.headers['authorization'].replace(/^Bearer\s+/, '');
+  } else {
+    jwtToken = ctx.headers['x-authentication-token']
+     || ctx.request.body.authToken
+     || ctx.query.authToken;
+  }
 
   const authData = await tokenFromJWT(
     jwtToken,
