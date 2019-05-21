@@ -6,7 +6,6 @@ import Router from 'koa-router';
 
 import { load as configLoader } from '../config/config';
 
-import { dbAdapter } from './models';
 import { reportError } from './support/exceptions';
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute';
@@ -31,7 +30,6 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
-
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
 

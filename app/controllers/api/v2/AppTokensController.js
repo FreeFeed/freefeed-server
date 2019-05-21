@@ -6,6 +6,7 @@ import { authRequired, monitored, inputSchemaRequired } from '../../middlewares'
 import { AppTokenV1, dbAdapter } from '../../../models';
 import { ValidationException, NotFoundException, ForbiddenException } from '../../../support/exceptions';
 import { appTokensScopes } from '../../../models/app-tokens-scopes';
+
 import { appTokenCreateInputSchema, appTokenUpdateInputSchema } from './data-schemes/app-tokens';
 
 

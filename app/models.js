@@ -14,7 +14,6 @@ import { addModel as postModel } from './models/post';
 import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
 import { addAppTokenV1Model } from './models/auth-tokens';
-
 import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
 import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer';
 import { addSerializer as commentSerializer } from './serializers/v1/CommentSerializer';
