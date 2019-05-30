@@ -13,6 +13,7 @@ import Application from 'koa';
 
 import { dbAdapter, Comment } from '../../app/models'
 import { getSingleton as initApp } from '../../app/app'
+
 import * as schema from './schemaV2-helper';
 
 

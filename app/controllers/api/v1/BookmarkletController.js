@@ -16,6 +16,7 @@ import { ForbiddenException } from '../../../support/exceptions';
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
 import { load as configLoader } from '../../../../config/config';
+
 import { bookmarkletCreateInputSchema } from './data-schemes';
 import { checkDestNames } from './PostsController';
 

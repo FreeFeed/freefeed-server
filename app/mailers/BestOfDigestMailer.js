@@ -2,6 +2,7 @@ import { promisifyAll } from 'bluebird';
 import createDebug from 'debug';
 import { default as juice } from 'juice';
 import ReactDOMServer from 'react-dom/server';
+
 import Mailer from '../../lib/mailer';
 import { load as configLoader } from '../../config/config';
 import { SummaryEmail } from '../views/emails/best-of-digest/SummaryEmail.jsx';

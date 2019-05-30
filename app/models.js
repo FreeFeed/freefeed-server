@@ -7,14 +7,12 @@ import { DbAdapter } from './support/DbAdapter';
 import { PubSubAdapter } from './support/PubSubAdapter';
 import pubSub from './pubsub';
 import pubSubStub from './pubsub-stub';
-
 import { addModel as attachmentModel } from './models/attachment';
 import { addModel as commentModel } from './models/comment';
 import { addModel as groupModel } from './models/group';
 import { addModel as postModel } from './models/post';
 import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
-
 import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
 import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer';
 import { addSerializer as commentSerializer } from './serializers/v1/CommentSerializer';

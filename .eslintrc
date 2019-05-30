@@ -41,7 +41,13 @@
     "import/no-named-as-default": 2,
     "import/no-named-as-default-member": 2,
     "import/no-unresolved": 2,
-    "import/order": [2, { "groups": ["builtin", "external", "internal", "parent", "sibling", "index"] }],
+    "import/order": [
+      2,
+      {
+        "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
+        "newlines-between": "always"
+      }
+    ],
     "indent": [2, 2, {"SwitchCase": 1}],
     "key-spacing": [2, { "align": "value" }],
     "keyword-spacing": 2,

@@ -1,5 +1,6 @@
 /* eslint-env node, mocha */
 import expect from 'unexpected'
+
 import { List, difference, union, intersection } from '../../../app/support/open-lists';
 
 

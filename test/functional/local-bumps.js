@@ -3,6 +3,7 @@
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
+
 import * as helper from './functional_test_helper';
 
 

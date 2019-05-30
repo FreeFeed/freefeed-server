@@ -1,5 +1,7 @@
 import _ from 'lodash';
+
 import { dbAdapter } from '../../models';
+
 import { userSerializerFunction } from './user';
 
 

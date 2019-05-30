@@ -2,6 +2,7 @@ import _ from 'lodash';
 import validator from 'validator'
 
 import { Timeline } from '../../models';
+
 import { initObject, prepareModelPayload } from './utils';
 
 ///////////////////////////////////////////////////

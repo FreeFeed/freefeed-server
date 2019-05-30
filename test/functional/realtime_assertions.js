@@ -1,6 +1,7 @@
 import SocketIO from 'socket.io-client';
 
 import { getSingleton as initApp } from '../../app/app'
+
 import * as funcTestHelper from './functional_test_helper';
 
 

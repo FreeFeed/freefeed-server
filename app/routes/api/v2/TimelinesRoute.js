@@ -1,9 +1,10 @@
-import { bestOf, ownTimeline, userTimeline, metatags } from '../../../controllers/api/v2/TimelinesController';
+import { bestOf, everything, ownTimeline, userTimeline, metatags } from '../../../controllers/api/v2/TimelinesController';
 import { timelineRSS } from '../../../controllers/api/v2/TimelinesRSS';
 
 
 export default function addRoutes(app) {
   app.get('/v2/bestof',                       bestOf);
+  app.get('/v2/everything',                   everything);
   app.get('/v2/timelines/home',               ownTimeline('RiverOfNews', { withLocalBumps: true }));
   app.get('/v2/timelines/filter/discussions', ownTimeline('MyDiscussions'));
   app.get('/v2/timelines/filter/directs',     ownTimeline('Directs'));

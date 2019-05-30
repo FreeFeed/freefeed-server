@@ -1,5 +1,6 @@
 #!/usr/bin/env babel-node
 import fs from 'fs';
+
 import bluebird from 'bluebird';
 
 

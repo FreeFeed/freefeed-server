@@ -1,4 +1,5 @@
 import stubTransport from 'nodemailer-stub-transport';
+
 import { test as postgresConfig } from '../../knexfile';
 
 
@@ -20,8 +21,6 @@ export function getConfig() {
     recaptcha:          { enabled: false },
 
     frontendPreferencesLimit: 65536,
-
-    dynamicRiverOfNews: true,
   };
 
   config.host = `http://localhost:${config.port}`;

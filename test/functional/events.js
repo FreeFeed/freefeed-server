@@ -40,6 +40,7 @@ import {
   updatePostAsync,
   getUnreadDirectsNumber
 } from '../functional/functional_test_helper'
+
 import * as schema from './schemaV2-helper'
 import * as realtimeAssertions from './realtime_assertions';
 

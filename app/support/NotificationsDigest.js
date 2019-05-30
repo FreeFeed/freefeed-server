@@ -4,6 +4,7 @@ import createDebug from 'debug';
 import { dbAdapter } from '../models';
 import { serializeEvents } from '../serializers/v2/event';
 import { sendEventsDigestEmail } from '../mailers/NotificationDigestMailer';
+
 import { DIGEST_EVENT_TYPES } from './EventTypes';
 
 

@@ -1,4 +1,5 @@
 import { escape as urlEscape } from 'querystring';
+
 import { escape as htmlEscape } from 'lodash';
 import compose from 'koa-compose';
 import builder from 'xmlbuilder';
@@ -8,6 +9,7 @@ import { dbAdapter } from '../../../models';
 import { extractTitle, textToHTML } from '../../../support/rss-text-parser';
 import { monitored } from '../../middlewares';
 import { serializeComment } from '../../../serializers/v2/post';
+
 import { userTimeline, ORD_CREATED } from './TimelinesController';
 
 

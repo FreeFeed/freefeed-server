@@ -10,8 +10,8 @@ import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app';
 import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
-
 import { load as configLoader } from '../../config/config';
+
 import { createPostViaBookmarklet, createGroupAsync, createTestUser, MockHTTPServer } from './functional_test_helper'
 import { postResponse } from './schemaV2-helper';
 import Session from './realtime-session';

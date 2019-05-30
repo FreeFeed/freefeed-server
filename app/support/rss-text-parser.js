@@ -1,4 +1,5 @@
 import { escape as urlEscape } from 'querystring';
+
 import { escape as htmlEscape } from 'lodash';
 import { sentences } from 'sbd';
 import {
@@ -13,6 +14,7 @@ import {
   Mention,
   Link,
 } from 'social-text-tokenizer';
+
 import { load as configLoader } from '../../config/config';
 
 

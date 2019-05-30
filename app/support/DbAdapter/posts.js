@@ -3,6 +3,7 @@ import validator from 'validator'
 import pgFormat from 'pg-format';
 
 import { Post, Comment } from '../../models';
+
 import { initObject, prepareModelPayload, unexistedUID } from './utils';
 import { COMMENT_FIELDS, initCommentObject } from './comments';
 import { ATTACHMENT_FIELDS, initAttachmentObject } from './attachments';
@@ -234,8 +235,13 @@ const postsTrait = (superClass) => class extends superClass {
 
   /**
    * Returns UIDs of timelines posts
+   *
+   * @param {number[]|null} timelineIntIds null means select everything
+   * @param {string|null} viewerId UID of the authenticated viewer
+   * @param {object} params
+   * @returns {string[]}
    */
-  async getTimelinePostsIds(timelineName, timelineIntIds, viewerId = null, params = {}) {
+  async getTimelinePostsIds(timelineIntIds = null, viewerId = null, params = {}) {
     params = {
       limit:           30,
       offset:          0,
@@ -280,18 +286,22 @@ const postsTrait = (superClass) => class extends superClass {
       }
     }
 
-    const sourceConditionParts = [];
-    sourceConditionParts.push(pgFormat('p.feed_ids && %L', `{${timelineIntIds.join(',')}}`));
+    let sourceConditionSQL = 'true'; // select everything
 
-    if (params.activityFeedIds.length > 0) {
-      sourceConditionParts.push(pgFormat('p.feed_ids && %L and p.is_propagable', `{${params.activityFeedIds.join(',')}}`));
+    if (timelineIntIds) {
+      const sourceConditionParts = [];
+      sourceConditionParts.push(pgFormat('p.feed_ids && %L', `{${timelineIntIds.join(',')}}`));
+
+      if (params.activityFeedIds.length > 0) {
+        sourceConditionParts.push(pgFormat('p.feed_ids && %L and p.is_propagable', `{${params.activityFeedIds.join(',')}}`));
+      }
+
+      if (postsAuthorsSQL) {
+        sourceConditionParts.push(postsAuthorsSQL);
+      }
+
+      sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
     }
-
-    if (postsAuthorsSQL) {
-      sourceConditionParts.push(postsAuthorsSQL);
-    }
-
-    const sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
 
     const createdAtParts = [];
 
@@ -331,7 +341,7 @@ const postsTrait = (superClass) => class extends superClass {
      * @param {string} sort
      */
     const getPostsSQL = (limit, offset, sort) => {
-      if (timelineIntIds.length <= smallFeedThreshold) {
+      if (timelineIntIds && timelineIntIds.length <= smallFeedThreshold) {
         // Request with CTE for the relatively small feed
         return pgFormat(`
           with posts as (

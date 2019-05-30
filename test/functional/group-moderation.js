@@ -7,6 +7,7 @@ import { getSingleton } from '../../app/app';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { dbAdapter, PubSub } from '../../app/models';
+
 import {
   createTestUsers,
   createGroupAsync,

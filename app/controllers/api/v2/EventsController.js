@@ -1,4 +1,5 @@
 import _ from 'lodash';
+
 import { dbAdapter } from '../../../models';
 import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 import { serializeEvents } from '../../../serializers/v2/event';
