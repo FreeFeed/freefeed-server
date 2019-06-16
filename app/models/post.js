@@ -7,7 +7,12 @@ import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { List, intersection as listIntersection } from '../support/open-lists';
-import { HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY } from './timeline';
+
+import {
+  HOMEFEED_MODE_FRIENDS_ONLY,
+  HOMEFEED_MODE_CLASSIC,
+  HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+} from './timeline';
 
 
 export function addModel(dbAdapter) {
@@ -398,6 +403,21 @@ export function addModel(dbAdapter) {
         ]),
         'RiverOfNews',
       );
+    }
+
+    /**
+     * Same as getRiverOfNewsTimelines but returns the { [mode]: Timeline[] } hash
+     *
+     * @return {Object.<string, Timeline[]>}
+     */
+    async getRiverOfNewsTimelinesByModes() {
+      const keys = [
+        HOMEFEED_MODE_FRIENDS_ONLY,
+        HOMEFEED_MODE_CLASSIC,
+        HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+      ];
+      const values = await Promise.all(keys.map((k) => this.getRiverOfNewsTimelines(k)));
+      return _.zipObject(keys, values);
     }
 
     /**

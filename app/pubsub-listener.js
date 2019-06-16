@@ -1,7 +1,22 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
-import { cloneDeep, flatten, intersection, isArray, isFunction, isPlainObject, keyBy, map, uniqBy, noop, values, last, omit } from 'lodash';
+import {
+  cloneDeep,
+  compact,
+  flatten,
+  intersection,
+  isArray,
+  isFunction,
+  isPlainObject,
+  keyBy,
+  last,
+  map,
+  noop,
+  omit,
+  uniqBy,
+  values,
+} from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import jwt from 'jsonwebtoken';
@@ -13,6 +28,7 @@ import { load as configLoader } from '../config/config';
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
+import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 
 
 promisifyAll(jwt);
@@ -102,33 +118,35 @@ export default class PubsubListener {
           throw new EventHandlingError(`List of ${channelType} ids has to be an array`);
         }
 
-        const promises = channelIds.map(async (id) => {
+        const promises = channelIds.map(async (channelId) => {
+          const [objId] = channelId.split('?', 2); // channelId may have params after '?'
+
           if (channelType === 'timeline') {
-            const t = await dbAdapter.getTimelineById(id);
+            const t = await dbAdapter.getTimelineById(objId);
 
             if (!t) {
               throw new EventHandlingError(
                 `attempt to subscribe to nonexistent timeline`,
-                `User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${id})`
+                `User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${objId})`
               );
             }
 
             if (t.isPersonal() && t.userId !== socket.user.id) {
               throw new EventHandlingError(
                 `attempt to subscribe to someone else's '${t.name}' timeline`,
-                `User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${id}) belonging to user ${t.userId}`
+                `User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${objId}) belonging to user ${t.userId}`
               );
             }
           } else if (channelType === 'user') {
-            if (id !== socket.user.id) {
+            if (objId !== socket.user.id) {
               throw new EventHandlingError(
                 `attempt to subscribe to someone else's '${channelType}' channel`,
-                `User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${id})`
+                `User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${objId})`
               );
             }
           }
 
-          return `${channelType}:${id}`;
+          return `${channelType}:${channelId}`;
         });
 
         return await Promise.all(promises);
@@ -273,7 +291,7 @@ export default class PubsubListener {
         users = await post.onlyUsersCanSeePost(users);
       }
 
-      destSockets = destSockets.filter((s) => users.includes((s.user)));
+      destSockets = destSockets.filter((s) => users.includes(s.user));
     }
 
     const bansMap = await dbAdapter.getUsersBansIdsMap(users.map((u) => u.id).filter((id) => !!id));
@@ -565,19 +583,36 @@ export async function getRoomsOfPost(post) {
   const [
     postFeeds,
     myDiscussionsFeeds,
-    riverOfNewsFeeds,
+    riverOfNewsFeedsByModes,
   ] = await Promise.all([
     post.getTimelines(),
     post.getMyDiscussionsTimelines(),
-    post.getRiverOfNewsTimelines(),
+    post.getRiverOfNewsTimelinesByModes(),
   ]);
 
   const materialFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments() || f.isPosts() || f.isDirects());
 
   // All feeds related to post
-  const feeds = uniqBy([...materialFeeds, ...riverOfNewsFeeds, ...myDiscussionsFeeds], 'id');
+  const allFeeds = uniqBy([
+    ...materialFeeds,
+    ...riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY],
+    ...myDiscussionsFeeds
+  ], 'id');
 
-  const rooms = feeds.map((t) => `timeline:${t.id}`);
+  const rooms = compact(flatten(allFeeds.map((t) => {
+    if (t.isRiverOfNews()) {
+      const inNarrowMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ONLY].some((f) => f.id === t.id);
+      const inClassicMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_CLASSIC].some((f) => f.id === t.id);
+      return [
+        `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`,
+        inClassicMode && `timeline:${t.id}`, // Default mode
+        inClassicMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`,
+        inNarrowMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`,
+      ];
+    }
+
+    return `timeline:${t.id}`;
+  })));
   rooms.push(`post:${post.id}`);
   return rooms;
 }
