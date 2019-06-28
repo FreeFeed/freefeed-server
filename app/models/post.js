@@ -8,6 +8,12 @@ import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { List, intersection as listIntersection } from '../support/open-lists';
 
+import {
+  HOMEFEED_MODE_FRIENDS_ONLY,
+  HOMEFEED_MODE_CLASSIC,
+  HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+} from './timeline';
+
 
 export function addModel(dbAdapter) {
   class Post {
@@ -356,9 +362,10 @@ export function addModel(dbAdapter) {
      * Returns all RiverOfNews timelines this post belongs to.
      * Timelines are calculated dynamically.
      *
+     * @param {string} [mode] one of HOMEFEED_MODE_constants
      * @return {Timeline[]}
      */
-    async getRiverOfNewsTimelines() {
+    async getRiverOfNewsTimelines(mode = HOMEFEED_MODE_CLASSIC) {
       const postFeeds = await this.getTimelines();
       const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
       const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
@@ -368,9 +375,24 @@ export function addModel(dbAdapter) {
        * - post author
        * - users subscribed to post destinations feeds ('Posts')
        * - owners of post destinations feeds ('Posts' and 'Directs')
-       * - (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments').
+       * - and:
+       *  + if mode === HOMEFEED_MODE_CLASSIC
+       *       (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments')
+       *  + if mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+       *       users subscribed to post activity feeds ('Likes' and 'Comments') and to author's 'Posts' feed
        */
-      const riverOfNewsSourceIds = [...destinations, ...(this.isPropagable === '1' ? activities : [])].map((f) => f.id);
+      const riverOfNewsSources = [...destinations];
+
+      if (mode === HOMEFEED_MODE_CLASSIC) {
+        (this.isPropagable === '1') && riverOfNewsSources.push(...activities);
+      }
+
+      if (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
+        riverOfNewsSources.push(...activities);
+        riverOfNewsSources.push(await dbAdapter.getUserNamedFeed(this.userId, 'Posts'));
+      }
+
+      const riverOfNewsSourceIds = riverOfNewsSources.map((f) => f.id);
       const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
       const destinationOwnerIds = destinations.map((f) => f.userId);
       return await dbAdapter.getUsersNamedTimelines(
@@ -381,6 +403,21 @@ export function addModel(dbAdapter) {
         ]),
         'RiverOfNews',
       );
+    }
+
+    /**
+     * Same as getRiverOfNewsTimelines but returns the { [mode]: Timeline[] } hash
+     *
+     * @return {Object.<string, Timeline[]>}
+     */
+    async getRiverOfNewsTimelinesByModes() {
+      const keys = [
+        HOMEFEED_MODE_FRIENDS_ONLY,
+        HOMEFEED_MODE_CLASSIC,
+        HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+      ];
+      const values = await Promise.all(keys.map((k) => this.getRiverOfNewsTimelines(k)));
+      return _.zipObject(keys, values);
     }
 
     /**
@@ -687,9 +724,10 @@ export function addModel(dbAdapter) {
         dbAdapter.statsLikeCreated(user.id),
       ]);
 
-      if (this.isPropagable === '1') {
-        // Local bumps
-        const prevRONs = await this.getRiverOfNewsTimelines();
+      // Local bumps
+      // We bump post in the widest homefeed mode (HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY)
+      {
+        const prevRONs = await this.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY);
         const prevRONsOwners = _.map(prevRONs, 'userId');
         const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([likesTimeline.id]);
         usersSubscribedToLikeFeed.push(user.id); // user always implicitly subscribed to their feeds

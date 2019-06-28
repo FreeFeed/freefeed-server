@@ -70,3 +70,9 @@ export const CommentSerializer             = commentSerializer();
 export const PubsubCommentSerializer       = pubsubCommentSerializer();
 export const PostSerializer                = postSerializer();
 export const TimelineSerializer            = timelineSerializer();
+
+export {
+  HOMEFEED_MODE_CLASSIC,
+  HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+  HOMEFEED_MODE_FRIENDS_ONLY
+} from './models/timeline';

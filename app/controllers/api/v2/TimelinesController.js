@@ -3,7 +3,12 @@ import { escape as urlEscape } from 'querystring';
 import _ from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models';
+import {
+  dbAdapter,
+  HOMEFEED_MODE_CLASSIC,
+  HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+  HOMEFEED_MODE_FRIENDS_ONLY,
+} from '../../../models';
 import { load as configLoader } from '../../../../config/config';
 import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
@@ -12,30 +17,6 @@ import { userSerializerFunction } from '../../../serializers/v2/user';
 
 export const ORD_UPDATED = 'bumped';
 export const ORD_CREATED = 'created';
-
-/**
- * "Only friends" homefeed mode
- *
- * Displays posts from Posts/Directs feeds subscribed to by viewer.
- */
-export const HOMEFEED_MODE_FRIENDS_ONLY = 'friends-only';
-
-/**
- * "Classic" homefeed mode
- *
- * Displays posts from Posts/Directs feeds and propagable posts
- * from Comments/Likes feeds subscribed to by viewer.
- */
-export const HOMEFEED_MODE_CLASSIC = 'classic';
-
-/**
- * "All friends activity" homefeed mode
- *
- * Displays posts from Posts/Directs feeds and all (not only propagable) posts
- * from Comments/Likes feeds subscribed to by viewer. Also displays all posts
- * created by users subscribed to by viewer.
- */
-export const HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY = 'friends-all-activity';
 
 const config = configLoader();
 
