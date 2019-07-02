@@ -154,8 +154,8 @@ describe('Local bumps', () => {
               await helper.subscribeToAsync(luna, celestials);
             });
 
-            it("should not bump liked post in the Luna's homefeed", async () => {
-              await expectHomefeed(luna, [...groupDefaultFeed, ...lunaDefaultHomefeed]);
+            it("should bump liked post in the Luna's homefeed", async () => {
+              await expectHomefeed(luna, bump(marsPostsInGroup[0], [...groupDefaultFeed, ...lunaDefaultHomefeed]));
             });
           });
         });

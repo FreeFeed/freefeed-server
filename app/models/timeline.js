@@ -1,6 +1,30 @@
 /* eslint babel/semi: "error" */
 import _ from 'lodash';
 
+/**
+ * "Only friends" homefeed mode
+ *
+ * Displays posts from Posts/Directs feeds subscribed to by viewer.
+ */
+export const HOMEFEED_MODE_FRIENDS_ONLY = 'friends-only';
+
+/**
+ * "Classic" homefeed mode
+ *
+ * Displays posts from Posts/Directs feeds and propagable posts
+ * from Comments/Likes feeds subscribed to by viewer.
+ */
+export const HOMEFEED_MODE_CLASSIC = 'classic';
+
+/**
+ * "All friends activity" homefeed mode
+ *
+ * Displays posts from Posts/Directs feeds and all (not only propagable) posts
+ * from Comments/Likes feeds subscribed to by viewer. Also displays all posts
+ * created by users subscribed to by viewer.
+ */
+export const HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY = 'friends-all-activity';
+
 
 export function addModel(dbAdapter) {
   class Timeline {

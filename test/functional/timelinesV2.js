@@ -7,12 +7,13 @@ import _ from 'lodash'
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, dbAdapter } from '../../app/models'
 import {
+  PubSub,
+  dbAdapter,
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ONLY,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
-} from '../../app/controllers/api/v2/TimelinesController';
+} from '../../app/models'
 
 import {
   createUserAsync,

@@ -269,14 +269,16 @@ export default class PostsController {
  * @returns {string[]}
  */
 export async function checkDestNames(destNames, author) {
+  destNames = _.uniq(destNames);
   const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
+  const destUserNames = destUsers.map((u) => u.username);
 
-  if (destNames.length !== destUsers.length) {
-    if (destNames.length === 1) {
-      throw new NotFoundException(`Account '${destNames[0]}' was not found`);
-    }
+  const missNames = _.difference(destNames, destUserNames);
 
-    throw new NotFoundException('Some of destination users was not found');
+  if (missNames.length === 1) {
+    throw new NotFoundException(`Account '${missNames[0]}' was not found`);
+  } else if (missNames.length > 1) {
+    throw new NotFoundException(`Some of destinations was not found: ${missNames.join(', ')}`);
   }
 
   // Checking if this will be a regular post or a direct message.
@@ -290,7 +292,7 @@ export async function checkDestNames(destNames, author) {
   }
 
   const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
-  const deniedNames = destFeeds.map((x, i) => x.length === 0 ? destNames[i] : '').filter(Boolean);
+  const deniedNames = destFeeds.map((x, i) => x.length === 0 ? destUsers[i].username : '').filter(Boolean);
 
   if (deniedNames.length > 0) {
     if (destUsers.length === 1) {
@@ -303,7 +305,7 @@ export async function checkDestNames(destNames, author) {
       throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
     }
 
-    throw new ForbiddenException(`You can not post to some of destinations: ${deniedNames.join(',')}`);
+    throw new ForbiddenException(`You can not post to some of destinations: ${deniedNames.join(', ')}`);
   }
 
   const timelineIds = _.flatten(destFeeds).map((f) => f.id);

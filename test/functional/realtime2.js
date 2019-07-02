@@ -4,7 +4,7 @@ import expect from 'unexpected'
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, PubSub, HOMEFEED_MODE_FRIENDS_ONLY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
 
 import * as funcTestHelper from './functional_test_helper';
@@ -548,5 +548,207 @@ describe('Realtime #2', () => {
         });
       })
     });
+  });
+});
+
+describe('Realtime: Homefeed modes', () => {
+  let port;
+  let luna, mars, venus;
+  let selenites, celestials;
+  let luna2lunaPost,
+    mars2marsPost,
+    venus2venusPost,
+    mars2selenitesPost,
+    mars2celestialsPost,
+    venus2selenitesPost,
+    venus2celestialsPost;
+  let lunaHomefeed;
+  let lunaSession;
+
+  before(async () => {
+    await cleanDB($pg_database);
+
+    const app = await getSingleton();
+    port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter);
+
+
+    [luna, mars, venus] = await Promise.all([
+      funcTestHelper.createUserAsync('luna', 'pw'),
+      funcTestHelper.createUserAsync('mars', 'pw'),
+      funcTestHelper.createUserAsync('venus', 'pw'),
+    ]);
+
+    [selenites, celestials] = await Promise.all([
+      funcTestHelper.createGroupAsync(venus, 'selenites'),
+      funcTestHelper.createGroupAsync(venus, 'celestials'),
+    ]);
+
+    await Promise.all([
+      funcTestHelper.subscribeToAsync(luna, mars), // Luna subscribed to Mars
+      funcTestHelper.subscribeToAsync(luna, selenites), // Luna is a member of Selenites
+      funcTestHelper.subscribeToAsync(mars, selenites), // Mars is a member of Selenites
+      funcTestHelper.subscribeToAsync(mars, celestials), // Mars is a member of Celestials
+    ]);
+
+    [
+      luna2lunaPost,
+      mars2marsPost,
+      venus2venusPost,
+      mars2selenitesPost,
+      mars2celestialsPost,
+      venus2selenitesPost,
+      venus2celestialsPost,
+    ] = await Promise.all([
+      funcTestHelper.createAndReturnPostToFeed(luna, luna, 'Post'),
+      funcTestHelper.createAndReturnPostToFeed(mars, mars, 'Post'),
+      funcTestHelper.createAndReturnPostToFeed(venus, venus, 'Post'),
+      funcTestHelper.createAndReturnPostToFeed(selenites, mars, 'Post'),
+      funcTestHelper.createAndReturnPostToFeed(celestials, mars, 'Post'),
+      funcTestHelper.createAndReturnPostToFeed(selenites, venus, 'Post'),
+      funcTestHelper.createAndReturnPostToFeed(celestials, venus, 'Post'),
+    ]);
+
+    lunaHomefeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'RiverOfNews');
+
+    lunaSession = await Session.create(port, 'Luna session');
+    await lunaSession.sendAsync('auth', { authToken: luna.authToken });
+  });
+
+  const testPostActivity = async (commenter, post, should = true) => {
+    const test = lunaSession[should ? 'receiveWhile' : 'notReceiveWhile'](
+      'comment:new',
+      funcTestHelper.createCommentAsync(commenter, post.id, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled');
+  };
+
+  describe(`'${HOMEFEED_MODE_FRIENDS_ONLY}' mode`, () => {
+    let rooms;
+    before(async () => {
+      ({ rooms } = await lunaSession.sendAsync('subscribe', { timeline: [`${lunaHomefeed.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`] }));
+    });
+    after(() => lunaSession.sendAsync('unsubscribe', rooms));
+
+    it(`should receive events from own post`,
+      () => testPostActivity(venus, luna2lunaPost));
+
+    it(`should receive events from friend's post`,
+      () => testPostActivity(venus, mars2marsPost));
+
+    it(`should receive events from friend's post in friendly group`,
+      () => testPostActivity(venus, mars2selenitesPost));
+
+    it(`should receive events from non-friend's post in friendly group`,
+      () => testPostActivity(venus, venus2selenitesPost));
+
+    it(`should not receive events about own comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost, false));
+
+    it(`should not receive events about friend's comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost, false));
+
+    it(`should not receive events about friend's comment to non-friendly group`,
+      () => testPostActivity(mars, venus2celestialsPost, false));
+
+    it(`should not receive events about friend's post to non-friendly group`,
+      () => testPostActivity(venus, mars2celestialsPost, false));
+  });
+
+  describe(`'${HOMEFEED_MODE_CLASSIC}' mode`, () => {
+    let rooms;
+    before(async () => {
+      ({ rooms } = await lunaSession.sendAsync('subscribe', { timeline: [`${lunaHomefeed.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`] }));
+    });
+    after(() => lunaSession.sendAsync('unsubscribe', rooms));
+
+    it(`should receive events from own post`,
+      () => testPostActivity(venus, luna2lunaPost));
+
+    it(`should receive events from friend's post`,
+      () => testPostActivity(venus, mars2marsPost));
+
+    it(`should receive events from friend's post in friendly group`,
+      () => testPostActivity(venus, mars2selenitesPost));
+
+    it(`should receive events from non-friend's post in friendly group`,
+      () => testPostActivity(venus, venus2selenitesPost));
+
+    it(`should receive events about own comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost));
+
+    it(`should receive events about friend's comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost));
+
+    it(`should not receive events about friend's comment to non-friendly group`,
+      () => testPostActivity(mars, venus2celestialsPost, false));
+
+    it(`should not receive events about friend's post to non-friendly group`,
+      () => testPostActivity(venus, mars2celestialsPost, false));
+  });
+
+  describe(`omitted (i.e. '${HOMEFEED_MODE_CLASSIC}') mode`, () => {
+    let rooms;
+    before(async () => {
+      ({ rooms } = await lunaSession.sendAsync('subscribe', { timeline: [lunaHomefeed.id] }));
+    });
+    after(() => lunaSession.sendAsync('unsubscribe', rooms));
+
+    it(`should receive events from own post`,
+      () => testPostActivity(venus, luna2lunaPost));
+
+    it(`should receive events from friend's post`,
+      () => testPostActivity(venus, mars2marsPost));
+
+    it(`should receive events from friend's post in friendly group`,
+      () => testPostActivity(venus, mars2selenitesPost));
+
+    it(`should receive events from non-friend's post in friendly group`,
+      () => testPostActivity(venus, venus2selenitesPost));
+
+    it(`should receive events about own comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost));
+
+    it(`should receive events about friend's comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost));
+
+    it(`should not receive events about friend's comment to non-friendly group`,
+      () => testPostActivity(mars, venus2celestialsPost, false));
+
+    it(`should not receive events about friend's post to non-friendly group`,
+      () => testPostActivity(venus, mars2celestialsPost, false));
+  });
+
+  describe(`'${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}' mode`, () => {
+    let rooms;
+    before(async () => {
+      ({ rooms } = await lunaSession.sendAsync('subscribe', { timeline: [`${lunaHomefeed.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`] }));
+    });
+    after(() => lunaSession.sendAsync('unsubscribe', rooms));
+
+    it(`should receive events from own post`,
+      () => testPostActivity(venus, luna2lunaPost));
+
+    it(`should receive events from friend's post`,
+      () => testPostActivity(venus, mars2marsPost));
+
+    it(`should receive events from friend's post in friendly group`,
+      () => testPostActivity(venus, mars2selenitesPost));
+
+    it(`should receive events from non-friend's post in friendly group`,
+      () => testPostActivity(venus, venus2selenitesPost));
+
+    it(`should receive events about own comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost));
+
+    it(`should receive events about friend's comment to non-friend's post`,
+      () => testPostActivity(mars, venus2venusPost));
+
+    it(`should receive events about friend's comment to non-friendly group`,
+      () => testPostActivity(mars, venus2celestialsPost));
+
+    it(`should receive events about friend's post to non-friendly group`,
+      () => testPostActivity(venus, mars2celestialsPost));
   });
 });
