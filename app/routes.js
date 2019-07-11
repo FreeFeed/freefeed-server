@@ -76,12 +76,6 @@ export default function (app) {
   InvitationsRoute(router);
   AppTokensRoute(router);
 
-  // Not Found route for API URIs
-  router.all('/v(\\d+)/*', (ctx) => {
-    ctx.status = 404;
-    ctx.body = { err: `API method not found: '${ctx.url}'` };
-  });
-
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
   app.use(async (ctx, next) => {
@@ -98,4 +92,15 @@ export default function (app) {
 
   app.use(router.routes());
   app.use(router.allowedMethods());
+
+  // Not Found middleware for API-like URIs
+  app.use(async (ctx, next) => {
+    if (/\/v\d+\//.test(ctx.url)) {
+      ctx.status = 404;
+      ctx.body = { err: `API method not found: '${ctx.url}'` };
+      return;
+    }
+
+    await next();
+  });
 }

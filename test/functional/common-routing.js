@@ -27,4 +27,14 @@ describe('Common API routing', () => {
     const respData = await resp.json();
     expect(respData, 'to satisfy', { err: 'API method not found: \'/v1/unexisting/method\'' });
   });
+
+  it(`should response '200 OK' to OPTIONS request`, async () => {
+    const resp = await fetch(`${app.context.config.host}/v2/users/whoami`, { method: 'OPTIONS' });
+    expect(resp.status, 'to be', 200);
+  });
+
+  it(`should response '404 Not Found' to OPTIONS request if API method is not exists`, async () => {
+    const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, { method: 'OPTIONS' });
+    expect(resp.status, 'to be', 404);
+  });
 });
