@@ -46,9 +46,9 @@ export const appTokensScopes = [
   },
   {
     name:   'read-realtime',
-    title:  'Description of read-realtime',
+    title:  'Read realtime messages',
     routes: [
-      'RT',
+      'WS *',
     ]
   },
   {
@@ -126,13 +126,6 @@ export const appTokensScopes = [
       'POST /v1/users/acceptRequest/:username',
       'POST /v1/users/rejectRequest/:username',
       'POST /v1/users/:username/unsubscribeFromMe',
-    ]
-  },
-  {
-    name:   'read-realtime',
-    title:  'Read realtime messages',
-    routes: [
-      'WS *',
     ]
   },
 ];
