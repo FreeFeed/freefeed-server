@@ -1,6 +1,5 @@
 import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
-import { Netmask } from 'netmask';
 import createDebug from 'debug';
 import Raven from 'raven';
 
@@ -8,6 +7,7 @@ import { load as configLoader } from '../../../config/config';
 import { dbAdapter, SessionTokenV0, AppTokenV1 } from '../../models';
 import { ForbiddenException } from '../../support/exceptions';
 import { alwaysAllowedRoutes, appTokensScopes } from '../../models/app-tokens-scopes';
+import { Address } from '../../support/ipv6';
 
 
 promisifyAll(jwt);
@@ -46,7 +46,8 @@ export async function withAuthToken(ctx, next) {
   if (authToken instanceof AppTokenV1) {
     // Update IP and User-Agent
     await authToken.registerUsage({
-      ip:        ctx.ip,
+      // Beautify address for user: remove ::ffff: prefix from IPv4 addresses
+      ip:        new Address(ctx.ip).toString(),
       userAgent: ctx.headers['user-agent'] || '<undefined>',
     });
 
@@ -127,9 +128,13 @@ export async function tokenFromJWT(
     {
       const { netmasks = [], origins = [] } = token.restrictions;
 
-      if (netmasks.length > 0 && !netmasks.some((mask) => new Netmask(mask).contains(remoteIP))) {
-        authDebug(`app token is not allowed from IP ${remoteIP}`)
-        throw new ForbiddenException(`token is not allowed from this IP`);
+      if (netmasks.length > 0) {
+        const remoteAddr = new Address(remoteIP);
+
+        if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
+          authDebug(`app token is not allowed from IP ${remoteIP}`)
+          throw new ForbiddenException(`token is not allowed from this IP`);
+        }
       }
 
       if (origins.length > 0 && !origins.includes(headers.origin)) {

@@ -1,11 +1,11 @@
 import { pick, difference } from 'lodash';
 import compose from 'koa-compose';
-import { Netmask } from 'netmask';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
 import { ValidationException, NotFoundException, ForbiddenException } from '../../../support/exceptions';
 import { appTokensScopes } from '../../../models/app-tokens-scopes';
+import { Address } from '../../../support/ipv6';
 
 import { appTokenCreateInputSchema, appTokenUpdateInputSchema } from './data-schemes/app-tokens';
 
@@ -26,7 +26,7 @@ export const create = compose([
 
     const invalidNetmasks = body.restrictions.netmasks.filter((mask) => {
       try {
-        new Netmask(mask);
+        new Address(mask);
         return false;
       } catch (e) {
         return true;

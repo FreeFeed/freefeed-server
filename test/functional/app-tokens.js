@@ -268,6 +268,28 @@ describe('App tokens controller', () => {
         });
       });
     });
+
+    describe('Token with IP restrictions', () => {
+      let token;
+      before(async () => {
+        token = new AppTokenV1({
+          userId:       luna.user.id,
+          title:        'My app',
+          scopes:       ['read-my-info'],
+          restrictions: { netmasks: ['127.0.0.1/24'] },
+        });
+        await token.create();
+      });
+
+      it('should allow "/v1/users/me" request with token', async () => {
+        const resp = await request(
+          'GET', `/v1/users/me`,
+          null,
+          { 'X-Authentication-Token': token.tokenString() },
+        );
+        expect(resp, 'to satisfy', { __httpStatus: 200 });
+      });
+    });
   });
 });
 
