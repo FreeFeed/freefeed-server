@@ -6,7 +6,7 @@ export const alwaysAllowedRoutes = [
 export const appTokensScopes = [
   {
     name:   'read-my-info',
-    title:  'Description of read-my-info',
+    title:  'Read my user information',
     routes: [
       'GET /v2/users/whoami',
       'GET /v2/managedGroups',
@@ -15,7 +15,7 @@ export const appTokensScopes = [
   },
   {
     name:   'read-feeds',
-    title:  'Description of read-any-feeds',
+    title:  'Read feeds, including my feeds and direct messages',
     routes: [
       'GET /v2/timelines/home',
       'GET /v2/timelines/filter/discussions',
@@ -37,7 +37,7 @@ export const appTokensScopes = [
   },
   {
     name:   'read-users-info',
-    title:  'Description of read-users-info',
+    title:  'Read users\' information',
     routes: [
       'GET /v1/users/:username',
       'GET /v1/users/:username/subscribers',
@@ -53,7 +53,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-notifications',
-    title:  'Description of manage-notifications',
+    title:  'Manage notifications',
     routes: [
       'GET /v2/notifications',
       'POST /v2/users/markAllNotificationsAsRead',
@@ -62,7 +62,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-posts',
-    title:  'Description of manage-posts',
+    title:  'Manage (read, write and delete) posts, comments, and likes',
     routes: [
       'GET /v2/posts/:postId',
       'GET /v2/users/markAllDirectsAsRead',
@@ -85,7 +85,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-my-feeds',
-    title:  'Description of manage-my-feeds',
+    title:  'Manage my subscriptions, hides, and bans',
     routes: [
       'POST /v1/users/:userId/subscribe',
       'POST /v1/users/:userId/unsubscribe',
@@ -99,7 +99,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-profile',
-    title:  'Description of manage-profile',
+    title:  'Manage my and my groups profiles',
     routes: [
       'POST /v1/groups/:groupName/updateProfilePicture',
       'POST /v1/users/updateProfilePicture',
@@ -108,7 +108,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-groups',
-    title:  'Description of manage-groups',
+    title:  'Manage groups',
     routes: [
       'POST /v1/groups',
       'POST /v1/groups/:groupName/subscribers/:adminName/admin',
@@ -121,7 +121,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-subscription-requests',
-    title:  'Description of manage-subscription-requests',
+    title:  'Manage subscription requests',
     routes: [
       'POST /v1/users/acceptRequest/:username',
       'POST /v1/users/rejectRequest/:username',
