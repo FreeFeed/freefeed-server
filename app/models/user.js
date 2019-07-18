@@ -1,1137 +1,1276 @@
-import crypto from 'crypto'
-import fs from 'fs'
+import crypto from 'crypto';
+import fs from 'fs';
 
-import bcrypt from 'bcrypt'
-import { promisifyAll } from 'bluebird'
-import gm from 'gm'
-import GraphemeBreaker from 'grapheme-breaker'
-import _ from 'lodash'
-import monitor from 'monitor-dog'
-import validator from 'validator'
+import bcrypt from 'bcrypt';
+import { promisifyAll } from 'bluebird';
+import gm from 'gm';
+import GraphemeBreaker from 'grapheme-breaker';
+import _ from 'lodash';
+import monitor from 'monitor-dog';
+import validator from 'validator';
 import uuidv4 from 'uuid/v4';
 
-import { load as configLoader } from '../../config/config'
+import { load as configLoader } from '../../config/config';
 import { getS3 } from '../support/s3';
-import { BadRequestException, ForbiddenException, NotFoundException, ValidationException } from '../support/exceptions'
-import { Attachment, Comment, Post, PubSub as pubSub } from '../models'
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  ValidationException
+} from '../support/exceptions';
+import { Attachment, Comment, Post, PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 
 import { valiate as validateUserPrefs } from './user-prefs';
 
 
-promisifyAll(crypto)
-promisifyAll(gm)
+promisifyAll(crypto);
+promisifyAll(gm);
 
-const config = configLoader()
+const config = configLoader();
 
 export function addModel(dbAdapter) {
-  /**
-   * @constructor
-   */
-  const User = function (params) {
-    let password = null
+  return class User {
+    static PROFILE_PICTURE_SIZE_LARGE = 75;
+    static PROFILE_PICTURE_SIZE_MEDIUM = 50;
 
-    this.intId = params.intId;
-    this.id = params.id
-    this.username = params.username
-    this.screenName = params.screenName
-    this.email = params.email
-    this.description = params.description || ''
-    this.frontendPreferences = params.frontendPreferences || {}
-    this.preferences = validateUserPrefs(params.preferences, true);
+    static ACCEPT_DIRECTS_FROM_ALL = 'all';
+    static ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
 
-    if (!_.isUndefined(params.hashedPassword)) {
-      this.hashedPassword = params.hashedPassword
-    } else {
-      password = params.password || ''
-    }
+    type = 'user';
 
-    this.isPrivate = params.isPrivate
-    this.isProtected = params.isProtected
+    constructor(params) {
+      this.intId = params.intId;
+      this.id = params.id;
+      this.username = params.username;
+      this.screenName = params.screenName;
+      this.email = params.email;
+      this.description = params.description || '';
+      this.frontendPreferences = params.frontendPreferences || {};
+      this.preferences = validateUserPrefs(params.preferences, true);
 
-    if (this.isPrivate === '1') {
-      this.isProtected = '1'
-    }
+      this.isPrivate = params.isPrivate;
+      this.isProtected = this.isPrivate === '1' ? '1' : params.isProtected;
 
-    this.resetPasswordToken = params.resetPasswordToken
-    this.resetPasswordSentAt = params.resetPasswordSentAt
-
-    if (parseInt(params.createdAt, 10)) {
-      this.createdAt = params.createdAt;
-    }
-
-    if (parseInt(params.updatedAt, 10)) {
-      this.updatedAt = params.updatedAt;
-    }
-
-    this.type = 'user'
-
-    this.profilePictureUuid = params.profilePictureUuid || ''
-    this.subscribedFeedIds = params.subscribedFeedIds || []
-    this.privateMeta = params.privateMeta;
-    this.notificationsReadAt = params.notificationsReadAt;
-
-    this.initPassword = async function () {
-      if (!_.isNull(password)) {
-        if (password.length === 0) {
-          throw new Error('Password cannot be blank')
-        }
-
-        this.hashedPassword = await bcrypt.hash(password, 10)
-        password = null
+      if (parseInt(params.createdAt, 10)) {
+        this.createdAt = params.createdAt;
       }
 
-      return this
+      if (parseInt(params.updatedAt, 10)) {
+        this.updatedAt = params.updatedAt;
+      }
+
+      this.profilePictureUuid = params.profilePictureUuid || '';
+      this.subscribedFeedIds = params.subscribedFeedIds || [];
+      this.privateMeta = params.privateMeta;
+      this.notificationsReadAt = params.notificationsReadAt;
+
+      if (this.isUser()) {
+        if (params.hashedPassword !== undefined) {
+          this.plaintextPassword = null;
+          this.hashedPassword = params.hashedPassword;
+        } else {
+          this.plaintextPassword = params.password || '';
+          this.hashedPassword = null;
+        }
+
+        this.resetPasswordToken = params.resetPasswordToken;
+        this.resetPasswordSentAt = params.resetPasswordSentAt;
+      }
     }
-  }
 
-  User.PROFILE_PICTURE_SIZE_LARGE = 75
-  User.PROFILE_PICTURE_SIZE_MEDIUM = 50
-
-  User.ACCEPT_DIRECTS_FROM_ALL     = 'all';
-  User.ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
-
-  Reflect.defineProperty(User.prototype, 'username', {
-    get: function () { return this.username_ },
-    set: function (newValue) {
+    get username() {
+      return this.username_;
+    }
+    set username(newValue) {
       if (newValue) {
         this.username_ = newValue.trim().toLowerCase();
       }
     }
-  })
 
-  Reflect.defineProperty(User.prototype, 'screenName', {
-    get: function () { return this.screenName_ },
-    set: function (newValue) {
+    get screenName() {
+      return this.screenName_;
+    }
+    set screenName(newValue) {
       if (_.isString(newValue)) {
         this.screenName_ = newValue.trim();
       }
     }
-  })
 
-  Reflect.defineProperty(User.prototype, 'email', {
-    get: function () { return _.isUndefined(this.email_) ? '' : this.email_ },
-    set: function (newValue) {
+    get email() {
+      return this.email_ === undefined ? '' : this.email_;
+    }
+    set email(newValue) {
       if (_.isString(newValue)) {
         this.email_ = newValue.trim();
       }
     }
-  })
 
-  Reflect.defineProperty(User.prototype, 'isPrivate', {
-    get: function () { return this.isPrivate_ },
-    set: function (newValue) {
-      this.isPrivate_ = newValue || '0'
+    get isPrivate() {
+      return this.isPrivate_;
     }
-  })
-
-  Reflect.defineProperty(User.prototype, 'isProtected', {
-    get: function () { return this.isProtected_ },
-    set: function (newValue) {
-      this.isProtected_ = newValue || '0'
+    set isPrivate(newValue) {
+      this.isPrivate_ = newValue || '0';
     }
-  })
 
-  Reflect.defineProperty(User.prototype, 'description', {
-    get: function () { return this.description_ },
-    set: function (newValue) {
+    get isProtected() {
+      return this.isProtected_;
+    }
+    set isProtected(newValue) {
+      this.isProtected_ = newValue || '0';
+    }
+
+    get description() {
+      return this.description_;
+    }
+    set description(newValue) {
       if (_.isString(newValue)) {
         this.description_ = newValue.trim();
       }
     }
-  })
 
-  Reflect.defineProperty(User.prototype, 'frontendPreferences', {
-    get: function () { return this.frontendPreferences_ },
-    set: function (newValue) {
+    get frontendPreferences() {
+      return this.frontendPreferences_;
+    }
+    set frontendPreferences(newValue) {
       if (_.isString(newValue)) {
-        newValue = JSON.parse(newValue)
+        newValue = JSON.parse(newValue);
       }
 
-      this.frontendPreferences_ = newValue
-    }
-  })
-
-  /**
-   * User.isActive is true for non-disabled users (having hashedPassword !== '')
-   */
-  Reflect.defineProperty(User.prototype, 'isActive', {
-    get: function () { return this.hashedPassword !== ''; },
-    set: function () {},
-  })
-
-  User.stopList = (skipExtraList) => {
-    if (skipExtraList) {
-      return config.application.USERNAME_STOP_LIST
+      this.frontendPreferences_ = newValue;
     }
 
-    return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST)
-  }
-
-  User.getObjectsByIds = (objectIds) => {
-    return dbAdapter.getFeedOwnersByIds(objectIds)
-  }
-
-  User.prototype.isUser = function () {
-    return this.type === 'user'
-  }
-
-  User.prototype.isGroup = function () {
-    return !this.isUser()
-  }
-
-  User.prototype.newPost = async function (attrs) {
-    attrs.userId = this.id
-
-    if (!attrs.timelineIds || !attrs.timelineIds[0]) {
-      const timelineId = await this.getPostsTimelineId()
-      attrs.timelineIds = [timelineId]
+    /**
+     * User.isActive is true for non-disabled users (having hashedPassword !== '')
+     */
+    get isActive() {
+      return this.hashedPassword !== '';
     }
 
-    return new Post(attrs)
-  }
+    static stopList(skipExtraList) {
+      if (skipExtraList) {
+        return config.application.USERNAME_STOP_LIST;
+      }
 
-  User.prototype.updateResetPasswordToken = async function () {
-    const now = new Date().getTime()
-    const token = await this.generateResetPasswordToken()
-
-    const payload = {
-      'resetPasswordToken':  token,
-      'resetPasswordSentAt': now
+      return config.application.USERNAME_STOP_LIST.concat(
+        config.application.EXTRA_STOP_LIST
+      );
     }
 
-    await dbAdapter.updateUser(this.id, payload)
-
-    this.resetPasswordToken = token
-    return this.resetPasswordToken
-  }
-
-  User.prototype.generateResetPasswordToken = async function () {
-    const buf = await crypto.randomBytesAsync(48)
-    return buf.toString('hex')
-  }
-
-  User.prototype.validPassword = function (clearPassword) {
-    return bcrypt.compare(clearPassword, this.hashedPassword)
-  }
-
-  User.prototype.isValidEmail = function () {
-    return User.emailIsValid(this.email)
-  }
-
-  User.emailIsValid = async function (email) {
-    // email is optional
-    if (!email || email.length == 0) {
-      return true
+    static getObjectsByIds(objectIds) {
+      return dbAdapter.getFeedOwnersByIds(objectIds);
     }
 
-    if (!validator.isEmail(email)) {
-      return false
+    isUser() {
+      return this.type === 'user';
+    }
+    isGroup() {
+      return !this.isUser();
     }
 
-    const exists = await dbAdapter.existsUserEmail(email)
+    async newPost(attrs) {
+      attrs.userId = this.id;
 
-    if (exists) {
-      // email is taken
-      return false
+      if (!attrs.timelineIds || !attrs.timelineIds[0]) {
+        const timelineId = await this.getPostsTimelineId();
+        attrs.timelineIds = [timelineId];
+      }
+
+      return new Post(attrs);
     }
 
-    return true
-  }
+    async updateResetPasswordToken() {
+      const now = new Date().getTime();
+      const token = await this.generateResetPasswordToken();
 
-  User.prototype.isValidUsername = function (skip_stoplist) {
-    const valid = this.username
-        && this.username.length >= 3   // per the spec
-        && this.username.length <= 25  // per the spec
-        && this.username.match(/^[A-Za-z0-9]+$/)
-        && !User.stopList(skip_stoplist).includes(this.username)
+      const payload = {
+        resetPasswordToken:  token,
+        resetPasswordSentAt: now
+      };
 
-    return valid
-  }
+      await dbAdapter.updateUser(this.id, payload);
 
-  User.prototype.isValidScreenName = function () {
-    return this.screenNameIsValid(this.screenName)
-  }
-
-  User.prototype.screenNameIsValid = function (screenName) {
-    if (typeof screenName !== 'string') {
-      return false
+      this.resetPasswordToken = token;
+      return this.resetPasswordToken;
     }
 
-    const len = GraphemeBreaker.countBreaks(screenName.trim())
-
-    if (len < 3 || len > 25) {
-      return false
+    async generateResetPasswordToken() {
+      const buf = await crypto.randomBytesAsync(48);
+      return buf.toString('hex');
     }
 
-    return true
-  }
-
-  User.prototype.isValidDescription = function () {
-    return User.descriptionIsValid(this.description)
-  }
-
-  User.descriptionIsValid = function (description) {
-    const len = GraphemeBreaker.countBreaks(description)
-    return (len <= 1500)
-  }
-
-  User.frontendPreferencesIsValid = function (frontendPreferences) {
-    // Check size
-    const prefString = JSON.stringify(frontendPreferences)
-    const len = GraphemeBreaker.countBreaks(prefString)
-
-    if (len > config.frontendPreferencesLimit) {
-      return false
+    validPassword(clearPassword) {
+      return bcrypt.compare(clearPassword, this.hashedPassword);
     }
 
-    // Check structure
-    // (for each key in preferences there must be an object value)
-    if (!_.isPlainObject(frontendPreferences)) {
-      return false
+    isValidEmail() {
+      return User.emailIsValid(this.email);
     }
 
-    for (const prop in frontendPreferences) {
-      if (!frontendPreferences[prop] || typeof frontendPreferences[prop] !== 'object') {
-        return false
+    static async emailIsValid(email) {
+      // email is optional
+      if (!email || email.length == 0) {
+        return true;
+      }
+
+      if (!validator.isEmail(email)) {
+        return false;
+      }
+
+      const exists = await dbAdapter.existsUserEmail(email);
+
+      if (exists) {
+        // email is taken
+        return false;
+      }
+
+      return true;
+    }
+
+    isValidUsername(skip_stoplist) {
+      const valid =
+        this.username &&
+        this.username.length >= 3 && // per the spec
+        this.username.length <= 25 && // per the spec
+        this.username.match(/^[A-Za-z0-9]+$/) &&
+        !User.stopList(skip_stoplist).includes(this.username);
+
+      return valid;
+    }
+
+    isValidScreenName() {
+      return this.screenNameIsValid(this.screenName);
+    }
+
+    screenNameIsValid(screenName) {
+      if (typeof screenName !== 'string') {
+        return false;
+      }
+
+      const len = GraphemeBreaker.countBreaks(screenName.trim());
+
+      if (len < 3 || len > 25) {
+        return false;
+      }
+
+      return true;
+    }
+
+    isValidDescription() {
+      return User.descriptionIsValid(this.description);
+    }
+
+    static descriptionIsValid(description) {
+      const len = GraphemeBreaker.countBreaks(description);
+      return len <= 1500;
+    }
+
+    static frontendPreferencesIsValid(frontendPreferences) {
+      // Check size
+      const prefString = JSON.stringify(frontendPreferences);
+      const len = GraphemeBreaker.countBreaks(prefString);
+
+      if (len > config.frontendPreferencesLimit) {
+        return false;
+      }
+
+      // Check structure
+      // (for each key in preferences there must be an object value)
+      if (!_.isPlainObject(frontendPreferences)) {
+        return false;
+      }
+
+      for (const prop in frontendPreferences) {
+        if (
+          !frontendPreferences[prop] ||
+          typeof frontendPreferences[prop] !== 'object'
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    async validate(skip_stoplist) {
+      if (!this.isValidUsername(skip_stoplist)) {
+        throw new Error('Invalid username');
+      }
+
+      if (!this.isValidScreenName()) {
+        throw new Error(
+          `"${
+            this.screenName
+          }" is not a valid display name. Names must be between 3 and 25 characters long.`
+        );
+      }
+
+      if (!(await this.isValidEmail())) {
+        throw new Error('Invalid email');
+      }
+
+      if (!this.isValidDescription()) {
+        throw new Error('Description is too long');
       }
     }
 
-    return true
-  }
+    async validateUsernameUniqueness() {
+      const res = await dbAdapter.existsUsername(this.username);
 
-  User.prototype.validate = async function (skip_stoplist) {
-    if (!this.isValidUsername(skip_stoplist)) {
-      throw new Error('Invalid username')
+      if (res !== 0) {
+        throw new Error('Already exists');
+      }
     }
 
-    if (!this.isValidScreenName()) {
-      throw new Error(`"${this.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
+    async validateOnCreate(skip_stoplist) {
+      const promises = [
+        this.validate(skip_stoplist),
+        this.validateUsernameUniqueness()
+      ];
+
+      await Promise.all(promises);
     }
 
-    if (!await this.isValidEmail()) {
-      throw new Error('Invalid email')
-    }
+    async create(skip_stoplist) {
+      this.createdAt = new Date().getTime();
+      this.updatedAt = new Date().getTime();
+      this.screenName = this.screenName || this.username;
 
-    if (!this.isValidDescription()) {
-      throw new Error('Description is too long')
-    }
-  }
+      await this.validateOnCreate(skip_stoplist);
 
-  User.prototype.validateUsernameUniqueness = async function () {
-    const res = await dbAdapter.existsUsername(this.username)
+      const timer = monitor.timer('users.create-time');
 
-    if (res !== 0) {
-      throw new Error('Already exists');
-    }
-  }
+      if (this.plaintextPassword !== null) {
+        if (this.plaintextPassword.length === 0) {
+          throw new Error('Password cannot be blank');
+        }
 
-  User.prototype.validateOnCreate = async function (skip_stoplist) {
-    const promises = [
-      this.validate(skip_stoplist),
-      this.validateUsernameUniqueness()
-    ];
-
-    await Promise.all(promises)
-  }
-
-  User.prototype.create = async function (skip_stoplist) {
-    this.createdAt = new Date().getTime()
-    this.updatedAt = new Date().getTime()
-    this.screenName = this.screenName || this.username
-
-    await this.validateOnCreate(skip_stoplist)
-
-    const timer = monitor.timer('users.create-time')
-    await this.initPassword()
-
-    const payload = {
-      'username':            this.username,
-      'screenName':          this.screenName,
-      'email':               this.email ? this.email : null,
-      'type':                this.type,
-      'isPrivate':           '0',
-      'isProtected':         '0',
-      'description':         '',
-      'createdAt':           this.createdAt.toString(),
-      'updatedAt':           this.updatedAt.toString(),
-      'hashedPassword':      this.hashedPassword,
-      'frontendPreferences': JSON.stringify({}),
-      'preferences':         this.preferences,
-    };
-
-    [this.id, this.intId] = await dbAdapter.createUser(payload);
-
-    await dbAdapter.createUserTimelines(this.id, ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions'])
-    timer.stop() // @todo finally {}
-    monitor.increment('users.creates')
-
-    return this
-  }
-
-  User.prototype.update = async function (params) {
-    const payload = {}
-    const changeableKeys = ['screenName', 'email', 'isPrivate', 'isProtected', 'description', 'frontendPreferences', 'preferences'];
-
-    if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
-      if (!this.screenNameIsValid(params.screenName)) {
-        throw new Error(`"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`)
+        this.hashedPassword = await bcrypt.hash(this.plaintextPassword, 10);
+        this.plaintextPassword = null;
       }
 
-      payload.screenName = params.screenName
+      const payload = {
+        username:            this.username,
+        screenName:          this.screenName,
+        email:               this.email ? this.email : null,
+        type:                this.type,
+        isPrivate:           '0',
+        isProtected:         '0',
+        description:         '',
+        createdAt:           this.createdAt.toString(),
+        updatedAt:           this.updatedAt.toString(),
+        hashedPassword:      this.hashedPassword,
+        frontendPreferences: JSON.stringify({}),
+        preferences:         this.preferences
+      };
+
+      [this.id, this.intId] = await dbAdapter.createUser(payload);
+
+      await dbAdapter.createUserTimelines(this.id, [
+        'RiverOfNews',
+        'Hides',
+        'Comments',
+        'Likes',
+        'Posts',
+        'Directs',
+        'MyDiscussions'
+      ]);
+      timer.stop(); // @todo finally {}
+      monitor.increment('users.creates');
+
+      return this;
     }
 
-    if (params.hasOwnProperty('email') && params.email != this.email) {
-      if (!(await User.emailIsValid(params.email))) {
-        throw new Error('Invalid email')
+    async update(params) {
+      const payload = {};
+      const changeableKeys = [
+        'screenName',
+        'email',
+        'isPrivate',
+        'isProtected',
+        'description',
+        'frontendPreferences',
+        'preferences'
+      ];
+
+      if (
+        params.hasOwnProperty('screenName') &&
+        params.screenName != this.screenName
+      ) {
+        if (!this.screenNameIsValid(params.screenName)) {
+          throw new Error(
+            `"${
+              params.screenName
+            }" is not a valid display name. Names must be between 3 and 25 characters long.`
+          );
+        }
+
+        payload.screenName = params.screenName;
       }
 
-      payload.email = params.email
-    }
+      if (params.hasOwnProperty('email') && params.email != this.email) {
+        if (!(await User.emailIsValid(params.email))) {
+          throw new Error('Invalid email');
+        }
 
-    if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
-      if (params.isPrivate != '0' && params.isPrivate != '1') {
-        // ???
-        throw new Error('bad input')
+        payload.email = params.email;
       }
 
-      payload.isPrivate = params.isPrivate
-    }
+      if (
+        params.hasOwnProperty('isPrivate') &&
+        params.isPrivate != this.isPrivate
+      ) {
+        if (params.isPrivate != '0' && params.isPrivate != '1') {
+          // ???
+          throw new Error('bad input');
+        }
 
-    // Compatibility with pre-isProtected clients:
-    // if there is only isPrivate param then isProtected becomes the same as isPrivate
-    if (params.hasOwnProperty('isPrivate') && (!params.hasOwnProperty('isProtected') || params.isPrivate === '1')) {
-      params.isProtected = params.isPrivate
-    }
-
-    if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
-      payload.isProtected = params.isProtected;
-    }
-
-    if (params.hasOwnProperty('description') && params.description != this.description) {
-      if (!User.descriptionIsValid(params.description)) {
-        throw new Error('Description is too long')
+        payload.isPrivate = params.isPrivate;
       }
 
-      payload.description = params.description
+      // Compatibility with pre-isProtected clients:
+      // if there is only isPrivate param then isProtected becomes the same as isPrivate
+      if (
+        params.hasOwnProperty('isPrivate') &&
+        (!params.hasOwnProperty('isProtected') || params.isPrivate === '1')
+      ) {
+        params.isProtected = params.isPrivate;
+      }
+
+      if (
+        params.hasOwnProperty('isProtected') &&
+        params.isProtected != this.isProtected
+      ) {
+        payload.isProtected = params.isProtected;
+      }
+
+      if (
+        params.hasOwnProperty('description') &&
+        params.description != this.description
+      ) {
+        if (!User.descriptionIsValid(params.description)) {
+          throw new Error('Description is too long');
+        }
+
+        payload.description = params.description;
+      }
+
+      if (params.hasOwnProperty('frontendPreferences')) {
+        // Validate the input object
+        if (!User.frontendPreferencesIsValid(params.frontendPreferences)) {
+          throw new ValidationException('Invalid frontendPreferences');
+        }
+
+        const preferences = {
+          ...this.frontendPreferences,
+          ...params.frontendPreferences
+        };
+
+        // Validate the merged object
+        if (!User.frontendPreferencesIsValid(preferences)) {
+          throw new ValidationException('Invalid frontendPreferences');
+        }
+
+        payload.frontendPreferences = preferences;
+      }
+
+      if (params.hasOwnProperty('preferences')) {
+        if (!_.isPlainObject(params.preferences)) {
+          throw new ValidationException(
+            `Invalid 'preferences': must be a plain object`
+          );
+        }
+
+        try {
+          payload.preferences = validateUserPrefs({
+            ...this.preferences,
+            ...params.preferences
+          });
+        } catch (e) {
+          throw new ValidationException(`Invalid 'preferences': ${e}`);
+        }
+      }
+
+      if (_.intersection(Object.keys(payload), changeableKeys).length > 0) {
+        const preparedPayload = payload;
+        payload.updatedAt = new Date().getTime();
+
+        preparedPayload.updatedAt = payload.updatedAt.toString();
+
+        if (_.has(payload, 'frontendPreferences')) {
+          preparedPayload.frontendPreferences = JSON.stringify(
+            payload.frontendPreferences
+          );
+        }
+
+        await dbAdapter.updateUser(this.id, preparedPayload);
+        await pubSub.globalUserUpdate(this.id);
+
+        for (const k in payload) {
+          this[k] = payload[k];
+        }
+      }
+
+      return this;
     }
 
-    if (params.hasOwnProperty('frontendPreferences')) {
-      // Validate the input object
-      if (!User.frontendPreferencesIsValid(params.frontendPreferences)) {
-        throw new ValidationException('Invalid frontendPreferences')
+    async updatePassword(password, passwordConfirmation) {
+      if (password.length === 0) {
+        throw new Error('Password cannot be blank');
       }
 
-      const preferences = { ...this.frontendPreferences, ...params.frontendPreferences };
-
-      // Validate the merged object
-      if (!User.frontendPreferencesIsValid(preferences)) {
-        throw new ValidationException('Invalid frontendPreferences')
+      if (password !== passwordConfirmation) {
+        throw new Error('Passwords do not match');
       }
 
-      payload.frontendPreferences = preferences
+      const updatedAt = new Date().getTime();
+      const payload = {
+        updatedAt:      updatedAt.toString(),
+        hashedPassword: await bcrypt.hash(password, 10)
+      };
+
+      await dbAdapter.updateUser(this.id, payload);
+
+      this.updatedAt = updatedAt;
+      this.hashedPassword = payload.hashedPassword;
+
+      return this;
     }
 
-    if (params.hasOwnProperty('preferences')) {
-      if (!_.isPlainObject(params.preferences)) {
-        throw new ValidationException(`Invalid 'preferences': must be a plain object`);
+    getAdministratorIds() {
+      return [this.id];
+    }
+
+    getAdministrators() {
+      return [this];
+    }
+
+    getMyDiscussionsTimeline() {
+      return dbAdapter.getUserNamedFeed(this.id, 'MyDiscussions');
+    }
+
+    async getGenericTimelineId(name) {
+      const timelineId = await dbAdapter.getUserNamedFeedId(this.id, name);
+
+      if (!timelineId) {
+        console.log(`Timeline '${name}' not found for user`, this); // eslint-disable-line no-console
+        return null;
       }
+
+      return timelineId;
+    }
+
+    async getUnreadDirectsNumber() {
+      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(
+        this.id
+      );
+      return unreadDirectsNumber;
+    }
+
+    async getGenericTimelineIntId(name) {
+      const timelineIds = await this.getTimelineIds();
+      const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([
+        timelineIds[name]
+      ]);
+
+      if (intIds.length === 0) {
+        return null;
+      }
+
+      return intIds[0];
+    }
+
+    getGenericTimeline(name) {
+      return dbAdapter.getUserNamedFeed(this.id, name);
+    }
+
+    getMyDiscussionsTimelineIntId() {
+      return this.getGenericTimelineIntId('MyDiscussions');
+    }
+
+    getHidesTimelineId() {
+      return this.getGenericTimelineId('Hides');
+    }
+
+    getHidesTimelineIntId(params) {
+      return this.getGenericTimelineIntId('Hides', params);
+    }
+
+    getRiverOfNewsTimelineId() {
+      return this.getGenericTimelineId('RiverOfNews');
+    }
+
+    getRiverOfNewsTimelineIntId(params) {
+      return this.getGenericTimelineIntId('RiverOfNews', params);
+    }
+
+    getRiverOfNewsTimeline() {
+      return dbAdapter.getUserNamedFeed(this.id, 'RiverOfNews');
+    }
+
+    getLikesTimelineId() {
+      return this.getGenericTimelineId('Likes');
+    }
+
+    getLikesTimelineIntId() {
+      return this.getGenericTimelineIntId('Likes');
+    }
+
+    getLikesTimeline(params) {
+      return this.getGenericTimeline('Likes', params);
+    }
+
+    getPostsTimelineId() {
+      return this.getGenericTimelineId('Posts');
+    }
+
+    getPostsTimelineIntId() {
+      return this.getGenericTimelineIntId('Posts');
+    }
+
+    getPostsTimeline(params) {
+      return this.getGenericTimeline('Posts', params);
+    }
+
+    getCommentsTimelineId() {
+      return this.getGenericTimelineId('Comments');
+    }
+
+    getCommentsTimelineIntId() {
+      return this.getGenericTimelineIntId('Comments');
+    }
+
+    getCommentsTimeline(params) {
+      return this.getGenericTimeline('Comments', params);
+    }
+
+    getDirectsTimelineId() {
+      return this.getGenericTimelineId('Directs');
+    }
+
+    getDirectsTimeline(params) {
+      return this.getGenericTimeline('Directs', params);
+    }
+
+    async getTimelineIds() {
+      const timelineIds = await dbAdapter.getUserTimelinesIds(this.id);
+      return timelineIds || {};
+    }
+
+    async getTimelines(params) {
+      const timelineIds = await this.getTimelineIds();
+      const timelines = await dbAdapter.getTimelinesByIds(
+        Object.values(timelineIds),
+        params
+      );
+      const timelinesOrder = [
+        'RiverOfNews',
+        'Hides',
+        'Comments',
+        'Likes',
+        'Posts',
+        'Directs',
+        'MyDiscussions'
+      ];
+      const sortedTimelines = _.sortBy(timelines, (tl) => {
+        return timelinesOrder.indexOf(tl.name);
+      });
+
+      return sortedTimelines;
+    }
+
+    getPublicTimelineIds() {
+      return Promise.all([
+        this.getCommentsTimelineId(),
+        this.getLikesTimelineId(),
+        this.getPostsTimelineId()
+      ]);
+    }
+
+    getPublicTimelinesIntIds() {
+      return dbAdapter.getUserNamedFeedsIntIds(this.id, [
+        'Posts',
+        'Likes',
+        'Comments'
+      ]);
+    }
+
+    /**
+     * @return {Timeline[]}
+     */
+    async getSubscriptions() {
+      this.subscriptions = await dbAdapter.getTimelinesByIntIds(
+        this.subscribedFeedIds
+      );
+      return this.subscriptions;
+    }
+
+    async getFriendIds() {
+      return await dbAdapter.getUserFriendIds(this.id);
+    }
+
+    async getFriends() {
+      const userIds = await this.getFriendIds();
+      return await dbAdapter.getUsersByIds(userIds);
+    }
+
+    async getSubscriberIds() {
+      const postsFeedIntId = await this.getPostsTimelineIntId();
+      const timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId);
+      this.subscriberIds = await timeline.getSubscriberIds();
+
+      return this.subscriberIds;
+    }
+
+    async getSubscribers() {
+      const subscriberIds = await this.getSubscriberIds();
+      this.subscribers = await dbAdapter.getUsersByIds(subscriberIds);
+
+      return this.subscribers;
+    }
+
+    getBanIds() {
+      return dbAdapter.getUserBansIds(this.id);
+    }
+
+    async ban(username) {
+      const user = await dbAdapter.getUserByUsername(username);
+
+      if (null === user) {
+        throw new NotFoundException(`User "${username}" is not found`);
+      }
+
+      await dbAdapter.createUserBan(this.id, user.id);
+
+      const promises = [user.unsubscribeFrom(this)];
+
+      // reject if and only if there is a pending request
+      const requestIds = await this.getSubscriptionRequestIds();
+      let bannedUserHasRequestedSubscription = false;
+
+      if (requestIds.includes(user.id)) {
+        bannedUserHasRequestedSubscription = true;
+        promises.push(this.rejectSubscriptionRequest(user.id));
+      }
+
+      await Promise.all(promises);
+      monitor.increment('users.bans');
+
+      await EventService.onUserBanned(
+        this.intId,
+        user.intId,
+        bannedUserHasRequestedSubscription
+      );
+      return 1;
+    }
+
+    async unban(username) {
+      const user = await dbAdapter.getUserByUsername(username);
+
+      if (null === user) {
+        throw new NotFoundException(`User "${username}" is not found`);
+      }
+
+      await dbAdapter.deleteUserBan(this.id, user.id);
+      monitor.increment('users.unbans');
+      await EventService.onUserUnbanned(this.intId, user.intId);
+      return 1;
+    }
+
+    /**
+     * Subscribe this user to targetUser
+     *
+     * This function is not performs any access checks. It returns 'true' if
+     * subscription was successiful and 'false' if this user was already
+     * subscribed to the targetUser.
+     *
+     * @param {User} targetUser
+     * @param {object} [params]
+     * @returns {boolean}
+     */
+    async subscribeTo(targetUser, params = {}) {
+      params = {
+        noEvents: false, // do not fire subscription event
+        ...params
+      };
+      const subscribedFeedIds = await dbAdapter.subscribeUserToUser(
+        this.id,
+        targetUser.id
+      );
+
+      if (!subscribedFeedIds) {
+        return false;
+      }
+
+      this.subscribedFeedIds = subscribedFeedIds;
+
+      await Promise.all([
+        dbAdapter.cacheFlushUser(this.id),
+        dbAdapter.statsSubscriptionCreated(this.id),
+        dbAdapter.statsSubscriberAdded(targetUser.id)
+      ]);
+
+      monitor.increment('users.subscriptions');
+
+      if (!params.noEvents) {
+        if (targetUser.isUser()) {
+          await EventService.onUserSubscribed(this.intId, targetUser.intId);
+        } else {
+          await EventService.onGroupSubscribed(this.intId, targetUser);
+        }
+      }
+
+      return true;
+    }
+
+    /**
+     * Unsubscribe this user from targetUser
+     *
+     * This function is not performs any access checks. It returns 'true' if
+     * unsubscription was successiful and 'false' if this user was not
+     * subscribed to the targetUser before.
+     *
+     * @param {User} targetUser
+     * @returns {boolean}
+     */
+    async unsubscribeFrom(targetUser) {
+      const subscribedFeedIds = await dbAdapter.unsubscribeUserFromUser(
+        this.id,
+        targetUser.id
+      );
+
+      if (!subscribedFeedIds) {
+        return false;
+      }
+
+      this.subscribedFeedIds = subscribedFeedIds;
+
+      await Promise.all([
+        dbAdapter.cacheFlushUser(this.id),
+        dbAdapter.statsSubscriptionDeleted(this.id),
+        dbAdapter.statsSubscriberRemoved(targetUser.id)
+      ]);
+
+      monitor.increment('users.unsubscriptions');
+
+      if (targetUser.isUser()) {
+        await EventService.onUserUnsubscribed(this.intId, targetUser.intId);
+      } else {
+        await EventService.onGroupUnsubscribed(this.intId, targetUser);
+      }
+
+      return true;
+    }
+
+    async calculateStatsValues() {
+      let res;
 
       try {
-        payload.preferences = validateUserPrefs({ ...this.preferences, ...params.preferences });
+        res = await dbAdapter.getUserStats(this.id);
       } catch (e) {
-        throw new ValidationException(`Invalid 'preferences': ${e}`);
-      }
-    }
-
-    if (_.intersection(Object.keys(payload), changeableKeys).length > 0) {
-      const preparedPayload = payload
-      payload.updatedAt = new Date().getTime()
-
-      preparedPayload.updatedAt = payload.updatedAt.toString()
-
-      if (_.has(payload, 'frontendPreferences')) {
-        preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences)
+        res = {
+          posts:         0,
+          likes:         0,
+          comments:      0,
+          subscribers:   0,
+          subscriptions: 0
+        };
       }
 
-      await dbAdapter.updateUser(this.id, preparedPayload)
-      await pubSub.globalUserUpdate(this.id)
+      return res;
+    }
 
-      for (const k in payload) {
-        this[k] = payload[k]
+    async getStatistics() {
+      if (!this.statsValues) {
+        this.statsValues = await this.calculateStatsValues();
       }
+
+      return this.statsValues;
     }
 
-    return this
-  }
-
-  User.prototype.updatePassword = async function (password, passwordConfirmation) {
-    if (password.length === 0) {
-      throw new Error('Password cannot be blank')
+    newComment(attrs) {
+      attrs.userId = this.id;
+      monitor.increment('users.comments');
+      return new Comment(attrs);
     }
 
-    if (password !== passwordConfirmation) {
-      throw new Error('Passwords do not match')
+    newAttachment(attrs) {
+      attrs.userId = this.id;
+      monitor.increment('users.attachments');
+      return new Attachment(attrs);
     }
 
-    const updatedAt = new Date().getTime()
-    const payload = {
-      updatedAt:      updatedAt.toString(),
-      hashedPassword: await bcrypt.hash(password, 10)
-    }
+    async updateProfilePicture(file) {
+      const image = promisifyAll(gm(file.path));
 
-    await dbAdapter.updateUser(this.id, payload)
+      let originalSize;
 
-    this.updatedAt = updatedAt
-    this.hashedPassword = payload.hashedPassword
-
-    return this
-  }
-
-  User.prototype.getAdministratorIds = function () {
-    return [this.id]
-  }
-
-  User.prototype.getAdministrators = function () {
-    return [this]
-  }
-
-  User.prototype.getMyDiscussionsTimeline = function () {
-    return dbAdapter.getUserNamedFeed(this.id, 'MyDiscussions');
-  }
-
-  User.prototype.getGenericTimelineId = async function (name) {
-    const timelineId = await dbAdapter.getUserNamedFeedId(this.id, name);
-
-    if (!timelineId) {
-      console.log(`Timeline '${name}' not found for user`, this);  // eslint-disable-line no-console
-      return null;
-    }
-
-    return timelineId;
-  };
-
-  User.prototype.getUnreadDirectsNumber = async function () {
-    const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(this.id);
-    return unreadDirectsNumber;
-  }
-
-  User.prototype.getGenericTimelineIntId = async function (name) {
-    const timelineIds = await this.getTimelineIds();
-    const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([timelineIds[name]]);
-
-    if (intIds.length === 0) {
-      return null;
-    }
-
-    return intIds[0];
-  }
-
-  User.prototype.getGenericTimeline = function (name) {
-    return dbAdapter.getUserNamedFeed(this.id, name);
-  }
-
-  User.prototype.getMyDiscussionsTimelineIntId = function () {
-    return this.getGenericTimelineIntId('MyDiscussions')
-  }
-
-  User.prototype.getHidesTimelineId = function () {
-    return this.getGenericTimelineId('Hides')
-  }
-
-  User.prototype.getHidesTimelineIntId = function (params) {
-    return this.getGenericTimelineIntId('Hides', params)
-  }
-
-  User.prototype.getRiverOfNewsTimelineId = function () {
-    return this.getGenericTimelineId('RiverOfNews')
-  }
-
-  User.prototype.getRiverOfNewsTimelineIntId = function (params) {
-    return this.getGenericTimelineIntId('RiverOfNews', params)
-  }
-
-  User.prototype.getRiverOfNewsTimeline = function () {
-    return dbAdapter.getUserNamedFeed(this.id, 'RiverOfNews');
-  };
-
-  User.prototype.getLikesTimelineId = function () {
-    return this.getGenericTimelineId('Likes')
-  }
-
-  User.prototype.getLikesTimelineIntId = function () {
-    return this.getGenericTimelineIntId('Likes')
-  }
-
-  User.prototype.getLikesTimeline = function (params) {
-    return this.getGenericTimeline('Likes', params)
-  }
-
-  User.prototype.getPostsTimelineId = function () {
-    return this.getGenericTimelineId('Posts')
-  }
-
-  User.prototype.getPostsTimelineIntId = function () {
-    return this.getGenericTimelineIntId('Posts')
-  }
-
-  User.prototype.getPostsTimeline = function (params) {
-    return this.getGenericTimeline('Posts', params)
-  }
-
-  User.prototype.getCommentsTimelineId = function () {
-    return this.getGenericTimelineId('Comments')
-  }
-
-  User.prototype.getCommentsTimelineIntId = function () {
-    return this.getGenericTimelineIntId('Comments')
-  }
-
-  User.prototype.getCommentsTimeline = function (params) {
-    return this.getGenericTimeline('Comments', params)
-  }
-
-  User.prototype.getDirectsTimelineId = function () {
-    return this.getGenericTimelineId('Directs')
-  }
-
-  User.prototype.getDirectsTimeline = function (params) {
-    return this.getGenericTimeline('Directs', params)
-  }
-
-  User.prototype.getTimelineIds = async function () {
-    const timelineIds = await dbAdapter.getUserTimelinesIds(this.id)
-    return timelineIds || {}
-  }
-
-  User.prototype.getTimelines = async function (params) {
-    const timelineIds = await this.getTimelineIds()
-    const timelines = await dbAdapter.getTimelinesByIds(Object.values(timelineIds), params);
-    const timelinesOrder = ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']
-    const sortedTimelines = _.sortBy(timelines, (tl) => {
-      return timelinesOrder.indexOf(tl.name);
-    })
-
-    return sortedTimelines
-  }
-
-  User.prototype.getPublicTimelineIds = function () {
-    return Promise.all([
-      this.getCommentsTimelineId(),
-      this.getLikesTimelineId(),
-      this.getPostsTimelineId()
-    ])
-  }
-
-  User.prototype.getPublicTimelinesIntIds = function () {
-    return dbAdapter.getUserNamedFeedsIntIds(this.id, ['Posts', 'Likes', 'Comments'])
-  }
-
-  /**
-   * @return {Timeline[]}
-   */
-  User.prototype.getSubscriptions = async function () {
-    this.subscriptions = await dbAdapter.getTimelinesByIntIds(this.subscribedFeedIds)
-    return this.subscriptions
-  }
-
-  User.prototype.getFriendIds = async function () {
-    return await dbAdapter.getUserFriendIds(this.id);
-  }
-
-  User.prototype.getFriends = async function () {
-    const userIds = await this.getFriendIds()
-    return await dbAdapter.getUsersByIds(userIds)
-  }
-
-  User.prototype.getSubscriberIds = async function () {
-    const postsFeedIntId = await this.getPostsTimelineIntId()
-    const timeline = await dbAdapter.getTimelineByIntId(postsFeedIntId)
-    this.subscriberIds = await timeline.getSubscriberIds()
-
-    return this.subscriberIds
-  }
-
-  User.prototype.getSubscribers = async function () {
-    const subscriberIds = await this.getSubscriberIds();
-    this.subscribers = await dbAdapter.getUsersByIds(subscriberIds);
-
-    return this.subscribers;
-  }
-
-  User.prototype.getBanIds = function () {
-    return dbAdapter.getUserBansIds(this.id)
-  }
-
-  User.prototype.ban = async function (username) {
-    const user = await dbAdapter.getUserByUsername(username)
-
-    if (null === user) {
-      throw new NotFoundException(`User "${username}" is not found`)
-    }
-
-    await dbAdapter.createUserBan(this.id, user.id);
-
-    const promises = [
-      user.unsubscribeFrom(this)
-    ]
-
-    // reject if and only if there is a pending request
-    const requestIds = await this.getSubscriptionRequestIds()
-    let bannedUserHasRequestedSubscription = false;
-
-    if (requestIds.includes(user.id)) {
-      bannedUserHasRequestedSubscription = true;
-      promises.push(this.rejectSubscriptionRequest(user.id))
-    }
-
-    await Promise.all(promises)
-    monitor.increment('users.bans')
-
-    await EventService.onUserBanned(this.intId, user.intId, bannedUserHasRequestedSubscription);
-    return 1
-  }
-
-  User.prototype.unban = async function (username) {
-    const user = await dbAdapter.getUserByUsername(username)
-
-    if (null === user) {
-      throw new NotFoundException(`User "${username}" is not found`)
-    }
-
-    await dbAdapter.deleteUserBan(this.id, user.id)
-    monitor.increment('users.unbans')
-    await EventService.onUserUnbanned(this.intId, user.intId);
-    return 1;
-  }
-
-  /**
-   * Subscribe this user to targetUser
-   *
-   * This function is not performs any access checks. It returns 'true' if
-   * subscription was successiful and 'false' if this user was already
-   * subscribed to the targetUser.
-   *
-   * @param {User} targetUser
-   * @param {object} [params]
-   * @returns {boolean}
-   */
-  User.prototype.subscribeTo = async function (targetUser, params = {}) {
-    params = {
-      noEvents: false, // do not fire subscription event
-      ...params
-    };
-    const subscribedFeedIds = await dbAdapter.subscribeUserToUser(this.id, targetUser.id);
-
-    if (!subscribedFeedIds) {
-      return false;
-    }
-
-    this.subscribedFeedIds = subscribedFeedIds;
-
-    await Promise.all([
-      dbAdapter.cacheFlushUser(this.id),
-      dbAdapter.statsSubscriptionCreated(this.id),
-      dbAdapter.statsSubscriberAdded(targetUser.id),
-    ]);
-
-    monitor.increment('users.subscriptions');
-
-    if (!params.noEvents) {
-      if (targetUser.isUser()) {
-        await EventService.onUserSubscribed(this.intId, targetUser.intId);
-      } else {
-        await EventService.onGroupSubscribed(this.intId, targetUser);
+      try {
+        originalSize = await image.sizeAsync();
+      } catch (err) {
+        throw new BadRequestException('Not an image file');
       }
+
+      this.profilePictureUuid = uuidv4();
+
+      const sizes = [
+        User.PROFILE_PICTURE_SIZE_LARGE,
+        User.PROFILE_PICTURE_SIZE_MEDIUM
+      ];
+
+      const promises = sizes.map((size) =>
+        this.saveProfilePictureWithSize(
+          file.path,
+          this.profilePictureUuid,
+          originalSize,
+          size
+        )
+      );
+      await Promise.all(promises);
+
+      this.updatedAt = new Date().getTime();
+
+      const payload = {
+        profilePictureUuid: this.profilePictureUuid,
+        updatedAt:          this.updatedAt.toString()
+      };
+
+      await dbAdapter.updateUser(this.id, payload);
+      await pubSub.globalUserUpdate(this.id);
     }
 
-    return true;
-  }
+    async saveProfilePictureWithSize(path, uuid, originalSize, size) {
+      const origWidth = originalSize.width;
+      const origHeight = originalSize.height;
+      const retinaSize = size * 2;
 
+      let image = promisifyAll(gm(path));
 
-  /**
-   * Unsubscribe this user from targetUser
-   *
-   * This function is not performs any access checks. It returns 'true' if
-   * unsubscription was successiful and 'false' if this user was not
-   * subscribed to the targetUser before.
-   *
-   * @param {User} targetUser
-   * @returns {boolean}
-   */
-  User.prototype.unsubscribeFrom = async function (targetUser) {
-    const subscribedFeedIds = await dbAdapter.unsubscribeUserFromUser(this.id, targetUser.id);
+      if (origWidth > origHeight) {
+        const dx = origWidth - origHeight;
+        image = image.crop(origHeight, origHeight, dx / 2, 0);
+      } else if (origHeight > origWidth) {
+        const dy = origHeight - origWidth;
+        image = image.crop(origWidth, origWidth, 0, dy / 2);
+      }
 
-    if (!subscribedFeedIds) {
-      return false;
+      image = image
+        .resize(retinaSize, retinaSize)
+        .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
+        .autoOrient()
+        .quality(95);
+
+      if (config.profilePictures.storage.type === 's3') {
+        const tmpPictureFile = `${path}.resized.${size}`;
+        const destPictureFile = this.getProfilePictureFilename(uuid, size);
+
+        await image.writeAsync(tmpPictureFile);
+        await this.uploadToS3(
+          tmpPictureFile,
+          destPictureFile,
+          config.profilePictures
+        );
+
+        return fs.unlinkAsync(tmpPictureFile);
+      }
+
+      const destPath = this.getProfilePicturePath(uuid, size);
+      return image.writeAsync(destPath);
     }
 
-    this.subscribedFeedIds = subscribedFeedIds;
-
-    await Promise.all([
-      dbAdapter.cacheFlushUser(this.id),
-      dbAdapter.statsSubscriptionDeleted(this.id),
-      dbAdapter.statsSubscriberRemoved(targetUser.id),
-    ]);
-
-    monitor.increment('users.unsubscriptions');
-
-    if (targetUser.isUser()) {
-      await EventService.onUserUnsubscribed(this.intId, targetUser.intId);
-    } else {
-      await EventService.onGroupUnsubscribed(this.intId, targetUser);
+    // Upload profile picture to the S3 bucket
+    async uploadToS3(sourceFile, destFile, subConfig) {
+      const s3 = getS3(subConfig.storage);
+      await s3
+        .upload({
+          ACL:                'public-read',
+          Bucket:             subConfig.storage.bucket,
+          Key:                subConfig.path + destFile,
+          Body:               fs.createReadStream(sourceFile),
+          ContentType:        'image/jpeg',
+          ContentDisposition: 'inline'
+        })
+        .promise();
     }
 
-    return true;
-  }
-
-  User.prototype.calculateStatsValues = async function () {
-    let res
-
-    try {
-      res = await dbAdapter.getUserStats(this.id)
-    } catch (e) {
-      res = { posts: 0, likes: 0, comments: 0, subscribers: 0, subscriptions: 0 }
+    getProfilePicturePath(uuid, size) {
+      return (
+        config.profilePictures.storage.rootDir +
+        config.profilePictures.path +
+        this.getProfilePictureFilename(uuid, size)
+      );
     }
 
-    return res
-  }
-
-
-  User.prototype.getStatistics = async function () {
-    if (!this.statsValues) {
-      this.statsValues = await this.calculateStatsValues()
+    getProfilePictureFilename(uuid, size) {
+      return `${uuid}_${size}.jpg`;
     }
 
-    return this.statsValues
-  }
-
-  User.prototype.newComment = function (attrs) {
-    attrs.userId = this.id
-    monitor.increment('users.comments')
-    return new Comment(attrs)
-  }
-
-  User.prototype.newAttachment = function (attrs) {
-    attrs.userId = this.id
-    monitor.increment('users.attachments')
-    return new Attachment(attrs)
-  }
-
-  User.prototype.updateProfilePicture = async function (file) {
-    const image = promisifyAll(gm(file.path))
-
-    let originalSize
-
-    try {
-      originalSize  = await image.sizeAsync()
-    } catch (err) {
-      throw new BadRequestException('Not an image file')
-    }
-
-    this.profilePictureUuid = uuidv4();
-
-    const sizes = [
-      User.PROFILE_PICTURE_SIZE_LARGE,
-      User.PROFILE_PICTURE_SIZE_MEDIUM
-    ]
-
-    const promises = sizes.map((size) => this.saveProfilePictureWithSize(file.path, this.profilePictureUuid, originalSize, size))
-    await Promise.all(promises)
-
-    this.updatedAt = new Date().getTime()
-
-    const payload = {
-      'profilePictureUuid': this.profilePictureUuid,
-      'updatedAt':          this.updatedAt.toString()
-    }
-
-    await dbAdapter.updateUser(this.id, payload)
-    await pubSub.globalUserUpdate(this.id)
-  }
-
-  User.prototype.saveProfilePictureWithSize = async function (path, uuid, originalSize, size) {
-    const origWidth = originalSize.width
-    const origHeight = originalSize.height
-    const retinaSize = size * 2
-
-    let image = promisifyAll(gm(path))
-
-    if (origWidth > origHeight) {
-      const dx = origWidth - origHeight
-      image = image.crop(origHeight, origHeight, dx / 2, 0)
-    } else if (origHeight > origWidth) {
-      const dy = origHeight - origWidth
-      image = image.crop(origWidth, origWidth, 0, dy / 2)
-    }
-
-    image = image
-      .resize(retinaSize, retinaSize)
-      .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
-      .autoOrient()
-      .quality(95)
-
-    if (config.profilePictures.storage.type === 's3') {
-      const tmpPictureFile = `${path}.resized.${size}`
-      const destPictureFile = this.getProfilePictureFilename(uuid, size)
-
-      await image.writeAsync(tmpPictureFile)
-      await this.uploadToS3(tmpPictureFile, destPictureFile, config.profilePictures)
-
-      return fs.unlinkAsync(tmpPictureFile)
-    }
-
-    const destPath = this.getProfilePicturePath(uuid, size)
-    return image.writeAsync(destPath)
-  }
-
-  // Upload profile picture to the S3 bucket
-  User.prototype.uploadToS3 = async function (sourceFile, destFile, subConfig) {
-    const s3 = getS3(subConfig.storage);
-    await s3.upload({
-      ACL:                'public-read',
-      Bucket:             subConfig.storage.bucket,
-      Key:                subConfig.path + destFile,
-      Body:               fs.createReadStream(sourceFile),
-      ContentType:        'image/jpeg',
-      ContentDisposition: 'inline'
-    }).promise();
-  };
-
-  User.prototype.getProfilePicturePath = function (uuid, size) {
-    return config.profilePictures.storage.rootDir + config.profilePictures.path + this.getProfilePictureFilename(uuid, size)
-  }
-
-  User.prototype.getProfilePictureFilename = (uuid, size) => `${uuid}_${size}.jpg`;
-
-  // used by serializer
-  User.prototype.getProfilePictureLargeUrl = function () {
-    if (_.isEmpty(this.profilePictureUuid)) {
-      return ''
-    }
-
-    return config.profilePictures.url
-         + config.profilePictures.path
-         + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE)
-  }
-
-  // used by serializer
-  User.prototype.getProfilePictureMediumUrl = function () {
-    if (_.isEmpty(this.profilePictureUuid)) {
-      return ''
-    }
-
-    return config.profilePictures.url
-         + config.profilePictures.path
-         + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
-  }
-
-  Reflect.defineProperty(User.prototype, 'profilePictureLargeUrl', {
-    get: function () {
+    // used by serializer
+    getProfilePictureLargeUrl() {
       if (_.isEmpty(this.profilePictureUuid)) {
         return '';
       }
 
-      return config.profilePictures.url
-          + config.profilePictures.path
-          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE);
+      return (
+        config.profilePictures.url +
+        config.profilePictures.path +
+        this.getProfilePictureFilename(
+          this.profilePictureUuid,
+          User.PROFILE_PICTURE_SIZE_LARGE
+        )
+      );
     }
-  });
 
-  Reflect.defineProperty(User.prototype, 'profilePictureMediumUrl', {
-    get: function () {
+    // used by serializer
+    getProfilePictureMediumUrl() {
       if (_.isEmpty(this.profilePictureUuid)) {
         return '';
       }
 
-      return config.profilePictures.url
-          + config.profilePictures.path
-          + this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM);
+      return (
+        config.profilePictures.url +
+        config.profilePictures.path +
+        this.getProfilePictureFilename(
+          this.profilePictureUuid,
+          User.PROFILE_PICTURE_SIZE_MEDIUM
+        )
+      );
     }
-  });
 
-  /**
-   * Checks if the specified user can post to the timeline of this user.
-   */
-  User.prototype.validateCanPost = async function (postingUser) {
-    // NOTE: when user is subscribed to another user she in fact is
-    // subscribed to her posts timeline
-    const [timelineIdA, timelineIdB] =
-      await Promise.all([postingUser.getPostsTimelineId(), this.getPostsTimelineId()])
+    get profilePictureLargeUrl() {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
 
-    const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(this.id, timelineIdA)
-    const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timelineIdB)
-
-    if ((!currentUserSubscribedToPostingUser || !postingUserSubscribedToCurrentUser)
-        && postingUser.username != this.username
-    ) {
-      throw new ForbiddenException("You can't send private messages to friends that are not mutual")
+      return (
+        config.profilePictures.url +
+        config.profilePictures.path +
+        this.getProfilePictureFilename(
+          this.profilePictureUuid,
+          User.PROFILE_PICTURE_SIZE_LARGE
+        )
+      );
     }
-  }
 
-  /**
-   * Returns true if postingUser can send direct message to
-   * this user.
-   *
-   * @param {User|null} postingUser
-   * @returns {boolean}
-   */
-  User.prototype.acceptsDirectsFrom = async function (postingUser) {
-    if (!postingUser || this.id === postingUser.id) {
+    get profilePictureMediumUrl() {
+      if (_.isEmpty(this.profilePictureUuid)) {
+        return '';
+      }
+
+      return (
+        config.profilePictures.url +
+        config.profilePictures.path +
+        this.getProfilePictureFilename(
+          this.profilePictureUuid,
+          User.PROFILE_PICTURE_SIZE_MEDIUM
+        )
+      );
+    }
+
+    /**
+     * Checks if the specified user can post to the timeline of this user.
+     */
+    async validateCanPost(postingUser) {
+      // NOTE: when user is subscribed to another user she in fact is
+      // subscribed to her posts timeline
+      const [timelineIdA, timelineIdB] = await Promise.all([
+        postingUser.getPostsTimelineId(),
+        this.getPostsTimelineId()
+      ]);
+
+      const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(
+        this.id,
+        timelineIdA
+      );
+      const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(
+        postingUser.id,
+        timelineIdB
+      );
+
+      if (
+        (!currentUserSubscribedToPostingUser ||
+          !postingUserSubscribedToCurrentUser) &&
+        postingUser.username != this.username
+      ) {
+        throw new ForbiddenException(
+          "You can't send private messages to friends that are not mutual"
+        );
+      }
+    }
+
+    /**
+     * Returns true if postingUser can send direct message to
+     * this user.
+     *
+     * @param {User|null} postingUser
+     * @returns {boolean}
+     */
+    async acceptsDirectsFrom(postingUser) {
+      if (!postingUser || this.id === postingUser.id) {
+        return false;
+      }
+
+      if (
+        this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS
+      ) {
+        const friendIds = await this.getFriendIds();
+
+        if (friendIds.includes(postingUser.id)) {
+          return true;
+        }
+      } else if (
+        this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL
+      ) {
+        const banIds = await this.getBanIds();
+
+        if (!banIds.includes(postingUser.id)) {
+          return true;
+        }
+      }
+
       return false;
     }
 
-    if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
-      const friendIds = await this.getFriendIds();
-
-      if (friendIds.includes(postingUser.id)) {
-        return true;
+    /**
+     * Checks if the specified user can post to the timeline of this user
+     * returns array of destination (Directs) timelines
+     * or empty array if user can not post to this user.
+     *
+     * @param {User} postingUser
+     * @returns {Timeline[]}
+     */
+    async getFeedsToPost(postingUser) {
+      if (this.id === postingUser.id) {
+        // Users always can post to own timeline
+        return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
       }
-    } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
-      const banIds = await this.getBanIds();
 
-      if (!banIds.includes(postingUser.id)) {
-        return true;
+      if (!(await this.acceptsDirectsFrom(postingUser))) {
+        return [];
+      }
+
+      return await Promise.all([
+        dbAdapter.getUserNamedFeed(this.id, 'Directs'),
+        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs')
+      ]);
+    }
+
+    async updateLastActivityAt() {
+      if (!this.isUser()) {
+        // update group lastActivity for all subscribers
+        const updatedAt = new Date().getTime();
+        const payload = { updatedAt: updatedAt.toString() };
+        await dbAdapter.updateUser(this.id, payload);
       }
     }
 
-    return false;
-  }
-
-  /**
-   * Checks if the specified user can post to the timeline of this user
-   * returns array of destination (Directs) timelines
-   * or empty array if user can not post to this user.
-   *
-   * @param {User} postingUser
-   * @returns {Timeline[]}
-   */
-  User.prototype.getFeedsToPost = async function (postingUser) {
-    if (this.id === postingUser.id) {
-      // Users always can post to own timeline
-      return [await dbAdapter.getUserNamedFeed(this.id, 'Posts')];
+    async sendSubscriptionRequest(userId) {
+      return await dbAdapter.createSubscriptionRequest(this.id, userId);
     }
 
-    if (!await this.acceptsDirectsFrom(postingUser)) {
-      return [];
+    async sendPrivateGroupSubscriptionRequest(groupId) {
+      return await dbAdapter.createSubscriptionRequest(this.id, groupId);
     }
 
-    return await Promise.all([
-      dbAdapter.getUserNamedFeed(this.id, 'Directs'),
-      dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
-    ]);
-  }
+    async acceptSubscriptionRequest(userId) {
+      await dbAdapter.deleteSubscriptionRequest(this.id, userId);
 
-  User.prototype.updateLastActivityAt = async function () {
-    if (!this.isUser()) {
-      // update group lastActivity for all subscribers
-      const updatedAt = new Date().getTime()
-      const payload = { 'updatedAt': updatedAt.toString() }
-      await dbAdapter.updateUser(this.id, payload)
-    }
-  }
-
-  User.prototype.sendSubscriptionRequest = async function (userId) {
-    return await dbAdapter.createSubscriptionRequest(this.id, userId)
-  }
-
-  User.prototype.sendPrivateGroupSubscriptionRequest = async function (groupId) {
-    return await dbAdapter.createSubscriptionRequest(this.id, groupId)
-  }
-
-  User.prototype.acceptSubscriptionRequest = async function (userId) {
-    await dbAdapter.deleteSubscriptionRequest(this.id, userId)
-
-    const user = await dbAdapter.getUserById(userId)
-    return user.subscribeTo(this)
-  }
-
-  User.prototype.rejectSubscriptionRequest = async function (userId) {
-    return await dbAdapter.deleteSubscriptionRequest(this.id, userId)
-  }
-
-  User.prototype.getPendingSubscriptionRequestIds = async function () {
-    this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(this.id)
-    return this.pendingSubscriptionRequestIds
-  }
-
-  User.prototype.getPendingSubscriptionRequests = async function () {
-    const pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds()
-    return await dbAdapter.getUsersByIds(pendingSubscriptionRequestIds)
-  }
-
-  User.prototype.getSubscriptionRequestIds = async function () {
-    return await dbAdapter.getUserSubscriptionRequestsIds(this.id)
-  }
-
-  User.prototype.getSubscriptionRequests = async function () {
-    const subscriptionRequestIds = await this.getSubscriptionRequestIds()
-    return await dbAdapter.getUsersByIds(subscriptionRequestIds)
-  }
-
-  User.prototype.getFollowedGroups = async function () {
-    const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id)
-
-    if (timelinesIds.length === 0) {
-      return [];
+      const user = await dbAdapter.getUserById(userId);
+      return user.subscribeTo(this);
     }
 
-    const timelines = await dbAdapter.getTimelinesByIds(timelinesIds)
-
-    if (timelines.length === 0) {
-      return [];
+    async rejectSubscriptionRequest(userId) {
+      return await dbAdapter.deleteSubscriptionRequest(this.id, userId);
     }
 
-    const timelineOwnerIds = _(timelines).map('userId').uniq().value()
-
-    if (timelineOwnerIds.length === 0) {
-      return [];
+    async getPendingSubscriptionRequestIds() {
+      this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(
+        this.id
+      );
+      return this.pendingSubscriptionRequestIds;
     }
 
-    const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds)
-
-    if (timelineOwners.length === 0) {
-      return [];
+    async getPendingSubscriptionRequests() {
+      const pendingSubscriptionRequestIds = await this.getPendingSubscriptionRequestIds();
+      return await dbAdapter.getUsersByIds(pendingSubscriptionRequestIds);
     }
 
-    const followedGroups = timelineOwners.filter((owner) => {
-      return 'group' === owner.type
-    })
+    async getSubscriptionRequestIds() {
+      return await dbAdapter.getUserSubscriptionRequestsIds(this.id);
+    }
 
-    return followedGroups
-  }
+    async getSubscriptionRequests() {
+      const subscriptionRequestIds = await this.getSubscriptionRequestIds();
+      return await dbAdapter.getUsersByIds(subscriptionRequestIds);
+    }
 
-  User.prototype.getManagedGroups = async function () {
-    const groupsIds = await dbAdapter.getManagedGroupIds(this.id);
-    return await dbAdapter.getUsersByIds(groupsIds);
-  }
+    async getFollowedGroups() {
+      const timelinesIds = await dbAdapter.getUserSubscriptionsIds(this.id);
 
-  User.prototype.pendingPrivateGroupSubscriptionRequests = async function () {
-    const managedGroups = await this.getManagedGroups()
+      if (timelinesIds.length === 0) {
+        return [];
+      }
 
-    const promises = managedGroups.map(async (group) => {
-      const unconfirmedFollowerIds = await group.getSubscriptionRequestIds()
-      return unconfirmedFollowerIds.length > 0
-    })
+      const timelines = await dbAdapter.getTimelinesByIds(timelinesIds);
 
-    return _.some((await Promise.all(promises)), Boolean)
-  }
+      if (timelines.length === 0) {
+        return [];
+      }
 
-  User.prototype.getPendingGroupRequests = function () {
-    return dbAdapter.userHavePendingGroupRequests(this.id);
-  }
+      const timelineOwnerIds = _(timelines)
+        .map('userId')
+        .uniq()
+        .value();
 
-  /**
-   * Returns array of comment's hideType's which should not be visible by user
-   * @return {string[]}
-   */
-  User.prototype.getHiddenCommentTypes = function () {
-    return this.preferences.hideCommentsOfTypes;
-  }
+      if (timelineOwnerIds.length === 0) {
+        return [];
+      }
 
-  User.prototype.getUnreadNotificationsNumber = function () {
-    return dbAdapter.getUnreadEventsNumber(this.id);
+      const timelineOwners = await dbAdapter.getFeedOwnersByIds(
+        timelineOwnerIds
+      );
+
+      if (timelineOwners.length === 0) {
+        return [];
+      }
+
+      const followedGroups = timelineOwners.filter((owner) => {
+        return 'group' === owner.type;
+      });
+
+      return followedGroups;
+    }
+
+    async getManagedGroups() {
+      const groupsIds = await dbAdapter.getManagedGroupIds(this.id);
+      return await dbAdapter.getUsersByIds(groupsIds);
+    }
+
+    async pendingPrivateGroupSubscriptionRequests() {
+      const managedGroups = await this.getManagedGroups();
+
+      const promises = managedGroups.map(async (group) => {
+        const unconfirmedFollowerIds = await group.getSubscriptionRequestIds();
+        return unconfirmedFollowerIds.length > 0;
+      });
+
+      return _.some(await Promise.all(promises), Boolean);
+    }
+
+    getPendingGroupRequests() {
+      return dbAdapter.userHavePendingGroupRequests(this.id);
+    }
+
+    /**
+     * Returns array of comment's hideType's which should not be visible by user
+     * @return {string[]}
+     */
+    getHiddenCommentTypes() {
+      return this.preferences.hideCommentsOfTypes;
+    }
+
+    getUnreadNotificationsNumber() {
+      return dbAdapter.getUnreadEventsNumber(this.id);
+    }
   };
-
-  return User
 }
