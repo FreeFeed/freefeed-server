@@ -4,6 +4,9 @@ import { ForbiddenException } from '../support/exceptions';
 
 export function addModel(dbAdapter) {
   return class Group extends User {
+    // Groups only have 'Posts' feed
+    static feedNames = ['Posts'];
+
     type = 'group';
 
     constructor(params) {
@@ -68,13 +71,7 @@ export function addModel(dbAdapter) {
       };
       [this.id, this.intId] = await dbAdapter.createUser(payload);
 
-      await dbAdapter.createUserTimelines(this.id, [
-        'RiverOfNews',
-        'Hides',
-        'Comments',
-        'Likes',
-        'Posts'
-      ]);
+      await dbAdapter.createUserTimelines(this.id, Group.feedNames);
 
       if (ownerId) {
         await this.addAdministrator(ownerId);

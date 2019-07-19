@@ -37,6 +37,16 @@ export function addModel(dbAdapter) {
     static ACCEPT_DIRECTS_FROM_ALL = 'all';
     static ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
 
+    static feedNames = [
+      'RiverOfNews',
+      'Hides',
+      'Comments',
+      'Likes',
+      'Posts',
+      'Directs',
+      'MyDiscussions',
+    ];
+
     type = 'user';
 
     constructor(params) {
@@ -366,15 +376,7 @@ export function addModel(dbAdapter) {
 
       [this.id, this.intId] = await dbAdapter.createUser(payload);
 
-      await dbAdapter.createUserTimelines(this.id, [
-        'RiverOfNews',
-        'Hides',
-        'Comments',
-        'Likes',
-        'Posts',
-        'Directs',
-        'MyDiscussions'
-      ]);
+      await dbAdapter.createUserTimelines(this.id, User.feedNames);
       timer.stop(); // @todo finally {}
       monitor.increment('users.creates');
 

@@ -1,7 +1,6 @@
-import _ from 'lodash';
 import validator from 'validator'
 
-import { Timeline } from '../../models';
+import { Timeline, User } from '../../models';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -43,28 +42,14 @@ const feedsTrait = (superClass) => class extends superClass {
 
     // Cache miss, read from the database
     const res = await this.database('feeds').where('user_id', userId);
-    const riverOfNews   = _.filter(res, (record) => record.name === 'RiverOfNews');
-    const hides         = _.filter(res, (record) => record.name === 'Hides');
-    const comments      = _.filter(res, (record) => record.name === 'Comments');
-    const likes         = _.filter(res, (record) => record.name === 'Likes');
-    const posts         = _.filter(res, (record) => record.name === 'Posts');
-    const directs       = _.filter(res, (record) => record.name === 'Directs');
-    const myDiscussions = _.filter(res, (record) => record.name === 'MyDiscussions');
+    const timelines = {};
 
-    const timelines =  {
-      'RiverOfNews': riverOfNews[0] && riverOfNews[0].uid,
-      'Hides':       hides[0] && hides[0].uid,
-      'Comments':    comments[0] && comments[0].uid,
-      'Likes':       likes[0] && likes[0].uid,
-      'Posts':       posts[0] && posts[0].uid
-    };
+    for (const name of User.feedNames) {
+      const feed = res.find((record) => record.name === name);
 
-    if (directs[0]) {
-      timelines['Directs'] = directs[0].uid;
-    }
-
-    if (myDiscussions[0]) {
-      timelines['MyDiscussions'] = myDiscussions[0].uid;
+      if (feed) {
+        timelines[name] = feed.uid;
+      }
     }
 
     if (res.length) {
