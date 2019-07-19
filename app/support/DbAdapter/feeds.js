@@ -30,7 +30,9 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async cacheFetchUserTimelinesIds(userId) {
-    const cacheKey = `timelines_user_${userId}`;
+    // cacheVersion should change when all users' feeds sets changes.
+    const cacheVersion = 1;
+    const cacheKey = `timelines_user_${cacheVersion}_${userId}`;
 
     // Check the cache first
     const cachedTimelines = await this.memoryCache.get(cacheKey);

@@ -45,6 +45,7 @@ export function addModel(dbAdapter) {
       'Posts',
       'Directs',
       'MyDiscussions',
+      'Saves',
     ];
 
     type = 'user';
@@ -598,6 +599,14 @@ export function addModel(dbAdapter) {
       return this.getGenericTimelineIntId('Hides', params);
     }
 
+    getSavesTimelineId() {
+      return this.getGenericTimelineId('Saves');
+    }
+
+    getSavesTimelineIntId(params) {
+      return this.getGenericTimelineIntId('Saves', params);
+    }
+
     getRiverOfNewsTimelineId() {
       return this.getGenericTimelineId('RiverOfNews');
     }
@@ -665,20 +674,7 @@ export function addModel(dbAdapter) {
         Object.values(timelineIds),
         params
       );
-      const timelinesOrder = [
-        'RiverOfNews',
-        'Hides',
-        'Comments',
-        'Likes',
-        'Posts',
-        'Directs',
-        'MyDiscussions'
-      ];
-      const sortedTimelines = _.sortBy(timelines, (tl) => {
-        return timelinesOrder.indexOf(tl.name);
-      });
-
-      return sortedTimelines;
+      return _.sortBy(timelines, (tl) => User.feedNames.indexOf(tl.name));
     }
 
     getPublicTimelineIds() {

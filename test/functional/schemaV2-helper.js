@@ -171,7 +171,7 @@ export const postResponse = {
 export const timelineResponse = {
   timelines: expect.it('to exhaustively satisfy', {
     id:          expect.it('to satisfy', UUID),
-    name:        expect.it('to be one of', ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']),
+    name:        expect.it('to be one of', ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions', 'Saves']),
     user:        expect.it('to satisfy', UUID),
     posts:       expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
     subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),

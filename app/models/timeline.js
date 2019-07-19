@@ -405,6 +405,10 @@ export function addModel(dbAdapter) {
       return this.name === 'Hides';
     }
 
+    isSaves() {
+      return this.name === 'Saves';
+    }
+
     /**
      * Personal timeline can be viewed only by its owner
      * @return {boolean}
@@ -413,7 +417,8 @@ export function addModel(dbAdapter) {
       return this.name === 'RiverOfNews' ||
         this.name === 'Directs' ||
         this.name === 'Hides' ||
-        this.name === 'MyDiscussions';
+        this.name === 'MyDiscussions' ||
+        this.name === 'Saves';
     }
 
     async canShow(readerId) {
