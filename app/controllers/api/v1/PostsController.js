@@ -228,6 +228,28 @@ export default class PostsController {
     ctx.body = {};
   }
 
+  static save = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+
+      await post.save(user.id);
+      ctx.body = {};
+    },
+  ]);
+
+  static unsave = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
+
+      await post.unsave(user.id);
+      ctx.body = {};
+    },
+  ]);
+
   static disableComments = compose([
     authRequired(),
     postAccessRequired(),
