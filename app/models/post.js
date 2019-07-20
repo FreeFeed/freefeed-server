@@ -501,6 +501,24 @@ export function addModel(dbAdapter) {
       await pubSub.unhidePost(theUser.id, this.id);
     }
 
+    async save(userId) {
+      const theUser = await dbAdapter.getUserById(userId);
+      const savesTimelineId = await theUser.getSavesTimelineIntId();
+
+      await dbAdapter.insertPostIntoFeeds([savesTimelineId], this.id);
+
+      // await pubSub.savePost(theUser.id, this.id);
+    }
+
+    async unsave(userId) {
+      const theUser = await dbAdapter.getUserById(userId);
+      const savesTimelineId = await theUser.getSavesTimelineIntId();
+
+      await dbAdapter.withdrawPostFromFeeds([savesTimelineId], this.id);
+
+      // await pubSub.unsavePost(theUser.id, this.id);
+    }
+
     async addComment(comment) {
       const user = await dbAdapter.getUserById(comment.userId);
 
