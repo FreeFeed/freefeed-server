@@ -78,6 +78,19 @@ describe('Realtime #2', () => {
         expect(anonEvent, 'to be fulfilled');
       });
 
+      it(`should deliver 'post:save' event only to Luna when Luna saves post`, async () => {
+        const lunaEvent = lunaSession.receive('post:save');
+        const marsEvent = marsSession.notReceive('post:save');
+        const anonEvent = anonSession.notReceive('post:save');
+        await Promise.all([
+          funcTestHelper.savePost(post.id, luna),
+          lunaEvent, marsEvent, anonEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled with', { meta: { postId: post.id } });
+        expect(marsEvent, 'to be fulfilled');
+        expect(anonEvent, 'to be fulfilled');
+      });
+
       describe('Lunа hide post', () => {
         beforeEach(async () => {
           await funcTestHelper.hidePost(post.id, luna);
@@ -108,6 +121,39 @@ describe('Realtime #2', () => {
           expect(lunaEvent, 'to be fulfilled with value satisfying', { posts: { isHidden: true } });
           expect(marsEvent, 'to be fulfilled with value satisfying', { posts: expect.it('to not have key', 'isHidden') });
           expect(anonEvent, 'to be fulfilled with value satisfying', { posts: expect.it('to not have key', 'isHidden') });
+        });
+      });
+
+      describe('Lunа save post', () => {
+        beforeEach(async () => {
+          await funcTestHelper.savePost(post.id, luna);
+        });
+
+        it(`should deliver 'post:unsave' event only to Luna when Luna unsaves post`, async () => {
+          const lunaEvent = lunaSession.receive('post:unsave');
+          const marsEvent = marsSession.notReceive('post:unsave');
+          const anonEvent = anonSession.notReceive('post:unsave');
+          await Promise.all([
+            funcTestHelper.unsavePost(post.id, luna),
+            lunaEvent, marsEvent, anonEvent,
+          ]);
+          expect(lunaEvent, 'to be fulfilled with', { meta: { postId: post.id } });
+          expect(marsEvent, 'to be fulfilled');
+          expect(anonEvent, 'to be fulfilled');
+        });
+
+        it(`should deliver 'post:update' event with isSaved field only to Luna when Luna updates post`, async () => {
+          const lunaEvent = lunaSession.receive('post:update');
+          const marsEvent = marsSession.receive('post:update');
+          const anonEvent = anonSession.receive('post:update');
+          luna.post = post;
+          await Promise.all([
+            funcTestHelper.updatePostAsync(luna, { body: 'Updated post' }),
+            lunaEvent, marsEvent, anonEvent,
+          ]);
+          expect(lunaEvent, 'to be fulfilled with value satisfying', { posts: { isSaved: true } });
+          expect(marsEvent, 'to be fulfilled with value satisfying', { posts: expect.it('to not have key', 'isSaved') });
+          expect(anonEvent, 'to be fulfilled with value satisfying', { posts: expect.it('to not have key', 'isSaved') });
         });
       });
     });

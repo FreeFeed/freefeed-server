@@ -507,7 +507,7 @@ export function addModel(dbAdapter) {
 
       await dbAdapter.insertPostIntoFeeds([savesTimelineId], this.id);
 
-      // await pubSub.savePost(theUser.id, this.id);
+      await pubSub.savePost(theUser.id, this.id);
     }
 
     async unsave(userId) {
@@ -516,7 +516,7 @@ export function addModel(dbAdapter) {
 
       await dbAdapter.withdrawPostFromFeeds([savesTimelineId], this.id);
 
-      // await pubSub.unsavePost(theUser.id, this.id);
+      await pubSub.unsavePost(theUser.id, this.id);
     }
 
     async addComment(comment) {

@@ -198,6 +198,8 @@ export default class PubsubListener {
       [eventNames.POST_DESTROYED]: this.onPostDestroy,
       [eventNames.POST_HIDDEN]:    this.onPostHide,
       [eventNames.POST_UNHIDDEN]:  this.onPostUnhide,
+      [eventNames.POST_SAVED]:     this.onPostSave,
+      [eventNames.POST_UNSAVED]:   this.onPostUnsave,
 
       [eventNames.COMMENT_CREATED]:   this.onCommentNew,
       [eventNames.COMMENT_UPDATED]:   this.onCommentUpdate,
@@ -445,6 +447,28 @@ export default class PubsubListener {
     const post = await dbAdapter.getPostById(postId);
 
     const type = eventNames.POST_UNHIDDEN;
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
+  };
+
+  onPostSave = async ({ postId, userId }) => {
+    // NOTE: this event only broadcasts to saver's sockets
+    // so it won't leak any personal information
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId);
+
+    const type = eventNames.POST_SAVED;
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
+  };
+
+  onPostUnsave = async ({ postId, userId }) => {
+    // NOTE: this event only broadcasts to saver's sockets
+    // so it won't leak any personal information
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId);
+
+    const type = eventNames.POST_UNSAVED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
