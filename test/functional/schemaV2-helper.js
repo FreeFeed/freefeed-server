@@ -72,8 +72,12 @@ const postBasic = {
 export const post = (obj) => {
   const tpl = { ...postBasic };
 
-  if (obj && typeof obj === 'object' && obj.isHidden) {
+  if (obj && typeof obj === 'object' && ('isHidden' in obj)) {
     tpl.isHidden = expect.it('to be', true);
+  }
+
+  if (obj && typeof obj === 'object' && ('isSaved' in obj)) {
+    tpl.isSaved = expect.it('to be', true);
   }
 
   if (obj && typeof obj === 'object' && obj.friendfeedUrl) {

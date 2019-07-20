@@ -186,7 +186,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
   const allDestinations = [];
   const allSubscribers = [];
 
-  const { intId: hidesFeedId } = viewerId ? await dbAdapter.getUserNamedFeed(viewerId, 'Hides') : { intId: 0 };
+  const [hidesFeedId, savesFeedId] = viewerId ? await dbAdapter.getUserNamedFeedsIntIds(viewerId, ['Hides', 'Saves']) : [0, 0];
 
   const timelineIds = timeline ? [timeline.intId] : null;
   const activityFeedIds = [];
@@ -269,6 +269,10 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
     if (post.feedIntIds.includes(hidesFeedId)) {
       sPost.isHidden = true; // present only if true
+    }
+
+    if (post.feedIntIds.includes(savesFeedId)) {
+      sPost.isSaved = true; // present only if true
     }
 
     allPosts.push(sPost);

@@ -151,12 +151,17 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getUserNamedFeedsIntIds(userId, names) {
-    const responses = await this.database('feeds').select('id').where('user_id', userId).where('name', 'in', names)
-
-    const ids = responses.map((record) => {
-      return record.id
-    })
-    return ids
+    // Use unnest magic to ensure that ids will be in the same order as names
+    const { rows } = await this.database.raw(
+      `select f.id 
+      from
+        unnest(:names::text[]) with ordinality as src (name, ord)
+        left join feeds f on f.user_id = :userId and f.name = src.name
+      order by src.ord
+      `,
+      { userId, names }
+    );
+    return rows.map((r) =>  r && r.id);
   }
 
   async getUsersNamedFeedsIntIds(userIds, names) {

@@ -37,10 +37,16 @@ export const show = compose([
       omittedLikes:    postWithStuff.omittedLikes,
     };
 
-    const { intId: hidesFeedId } = viewer ? await dbAdapter.getUserNamedFeed(viewer.id, 'Hides') : { intId: 0 };
+    if (viewer) {
+      const [hidesFeedId, savesFeedId] = await dbAdapter.getUserNamedFeedsIntIds(viewer.id, ['Hides', 'Saves']);
 
-    if (postWithStuff.post.feedIntIds.includes(hidesFeedId)) {
-      sPost.isHidden = true; // present only if true
+      if (postWithStuff.post.feedIntIds.includes(hidesFeedId)) {
+        sPost.isHidden = true; // present only if true
+      }
+
+      if (postWithStuff.post.feedIntIds.includes(savesFeedId)) {
+        sPost.isSaved = true; // present only if true
+      }
     }
 
     const comments = postWithStuff.comments.map(serializeComment);

@@ -31,6 +31,7 @@ import {
   createAndReturnPostToFeed,
   mutualSubscriptions,
   fetchTimeline,
+  savePost,
 } from './functional_test_helper'
 
 
@@ -221,6 +222,20 @@ describe('TimelinesControllerV2', () => {
           const marsPost = homefeed.posts.find((p) => p.id === post1.id);
           expect(marsPost, 'to have key', 'isHidden');
           expect(marsPost.isHidden, 'to be', true);
+        });
+
+        it('saved posts should have a isSaved property', async () => {
+          const post1 = await createAndReturnPost(mars, 'Mars post');
+          const post2 = await createAndReturnPost(luna, 'Luna post');
+          await savePost(post1.id, luna);
+
+          const homefeed = await fetchHomefeed(luna);
+          expect(homefeed.timelines.posts, 'to have length', 2);
+          expect(homefeed.timelines.posts[0], 'to be', post2.id);
+          expect(homefeed.timelines.posts[1], 'to be', post1.id);
+          const marsPost = homefeed.posts.find((p) => p.id === post1.id);
+          expect(marsPost, 'to have key', 'isSaved');
+          expect(marsPost.isSaved, 'to be', true);
         });
 
         describe('Luna have a private feed', () => {

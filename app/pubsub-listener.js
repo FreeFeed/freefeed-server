@@ -501,11 +501,18 @@ export default class PubsubListener {
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
 
-    if (type !== eventNames.POST_CREATED) {
-      const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
+    if (viewer) {
+      const [isHidden, isSaved] = await Promise.all([
+        dbAdapter.isPostInUserFeed(json.posts.id, viewer.id, 'Hides'),
+        dbAdapter.isPostInUserFeed(json.posts.id, viewer.id, 'Saves'),
+      ]);
 
       if (isHidden) {
         json.posts.isHidden = true;
+      }
+
+      if (isSaved) {
+        json.posts.isSaved = true;
       }
     }
 
