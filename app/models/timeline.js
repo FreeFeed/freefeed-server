@@ -414,11 +414,32 @@ export function addModel(dbAdapter) {
      * @return {boolean}
      */
     isPersonal() {
-      return this.name === 'RiverOfNews' ||
-        this.name === 'Directs' ||
-        this.name === 'Hides' ||
-        this.name === 'MyDiscussions' ||
-        this.name === 'Saves';
+      return [
+        'RiverOfNews',
+        'Hides',
+        'Directs',
+        'MyDiscussions',
+        'Saves',
+      ].includes(this.name);
+    }
+
+    /**
+     * Virtual timeline is generated dynamically from other timelines
+     * @return {boolean}
+     */
+    isVirtual() {
+      return [
+        'RiverOfNews',
+        'MyDiscussions',
+      ].includes(this.name);
+    }
+
+    /**
+     * Material timeline is actually exists in post's feedIntIds
+     * @return {boolean}
+     */
+    isMaterial() {
+      return !this.isVirtual();
     }
 
     async canShow(readerId) {

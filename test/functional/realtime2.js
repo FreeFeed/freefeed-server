@@ -210,6 +210,23 @@ describe('Realtime #2', () => {
       });
     });
 
+    describe('Luna saved post and subscribed to their Saves', () => {
+      beforeEach(async () => {
+        await funcTestHelper.savePost(post.id, luna);
+        const lunaSavesFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'Saves');
+        await lunaSession.sendAsync('subscribe', { 'timeline': [lunaSavesFeed.id] });
+      });
+
+      it(`should deliver 'like:remove' event when Mars unlikes post`, async () => {
+        const lunaEvent = lunaSession.receive('like:remove');
+        await Promise.all([
+          funcTestHelper.unlike(post.id, mars.authToken),
+          lunaEvent,
+        ]);
+        expect(lunaEvent, 'to be fulfilled');
+      });
+    });
+
     it(`Mars should not be able to subscribe to Luna's RiverOfNews`, async () => {
       const lunaRoNFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'RiverOfNews');
       const promise = marsSession.sendAsync('subscribe', { 'timeline': [lunaRoNFeed.id] });

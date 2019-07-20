@@ -621,7 +621,7 @@ export async function getRoomsOfPost(post) {
     post.getRiverOfNewsTimelinesByModes(),
   ]);
 
-  const materialFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments() || f.isPosts() || f.isDirects());
+  const materialFeeds = postFeeds.filter((f) => f.isMaterial());
 
   // All feeds related to post
   const allFeeds = uniqBy([
