@@ -73,6 +73,10 @@ exports.init = async function (app) {
     }
   }
 
+  if (config.trustProxyHeaders) {
+    app.proxy = true;
+  }
+
   app.use(koaBody({
     multipart:  true,
     formLimit:  config.attachments.fileSizeLimit,
