@@ -7,6 +7,11 @@ export const boolString = (v) => expect(v, 'to be a string').and('to be one of',
 
 export const timeStampString = (v) => expect(v, 'to be a string').and('to match', /^\d+$/);
 
+export const iso8601TimeString = (v) => {
+  const d = new Date(v);
+  return expect(d instanceof Date && !isNaN(d), 'to be true');
+};
+
 export const UUID = (v) => expect(v, 'to match', /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-(8|9|a|b)[a-f0-9]{3}-[a-f0-9]{12}$/);
 
 export const userBasic = {
@@ -221,3 +226,19 @@ export const userSubscriptionsResponse = {
 };
 
 export const userSubscribersResponse = { subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', user) };
+
+export const appTokenInfo = {
+  id:           expect.it('to satisfy', UUID),
+  title:        expect.it('to be a string'),
+  issue:        expect.it('to be a number'),
+  createdAt:    expect.it('to satisfy', iso8601TimeString),
+  updatedAt:    expect.it('to satisfy', iso8601TimeString),
+  scopes:       expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+  restrictions: expect.it('to exhaustively satisfy', {
+    netmasks: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+    origins:  expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+  }),
+  lastUsedAt:    expect.it('to be null').or('to satisfy', iso8601TimeString),
+  lastIP:        expect.it('to be null').or('to be a string'),
+  lastUserAgent: expect.it('to be null').or('to be a string'),
+};

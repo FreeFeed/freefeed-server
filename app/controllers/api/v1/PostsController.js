@@ -2,7 +2,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
-import { dbAdapter, Post } from '../../../models'
+import { dbAdapter, Post, AppTokenV1 } from '../../../models'
 import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
 import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
@@ -40,6 +40,7 @@ export default class PostsController {
       }
 
       ctx.params.postId = newPost.id;
+      AppTokenV1.addLogPayload(ctx, { postId: newPost.id });
 
       await showPost(ctx);
     },

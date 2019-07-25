@@ -75,6 +75,7 @@
     "no-multiple-empty-lines": 2,
     "no-native-reassign": 2,
     "no-nested-ternary": 2,
+    "no-prototype-builtins": 0,
     "no-restricted-properties": [
       1,
       {
@@ -128,6 +129,7 @@
     "promise/catch-or-return": 2,
     "promise/no-native": 0,
     "quotes": [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
+    "require-atomic-updates": 0,
     "require-yield": 0,
     "rest-spread-spacing": 2,
     "require-await": 2,
