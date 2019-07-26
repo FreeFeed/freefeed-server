@@ -24,4 +24,8 @@ export default class pubSubStub {
   hidePost() {}
 
   unhidePost() {}
+
+  savePost() {}
+
+  unsavePost() {}
 }

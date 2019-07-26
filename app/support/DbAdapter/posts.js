@@ -771,14 +771,14 @@ const postsTrait = (superClass) => class extends superClass {
     return rawPosts.map((attrs) => initPostObject(attrs, params));
   }
 
-  async isPostHiddenByUser(postUID, userUID) {
+  async isPostInUserFeed(postUID, userUID, feedName) {
     const { rows } = await this.database.raw(
       `select 1 from 
         feeds f 
         join posts p on p.feed_ids && array[f.id] 
-      where p.uid = :postUID and f.user_id = :userUID and f.name = 'Hides' 
+      where p.uid = :postUID and f.user_id = :userUID and f.name = :feedName 
       `,
-      { postUID, userUID }
+      { postUID, userUID, feedName }
     );
     return rows.length > 0;
   }

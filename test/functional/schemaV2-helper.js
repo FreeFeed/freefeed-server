@@ -77,8 +77,12 @@ const postBasic = {
 export const post = (obj) => {
   const tpl = { ...postBasic };
 
-  if (obj && typeof obj === 'object' && obj.isHidden) {
+  if (obj && typeof obj === 'object' && ('isHidden' in obj)) {
     tpl.isHidden = expect.it('to be', true);
+  }
+
+  if (obj && typeof obj === 'object' && ('isSaved' in obj)) {
+    tpl.isSaved = expect.it('to be', true);
   }
 
   if (obj && typeof obj === 'object' && obj.friendfeedUrl) {
@@ -176,7 +180,7 @@ export const postResponse = {
 export const timelineResponse = {
   timelines: expect.it('to exhaustively satisfy', {
     id:          expect.it('to satisfy', UUID),
-    name:        expect.it('to be one of', ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions']),
+    name:        expect.it('to be one of', ['RiverOfNews', 'Hides', 'Comments', 'Likes', 'Posts', 'Directs', 'MyDiscussions', 'Saves']),
     user:        expect.it('to satisfy', UUID),
     posts:       expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
     subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),

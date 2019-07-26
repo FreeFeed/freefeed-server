@@ -20,6 +20,8 @@ import {
   createMockAttachmentAsync,
   updatePostAsync,
   hidePost,
+  savePost,
+  unsavePost,
 } from './functional_test_helper'
 
 
@@ -318,6 +320,31 @@ describe('TimelinesControllerV2', () => {
       it('should return post to Luna with truthy isHidden property', async () => {
         const { posts } = await fetchPost(luna.post.id, luna);
         expect(posts, 'to have key', 'isHidden'); // it is true because of schema
+      });
+    });
+
+    describe('Luna wrote post and save it', () => {
+      let luna;
+      beforeEach(async () => {
+        luna = await createUserAsync('luna', 'pw');
+        luna.post = await createAndReturnPost(luna, 'Luna post');
+        await savePost(luna.post.id, luna);
+      });
+
+      it('should return post to Luna with truthy isSaved property', async () => {
+        const { posts } = await fetchPost(luna.post.id, luna);
+        expect(posts, 'to have key', 'isSaved'); // it is true because of schema
+      });
+
+      describe('Luna unsaved post', () => {
+        beforeEach(async () => {
+          await unsavePost(luna.post.id, luna);
+        });
+
+        it('should return post to Luna without isSaved property', async () => {
+          const { posts } = await fetchPost(luna.post.id, luna);
+          expect(posts, 'not to have key', 'isSaved'); // it is true because of schema
+        });
       });
     });
   });
