@@ -7,7 +7,7 @@ import expect from 'unexpected'
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, Comment } from '../../app/models'
+import { PubSub, Comment, dbAdapter } from '../../app/models'
 import {
   createUserAsync,
   mutualSubscriptions,
@@ -291,6 +291,36 @@ describe('UsersControllerV2', () => {
           const info = await getLunaInfo();
           expect(info, 'to satisfy', { acceptsDirects: false });
         });
+      });
+    });
+  });
+
+  describe('"pastUsernames" field', () => {
+    let lunaObj;
+
+    beforeEach(async () => {
+      const luna = await createUserAsync('luna', 'pw');
+      lunaObj = await dbAdapter.getUserById(luna.user.id);
+    });
+
+    const getLunaInfo = async () => {
+      const resp = await getUserAsync({}, lunaObj.username);
+      return await resp.json();
+    };
+
+    it('should return empty array in "pastUsernames"', async () => {
+      const info = await getLunaInfo();
+      expect(info, 'to satisfy', { pastUsernames: [] });
+    });
+
+    describe(`Luna changes username to 'jupiter'`, () => {
+      beforeEach(async () => {
+        await lunaObj.updateUsername('jupiter');
+      });
+
+      it('should return old username in "pastUsernames"', async () => {
+        const info = await getLunaInfo();
+        expect(info, 'to satisfy', { pastUsernames: [{ username: 'luna' }] });
       });
     });
   });
