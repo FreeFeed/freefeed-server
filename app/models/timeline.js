@@ -447,29 +447,33 @@ export function addModel(dbAdapter) {
         return true;  // owner can read her posts
       }
 
-      if (this.isDirects()) {
-        return false;  // this is someone else's direct
+      if (this.isPersonal()) {
+        return false;  // this is someone else's personal feed
       }
 
       const user = await this.getUser();
 
       if (!user) {
-        throw new Error;
+        throw new Error(`Feed without owner: ${this.id}`);
       }
 
-      // this feed is not visible to anonymous and we just happen to be one
-      if (!readerId && user.isProtected === '1') {
-        return false;
+      if (!readerId) {
+        return (user.isProtected === '0');
       }
 
       if (user.isPrivate === '1') {
-        // user can view post if and only if she is subscriber
-        const subscriberIds = await this.getSubscriberIds();
-        return subscriberIds.includes(readerId);
+        // User can view post if and only if she is subscriber
+        const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+        // const subscriberIds = await this.getSubscriberIds();
+
+        if (!subscriberIds.includes(readerId)) {
+          return false;
+        }
       }
 
-      // this is a public feed, anyone can read public posts, this is a free country
-      return true;
+      // Viewer cannot see feeds of users in ban relations with him
+      const banIds = await dbAdapter.getUsersBansOrWasBannedBy(readerId);
+      return !banIds.includes(user.id);
     }
   }
 
