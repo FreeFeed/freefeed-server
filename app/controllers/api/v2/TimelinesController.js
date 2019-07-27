@@ -10,7 +10,7 @@ import {
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from '../../../models';
 import { load as configLoader } from '../../../../config/config';
-import { serializePostsCollection, serializeFeed } from '../../../serializers/v2/post';
+import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
 
@@ -28,17 +28,14 @@ export const bestOf = compose([
     const offset = parseInt(ctx.request.query.offset, 10) || 0;
     const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
 
-    const foundPosts = await dbAdapter.bestPosts(ctx.state.user, offset, limit + 1);
-    const isLastPage = foundPosts.length <= limit;
+    const foundPostsIds = await dbAdapter.bestPostsIds(ctx.state.user, offset, limit + 1);
+    const isLastPage = foundPostsIds.length <= limit;
 
     if (!isLastPage) {
-      foundPosts.length = limit;
+      foundPostsIds.length = limit;
     }
 
-    const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
-    const postsCollectionJson = await serializePostsCollection(postsObjects, currentUserId);
-
-    ctx.body = { ...postsCollectionJson, isLastPage };
+    ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
   },
 ]);
 

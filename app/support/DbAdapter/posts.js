@@ -477,7 +477,7 @@ const postsTrait = (superClass) => class extends superClass {
    * 15+ comments by 5+ users
    * Created less than 60 days ago
    */
-  bestPosts = async (currentUser, offset = 0, limit = 30) => {
+  bestPostsIds = async (currentUser, offset = 0, limit = 30) => {
     const MIN_LIKES = 10;
     const MIN_COMMENTS = 15;
     const MIN_COMMENT_AUTHORS = 5;
@@ -503,7 +503,7 @@ const postsTrait = (superClass) => class extends superClass {
 
     const sql = `
       SELECT
-        DISTINCT "posts".* FROM "posts"
+        DISTINCT "posts".uid, "posts"."bumped_at" FROM "posts"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
@@ -515,8 +515,8 @@ const postsTrait = (superClass) => class extends superClass {
       ORDER BY "posts"."bumped_at" DESC
       OFFSET ${offset} LIMIT ${limit}`;
 
-    const res = await this.database.raw(sql);
-    return res.rows;
+    const { rows } = await this.database.raw(sql);
+    return rows.map((r) => r.uid);
   };
 
   /**
