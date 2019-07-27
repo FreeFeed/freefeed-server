@@ -10,9 +10,8 @@ import {
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from '../../../models';
 import { load as configLoader } from '../../../../config/config';
-import { serializePostsCollection, serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
+import { serializePostsCollection, serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
-import { userSerializerFunction } from '../../../serializers/v2/user';
 
 
 export const ORD_UPDATED = 'bumped';
@@ -120,11 +119,10 @@ export const metatags = compose([
  * @param {string} [ctx.request.query.created-after]  - Show only posts created after this datetime (ISO 8601)
  * @param {string} defaultSort                        - Default sort mode
  * @return {object}                                   - Object with the following sructure:
- *                                                      { limit:number, offset:number, sort:string, withMyPosts:boolean, hiddenCommentTypes: array }
+ *                                                      { limit:number, offset:number, sort:string, withMyPosts:boolean }
  */
 function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   const { query } = ctx.request;
-  const viewer = ctx.state.user;
 
   let limit = parseInt(query.limit, 10);
 
@@ -157,36 +155,25 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
     HOMEFEED_MODE_CLASSIC,
     HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   ].includes(query['homefeed-mode']) ? query['homefeed-mode'] : HOMEFEED_MODE_CLASSIC;
-  const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
-  return { limit, offset, sort, homefeedMode, withMyPosts, hiddenCommentTypes, createdBefore, createdAfter };
+  return { limit, offset, sort, homefeedMode, withMyPosts, createdBefore, createdAfter };
 }
 
 async function genericTimeline(timeline = null, viewerId = null, params = {}) {
   params = {
-    limit:              30,
-    offset:             0,
-    sort:               ORD_UPDATED,
-    homefeedMode:       HOMEFEED_MODE_CLASSIC,
-    withLocalBumps:     false,  // consider viewer local bumps (for RiverOfNews)
-    withoutDirects:     false,  // do not show direct messages (for Likes and Comments)
-    withMyPosts:        false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
-    hiddenCommentTypes: [],     // dont show hidden/deleted comments of these hide_type's
-    createdBefore:      null,
-    createdAfter:       null,
+    limit:          30,
+    offset:         0,
+    sort:           ORD_UPDATED,
+    homefeedMode:   HOMEFEED_MODE_CLASSIC,
+    withLocalBumps: false,  // consider viewer local bumps (for RiverOfNews)
+    withoutDirects: false,  // do not show direct messages (for Likes and Comments)
+    withMyPosts:    false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
+    createdBefore:  null,
+    createdAfter:   null,
     ...params,
   };
 
   params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === ORD_UPDATED;
   params.withMyPosts = params.withMyPosts && timeline && timeline.name === 'MyDiscussions';
-
-  const allUserIds = new Set();
-  const allPosts = [];
-  const allComments = [];
-  const allAttachments = [];
-  const allDestinations = [];
-  const allSubscribers = [];
-
-  const [hidesFeedId, savesFeedId] = viewerId ? await dbAdapter.getUserNamedFeedsIntIds(viewerId, ['Hides', 'Saves']) : [0, 0];
 
   const timelineIds = timeline ? [timeline.intId] : null;
   const activityFeedIds = [];
@@ -195,8 +182,6 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
   if (params.withMyPosts) {
     authorsIds.push(viewerId);
   }
-
-  let canViewUser = true;
 
   if (timeline) {
     const owner = await timeline.getUser();
@@ -208,22 +193,6 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
       ]);
       timelineIds.length = 0;
       timelineIds.push(...srcIds);
-    } else if (['Posts', 'Comments', 'Likes'].includes(timeline.name)) {
-      // Checking access rights for viewer
-      if (!viewerId) {
-        canViewUser = (owner.isProtected === '0');
-      } else if (viewerId !== owner.id) {
-        if (owner.isPrivate === '1') {
-          const subscribers = await dbAdapter.getUserSubscribersIds(owner.id);
-          canViewUser = subscribers.includes(viewerId);
-        }
-
-        if (canViewUser) {
-          // Viewer cannot see feeds of users in ban relations with him
-          const banIds = await dbAdapter.getUsersBansOrWasBannedBy(viewerId);
-          canViewUser = !banIds.includes(owner.id);
-        }
-      }
     } else if (timeline.name === 'RiverOfNews') {
       const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(viewerId);
       timelineIds.length = 0;
@@ -244,7 +213,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
   }
 
 
-  const postsIds = canViewUser ?
+  const postsIds = (!timeline || await timeline.canShow(viewerId)) ?
     await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, authorsIds, activityFeedIds, limit: params.limit + 1 }) :
     [];
 
@@ -254,83 +223,5 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
     postsIds.length = params.limit;
   }
 
-  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postsIds, viewerId, params);
-
-  for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
-    const sPost = {
-      ...serializePost(post),
-      postedTo:    destinations.map((d) => d.id),
-      comments:    comments.map((c) => c.id),
-      attachments: attachments.map((a) => a.id),
-      likes,
-      omittedComments,
-      omittedLikes,
-    };
-
-    if (post.feedIntIds.includes(hidesFeedId)) {
-      sPost.isHidden = true; // present only if true
-    }
-
-    if (post.feedIntIds.includes(savesFeedId)) {
-      sPost.isSaved = true; // present only if true
-    }
-
-    allPosts.push(sPost);
-    allDestinations.push(...destinations);
-    allSubscribers.push(..._.map(destinations, 'user'));
-    allComments.push(...comments.map(serializeComment));
-    allAttachments.push(...attachments.map(serializeAttachment));
-
-    allUserIds.add(sPost.createdBy);
-    likes.forEach((l) => allUserIds.add(l));
-    comments.forEach((c) => allUserIds.add(c.userId));
-    destinations.forEach((d) => allUserIds.add(d.user));
-  }
-
-  let timelines = null;
-
-  if (timeline) {
-    timelines = _.pick(timeline, ['id', 'name']);
-    timelines.user = timeline.userId;
-    timelines.posts = postsIds;
-    timelines.subscribers = canViewUser ? await dbAdapter.getTimelineSubscribersIds(timeline.id) : [];
-    allSubscribers.push(timeline.userId);
-    allSubscribers.push(...timelines.subscribers);
-  }
-
-  allSubscribers.forEach((s) => allUserIds.add(s));
-
-  const allGroupAdmins = canViewUser ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId) : {};
-  Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
-
-  const [
-    allUsersAssoc,
-    allStatsAssoc,
-  ] = await Promise.all([
-    dbAdapter.getUsersByIdsAssoc([...allUserIds]),
-    dbAdapter.getUsersStatsAssoc([...allUserIds]),
-  ]);
-
-  const uniqSubscribers = _.compact(_.uniq(allSubscribers));
-
-  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-
-  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user' || (timeline && u.id === timeline.userId));
-  const subscribers = canViewUser ? uniqSubscribers.map(serializeUser) : [];
-
-  const subscriptions = canViewUser ? _.uniqBy(_.compact(allDestinations), 'id') : [];
-
-  const admins = canViewUser ? ((timeline && allGroupAdmins[timeline.userId]) || []).map(serializeUser) : [];
-
-  return {
-    timelines,
-    users,
-    subscriptions,
-    subscribers,
-    admins,
-    isLastPage,
-    posts:       allPosts,
-    comments:    _.compact(allComments),
-    attachments: _.compact(allAttachments),
-  };
+  return await serializeFeed(postsIds, viewerId, timeline, { isLastPage });
 }

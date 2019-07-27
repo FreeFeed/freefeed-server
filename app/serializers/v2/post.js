@@ -1,6 +1,8 @@
-import { reduce, uniqBy, pick, map, keyBy } from 'lodash';
+import { reduce, uniqBy, pick, map, keyBy, compact, uniq } from 'lodash';
 
 import { PostSerializer, dbAdapter } from '../../models';
+
+import { userSerializerFunction } from './user';
 
 
 export const serializePostsCollection = async (postsObjects, viewerUUID = null) => {
@@ -147,4 +149,121 @@ function _modifyPostsPayload(postsPayload, postCLikesDict, commentLikesDict) {
       omittedOwnCommentLikes: omittedOwn
     };
   });
+}
+
+/**
+ * Serialize posts (probably from timeline)
+ * and return fully prepared result for API response.
+ *
+ * @param {string[]} postIds
+ * @param {string|null} viewerId
+ * @param {Timeline|null} timeline
+ * @param {object} params
+ */
+export async function serializeFeed(
+  postIds,
+  viewerId,
+  timeline = null,
+  { isLastPage = false } = {}
+) {
+  const canViewTimeline = timeline ? await timeline.canShow(viewerId) : true;
+
+  let hiddenCommentTypes = [];
+
+  if (viewerId) {
+    const viewer = await dbAdapter.getUserById(viewerId)
+    hiddenCommentTypes = viewer.getHiddenCommentTypes();
+  }
+
+  const allUserIds = new Set();
+  const allPosts = [];
+  const allComments = [];
+  const allAttachments = [];
+  const allDestinations = [];
+  const allSubscribers = [];
+
+  const [hidesFeedId, savesFeedId] = viewerId ? await dbAdapter.getUserNamedFeedsIntIds(viewerId, ['Hides', 'Saves']) : [0, 0];
+
+  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postIds, viewerId, { hiddenCommentTypes });
+
+  for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
+    const sPost = {
+      ...serializePost(post),
+      postedTo:    destinations.map((d) => d.id),
+      comments:    comments.map((c) => c.id),
+      attachments: attachments.map((a) => a.id),
+      likes,
+      omittedComments,
+      omittedLikes,
+    };
+
+    if (post.feedIntIds.includes(hidesFeedId)) {
+      sPost.isHidden = true; // present only if true
+    }
+
+    if (post.feedIntIds.includes(savesFeedId)) {
+      sPost.isSaved = true; // present only if true
+    }
+
+    allPosts.push(sPost);
+    allDestinations.push(...destinations);
+    allSubscribers.push(...destinations.map((d) => d.user));
+    allComments.push(...comments.map(serializeComment));
+    allAttachments.push(...attachments.map(serializeAttachment));
+
+    allUserIds.add(sPost.createdBy);
+    likes.forEach((l) => allUserIds.add(l));
+    comments.forEach((c) => allUserIds.add(c.userId));
+    destinations.forEach((d) => allUserIds.add(d.user));
+  }
+
+  let timelines = null;
+
+  if (timeline) {
+    timelines = {
+      id:    timeline.id,
+      name:  timeline.name,
+      user:  timeline.userId,
+      posts: postIds,
+    };
+    timelines.subscribers = canViewTimeline ? await dbAdapter.getTimelineSubscribersIds(timeline.id) : [];
+    allSubscribers.push(timeline.userId);
+    allSubscribers.push(...timelines.subscribers);
+  }
+
+  allSubscribers.forEach((s) => allUserIds.add(s));
+
+  const allGroupAdmins = canViewTimeline ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId) : {};
+  Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+
+  const [
+    allUsersAssoc,
+    allStatsAssoc,
+  ] = await Promise.all([
+    dbAdapter.getUsersByIdsAssoc([...allUserIds]),
+    dbAdapter.getUsersStatsAssoc([...allUserIds]),
+  ]);
+
+  const uniqSubscribers = compact(uniq(allSubscribers));
+
+  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
+
+  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user' || (timeline && u.id === timeline.userId));
+  const subscribers = canViewTimeline ? uniqSubscribers.map(serializeUser) : [];
+
+  const subscriptions = canViewTimeline ? uniqBy(compact(allDestinations), 'id') : [];
+
+  const admins = (timeline && canViewTimeline) ? (allGroupAdmins[timeline.userId] || []).map(serializeUser) : [];
+
+  return {
+    timelines,
+    users,
+    subscriptions,
+    subscribers,
+    admins,
+    isLastPage,
+    posts:       allPosts,
+    comments:    compact(allComments),
+    attachments: compact(allAttachments),
+  };
 }
