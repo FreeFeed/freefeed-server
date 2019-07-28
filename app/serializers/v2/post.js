@@ -5,24 +5,6 @@ import { dbAdapter } from '../../models';
 import { userSerializerFunction } from './user';
 
 
-export function serializePost(post) {
-  return {
-    ...pick(post, [
-      'id',
-      'body',
-      'commentsDisabled',
-      'createdAt',
-      'updatedAt',
-      'friendfeedUrl',
-      'commentLikes',
-      'ownCommentLikes',
-      'omittedCommentLikes',
-      'omittedOwnCommentLikes'
-    ]),
-    createdBy: post.userId,
-  };
-}
-
 export function serializeComment(comment) {
   return {
     ...pick(comment, [
@@ -70,7 +52,11 @@ export async function serializeFeed(
   postIds,
   viewerId,
   timeline = null,
-  { isLastPage = false } = {}
+  {
+    isLastPage = false,
+    foldComments = true,
+    foldLikes = true,
+  } = {}
 ) {
   const canViewTimeline = timeline ? await timeline.canShow(viewerId) : true;
 
@@ -90,11 +76,11 @@ export async function serializeFeed(
 
   const [hidesFeedId, savesFeedId] = viewerId ? await dbAdapter.getUserNamedFeedsIntIds(viewerId, ['Hides', 'Saves']) : [0, 0];
 
-  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postIds, viewerId, { hiddenCommentTypes });
+  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postIds, viewerId, { hiddenCommentTypes, foldComments, foldLikes });
 
   for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
     const sPost = {
-      ...serializePost(post),
+      ...serializePostData(post),
       postedTo:    destinations.map((d) => d.id),
       comments:    comments.map((c) => c.id),
       attachments: attachments.map((a) => a.id),
@@ -171,5 +157,48 @@ export async function serializeFeed(
     posts:       allPosts,
     comments:    compact(allComments),
     attachments: compact(allAttachments),
+  };
+}
+
+/**
+ * Serialize single post and return fully prepared result for API response.
+ *
+ * @param {string} postId
+ * @param {string|null} viewerId
+ * @param {object} params
+ */
+export async function serializeSinglePost(
+  postId,
+  viewerId = null,
+  {
+    foldComments = true,
+    foldLikes = true,
+  } = {}
+) {
+  const data = await serializeFeed([postId], viewerId, null, { foldComments, foldLikes });
+  [data.posts] = data.posts;
+  Reflect.deleteProperty(data, 'timelines');
+  Reflect.deleteProperty(data, 'admins');
+  Reflect.deleteProperty(data, 'isLastPage');
+  return data;
+}
+
+/* Internals */
+
+function serializePostData(post) {
+  return {
+    ...pick(post, [
+      'id',
+      'body',
+      'commentsDisabled',
+      'createdAt',
+      'updatedAt',
+      'friendfeedUrl',
+      'commentLikes',
+      'ownCommentLikes',
+      'omittedCommentLikes',
+      'omittedOwnCommentLikes'
+    ]),
+    createdBy: post.userId,
   };
 }
