@@ -61,10 +61,10 @@ const searchTrait = (superClass) => class extends superClass {
       subQueries = [...subQueries, myPostsSubQuery, myPostsByCommentsSubQuery, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
     }
 
-    const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
+    const { rows } = await this.database.raw(
+      `select uid from (${subQueries.join(' union ')}) as found_posts order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     );
-    return res.rows;
+    return rows.map((r) => r.uid);
   }
 
   async searchUserPosts(query, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
@@ -107,10 +107,10 @@ const searchTrait = (superClass) => class extends superClass {
       subQueries = [...subQueries, visiblePrivatePostsSubQuery, visiblePrivatePostsByCommentsSubQuery];
     }
 
-    const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts where found_posts.user_id='${targetUserId}' order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
+    const { rows } = await this.database.raw(
+      `select uid from (${subQueries.join(' union ')}) as found_posts where found_posts.user_id='${targetUserId}' order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     );
-    return res.rows;
+    return rows.map((r) => r.uid);
   }
 
   async searchGroupPosts(query, groupFeedId, authorId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit) {
@@ -163,10 +163,10 @@ const searchTrait = (superClass) => class extends superClass {
       authorCondition = `WHERE "found_posts"."user_id"='${authorId}'`;
     }
 
-    const res = await this.database.raw(
-      `select * from (${subQueries.join(' union ')}) as found_posts ${authorCondition} order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
+    const { rows } = await this.database.raw(
+      `select uid from (${subQueries.join(' union ')}) as found_posts ${authorCondition} order by found_posts.bumped_at desc offset ${offset} limit ${limit}`
     );
-    return res.rows;
+    return rows.map((r) => r.uid);
   }
 
   _getPostsFromBannedUsersSearchFilterCondition(bannedUserIds, feedIntIdsBannedForUser) {

@@ -2,7 +2,6 @@
 import { promisifyAll } from 'bluebird';
 import { createClient as createRedisClient } from 'redis';
 import {
-  cloneDeep,
   compact,
   flatten,
   intersection,
@@ -13,7 +12,6 @@ import {
   last,
   map,
   noop,
-  omit,
   uniqBy,
   values,
 } from 'lodash';
@@ -24,12 +22,13 @@ import Raven from 'raven';
 
 import { load as configLoader } from '../config/config';
 
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer, AppTokenV1 } from './models';
+import { dbAdapter, LikeSerializer, PubsubCommentSerializer, AppTokenV1 } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { ForbiddenException } from './support/exceptions';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
+import { serializeSinglePost } from './serializers/v2/post';
 
 
 const config = configLoader();
@@ -221,7 +220,6 @@ export default class PubsubListener {
     if (post) {
       if (type === eventNames.POST_UPDATED) {
         let userIds = users.map((u) => u.id);
-        const jsonToSend = omit(json, ['newUserIds', 'removedUserIds']);
 
         if (json.newUserIds && !json.newUserIds.isEmpty()) {
           // Users who listen to post rooms but
@@ -238,7 +236,7 @@ export default class PubsubListener {
           await this.broadcastMessage(
             intersection(newUserRooms, rooms),
             eventNames.POST_CREATED,
-            jsonToSend,
+            json,
             post,
             this._postEventEmitter,
           );
@@ -267,7 +265,6 @@ export default class PubsubListener {
           userIds = listDifference(userIds, removedUserIds).items;
         }
 
-        json = jsonToSend;
         users = users.filter((u) => userIds.includes(u.id));
       } else {
         users = await post.onlyUsersCanSeePost(users);
@@ -318,10 +315,9 @@ export default class PubsubListener {
     await this.broadcastMessage(rooms, type, json);
   };
 
-  onPostNew = async (data) => {
-    const post = await dbAdapter.getPostById(data.postId);
-    const json = await new PostSerializer(post).promiseToJSON();
-
+  onPostNew = async ({ postId }) => {
+    const post = await dbAdapter.getPostById(postId);
+    const json = { postId };
     const type = eventNames.POST_CREATED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
@@ -329,7 +325,7 @@ export default class PubsubListener {
 
   onPostUpdate = async ({ postId, rooms = null, usersBeforeIds = null }) => {
     const post = await dbAdapter.getPostById(postId);
-    const postJson = await new PostSerializer(post).promiseToJSON();
+    const json = { postId };
 
     if (!rooms) {
       rooms = await getRoomsOfPost(post);
@@ -340,14 +336,14 @@ export default class PubsubListener {
       // destinations it will become invisible or visible for the some users.
       // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
       const currentUserIds = await post.usersCanSeePostIds();
-      postJson.newUserIds = listDifference(currentUserIds, usersBeforeIds);
-      postJson.removedUserIds = listDifference(usersBeforeIds, currentUserIds);
+      json.newUserIds = listDifference(currentUserIds, usersBeforeIds);
+      json.removedUserIds = listDifference(usersBeforeIds, currentUserIds);
     }
 
     await this.broadcastMessage(
       rooms,
       eventNames.POST_UPDATED,
-      postJson,
+      json,
       post,
       this._postEventEmitter,
     );
@@ -497,31 +493,11 @@ export default class PubsubListener {
     defaultEmitter(socket, type, json);
   }
 
-  _postEventEmitter = async (socket, type, json) => {
-    // We should make a copy of json because
-    // there are parallel emitters running with
-    // the same data
-    json = cloneDeep(json);
-    const viewer = socket.user;
-    json = await this._insertCommentLikesInfo(json, viewer.id);
-
-    if (viewer) {
-      const [isHidden, isSaved] = await Promise.all([
-        dbAdapter.isPostInUserFeed(json.posts.id, viewer.id, 'Hides'),
-        dbAdapter.isPostInUserFeed(json.posts.id, viewer.id, 'Saves'),
-      ]);
-
-      if (isHidden) {
-        json.posts.isHidden = true;
-      }
-
-      if (isSaved) {
-        json.posts.isSaved = true;
-      }
-    }
-
+  _postEventEmitter = async (socket, type, { postId }) => {
+    const json = await serializeSinglePost(postId, socket.user.id);
     defaultEmitter(socket, type, json);
   };
+
 
   /**
    * Emits message only to the specified user

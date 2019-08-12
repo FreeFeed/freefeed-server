@@ -44,16 +44,15 @@ describe('BestOf', () => {
     })
 
     it('should only show the popular post', async () => {
-      bestPosts = await dbAdapter.bestPosts(users[0])
+      bestPosts = await dbAdapter.bestPostsIds(users[0])
 
       bestPosts.should.not.be.empty
       bestPosts.length.should.eql(1)
-      bestPosts[0].should.have.property('uid')
-      bestPosts[0].uid.should.eql(popularPost.id)
+      bestPosts[0].should.eql(popularPost.id)
     })
 
     it('should not show the popular post to an anonymous', async () => {
-      bestPosts = await dbAdapter.bestPosts()
+      bestPosts = await dbAdapter.bestPostsIds()
 
       bestPosts.should.be.empty
       bestPosts.length.should.eql(0)

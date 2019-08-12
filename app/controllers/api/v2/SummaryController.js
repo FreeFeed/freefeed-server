@@ -1,8 +1,7 @@
 import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models'
-import { serializePostsCollection } from '../../../serializers/v2/post';
-import { serializeUser } from '../../../serializers/v2/user';
+import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
 
@@ -30,12 +29,9 @@ export const generalSummary = compose([
     ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id));
 
     // Get posts current user subscribed to
-    const foundPosts = await dbAdapter.getSummaryPosts(currentUser.id, days, destinations, activities, limit);
+    const foundPostsIds = await dbAdapter.getSummaryPostsIds(currentUser.id, days, destinations, activities, limit);
 
-    const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUser.id });
-
-    ctx.body = await serializePostsCollection(postsObjects, currentUser.id);
-    ctx.body.isLastPage = true;
+    ctx.body = await serializeFeed(foundPostsIds, currentUser.id, null, { isLastPage: true });
   },
 ]);
 
@@ -53,38 +49,8 @@ export const userSummary = compose([
     const [timelineIntId] = await dbAdapter.getUserNamedFeedsIntIds(targetUser.id, ['Posts']);
 
     // Get posts authored by target user, and provide current user (the reader) for filtering
-    const foundPosts = await dbAdapter.getSummaryPosts(currentUserId, days, [timelineIntId]);
+    const foundPostsIds = await dbAdapter.getSummaryPostsIds(currentUserId, days, [timelineIntId]);
 
-    // Serialize for the response
-    if (foundPosts.length > 0) {
-      const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
-
-      ctx.body = await serializePostsCollection(postsObjects, currentUserId);
-      ctx.body.isLastPage = true;
-    } else {
-      const [allUsersAssoc, allStatsAssoc] = await Promise.all([
-        dbAdapter.getUsersByIdsAssoc([targetUser.id]),
-        dbAdapter.getUsersStatsAssoc([targetUser.id]),
-      ]);
-
-      const defaultStats = { posts: '0', likes: '0', comments: '0', subscribers: '0', subscriptions: '0' };
-
-      const users = [{
-        ...serializeUser(allUsersAssoc[targetUser.id]),
-        statistics: allStatsAssoc[targetUser.id] || defaultStats
-      }];
-
-      ctx.body = {
-        admins:        [],
-        attachments:   [],
-        comments:      [],
-        isLastPage:    true,
-        posts:         [],
-        subscribers:   [],
-        subscriptions: [],
-        timelines:     [],
-        users
-      };
-    }
+    ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage: true });
   },
 ]);
