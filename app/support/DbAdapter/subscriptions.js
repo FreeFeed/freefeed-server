@@ -123,7 +123,9 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     let subscribedFeedIds = null;
 
     const allFeeds = await this.getUserTimelinesIds(targetId);
-    const publicFeedIds = ['Posts', 'Comments', 'Likes'].map((n) => allFeeds[n]);
+    const publicFeedIds = ['Posts', 'Comments', 'Likes']
+      .map((n) => allFeeds[n])
+      .filter(Boolean); // groups only have 'Posts' feeds
 
     await this.database.transaction(async (trx) => {
       // Lock users table

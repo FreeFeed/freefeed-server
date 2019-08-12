@@ -781,4 +781,32 @@ describe('Post', () => {
       });
     });
   });
+
+  describe('#save/unsave', () => {
+    let luna, mars, post;
+
+    beforeEach(async () => {
+      luna = new User({ username: 'luna', password: 'password' });
+      mars = new User({ username: 'mars', password: 'password' });
+      await Promise.all([
+        luna.create(),
+        mars.create(),
+      ]);
+
+      post = await luna.newPost({ body: 'Post body' });
+      await post.create()
+    });
+
+    it('should allow user to save post', async () => {
+      await post.save(mars.id);
+      await expect(dbAdapter.isPostInUserFeed(post.id, mars.id, 'Saves'), 'to be fulfilled with', true);
+    });
+
+    it('should allow user to unsave post', async () => {
+      await post.save(mars.id);
+      await expect(dbAdapter.isPostInUserFeed(post.id, mars.id, 'Saves'), 'to be fulfilled with', true);
+      await post.unsave(mars.id);
+      await expect(dbAdapter.isPostInUserFeed(post.id, mars.id, 'Saves'), 'to be fulfilled with', false);
+    });
+  });
 })
