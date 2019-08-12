@@ -13,7 +13,7 @@ import pgFormat from 'pg-format';
  * - L is number of likes
  */
 const summaryTrait = (superClass) => class extends superClass {
-  async getSummaryPosts(currentUserId, days, timelineIntIds, activityIntIds = [], limit = null) {
+  async getSummaryPostsIds(currentUserId, days, timelineIntIds, activityIntIds = [], limit = null) {
     const DEFAULT_LIMIT = 30;
     limit = limit || DEFAULT_LIMIT;
     let privacyFilter = 'AND NOT posts.is_protected';
@@ -40,7 +40,7 @@ const summaryTrait = (superClass) => class extends superClass {
 
     const sql = `
         SELECT
-          posts.*,
+          posts.uid,
           (
             10 * COALESCE(c.comment_authors_count, 0) + 
             3 * COALESCE(c.comments_count, 0) + 
@@ -83,8 +83,8 @@ const summaryTrait = (superClass) => class extends superClass {
           ${limit}
       `;
 
-    const res = await this.database.raw(sql);
-    return res.rows;
+    const { rows } = await this.database.raw(sql);
+    return rows.map((r) => r.uid);
   }
 };
 

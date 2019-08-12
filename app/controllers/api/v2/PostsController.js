@@ -2,9 +2,8 @@ import _ from 'lodash';
 import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
-import { serializePost, serializeComment, serializeAttachment } from '../../../serializers/v2/post';
+import { serializeSinglePost } from '../../../serializers/v2/post';
 import { monitored, postAccessRequired } from '../../middlewares';
-import { userSerializerFunction } from '../../../serializers/v2/user';
 
 
 export const show = compose([
@@ -15,75 +14,8 @@ export const show = compose([
 
     const foldComments = ctx.request.query.maxComments !== 'all';
     const foldLikes = ctx.request.query.maxLikes !== 'all';
-    const hiddenCommentTypes = viewer ? viewer.getHiddenCommentTypes() : [];
 
-    const [postWithStuff] = await dbAdapter.getPostsWithStuffByIds(
-      [post.id],
-      viewer ? viewer.id : null,
-      { foldComments, foldLikes, hiddenCommentTypes },
-    );
-
-    // The following code is mostly copied from ./TimelinesControlloer.js
-
-    const allUserIds = new Set();
-
-    const sPost = {
-      ...serializePost(postWithStuff.post),
-      postedTo:        _.map(postWithStuff.destinations, 'id'),
-      comments:        _.map(postWithStuff.comments, 'id'),
-      attachments:     _.map(postWithStuff.attachments, 'id'),
-      likes:           postWithStuff.likes,
-      omittedComments: postWithStuff.omittedComments,
-      omittedLikes:    postWithStuff.omittedLikes,
-    };
-
-    if (viewer) {
-      const [hidesFeedId, savesFeedId] = await dbAdapter.getUserNamedFeedsIntIds(viewer.id, ['Hides', 'Saves']);
-
-      if (postWithStuff.post.feedIntIds.includes(hidesFeedId)) {
-        sPost.isHidden = true; // present only if true
-      }
-
-      if (postWithStuff.post.feedIntIds.includes(savesFeedId)) {
-        sPost.isSaved = true; // present only if true
-      }
-    }
-
-    const comments = postWithStuff.comments.map(serializeComment);
-    const attachments = postWithStuff.attachments.map(serializeAttachment);
-    const subscribersIds = _.compact(_.map(postWithStuff.destinations, 'user'));
-
-    allUserIds.add(sPost.createdBy);
-    postWithStuff.likes.forEach((l) => allUserIds.add(l));
-    postWithStuff.comments.forEach((c) => allUserIds.add(c.userId));
-    postWithStuff.destinations.forEach((d) => allUserIds.add(d.user));
-
-    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewer && viewer.id);
-    Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
-
-    const [
-      allUsersAssoc,
-      allStatsAssoc,
-    ] = await Promise.all([
-      dbAdapter.getUsersByIdsAssoc([...allUserIds]),
-      dbAdapter.getUsersStatsAssoc([...allUserIds]),
-    ]);
-
-    const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-
-    const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user');
-    const subscribers = subscribersIds.map(serializeUser);
-
-    const subscriptions = _.uniqBy(_.compact(postWithStuff.destinations), 'id');
-
-    ctx.body = {
-      posts: sPost,
-      users,
-      subscriptions,
-      subscribers,
-      comments,
-      attachments,
-    };
+    ctx.body = await serializeSinglePost(post.id, viewer && viewer.id, { foldComments, foldLikes });
   },
 ]);
 
