@@ -667,6 +667,7 @@ describe('User', () => {
           timeline.should.have.property('name')
           timeline.name.should.eql('MyDiscussions')
 
+          timeline.currentUser = timeline.userId;
           return timeline.getPosts()
         })
         .then((posts) => {

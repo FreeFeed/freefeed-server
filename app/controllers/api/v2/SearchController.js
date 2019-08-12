@@ -2,7 +2,7 @@
 import { dbAdapter } from '../../../models';
 import { NotFoundException, ForbiddenException } from '../../../support/exceptions';
 import { SearchQueryParser } from '../../../support/SearchQueryParser';
-import { serializePostsCollection } from '../../../serializers/v2/post';
+import { serializeFeed } from '../../../serializers/v2/post';
 
 
 export default class SearchController {
@@ -16,7 +16,7 @@ export default class SearchController {
     const preparedQuery = SearchQueryParser.parse(ctx.request.query.qs, ctx.state.user ? ctx.state.user.username : null);
     const DEFAULT_LIMIT = 30;
 
-    let foundPosts = [],
+    let foundPostsIds = [],
       isSubscribed = false,
       targetUser = null,
       targetGroup,
@@ -45,7 +45,7 @@ export default class SearchController {
 
     if (ctx.request.query.qs.trim().length === 0) {
       // block "empty" queries for now, as they're too slow
-      foundPosts = [];
+      foundPostsIds = [];
     } else if (preparedQuery.group) {
       targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group);
 
@@ -76,7 +76,7 @@ export default class SearchController {
         targetUserId = targetUser.id;
       }
 
-      foundPosts = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
+      foundPostsIds = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
     } else if (preparedQuery.username) {
       if (preparedQuery.username === 'me') {
         throw new NotFoundException(`Please sign in to use 'from:me' operator`);
@@ -101,20 +101,17 @@ export default class SearchController {
         }
       }
 
-      foundPosts = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
+      foundPostsIds = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
     } else {
-      foundPosts = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
+      foundPostsIds = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
     }
 
-    const isLastPage = foundPosts.length <= requestedLimit;
+    const isLastPage = foundPostsIds.length <= requestedLimit;
 
     if (!isLastPage) {
-      foundPosts.length = requestedLimit;
+      foundPostsIds.length = requestedLimit;
     }
 
-    const postsObjects = dbAdapter.initRawPosts(foundPosts, { currentUser: currentUserId });
-    const postsCollectionJson = await serializePostsCollection(postsObjects, currentUserId);
-
-    ctx.body = { ...postsCollectionJson, isLastPage };
+    ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
   };
 }

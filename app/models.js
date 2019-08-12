@@ -16,16 +16,13 @@ import { addModel as userModel } from './models/user';
 import { addAppTokenV1Model } from './models/auth-tokens';
 import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
 import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer';
-import { addSerializer as commentSerializer } from './serializers/v1/CommentSerializer';
 import { addSerializer as groupSerializer } from './serializers/v1/GroupSerializer';
 import { addSerializer as likeSerializer } from './serializers/v1/LikeSerializer';
 import { addSerializer as myProfileSerializer } from './serializers/v1/MyProfileSerializer';
-import { addSerializer as postSerializer } from './serializers/v1/PostSerializer';
 import { addSerializer as pubsubCommentSerializer } from './serializers/v1/PubsubCommentSerializer';
 import { addSerializer as subscriberSerializer } from './serializers/v1/SubscriberSerializer';
 import { addSerializer as subscriptionSerializer } from './serializers/v1/SubscriptionSerializer';
 import { addSerializer as subscriptionRequestSerializer } from './serializers/v1/SubscriptionRequestSerializer';
-import { addSerializer as timelineSerializer } from './serializers/v1/TimelineSerializer';
 import { addSerializer as userSerializer } from './serializers/v1/UserSerializer';
 
 
@@ -69,10 +66,7 @@ export const MyProfileSerializer           = myProfileSerializer();
 export const LikeSerializer                = likeSerializer();
 export const GroupSerializer               = groupSerializer();
 export const AttachmentSerializer          = attachmentSerializer();
-export const CommentSerializer             = commentSerializer();
 export const PubsubCommentSerializer       = pubsubCommentSerializer();
-export const PostSerializer                = postSerializer();
-export const TimelineSerializer            = timelineSerializer();
 
 export {
   HOMEFEED_MODE_CLASSIC,

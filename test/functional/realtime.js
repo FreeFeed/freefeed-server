@@ -1109,11 +1109,10 @@ describe('Realtime (Socket.io)', () => {
             commentLikes:           0,
             ownCommentLikes:        0,
             omittedCommentLikes:    0,
-            omittedOwnCommentLikes: 0
+            omittedOwnCommentLikes: 0,
+            comments:               [],
           },
         });
-        expect(msg, 'not to have key', 'comments');
-        expect(msg.posts, 'not to have key', 'comments');
       });
 
       it('Mars gets notifications about updated posts with comment likes fields', async () => {
