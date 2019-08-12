@@ -5,6 +5,8 @@ export const eventNames = {
   POST_DESTROYED:       'post:destroy',
   POST_HIDDEN:          'post:hide',
   POST_UNHIDDEN:        'post:unhide',
+  POST_SAVED:           'post:save',
+  POST_UNSAVED:         'post:unsave',
   COMMENT_CREATED:      'comment:new',
   COMMENT_UPDATED:      'comment:update',
   COMMENT_DESTROYED:    'comment:destroy',
@@ -46,6 +48,14 @@ export class PubSubAdapter {
 
   postUnhidden(payload) {
     return this._publish(eventNames.POST_UNHIDDEN, payload)
+  }
+
+  postSaved(payload) {
+    return this._publish(eventNames.POST_SAVED, payload)
+  }
+
+  postUnsaved(payload) {
+    return this._publish(eventNames.POST_UNSAVED, payload)
   }
 
   ///////////////////////////////////////////////////

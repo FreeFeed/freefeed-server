@@ -1030,16 +1030,6 @@ describe('PrivateGroups', () => {
       groupFeedViewedByAnonymous.timelines.subscribers.should.eql([])
       groupFeedViewedByAnonymous.subscribers.should.eql([])
       groupFeedViewedByAnonymous.admins.should.eql([])
-
-      const groupLikesFeedViewedByAnonymous = await funcTestHelper.getUserLikesFeed(group)
-      groupLikesFeedViewedByAnonymous.timelines.subscribers.should.eql([])
-      groupLikesFeedViewedByAnonymous.subscribers.should.eql([])
-      groupLikesFeedViewedByAnonymous.admins.should.eql([])
-
-      const groupCommentsFeedViewedByAnonymous = await funcTestHelper.getUserCommentsFeed(group)
-      groupCommentsFeedViewedByAnonymous.timelines.subscribers.should.eql([])
-      groupCommentsFeedViewedByAnonymous.subscribers.should.eql([])
-      groupCommentsFeedViewedByAnonymous.admins.should.eql([])
     });
 
     it('non-members of group should have no access to private group subscribers', async () => {
@@ -1047,16 +1037,6 @@ describe('PrivateGroups', () => {
       groupFeedViewedByMars.timelines.subscribers.should.eql([])
       groupFeedViewedByMars.subscribers.should.eql([])
       groupFeedViewedByMars.admins.should.eql([])
-
-      const groupLikesFeedViewedByMars = await funcTestHelper.getUserLikesFeed(group, marsContext)
-      groupLikesFeedViewedByMars.timelines.subscribers.should.eql([])
-      groupLikesFeedViewedByMars.subscribers.should.eql([])
-      groupLikesFeedViewedByMars.admins.should.eql([])
-
-      const groupCommentsFeedViewedByMars = await funcTestHelper.getUserCommentsFeed(group, marsContext)
-      groupCommentsFeedViewedByMars.timelines.subscribers.should.eql([])
-      groupCommentsFeedViewedByMars.subscribers.should.eql([])
-      groupCommentsFeedViewedByMars.admins.should.eql([])
     })
 
     it('group members should have access to private group subscribers', async () => {
@@ -1064,16 +1044,6 @@ describe('PrivateGroups', () => {
       groupFeedViewedByPluto.timelines.should.have.property('subscribers')
       groupFeedViewedByPluto.should.have.property('subscribers')
       groupFeedViewedByPluto.should.have.property('admins')
-
-      const groupLikesFeedViewedByPluto = await funcTestHelper.getUserLikesFeed(group, plutoContext)
-      groupLikesFeedViewedByPluto.timelines.should.have.property('subscribers')
-      groupLikesFeedViewedByPluto.should.have.property('subscribers')
-      groupLikesFeedViewedByPluto.should.have.property('admins')
-
-      const groupCommentsFeedViewedByPluto = await funcTestHelper.getUserCommentsFeed(group, plutoContext)
-      groupCommentsFeedViewedByPluto.timelines.should.have.property('subscribers')
-      groupCommentsFeedViewedByPluto.should.have.property('subscribers')
-      groupCommentsFeedViewedByPluto.should.have.property('admins')
     });
   })
 

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import compose from 'koa-compose';
 
-import { dbAdapter, MyProfileSerializer, User, Group } from '../../../models'
+import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0 } from '../../../models'
 import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
@@ -55,11 +55,11 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const { secret } = config;
-    const authToken = jwt.sign({ userId: user.id }, secret)
-
     const json = await new MyProfileSerializer(user).promiseToJSON()
+    const authToken = new SessionTokenV0(user.id).tokenString();
+
     ctx.body = { ...json, authToken };
+    AppTokenV1.addLogPayload(ctx, { userId: user.id });
 
     if (invitation) {
       await useInvitation(user, invitation, ctx.request.body.cancel_subscription);
@@ -187,6 +187,20 @@ export default class UsersController {
       const acceptsDirects = await targetUser.acceptsDirectsFrom(viewer);
 
       ctx.body = { users, admins, acceptsDirects };
+    },
+  ]);
+
+  static showMe = compose([
+    authRequired(),
+    monitored('users.show-me'),
+    async (ctx) => {
+      const { user } = ctx.state;
+
+      const serUsers = await serializeUsersByIds([user.id]);
+      const users = serUsers.find((u) => u.id === user.id);
+      const admins = serUsers.filter((u) => u.type === 'user');
+
+      ctx.body = { users, admins, acceptsDirects: false };
     },
   ]);
 
@@ -388,21 +402,27 @@ export default class UsersController {
     authRequired(),
     monitored('users.update'),
     async (ctx) => {
-      const { state: { user }, request: { body }, params } = ctx;
+      const { state: { user, authToken }, request: { body }, params } = ctx;
 
       if (params.userId !== user.id) {
         throw new NotAuthorizedException();
       }
 
-      const attrs = [
+      const attrNames = [
         'screenName',
-        'email',
         'isPrivate',
         'isProtected',
         'description',
         'frontendPreferences',
         'preferences',
-      ].reduce((acc, key) => {
+      ];
+
+      // Only full access tokens can change email
+      if (authToken.hasFullAccess()) {
+        attrNames.push('email');
+      }
+
+      const attrs = attrNames.reduce((acc, key) => {
         if (key in body.user) {
           acc[key] = ctx.request.body.user[key];
         }

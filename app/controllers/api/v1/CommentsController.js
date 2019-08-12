@@ -1,7 +1,7 @@
 import compose from 'koa-compose';
 import monitor from 'monitor-dog';
 
-import { dbAdapter, Comment } from '../../../models';
+import { dbAdapter, Comment, AppTokenV1 } from '../../../models';
 import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions';
 import { serializeComment } from '../../../serializers/v2/comment';
 import { authRequired, inputSchemaRequired, postAccessRequired, monitored } from '../../middlewares';
@@ -35,6 +35,7 @@ export const create = compose([
       throw new BadRequestException(`Can not create comment: ${e.message}`);
     }
 
+    AppTokenV1.addLogPayload(ctx, { commentId: comment.id });
     ctx.body = await serializeComment(comment);
   },
 ]);

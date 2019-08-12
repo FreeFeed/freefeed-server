@@ -132,6 +132,7 @@
     "socket.io-client": "~2.2.0",
     "superagent": "1.8.3",
     "unexpected": "~10.39.0",
+    "unexpected-date": "~1.2.1",
     "unexpected-moment": "~3.2.1",
     "unexpected-sinon": "~10.10.1",
     "xml-parser": "~1.2.1"

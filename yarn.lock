@@ -6848,6 +6848,11 @@ unexpected-bluebird@2.9.34-longstack2:
   resolved "https://registry.yarnpkg.com/unexpected-bluebird/-/unexpected-bluebird-2.9.34-longstack2.tgz#49acac753b0556ded6025210ee96182307d2b2c9"
   integrity sha1-SaysdTsFVt7WAlIQ7pYYIwfSssk=
 
+unexpected-date@~1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/unexpected-date/-/unexpected-date-1.2.1.tgz#7ad75dfc1ce08f4674a6d8066466debbbef87357"
+  integrity sha1-etdd/Bzgj0Z0ptgGZGbeu774c1c=
+
 unexpected-moment@~3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/unexpected-moment/-/unexpected-moment-3.2.1.tgz#1e3304404b9ef52c1736818e77294b2e7b3fb0a6"

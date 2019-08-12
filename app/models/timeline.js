@@ -405,15 +405,41 @@ export function addModel(dbAdapter) {
       return this.name === 'Hides';
     }
 
+    isSaves() {
+      return this.name === 'Saves';
+    }
+
     /**
      * Personal timeline can be viewed only by its owner
      * @return {boolean}
      */
     isPersonal() {
-      return this.name === 'RiverOfNews' ||
-        this.name === 'Directs' ||
-        this.name === 'Hides' ||
-        this.name === 'MyDiscussions';
+      return [
+        'RiverOfNews',
+        'Hides',
+        'Directs',
+        'MyDiscussions',
+        'Saves',
+      ].includes(this.name);
+    }
+
+    /**
+     * Virtual timeline is generated dynamically from other timelines
+     * @return {boolean}
+     */
+    isVirtual() {
+      return [
+        'RiverOfNews',
+        'MyDiscussions',
+      ].includes(this.name);
+    }
+
+    /**
+     * Material timeline is actually exists in post's feedIntIds
+     * @return {boolean}
+     */
+    isMaterial() {
+      return !this.isVirtual();
     }
 
     async canShow(readerId) {

@@ -1,15 +1,11 @@
 /* eslint babel/semi: "error" */
-import { promisifyAll } from 'bluebird';
-import jwt from 'jsonwebtoken';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
-import createDebug from 'debug';
 
 import { load as configLoader } from '../config/config';
 
-import { dbAdapter } from './models';
 import { reportError } from './support/exceptions';
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute';
@@ -33,46 +29,30 @@ import ArchivesRoute from './routes/api/v2/ArchivesRoute';
 import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
+import AppTokensRoute from './routes/api/v2/AppTokens';
+import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
-
-promisifyAll(jwt);
 
 const config = configLoader();
 
 export default function (app) {
-  const authDebug = createDebug('freefeed:authentication');
-  const findUser = async (ctx, next) => {
-    const authToken = ctx.request.get('x-authentication-token')
-      || ctx.request.body.authToken
-      || ctx.request.query.authToken;
-
-    if (authToken) {
-      authDebug('got token', authToken);
-
-      try {
-        const decoded = await jwt.verifyAsync(authToken, config.secret);
-        const user = await dbAdapter.getUserById(decoded.userId);
-
-        if (user && user.isActive) {
-          ctx.state.user = user;
-          authDebug(`authenticated as ${user.username}`);
-        }
-      } catch (e) {
-        authDebug(`invalid token. the user will be treated as anonymous: ${e.message}`);
-      }
-    }
-
-    await next();
-  };
-
   const router = new Router();
 
   // unauthenticated routes
   PasswordsRoute(router);
   SessionRoute(router);
 
+  // Fix for ctx._matchedRoute
+  // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
+  // See https://github.com/ZijianHe/koa-router/issues/246
+  router.use((ctx, next) => {
+    ctx._matchedRoute = ctx.matched.find((layer) => layer.methods.includes(ctx.method)).path;
+    return next();
+  });
+
   // [at least optionally] authenticated routes
-  router.use(findUser);
+  router.use(withAuthToken);
+
   AttachmentsRoute(router);
   BookmarkletRoute(router);
   CommentsRoute(router);
@@ -94,11 +74,7 @@ export default function (app) {
   NotificationsRoute(router);
   CommentLikesRoute(router);
   InvitationsRoute(router);
-
-  router.use('/v[0-9]+/*', (ctx) => {
-    ctx.status = 404;
-    ctx.body = { err: `API method not found: '${ctx.req.path}'` };
-  });
+  AppTokensRoute(router);
 
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
@@ -116,4 +92,15 @@ export default function (app) {
 
   app.use(router.routes());
   app.use(router.allowedMethods());
+
+  // Not Found middleware for API-like URIs
+  app.use(async (ctx, next) => {
+    if (/\/v\d+\//.test(ctx.url)) {
+      ctx.status = 404;
+      ctx.body = { err: `API method not found: '${ctx.url}'` };
+      return;
+    }
+
+    await next();
+  });
 }
