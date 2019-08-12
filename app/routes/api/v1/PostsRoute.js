@@ -11,6 +11,8 @@ export default function addRoutes(app) {
   app.post('/v1/posts/:postId/unlike', PostsController.unlike)
   app.post('/v1/posts/:postId/hide',   PostsController.hide)
   app.post('/v1/posts/:postId/unhide', PostsController.unhide)
+  app.post('/v1/posts/:postId/save',   PostsController.save)
+  app.delete('/v1/posts/:postId/save', PostsController.unsave)
   app.post('/v1/posts/:postId/disableComments', PostsController.disableComments)
   app.post('/v1/posts/:postId/enableComments',  PostsController.enableComments)
 }

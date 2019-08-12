@@ -19,19 +19,18 @@ import {
 } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
-import jwt from 'jsonwebtoken';
 import createDebug from 'debug';
 import Raven from 'raven';
 
 import { load as configLoader } from '../config/config';
 
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models';
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer, AppTokenV1 } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
+import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
+import { ForbiddenException } from './support/exceptions';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 
-
-promisifyAll(jwt);
 
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -53,16 +52,8 @@ export default class PubsubListener {
 
     // authentication
     this.io.use(async (socket, next) => {
-      const authToken = socket.handshake.query.token;
-      const { secret } = config;
-
-      try {
-        const decoded = await jwt.verifyAsync(authToken, secret);
-        socket.user = await dbAdapter.getUserById(decoded.userId);
-      } catch (e) {
-        socket.user = { id: null };
-      }
-
+      socket.user = await getAuthUser(socket.handshake.query.token, socket);
+      debug(`[socket.id=${socket.id}] auth user`, socket.user.id);
       return next();
     });
 
@@ -83,29 +74,18 @@ export default class PubsubListener {
 
   onConnect = (socket) => {
     promisifyAll(socket);
-    const { secret } = config;
 
     socket.on('error', (e) => {
       debug(`[socket.id=${socket.id}] error`, e);
     });
 
-    onSocketEvent(socket, 'auth', async (data, debugPrefix) => {
+    onSocketEvent(socket, 'auth', async (data) => {
       if (!isPlainObject(data)) {
         throw new EventHandlingError('request without data');
       }
 
-      if (data.authToken && typeof data.authToken === 'string') {
-        try {
-          const decoded = await jwt.verifyAsync(data.authToken, secret);
-          socket.user = await dbAdapter.getUserById(decoded.userId);
-          debug(`${debugPrefix}: successfully authenticated as ${socket.user.username}`);
-        } catch (e) {
-          socket.user = { id: null };
-          throw new Error('invalid token', `invalid token ${data.authToken}, signing user out`);
-        }
-      } else {
-        socket.user = { id: null };
-      }
+      socket.user = await getAuthUser(data.authToken, socket);
+      debug(`[socket.id=${socket.id}] auth user`, socket.user.id);
     });
 
     onSocketEvent(socket, 'subscribe', async (data, debugPrefix) => {
@@ -198,6 +178,8 @@ export default class PubsubListener {
       [eventNames.POST_DESTROYED]: this.onPostDestroy,
       [eventNames.POST_HIDDEN]:    this.onPostHide,
       [eventNames.POST_UNHIDDEN]:  this.onPostUnhide,
+      [eventNames.POST_SAVED]:     this.onPostSave,
+      [eventNames.POST_UNSAVED]:   this.onPostUnsave,
 
       [eventNames.COMMENT_CREATED]:   this.onCommentNew,
       [eventNames.COMMENT_UPDATED]:   this.onCommentUpdate,
@@ -449,6 +431,28 @@ export default class PubsubListener {
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
 
+  onPostSave = async ({ postId, userId }) => {
+    // NOTE: this event only broadcasts to saver's sockets
+    // so it won't leak any personal information
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId);
+
+    const type = eventNames.POST_SAVED;
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
+  };
+
+  onPostUnsave = async ({ postId, userId }) => {
+    // NOTE: this event only broadcasts to saver's sockets
+    // so it won't leak any personal information
+    const json = { meta: { postId } };
+    const post = await dbAdapter.getPostById(postId);
+
+    const type = eventNames.POST_UNSAVED;
+    const rooms = await getRoomsOfPost(post);
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
+  };
+
   onCommentLikeNew = async (data) => {
     await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_ADDED);
   };
@@ -501,11 +505,18 @@ export default class PubsubListener {
     const viewer = socket.user;
     json = await this._insertCommentLikesInfo(json, viewer.id);
 
-    if (type !== eventNames.POST_CREATED) {
-      const isHidden = !!viewer.id && await dbAdapter.isPostHiddenByUser(json.posts.id, viewer.id);
+    if (viewer) {
+      const [isHidden, isSaved] = await Promise.all([
+        dbAdapter.isPostInUserFeed(json.posts.id, viewer.id, 'Hides'),
+        dbAdapter.isPostInUserFeed(json.posts.id, viewer.id, 'Saves'),
+      ]);
 
       if (isHidden) {
         json.posts.isHidden = true;
+      }
+
+      if (isSaved) {
+        json.posts.isSaved = true;
       }
     }
 
@@ -590,7 +601,7 @@ export async function getRoomsOfPost(post) {
     post.getRiverOfNewsTimelinesByModes(),
   ]);
 
-  const materialFeeds = postFeeds.filter((f) => f.isLikes() || f.isComments() || f.isPosts() || f.isDirects());
+  const materialFeeds = postFeeds.filter((f) => f.isMaterial());
 
   // All feeds related to post
   const allFeeds = uniqBy([
@@ -673,3 +684,33 @@ const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, 
     callback({ success: false, message: e.message });
   }
 });
+
+async function getAuthUser(jwtToken, socket) {
+  let authData = null;
+
+  try {
+    authData = await tokenFromJWT(
+      jwtToken,
+      {
+        headers:  socket.handshake.headers,
+        remoteIP: socket.handshake.address,
+        route:    `WS *`,
+      },
+    );
+  } catch (e) {
+    if (e instanceof ForbiddenException) {
+      // still allow anonymous access
+    } else {
+      throw e;
+    }
+  }
+
+  if (authData && authData.authToken instanceof AppTokenV1) {
+    await authData.authToken.registerUsage({
+      ip:        socket.handshake.address,
+      userAgent: socket.handshake.headers['user-agent'] || '<undefined>',
+    });
+  }
+
+  return authData ? authData.user : { id: null };
+}

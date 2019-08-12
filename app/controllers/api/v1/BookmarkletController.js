@@ -11,7 +11,7 @@ import { wait as waitStream, pipeline } from 'promise-streams';
 import meter from 'stream-meter';
 import { parse as bytesParse } from 'bytes';
 
-import { Post, Comment } from '../../../models';
+import { Post, Comment, AppTokenV1 } from '../../../models';
 import { ForbiddenException } from '../../../support/exceptions';
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
@@ -80,6 +80,8 @@ export const create = compose([
     }
 
     ctx.params.postId = post.id;
+    AppTokenV1.addLogPayload(ctx, { postId: post.id });
+
     await showPost(ctx);
   },
 ]);

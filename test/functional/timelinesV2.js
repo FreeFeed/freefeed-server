@@ -31,6 +31,9 @@ import {
   createAndReturnPostToFeed,
   mutualSubscriptions,
   fetchTimeline,
+  savePost,
+  createTestUsers,
+  unsavePost,
 } from './functional_test_helper'
 
 
@@ -221,6 +224,20 @@ describe('TimelinesControllerV2', () => {
           const marsPost = homefeed.posts.find((p) => p.id === post1.id);
           expect(marsPost, 'to have key', 'isHidden');
           expect(marsPost.isHidden, 'to be', true);
+        });
+
+        it('saved posts should have a isSaved property', async () => {
+          const post1 = await createAndReturnPost(mars, 'Mars post');
+          const post2 = await createAndReturnPost(luna, 'Luna post');
+          await savePost(post1.id, luna);
+
+          const homefeed = await fetchHomefeed(luna);
+          expect(homefeed.timelines.posts, 'to have length', 2);
+          expect(homefeed.timelines.posts[0], 'to be', post2.id);
+          expect(homefeed.timelines.posts[1], 'to be', post1.id);
+          const marsPost = homefeed.posts.find((p) => p.id === post1.id);
+          expect(marsPost, 'to have key', 'isSaved');
+          expect(marsPost.isSaved, 'to be', true);
         });
 
         describe('Luna have a private feed', () => {
@@ -658,12 +675,67 @@ describe('TimelinesControllerV2', () => {
       expect(feed.timelines.posts[0], 'to equal', post2.id);
     });
   });
+
+  describe('#saves', () => {
+    let luna, mars;
+    let post1, post2;
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(2);
+      post1 = await createAndReturnPost(luna, 'Post');
+      post2 = await createAndReturnPost(mars, 'Post');
+    });
+
+    it('should not return Saves timeline to anonymous', async () => {
+      const response = await fetch(`${app.context.config.host}/v2/timelines/filter/saves`);
+      expect(response, 'to satisfy', { status: 401 });
+    });
+
+    it('should return correct Saves timeline without posts', async () => {
+      const feed = await fetchSaved(luna);
+      const savesFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'Saves');
+      expect(feed.timelines, 'to satisfy', {
+        id:    savesFeed.id,
+        name:  savesFeed.name,
+        posts: [],
+      });
+    });
+
+    it('should return Saves timeline with one saved post', async () => {
+      await savePost(post1.id, luna);
+      const feed = await fetchSaved(luna);
+      expect(feed.timelines.posts, 'to have length', 1);
+      expect(feed.timelines.posts[0], 'to equal', post1.id);
+    });
+
+    it('should return empty Saves timeline after unsave', async () => {
+      await savePost(post1.id, luna);
+      await unsavePost(post1.id, luna);
+      const feed = await fetchSaved(luna);
+      expect(feed.timelines.posts, 'to be empty');
+    });
+
+    it('should return Saves timeline with two saved posts', async () => {
+      await savePost(post1.id, luna);
+      await savePost(post2.id, luna);
+      const feed = await fetchSaved(luna);
+      expect(feed.timelines.posts, 'to equal', [post2.id, post1.id]);
+    });
+
+    it('should remove post from Saves timeline if it become unavailable', async () => {
+      await savePost(post1.id, luna);
+      await savePost(post2.id, luna);
+      await goPrivate(mars);
+      const feed = await fetchSaved(luna);
+      expect(feed.timelines.posts, 'to equal', [post1.id]);
+    });
+  });
 });
 
 const fetchHomefeed = (viewerContext, mode = HOMEFEED_MODE_CLASSIC) => fetchTimeline(`home?homefeed-mode=${mode}`, viewerContext);
 const fetchMyDiscussions = _.partial(fetchTimeline, 'filter/discussions');
 const fetchMyDiscussionsWithMyPosts = _.partial(fetchTimeline, 'filter/discussions?with-my-posts=yes');
 const fetchDirects = _.partial(fetchTimeline, 'filter/directs');
+const fetchSaved = _.partial(fetchTimeline, 'filter/saves');
 
 const fetchUserTimeline = (name, userContext, viewerContext = null) => {
   let path = userContext.username;

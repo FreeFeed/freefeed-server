@@ -693,7 +693,7 @@ describe('User', () => {
         .then(() => user.getTimelines())
         .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
-          timelines.length.should.be.eql(7)
+          timelines.length.should.be.eql(8)
           done()
         })
         .catch((e) => { done(e) })
@@ -710,7 +710,7 @@ describe('User', () => {
         .then((timelines) => {
           timelines.should.be.an.instanceOf(Array)
           timelines.should.not.be.empty
-          timelines.length.should.be.eql(7)
+          timelines.length.should.be.eql(8)
 
           const [timeline] = timelines;
           timeline.should.have.property('name')
@@ -727,6 +727,8 @@ describe('User', () => {
           timelines[5].name.should.eql('Directs')
           timelines[6].should.have.property('name')
           timelines[6].name.should.eql('MyDiscussions')
+          timelines[7].should.have.property('name')
+          timelines[7].name.should.eql('Saves')
           done()
         })
         .catch((e) => { done(e) })

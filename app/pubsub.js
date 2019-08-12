@@ -91,6 +91,14 @@ export default class pubSub {
     await this.publisher.postUnhidden(JSON.stringify({ userId, postId }))
   }
 
+  async savePost(userId, postId) {
+    await this.publisher.postSaved(JSON.stringify({ userId, postId }))
+  }
+
+  async unsavePost(userId, postId) {
+    await this.publisher.postUnsaved(JSON.stringify({ userId, postId }))
+  }
+
   async newCommentLike(commentId, postId, likerUUID) {
     const payload = JSON.stringify({ commentId, postId, likerUUID });
     await this.publisher.commentLikeAdded(payload);
