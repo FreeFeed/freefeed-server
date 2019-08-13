@@ -50,7 +50,7 @@ describe('PostsController', () => {
       ctx.authToken = 'token'
       funcTestHelper.createPost(ctx, body)((err) => {
         err.should.not.be.empty
-        err.status.should.eql(401)
+        err.status.should.eql(400)
 
         done()
       })

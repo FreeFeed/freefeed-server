@@ -285,7 +285,7 @@ describe('UsersController', () => {
         .query({ authToken: 'token' })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(401)
+          err.status.should.eql(400)
           done()
         })
     })
@@ -864,7 +864,7 @@ describe('UsersController', () => {
           })
           .end((err) => {
             err.should.not.be.empty
-            err.status.should.eql(401)
+            err.status.should.eql(400)
             done()
           })
       })
@@ -1230,7 +1230,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty
-          err.status.should.eql(401)
+          err.status.should.eql(400)
           done()
         })
     })

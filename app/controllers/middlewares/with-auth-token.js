@@ -5,7 +5,7 @@ import Raven from 'raven';
 
 import { load as configLoader } from '../../../config/config';
 import { dbAdapter, SessionTokenV0, AppTokenV1 } from '../../models';
-import { ForbiddenException } from '../../support/exceptions';
+import { ForbiddenException, BadRequestException } from '../../support/exceptions';
 import { alwaysAllowedRoutes, appTokensScopes } from '../../models/app-tokens-scopes';
 import { Address } from '../../support/ipv6';
 
@@ -18,12 +18,21 @@ const authDebug = createDebug('freefeed:authentication');
 export async function withAuthToken(ctx, next) {
   let jwtToken;
 
-  if (ctx.headers['authorization'] && ctx.headers['authorization'].startsWith('Bearer ')) {
+  if (ctx.headers['authorization']) {
+    if (!ctx.headers['authorization'].startsWith('Bearer ')) {
+      throw new BadRequestException(`invalid Authorization header, use 'Bearer' scheme`);
+    }
+
     jwtToken = ctx.headers['authorization'].replace(/^Bearer\s+/, '');
   } else {
     jwtToken = ctx.headers['x-authentication-token']
-     || ctx.request.body.authToken
-     || ctx.query.authToken;
+      || ctx.request.body.authToken
+      || ctx.query.authToken;
+  }
+
+  if (!jwtToken) {
+    await next();
+    return;
   }
 
   const authData = await tokenFromJWT(
@@ -34,11 +43,6 @@ export async function withAuthToken(ctx, next) {
       route:    `${ctx.method} ${ctx._matchedRoute}`,
     },
   );
-
-  if (!authData) {
-    await next();
-    return;
-  }
 
   ctx.state = { ...ctx.state, ...authData };
   const { authToken } = authData;
@@ -71,8 +75,8 @@ export async function withAuthToken(ctx, next) {
 
 /**
  * Parses JWT, checks token permissions and returns { authToken: AuthToken, user: User }
- * object or null. Null means that anonymous access is granted. This function
- * throws ForbiddenException if the request cannot be proceed with this token.
+ * object. This function throws ForbiddenException if the request cannot be proceed with
+ * this token or BadRequestException if token has unknown format.
  *
  * @param {string} jwtToken
  * @param {object} context
@@ -86,10 +90,6 @@ export async function tokenFromJWT(
     route = '',
   },
 ) {
-  if (!jwtToken) {
-    return null;
-  }
-
   authDebug('got JWT token', jwtToken);
 
   let decoded = null;
@@ -97,8 +97,8 @@ export async function tokenFromJWT(
   try {
     decoded = await jwt.verifyAsync(jwtToken, config.secret);
   } catch (e) {
-    authDebug(`invalid JWT, the user will be treated as anonymous: ${e.message}`);
-    return null;
+    authDebug(`invalid JWT: ${e.message}`);
+    throw new BadRequestException(`invalid token: bad JWT`);
   }
 
   // Session token v0 (legacy)
@@ -108,7 +108,7 @@ export async function tokenFromJWT(
 
     if (!user || !user.isActive) {
       authDebug(`user ${token.userId} is not exists or is not active`);
-      return null;
+      throw new ForbiddenException(`user ${token.userId} is not exists or is not active`);
     }
 
     authDebug(`authenticated as ${user.username} with ${token.constructor.name} token`);
@@ -167,5 +167,5 @@ export async function tokenFromJWT(
 
   // Unknow token
   authDebug(`unknown token type: ${decoded.type}`);
-  return null;
+  throw new BadRequestException(`unknown token type: ${decoded.type}`);
 }
