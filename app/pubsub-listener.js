@@ -26,7 +26,6 @@ import { dbAdapter, LikeSerializer, PubsubCommentSerializer, AppTokenV1 } from '
 import { eventNames } from './support/PubSubAdapter';
 import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
-import { ForbiddenException } from './support/exceptions';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 import { serializeSinglePost } from './serializers/v2/post';
 
@@ -51,8 +50,15 @@ export default class PubsubListener {
 
     // authentication
     this.io.use(async (socket, next) => {
-      socket.user = await getAuthUser(socket.handshake.query.token, socket);
-      debug(`[socket.id=${socket.id}] auth user`, socket.user.id);
+      try {
+        socket.user = await getAuthUser(socket.handshake.query.token, socket);
+        debug(`[socket.id=${socket.id}] auth user`, socket.user.id);
+      } catch (e) {
+        // Can not properly return error to client so just treat user as anonymous
+        socket.user = { id: null };
+        debug(`[socket.id=${socket.id}] auth error`, e.message);
+      }
+
       return next();
     });
 
@@ -662,31 +668,25 @@ const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, 
 });
 
 async function getAuthUser(jwtToken, socket) {
-  let authData = null;
-
-  try {
-    authData = await tokenFromJWT(
-      jwtToken,
-      {
-        headers:  socket.handshake.headers,
-        remoteIP: socket.handshake.address,
-        route:    `WS *`,
-      },
-    );
-  } catch (e) {
-    if (e instanceof ForbiddenException) {
-      // still allow anonymous access
-    } else {
-      throw e;
-    }
+  if (!jwtToken) {
+    return { id: null };
   }
 
-  if (authData && authData.authToken instanceof AppTokenV1) {
+  const authData = await tokenFromJWT(
+    jwtToken,
+    {
+      headers:  socket.handshake.headers,
+      remoteIP: socket.handshake.address,
+      route:    `WS *`,
+    },
+  );
+
+  if (authData.authToken instanceof AppTokenV1) {
     await authData.authToken.registerUsage({
       ip:        socket.handshake.address,
       userAgent: socket.handshake.headers['user-agent'] || '<undefined>',
     });
   }
 
-  return authData ? authData.user : { id: null };
+  return authData.user;
 }
