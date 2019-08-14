@@ -334,6 +334,20 @@ describe('Realtime #2', () => {
           }
         });
       });
+
+      it(`should deliver 'global:user:update' event when Luna updates username`, async () => {
+        const lunaUser = await dbAdapter.getUserById(luna.user.id);
+        const test = anonSession.receiveWhile(
+          'global:user:update',
+          lunaUser.updateUsername('jupiter')
+        );
+        await expect(test, 'when fulfilled', 'to satisfy', {
+          user: {
+            id:       luna.user.id,
+            username: 'jupiter',
+          }
+        });
+      });
     });
 
     describe(`Updates of group`, () => {
