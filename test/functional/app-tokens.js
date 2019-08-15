@@ -123,7 +123,7 @@ describe('App tokens controller', () => {
           null,
           { 'X-Authentication-Token': lunaToken.tokenString() },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 403 });
+        expect(resp, 'to satisfy', { __httpStatus: 401 });
       });
     });
 
