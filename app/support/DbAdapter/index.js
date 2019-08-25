@@ -54,6 +54,8 @@ class DbAdapterBase {
 
     promisifyAll(this.cache);
     promisifyAll(this.memoryCache);
+
+    this.searchQueriesTimeout = config.performance.searchQueriesTimeout;
   }
 }
 

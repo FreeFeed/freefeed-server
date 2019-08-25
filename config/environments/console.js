@@ -116,5 +116,10 @@ export function getConfig() {
     options: {}
   };
 
+  config.performance = {
+    // PostgreSQL 'statement_timeout' for search queries in milliseconds (0 => no timeout)
+    searchQueriesTimeout: 0,
+  };
+
   return config;
 }
