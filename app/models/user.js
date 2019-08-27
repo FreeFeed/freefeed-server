@@ -342,7 +342,7 @@ export function addModel(dbAdapter) {
       await Promise.all(promises);
     }
 
-    async create(skip_stoplist) {
+    async create(skip_stoplist, generatePassword = false) {
       this.createdAt = new Date().getTime();
       this.updatedAt = new Date().getTime();
       this.screenName = this.screenName || this.username;
@@ -350,6 +350,11 @@ export function addModel(dbAdapter) {
       await this.validateOnCreate(skip_stoplist);
 
       const timer = monitor.timer('users.create-time');
+
+      if (generatePassword) {
+        const bytes = await crypto.randomBytesAsync(24)
+        this.plaintextPassword = bytes.toString('base64')
+      }
 
       if (this.plaintextPassword !== null) {
         if (this.plaintextPassword.length === 0) {
@@ -1279,6 +1284,26 @@ export function addModel(dbAdapter) {
 
     getUnreadNotificationsNumber() {
       return dbAdapter.getUnreadEventsNumber(this.id);
+    }
+
+    async addOrUpdateAuthMethod(providerName, profile) {
+      try {
+        await dbAdapter.addUserAuthMethod(providerName, this.intId, profile);
+      } catch (error) {
+        await dbAdapter.updateUserAuthMethod(providerName, profile.id, { profile });
+      }
+    }
+
+    async removeAuthMethod(providerName, providerId) {
+      await dbAdapter.removeUserAuthMethod(providerName, providerId, this.intId);
+    }
+
+    getAuthMethod(query = {}) {
+      return dbAdapter.getUserAuthMethod({ ...query, userId: this.intId });
+    }
+
+    getAuthMethods(query = {}) {
+      return dbAdapter.getUserAuthMethods({ ...query, userId: this.intId });
     }
   };
 }

@@ -157,6 +157,26 @@ const usersTrait = (superClass) => class extends superClass {
     return users
   }
 
+  async getUserByProviderId(provider, id) {
+    const attrs = await this.database('users')
+      .select('users.*')
+      .join('user_auth_methods', 'users.id', '=', 'user_auth_methods.user_id')
+      .where('user_auth_methods.provider_id', id)
+      .where('user_auth_methods.provider_name', provider)
+      .first();
+    return initUserObject(attrs);
+  }
+
+  async getUsersByProviderIds(provider, ids) {
+    const rows = await this.database('users')
+      .select('users.*')
+      .join('user_auth_methods', 'users.id', '=', 'user_auth_methods.user_id')
+      .whereIn('user_auth_methods.provider_id', ids)
+      .where('user_auth_methods.provider_name', provider);
+    const users = rows.map((attrs) => initUserObject(attrs));
+    return users;
+  }
+
   async getUserByUsername(username) {
     const feed = await this.getFeedOwnerByUsername(username)
 

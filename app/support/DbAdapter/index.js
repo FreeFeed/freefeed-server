@@ -30,6 +30,7 @@ import allGroupsTrait from './all-groups';
 import summaryTrait from './summary';
 import invitationsTrait from './invitations';
 import appTokensTrait from './app-tokens';
+import userAuthMethodsTrait from './user-auth-methods';
 
 
 promisifyAll(redis.RedisClient.prototype);
@@ -84,4 +85,5 @@ export const DbAdapter = _.flow([
   summaryTrait,
   invitationsTrait,
   appTokensTrait,
+  userAuthMethodsTrait,
 ])(DbAdapterBase);

@@ -27,7 +27,8 @@ export async function withAuthToken(ctx, next) {
   } else {
     jwtToken = ctx.headers['x-authentication-token']
       || ctx.request.body.authToken
-      || ctx.query.authToken;
+      || ctx.query.authToken
+      || ctx.cookies.get(`${config.authTokenPrefix}authToken`);
   }
 
   if (!jwtToken) {

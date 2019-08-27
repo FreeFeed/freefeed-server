@@ -30,6 +30,7 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
+import OauthRoute from './routes/api/v2/OauthRoute';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
 
@@ -75,6 +76,12 @@ export default function (app) {
   CommentLikesRoute(router);
   InvitationsRoute(router);
   AppTokensRoute(router);
+  OauthRoute(router);
+
+  router.use('/v[0-9]+/*', (ctx) => {
+    ctx.status = 404;
+    ctx.body = { err: `API method not found: '${ctx.req.path}'` };
+  });
 
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 

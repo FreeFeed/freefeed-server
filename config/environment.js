@@ -119,5 +119,7 @@ exports.init = async function (app) {
 
   app.use(responseTime());
 
+  app.keys = [config.secret];
+
   return app;
 };

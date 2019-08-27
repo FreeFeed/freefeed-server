@@ -38,6 +38,9 @@ export function getConfig() {
     // sentryDsn: '',
 
     frontendPreferencesLimit: 65536,
+
+    // needed for retrieving authToken from cookies (for OAuth callbacks)
+    authTokenPrefix: 'freefeed_',
   };
 
   config.host = `http://localhost:${config.port}`;
@@ -127,6 +130,15 @@ export function getConfig() {
   config.performance = {
     // PostgreSQL 'statement_timeout' for search queries in milliseconds (0 => no timeout)
     searchQueriesTimeout: 0,
+  };
+
+  config.oauth = {
+    facebookClientId:     '',
+    facebookClientSecret: '',
+    googleClientId:       '',
+    googleClientSecret:   '',
+    githubClientId:       '',
+    githubClientSecret:   '',
   };
 
   config.postgres = postgresConfig;
