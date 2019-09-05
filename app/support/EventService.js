@@ -2,7 +2,7 @@ import _ from 'lodash'
 
 import { dbAdapter, PubSub as pubSub } from '../models'
 
-import { extractMentions, extractMentionsWithIndices } from './mentions'
+import { extractMentions, extractMentionsWithOffsets } from './mentions'
 import { EVENT_TYPES } from './EventTypes';
 
 
@@ -486,13 +486,13 @@ export class EventService {
 }
 
 async function getMentionEvents(text, authorId, eventType, firstMentionEventType = eventType) {
-  const mentions = _.uniqBy(extractMentionsWithIndices(text), 'username');
+  const mentions = _.uniqBy(extractMentionsWithOffsets(text), 'username');
   let mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentions.map((u) => u.username));
   // Only users (not groups) and not an event author
   mentionedUsers = mentionedUsers.filter((u) => u.isUser() && u.id !== authorId);
   return mentions
-    .map(({ username, indices: [start] }) => ({
-      event: start === 0 ? firstMentionEventType : eventType,
+    .map(({ username, offset }) => ({
+      event: offset === 0 ? firstMentionEventType : eventType,
       user:  mentionedUsers.find((u) => u.username === username),
     }))
     .filter(({ user }) => !!user);

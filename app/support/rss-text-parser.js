@@ -3,12 +3,6 @@ import { escape as urlEscape } from 'querystring';
 import { escape as htmlEscape } from 'lodash';
 import { sentences } from 'sbd';
 import {
-  withText,
-  combine,
-  hashTags,
-  emails,
-  mentions,
-  links,
   HashTag,
   Email,
   Mention,
@@ -16,6 +10,8 @@ import {
 } from 'social-text-tokenizer';
 
 import { load as configLoader } from '../../config/config';
+
+import { tokenize } from './tokenize-text';
 
 
 const config = configLoader();
@@ -78,7 +74,6 @@ export function textToHTML(text) {
   return paragraphs.map((ls) => `<p>${ls.join('<br />\n')}</p>`).join('\n');
 }
 
-const tokenize = withText(combine(hashTags, emails, mentions, links));
 
 function linkify(text) {
   return tokenize(text).map((token) => {
@@ -91,7 +86,7 @@ function linkify(text) {
     }
 
     if (token instanceof Mention) {
-      return `<a href="${config.host}/${urlEscape(token.text.substr(1))}">${htmlEscape(token.text)}</a>`
+      return `<a href="${config.host}/${urlEscape(token.text.substr(1).toLowerCase())}">${htmlEscape(token.text)}</a>`
     }
 
     if (token instanceof Link) {
