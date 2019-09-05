@@ -83,7 +83,7 @@ describe('CommentsController', () => {
       context.authToken = 'token'
       funcTestHelper.createCommentCtx(context, body)((err) => {
         err.should.not.be.empty
-        err.status.should.eql(400)
+        err.status.should.eql(401)
 
         done()
       })

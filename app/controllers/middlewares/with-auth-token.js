@@ -5,7 +5,7 @@ import Raven from 'raven';
 
 import { load as configLoader } from '../../../config/config';
 import { dbAdapter, SessionTokenV0, AppTokenV1 } from '../../models';
-import { ForbiddenException, BadRequestException } from '../../support/exceptions';
+import { NotAuthorizedException } from '../../support/exceptions';
 import { alwaysAllowedRoutes, appTokensScopes } from '../../models/app-tokens-scopes';
 import { Address } from '../../support/ipv6';
 
@@ -20,7 +20,7 @@ export async function withAuthToken(ctx, next) {
 
   if (ctx.headers['authorization']) {
     if (!ctx.headers['authorization'].startsWith('Bearer ')) {
-      throw new BadRequestException(`invalid Authorization header, use 'Bearer' scheme`);
+      throw new NotAuthorizedException(`invalid Authorization header, use 'Bearer' scheme`);
     }
 
     jwtToken = ctx.headers['authorization'].replace(/^Bearer\s+/, '');
@@ -76,7 +76,7 @@ export async function withAuthToken(ctx, next) {
 /**
  * Parses JWT, checks token permissions and returns { authToken: AuthToken, user: User }
  * object. This function throws ForbiddenException if the request cannot be proceed with
- * this token or BadRequestException if token has unknown format.
+ * this token or token has an invalid format/unknown type.
  *
  * @param {string} jwtToken
  * @param {object} context
@@ -98,7 +98,7 @@ export async function tokenFromJWT(
     decoded = await jwt.verifyAsync(jwtToken, config.secret);
   } catch (e) {
     authDebug(`invalid JWT: ${e.message}`);
-    throw new BadRequestException(`invalid token: bad JWT`);
+    throw new NotAuthorizedException(`invalid token: bad JWT`);
   }
 
   // Session token v0 (legacy)
@@ -108,7 +108,7 @@ export async function tokenFromJWT(
 
     if (!user || !user.isActive) {
       authDebug(`user ${token.userId} is not exists or is not active`);
-      throw new ForbiddenException(`user ${token.userId} is not exists or is not active`);
+      throw new NotAuthorizedException(`user ${token.userId} is not exists or is not active`);
     }
 
     authDebug(`authenticated as ${user.username} with ${token.constructor.name} token`);
@@ -121,7 +121,7 @@ export async function tokenFromJWT(
 
     if (!token) {
       authDebug(`app token ${decoded.id} / ${decoded.issue} is not exists`);
-      throw new ForbiddenException(`token is invalid or outdated`);
+      throw new NotAuthorizedException(`token is invalid or outdated`);
     }
 
     // Restrictions (IPs and origins)
@@ -133,13 +133,13 @@ export async function tokenFromJWT(
 
         if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
           authDebug(`app token is not allowed from IP ${remoteIP}`)
-          throw new ForbiddenException(`token is not allowed from this IP`);
+          throw new NotAuthorizedException(`token is not allowed from this IP`);
         }
       }
 
       if (origins.length > 0 && !origins.includes(headers.origin)) {
         authDebug(`app token is not allowed from origin ${headers.origin}`)
-        throw new ForbiddenException(`token is not allowed from this origin`);
+        throw new NotAuthorizedException(`token is not allowed from this origin`);
       }
     }
 
@@ -150,7 +150,7 @@ export async function tokenFromJWT(
 
       if (!routeAllowed) {
         authDebug(`app token has no access to '${route}'`);
-        throw new ForbiddenException(`token has no access to this API method`);
+        throw new NotAuthorizedException(`token has no access to this API method`);
       }
     }
 
@@ -158,7 +158,7 @@ export async function tokenFromJWT(
 
     if (!user || !user.isActive) {
       authDebug(`user ${token.userId} is not exists or is not active`);
-      throw new ForbiddenException(`user is not exists`);
+      throw new NotAuthorizedException(`user is not exists`);
     }
 
     authDebug(`authenticated as ${user.username} with ${token.constructor.name} token`);
@@ -167,5 +167,5 @@ export async function tokenFromJWT(
 
   // Unknow token
   authDebug(`unknown token type: ${decoded.type}`);
-  throw new BadRequestException(`unknown token type: ${decoded.type}`);
+  throw new NotAuthorizedException(`unknown token type: ${decoded.type}`);
 }
