@@ -20,6 +20,7 @@ export const appTokensScopes = [
       'GET /v2/timelines/home',
       'GET /v2/timelines/filter/discussions',
       'GET /v2/timelines/filter/directs',
+      'GET /v2/timelines/filter/saves',
       'GET /v2/users/getUnreadDirectsNumber',
       'GET /v2/timelines/:username',
       'GET /v2/timelines/:username/likes',
@@ -85,7 +86,7 @@ export const appTokensScopes = [
   },
   {
     name:   'manage-my-feeds',
-    title:  'Manage my subscriptions, hides, and bans',
+    title:  'Manage my subscriptions, hides, bans, and saves',
     routes: [
       'POST /v1/users/:userId/subscribe',
       'POST /v1/users/:userId/unsubscribe',
@@ -93,6 +94,8 @@ export const appTokensScopes = [
       'POST /v1/posts/:postId/unhide',
       'POST /v1/users/:userId/ban',
       'POST /v1/users/:userId/unban',
+      'POST /v1/posts/:postId/save',
+      'DELETE /v1/posts/:postId/save',
       'POST /v1/users/:userId/sendRequest',
       'POST /v2/requests/:followedUserName/revoke',
     ]

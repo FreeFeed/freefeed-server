@@ -42,10 +42,9 @@ describe('tokenFromJWT', () => {
     route:    'GET /v2/users/whoami',
   });
 
-  describe('anonymous access', () => {
+  describe('Bad tokens', () => {
     it('should give anonymous access without token', async () => {
-      const result = await tokenFromJWT('', defaultContext());
-      expect(result, 'to be null');
+      await expect(tokenFromJWT('bad token', defaultContext()), 'to be rejected with', { status: 401 });
     });
   });
 
@@ -55,12 +54,12 @@ describe('tokenFromJWT', () => {
       expect(result, 'to satisfy', { authToken: sessToken, user: { id: luna.id } });
     });
 
-    it('should give anonymous access with incorrect token', async () => {
+    it('should not give access with incorrect token', async () => {
       const { secret } = config;
       const fakeTokenString = jwt.sign({ userId: uuidv4() }, secret);
 
-      const result = await tokenFromJWT(fakeTokenString, defaultContext());
-      expect(result, 'to be null');
+      const promise = tokenFromJWT(fakeTokenString, defaultContext());
+      await expect(promise, 'to be rejected with', { status: 401 });
     });
   });
 
@@ -74,7 +73,7 @@ describe('tokenFromJWT', () => {
         userId: appToken.userId,
       }, secret);
 
-      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', { status: 403 });
+      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', { status: 401 });
     });
 
     it('should not give access with invalid token issue number', async () => {
@@ -86,28 +85,28 @@ describe('tokenFromJWT', () => {
         userId: appToken.userId,
       }, secret);
 
-      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', { status: 403 });
+      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', { status: 401 });
     });
 
     it('should not give access from invalid IP address', async () => {
       const ctx = defaultContext();
       ctx.remoteIP = '127.0.1.1';
 
-      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 403 });
+      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 401 });
     });
 
     it('should not give access from invalid origin', async () => {
       const ctx = defaultContext();
       ctx.headers['origin'] = 'https://evil.com';
 
-      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 403 });
+      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 401 });
     });
 
     it('should not give access to the invalid route', async () => {
       const ctx = defaultContext();
       ctx.route = 'GET /v1/invalid';
 
-      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 403 });
+      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 401 });
     });
 
     it('should give access with correct context', async () => {
@@ -159,6 +158,11 @@ describe('withAuthToken middleware', () => {
       const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `Bearer ${authToken}` }, state: {} };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
+    });
+
+    it(`should not accept invalid in 'authorization' header`, async () => {
+      const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `BeaRER ${authToken}` }, state: {} };
+      await expect(withAuthToken(ctx, () => null), 'to be rejected with', { status: 401 });
     });
   });
 

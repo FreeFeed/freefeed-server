@@ -181,12 +181,20 @@ export default class UsersController {
     async (ctx) => {
       const { targetUser, user: viewer } = ctx.state;
 
-      const serUsers = await serializeUsersByIds([targetUser.id], true, viewer && viewer.id);
+      const [
+        serUsers,
+        acceptsDirects,
+        pastUsernames,
+      ] = await Promise.all([
+        serializeUsersByIds([targetUser.id], true, viewer && viewer.id),
+        targetUser.acceptsDirectsFrom(viewer),
+        targetUser.getPastUsernames(),
+      ]);
+
       const users = serUsers.find((u) => u.id === targetUser.id);
       const admins = serUsers.filter((u) => u.type === 'user');
-      const acceptsDirects = await targetUser.acceptsDirectsFrom(viewer);
 
-      ctx.body = { users, admins, acceptsDirects };
+      ctx.body = { users, admins, acceptsDirects, pastUsernames };
     },
   ]);
 

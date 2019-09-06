@@ -517,6 +517,16 @@ export function addModel(dbAdapter) {
       return this;
     }
 
+    async updateUsername(newUsername) {
+      await dbAdapter.updateUsername(this.id, newUsername);
+      await pubSub.globalUserUpdate(this.id);
+      return this;
+    }
+
+    async getPastUsernames() {
+      return await dbAdapter.getPastUsernames(this.id);
+    }
+
     async updatePassword(password, passwordConfirmation) {
       if (password.length === 0) {
         throw new Error('Password cannot be blank');

@@ -2,7 +2,7 @@
 import _ from 'lodash';
 import expect from 'unexpected';
 
-import { extractMentions, extractMentionsWithIndices } from '../../../app/support/mentions';
+import { extractMentions, extractMentionsWithOffsets } from '../../../app/support/mentions';
 
 
 describe('Mentions parser', () => {
@@ -10,14 +10,14 @@ describe('Mentions parser', () => {
     {
       text:   '@Seven @for the @Dwarf-lords @in @ their halls of@stone',
       result: [
-        { username: 'seven', indices: [0, 6] },
-        { username: 'for', indices: [7, 11] },
-        { username: 'dwarf-lords', indices: [16, 28] }
+        { username: 'seven', offset: 0 },
+        { username: 'for', offset: 7 },
+        { username: 'dwarf-lords', offset: 16 }
       ]
     },
     {
       text:   '@1234567890123456789012345',
-      result: [{ username: '1234567890123456789012345', indices: [0, 26] }]
+      result: [{ username: '1234567890123456789012345', offset: 0 }]
     },
     {
       text:   '@12345678901234567890123456',
@@ -27,7 +27,7 @@ describe('Mentions parser', () => {
 
   cases.forEach(({ text, result }) => {
     it(`should parse "${text}"`, () => {
-      expect(extractMentionsWithIndices(text), 'to equal', result);
+      expect(extractMentionsWithOffsets(text), 'to equal', result);
       expect(extractMentions(text), 'to equal', _.map(result, 'username'));
     });
   });

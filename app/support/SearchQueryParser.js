@@ -1,7 +1,8 @@
 /* eslint babel/semi: "error" */
 import { flow } from 'lodash';
+import { HashTag } from 'social-text-tokenizer';
 
-import { extractHashtagsWithIndices } from './hashtags';
+import { tokenize } from './tokenize-text';
 
 
 const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
@@ -88,20 +89,20 @@ export class SearchQueryParser {
   }
 
   static extractHashtags(queryObject) {
-    const hashtags = extractHashtagsWithIndices(queryObject.query.toLowerCase());
-    const indices = hashtags.map((h) => h.indices);
-    let { query } = queryObject;
+    const tokens = tokenize(queryObject.query.toLowerCase());
+    const hashtags = [];
+    const texts = [];
 
-    const hashtagSubstrings = indices.map(([start, end]) => {
-      return query.substring(start, end);
-    });
-
-    for (const s of hashtagSubstrings) {
-      query = query.replace(s, '');
+    for (const token of tokens) {
+      if (token instanceof HashTag) {
+        hashtags.push(token.text.substr(1));
+      } else {
+        texts.push(token.text);
+      }
     }
 
-    queryObject.query = query;
-    queryObject.hashtags = hashtags.map((h) => h.hashtag);
+    queryObject.query = texts.join('');
+    queryObject.hashtags = hashtags;
   }
 
   static removeQuotes(query) {

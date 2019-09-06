@@ -123,7 +123,7 @@ describe('App tokens controller', () => {
           null,
           { 'X-Authentication-Token': lunaToken.tokenString() },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 403 });
+        expect(resp, 'to satisfy', { __httpStatus: 401 });
       });
     });
 
@@ -354,13 +354,9 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould not deliver post event to session with incorrect app token', async () => {
-    await session.sendAsync('auth', { authToken: token2.tokenString() });
-    const test = session.notReceiveWhile(
-      'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
-    );
-    await expect(test, 'to be fulfilled');
+  it('sould not allow to authorize with incorrect app token', async () => {
+    const promise = session.sendAsync('auth', { authToken: token2.tokenString() });
+    await expect(promise, 'to be rejected');
   });
 });
 

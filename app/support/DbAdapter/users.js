@@ -29,6 +29,72 @@ const usersTrait = (superClass) => class extends superClass {
     await this.cacheFlushUser(userId)
   }
 
+  /**
+   * Update username of user or group
+   *
+   * @param {string} userId
+   * @param {string} newUsername
+   * @param {string} graceInterval in PostgreSQL interval syntax
+   */
+  async updateUsername(userId, newUsername, graceInterval = '1 hour') {
+    await this.database.transaction(async (trx) => {
+      // Lock users table to prevent any updates
+      await trx.raw('lock table users in share row exclusive mode');
+
+      const { rows: [{ username: currentUsername }] } = await trx.raw(
+        `select username from users where uid = :userId`,
+        { userId }
+      );
+
+      if (currentUsername === newUsername) {
+        return;
+      }
+
+      const { rows: [{ exists }] } = await trx.raw(`
+        select exists(select 1 from users where username = :newUsername)
+          or exists(select 1 from user_past_names where user_id <> :userId and username = :newUsername)
+          as exists
+        `, { userId, newUsername });
+
+      if (exists) {
+        throw new Error(`Another user has username '${newUsername}' or had it in the past`);
+      }
+
+      /**
+       * If the last user_past_names entry's valid_till is younger than graceInterval
+       * then _do not record the currentUsername_ and just extend the last entry to the current time.
+       * Otherwise insert currentUsername to user_past_names.
+       */
+      const { rows: [lastEntry] } =  await trx.raw(
+        `select id, username, (valid_till > now() - :graceInterval::interval) as new
+          from user_past_names where user_id = :userId order by valid_till desc limit 1`, { userId, graceInterval });
+
+      if (lastEntry && lastEntry.new) {
+        // It is possible that the newUsername is the same as in lastEntry
+        // (user just quickly rolled rename back). In this case remove last entry.
+        if (lastEntry.username === newUsername) {
+          await trx.raw(`delete from user_past_names where id = :id`, { id: lastEntry.id });
+        } else {
+          await trx.raw(`update user_past_names set valid_till = default where id = :id`, { id: lastEntry.id });
+        }
+      } else {
+        await trx.raw(`insert into user_past_names (user_id, username) values (:userId, :currentUsername)`,
+          { userId, currentUsername });
+      }
+
+      await trx.raw(`update users set username = :newUsername where uid = :userId`, { userId, newUsername });
+    });
+    await this.cacheFlushUser(userId)
+  }
+
+  async getPastUsernames(userId) {
+    const { rows } = await this.database.raw(
+      `select username, valid_till from user_past_names where user_id = :userId order by valid_till desc`,
+      { userId }
+    );
+    return rows.map((r) => ({ username: r.username, validTill: r.valid_till }));
+  }
+
   setUpdatedAtInGroupsByIds = async (groupIds, time = null) => {
     if (groupIds.length === 0) {
       return;
@@ -174,7 +240,21 @@ const usersTrait = (superClass) => class extends superClass {
   }
 
   async getFeedOwnerByUsername(username) {
-    const attrs = await this.database('users').first().where('username', username.toLowerCase())
+    let attrs = await this.database('users').first().where('username', username.toLowerCase())
+
+    if (!attrs) {
+      const { rows } = await this.database.raw(
+        `select u.*
+          from users u join user_past_names p on u.uid = p.user_id 
+          where p.username = lower(:username) limit 1`,
+        { username }
+      );
+
+      if (rows.length > 0) {
+        [attrs] = rows;
+      }
+    }
+
     return initUserObject(attrs);
   }
 
@@ -185,7 +265,21 @@ const usersTrait = (superClass) => class extends superClass {
 
     usernames = usernames.map((u) => u.toLowerCase());
     const users = await this.database('users').whereIn('username', usernames);
-    return users.map(initUserObject);
+
+    const foundUsernames = users.map((u) => u.username);
+    const notFoundUsernames = _.difference(usernames, foundUsernames);
+
+    if (notFoundUsernames.length > 0) {
+      const { rows } = await this.database.raw(
+        `select distinct u.*
+          from users u join user_past_names p on u.uid = p.user_id 
+          where p.username = any(:usernames)`,
+        { usernames: notFoundUsernames }
+      );
+      users.push(...rows);
+    }
+
+    return _.uniqBy(users, 'id').map(initUserObject);
   }
 
   async getGroupById(id) {
