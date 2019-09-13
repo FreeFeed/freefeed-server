@@ -1,7 +1,6 @@
 import { User, PubSub as pubSub } from '../models';
 import { ForbiddenException } from '../support/exceptions';
 
-
 export function addModel(dbAdapter) {
   return class Group extends User {
     // Groups only have 'Posts' feed
@@ -40,9 +39,7 @@ export function addModel(dbAdapter) {
 
       if (!this.isValidScreenName()) {
         throw new Error(
-          `"${
-            this.screenName
-          }" is not a valid display name. Names must be between 3 and 25 characters long.`
+          `"${this.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
         );
       }
 
@@ -59,15 +56,15 @@ export function addModel(dbAdapter) {
       await this.validateOnCreate(skip_stoplist);
 
       const payload = {
-        username:     this.username,
-        screenName:   this.screenName,
-        description:  this.description,
-        type:         this.type,
-        createdAt:    this.createdAt.toString(),
-        updatedAt:    this.updatedAt.toString(),
-        isPrivate:    this.isPrivate,
-        isProtected:  this.isProtected,
-        isRestricted: this.isRestricted
+        username: this.username,
+        screenName: this.screenName,
+        description: this.description,
+        type: this.type,
+        createdAt: this.createdAt.toString(),
+        updatedAt: this.updatedAt.toString(),
+        isPrivate: this.isPrivate,
+        isProtected: this.isProtected,
+        isRestricted: this.isRestricted,
       };
       [this.id, this.intId] = await dbAdapter.createUser(payload);
 
@@ -84,15 +81,10 @@ export function addModel(dbAdapter) {
     async update(params) {
       let hasChanges = false;
 
-      if (
-        params.hasOwnProperty('screenName') &&
-        this.screenName != params.screenName
-      ) {
+      if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
         if (!this.screenNameIsValid(params.screenName)) {
           throw new Error(
-            `"${
-              params.screenName
-            }" is not a valid display name. Names must be between 3 and 25 characters long.`
+            `"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
           );
         }
 
@@ -100,10 +92,7 @@ export function addModel(dbAdapter) {
         hasChanges = true;
       }
 
-      if (
-        params.hasOwnProperty('description') &&
-        params.description != this.description
-      ) {
+      if (params.hasOwnProperty('description') && params.description != this.description) {
         if (!User.descriptionIsValid(params.description)) {
           throw new Error('Description is too long');
         }
@@ -112,10 +101,7 @@ export function addModel(dbAdapter) {
         hasChanges = true;
       }
 
-      if (
-        params.hasOwnProperty('isPrivate') &&
-        params.isPrivate != this.isPrivate
-      ) {
+      if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
         this.isPrivate = params.isPrivate;
         hasChanges = true;
       }
@@ -129,18 +115,12 @@ export function addModel(dbAdapter) {
         params.isProtected = params.isPrivate;
       }
 
-      if (
-        params.hasOwnProperty('isProtected') &&
-        params.isProtected != this.isProtected
-      ) {
+      if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
         this.isProtected = params.isProtected;
         hasChanges = true;
       }
 
-      if (
-        params.hasOwnProperty('isRestricted') &&
-        params.isRestricted != this.isRestricted
-      ) {
+      if (params.hasOwnProperty('isRestricted') && params.isRestricted != this.isRestricted) {
         this.isRestricted = params.isRestricted;
         hasChanges = true;
       }
@@ -149,12 +129,12 @@ export function addModel(dbAdapter) {
         this.updatedAt = new Date().getTime();
 
         const payload = {
-          screenName:   this.screenName,
-          description:  this.description,
-          updatedAt:    this.updatedAt.toString(),
-          isPrivate:    this.isPrivate,
-          isProtected:  this.isProtected,
-          isRestricted: this.isRestricted
+          screenName: this.screenName,
+          description: this.description,
+          updatedAt: this.updatedAt.toString(),
+          isPrivate: this.isPrivate,
+          isProtected: this.isProtected,
+          isRestricted: this.isRestricted,
         };
 
         await dbAdapter.updateUser(this.id, payload);
@@ -193,9 +173,7 @@ export function addModel(dbAdapter) {
     }
 
     async getAdministratorIds() {
-      this.administratorIds = await dbAdapter.getGroupAdministratorsIds(
-        this.id
-      );
+      this.administratorIds = await dbAdapter.getGroupAdministratorsIds(this.id);
       return this.administratorIds;
     }
 
@@ -214,9 +192,7 @@ export function addModel(dbAdapter) {
       const ids = await timeline.getSubscriberIds();
 
       if (!ids.includes(postingUser.id)) {
-        throw new ForbiddenException(
-          "You can't post to a group to which you aren't subscribed"
-        );
+        throw new ForbiddenException("You can't post to a group to which you aren't subscribed");
       }
 
       if (this.isRestricted === '1') {
@@ -247,20 +223,14 @@ export function addModel(dbAdapter) {
      */
     async getFeedsToPost(postingUser) {
       const timeline = await dbAdapter.getUserNamedFeed(this.id, 'Posts');
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(
-        postingUser.id,
-        timeline.id
-      );
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
 
       if (!isSubscribed) {
         return [];
       }
 
       if (this.isRestricted === '1') {
-        const isAdmin = await dbAdapter.isUserAdminOfGroup(
-          postingUser.id,
-          this.id
-        );
+        const isAdmin = await dbAdapter.isUserAdminOfGroup(postingUser.id, this.id);
 
         if (!isAdmin) {
           return [];

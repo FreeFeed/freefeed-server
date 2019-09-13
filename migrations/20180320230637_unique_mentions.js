@@ -10,22 +10,22 @@ export async function up(knex) {
   await knex.raw(
     `create unique index events_unique_mention_in_comment_idx
       on events (comment_id, user_id)
-      where event_type in ('mention_in_comment', 'mention_comment_to');`
+      where event_type in ('mention_in_comment', 'mention_comment_to');`,
   );
   await knex.raw(
     `create unique index events_unique_direct_comment_idx
       on events (comment_id, user_id)
-      where event_type = 'direct_comment';`
+      where event_type = 'direct_comment';`,
   );
   await knex.raw(
     `create unique index events_unique_mention_in_post_idx
       on events (post_id, user_id)
-      where event_type = 'mention_in_post';`
+      where event_type = 'mention_in_post';`,
   );
   await knex.raw(
     `create unique index events_unique_direct_idx
       on events (post_id, user_id)
-      where event_type = 'direct';`
+      where event_type = 'direct';`,
   );
 }
 

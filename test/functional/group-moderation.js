@@ -2,7 +2,7 @@
 /* global $database, $pg_database */
 import expect from 'unexpected';
 
-import cleanDB from '../dbCleaner'
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
@@ -24,13 +24,18 @@ import {
   fetchPost,
   fetchTimeline,
   goPrivate,
-  mutualSubscriptions
+  mutualSubscriptions,
 } from './functional_test_helper';
 import Session from './realtime-session';
 
-
-const postModerationEvents = [EVENT_TYPES.POST_MODERATED, EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN];
-const commentModerationEvents = [EVENT_TYPES.COMMENT_MODERATED, EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN];
+const postModerationEvents = [
+  EVENT_TYPES.POST_MODERATED,
+  EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+];
+const commentModerationEvents = [
+  EVENT_TYPES.COMMENT_MODERATED,
+  EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN,
+];
 
 describe('Group Moderation', () => {
   let app;
@@ -141,11 +146,12 @@ describe('Group Moderation', () => {
             promoteToAdmin({ username: 'celestials' }, mars, jupiter),
             promoteToAdmin({ username: 'gods' }, mars, jupiter),
           ]);
-          post = await createAndReturnPostToFeed([{ username: 'celestials' }, { username: 'gods' }], luna, 'My post');
-          [
-            marsCommentId,
-            lunaCommentId,
-          ] = await Promise.all([
+          post = await createAndReturnPostToFeed(
+            [{ username: 'celestials' }, { username: 'gods' }],
+            luna,
+            'My post',
+          );
+          [marsCommentId, lunaCommentId] = await Promise.all([
             createCommentAndReturnId(mars, post.id),
             createCommentAndReturnId(luna, post.id),
           ]);
@@ -168,10 +174,10 @@ describe('Group Moderation', () => {
           const jupiterEvents = await getFilteredEvents(jupiter, commentModerationEvents);
           expect(marsEvents, 'to satisfy', [
             {
-              event_type:      EVENT_TYPES.COMMENT_MODERATED,
+              event_type: EVENT_TYPES.COMMENT_MODERATED,
               created_user_id: luna.user.id,
-              post_id:         post.id,
-            }
+              post_id: post.id,
+            },
           ]);
           expect(lunaEvents, 'to be empty');
           expect(jupiterEvents, 'to be empty');
@@ -184,11 +190,11 @@ describe('Group Moderation', () => {
           const jupiterEvents = await getFilteredEvents(jupiter, commentModerationEvents);
           expect(marsEvents, 'to satisfy', [
             {
-              event_type:      EVENT_TYPES.COMMENT_MODERATED,
+              event_type: EVENT_TYPES.COMMENT_MODERATED,
               created_user_id: jupiter.user.id,
-              post_id:         post.id,
-              group_id:        expect.it('to be one of', [gods.group.id, celestials.group.id]),
-            }
+              post_id: post.id,
+              group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            },
           ]);
           expect(lunaEvents, 'to be empty');
           expect(jupiterEvents, 'to be empty');
@@ -202,20 +208,20 @@ describe('Group Moderation', () => {
           expect(marsEvents, 'to be empty');
           expect(lunaEvents, 'to satisfy', [
             {
-              event_type:      EVENT_TYPES.COMMENT_MODERATED,
+              event_type: EVENT_TYPES.COMMENT_MODERATED,
               created_user_id: mars.user.id,
-              post_id:         post.id,
-              group_id:        expect.it('to be one of', [gods.group.id, celestials.group.id]),
-            }
+              post_id: post.id,
+              group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            },
           ]);
           expect(jupiterEvents, 'to satisfy', [
             {
-              event_type:       EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN,
-              created_user_id:  mars.user.id,
+              event_type: EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN,
+              created_user_id: mars.user.id,
               affected_user_id: luna.user.id,
-              post_id:          post.id,
-              group_id:         expect.it('to be one of', [gods.group.id, celestials.group.id]),
-            }
+              post_id: post.id,
+              group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
+            },
           ]);
         });
       });
@@ -269,19 +275,19 @@ describe('Group Moderation', () => {
           const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
           expect(lunaEvents, 'to satisfy', [
             {
-              event_type:      EVENT_TYPES.POST_MODERATED,
+              event_type: EVENT_TYPES.POST_MODERATED,
               created_user_id: mars.user.id,
-              group_id:        celestials.group.id,
-            }
+              group_id: celestials.group.id,
+            },
           ]);
           expect(marsEvents, 'to be empty');
           expect(jupiterEvents, 'to satisfy', [
             {
-              event_type:       EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
-              created_user_id:  mars.user.id,
+              event_type: EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+              created_user_id: mars.user.id,
               affected_user_id: luna.user.id,
-              group_id:         celestials.group.id,
-            }
+              group_id: celestials.group.id,
+            },
           ]);
         });
       });
@@ -346,21 +352,21 @@ describe('Group Moderation', () => {
               const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
               expect(lunaEvents, 'to satisfy', [
                 {
-                  event_type:      EVENT_TYPES.POST_MODERATED,
+                  event_type: EVENT_TYPES.POST_MODERATED,
                   created_user_id: mars.user.id,
-                  group_id:        expect.it('to be one of', [gods.group.id, celestials.group.id]),
-                  post_id:         post.id,
-                }
+                  group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
+                  post_id: post.id,
+                },
               ]);
               expect(marsEvents, 'to be empty');
               expect(jupiterEvents, 'to satisfy', [
                 {
-                  event_type:       EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
-                  created_user_id:  mars.user.id,
+                  event_type: EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+                  created_user_id: mars.user.id,
                   affected_user_id: luna.user.id,
-                  group_id:         gods.group.id,
-                  post_id:          post.id,
-                }
+                  group_id: gods.group.id,
+                  post_id: post.id,
+                },
               ]);
             });
           });
@@ -408,20 +414,20 @@ describe('Group Moderation', () => {
               const jupiterEvents = await getFilteredEvents(jupiter, postModerationEvents);
               expect(lunaEvents, 'to satisfy', [
                 {
-                  event_type:      EVENT_TYPES.POST_MODERATED,
+                  event_type: EVENT_TYPES.POST_MODERATED,
                   created_user_id: jupiter.user.id,
-                  group_id:        gods.group.id,
-                  post_id:         post.id,
-                }
+                  group_id: gods.group.id,
+                  post_id: post.id,
+                },
               ]);
               expect(marsEvents, 'to satisfy', [
                 {
-                  event_type:       EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
-                  created_user_id:  jupiter.user.id,
+                  event_type: EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
+                  created_user_id: jupiter.user.id,
                   affected_user_id: luna.user.id,
-                  group_id:         gods.group.id,
-                  post_id:          post.id,
-                }
+                  group_id: gods.group.id,
+                  post_id: post.id,
+                },
               ]);
               expect(jupiterEvents, 'to be empty');
             });
@@ -432,8 +438,8 @@ describe('Group Moderation', () => {
 
             before(() => {
               port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
-              const pubsubAdapter = new PubSubAdapter($database)
-              PubSub.setPublisher(pubsubAdapter)
+              const pubsubAdapter = new PubSubAdapter($database);
+              PubSub.setPublisher(pubsubAdapter);
             });
 
             let rtSession;
@@ -449,10 +455,7 @@ describe('Group Moderation', () => {
               });
 
               it(`should deliver 'post:update' event when Mars removes post`, async () => {
-                const test = rtSession.receiveWhile(
-                  'post:update',
-                  deletePostAsync(mars, post.id),
-                );
+                const test = rtSession.receiveWhile('post:update', deletePostAsync(mars, post.id));
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
               });
             });
@@ -464,10 +467,7 @@ describe('Group Moderation', () => {
               });
 
               it(`should deliver 'post:update' event when Mars removes post`, async () => {
-                const test = rtSession.receiveWhile(
-                  'post:update',
-                  deletePostAsync(mars, post.id),
-                );
+                const test = rtSession.receiveWhile('post:update', deletePostAsync(mars, post.id));
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
               });
             });
@@ -479,10 +479,7 @@ describe('Group Moderation', () => {
               });
 
               it(`should deliver 'post:update' event when Mars removes post`, async () => {
-                const test = rtSession.receiveWhile(
-                  'post:update',
-                  deletePostAsync(mars, post.id),
-                );
+                const test = rtSession.receiveWhile('post:update', deletePostAsync(mars, post.id));
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
               });
             });
@@ -504,7 +501,9 @@ describe('Group Moderation', () => {
                   jupiterSession.sendAsync('auth', { authToken: jupiter.authToken }),
                 ]);
               });
-              afterEach(() => [lunaSession, marsSession, jupiterSession].forEach((s) => s.disconnect()));
+              afterEach(() =>
+                [lunaSession, marsSession, jupiterSession].forEach((s) => s.disconnect()),
+              );
 
               describe('Viewers are subscribed to Gods Posts channel', () => {
                 beforeEach(async () => {
@@ -559,7 +558,9 @@ describe('Group Moderation', () => {
 
 async function createCommentAndReturnId(userCtx, postId) {
   const response = await createCommentAsync(userCtx, postId, 'Just a comment');
-  const { comments: { id: commentId } } = await response.json();
+  const {
+    comments: { id: commentId },
+  } = await response.json();
   return commentId;
 }
 

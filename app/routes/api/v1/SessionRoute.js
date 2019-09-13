@@ -1,6 +1,5 @@
-import { SessionController } from '../../../controllers'
-
+import { SessionController } from '../../../controllers';
 
 export default function addRoutes(app) {
-  app.post('/v1/session', SessionController.create)
+  app.post('/v1/session', SessionController.create);
 }

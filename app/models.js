@@ -25,13 +25,12 @@ import { addSerializer as subscriptionSerializer } from './serializers/v1/Subscr
 import { addSerializer as subscriptionRequestSerializer } from './serializers/v1/SubscriptionRequestSerializer';
 import { addSerializer as userSerializer } from './serializers/v1/UserSerializer';
 
-
 // Be careful: order of exports is important.
 export const postgres = postgresConnection();
 export const dbAdapter = new DbAdapter(postgres);
 
 export { AbstractSerializer } from './serializers/abstract_serializer';
-export { Serializer }         from './serializers/serializer';
+export { Serializer } from './serializers/serializer';
 
 const config = configLoader();
 
@@ -48,28 +47,28 @@ if (config.disableRealtime) {
 
 export const PubSub = _PubSub;
 
-export const User          = userModel(dbAdapter);
-export const Group         = groupModel(dbAdapter);
-export const Post          = postModel(dbAdapter);
-export const Timeline      = timelineModel(dbAdapter);
-export const Attachment    = attachmentModel(dbAdapter);
-export const Comment       = commentModel(dbAdapter);
+export const User = userModel(dbAdapter);
+export const Group = groupModel(dbAdapter);
+export const Post = postModel(dbAdapter);
+export const Timeline = timelineModel(dbAdapter);
+export const Attachment = attachmentModel(dbAdapter);
+export const Comment = commentModel(dbAdapter);
 export { AuthToken, SessionTokenV0 } from './models/auth-tokens';
-export const AppTokenV1    = addAppTokenV1Model(dbAdapter);
+export const AppTokenV1 = addAppTokenV1Model(dbAdapter);
 
-export const AdminSerializer               = adminSerializer();
-export const UserSerializer                = userSerializer();
-export const SubscriberSerializer          = subscriberSerializer();
-export const SubscriptionSerializer        = subscriptionSerializer();
+export const AdminSerializer = adminSerializer();
+export const UserSerializer = userSerializer();
+export const SubscriberSerializer = subscriberSerializer();
+export const SubscriptionSerializer = subscriptionSerializer();
 export const SubscriptionRequestSerializer = subscriptionRequestSerializer();
-export const MyProfileSerializer           = myProfileSerializer();
-export const LikeSerializer                = likeSerializer();
-export const GroupSerializer               = groupSerializer();
-export const AttachmentSerializer          = attachmentSerializer();
-export const PubsubCommentSerializer       = pubsubCommentSerializer();
+export const MyProfileSerializer = myProfileSerializer();
+export const LikeSerializer = likeSerializer();
+export const GroupSerializer = groupSerializer();
+export const AttachmentSerializer = attachmentSerializer();
+export const PubsubCommentSerializer = pubsubCommentSerializer();
 
 export {
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
-  HOMEFEED_MODE_FRIENDS_ONLY
+  HOMEFEED_MODE_FRIENDS_ONLY,
 } from './models/timeline';

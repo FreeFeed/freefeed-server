@@ -32,10 +32,9 @@ import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
-
 const config = configLoader();
 
-export default function (app) {
+export default function(app) {
   const router = new Router();
 
   // unauthenticated routes

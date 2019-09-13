@@ -1,10 +1,9 @@
 import _ from 'lodash';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
-import { load as configLoader } from '../../config/config'
+import { load as configLoader } from '../../config/config';
 
-
-const config = configLoader()
+const config = configLoader();
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
 
@@ -15,11 +14,17 @@ const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
 export class AuthToken {
   userId;
 
-  constructor(userId) { this.userId = userId; }
+  constructor(userId) {
+    this.userId = userId;
+  }
 
-  hasFullAccess() { return false; }
+  hasFullAccess() {
+    return false;
+  }
 
-  tokenString() { return 'ABSTRACT TOKEN'; }
+  tokenString() {
+    return 'ABSTRACT TOKEN';
+  }
 }
 
 /**
@@ -36,7 +41,6 @@ export class SessionTokenV0 extends AuthToken {
     return jwt.sign({ userId: this.userId }, secret);
   }
 }
-
 
 export function addAppTokenV1Model(dbAdapter) {
   /**
@@ -98,10 +102,7 @@ export function addAppTokenV1Model(dbAdapter) {
       this.id = await dbAdapter.createAppToken(this);
 
       const newToken = await dbAdapter.getAppTokenById(this.id);
-      const fieldsToUpdate = [
-        'createdAt',
-        'updatedAt',
-      ];
+      const fieldsToUpdate = ['createdAt', 'updatedAt'];
 
       for (const f of fieldsToUpdate) {
         this[f] = newToken[f];
@@ -109,7 +110,11 @@ export function addAppTokenV1Model(dbAdapter) {
     }
 
     async registerUsage({ ip, userAgent }) {
-      await dbAdapter.registerAppTokenUsage(this.id, { ip, userAgent, debounce: appTokenUsageDebounce });
+      await dbAdapter.registerAppTokenUsage(this.id, {
+        ip,
+        userAgent,
+        debounce: appTokenUsageDebounce,
+      });
     }
 
     static addLogPayload(ctx, payload) {
@@ -125,11 +130,11 @@ export function addAppTokenV1Model(dbAdapter) {
       }
 
       const payload = {
-        token_id:   this.id,
-        request:    `${ctx.method} ${ctx.url}`,
-        ip:         ctx.ip,
+        token_id: this.id,
+        request: `${ctx.method} ${ctx.url}`,
+        ip: ctx.ip,
         user_agent: ctx.headers['user-agent'],
-        extra:      {
+        extra: {
           ..._.pick(ctx.headers, ['x-real-ip', 'x-forwarded-for']),
           ...(ctx.state.appTokenLogPayload || {}),
         },
@@ -140,12 +145,15 @@ export function addAppTokenV1Model(dbAdapter) {
 
     tokenString() {
       const { secret } = config;
-      return jwt.sign({
-        type:   AppTokenV1.TYPE,
-        id:     this.id,
-        issue:  this.issue,
-        userId: this.userId,
-      }, secret)
+      return jwt.sign(
+        {
+          type: AppTokenV1.TYPE,
+          id: this.id,
+          issue: this.issue,
+          userId: this.userId,
+        },
+        secret,
+      );
     }
 
     async setTitle(title) {
@@ -161,5 +169,5 @@ export function addAppTokenV1Model(dbAdapter) {
     async reissue() {
       this.issue = await dbAdapter.reissueAppToken(this.id);
     }
-  }
+  };
 }

@@ -2,12 +2,7 @@
 const ip4Octet = `25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]`;
 
 export class Address {
-  bytes = [
-    0, 0, 0, 0,
-    0, 0, 0, 0,
-    0, 0, 0, 0,
-    0, 0, 0, 0,
-  ];
+  bytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
   maskBits = 128;
 
@@ -25,7 +20,7 @@ export class Address {
     };
 
     // Have a mask?
-    let withMask = false
+    let withMask = false;
 
     {
       const m = /(.+)\/([1-9]\d*)$/.exec(str);
@@ -43,7 +38,9 @@ export class Address {
     }
 
     // Have IPv4 tail?
-    const m = new RegExp(`(^|.*:)(${ip4Octet})[.](${ip4Octet})[.](${ip4Octet})[.](${ip4Octet})$`).exec(str);
+    const m = new RegExp(
+      `(^|.*:)(${ip4Octet})[.](${ip4Octet})[.](${ip4Octet})[.](${ip4Octet})$`,
+    ).exec(str);
 
     if (m) {
       if (!m[1] && withMask) {
@@ -64,11 +61,13 @@ export class Address {
     assert(parts.length <= 2);
 
     const bytesBlocks = parts.map((part) => {
-      return part === '' ? [] : part.split(':').reduce((acc, word) => {
-        assert(/^[0-9a-f]{1,4}$/i.test(word));
-        const p = parseInt(word, 16);
-        return [...acc, p >> 8, p & 0xff];
-      }, []);
+      return part === ''
+        ? []
+        : part.split(':').reduce((acc, word) => {
+            assert(/^[0-9a-f]{1,4}$/i.test(word));
+            const p = parseInt(word, 16);
+            return [...acc, p >> 8, p & 0xff];
+          }, []);
     });
 
     if (bytesBlocks.length === 1) {
@@ -109,7 +108,12 @@ export class Address {
   toString() {
     if (this.isIP4()) {
       const mask = this.maskBits === 128 ? '' : `/${this.maskBits - 96}`;
-      return this.bytes.slice(12).map((n) => n.toString(10)).join('.') + mask;
+      return (
+        this.bytes
+          .slice(12)
+          .map((n) => n.toString(10))
+          .join('.') + mask
+      );
     }
 
     const words = [];
@@ -120,8 +124,10 @@ export class Address {
 
     // Looking for the zero-words sequence
     // with the maximum length
-    let maxZStart = -1, maxZLength = 0;
-    let zStart = -1, zLength = 0;
+    let maxZStart = -1,
+      maxZLength = 0;
+    let zStart = -1,
+      zLength = 0;
 
     for (let i = 0; i < words.length; i++) {
       if (words[i] === 0) {
@@ -145,10 +151,18 @@ export class Address {
     }
 
     const mask = this.maskBits === 128 ? '' : `/${this.maskBits}`;
-    return [
-      words.slice(0, maxZStart).map((w) => w.toString(16)).join(':'),
-      words.slice(maxZStart + maxZLength).map((w) => w.toString(16)).join(':'),
-    ].join('::') + mask;
+    return (
+      [
+        words
+          .slice(0, maxZStart)
+          .map((w) => w.toString(16))
+          .join(':'),
+        words
+          .slice(maxZStart + maxZLength)
+          .map((w) => w.toString(16))
+          .join(':'),
+      ].join('::') + mask
+    );
   }
 
   /**
@@ -174,7 +188,7 @@ export class Address {
     if (restBits > 0) {
       const diffByte = subj.bytes[maskBytes] ^ this.bytes[maskBytes];
 
-      if ((diffByte >>> (8 - restBits)) !== 0) {
+      if (diffByte >>> (8 - restBits) !== 0) {
         return false;
       }
     }

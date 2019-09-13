@@ -1,7 +1,6 @@
-import { load as configLoader } from '../../../../../config/config'
+import { load as configLoader } from '../../../../../config/config';
 
 import definitions from './definitions';
-
 
 const config = configLoader();
 
@@ -15,53 +14,53 @@ const config = configLoader();
  */
 
 export const bookmarkletCreateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
   type: 'object',
 
-  required:   ['title'],
+  required: ['title'],
   properties: {
     title: {
-      title:     'Body of the creating post',
-      type:      'string',
+      title: 'Body of the creating post',
+      type: 'string',
       minLength: 1,
-      pattern:   '\\S'
+      pattern: '\\S',
     },
     comment: {
-      title:   'Body of the first comment',
-      type:    'string',
-      default: ''
+      title: 'Body of the first comment',
+      type: 'string',
+      default: '',
     },
     images: {
-      title:       'URLs of images to attach to the post',
-      type:        'array',
-      default:     [],
-      items:       { type: 'string' },
-      maxItems:    config.attachments.maxCount,
+      title: 'URLs of images to attach to the post',
+      type: 'array',
+      default: [],
+      items: { type: 'string' },
+      maxItems: config.attachments.maxCount,
       uniqueItems: true,
     },
     image: {
-      title:   'URLs of a single image to attach to the post',
-      type:    'string',
+      title: 'URLs of a single image to attach to the post',
+      type: 'string',
       default: '',
     },
     meta: {
-      default:    { feeds: [] },
-      type:       'object',
-      required:   ['feeds'],
+      default: { feeds: [] },
+      type: 'object',
+      required: ['feeds'],
       properties: {
         feeds: {
           oneOf: [
-            { '$ref': '#/definitions/accountName' },
+            { $ref: '#/definitions/accountName' },
             {
-              type:  'array',
-              items: { '$ref': '#/definitions/accountName' }
+              type: 'array',
+              items: { $ref: '#/definitions/accountName' },
             },
-          ]
-        }
-      }
-    }
-  }
+          ],
+        },
+      },
+    },
+  },
 };

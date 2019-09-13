@@ -3,7 +3,6 @@ import bluebird from 'bluebird';
 
 import { sendEmails } from '../app/support/NotificationsDigest';
 
-
 global.Promise = bluebird;
 global.Promise.onPossiblyUnhandledRejection((e) => {
   throw e;

@@ -5,9 +5,7 @@ import moment from 'moment';
 
 import { getUnreadEventsIntervalStart } from '../../../app/support/NotificationsDigest';
 
-
-const expect = unexpected.clone()
-  .use(unexpectedMoment);
+const expect = unexpected.clone().use(unexpectedMoment);
 
 describe('NotificationsDigest', () => {
   describe('getUnreadEventsIntervalStart()', () => {
@@ -22,13 +20,21 @@ describe('NotificationsDigest', () => {
 
     describe('if never sent previously', () => {
       it('should not send items earlier than 90 days ago (if never saw)', async () => {
-        await expect(getUnreadEventsIntervalStart(null, null, now), 'to be same or after', ninetyAgo);
+        await expect(
+          getUnreadEventsIntervalStart(null, null, now),
+          'to be same or after',
+          ninetyAgo,
+        );
       });
 
       it('should not send items earlier than 90 days ago (if saw something)', async () => {
         const seenAt = longTimeAgo1;
 
-        await expect(getUnreadEventsIntervalStart(null, seenAt, now), 'to be same or after', ninetyAgo);
+        await expect(
+          getUnreadEventsIntervalStart(null, seenAt, now),
+          'to be same or after',
+          ninetyAgo,
+        );
       });
     });
 
@@ -36,14 +42,22 @@ describe('NotificationsDigest', () => {
       it('should not send items earlier than 90 days ago', async () => {
         const sentAt = longTimeAgo1;
 
-        await expect(getUnreadEventsIntervalStart(sentAt, null, now), 'to be same or after', ninetyAgo);
+        await expect(
+          getUnreadEventsIntervalStart(sentAt, null, now),
+          'to be same or after',
+          ninetyAgo,
+        );
       });
 
       it('should not send items earlier than 90 days ago', async () => {
         const seenAt = longTimeAgo1;
         const sentAt = longTimeAgo2;
 
-        await expect(getUnreadEventsIntervalStart(sentAt, seenAt, now), 'to be same or after', ninetyAgo);
+        await expect(
+          getUnreadEventsIntervalStart(sentAt, seenAt, now),
+          'to be same or after',
+          ninetyAgo,
+        );
       });
     });
 
@@ -76,7 +90,10 @@ describe('NotificationsDigest', () => {
     });
 
     describe('if sent 23 hours 30 minutes ago', () => {
-      const sentAt = moment(now).subtract(23, 'hours').subtract(30, 'minutes').toISOString();
+      const sentAt = moment(now)
+        .subtract(23, 'hours')
+        .subtract(30, 'minutes')
+        .toISOString();
 
       it('should send recent items', async () => {
         const seenAt = longTimeAgo1;
@@ -86,7 +103,10 @@ describe('NotificationsDigest', () => {
     });
 
     describe('if sent less than 23 hours 30 minutes ago', () => {
-      const sentAt = moment(now).subtract(23, 'hours').subtract(29, 'minutes').toISOString();
+      const sentAt = moment(now)
+        .subtract(23, 'hours')
+        .subtract(29, 'minutes')
+        .toISOString();
 
       it('should not send anything', async () => {
         const seenAt = longTimeAgo1;

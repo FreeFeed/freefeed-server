@@ -4,10 +4,9 @@ import { dbAdapter } from '../../../models';
 import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 import { serializeEvents } from '../../../serializers/v2/event';
 
-
 const EVENT_GROUPS = {
-  mentions:      ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
-  bans:          ['banned_user', 'unbanned_user'],
+  mentions: ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
+  bans: ['banned_user', 'unbanned_user'],
   subscriptions: [
     'user_subscribed',
     'subscription_requested',
@@ -28,7 +27,7 @@ const EVENT_GROUPS = {
     'group_admin_promoted',
     'group_admin_demoted',
   ],
-  directs: ['direct', 'direct_comment']
+  directs: ['direct', 'direct_comment'],
 };
 const DEFAULT_EVENTS_LIMIT = 30;
 
@@ -47,7 +46,7 @@ export default class EventsController {
       params.limit + 1,
       params.offset,
       params.startDate,
-      params.endDate
+      params.endDate,
     );
 
     const isLastPage = events.length <= params.limit;
@@ -60,16 +59,16 @@ export default class EventsController {
 
     ctx.body = {
       Notifications: serializedData.events,
-      users:         serializedData.users,
-      groups:        serializedData.groups,
-      isLastPage
+      users: serializedData.users,
+      groups: serializedData.groups,
+      isLastPage,
     };
   }
 }
 
 function getQueryParams(ctx) {
   const offset = parseInt(ctx.request.query.offset, 10) || 0;
-  const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_EVENTS_LIMIT;
+  const limit = parseInt(ctx.request.query.limit, 10) || DEFAULT_EVENTS_LIMIT;
   let eventGroups = ctx.request.query.filter || [];
 
   if (!_.isArray(eventGroups)) {
@@ -90,7 +89,10 @@ function getQueryParams(ctx) {
     }
   }
 
-  eventTypes = _(eventTypes).intersection(ALLOWED_EVENT_TYPES).uniq().value();
+  eventTypes = _(eventTypes)
+    .intersection(ALLOWED_EVENT_TYPES)
+    .uniq()
+    .value();
 
   if (eventTypes.length === 0) {
     eventTypes = null;
@@ -103,6 +105,6 @@ function getQueryParams(ctx) {
     limit,
     eventTypes,
     startDate,
-    endDate
+    endDate,
   };
 }

@@ -2,14 +2,9 @@ import { pick } from 'lodash';
 
 import { serializeUsersByIds } from './user';
 
-
 export async function serializeComment(comment) {
   const comments = {
-    ...pick(comment, [
-      'id',
-      'body',
-      'createdAt',
-    ]),
+    ...pick(comment, ['id', 'body', 'createdAt']),
     createdBy: comment.userId,
   };
 

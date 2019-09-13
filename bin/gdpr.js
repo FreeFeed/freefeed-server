@@ -11,7 +11,6 @@ import chunk from 'lodash/chunk';
 import { DataProvider } from '../app/export/gdpr';
 import { dbAdapter } from '../app/models';
 
-
 const exec = util.promisify(childProcess.exec);
 
 class SimpleError extends Error {}
@@ -38,12 +37,14 @@ async function main(username) {
 
   const filename = `${dirname}/${username}.nt`;
   fs.writeFileSync(filename, result.ntriples);
-  result.ntriples = null;  // clearing memory
+  result.ntriples = null; // clearing memory
   process.stdout.write(`-> ${filename}\n`);
 
   const turtlePath = `${dirname}/${username}.turtle`;
   process.stdout.write(`-> generating ${turtlePath}… `);
-  exec(`sort < "${filename}" | rapper -i ntriples -o turtle -f 'xmlns:schema="http://schema.org/"' - 'http://freefeed.net/' > "${turtlePath}"`);
+  exec(
+    `sort < "${filename}" | rapper -i ntriples -o turtle -f 'xmlns:schema="http://schema.org/"' - 'http://freefeed.net/' > "${turtlePath}"`,
+  );
   process.stdout.write(`DONE\n`);
 
   // attachments

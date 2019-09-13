@@ -9,7 +9,6 @@ import { NotAuthorizedException } from '../../support/exceptions';
 import { alwaysAllowedRoutes, appTokensScopes } from '../../models/app-tokens-scopes';
 import { Address } from '../../support/ipv6';
 
-
 promisifyAll(jwt);
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -25,9 +24,8 @@ export async function withAuthToken(ctx, next) {
 
     jwtToken = ctx.headers['authorization'].replace(/^Bearer\s+/, '');
   } else {
-    jwtToken = ctx.headers['x-authentication-token']
-      || ctx.request.body.authToken
-      || ctx.query.authToken;
+    jwtToken =
+      ctx.headers['x-authentication-token'] || ctx.request.body.authToken || ctx.query.authToken;
   }
 
   if (!jwtToken) {
@@ -35,14 +33,11 @@ export async function withAuthToken(ctx, next) {
     return;
   }
 
-  const authData = await tokenFromJWT(
-    jwtToken,
-    {
-      headers:  ctx.headers,
-      remoteIP: ctx.ip,
-      route:    `${ctx.method} ${ctx._matchedRoute}`,
-    },
-  );
+  const authData = await tokenFromJWT(jwtToken, {
+    headers: ctx.headers,
+    remoteIP: ctx.ip,
+    route: `${ctx.method} ${ctx._matchedRoute}`,
+  });
 
   ctx.state = { ...ctx.state, ...authData };
   const { authToken } = authData;
@@ -51,7 +46,7 @@ export async function withAuthToken(ctx, next) {
     // Update IP and User-Agent
     await authToken.registerUsage({
       // Beautify address for user: remove ::ffff: prefix from IPv4 addresses
-      ip:        new Address(ctx.ip).toString(),
+      ip: new Address(ctx.ip).toString(),
       userAgent: ctx.headers['user-agent'] || '<undefined>',
     });
 
@@ -84,7 +79,8 @@ export async function withAuthToken(ctx, next) {
  */
 export async function tokenFromJWT(
   jwtToken,
-  { // Extract from ctx data
+  {
+    // Extract from ctx data
     headers = {},
     remoteIP = '0.0.0.0',
     route = '',
@@ -132,21 +128,24 @@ export async function tokenFromJWT(
         const remoteAddr = new Address(remoteIP);
 
         if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
-          authDebug(`app token is not allowed from IP ${remoteIP}`)
+          authDebug(`app token is not allowed from IP ${remoteIP}`);
           throw new NotAuthorizedException(`token is not allowed from this IP`);
         }
       }
 
       if (origins.length > 0 && !origins.includes(headers.origin)) {
-        authDebug(`app token is not allowed from origin ${headers.origin}`)
+        authDebug(`app token is not allowed from origin ${headers.origin}`);
         throw new NotAuthorizedException(`token is not allowed from this origin`);
       }
     }
 
     // Route access
     {
-      const routeAllowed = alwaysAllowedRoutes.includes(route)
-      || appTokensScopes.some(({ name, routes }) => token.scopes.includes(name) && routes.includes(route));
+      const routeAllowed =
+        alwaysAllowedRoutes.includes(route) ||
+        appTokensScopes.some(
+          ({ name, routes }) => token.scopes.includes(name) && routes.includes(route),
+        );
 
       if (!routeAllowed) {
         authDebug(`app token has no access to '${route}'`);

@@ -3,17 +3,16 @@
 import _ from 'lodash';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, AppTokenV1, dbAdapter } from '../../../app/models';
-import { load as configLoader } from '../../../config/config'
-
+import { load as configLoader } from '../../../config/config';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
 
-const config = configLoader()
+const config = configLoader();
 
 describe('Auth Tokens', () => {
   before(() => cleanDB($pg_database));
@@ -25,7 +24,7 @@ describe('Auth Tokens', () => {
   });
 
   describe('SessionTokenV0', () => {
-    let  token;
+    let token;
 
     before(() => {
       token = new SessionTokenV0(luna.id);
@@ -52,12 +51,12 @@ describe('Auth Tokens', () => {
       let token;
       before(async () => {
         token = new AppTokenV1({
-          userId:       luna.id,
-          title:        'My app',
-          scopes:       ['read-my-info', 'manage-posts'],
+          userId: luna.id,
+          title: 'My app',
+          scopes: ['read-my-info', 'manage-posts'],
           restrictions: {
             netmasks: ['127.0.0.1/24'],
-            origins:  ['https://localhost'],
+            origins: ['https://localhost'],
           },
         });
         await token.create();
@@ -66,13 +65,21 @@ describe('Auth Tokens', () => {
       it('should load token by id', async () => {
         const t2 = await dbAdapter.getAppTokenById(token.id);
         expect(t2 instanceof AppTokenV1, 'to be true');
-        expect(t2, 'to satisfy', _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']));
+        expect(
+          t2,
+          'to satisfy',
+          _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']),
+        );
       });
 
       it('should load token by id and issue', async () => {
         const t2 = await dbAdapter.getActiveAppTokenByIdAndIssue(token.id, token.issue);
         expect(t2 instanceof AppTokenV1, 'to be true');
-        expect(t2, 'to satisfy', _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']));
+        expect(
+          t2,
+          'to satisfy',
+          _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']),
+        );
       });
 
       it('should not load token by id and invalid issue', async () => {
@@ -83,7 +90,7 @@ describe('Auth Tokens', () => {
       it('should inactivate token', async () => {
         const t = new AppTokenV1({
           userId: luna.id,
-          title:  'My app',
+          title: 'My app',
         });
         await t.create();
         expect(t.isActive, 'to be true');
@@ -94,7 +101,7 @@ describe('Auth Tokens', () => {
       it('should not load inactive token', async () => {
         const t = new AppTokenV1({
           userId: luna.id,
-          title:  'My app',
+          title: 'My app',
         });
         await t.create();
         await t.inactivate();
@@ -114,7 +121,7 @@ describe('Auth Tokens', () => {
         const jToken = token.tokenString();
         const decoded = await jwt.verifyAsync(jToken, config.secret);
         expect(decoded, 'to satisfy', {
-          type:   AppTokenV1.TYPE,
+          type: AppTokenV1.TYPE,
           userId: luna.id,
         });
         expect(decoded.userId, 'to be', luna.id);
@@ -149,14 +156,14 @@ describe('Auth Tokens', () => {
 
         it('should write log entry after POST request', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'POST',
-            url:           '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'POST',
+            url: '/v1/posts',
             _matchedRoute: '/v1/posts',
-            headers:       {
+            headers: {
               'user-agent': 'Lynx browser, Linux',
-              'x-real-ip':  '127.0.0.128',
-              'origin':     'https://localhost',
+              'x-real-ip': '127.0.0.128',
+              origin: 'https://localhost',
             },
             state: {},
           };
@@ -164,26 +171,31 @@ describe('Auth Tokens', () => {
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
-          expect(logRows, 'to satisfy', [{
-            token_id:   token.id,
-            request:    'POST /v1/posts',
-            ip:         '127.0.0.127',
-            user_agent: 'Lynx browser, Linux',
-            extra:      { postId: 'post1', 'x-real-ip': '127.0.0.128' },
-          }]);
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            { id: token.id },
+          );
+          expect(logRows, 'to satisfy', [
+            {
+              token_id: token.id,
+              request: 'POST /v1/posts',
+              ip: '127.0.0.127',
+              user_agent: 'Lynx browser, Linux',
+              extra: { postId: 'post1', 'x-real-ip': '127.0.0.128' },
+            },
+          ]);
         });
 
         it('should not write log entry after GET request', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'GET', // <-- here
-            url:           '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'GET', // <-- here
+            url: '/v1/posts',
             _matchedRoute: '/v1/posts',
-            headers:       {
+            headers: {
               'user-agent': 'Lynx browser, Linux',
-              'x-real-ip':  '127.0.0.128',
-              'origin':     'https://localhost',
+              'x-real-ip': '127.0.0.128',
+              origin: 'https://localhost',
             },
             state: {},
           };
@@ -191,29 +203,35 @@ describe('Auth Tokens', () => {
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            { id: token.id },
+          );
           expect(logRows, 'to be empty');
         });
 
         it('should not write log entry after unsuccessful request', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'POST',
-            url:           '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'POST',
+            url: '/v1/posts',
             _matchedRoute: '/v1/posts',
-            headers:       {
+            headers: {
               'user-agent': 'Lynx browser, Linux',
-              'x-real-ip':  '127.0.0.128',
-              'origin':     'https://localhost',
+              'x-real-ip': '127.0.0.128',
+              origin: 'https://localhost',
             },
-            state:  {},
+            state: {},
             status: 422, // <-- here
           };
 
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            { id: token.id },
+          );
           expect(logRows, 'to be empty');
         });
       });

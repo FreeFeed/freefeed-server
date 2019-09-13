@@ -9,7 +9,6 @@ import Application from 'koa';
 import routesInit from './routes';
 import PubsubListener from './pubsub-listener';
 
-
 let app = null;
 promisifyAll(http);
 
@@ -33,7 +32,7 @@ export async function getSingleton() {
 
     _app.context.pubsub = new PubsubListener(server, _app);
 
-    const port = (process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port);
+    const port = process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port;
     await server.listenAsync(port);
 
     const log = createDebug('freefeed:init');

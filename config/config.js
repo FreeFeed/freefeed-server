@@ -10,7 +10,9 @@ export function load() {
 
     if (typeof config.attachments.fileSizeLimit === 'string') {
       // eslint-disable-next-line no-console
-      console.error('⚠️ DEPRECATED: please use number as value of config.attachments.fileSizeLimit');
+      console.error(
+        '⚠️ DEPRECATED: please use number as value of config.attachments.fileSizeLimit',
+      );
     }
   }
 

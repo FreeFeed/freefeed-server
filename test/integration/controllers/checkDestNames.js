@@ -1,12 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import expect from 'unexpected'
+import expect from 'unexpected';
 import { zipObject } from 'lodash';
 
-import cleanDB from '../../dbCleaner'
-import { User } from '../../../app/models'
+import cleanDB from '../../dbCleaner';
+import { User } from '../../../app/models';
 import { checkDestNames } from '../../../app/controllers/api/v1/PostsController';
-
 
 describe('checkDestNames function', () => {
   const userNames = ['luna', 'mars', 'venus', 'jupiter'];

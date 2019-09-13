@@ -6,7 +6,6 @@ import uuidv4 from 'uuid/v4';
 
 import { dbAdapter, Comment, PubsubCommentSerializer, User } from '../../../app/models';
 
-
 const expect = unexpected.clone();
 expect.use(unexpectedSinon);
 
@@ -24,10 +23,10 @@ describe('PubsubCommentSerializer', () => {
 
   it('should serialize all fields of comment', async () => {
     const comment = new Comment({
-      id:     uuidv4(),
+      id: uuidv4(),
       userId,
       postId: uuidv4(),
-      body:   'This is a comment',
+      body: 'This is a comment',
     });
 
     const serializedComment = await new PubsubCommentSerializer(comment).promiseToJSON();

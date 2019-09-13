@@ -1,19 +1,19 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fetch from 'node-fetch'
-import expect from 'unexpected'
-import _ from 'lodash'
+import fetch from 'node-fetch';
+import expect from 'unexpected';
+import _ from 'lodash';
 
-import cleanDB from '../dbCleaner'
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
+import cleanDB from '../dbCleaner';
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
 import {
   PubSub,
   dbAdapter,
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ONLY,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
-} from '../../app/models'
+} from '../../app/models';
 
 import {
   createUserAsync,
@@ -34,8 +34,7 @@ import {
   savePost,
   createTestUsers,
   unsavePost,
-} from './functional_test_helper'
-
+} from './functional_test_helper';
 
 describe('TimelinesControllerV2', () => {
   let app;
@@ -57,7 +56,7 @@ describe('TimelinesControllerV2', () => {
 
     describe('Viewer Luna', () => {
       let luna;
-      beforeEach(async () => luna = await createUserAsync('luna', 'pw'));
+      beforeEach(async () => (luna = await createUserAsync('luna', 'pw')));
 
       it('should return proper structure for authenticated user', async () => {
         await fetchHomefeed(luna);
@@ -70,14 +69,14 @@ describe('TimelinesControllerV2', () => {
         expect(homefeed.attachments, 'to be empty');
       });
 
-      it('should return timeline with one viewer\'s post', async () => {
+      it("should return timeline with one viewer's post", async () => {
         const post = await createAndReturnPost(luna, 'Luna post');
         const homefeed = await fetchHomefeed(luna);
         expect(homefeed.posts, 'to have length', 1);
         expect(homefeed.posts[0].id, 'to be', post.id);
       });
 
-      it('should return timeline with one private viewer\'s post', async () => {
+      it("should return timeline with one private viewer's post", async () => {
         await goPrivate(luna);
         const post = await createAndReturnPost(luna, 'Luna post');
         const homefeed = await fetchHomefeed(luna);
@@ -320,8 +319,16 @@ describe('TimelinesControllerV2', () => {
             await createGroupAsync(venus, 'celestials');
             await subscribeToAsync(luna, { username: 'selenites' });
 
-            selenitesPost = await createAndReturnPostToFeed({ username: 'selenites' }, venus, 'Post');
-            celestialsPost = await createAndReturnPostToFeed({ username: 'celestials' }, venus, 'Post');
+            selenitesPost = await createAndReturnPostToFeed(
+              { username: 'selenites' },
+              venus,
+              'Post',
+            );
+            celestialsPost = await createAndReturnPostToFeed(
+              { username: 'celestials' },
+              venus,
+              'Post',
+            );
           });
 
           it('should return timeline without posts from Celestials group', async () => {
@@ -343,7 +350,11 @@ describe('TimelinesControllerV2', () => {
 
           it('should return timeline with Mars posts from Celestials group in "friends-all-activity" mode', async () => {
             await subscribeToAsync(mars, { username: 'celestials' });
-            const marsCelestialsPost = await createAndReturnPostToFeed({ username: 'celestials' }, mars, 'Post');
+            const marsCelestialsPost = await createAndReturnPostToFeed(
+              { username: 'celestials' },
+              mars,
+              'Post',
+            );
 
             const homefeed = await fetchHomefeed(luna, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY);
             expect(homefeed.timelines.posts, 'to equal', [marsCelestialsPost.id, selenitesPost.id]);
@@ -380,7 +391,6 @@ describe('TimelinesControllerV2', () => {
     });
   });
 
-
   describe('#discussions', () => {
     it('should reject unauthenticated users', async () => {
       const response = await fetch(`${app.context.config.host}/v2/timelines/filter/discussions`);
@@ -391,9 +401,7 @@ describe('TimelinesControllerV2', () => {
 
     describe('Viewer Luna', () => {
       let luna, mars;
-      let marsPostLikedByLuna,
-        marsPostCommentedByLuna,
-        lunaPost;
+      let marsPostLikedByLuna, marsPostCommentedByLuna, lunaPost;
       beforeEach(async () => {
         luna = await createUserAsync('luna', 'pw');
         mars = await createUserAsync('mars', 'pw');
@@ -433,9 +441,7 @@ describe('TimelinesControllerV2', () => {
 
         it('should return timeline with posts authored by Luna', async () => {
           const feed = await fetchMyDiscussionsWithMyPosts(luna);
-          expect(feed.timelines.posts, 'to equal', [
-            lunaPost.id,
-          ]);
+          expect(feed.timelines.posts, 'to equal', [lunaPost.id]);
         });
       });
     });
@@ -481,7 +487,7 @@ describe('TimelinesControllerV2', () => {
     });
   });
 
-  describe('#user\'s timelines', () => {
+  describe("#user's timelines", () => {
     let luna, mars, venus;
     let postCreatedByMars, postCommentedByMars, postLikedByMars;
     beforeEach(async () => {
@@ -592,8 +598,7 @@ describe('TimelinesControllerV2', () => {
     });
   });
 
-
-  describe('#user\'s timelines sorting', () => {
+  describe("#user's timelines sorting", () => {
     let luna;
     let post1, post2;
     beforeEach(async () => {
@@ -642,7 +647,7 @@ describe('TimelinesControllerV2', () => {
     });
   });
 
-  describe('#user\'s timelines filter by date', () => {
+  describe("#user's timelines filter by date", () => {
     let luna;
     let post1, post2, post3;
     beforeEach(async () => {
@@ -650,9 +655,18 @@ describe('TimelinesControllerV2', () => {
       post1 = await createAndReturnPost(luna, 'Post');
       post2 = await createAndReturnPost(luna, 'Post');
       post3 = await createAndReturnPost(luna, 'Post');
-      await dbAdapter.database('posts').where('uid', post1.id).update({ created_at: '2017-05-01T09:00:00Z' });
-      await dbAdapter.database('posts').where('uid', post2.id).update({ created_at: '2017-05-02T09:00:00Z' });
-      await dbAdapter.database('posts').where('uid', post3.id).update({ created_at: '2017-05-03T09:00:00Z' });
+      await dbAdapter
+        .database('posts')
+        .where('uid', post1.id)
+        .update({ created_at: '2017-05-01T09:00:00Z' });
+      await dbAdapter
+        .database('posts')
+        .where('uid', post2.id)
+        .update({ created_at: '2017-05-02T09:00:00Z' });
+      await dbAdapter
+        .database('posts')
+        .where('uid', post3.id)
+        .update({ created_at: '2017-05-03T09:00:00Z' });
     });
 
     it('should return posts created before date', async () => {
@@ -670,7 +684,9 @@ describe('TimelinesControllerV2', () => {
     });
 
     it('should return posts created before and after date', async () => {
-      const feed = await fetchTimeline('luna?created-before=2017-05-03T00:00:00Z&created-after=2017-05-02T00:00:00Z');
+      const feed = await fetchTimeline(
+        'luna?created-before=2017-05-03T00:00:00Z&created-after=2017-05-02T00:00:00Z',
+      );
       expect(feed.timelines.posts, 'to have length', 1);
       expect(feed.timelines.posts[0], 'to equal', post2.id);
     });
@@ -694,8 +710,8 @@ describe('TimelinesControllerV2', () => {
       const feed = await fetchSaved(luna);
       const savesFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'Saves');
       expect(feed.timelines, 'to satisfy', {
-        id:    savesFeed.id,
-        name:  savesFeed.name,
+        id: savesFeed.id,
+        name: savesFeed.name,
         posts: [],
       });
     });
@@ -731,9 +747,13 @@ describe('TimelinesControllerV2', () => {
   });
 });
 
-const fetchHomefeed = (viewerContext, mode = HOMEFEED_MODE_CLASSIC) => fetchTimeline(`home?homefeed-mode=${mode}`, viewerContext);
+const fetchHomefeed = (viewerContext, mode = HOMEFEED_MODE_CLASSIC) =>
+  fetchTimeline(`home?homefeed-mode=${mode}`, viewerContext);
 const fetchMyDiscussions = _.partial(fetchTimeline, 'filter/discussions');
-const fetchMyDiscussionsWithMyPosts = _.partial(fetchTimeline, 'filter/discussions?with-my-posts=yes');
+const fetchMyDiscussionsWithMyPosts = _.partial(
+  fetchTimeline,
+  'filter/discussions?with-my-posts=yes',
+);
 const fetchDirects = _.partial(fetchTimeline, 'filter/directs');
 const fetchSaved = _.partial(fetchTimeline, 'filter/saves');
 

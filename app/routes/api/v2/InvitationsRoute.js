@@ -1,5 +1,4 @@
-import { InvitationsController } from '../../../controllers'
-
+import { InvitationsController } from '../../../controllers';
 
 export default function addRoutes(app) {
   app.get('/v2/invitations/:secureId', InvitationsController.getInvitation);

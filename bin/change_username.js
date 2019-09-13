@@ -2,9 +2,12 @@ import path from 'path';
 
 import { dbAdapter } from '../app/models';
 
-
 if (process.argv.length !== 4) {
-  process.stdout.write(`Usage: yarn run babel-node ${path.basename(process.argv[1])} <current username> <new username>\n`);
+  process.stdout.write(
+    `Usage: yarn run babel-node ${path.basename(
+      process.argv[1],
+    )} <current username> <new username>\n`,
+  );
   process.exit(1);
 }
 
@@ -20,7 +23,9 @@ const newUsername = process.argv[3].toLowerCase();
     }
 
     if (account.username !== currentUsername) {
-      process.stdout.write(`⚠ WARNING: '${currentUsername}' is the old username of '${account.username}'. Continue? (y/n)\n`);
+      process.stdout.write(
+        `⚠ WARNING: '${currentUsername}' is the old username of '${account.username}'. Continue? (y/n)\n`,
+      );
       const input = await keypress();
 
       if (input.toLowerCase() !== 'y') {
@@ -54,8 +59,10 @@ const newUsername = process.argv[3].toLowerCase();
 
 function keypress() {
   process.stdin.setRawMode(true);
-  return new Promise((resolve) => process.stdin.once('data', (data) => {
-    process.stdin.setRawMode(false);
-    resolve(data.toString());
-  }));
+  return new Promise((resolve) =>
+    process.stdin.once('data', (data) => {
+      process.stdin.setRawMode(false);
+      resolve(data.toString());
+    }),
+  );
 }

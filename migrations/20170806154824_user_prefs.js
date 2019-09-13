@@ -1,6 +1,9 @@
 export async function up(knex) {
   await knex.schema.table('users', (table) => {
-    table.jsonb('preferences').defaultTo('{}').notNullable();
+    table
+      .jsonb('preferences')
+      .defaultTo('{}')
+      .notNullable();
   });
   // Migrate from the 'frontend_preferences'
   await knex.raw(`

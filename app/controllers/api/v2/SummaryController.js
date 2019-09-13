@@ -1,9 +1,8 @@
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models'
+import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
-
 
 const getDays = (d) => {
   const DEFAULT_DAYS = 7;
@@ -23,13 +22,19 @@ export const generalSummary = compose([
     const currentUser = ctx.state.user;
 
     let destinations = [];
-    let activities  = [];
+    let activities = [];
 
     // Get timelines that forms a "RiverOfNews" of current user
     ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id));
 
     // Get posts current user subscribed to
-    const foundPostsIds = await dbAdapter.getSummaryPostsIds(currentUser.id, days, destinations, activities, limit);
+    const foundPostsIds = await dbAdapter.getSummaryPostsIds(
+      currentUser.id,
+      days,
+      destinations,
+      activities,
+      limit,
+    );
 
     ctx.body = await serializeFeed(foundPostsIds, currentUser.id, null, { isLastPage: true });
   },

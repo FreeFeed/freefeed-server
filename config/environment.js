@@ -17,7 +17,6 @@ import { selectDatabase } from './database';
 import { configure as configurePostgres } from './postgres';
 import { init as passportInit } from './initializers/passport';
 
-
 const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 
@@ -40,7 +39,7 @@ async function selectEnvironment(app) {
   return app;
 }
 
-exports.init = async function (app) {
+exports.init = async function(app) {
   await selectEnvironment(app);
 
   if (config.media.storage.type === 'fs') {
@@ -77,25 +76,29 @@ exports.init = async function (app) {
     app.proxy = true;
   }
 
-  app.use(koaBody({
-    multipart:  true,
-    formLimit:  config.attachments.fileSizeLimit,
-    jsonLimit:  config.attachments.fileSizeLimit,
-    textLimit:  config.attachments.fileSizeLimit,
-    formidable: { maxFileSize: config.attachments.fileSizeLimit, }
-  }));
+  app.use(
+    koaBody({
+      multipart: true,
+      formLimit: config.attachments.fileSizeLimit,
+      jsonLimit: config.attachments.fileSizeLimit,
+      textLimit: config.attachments.fileSizeLimit,
+      formidable: { maxFileSize: config.attachments.fileSizeLimit },
+    }),
+  );
   app.use(passport.initialize());
   app.use(originMiddleware);
-  app.use(methodOverride((req) => {
-    if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-      // look in urlencoded POST bodies and delete it
-      const method = req.body._method;
-      Reflect.deleteProperty(req.body, '_method');
-      return method;
-    }
+  app.use(
+    methodOverride((req) => {
+      if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+        // look in urlencoded POST bodies and delete it
+        const method = req.body._method;
+        Reflect.deleteProperty(req.body, '_method');
+        return method;
+      }
 
-    return undefined;  // otherwise, no need to override
-  }));
+      return undefined; // otherwise, no need to override
+    }),
+  );
 
   app.use(async (ctx, next) => {
     ctx.response.set('X-Freefeed-Server', serverVersion);
@@ -105,7 +108,8 @@ exports.init = async function (app) {
   const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' });
   app.use(morgan('combined', { stream: accessLogStream }));
 
-  if (config.logResponseTime) {  // should be located BEFORE responseTime
+  if (config.logResponseTime) {
+    // should be located BEFORE responseTime
     const timeLogger = createDebug('freefeed:request');
     app.use(async (ctx, next) => {
       await next();

@@ -2,13 +2,14 @@ import moment from 'moment';
 
 import { dbAdapter } from '../../../models';
 
-
 export default class StatsController {
   static async stats(ctx) {
     const MAX_STATS_PERIOD = 365 * 2; // 2 years
-    const MIN_START_DATE = moment('20150504');  // FreeFeed launched
+    const MIN_START_DATE = moment('20150504'); // FreeFeed launched
 
-    const DEFAULT_START_DATE = moment().subtract(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+    const DEFAULT_START_DATE = moment()
+      .subtract(MAX_STATS_PERIOD, 'days')
+      .format('YYYY-MM-DD');
     const DEFAULT_END_DATE = moment().format('YYYY-MM-DD');
 
     const data = ctx.request.query.data || 'users';
@@ -16,7 +17,9 @@ export default class StatsController {
 
     if (!start_date) {
       if (end_date) {
-        start_date = moment(end_date).subtract(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+        start_date = moment(end_date)
+          .subtract(MAX_STATS_PERIOD, 'days')
+          .format('YYYY-MM-DD');
       } else {
         start_date = DEFAULT_START_DATE;
         end_date = DEFAULT_END_DATE;
@@ -24,7 +27,9 @@ export default class StatsController {
     }
 
     if (!end_date) {
-      end_date = moment(start_date).add(MAX_STATS_PERIOD, 'days').format('YYYY-MM-DD');
+      end_date = moment(start_date)
+        .add(MAX_STATS_PERIOD, 'days')
+        .format('YYYY-MM-DD');
     }
 
     let start = moment(start_date);
@@ -54,7 +59,11 @@ export default class StatsController {
       throw new Error(`ERROR: the requested period is too long`);
     }
 
-    const stats_res = await dbAdapter.getStats(data, start.format(`YYYY-MM-DD`), end.format(`YYYY-MM-DD`));
+    const stats_res = await dbAdapter.getStats(
+      data,
+      start.format(`YYYY-MM-DD`),
+      end.format(`YYYY-MM-DD`),
+    );
 
     if (!stats_res) {
       ctx.status = 404;

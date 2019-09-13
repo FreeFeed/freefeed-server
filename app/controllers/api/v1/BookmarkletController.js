@@ -20,7 +20,6 @@ import { load as configLoader } from '../../../../config/config';
 import { bookmarkletCreateInputSchema } from './data-schemes';
 import { checkDestNames } from './PostsController';
 
-
 promisifyAll(fs);
 
 const config = configLoader();
@@ -40,7 +39,7 @@ export const create = compose([
       image,
     } = ctx.request.body;
 
-    const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
+    const destNames = typeof feeds === 'string' ? [feeds] : feeds;
 
     if (destNames.length === 0) {
       destNames.push(author.username);
@@ -54,13 +53,15 @@ export const create = compose([
       images.push(image);
     }
 
-    const attachments = await Promise.all(images.map(async (url) => {
-      try {
-        return await createAttachment(author, url);
-      } catch (e) {
-        throw new ForbiddenException(`Unable to load URL '${url}': ${e.message}`);
-      }
-    }));
+    const attachments = await Promise.all(
+      images.map(async (url) => {
+        try {
+          return await createAttachment(author, url);
+        } catch (e) {
+          throw new ForbiddenException(`Unable to load URL '${url}': ${e.message}`);
+        }
+      }),
+    );
 
     const post = new Post({
       userId: author.id,
@@ -72,9 +73,9 @@ export const create = compose([
 
     if (commentBody !== '') {
       const comment = new Comment({
-        body:   commentBody,
+        body: commentBody,
         postId: post.id,
-        userId: author.id
+        userId: author.id,
       });
       await comment.create();
     }
@@ -122,11 +123,7 @@ async function createAttachment(author, imageURL) {
   try {
     const stream = fs.createWriteStream(filePath, { flags: 'w' });
     const fileWasWritten = waitStream(stream);
-    await pipeline(
-      response.body,
-      meter(fileSizeLimit),
-      stream,
-    );
+    await pipeline(response.body, meter(fileSizeLimit), stream);
     await fileWasWritten; // waiting for the file to be written and closed
 
     const stats = await fs.statAsync(filePath);
@@ -136,7 +133,7 @@ async function createAttachment(author, imageURL) {
       size: stats.size,
       type: mType.asString(),
       path: filePath,
-    }
+    };
 
     const newAttachment = author.newAttachment({ file });
     await newAttachment.create();

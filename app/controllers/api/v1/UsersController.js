@@ -1,30 +1,41 @@
-import jwt from 'jsonwebtoken'
-import _ from 'lodash'
+import jwt from 'jsonwebtoken';
+import _ from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0 } from '../../../models'
-import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException } from '../../../support/exceptions'
-import { EventService } from '../../../support/EventService'
-import { load as configLoader } from '../../../../config/config'
-import recaptchaVerify from '../../../../lib/recaptcha'
+import {
+  dbAdapter,
+  MyProfileSerializer,
+  User,
+  Group,
+  AppTokenV1,
+  SessionTokenV0,
+} from '../../../models';
+import {
+  NotFoundException,
+  ForbiddenException,
+  ValidationException,
+  NotAuthorizedException,
+} from '../../../support/exceptions';
+import { EventService } from '../../../support/EventService';
+import { load as configLoader } from '../../../../config/config';
+import recaptchaVerify from '../../../../lib/recaptcha';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, targetUserRequired, monitored } from '../../middlewares';
 import { UsersControllerV2 } from '../../../controllers';
 
-
-const config = configLoader()
+const config = configLoader();
 
 export default class UsersController {
   static async create(ctx) {
     const params = {
       username: ctx.request.body.username,
-      email:    ctx.request.body.email
-    }
+      email: ctx.request.body.email,
+    };
 
-    params.hashedPassword = ctx.request.body.password_hash
+    params.hashedPassword = ctx.request.body.password_hash;
 
     if (!config.acceptHashedPasswordsOnly) {
-      params.password = ctx.request.body.password
+      params.password = ctx.request.body.password;
     }
 
     if (config.recaptcha.enabled) {
@@ -40,22 +51,22 @@ export default class UsersController {
       invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
     }
 
-    const user = new User(params)
-    await user.create(false)
+    const user = new User(params);
+    await user.create(false);
 
     try {
-      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
 
       if (null === onboardingUser) {
-        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
+        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`);
       }
 
-      await user.subscribeTo(onboardingUser)
+      await user.subscribeTo(onboardingUser);
     } catch (e /* if e instanceof NotFoundException */) {
       // if onboarding username is not found, just pass
     }
 
-    const json = await new MyProfileSerializer(user).promiseToJSON()
+    const json = await new MyProfileSerializer(user).promiseToJSON();
     const authToken = new SessionTokenV0(user.id).tokenString();
 
     ctx.body = { ...json, authToken };
@@ -69,34 +80,34 @@ export default class UsersController {
   static async sudoCreate(ctx) {
     const params = {
       username: ctx.request.body.username,
-      email:    ctx.request.body.email
-    }
+      email: ctx.request.body.email,
+    };
 
-    params.hashedPassword = ctx.request.body.password_hash
+    params.hashedPassword = ctx.request.body.password_hash;
 
     if (!config.acceptHashedPasswordsOnly) {
-      params.password = ctx.request.body.password
+      params.password = ctx.request.body.password;
     }
 
-    const user = new User(params)
-    await user.create(true)
+    const user = new User(params);
+    await user.create(true);
 
     try {
-      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
 
       if (null === onboardingUser) {
-        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
+        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`);
       }
 
-      await user.subscribeTo(onboardingUser)
+      await user.subscribeTo(onboardingUser);
     } catch (e /* if e instanceof NotFoundException */) {
       // if onboarding username is not found, just pass
     }
 
     const { secret } = config;
-    const authToken = jwt.sign({ userId: user.id }, secret)
+    const authToken = jwt.sign({ userId: user.id }, secret);
 
-    const json = await new MyProfileSerializer(user).promiseToJSON()
+    const json = await new MyProfileSerializer(user).promiseToJSON();
     ctx.body = { ...json, authToken };
   }
 
@@ -104,29 +115,29 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
-    const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
+    const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username);
 
     if (null === user) {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
+      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`);
     }
 
     if (user.isPrivate !== '1') {
-      throw new Error('Invalid')
+      throw new Error('Invalid');
     }
 
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, user.id)
-    const banIds = await user.getBanIds()
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, user.id);
+    const banIds = await user.getBanIds();
 
-    const valid = !hasRequest && !banIds.includes(ctx.state.user.id)
+    const valid = !hasRequest && !banIds.includes(ctx.state.user.id);
 
     if (!valid) {
-      throw new Error('Invalid')
+      throw new Error('Invalid');
     }
 
-    await ctx.state.user.sendSubscriptionRequest(user.id)
+    await ctx.state.user.sendSubscriptionRequest(user.id);
     await EventService.onSubscriptionRequestCreated(ctx.state.user.intId, user.intId);
 
     ctx.body = {};
@@ -138,7 +149,7 @@ export default class UsersController {
     async (ctx) => {
       const { user: targetUser, targetUser: subscriber } = ctx.state;
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id);
 
       if (!hasRequest) {
         throw new ForbiddenException('There is no subscription requests');
@@ -147,30 +158,29 @@ export default class UsersController {
       await targetUser.acceptSubscriptionRequest(subscriber.id);
       await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
       ctx.body = {};
-    }
+    },
   ]);
-
 
   static async rejectRequest(ctx) {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
-    const user = await dbAdapter.getUserByUsername(ctx.params.username)
+    const user = await dbAdapter.getUserByUsername(ctx.params.username);
 
     if (null === user) {
-      throw new NotFoundException(`User "${ctx.params.username}" is not found`)
+      throw new NotFoundException(`User "${ctx.params.username}" is not found`);
     }
 
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id)
+    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id);
 
     if (!hasRequest) {
-      throw new Error('Invalid')
+      throw new Error('Invalid');
     }
 
-    await ctx.state.user.rejectSubscriptionRequest(user.id)
+    await ctx.state.user.rejectSubscriptionRequest(user.id);
     await EventService.onSubscriptionRequestRejected(user.intId, ctx.state.user.intId);
     ctx.body = {};
   }
@@ -181,11 +191,7 @@ export default class UsersController {
     async (ctx) => {
       const { targetUser, user: viewer } = ctx.state;
 
-      const [
-        serUsers,
-        acceptsDirects,
-        pastUsernames,
-      ] = await Promise.all([
+      const [serUsers, acceptsDirects, pastUsernames] = await Promise.all([
         serializeUsersByIds([targetUser.id], true, viewer && viewer.id),
         targetUser.acceptsDirectsFrom(viewer),
         targetUser.getPastUsernames(),
@@ -219,17 +225,17 @@ export default class UsersController {
       const { user: viewer, targetUser: user } = ctx.state;
 
       if (!viewer && user.isPrivate === '1') {
-        throw new ForbiddenException('User is private')
+        throw new ForbiddenException('User is private');
       }
 
       if (!viewer && user.isProtected === '1') {
-        throw new ForbiddenException('User is protected')
+        throw new ForbiddenException('User is protected');
       }
 
       const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
 
       if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
-        throw new ForbiddenException('User is private')
+        throw new ForbiddenException('User is private');
       }
 
       const serUsers = await serializeUsersByIds(subscriberIds, true, viewer && viewer.id);
@@ -247,35 +253,41 @@ export default class UsersController {
       const { user: viewer, targetUser: user } = ctx.state;
 
       if (!viewer && user.isPrivate === '1') {
-        throw new ForbiddenException('User is private')
+        throw new ForbiddenException('User is private');
       }
 
       if (!viewer && user.isProtected === '1') {
-        throw new ForbiddenException('User is protected')
+        throw new ForbiddenException('User is protected');
       }
 
       const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
 
       if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
-        throw new ForbiddenException('User is private')
+        throw new ForbiddenException('User is private');
       }
 
       let timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
       let timelineOwnersIds = timelines.map((t) => t.userId);
 
       // Leave only users and groups visible to viewer
-      const groupsVisibility = await dbAdapter.getGroupsVisibility(timelineOwnersIds, viewer && viewer.id);
+      const groupsVisibility = await dbAdapter.getGroupsVisibility(
+        timelineOwnersIds,
+        viewer && viewer.id,
+      );
       timelineOwnersIds = timelineOwnersIds.filter((id) => groupsVisibility[id] !== false);
       timelines = timelines.filter(({ userId }) => groupsVisibility[userId] !== false);
 
       const serUsers = await serializeUsersByIds(timelineOwnersIds, false, viewer && viewer.id);
       // Sorting by 'random' id to mask actual subscription order
       const subscribers = _.sortBy(serUsers, 'id');
-      const subscriptions = _.sortBy(timelines.map((t) => ({
-        id:   t.id,
-        name: t.name,
-        user: t.userId,
-      })), 'id');
+      const subscriptions = _.sortBy(
+        timelines.map((t) => ({
+          id: t.id,
+          name: t.name,
+          user: t.userId,
+        })),
+        'id',
+      );
 
       ctx.body = { subscribers, subscriptions };
     },
@@ -285,11 +297,11 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
     try {
-      const status = await ctx.state.user.ban(ctx.params.username)
+      const status = await ctx.state.user.ban(ctx.params.username);
       ctx.body = { status };
     } catch (e) {
       if (e.code === '23505') {
@@ -306,10 +318,10 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
-    const status = await ctx.state.user.unban(ctx.params.username)
+    const status = await ctx.state.user.unban(ctx.params.username);
     ctx.body = { status };
   }
 
@@ -328,10 +340,7 @@ export default class UsersController {
         throw new ForbiddenException('You cannot subscribe to private feed');
       }
 
-      const [
-        banIds,
-        theirBanIds,
-      ] = await Promise.all([
+      const [banIds, theirBanIds] = await Promise.all([
         subscriber.getBanIds(),
         targetUser.getBanIds(),
       ]);
@@ -410,7 +419,11 @@ export default class UsersController {
     authRequired(),
     monitored('users.update'),
     async (ctx) => {
-      const { state: { user, authToken }, request: { body }, params } = ctx;
+      const {
+        state: { user, authToken },
+        request: { body },
+        params,
+      } = ctx;
 
       if (params.userId !== user.id) {
         throw new NotAuthorizedException();
@@ -449,17 +462,20 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
-    const currentPassword = ctx.request.body.currentPassword || ''
-    const valid = await ctx.state.user.validPassword(currentPassword)
+    const currentPassword = ctx.request.body.currentPassword || '';
+    const valid = await ctx.state.user.validPassword(currentPassword);
 
     if (!valid) {
       throw new Error('Your old password is not valid');
     }
 
-    await ctx.state.user.updatePassword(ctx.request.body.password, ctx.request.body.passwordConfirmation)
+    await ctx.state.user.updatePassword(
+      ctx.request.body.password,
+      ctx.request.body.passwordConfirmation,
+    );
     ctx.body = { message: 'Your password has been changed' };
   }
 
@@ -467,11 +483,11 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
     const fileHandlerPromises = Object.values(ctx.request.files).map(async (file) => {
-      await ctx.state.user.updateProfilePicture(file)
+      await ctx.state.user.updateProfilePicture(file);
       ctx.body = { message: 'Your profile picture has been updated' };
     });
 
@@ -487,7 +503,6 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
   if (invitation.registrations_count > 0 && invitation.single_use) {
     throw new ValidationException(`Somebody has already used invitation "${invitationId}"`);
   }
-
 
   const userNames = invitation.recommendations.users || [];
   const groupNames = invitation.recommendations.groups || [];
@@ -535,21 +550,29 @@ async function useInvitation(newUser, invitation, cancel_subscription = false) {
     return;
   }
 
-  await Promise.all(invitation.publicUsers.map((recommendedUser) => {
-    return newUser.subscribeTo(recommendedUser);
-  }));
+  await Promise.all(
+    invitation.publicUsers.map((recommendedUser) => {
+      return newUser.subscribeTo(recommendedUser);
+    }),
+  );
 
-  await Promise.all(invitation.publicGroups.map((recommendedGroup) => {
-    return newUser.subscribeTo(recommendedGroup);
-  }));
+  await Promise.all(
+    invitation.publicGroups.map((recommendedGroup) => {
+      return newUser.subscribeTo(recommendedGroup);
+    }),
+  );
 
-  await Promise.all(invitation.privateUsers.map(async (recommendedUser) => {
-    await newUser.sendSubscriptionRequest(recommendedUser.id);
-    return EventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
-  }));
+  await Promise.all(
+    invitation.privateUsers.map(async (recommendedUser) => {
+      await newUser.sendSubscriptionRequest(recommendedUser.id);
+      return EventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
+    }),
+  );
 
-  await Promise.all(invitation.privateGroups.map(async (recommendedGroup) => {
-    await newUser.sendPrivateGroupSubscriptionRequest(recommendedGroup.id);
-    return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
-  }));
+  await Promise.all(
+    invitation.privateGroups.map(async (recommendedGroup) => {
+      await newUser.sendPrivateGroupSubscriptionRequest(recommendedGroup.id);
+      return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
+    }),
+  );
 }

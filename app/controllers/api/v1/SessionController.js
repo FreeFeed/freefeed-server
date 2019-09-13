@@ -1,11 +1,10 @@
-import passport from 'koa-passport'
-import jwt from 'jsonwebtoken'
+import passport from 'koa-passport';
+import jwt from 'jsonwebtoken';
 
-import { load as configLoader } from '../../../../config/config'
-import { UserSerializer } from '../../../models'
+import { load as configLoader } from '../../../../config/config';
+import { UserSerializer } from '../../../models';
 
-
-const config = configLoader()
+const config = configLoader();
 
 export default class SessionController {
   static create(ctx) {
@@ -13,21 +12,21 @@ export default class SessionController {
       if (err) {
         ctx.status = 401;
         ctx.body = { err: err.message };
-        return
+        return;
       }
 
       if (user === false) {
         if (!msg) {
-          msg = { message: 'Internal server error' }
+          msg = { message: 'Internal server error' };
         }
 
         ctx.status = 401;
         ctx.body = { err: msg.message };
-        return
+        return;
       }
 
       const { secret } = config;
-      const authToken = jwt.sign({ userId: user.id }, secret)
+      const authToken = jwt.sign({ userId: user.id }, secret);
 
       const json = await new UserSerializer(user).promiseToJSON();
       ctx.body = { ...json, authToken };

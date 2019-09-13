@@ -5,7 +5,6 @@ import Raven from 'raven';
 
 import { load as configLoader } from './config';
 
-
 promisifyAll(_redis.RedisClient.prototype);
 promisifyAll(_redis.Multi.prototype);
 
@@ -22,15 +21,17 @@ database.on('end', log('end'));
 database.on('error', logAndQuit('error'));
 
 function log(type) {
-  return function (...args) {
+  return function(...args) {
     debug(type, args);
   };
 }
 
 function logAndQuit(type) {
-  return function (...args) {
+  return function(...args) {
     if (sentryIsEnabled) {
-      Raven.captureException(args, { extra: { err: 'Unknown Redis error. Switching off server.' } });
+      Raven.captureException(args, {
+        extra: { err: 'Unknown Redis error. Switching off server.' },
+      });
     }
 
     debug(type, args);

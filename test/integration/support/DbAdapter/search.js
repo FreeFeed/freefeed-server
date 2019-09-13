@@ -7,19 +7,25 @@ import cleanDB from '../../../dbCleaner';
 import { User, Group, dbAdapter } from '../../../../app/models';
 import { SearchQueryParser } from '../../../../app/support/SearchQueryParser';
 
-
 describe('FullTextSearch', () => {
   beforeEach(() => cleanDB($pg_database));
 
   describe('public users Luna, Mars', () => {
     const lunaPostsContent = ['Able', 'Baker', 'Charlie', 'Dog'];
 
-    let luna, mars, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds, marsVisibleFeedIds, bannedByMarsUserIds,
-      feedsBannedForLuna, feedsBannedForMars;
+    let luna,
+      mars,
+      lunaPosts,
+      lunaVisibleFeedIds,
+      bannedByLunaUserIds,
+      marsVisibleFeedIds,
+      bannedByMarsUserIds,
+      feedsBannedForLuna,
+      feedsBannedForMars;
 
     beforeEach(async () => {
-      luna    = new User({ username: 'Luna', password: 'password' });
-      mars    = new User({ username: 'Mars', password: 'password' });
+      luna = new User({ username: 'Luna', password: 'password' });
+      mars = new User({ username: 'Mars', password: 'password' });
 
       await Promise.all([luna.create(), mars.create()]);
 
@@ -34,8 +40,8 @@ describe('FullTextSearch', () => {
       lunaPosts = [];
 
       for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body }); // eslint-disable-line no-await-in-loop
+        lunaPosts.push(await post.create()); // eslint-disable-line no-await-in-loop
       }
     });
 
@@ -43,7 +49,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          mars.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -52,7 +66,15 @@ describe('FullTextSearch', () => {
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          luna.id,
+          lunaVisibleFeedIds,
+          bannedByLunaUserIds,
+          feedsBannedForLuna,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -61,7 +83,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(
+          query,
+          luna.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -70,7 +100,15 @@ describe('FullTextSearch', () => {
       it("Luna can find own posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(
+          query,
+          luna.id,
+          lunaVisibleFeedIds,
+          bannedByLunaUserIds,
+          feedsBannedForLuna,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -81,15 +119,23 @@ describe('FullTextSearch', () => {
           const marsPostContents = ['Something', 'Else'];
 
           for (const body of marsPostContents) {
-            const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-            await post.create();                        // eslint-disable-line no-await-in-loop
+            const post = await mars.newPost({ body }); // eslint-disable-line no-await-in-loop
+            await post.create(); // eslint-disable-line no-await-in-loop
           }
         });
 
         it('Luna can find all of her posts', async () => {
           const query = SearchQueryParser.parse('from:luna');
 
-          const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+          const searchResults = await dbAdapter.searchUserPosts(
+            query,
+            luna.id,
+            lunaVisibleFeedIds,
+            bannedByLunaUserIds,
+            feedsBannedForLuna,
+            0,
+            30,
+          );
           expect(searchResults, 'to have length', 4);
         });
       });
@@ -105,7 +151,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          mars.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -114,7 +168,15 @@ describe('FullTextSearch', () => {
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          luna.id,
+          lunaVisibleFeedIds,
+          bannedByLunaUserIds,
+          feedsBannedForLuna,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -123,7 +185,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(
+          query,
+          luna.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -132,7 +202,15 @@ describe('FullTextSearch', () => {
       it("Luna can find own posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(
+          query,
+          luna.id,
+          lunaVisibleFeedIds,
+          bannedByLunaUserIds,
+          feedsBannedForLuna,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -145,15 +223,28 @@ describe('FullTextSearch', () => {
     const saturnPostsContent = ['Eagle', 'Fire', 'Gigantic'];
     const marsPostsContent = ['Humidity', 'Icicle', 'Job'];
 
-    let luna, mars, jupiter, saturn, lunaPosts, lunaVisibleFeedIds, bannedByLunaUserIds,
-      feedsBannedForJupiter, feedsBannedForLuna, feedsBannedForMars,
-      marsVisibleFeedIds, bannedByMarsUserIds, jupiterVisibleFeedIds, bannedByJupiterUserIds, saturnPosts, marsPosts;
+    let luna,
+      mars,
+      jupiter,
+      saturn,
+      lunaPosts,
+      lunaVisibleFeedIds,
+      bannedByLunaUserIds,
+      feedsBannedForJupiter,
+      feedsBannedForLuna,
+      feedsBannedForMars,
+      marsVisibleFeedIds,
+      bannedByMarsUserIds,
+      jupiterVisibleFeedIds,
+      bannedByJupiterUserIds,
+      saturnPosts,
+      marsPosts;
 
     beforeEach(async () => {
-      luna    = new User({ username: 'Luna', password: 'password' });
-      mars    = new User({ username: 'Mars', password: 'password' });
+      luna = new User({ username: 'Luna', password: 'password' });
+      mars = new User({ username: 'Mars', password: 'password' });
       jupiter = new User({ username: 'Jupiter', password: 'password' });
-      saturn  = new User({ username: 'Saturn', password: 'password' });
+      saturn = new User({ username: 'Saturn', password: 'password' });
 
       await Promise.all([luna.create(), mars.create(), jupiter.create(), saturn.create()]);
       await luna.update({ isPrivate: '1' });
@@ -170,22 +261,22 @@ describe('FullTextSearch', () => {
       lunaPosts = [];
 
       for (const body of lunaPostsContent) {
-        const post = await luna.newPost({ body });  // eslint-disable-line no-await-in-loop
-        lunaPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+        const post = await luna.newPost({ body }); // eslint-disable-line no-await-in-loop
+        lunaPosts.push(await post.create()); // eslint-disable-line no-await-in-loop
       }
 
       saturnPosts = [];
 
       for (const body of saturnPostsContent) {
-        const post = await saturn.newPost({ body });  // eslint-disable-line no-await-in-loop
-        saturnPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+        const post = await saturn.newPost({ body }); // eslint-disable-line no-await-in-loop
+        saturnPosts.push(await post.create()); // eslint-disable-line no-await-in-loop
       }
 
       marsPosts = [];
 
       for (const body of marsPostsContent) {
-        const post = await mars.newPost({ body });  // eslint-disable-line no-await-in-loop
-        marsPosts.push(await post.create());        // eslint-disable-line no-await-in-loop
+        const post = await mars.newPost({ body }); // eslint-disable-line no-await-in-loop
+        marsPosts.push(await post.create()); // eslint-disable-line no-await-in-loop
       }
     });
 
@@ -193,21 +284,37 @@ describe('FullTextSearch', () => {
       it("Mars can't find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          mars.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.be.empty;
       });
 
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          luna.id,
+          lunaVisibleFeedIds,
+          bannedByLunaUserIds,
+          feedsBannedForLuna,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
       });
     });
 
-    describe('Saturn doesn\'t like people who are not logged in', () => {
+    describe("Saturn doesn't like people who are not logged in", () => {
       beforeEach(async () => {
         marsVisibleFeedIds = (await dbAdapter.getUserById(mars.id)).subscribedFeedIds;
         jupiterVisibleFeedIds = (await dbAdapter.getUserById(jupiter.id)).subscribedFeedIds;
@@ -217,7 +324,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Saturn's posts", async () => {
         const query = SearchQueryParser.parse('gigantic');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          mars.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(saturnPosts[2].id);
@@ -252,7 +367,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, mars.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          mars.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -261,7 +384,15 @@ describe('FullTextSearch', () => {
       it('Luna can find own posts', async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, luna.id, lunaVisibleFeedIds, bannedByLunaUserIds, feedsBannedForLuna, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          luna.id,
+          lunaVisibleFeedIds,
+          bannedByLunaUserIds,
+          feedsBannedForLuna,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -270,7 +401,15 @@ describe('FullTextSearch', () => {
       it("Mars can find Luna's posts in 'luna' scope", async () => {
         const query = SearchQueryParser.parse('baker from:luna');
 
-        const searchResults = await dbAdapter.searchUserPosts(query, luna.id, marsVisibleFeedIds, bannedByMarsUserIds, feedsBannedForMars, 0, 30);
+        const searchResults = await dbAdapter.searchUserPosts(
+          query,
+          luna.id,
+          marsVisibleFeedIds,
+          bannedByMarsUserIds,
+          feedsBannedForMars,
+          0,
+          30,
+        );
         searchResults.should.not.be.empty;
         searchResults.length.should.eql(1);
         searchResults[0].should.eql(lunaPosts[1].id);
@@ -279,7 +418,15 @@ describe('FullTextSearch', () => {
       it("Jupiter can't find Luna's posts", async () => {
         const query = SearchQueryParser.parse('baker');
 
-        const searchResults = await dbAdapter.searchPosts(query, jupiter.id, jupiterVisibleFeedIds, bannedByJupiterUserIds, feedsBannedForJupiter, 0, 30);
+        const searchResults = await dbAdapter.searchPosts(
+          query,
+          jupiter.id,
+          jupiterVisibleFeedIds,
+          bannedByJupiterUserIds,
+          feedsBannedForJupiter,
+          0,
+          30,
+        );
         searchResults.should.be.empty;
       });
     });
@@ -342,17 +489,14 @@ describe('FullTextSearch', () => {
       const postTexts = [
         'hello @home!',
         '@home, are you here?',
-        'I was visiting automation@home exhibition today. It was just as @homely told'  // shouldn't match for @home
+        'I was visiting automation@home exhibition today. It was just as @homely told', // shouldn't match for @home
       ];
 
       const posts = await Promise.all(postTexts.map((body) => luna.newPost({ body })));
       await Promise.all(posts.map((post) => post.create()));
 
       const searchResults = await searchFor('"@home"');
-      expect(searchResults, 'when sorted', 'to equal', [
-        posts[0].id,
-        posts[1].id,
-      ].sort());
+      expect(searchResults, 'when sorted', 'to equal', [posts[0].id, posts[1].id].sort());
     });
 
     it('should be possible to search for special char-patterns', async () => {
@@ -369,12 +513,12 @@ describe('FullTextSearch', () => {
       await Promise.all(posts.map((post) => post.create()));
 
       const searchResults = await searchFor('"$special pattern$"');
-      expect(searchResults, 'when sorted', 'to equal', [
-        posts[0].id,
-        posts[1].id,
-        posts[2].id,
-        posts[3].id,
-      ].sort());
+      expect(
+        searchResults,
+        'when sorted',
+        'to equal',
+        [posts[0].id, posts[1].id, posts[2].id, posts[3].id].sort(),
+      );
     });
   });
 
@@ -382,10 +526,7 @@ describe('FullTextSearch', () => {
     let luna, mars, jupiter;
 
     const _becomeFriends = async (user1, user2) => {
-      await Promise.all([
-        user1.subscribeTo(user2),
-        user2.subscribeTo(user1),
-      ]);
+      await Promise.all([user1.subscribeTo(user2), user2.subscribeTo(user1)]);
     };
 
     const _createPost = async (author, text) => {
@@ -400,8 +541,8 @@ describe('FullTextSearch', () => {
 
     const _createComment = async (commenter, commentBody, thePost) => {
       const comment = await commenter.newComment({
-        body:   commentBody,
-        postId: thePost.id
+        body: commentBody,
+        postId: thePost.id,
       });
 
       return comment.create();
@@ -412,11 +553,7 @@ describe('FullTextSearch', () => {
       mars = new User({ username: 'Mars', password: 'password' });
       jupiter = new User({ username: 'Jupiter', password: 'password' });
 
-      await Promise.all([
-        luna.create(),
-        mars.create(),
-        jupiter.create(),
-      ]);
+      await Promise.all([luna.create(), mars.create(), jupiter.create()]);
     });
 
     describe('public posts search', () => {
@@ -425,7 +562,15 @@ describe('FullTextSearch', () => {
         const feedsBannedForUser = dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(viewer.id);
         const query = SearchQueryParser.parse(term);
 
-        return dbAdapter.searchPosts(query, null, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchPosts(
+          query,
+          null,
+          [],
+          await bannedUserIdsPromise,
+          await feedsBannedForUser,
+          0,
+          30,
+        );
       };
 
       it('should not find post from banned user', async () => {
@@ -539,7 +684,7 @@ describe('FullTextSearch', () => {
           await bannedUserIdsPromise,
           await feedsBannedForUser,
           0,
-          30
+          30,
         );
       };
 
@@ -610,7 +755,15 @@ describe('FullTextSearch', () => {
         const query = SearchQueryParser.parse(term);
         const targetUserPromise = dbAdapter.getUserByUsername(query.username);
 
-        return dbAdapter.searchUserPosts(query, (await targetUserPromise).id, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchUserPosts(
+          query,
+          (await targetUserPromise).id,
+          [],
+          await bannedUserIdsPromise,
+          await feedsBannedForUser,
+          0,
+          30,
+        );
       };
 
       it('should not find post from banned user', async () => {
@@ -618,9 +771,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -630,9 +798,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -642,9 +825,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -654,9 +852,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -666,9 +879,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
     });
@@ -695,7 +923,15 @@ describe('FullTextSearch', () => {
 
         const query = SearchQueryParser.parse(term);
         const targetUser = await dbAdapter.getUserByUsername(query.username);
-        return dbAdapter.searchUserPosts(query, targetUser.id, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchUserPosts(
+          query,
+          targetUser.id,
+          visibleFeedIds,
+          bannedUserIds,
+          await feedsBannedForUser,
+          0,
+          30,
+        );
       };
 
       it('should not find post from banned user', async () => {
@@ -703,9 +939,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -715,9 +966,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -727,9 +993,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -739,9 +1020,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -751,9 +1047,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateUserPosts('from: mars fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateUserPosts('from: mars #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateUserPosts('from: mars fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateUserPosts('from: mars #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
     });
@@ -767,10 +1078,7 @@ describe('FullTextSearch', () => {
 
         groupTimelineId = await group.getPostsTimelineId();
 
-        await Promise.all([
-          mars.subscribeTo(group),
-          jupiter.subscribeTo(group),
-        ]);
+        await Promise.all([mars.subscribeTo(group), jupiter.subscribeTo(group)]);
       });
 
       const _searchPublicGroupPosts = async (term, viewer) => {
@@ -781,7 +1089,16 @@ describe('FullTextSearch', () => {
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
 
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, [], await bannedUserIdsPromise, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchGroupPosts(
+          query,
+          groupPostsFeedId,
+          null,
+          [],
+          await bannedUserIdsPromise,
+          await feedsBannedForUser,
+          0,
+          30,
+        );
       };
 
       it('should not find post from banned user', async () => {
@@ -789,9 +1106,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -801,9 +1133,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -813,9 +1160,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -825,9 +1187,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -837,9 +1214,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPublicGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPublicGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
     });
@@ -872,7 +1264,7 @@ describe('FullTextSearch', () => {
           await bannedUserIdsPromise,
           await feedsBannedForUser,
           0,
-          30
+          30,
         );
       };
 
@@ -881,9 +1273,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -893,9 +1300,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -905,9 +1327,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -917,9 +1354,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
 
@@ -929,9 +1381,24 @@ describe('FullTextSearch', () => {
         await luna.ban('mars');
 
         await Promise.all([
-          expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to have length', 0),
-          expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to have length', 0),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
+          expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to have length',
+            0,
+          ),
         ]);
       });
     });
@@ -947,8 +1414,8 @@ describe('FullTextSearch', () => {
 
     const _createComment = async (commenter, commentBody, thePost) => {
       const comment = await commenter.newComment({
-        body:   commentBody,
-        postId: thePost.id
+        body: commentBody,
+        postId: thePost.id,
       });
 
       return comment.create();
@@ -959,11 +1426,7 @@ describe('FullTextSearch', () => {
       mars = new User({ username: 'Mars', password: 'password' });
       jupiter = new User({ username: 'Jupiter', password: 'password' });
 
-      await Promise.all([
-        luna.create(),
-        mars.create(),
-        jupiter.create(),
-      ]);
+      await Promise.all([luna.create(), mars.create(), jupiter.create()]);
     });
 
     describe('public posts search with specified group', () => {
@@ -985,35 +1448,95 @@ describe('FullTextSearch', () => {
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
 
-        const author = query.username ? (await dbAdapter.getUserByUsername(query.username)).id : null;
+        const author = query.username
+          ? (await dbAdapter.getUserByUsername(query.username)).id
+          : null;
 
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, author, [], bannedUserIds, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchGroupPosts(
+          query,
+          groupPostsFeedId,
+          author,
+          [],
+          bannedUserIds,
+          await feedsBannedForUser,
+          0,
+          30,
+        );
       };
 
       it('should find post in specified group', async () => {
-        const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
+        const post = await _createGroupPost(
+          mars,
+          groupTimelineId,
+          'Lazy green fox jumps over the #lazy dog',
+        );
 
-        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+        await expect(
+          _searchPublicGroupPosts('group: search-dev fox', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev "fox"', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev #lazy', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
       });
 
       it('should find post in specified group by comment match', async () => {
         const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
         await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
 
-        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+        await expect(
+          _searchPublicGroupPosts('group: search-dev fox', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev "fox"', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev #lazy', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
       });
 
       it("should find post in specified group by viewer's comment match", async () => {
         const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
         await _createComment(luna, 'Very #lazy fox', post);
 
-        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+        await expect(
+          _searchPublicGroupPosts('group: search-dev fox', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev "fox"', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev #lazy', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
       });
 
       it('should find post only in specified group', async () => {
@@ -1023,11 +1546,30 @@ describe('FullTextSearch', () => {
         await mars.subscribeTo(group2);
 
         await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the #lazy pig');
-        const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
+        const post = await _createGroupPost(
+          mars,
+          groupTimelineId,
+          'Lazy green fox jumps over the #lazy dog',
+        );
 
-        await expect(_searchPublicGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-        await expect(_searchPublicGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+        await expect(
+          _searchPublicGroupPosts('group: search-dev fox', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev "fox"', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
+        await expect(
+          _searchPublicGroupPosts('group: search-dev #lazy', luna),
+          'when fulfilled',
+          'to equal',
+          [post.id],
+        );
       });
 
       describe('by specified author', () => {
@@ -1044,12 +1586,35 @@ describe('FullTextSearch', () => {
 
           await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the #lazy pig');
           await _createPost(mars, 'Lazy green fox jumps over the #lazy pig');
-          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
-          await _createGroupPost(jupiter, groupTimelineId, 'Lazy green fox jumps over the #lazy jupiter');
+          const post = await _createGroupPost(
+            mars,
+            groupTimelineId,
+            'Lazy green fox jumps over the #lazy dog',
+          );
+          await _createGroupPost(
+            jupiter,
+            groupTimelineId,
+            'Lazy green fox jumps over the #lazy jupiter',
+          );
 
-          await expect(_searchPublicGroupPosts('group: search-dev from:mars fox', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPublicGroupPosts('group: search-dev from:mars "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPublicGroupPosts('group: search-dev from:mars #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+          await expect(
+            _searchPublicGroupPosts('group: search-dev from:mars fox', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPublicGroupPosts('group: search-dev from:mars "fox"', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPublicGroupPosts('group: search-dev from:mars #lazy', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
         });
       });
     });
@@ -1073,34 +1638,92 @@ describe('FullTextSearch', () => {
         const query = SearchQueryParser.parse(term);
         const targetGroup = await dbAdapter.getGroupByUsername(query.group);
         const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-        return dbAdapter.searchGroupPosts(query, groupPostsFeedId, null, visibleFeedIds, bannedUserIds, await feedsBannedForUser, 0, 30);
+        return dbAdapter.searchGroupPosts(
+          query,
+          groupPostsFeedId,
+          null,
+          visibleFeedIds,
+          bannedUserIds,
+          await feedsBannedForUser,
+          0,
+          30,
+        );
       };
 
       describe('for group subscribers', () => {
         it('should find post in specified group', async () => {
-          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
+          const post = await _createGroupPost(
+            mars,
+            groupTimelineId,
+            'Lazy green fox jumps over the #lazy dog',
+          );
 
-          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
         });
 
         it('should find post in specified group by comment match', async () => {
           const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
           await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
 
-          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
         });
 
         it("should find post in specified group by viewer's comment match", async () => {
           const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
           await _createComment(luna, 'Very #lazy fox', post);
 
-          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
         });
 
         it('should find post only in specified group', async () => {
@@ -1111,11 +1734,30 @@ describe('FullTextSearch', () => {
           await jupiter.subscribeTo(group2);
 
           await _createGroupPost(mars, group2TimelineId, 'Lazy green fox jumps over the #lazy pig');
-          const post = await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
+          const post = await _createGroupPost(
+            mars,
+            groupTimelineId,
+            'Lazy green fox jumps over the #lazy dog',
+          );
 
-          await expect(_searchPrivateGroupPosts('group: search-dev fox', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', luna), 'when fulfilled', 'to equal', [post.id]);
-          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', luna), 'when fulfilled', 'to equal', [post.id]);
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev fox', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', luna),
+            'when fulfilled',
+            'to equal',
+            [post.id],
+          );
         });
       });
 
@@ -1123,18 +1765,48 @@ describe('FullTextSearch', () => {
         it('should not find post in specified group', async () => {
           await _createGroupPost(mars, groupTimelineId, 'Lazy green fox jumps over the #lazy dog');
 
-          await expect(_searchPrivateGroupPosts('group: search-dev fox', jupiter), 'when fulfilled', 'to have length', 0);
-          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', jupiter), 'when fulfilled', 'to have length', 0);
-          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', jupiter), 'when fulfilled', 'to have length', 0);
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev fox', jupiter),
+            'when fulfilled',
+            'to have length',
+            0,
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', jupiter),
+            'when fulfilled',
+            'to have length',
+            0,
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', jupiter),
+            'when fulfilled',
+            'to have length',
+            0,
+          );
         });
 
         it('should not find post in specified group by comment match', async () => {
           const post = await _createGroupPost(mars, groupTimelineId, 'Lazy sloth');
           await _createComment(mars, 'Lazy green fox jumps over the #lazy dog', post);
 
-          await expect(_searchPrivateGroupPosts('group: search-dev fox', jupiter), 'when fulfilled', 'to have length', 0);
-          await expect(_searchPrivateGroupPosts('group: search-dev "fox"', jupiter), 'when fulfilled', 'to have length', 0);
-          await expect(_searchPrivateGroupPosts('group: search-dev #lazy', jupiter), 'when fulfilled', 'to have length', 0);
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev fox', jupiter),
+            'when fulfilled',
+            'to have length',
+            0,
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev "fox"', jupiter),
+            'when fulfilled',
+            'to have length',
+            0,
+          );
+          await expect(
+            _searchPrivateGroupPosts('group: search-dev #lazy', jupiter),
+            'when fulfilled',
+            'to have length',
+            0,
+          );
         });
       });
     });

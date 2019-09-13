@@ -4,12 +4,10 @@ import Raven from 'raven';
 
 import { load as configLoader } from '../../config/config';
 
-
 const config = configLoader();
 const debug = createDebug('freefeed:errors');
 
 const sentryIsEnabled = 'sentryDsn' in config;
-
 
 export function reportError(ctx) {
   return (err) => {
@@ -25,7 +23,7 @@ export function reportError(ctx) {
     if ('internalQuery' in err) {
       // looks like postgres err
       debug(err);
-      Reflect.deleteProperty(err, 'message');  // do not expose DB internals
+      Reflect.deleteProperty(err, 'message'); // do not expose DB internals
     }
 
     if (err && 'message' in err && err.message) {

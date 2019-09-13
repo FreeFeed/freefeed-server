@@ -12,19 +12,23 @@ import { SearchQueryParser } from '../../../app/support/SearchQueryParser';
 describe('SearchQueryParser', () => {
   describe('anonymous context', () => {
     const expectations = {
-      'test':                                { query: 'test' },
-      'foo -bar':                            { query: 'foo & !bar' },
-      '-foo bar':                            { query: '!foo & bar' },
-      'foo-bar':                             { query: 'foo-bar' },
-      'from:luna test':                      { query: 'test',      username: 'luna' },
-      'from:me foo':                         { query: 'foo',       username: 'me' },  // we handle this in controller explicitly
-      'test from:luna':                      { query: 'test',      username: 'luna' },
-      'from:luna foo bar':                   { query: 'foo & bar', username: 'luna' },
-      'foo from:luna bar':                   { query: 'foo & bar', username: 'luna' },
-      'group:solar-system foo bar':          { query: 'foo & bar', group: 'solar-system' },
-      'foo group:solar-system bar':          { query: 'foo & bar', group: 'solar-system' },
-      'foo group:solar-system bar from: me': { query: 'foo & bar', username: 'me', group: 'solar-system' },
-      'from:luna group:solar-system':        { username: 'luna', group: 'solar-system' },
+      test: { query: 'test' },
+      'foo -bar': { query: 'foo & !bar' },
+      '-foo bar': { query: '!foo & bar' },
+      'foo-bar': { query: 'foo-bar' },
+      'from:luna test': { query: 'test', username: 'luna' },
+      'from:me foo': { query: 'foo', username: 'me' }, // we handle this in controller explicitly
+      'test from:luna': { query: 'test', username: 'luna' },
+      'from:luna foo bar': { query: 'foo & bar', username: 'luna' },
+      'foo from:luna bar': { query: 'foo & bar', username: 'luna' },
+      'group:solar-system foo bar': { query: 'foo & bar', group: 'solar-system' },
+      'foo group:solar-system bar': { query: 'foo & bar', group: 'solar-system' },
+      'foo group:solar-system bar from: me': {
+        query: 'foo & bar',
+        username: 'me',
+        group: 'solar-system',
+      },
+      'from:luna group:solar-system': { username: 'luna', group: 'solar-system' },
     };
 
     forEach(expectations, (output, input) => {
@@ -37,9 +41,13 @@ describe('SearchQueryParser', () => {
   describe('user context', () => {
     const defaultUsername = 'luna';
     const expectations = {
-      'from:me test':                     { query: 'test', username: 'luna' },
-      'from:me test group: solar-system': { query: 'test', username: 'luna', group: 'solar-system' },
-      'from:me group: solar-system':      { username: 'luna', group: 'solar-system' },
+      'from:me test': { query: 'test', username: 'luna' },
+      'from:me test group: solar-system': {
+        query: 'test',
+        username: 'luna',
+        group: 'solar-system',
+      },
+      'from:me group: solar-system': { username: 'luna', group: 'solar-system' },
     };
 
     forEach(expectations, (output, input) => {

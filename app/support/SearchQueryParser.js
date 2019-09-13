@@ -4,19 +4,18 @@ import { HashTag } from 'social-text-tokenizer';
 
 import { tokenize } from './tokenize-text';
 
-
-const FROM_USERNAME_PATTERN             = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
+const FROM_USERNAME_PATTERN = 'from:\\s*(me|[A-Za-z0-9]{3,25})';
 const FROM_USERNAME_REPLACEMENT_PATTERN = 'from:\\s*(me|[A-Za-z0-9]{3,})\\s?';
-const IN_GROUP_PATTERN                  = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
-const IN_GROUP_REPLACEMENT_PATTERN      = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
-const QUOTE_PATTERN                     = '\\"(.+?)\\"';
-const QUOTE_REPLACEMENT_PATTERN         = '\\".*\\"';
+const IN_GROUP_PATTERN = 'group:\\s*([\\-A-Za-z0-9]{3,35})';
+const IN_GROUP_REPLACEMENT_PATTERN = 'group:\\s*[\\-A-Za-z0-9]{3,}\\s?';
+const QUOTE_PATTERN = '\\"(.+?)\\"';
+const QUOTE_REPLACEMENT_PATTERN = '\\".*\\"';
 
-const fromUsernameRegex            = new RegExp(FROM_USERNAME_PATTERN, 'i');
-const inGroupRegex                 = new RegExp(IN_GROUP_PATTERN, 'i');
+const fromUsernameRegex = new RegExp(FROM_USERNAME_PATTERN, 'i');
+const inGroupRegex = new RegExp(IN_GROUP_PATTERN, 'i');
 const fromUsernameReplacementRegex = new RegExp(FROM_USERNAME_REPLACEMENT_PATTERN, 'ig');
-const inGroupReplacementRegex      = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'ig');
-const quotedQueryReplacementRegex  = new RegExp(QUOTE_REPLACEMENT_PATTERN, 'ig');
+const inGroupReplacementRegex = new RegExp(IN_GROUP_REPLACEMENT_PATTERN, 'ig');
+const quotedQueryReplacementRegex = new RegExp(QUOTE_REPLACEMENT_PATTERN, 'ig');
 
 export class SearchQueryParser {
   static parse(query, defaultUsername = null) {
@@ -25,9 +24,9 @@ export class SearchQueryParser {
     const parseResult = {
       query,
       username: '',
-      group:    '',
-      quotes:   [],
-      hashtags: []
+      group: '',
+      quotes: [],
+      hashtags: [],
     };
 
     this.parseQueryScope(parseResult, defaultUsername);
@@ -38,7 +37,7 @@ export class SearchQueryParser {
   }
 
   static parseQueryScope(queryObject, defaultUsername = null) {
-    let targetUsername  = this.parseTargetUsername(queryObject.query);
+    let targetUsername = this.parseTargetUsername(queryObject.query);
     const targetGroupname = this.parseTargetGroupname(queryObject.query);
 
     if (targetUsername === 'me' && defaultUsername) {
@@ -55,10 +54,16 @@ export class SearchQueryParser {
   }
 
   static processQueryText(queryObject) {
-    const removeScopeAndQuotes = flow(this.removeQuotes, this.removeUserAndGroup);
+    const removeScopeAndQuotes = flow(
+      this.removeQuotes,
+      this.removeUserAndGroup,
+    );
     queryObject.query = removeScopeAndQuotes(queryObject.query);
     this.extractHashtags(queryObject);
-    const transformFullTextQuery = flow(this.cleanupQuery, this.prepareQuery);
+    const transformFullTextQuery = flow(
+      this.cleanupQuery,
+      this.prepareQuery,
+    );
     queryObject.query = transformFullTextQuery(queryObject.query);
   }
 
@@ -110,19 +115,20 @@ export class SearchQueryParser {
   }
 
   static removeUserAndGroup(query) {
-    return query.replace(fromUsernameReplacementRegex, '').replace(inGroupReplacementRegex, '').trim();
+    return query
+      .replace(fromUsernameReplacementRegex, '')
+      .replace(inGroupReplacementRegex, '')
+      .trim();
   }
 
   static cleanupQuery(query) {
     return query
-      .replace(/\s{2,}/ig, ' ')
-      .replace(/[^А-Яа-яA-Za-z0-9\-\s]/ig, '')
+      .replace(/\s{2,}/gi, ' ')
+      .replace(/[^А-Яа-яA-Za-z0-9\-\s]/gi, '')
       .trim();
   }
 
   static prepareQuery(query) {
-    return query
-      .replace(/(^|\s)-/ig, '$1!')
-      .replace(/\s+/g, ' & ');
+    return query.replace(/(^|\s)-/gi, '$1!').replace(/\s+/g, ' & ');
   }
 }

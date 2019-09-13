@@ -1,13 +1,7 @@
 {
   "extends": "eslint:recommended",
   "parser": "babel-eslint",
-  "plugins": [
-    "babel",
-    "import",
-    "lodash",
-    "promise",
-    "you-dont-need-lodash-underscore"
-  ],
+  "plugins": ["babel", "import", "lodash", "promise", "you-dont-need-lodash-underscore"],
   "env": {
     "node": true,
     "es6": true
@@ -17,7 +11,7 @@
     "sourceType": "module",
     "ecmaFeatures": {
       "jsx": true
-    },
+    }
   },
   "rules": {
     "array-bracket-spacing": [2, "never"],
@@ -34,7 +28,6 @@
     "import/default": 2,
     "import/named": 2,
     "import/namespace": 2,
-    "import/newline-after-import": [2, { "count": 2 }],
     "import/no-duplicates": 2,
     "import/no-extraneous-dependencies": 2,
     "import/no-mutable-exports": 2,
@@ -48,8 +41,6 @@
         "newlines-between": "always"
       }
     ],
-    "indent": [2, 2, {"SwitchCase": 1}],
-    "key-spacing": [2, { "align": "value" }],
     "keyword-spacing": 2,
     "linebreak-style": 2,
     "lodash/callback-binding": 2,
@@ -71,7 +62,6 @@
     "no-global-assign": 2,
     "no-lonely-if": 2,
     "no-misleading-character-class": 2,
-    "no-mixed-operators": 2,
     "no-multiple-empty-lines": 2,
     "no-native-reassign": 2,
     "no-nested-ternary": 2,
@@ -97,7 +87,6 @@
     "no-var": 2,
     "no-warning-comments": 1,
     "nonblock-statement-body-position": [2, "below"],
-    "object-curly-newline": [2, { "multiline": true }],
     "babel/object-curly-spacing": [2, "always"],
     "object-shorthand": [2, "properties"],
     "padded-blocks": [2, "never"],
@@ -128,17 +117,12 @@
     "promise/param-names": 2,
     "promise/catch-or-return": 2,
     "promise/no-native": 0,
-    "quotes": [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
+    "quotes": [2, "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
     "require-atomic-updates": 0,
     "require-yield": 0,
     "rest-spread-spacing": 2,
     "require-await": 2,
     "space-before-blocks": 2,
-    "space-before-function-paren": [2, {
-      "anonymous": "always",
-      "asyncArrow": "always",
-      "named": "never"
-    }],
     "space-in-parens": [2, "never"],
     "space-infix-ops": 2,
     "space-unary-ops": [2, { "words": true, "nonwords": false }],

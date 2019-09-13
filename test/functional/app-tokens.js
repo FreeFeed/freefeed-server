@@ -21,7 +21,6 @@ import {
 import { UUID, appTokenInfo } from './schemaV2-helper';
 import Session from './realtime-session';
 
-
 describe('App tokens controller', () => {
   before(() => cleanDB($pg_database));
 
@@ -32,12 +31,12 @@ describe('App tokens controller', () => {
       [luna, mars] = await createTestUsers(2);
       lunaToken = new AppTokenV1({
         userId: luna.user.id,
-        title:  'My app',
+        title: 'My app',
         scopes: ['read-my-info', 'manage-posts'],
       });
       marsToken = new AppTokenV1({
         userId: mars.user.id,
-        title:  'My app',
+        title: 'My app',
         scopes: ['read-my-info', 'manage-posts'],
       });
       await Promise.all([lunaToken, marsToken].map((t) => t.create()));
@@ -45,9 +44,10 @@ describe('App tokens controller', () => {
 
     it('should create token', async () => {
       const resp = await request(
-        'POST', '/v2/app-tokens',
+        'POST',
+        '/v2/app-tokens',
         {
-          title:  'App1',
+          title: 'App1',
           scopes: ['read-my-info', 'manage-posts'],
         },
         { 'X-Authentication-Token': luna.authToken },
@@ -55,12 +55,12 @@ describe('App tokens controller', () => {
 
       expect(resp, 'to satisfy', {
         token: {
-          id:            expect.it('to satisfy', UUID),
-          title:         'App1',
-          issue:         1,
-          scopes:        ['read-my-info', 'manage-posts'],
-          lastUsedAt:    null,
-          lastIP:        null,
+          id: expect.it('to satisfy', UUID),
+          title: 'App1',
+          issue: 1,
+          scopes: ['read-my-info', 'manage-posts'],
+          lastUsedAt: null,
+          lastIP: null,
           lastUserAgent: null,
         },
         tokenString: expect.it('to be a string'),
@@ -68,20 +68,16 @@ describe('App tokens controller', () => {
     });
 
     it('should return "whoami" data with token', async () => {
-      const resp = await request(
-        'GET', '/v2/users/whoami',
-        null,
-        { 'X-Authentication-Token': lunaToken.tokenString() },
-      );
+      const resp = await request('GET', '/v2/users/whoami', null, {
+        'X-Authentication-Token': lunaToken.tokenString(),
+      });
       expect(resp, 'to satisfy', { users: { id: luna.user.id } });
     });
 
     it('should reject "/v1/users/:username" request with token', async () => {
-      const resp = await request(
-        'GET', `/v1/users/${luna.username}`,
-        null,
-        { 'X-Authentication-Token': lunaToken.tokenString() },
-      );
+      const resp = await request('GET', `/v1/users/${luna.username}`, null, {
+        'X-Authentication-Token': lunaToken.tokenString(),
+      });
       expect(resp, 'to have key', 'err');
     });
 
@@ -91,38 +87,30 @@ describe('App tokens controller', () => {
       });
 
       it('should invalidate token', async () => {
-        const resp = await request(
-          'DELETE', `/v2/app-tokens/${lunaToken.id}`,
-          null,
-          { 'X-Authentication-Token': luna.authToken },
-        );
+        const resp = await request('DELETE', `/v2/app-tokens/${lunaToken.id}`, null, {
+          'X-Authentication-Token': luna.authToken,
+        });
         expect(resp, 'to satisfy', { __httpStatus: 200 });
       });
 
       it('should invalidate invalidated token', async () => {
-        const resp = await request(
-          'DELETE', `/v2/app-tokens/${lunaToken.id}`,
-          null,
-          { 'X-Authentication-Token': luna.authToken },
-        );
+        const resp = await request('DELETE', `/v2/app-tokens/${lunaToken.id}`, null, {
+          'X-Authentication-Token': luna.authToken,
+        });
         expect(resp.__httpStatus, 'to be', 200);
       });
 
       it('should not invalidate token of another user', async () => {
-        const resp = await request(
-          'DELETE', `/v2/app-tokens/${marsToken.id}`,
-          null,
-          { 'X-Authentication-Token': luna.authToken },
-        );
+        const resp = await request('DELETE', `/v2/app-tokens/${marsToken.id}`, null, {
+          'X-Authentication-Token': luna.authToken,
+        });
         expect(resp, 'to satisfy', { __httpStatus: 404 });
       });
 
       it('should reject "whoami" request with invalidated token', async () => {
-        const resp = await request(
-          'GET', '/v2/users/whoami',
-          null,
-          { 'X-Authentication-Token': lunaToken.tokenString() },
-        );
+        const resp = await request('GET', '/v2/users/whoami', null, {
+          'X-Authentication-Token': lunaToken.tokenString(),
+        });
         expect(resp, 'to satisfy', { __httpStatus: 401 });
       });
     });
@@ -136,14 +124,15 @@ describe('App tokens controller', () => {
 
       it('should reissue token', async () => {
         const resp = await request(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
+          'POST',
+          `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': luna.authToken },
         );
         expect(resp, 'to satisfy', {
           token: {
             ...appTokenInfo,
-            id:    lunaToken.id,
+            id: lunaToken.id,
             issue: 2, // <-- this
           },
           tokenString: expect.it('to be a string'),
@@ -154,7 +143,8 @@ describe('App tokens controller', () => {
 
       it('should not reissue token of another user', async () => {
         const resp = await request(
-          'POST', `/v2/app-tokens/${marsToken.id}/reissue`,
+          'POST',
+          `/v2/app-tokens/${marsToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': luna.authToken },
         );
@@ -163,13 +153,14 @@ describe('App tokens controller', () => {
 
       it('should reissue token being auhtenticated by itself', async () => {
         const resp = await request(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
+          'POST',
+          `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': newLunaTokenString },
         );
         expect(resp, 'to satisfy', {
           __httpStatus: 200,
-          token:        { issue: 3 },
+          token: { issue: 3 },
         });
 
         newLunaTokenString = resp.tokenString;
@@ -178,13 +169,14 @@ describe('App tokens controller', () => {
       it('should not reissue token being auhtenticated by another app token', async () => {
         const newToken = new AppTokenV1({
           userId: luna.user.id,
-          title:  'My app 2',
+          title: 'My app 2',
           scopes: ['read-my-info', 'manage-posts'],
         });
         await newToken.create();
 
         const resp = await request(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
+          'POST',
+          `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': newToken.tokenString() },
         );
@@ -195,7 +187,8 @@ describe('App tokens controller', () => {
         await lunaToken.inactivate();
 
         const resp = await request(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
+          'POST',
+          `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': luna.authToken },
         );
@@ -210,13 +203,14 @@ describe('App tokens controller', () => {
 
       it('should change token title', async () => {
         const resp = await request(
-          'PUT', `/v2/app-tokens/${lunaToken.id}`,
+          'PUT',
+          `/v2/app-tokens/${lunaToken.id}`,
           { title: 'New token title' },
           { 'X-Authentication-Token': luna.authToken },
         );
         expect(resp, 'to satisfy', {
           __httpStatus: 200,
-          token:        { title: 'New token title' },
+          token: { title: 'New token title' },
         });
       });
 
@@ -224,7 +218,8 @@ describe('App tokens controller', () => {
         await lunaToken.inactivate();
 
         const resp = await request(
-          'PUT', `/v2/app-tokens/${lunaToken.id}`,
+          'PUT',
+          `/v2/app-tokens/${lunaToken.id}`,
           { title: 'New token title' },
           { 'X-Authentication-Token': luna.authToken },
         );
@@ -241,12 +236,14 @@ describe('App tokens controller', () => {
 
     describe('Tokens list', () => {
       before(async () => {
-        await $pg_database.raw(`delete from app_tokens where user_id = :userId`, { userId: mars.user.id });
+        await $pg_database.raw(`delete from app_tokens where user_id = :userId`, {
+          userId: mars.user.id,
+        });
 
         for (let i = 0; i < 3; i++) {
           const token = new AppTokenV1({
             userId: mars.user.id,
-            title:  `My token #${i + 1}`,
+            title: `My token #${i + 1}`,
             scopes: ['read-my-info', 'manage-posts'],
           });
           await token.create(); // eslint-disable-line no-await-in-loop
@@ -254,11 +251,9 @@ describe('App tokens controller', () => {
       });
 
       it('should return list of tokens', async () => {
-        const resp = await request(
-          'GET', `/v2/app-tokens`,
-          null,
-          { 'X-Authentication-Token': mars.authToken },
-        );
+        const resp = await request('GET', `/v2/app-tokens`, null, {
+          'X-Authentication-Token': mars.authToken,
+        });
         expect(resp, 'to satisfy', {
           tokens: [
             { ...appTokenInfo, title: 'My token #3' },
@@ -273,20 +268,18 @@ describe('App tokens controller', () => {
       let token;
       before(async () => {
         token = new AppTokenV1({
-          userId:       luna.user.id,
-          title:        'My app',
-          scopes:       ['read-my-info'],
+          userId: luna.user.id,
+          title: 'My app',
+          scopes: ['read-my-info'],
           restrictions: { netmasks: ['127.0.0.1/24'] },
         });
         await token.create();
       });
 
       it('should allow "/v1/users/me" request with token', async () => {
-        const resp = await request(
-          'GET', `/v1/users/me`,
-          null,
-          { 'X-Authentication-Token': token.tokenString() },
-        );
+        const resp = await request('GET', `/v1/users/me`, null, {
+          'X-Authentication-Token': token.tokenString(),
+        });
         expect(resp, 'to satisfy', { __httpStatus: 200 });
       });
     });
@@ -309,12 +302,12 @@ describe('Realtime', () => {
 
     token = new AppTokenV1({
       userId: luna.user.id,
-      title:  'App with realtime',
+      title: 'App with realtime',
       scopes: ['read-realtime'],
     });
     token2 = new AppTokenV1({
       userId: luna.user.id,
-      title:  'App without realtime',
+      title: 'App without realtime',
       scopes: ['read-my-info'],
     });
     await Promise.all([token, token2].map((t) => t.create()));
@@ -329,28 +322,19 @@ describe('Realtime', () => {
   afterEach(() => session.disconnect());
 
   it('sould not deliver post event to anonymous session', async () => {
-    const test = session.notReceiveWhile(
-      'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
-    );
+    const test = session.notReceiveWhile('comment:new', createCommentAsync(luna, post.id, 'Hello'));
     await expect(test, 'to be fulfilled');
   });
 
   it('sould deliver post event to session with Luna session token', async () => {
     await session.sendAsync('auth', { authToken: luna.authToken });
-    const test = session.receiveWhile(
-      'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
-    );
+    const test = session.receiveWhile('comment:new', createCommentAsync(luna, post.id, 'Hello'));
     await expect(test, 'to be fulfilled');
   });
 
   it('sould deliver post event to session with correct app token', async () => {
     await session.sendAsync('auth', { authToken: token.tokenString() });
-    const test = session.receiveWhile(
-      'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
-    );
+    const test = session.receiveWhile('comment:new', createCommentAsync(luna, post.id, 'Hello'));
     await expect(test, 'to be fulfilled');
   });
 
@@ -367,14 +351,13 @@ describe('Full access', () => {
     await cleanDB($pg_database);
 
     luna = await createTestUser();
-    await $pg_database.raw(
-      `update users set private_meta = '{"foo":"bar"}' where uid = :userId`,
-      { userId: luna.user.id },
-    );
+    await $pg_database.raw(`update users set private_meta = '{"foo":"bar"}' where uid = :userId`, {
+      userId: luna.user.id,
+    });
 
     token = new AppTokenV1({
       userId: luna.user.id,
-      title:  'App',
+      title: 'App',
       scopes: ['read-my-info', 'manage-profile'],
     });
     await token.create();
@@ -384,9 +367,9 @@ describe('Full access', () => {
     await updateUserAsync(luna, { screenName: 'Name1', email: 'name1@host.org' });
     const u = await dbAdapter.getUserById(luna.user.id);
     expect(u, 'to satisfy', {
-      id:         luna.user.id,
+      id: luna.user.id,
       screenName: 'Name1',
-      email:      'name1@host.org',
+      email: 'name1@host.org',
     });
   });
 
@@ -397,9 +380,9 @@ describe('Full access', () => {
     );
     const u = await dbAdapter.getUserById(luna.user.id);
     expect(u, 'to satisfy', {
-      id:         luna.user.id,
+      id: luna.user.id,
       screenName: 'Name2',
-      email:      'name1@host.org',
+      email: 'name1@host.org',
     });
   });
 
@@ -417,13 +400,13 @@ describe('Full access', () => {
 async function request(method, path, body, headers = {}) {
   const resp = await performRequest(path, {
     method,
-    body:    method === 'GET' ? null : JSON.stringify(body),
+    body: method === 'GET' ? null : JSON.stringify(body),
     headers: {
       'Content-Type': 'application/json',
       ...headers,
     },
   });
-  const textResponse =  await resp.text();
+  const textResponse = await resp.text();
   let json;
 
   try {

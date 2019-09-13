@@ -2,9 +2,8 @@
 /* global $pg_database */
 import expect from 'unexpected';
 
-import cleanDB from '../../dbCleaner'
+import cleanDB from '../../dbCleaner';
 import { User, dbAdapter } from '../../../app/models';
-
 
 describe('Change username', () => {
   beforeEach(() => cleanDB($pg_database));
@@ -18,11 +17,11 @@ describe('Change username', () => {
     await mars.create();
   });
 
-  it('should allow to change username luna -> jupiter',
-    () => shouldChangeUsername(luna, 'jupiter'));
+  it('should allow to change username luna -> jupiter', () =>
+    shouldChangeUsername(luna, 'jupiter'));
 
-  it('should not allow to change username luna -> mars',
-    () => shouldNotChangeUsername(luna, 'mars'));
+  it('should not allow to change username luna -> mars', () =>
+    shouldNotChangeUsername(luna, 'mars'));
 
   describe(`Luna changed username to 'jupiter'`, () => {
     beforeEach(() => shouldChangeUsername(luna, 'jupiter'));
@@ -32,14 +31,14 @@ describe('Change username', () => {
       expect(pastNames, 'to satisfy', [{ username: 'luna' }]);
     });
 
-    it('should not allow to change username mars -> luna',
-      () => shouldNotChangeUsername(mars, 'luna'));
+    it('should not allow to change username mars -> luna', () =>
+      shouldNotChangeUsername(mars, 'luna'));
 
-    it('should not allow to change username mars -> jupiter',
-      () => shouldNotChangeUsername(mars, 'jupiter'));
+    it('should not allow to change username mars -> jupiter', () =>
+      shouldNotChangeUsername(mars, 'jupiter'));
 
-    it('should allow to change username back (jupiter -> luna)',
-      () => shouldChangeUsername(luna, 'luna'));
+    it('should allow to change username back (jupiter -> luna)', () =>
+      shouldChangeUsername(luna, 'luna'));
 
     it('should return Luna user by jupiter username', async () => {
       const newLuna = await dbAdapter.getFeedOwnerByUsername('jupiter');
@@ -70,13 +69,15 @@ describe('Change username', () => {
         expect(newLuna, 'to be null');
       });
 
-      it('should allow to change username mars -> jupiter',
-        () => shouldChangeUsername(mars, 'jupiter'));
+      it('should allow to change username mars -> jupiter', () =>
+        shouldChangeUsername(mars, 'jupiter'));
     });
 
     describe(`Luna slowly changed username back to 'luna'`, () => {
       beforeEach(async () => {
-        await dbAdapter.database.raw(`update user_past_names set valid_till = valid_till - interval '2 hours'`);
+        await dbAdapter.database.raw(
+          `update user_past_names set valid_till = valid_till - interval '2 hours'`,
+        );
         await shouldChangeUsername(luna, 'luna');
       });
 
@@ -90,8 +91,8 @@ describe('Change username', () => {
         expect(newLuna, 'to satisfy', { id: luna.id, username: 'luna' });
       });
 
-      it('should not allow to change username mars -> jupiter',
-        () => shouldNotChangeUsername(mars, 'jupiter'));
+      it('should not allow to change username mars -> jupiter', () =>
+        shouldNotChangeUsername(mars, 'jupiter'));
     });
   });
 });

@@ -22,7 +22,8 @@
     "bestof_emails": "babel-node bin/bestof_emails",
     "count_stats": "babel-node bin/count_stats",
     "count-daily-stats": "babel-node bin/count-daily-stats",
-    "import_clikes": "babel-node bin/import_clikes"
+    "import_clikes": "babel-node bin/import_clikes",
+    "pretty-quick": "pretty-quick --pattern \"./**/*.(js|md)\" --branch stable"
   },
   "repository": {
     "type": "git",
@@ -46,6 +47,7 @@
     "gifsicle": "~4.0.1",
     "gm": "~1.23.1",
     "grapheme-breaker": "0.3.2",
+    "husky": "^3.0.5",
     "jsonwebtoken": "~8.5.1",
     "juice": "~5.2.0",
     "knex": "~0.19.4",
@@ -79,6 +81,8 @@
     "pg": "~7.12.1",
     "pg-cursor": "~2.0.0",
     "pg-format": "~1.0.4",
+    "prettier": "^1.18.2",
+    "pretty-quick": "^1.11.1",
     "probe-image-size": "~4.1.1",
     "promise-streams": "~2.1.1",
     "raven": "~2.6.2",
@@ -139,5 +143,10 @@
   },
   "resolutions": {
     "eslint-plugin-lodash/lodash": "4.17.15"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
   }
 }

@@ -3,19 +3,25 @@ import compose from 'koa-compose';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
-import { ValidationException, NotFoundException, ForbiddenException } from '../../../support/exceptions';
+import {
+  ValidationException,
+  NotFoundException,
+  ForbiddenException,
+} from '../../../support/exceptions';
 import { appTokensScopes } from '../../../models/app-tokens-scopes';
 import { Address } from '../../../support/ipv6';
 
 import { appTokenCreateInputSchema, appTokenUpdateInputSchema } from './data-schemes/app-tokens';
-
 
 export const create = compose([
   authRequired(),
   inputSchemaRequired(appTokenCreateInputSchema),
   monitored('app-tokens.create'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const {
+      state: { user },
+      request: { body },
+    } = ctx;
 
     const validScopes = appTokensScopes.map(({ name }) => name);
     const unknownScopes = difference(body.scopes, validScopes);
@@ -44,16 +50,16 @@ export const create = compose([
     }
 
     const token = new AppTokenV1({
-      userId:       user.id,
-      title:        body.title,
-      scopes:       body.scopes,
+      userId: user.id,
+      title: body.title,
+      scopes: body.scopes,
       restrictions: body.restrictions,
     });
 
     await token.create();
 
     ctx.body = {
-      token:       serializeAppToken(token),
+      token: serializeAppToken(token),
       tokenString: token.tokenString(),
     };
   },
@@ -88,8 +94,8 @@ export const reissue = compose([
     }
 
     if (
-      !currentToken.hasFullAccess()
-      && !(currentToken instanceof AppTokenV1 && currentToken.id === token.id)
+      !currentToken.hasFullAccess() &&
+      !(currentToken instanceof AppTokenV1 && currentToken.id === token.id)
     ) {
       throw new ForbiddenException('Access denied');
     }
@@ -97,7 +103,7 @@ export const reissue = compose([
     await token.reissue();
 
     ctx.body = {
-      token:       serializeAppToken(token),
+      token: serializeAppToken(token),
       tokenString: token.tokenString(),
     };
   },
@@ -108,7 +114,12 @@ export const update = compose([
   inputSchemaRequired(appTokenUpdateInputSchema),
   monitored('app-tokens.update'),
   async (ctx) => {
-    const { state: { user }, request: { body: { title } } } = ctx;
+    const {
+      state: { user },
+      request: {
+        body: { title },
+      },
+    } = ctx;
     const token = await dbAdapter.getAppTokenById(ctx.params.tokenId);
 
     if (!token || token.userId !== user.id || !token.isActive) {
@@ -125,7 +136,9 @@ export const list = compose([
   authRequired(),
   monitored('app-tokens.update'),
   async (ctx) => {
-    const { state: { user } } = ctx;
+    const {
+      state: { user },
+    } = ctx;
 
     const tokens = await dbAdapter.listActiveAppTokens(user.id);
 

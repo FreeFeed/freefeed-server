@@ -2,16 +2,15 @@
 /* global $pg_database */
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 import uuidv4 from 'uuid/v4';
 
-import { load as configLoader } from '../../../config/config'
+import { load as configLoader } from '../../../config/config';
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, AppTokenV1, dbAdapter } from '../../../app/models';
 import { withAuthToken, tokenFromJWT } from '../../../app/controllers/middlewares/with-auth-token';
 
-
-const config = configLoader()
+const config = configLoader();
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -25,26 +24,28 @@ describe('tokenFromJWT', () => {
     await luna.create();
     sessToken = new SessionTokenV0(luna.id);
     appToken = new AppTokenV1({
-      userId:       luna.id,
-      title:        'My app',
-      scopes:       ['read-my-info'],
+      userId: luna.id,
+      title: 'My app',
+      scopes: ['read-my-info'],
       restrictions: {
         netmasks: ['127.0.0.1/24'],
-        origins:  ['https://localhost']
-      }
+        origins: ['https://localhost'],
+      },
     });
     await appToken.create();
   });
 
   const defaultContext = () => ({
-    headers:  { origin: 'https://localhost' },
+    headers: { origin: 'https://localhost' },
     remoteIP: '127.0.0.1',
-    route:    'GET /v2/users/whoami',
+    route: 'GET /v2/users/whoami',
   });
 
   describe('Bad tokens', () => {
     it('should give anonymous access without token', async () => {
-      await expect(tokenFromJWT('bad token', defaultContext()), 'to be rejected with', { status: 401 });
+      await expect(tokenFromJWT('bad token', defaultContext()), 'to be rejected with', {
+        status: 401,
+      });
     });
   });
 
@@ -66,47 +67,63 @@ describe('tokenFromJWT', () => {
   describe('AppTokenV1', () => {
     it('should not give access with invalid token ID', async () => {
       const { secret } = config;
-      const fakeTokenString = jwt.sign({
-        type:   AppTokenV1.TYPE,
-        id:     uuidv4(),
-        issue:  appToken.issue,
-        userId: appToken.userId,
-      }, secret);
+      const fakeTokenString = jwt.sign(
+        {
+          type: AppTokenV1.TYPE,
+          id: uuidv4(),
+          issue: appToken.issue,
+          userId: appToken.userId,
+        },
+        secret,
+      );
 
-      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', { status: 401 });
+      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', {
+        status: 401,
+      });
     });
 
     it('should not give access with invalid token issue number', async () => {
       const { secret } = config;
-      const fakeTokenString = jwt.sign({
-        type:   AppTokenV1.TYPE,
-        id:     appToken.id,
-        issue:  appToken.issue + 1,
-        userId: appToken.userId,
-      }, secret);
+      const fakeTokenString = jwt.sign(
+        {
+          type: AppTokenV1.TYPE,
+          id: appToken.id,
+          issue: appToken.issue + 1,
+          userId: appToken.userId,
+        },
+        secret,
+      );
 
-      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', { status: 401 });
+      await expect(tokenFromJWT(fakeTokenString, defaultContext()), 'to be rejected with', {
+        status: 401,
+      });
     });
 
     it('should not give access from invalid IP address', async () => {
       const ctx = defaultContext();
       ctx.remoteIP = '127.0.1.1';
 
-      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 401 });
+      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', {
+        status: 401,
+      });
     });
 
     it('should not give access from invalid origin', async () => {
       const ctx = defaultContext();
       ctx.headers['origin'] = 'https://evil.com';
 
-      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 401 });
+      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', {
+        status: 401,
+      });
     });
 
     it('should not give access to the invalid route', async () => {
       const ctx = defaultContext();
       ctx.route = 'GET /v1/invalid';
 
-      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', { status: 401 });
+      await expect(tokenFromJWT(appToken.tokenString(), ctx), 'to be rejected with', {
+        status: 401,
+      });
     });
 
     it('should give access with correct context', async () => {
@@ -134,7 +151,7 @@ describe('withAuthToken middleware', () => {
 
   describe('Token souces', () => {
     let authToken;
-    before(() => authToken = new SessionTokenV0(luna.id).tokenString());
+    before(() => (authToken = new SessionTokenV0(luna.id).tokenString()));
 
     it('should accept token in ctx.query.authToken', async () => {
       const ctx = { query: { authToken }, request: { body: {} }, headers: {}, state: {} };
@@ -143,25 +160,40 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should accept token in ctx.request.body.authToken', async () => {
-      const ctx = { query: { }, request: { body: { authToken } }, headers: {}, state: {} };
+      const ctx = { query: {}, request: { body: { authToken } }, headers: {}, state: {} };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it(`should accept token in 'x-authentication-token' header`, async () => {
-      const ctx = { query: { }, request: { body: { } }, headers: { 'x-authentication-token': authToken }, state: {} };
+      const ctx = {
+        query: {},
+        request: { body: {} },
+        headers: { 'x-authentication-token': authToken },
+        state: {},
+      };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it(`should accept token in 'authorization' header`, async () => {
-      const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `Bearer ${authToken}` }, state: {} };
+      const ctx = {
+        query: {},
+        request: { body: {} },
+        headers: { authorization: `Bearer ${authToken}` },
+        state: {},
+      };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it(`should not accept invalid in 'authorization' header`, async () => {
-      const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `BeaRER ${authToken}` }, state: {} };
+      const ctx = {
+        query: {},
+        request: { body: {} },
+        headers: { authorization: `BeaRER ${authToken}` },
+        state: {},
+      };
       await expect(withAuthToken(ctx, () => null), 'to be rejected with', { status: 401 });
     });
   });
@@ -170,42 +202,41 @@ describe('withAuthToken middleware', () => {
     let token;
 
     const context = () => ({
-      ip:            '127.0.0.127',
-      method:        'POST',
-      url:           '/v1/posts',
+      ip: '127.0.0.127',
+      method: 'POST',
+      url: '/v1/posts',
       _matchedRoute: '/v1/posts',
-      headers:       {
+      headers: {
         'user-agent': 'Lynx browser, Linux',
-        'x-real-ip':  '127.0.0.128',
-        'origin':     'https://localhost',
+        'x-real-ip': '127.0.0.128',
+        origin: 'https://localhost',
       },
       request: { body: {} },
-      state:   {},
+      state: {},
     });
-
 
     before(async () => {
       token = new AppTokenV1({
-        userId:       luna.id,
-        title:        'My app',
-        scopes:       ['read-my-info', 'manage-posts'],
+        userId: luna.id,
+        title: 'My app',
+        scopes: ['read-my-info', 'manage-posts'],
         restrictions: {
           netmasks: ['127.0.0.1/24'],
-          origins:  ['https://localhost']
-        }
+          origins: ['https://localhost'],
+        },
       });
       await token.create();
     });
 
     it('should set last* fields of token', async () => {
       const t1 = new AppTokenV1({
-        userId:       luna.id,
-        title:        'My app',
-        scopes:       ['read-my-info', 'manage-posts'],
+        userId: luna.id,
+        title: 'My app',
+        scopes: ['read-my-info', 'manage-posts'],
         restrictions: {
           netmasks: ['127.0.0.1/24'],
-          origins:  ['https://localhost']
-        }
+          origins: ['https://localhost'],
+        },
       });
       await t1.create();
 
@@ -220,7 +251,10 @@ describe('withAuthToken middleware', () => {
     });
 
     it('should not write log entry after GET requests', async () => {
-      const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
+      const { rows: logRows } = await $pg_database.raw(
+        'select * from app_tokens_log where token_id = :id limit 1',
+        { id: token.id },
+      );
       expect(logRows, 'to be empty');
     });
 
@@ -230,14 +264,19 @@ describe('withAuthToken middleware', () => {
       ctx.state.appTokenLogPayload = { postId: 'post1' };
       await withAuthToken(ctx, () => null);
 
-      const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
-      expect(logRows, 'to satisfy', [{
-        token_id:   token.id,
-        request:    'POST /v1/posts',
-        ip:         '127.0.0.127',
-        user_agent: 'Lynx browser, Linux',
-        extra:      { postId: 'post1', 'x-real-ip': '127.0.0.128' },
-      }]);
+      const { rows: logRows } = await $pg_database.raw(
+        'select * from app_tokens_log where token_id = :id limit 1',
+        { id: token.id },
+      );
+      expect(logRows, 'to satisfy', [
+        {
+          token_id: token.id,
+          request: 'POST /v1/posts',
+          ip: '127.0.0.127',
+          user_agent: 'Lynx browser, Linux',
+          extra: { postId: 'post1', 'x-real-ip': '127.0.0.128' },
+        },
+      ]);
     });
   });
 });

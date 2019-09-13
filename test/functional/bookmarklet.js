@@ -6,16 +6,20 @@ import { fromPairs } from 'lodash';
 import expect from 'unexpected';
 import { parse as bytesParse } from 'bytes';
 
-import cleanDB from '../dbCleaner'
+import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { dbAdapter, PubSub } from '../../app/models';
-import { PubSubAdapter } from '../../app/support/PubSubAdapter'
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { load as configLoader } from '../../config/config';
 
-import { createPostViaBookmarklet, createGroupAsync, createTestUser, MockHTTPServer } from './functional_test_helper'
+import {
+  createPostViaBookmarklet,
+  createGroupAsync,
+  createTestUser,
+  MockHTTPServer,
+} from './functional_test_helper';
 import { postResponse } from './schemaV2-helper';
 import Session from './realtime-session';
-
 
 const config = configLoader();
 const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
@@ -26,14 +30,14 @@ describe('BookmarkletController', () => {
   before(async () => {
     const app = await getSingleton();
     rtPort = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
-    const pubsubAdapter = new PubSubAdapter($database)
-    PubSub.setPublisher(pubsubAdapter)
+    const pubsubAdapter = new PubSubAdapter($database);
+    PubSub.setPublisher(pubsubAdapter);
   });
 
-  beforeEach(() => cleanDB($pg_database))
+  beforeEach(() => cleanDB($pg_database));
 
   describe('#create()', () => {
-    let luna
+    let luna;
     beforeEach(async () => {
       luna = await createTestUser();
     });
@@ -45,21 +49,36 @@ describe('BookmarkletController', () => {
     });
 
     it('should create post in the author feed', async () => {
-      const response = await callBookmarklet(luna, { title: 'Post', meta: { feeds: [luna.username] } });
+      const response = await callBookmarklet(luna, {
+        title: 'Post',
+        meta: { feeds: [luna.username] },
+      });
       expect(response.subscriptions, 'to have length', 1);
       expect(response.subscriptions, 'to satisfy', [{ name: 'Posts', user: luna.user.id }]);
     });
 
     it('should create post in the multiple feeds', async () => {
-      const group = await createGroupAsync(luna, 'new-shiny-group')
-      const response = await callBookmarklet(luna, { title: 'Post', meta: { feeds: [luna.username, group.username] } });
+      const group = await createGroupAsync(luna, 'new-shiny-group');
+      const response = await callBookmarklet(luna, {
+        title: 'Post',
+        meta: { feeds: [luna.username, group.username] },
+      });
       expect(response.subscriptions, 'to have length', 2);
-      expect(response.subscriptions, 'to have an item satisfying', { name: 'Posts', user: luna.user.id });
-      expect(response.subscriptions, 'to have an item satisfying', { name: 'Posts', user: group.group.id });
+      expect(response.subscriptions, 'to have an item satisfying', {
+        name: 'Posts',
+        user: luna.user.id,
+      });
+      expect(response.subscriptions, 'to have an item satisfying', {
+        name: 'Posts',
+        user: group.group.id,
+      });
     });
 
     it('should force an error when trying to post into nonexistent groups', async () => {
-      const call = callBookmarklet(luna, { title: 'Post', meta: { feeds: [luna.username, 'non-existent-group'] } });
+      const call = callBookmarklet(luna, {
+        title: 'Post',
+        meta: { feeds: [luna.username, 'non-existent-group'] },
+      });
       await expect(call, 'to be rejected with', /^HTTP error 404:/);
     });
 
@@ -74,16 +93,13 @@ describe('BookmarkletController', () => {
       beforeEach(async () => {
         lunaSession = await Session.create(rtPort, 'Luna session');
         const lunaPostsFeed = await dbAdapter.getUserNamedFeed(luna.user.id, 'Posts');
-        await lunaSession.sendAsync('subscribe', { 'timeline': [lunaPostsFeed.id] });
+        await lunaSession.sendAsync('subscribe', { timeline: [lunaPostsFeed.id] });
       });
 
       afterEach(() => lunaSession.disconnect());
 
       it(`should deliver 'post:new' event when post created`, async () => {
-        const test = lunaSession.receiveWhile(
-          'post:new',
-          callBookmarklet(luna, { title: 'Post' }),
-        );
+        const test = lunaSession.receiveWhile('post:new', callBookmarklet(luna, { title: 'Post' }));
         await expect(test, 'to be fulfilled');
       });
 
@@ -98,7 +114,9 @@ describe('BookmarkletController', () => {
 
     describe('Attachments', () => {
       const server = new MockHTTPServer((ctx) => {
-        const { request: { url } } = ctx;
+        const {
+          request: { url },
+        } = ctx;
 
         if (url === '/big-cl.jpg') {
           ctx.status = 200;
@@ -128,7 +146,10 @@ describe('BookmarkletController', () => {
       after(() => server.stop());
 
       it(`should create post with the image attachment`, async () => {
-        const result = await callBookmarklet(luna, { title: 'Post', image: `${server.origin}/image.jpg` });
+        const result = await callBookmarklet(luna, {
+          title: 'Post',
+          image: `${server.origin}/image.jpg`,
+        });
         expect(result.attachments, 'to satisfy', [{ fileName: 'image.jpg' }]);
       });
 
@@ -136,53 +157,81 @@ describe('BookmarkletController', () => {
         const n = 5;
         const fileNames = [];
 
-        for (let i = 0; i < n;i++) {
+        for (let i = 0; i < n; i++) {
           fileNames.push(`image${i}.jpg`);
         }
 
-        const result = await callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
-        expect(result.attachments, 'to satisfy', fromPairs(fileNames.map((fileName, i) => [i, { fileName }])));
+        const result = await callBookmarklet(luna, {
+          title: 'Post',
+          images: fileNames.map((name) => `${server.origin}/${name}`),
+        });
+        expect(
+          result.attachments,
+          'to satisfy',
+          fromPairs(fileNames.map((fileName, i) => [i, { fileName }])),
+        );
       });
 
       it(`should not create post with too many image attachments`, async () => {
         const n = config.attachments.maxCount + 5;
         const fileNames = [];
 
-        for (let i = 0; i < n;i++) {
+        for (let i = 0; i < n; i++) {
           fileNames.push(`image${i}.jpg`);
         }
 
-        const call = callBookmarklet(luna, { title: 'Post', images: fileNames.map((name) => `${server.origin}/${name}`) });
+        const call = callBookmarklet(luna, {
+          title: 'Post',
+          images: fileNames.map((name) => `${server.origin}/${name}`),
+        });
         await expect(call, 'to be rejected with', /^HTTP error 422:/);
       });
 
       it(`should not create post with non-image attachment`, async () => {
-        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/image.txt`] });
+        const call = callBookmarklet(luna, {
+          title: 'Post',
+          images: [`${server.origin}/image.txt`],
+        });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with unexistent attachment`, async () => {
-        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/image.pdf`] });
+        const call = callBookmarklet(luna, {
+          title: 'Post',
+          images: [`${server.origin}/image.pdf`],
+        });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with image and non-image attachment`, async () => {
-        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/image1.jpg`, `${server.origin}/image2.txt`] });
+        const call = callBookmarklet(luna, {
+          title: 'Post',
+          images: [`${server.origin}/image1.jpg`, `${server.origin}/image2.txt`],
+        });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with attachment with very large Content-Length`, async () => {
-        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/big-cl.jpg`] });
+        const call = callBookmarklet(luna, {
+          title: 'Post',
+          images: [`${server.origin}/big-cl.jpg`],
+        });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should not create post with very large attachment without Content-Length`, async () => {
-        const call = callBookmarklet(luna, { title: 'Post', images: [`${server.origin}/big-body.jpg`] });
+        const call = callBookmarklet(luna, {
+          title: 'Post',
+          images: [`${server.origin}/big-body.jpg`],
+        });
         await expect(call, 'to be rejected with', /^HTTP error 403:/);
       });
 
       it(`should create post with unescaped unicode image URL`, async () => {
-        const result = await callBookmarklet(luna, { title: 'Post', image: `${server.origin}/imåge.png` });
+        const result = await callBookmarklet(luna, {
+          title: 'Post',
+          image: `${server.origin}/imåge.png`,
+        });
         expect(result.attachments, 'to have length', 1);
         expect(result.attachments, 'to satisfy', [{ fileName: 'imåge.png' }]);
       });
@@ -211,10 +260,10 @@ function getStreamOfLength(length, chunk = Buffer.alloc(1024)) {
         bytesLeft -= chunk.length;
       } else if (bytesLeft > 0) {
         this.push(chunk.slice(0, bytesLeft));
-        bytesLeft = 0
+        bytesLeft = 0;
       } else {
         this.push(null);
       }
-    }
+    },
   });
 }

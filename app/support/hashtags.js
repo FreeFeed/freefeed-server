@@ -16,6 +16,6 @@ export function extractHashtags(text) {
   return uniq(
     tokenize(text)
       .filter((t) => t instanceof HashTag)
-      .map((t) => t.text.substr(1))
+      .map((t) => t.text.substr(1)),
   );
 }

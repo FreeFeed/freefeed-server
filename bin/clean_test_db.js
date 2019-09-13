@@ -3,7 +3,6 @@ import knexLib from 'knex';
 
 import config from '../knexfile';
 
-
 if (!('test' in config)) {
   process.stderr.write(`Error: no "test" section in knexfile`);
   process.exit(1);

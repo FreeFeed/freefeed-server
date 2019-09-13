@@ -4,22 +4,21 @@ import { dbAdapter } from '../../models';
 
 import { userSerializerFunction } from './user';
 
-
 export async function serializeEvents(events, viewerId = null) {
   const [userIdsMapping, postIdsMapping, commentIdsMapping] = await getIntIdsMappings(events);
 
   const serializedEvents = events.map((e) => {
     return {
-      id:               e.id,
-      eventId:          e.uid,
-      date:             e.created_at.toISOString(),
-      created_user_id:  userIdsMapping[e.created_by_user_id] || null,
+      id: e.id,
+      eventId: e.uid,
+      date: e.created_at.toISOString(),
+      created_user_id: userIdsMapping[e.created_by_user_id] || null,
       affected_user_id: userIdsMapping[e.target_user_id] || null,
-      event_type:       e.event_type,
-      group_id:         userIdsMapping[e.group_id] || null,
-      post_id:          postIdsMapping[e.post_id] || null,
-      comment_id:       commentIdsMapping[e.comment_id] || null,
-      post_author_id:   userIdsMapping[e.post_author_id] || null
+      event_type: e.event_type,
+      group_id: userIdsMapping[e.group_id] || null,
+      post_id: postIdsMapping[e.post_id] || null,
+      comment_id: commentIdsMapping[e.comment_id] || null,
+      post_author_id: userIdsMapping[e.post_author_id] || null,
     };
   });
 
@@ -34,13 +33,17 @@ export async function serializeEvents(events, viewerId = null) {
   ]);
 
   const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user');
-  const groups = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'group');
+  const users = Object.keys(allUsersAssoc)
+    .map(serializeUser)
+    .filter((u) => u.type === 'user');
+  const groups = Object.keys(allUsersAssoc)
+    .map(serializeUser)
+    .filter((u) => u.type === 'group');
 
   return {
     events: serializedEvents,
     users,
-    groups
+    groups,
   };
 }
 
@@ -50,19 +53,34 @@ async function getIntIdsMappings(events) {
   let commentsIntIds = [];
 
   for (const e of events) {
-    usersIntIds.push(e.user_id, e.created_by_user_id, e.target_user_id, e.group_id, e.post_author_id);
+    usersIntIds.push(
+      e.user_id,
+      e.created_by_user_id,
+      e.target_user_id,
+      e.group_id,
+      e.post_author_id,
+    );
     postsIntIds.push(e.post_id);
     commentsIntIds.push(e.comment_id);
   }
 
-  usersIntIds = _(usersIntIds).compact().uniq().value();
-  postsIntIds = _(postsIntIds).compact().uniq().value();
-  commentsIntIds = _(commentsIntIds).compact().uniq().value();
+  usersIntIds = _(usersIntIds)
+    .compact()
+    .uniq()
+    .value();
+  postsIntIds = _(postsIntIds)
+    .compact()
+    .uniq()
+    .value();
+  commentsIntIds = _(commentsIntIds)
+    .compact()
+    .uniq()
+    .value();
 
   const [userIds, postIds, commentIds] = await Promise.all([
     dbAdapter.getUsersIdsByIntIds(usersIntIds),
     dbAdapter.getPostsIdsByIntIds(postsIntIds),
-    dbAdapter.getCommentsIdsByIntIds(commentsIntIds)
+    dbAdapter.getCommentsIdsByIntIds(commentsIntIds),
   ]);
   const userIdsMapping = {};
   const postIdsMapping = {};

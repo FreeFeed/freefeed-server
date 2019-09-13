@@ -9,10 +9,8 @@ import noop from 'lodash/noop';
 
 import { load as configLoader } from '../../config/config';
 
-
 const { literal, namedNode, quad } = N3.DataFactory;
 const config = configLoader();
-
 
 const schema = 'http://schema.org/';
 const frf = 'http://freefeed.net/';
@@ -20,128 +18,66 @@ const rdfs = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
 
 export const prefixes = { schema, rdfs };
 
-const schemaType = (id, typeName) => quad(
-  namedNode(id),
-  namedNode(`${rdfs}type`),
-  namedNode(`${schema}${typeName}`)
-);
+const schemaType = (id, typeName) =>
+  quad(namedNode(id), namedNode(`${rdfs}type`), namedNode(`${schema}${typeName}`));
 
 const intToIso = (timestamp) => moment(parseInt(timestamp)).format();
 const fixIso = (badIsoTimestamp) => moment(badIsoTimestamp).format();
 
-const createdAt = (id, isoTimestamp) => quad(
-  namedNode(id),
-  namedNode(`${schema}dateCreated`),
-  literal(isoTimestamp)
-);
+const createdAt = (id, isoTimestamp) =>
+  quad(namedNode(id), namedNode(`${schema}dateCreated`), literal(isoTimestamp));
 
-const updatedAt = (id, isoTimestamp) => quad(
-  namedNode(id),
-  namedNode(`${schema}dateModified`),
-  literal(isoTimestamp)
-);
+const updatedAt = (id, isoTimestamp) =>
+  quad(namedNode(id), namedNode(`${schema}dateModified`), literal(isoTimestamp));
 
-const hasBlogPost = (blogId, postId) => quad(
-  namedNode(blogId),
-  namedNode(`${schema}blogPost`),
-  namedNode(postId),
-);
+const hasBlogPost = (blogId, postId) =>
+  quad(namedNode(blogId), namedNode(`${schema}blogPost`), namedNode(postId));
 
-const objUrl = (id, url) => quad(
-  namedNode(id),
-  namedNode(`${schema}url`),
-  literal(url)
-);
+const objUrl = (id, url) => quad(namedNode(id), namedNode(`${schema}url`), literal(url));
 
-const objIdentifier = (id, identifier) => quad(
-  namedNode(id),
-  namedNode(`${schema}identifier`),
-  literal(identifier)
-);
+const objIdentifier = (id, identifier) =>
+  quad(namedNode(id), namedNode(`${schema}identifier`), literal(identifier));
 
-const objName = (id, name) => quad(
-  namedNode(id),
-  namedNode(`${schema}name`),
-  literal(name)
-);
+const objName = (id, name) => quad(namedNode(id), namedNode(`${schema}name`), literal(name));
 
-const objDescription = (id, description) => quad(
-  namedNode(id),
-  namedNode(`${schema}description`),
-  literal(description)
-);
+const objDescription = (id, description) =>
+  quad(namedNode(id), namedNode(`${schema}description`), literal(description));
 
-const hasText = (objectId, text) => quad(
-  namedNode(objectId),
-  namedNode(`${schema}text`),
-  literal(text)
-);
+const hasText = (objectId, text) =>
+  quad(namedNode(objectId), namedNode(`${schema}text`), literal(text));
 
-const hasComment = (postId, commentId) => quad(
-  namedNode(postId),
-  namedNode(`${schema}comment`),
-  namedNode(commentId)
-);
+const hasComment = (postId, commentId) =>
+  quad(namedNode(postId), namedNode(`${schema}comment`), namedNode(commentId));
 
-const hasAttachment = (postId, attachmentId) => quad(
-  namedNode(postId),
-  namedNode(`${schema}sharedContent`),
-  namedNode(attachmentId)
-);
+const hasAttachment = (postId, attachmentId) =>
+  quad(namedNode(postId), namedNode(`${schema}sharedContent`), namedNode(attachmentId));
 
-const hasMimetype = (objId, mimeType) => quad(
-  namedNode(objId),
-  namedNode(`${schema}encodingFormat`),
-  literal(mimeType)
-);
+const hasMimetype = (objId, mimeType) =>
+  quad(namedNode(objId), namedNode(`${schema}encodingFormat`), literal(mimeType));
 
-const hasFilename = (objId, filename) => quad(
-  namedNode(objId),
-  namedNode(`${schema}alternateName`),
-  literal(filename)
-);
+const hasFilename = (objId, filename) =>
+  quad(namedNode(objId), namedNode(`${schema}alternateName`), literal(filename));
 
-const hasUpvoteCount = (commentId, count) => quad(
-  namedNode(commentId),
-  namedNode(`${schema}upvoteCount`),
-  literal(parseInt(count))
-);
+const hasUpvoteCount = (commentId, count) =>
+  quad(namedNode(commentId), namedNode(`${schema}upvoteCount`), literal(parseInt(count)));
 
-const hasAuthor = (objectId, authorId) => quad(
-  namedNode(objectId),
-  namedNode(`${schema}author`),
-  namedNode(authorId)
-);
+const hasAuthor = (objectId, authorId) =>
+  quad(namedNode(objectId), namedNode(`${schema}author`), namedNode(authorId));
 
-const actionAgent = (actionId, agentId) => quad(
-  namedNode(actionId),
-  namedNode(`${schema}agent`),
-  namedNode(agentId)
-);
+const actionAgent = (actionId, agentId) =>
+  quad(namedNode(actionId), namedNode(`${schema}agent`), namedNode(agentId));
 
-const actionObject = (actionId, objectId) => quad(
-  namedNode(actionId),
-  namedNode(`${schema}object`),
-  namedNode(objectId)
-);
+const actionObject = (actionId, objectId) =>
+  quad(namedNode(actionId), namedNode(`${schema}object`), namedNode(objectId));
 
-const actionStart = (actionId, isoTimestamp) => quad(
-  namedNode(actionId),
-  namedNode(`${schema}startTime`),
-  literal(isoTimestamp)
-);
+const actionStart = (actionId, isoTimestamp) =>
+  quad(namedNode(actionId), namedNode(`${schema}startTime`), literal(isoTimestamp));
 
-const messageSender = (messageId, userId) => quad(
-  namedNode(messageId),
-  namedNode(`${schema}sender`),
-  namedNode(userId)
-);
+const messageSender = (messageId, userId) =>
+  quad(namedNode(messageId), namedNode(`${schema}sender`), namedNode(userId));
 
-const messageRecipient = (messageId, userId) => quad(
-  namedNode(messageId),
-  namedNode(`${schema}recipient`),
-  namedNode(userId)
-);
+const messageRecipient = (messageId, userId) =>
+  quad(namedNode(messageId), namedNode(`${schema}recipient`), namedNode(userId));
 
 export class DataProvider {
   dbAdapter;
@@ -165,7 +101,6 @@ export class DataProvider {
     const addQuad = promisify(writer.addQuad).bind(writer);
     const getResult = promisify(writer.end).bind(writer);
 
-
     const blogId = `urn:uuid:${user.id}`;
 
     await addQuad(schemaType(blogId, 'Blog'));
@@ -178,8 +113,11 @@ export class DataProvider {
 
     const otherUsers = new Set();
 
-    const commentsAsQuads = async function (postUuid, postResourceId) {
-      const comments = await knex.raw('SELECT "u"."uid", "u"."username", "u"."screen_name", "c"."uid" AS "comment_uuid", "c"."id" AS "comment_id", "c"."body", "c"."created_at", "c"."updated_at" FROM "users" AS "u" INNER JOIN "comments" AS "c" ON "c"."user_id" = "u"."uid" WHERE "c"."post_id" = ? AND "c"."hide_type" = 0', [postUuid]);
+    const commentsAsQuads = async function(postUuid, postResourceId) {
+      const comments = await knex.raw(
+        'SELECT "u"."uid", "u"."username", "u"."screen_name", "c"."uid" AS "comment_uuid", "c"."id" AS "comment_id", "c"."body", "c"."created_at", "c"."updated_at" FROM "users" AS "u" INNER JOIN "comments" AS "c" ON "c"."user_id" = "u"."uid" WHERE "c"."post_id" = ? AND "c"."hide_type" = 0',
+        [postUuid],
+      );
       const cPromises = comments.rows.map(async (comment) => {
         const userId = `urn:uuid:${comment.uid}`;
         const commentId = comment.comment_id;
@@ -199,7 +137,10 @@ export class DataProvider {
         Reflect.deleteProperty(comment, 'updated_at');
         otherUsers.add(comment);
 
-        const cLikers = await knex.raw('SELECT "u"."uid", "u"."username", "u"."screen_name", "l"."created_at" FROM "users" AS "u" INNER JOIN "comment_likes" AS "l" ON "l"."user_id" = "u"."id" WHERE "l"."comment_id" = ?', [commentId]);
+        const cLikers = await knex.raw(
+          'SELECT "u"."uid", "u"."username", "u"."screen_name", "l"."created_at" FROM "users" AS "u" INNER JOIN "comment_likes" AS "l" ON "l"."user_id" = "u"."id" WHERE "l"."comment_id" = ?',
+          [commentId],
+        );
         await addQuad(hasUpvoteCount(commentResourceId, cLikers.rows.length));
 
         const clPromises = cLikers.rows.map(async (cLiker) => {
@@ -223,14 +164,16 @@ export class DataProvider {
 
     process.stdout.write(`- getting user's posts: `);
 
-    {  // User's posts
+    {
+      // User's posts
       const timeline = await user.getPostsTimeline();
 
       const sql = `SELECT * FROM "posts" WHERE "feed_ids" && '{${timeline.intId}}'`;
       const cursor = pg.query(new PgCursor(sql));
       const read = promisify(cursor.read).bind(cursor);
 
-      while (true) {  // eslint-disable-line no-constant-condition
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
         const rows = await read(100);
 
         if (rows.length === 0) {
@@ -245,12 +188,17 @@ export class DataProvider {
 
           await addQuad(hasBlogPost(blogId, postResourceId));
           await addQuad(schemaType(postResourceId, 'BlogPosting'));
-          await addQuad(objUrl(postResourceId, `https://freefeed.net/${user.username}/${postRow.uid}`));
+          await addQuad(
+            objUrl(postResourceId, `https://freefeed.net/${user.username}/${postRow.uid}`),
+          );
           await addQuad(createdAt(postResourceId, fixIso(postRow.created_at)));
           await addQuad(updatedAt(postResourceId, fixIso(postRow.updated_at)));
           await addQuad(hasText(postResourceId, postRow.body));
 
-          const likers = await knex.raw('SELECT "u"."uid", "u"."username", "u"."screen_name", "l"."created_at" FROM "users" AS "u" INNER JOIN "likes" AS "l" ON "l"."user_id" = "u"."uid" WHERE "l"."post_id" = ?', [postRow.uid]);
+          const likers = await knex.raw(
+            'SELECT "u"."uid", "u"."username", "u"."screen_name", "l"."created_at" FROM "users" AS "u" INNER JOIN "likes" AS "l" ON "l"."user_id" = "u"."uid" WHERE "l"."post_id" = ?',
+            [postRow.uid],
+          );
           const lPromises = likers.rows.map(async (liker) => {
             const userId = `urn:uuid:${liker.uid}`;
             const likeId = `${frf}${postRow.uid}/like/${liker.uid}`;
@@ -266,8 +214,8 @@ export class DataProvider {
 
           const cPromises = await commentsAsQuads(postRow.uid, postResourceId);
 
-          await Promise.all(lPromises);  // likes
-          await Promise.all(cPromises);  // comments + comment-likes
+          await Promise.all(lPromises); // likes
+          await Promise.all(cPromises); // comments + comment-likes
         }
       }
     }
@@ -276,14 +224,16 @@ export class DataProvider {
 
     process.stdout.write(`- getting user's direct messages: `);
 
-    {  // Direct messages
+    {
+      // Direct messages
       const timeline = await user.getDirectsTimeline();
 
       const sql = `SELECT * FROM "posts" WHERE "feed_ids" && '{${timeline.intId}}'`;
       const cursor = pg.query(new PgCursor(sql));
       const read = promisify(cursor.read).bind(cursor);
 
-      while (true) {  // eslint-disable-line no-constant-condition
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
         const rows = await read(100);
 
         if (rows.length === 0) {
@@ -301,7 +251,10 @@ export class DataProvider {
           let postUrl = `https://freefeed.net/${user.username}/${postRow.uid}`;
 
           if (postRow.user_id !== userUuid) {
-            const authorRows = await knex.raw('SELECT "u"."uid", "u"."username", "u"."screen_name" FROM "users" AS "u" WHERE "u"."uid" = ?', [postRow.user_id]);
+            const authorRows = await knex.raw(
+              'SELECT "u"."uid", "u"."username", "u"."screen_name" FROM "users" AS "u" WHERE "u"."uid" = ?',
+              [postRow.user_id],
+            );
             const [author] = authorRows.rows;
 
             senderId = author.uid;
@@ -318,7 +271,10 @@ export class DataProvider {
           await addQuad(updatedAt(postResourceId, fixIso(postRow.updated_at)));
           await addQuad(hasText(postResourceId, postRow.body));
 
-          const recipientSql = pgFormat('SELECT "u"."uid", "u"."username", "u"."screen_name" FROM "users" AS "u" inner join feeds f on f.user_id = u.uid where f.id in (%L)', postRow.destination_feed_ids);
+          const recipientSql = pgFormat(
+            'SELECT "u"."uid", "u"."username", "u"."screen_name" FROM "users" AS "u" inner join feeds f on f.user_id = u.uid where f.id in (%L)',
+            postRow.destination_feed_ids,
+          );
           const recipientResult = await knex.raw(recipientSql);
           const rPromises = recipientResult.rows.map(async (recipient) => {
             if (recipient.uid === senderId) {
@@ -331,7 +287,10 @@ export class DataProvider {
             otherUsers.add(recipient);
           });
 
-          const likers = await knex.raw('SELECT "u"."uid", "u"."username", "u"."screen_name", "l"."created_at" FROM "users" AS "u" INNER JOIN "likes" AS "l" ON "l"."user_id" = "u"."uid" WHERE "l"."post_id" = ?', [postRow.uid]);
+          const likers = await knex.raw(
+            'SELECT "u"."uid", "u"."username", "u"."screen_name", "l"."created_at" FROM "users" AS "u" INNER JOIN "likes" AS "l" ON "l"."user_id" = "u"."uid" WHERE "l"."post_id" = ?',
+            [postRow.uid],
+          );
           const lPromises = likers.rows.map(async (liker) => {
             const userId = `urn:uuid:${liker.uid}`;
             const likeId = `${frf}${postRow.uid}/like/${liker.uid}`;
@@ -347,9 +306,9 @@ export class DataProvider {
 
           const cPromises = await commentsAsQuads(postRow.uid, postResourceId);
 
-          await Promise.all(rPromises);  // recipients
-          await Promise.all(lPromises);  // likes
-          await Promise.all(cPromises);  // comments + comment-likes
+          await Promise.all(rPromises); // recipients
+          await Promise.all(lPromises); // likes
+          await Promise.all(cPromises); // comments + comment-likes
         }
       }
     }
@@ -361,16 +320,17 @@ export class DataProvider {
 
     {
       const attachmentTypes = {
-        'audio':   'AudioObject',
-        'general': 'DataDownload',
-        'image':   'ImageObject',
+        audio: 'AudioObject',
+        general: 'DataDownload',
+        image: 'ImageObject',
       };
 
-      const sql = `SELECT * FROM "attachments" WHERE "user_id" = $1`;  // using '$1' instead of '?' as we're VERY close to postgres in this call
+      const sql = `SELECT * FROM "attachments" WHERE "user_id" = $1`; // using '$1' instead of '?' as we're VERY close to postgres in this call
       const cursor = pg.query(new PgCursor(sql, [user.id]));
       const read = promisify(cursor.read).bind(cursor);
 
-      while (true) {  // eslint-disable-line no-constant-condition
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
         const rows = await read(100);
 
         if (rows.length === 0) {

@@ -13,7 +13,6 @@ import { load as configLoader } from '../../../../config/config';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
-
 export const ORD_UPDATED = 'bumped';
 export const ORD_CREATED = 'created';
 
@@ -26,7 +25,7 @@ export const bestOf = compose([
 
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
     const offset = parseInt(ctx.request.query.offset, 10) || 0;
-    const limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
+    const limit = parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
 
     const foundPostsIds = await dbAdapter.bestPostsIds(ctx.state.user, offset, limit + 1);
     const isLastPage = foundPostsIds.length <= limit;
@@ -47,34 +46,39 @@ export const bestOf = compose([
  */
 function monitoredFeedName(feedName) {
   switch (feedName) {
-    case 'RiverOfNews':   return 'home';
-    case 'MyDiscussions': return 'my-discussions';
-    default:              return feedName.toLowerCase();
+    case 'RiverOfNews':
+      return 'home';
+    case 'MyDiscussions':
+      return 'my-discussions';
+    default:
+      return feedName.toLowerCase();
   }
 }
 
-export const ownTimeline = (feedName, params = {}) => compose([
-  authRequired(),
-  monitored(`timelines.${monitoredFeedName(feedName)}-v2`),
-  async (ctx) => {
-    const { user } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
-    ctx.body = await genericTimeline(timeline, user.id, { ...params, ...getCommonParams(ctx) });
-  },
-]);
+export const ownTimeline = (feedName, params = {}) =>
+  compose([
+    authRequired(),
+    monitored(`timelines.${monitoredFeedName(feedName)}-v2`),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+      ctx.body = await genericTimeline(timeline, user.id, { ...params, ...getCommonParams(ctx) });
+    },
+  ]);
 
-export const userTimeline = (feedName) => compose([
-  targetUserRequired(),
-  monitored(`timelines.${feedName.toLowerCase()}-v2`),
-  async (ctx) => {
-    const { targetUser, user: viewer } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(targetUser.id, feedName);
-    ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
-      withoutDirects: (feedName !== 'Posts'),
-      ...getCommonParams(ctx),
-    });
-  },
-]);
+export const userTimeline = (feedName) =>
+  compose([
+    targetUserRequired(),
+    monitored(`timelines.${feedName.toLowerCase()}-v2`),
+    async (ctx) => {
+      const { targetUser, user: viewer } = ctx.state;
+      const timeline = await dbAdapter.getUserNamedFeed(targetUser.id, feedName);
+      ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
+        withoutDirects: feedName !== 'Posts',
+        ...getCommonParams(ctx),
+      });
+    },
+  ]);
 
 export const everything = compose([
   monitored(`timelines.everything`),
@@ -83,7 +87,6 @@ export const everything = compose([
     ctx.body = await genericTimeline(null, viewer ? viewer.id : null, getCommonParams(ctx));
   },
 ]);
-
 
 export const metatags = compose([
   monitored(`timelines-metatags`),
@@ -97,8 +100,12 @@ export const metatags = compose([
     }
 
     const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(targetUser.username)}`;
-    const rssTitle = targetUser.isUser() ? `Posts of ${targetUser.username}` : `Posts in group ${targetUser.username}`;
-    ctx.body = `<link rel="alternate" type="application/rss+xml" title="${_.escape(rssTitle)}" href="${_.escape(rssURL)}" data-react-helmet="true">`;
+    const rssTitle = targetUser.isUser()
+      ? `Posts of ${targetUser.username}`
+      : `Posts in group ${targetUser.username}`;
+    ctx.body = `<link rel="alternate" type="application/rss+xml" title="${_.escape(
+      rssTitle,
+    )}" href="${_.escape(rssURL)}" data-react-helmet="true">`;
   },
 ]);
 
@@ -145,27 +152,31 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
     createdAfter = null;
   }
 
-  const withMyPosts = ['yes', 'true', '1', 'on'].includes((query['with-my-posts'] || '').toLowerCase());
-  const sort = (query.sort === ORD_CREATED || query.sort === ORD_UPDATED) ? query.sort : defaultSort;
+  const withMyPosts = ['yes', 'true', '1', 'on'].includes(
+    (query['with-my-posts'] || '').toLowerCase(),
+  );
+  const sort = query.sort === ORD_CREATED || query.sort === ORD_UPDATED ? query.sort : defaultSort;
   const homefeedMode = [
     HOMEFEED_MODE_FRIENDS_ONLY,
     HOMEFEED_MODE_CLASSIC,
     HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
-  ].includes(query['homefeed-mode']) ? query['homefeed-mode'] : HOMEFEED_MODE_CLASSIC;
+  ].includes(query['homefeed-mode'])
+    ? query['homefeed-mode']
+    : HOMEFEED_MODE_CLASSIC;
   return { limit, offset, sort, homefeedMode, withMyPosts, createdBefore, createdAfter };
 }
 
 async function genericTimeline(timeline = null, viewerId = null, params = {}) {
   params = {
-    limit:          30,
-    offset:         0,
-    sort:           ORD_UPDATED,
-    homefeedMode:   HOMEFEED_MODE_CLASSIC,
-    withLocalBumps: false,  // consider viewer local bumps (for RiverOfNews)
-    withoutDirects: false,  // do not show direct messages (for Likes and Comments)
-    withMyPosts:    false,  // show viewer's own posts even without his likes or comments (for MyDiscussions)
-    createdBefore:  null,
-    createdAfter:   null,
+    limit: 30,
+    offset: 0,
+    sort: ORD_UPDATED,
+    homefeedMode: HOMEFEED_MODE_CLASSIC,
+    withLocalBumps: false, // consider viewer local bumps (for RiverOfNews)
+    withoutDirects: false, // do not show direct messages (for Likes and Comments)
+    withMyPosts: false, // show viewer's own posts even without his likes or comments (for MyDiscussions)
+    createdBefore: null,
+    createdAfter: null,
     ...params,
   };
 
@@ -209,10 +220,15 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
     }
   }
 
-
-  const postsIds = (!timeline || await timeline.canShow(viewerId)) ?
-    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, authorsIds, activityFeedIds, limit: params.limit + 1 }) :
-    [];
+  const postsIds =
+    !timeline || (await timeline.canShow(viewerId))
+      ? await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, {
+          ...params,
+          authorsIds,
+          activityFeedIds,
+          limit: params.limit + 1,
+        })
+      : [];
 
   const isLastPage = postsIds.length <= params.limit;
 

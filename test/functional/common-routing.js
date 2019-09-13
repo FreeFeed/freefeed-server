@@ -1,17 +1,16 @@
 /* eslint-env node, mocha */
-import fetch from 'node-fetch'
-import expect from 'unexpected'
+import fetch from 'node-fetch';
+import expect from 'unexpected';
 
-import { getSingleton } from '../../app/app'
+import { getSingleton } from '../../app/app';
 import { version as serverVersion } from '../../package.json';
 
-
 describe('Common API routing', () => {
-  let app
+  let app;
 
   before(async () => {
-    app = await getSingleton()
-  })
+    app = await getSingleton();
+  });
 
   it(`should publish the X-Freefeed-Server (server version) and Date response header`, async () => {
     const resp = await fetch(`${app.context.config.host}/v2/users/whoami`);
@@ -25,7 +24,7 @@ describe('Common API routing', () => {
     const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`);
     expect(resp.status, 'to be', 404);
     const respData = await resp.json();
-    expect(respData, 'to satisfy', { err: 'API method not found: \'/v1/unexisting/method\'' });
+    expect(respData, 'to satisfy', { err: "API method not found: '/v1/unexisting/method'" });
   });
 
   it(`should response '200 OK' to OPTIONS request`, async () => {
@@ -34,7 +33,9 @@ describe('Common API routing', () => {
   });
 
   it(`should response '404 Not Found' to OPTIONS request if API method is not exists`, async () => {
-    const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, { method: 'OPTIONS' });
+    const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, {
+      method: 'OPTIONS',
+    });
     expect(resp.status, 'to be', 404);
   });
 });

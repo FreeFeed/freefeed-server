@@ -1,16 +1,26 @@
 export function up(knex) {
-  return knex.schema
-    .table('posts', (table) => {
-      table.boolean('is_private').defaultTo(false).notNullable();
-      table.boolean('is_protected').defaultTo(false).notNullable();
-    })
-    .raw(`CREATE INDEX feeds_id_array_idx
+  return (
+    knex.schema
+      .table('posts', (table) => {
+        table
+          .boolean('is_private')
+          .defaultTo(false)
+          .notNullable();
+        table
+          .boolean('is_protected')
+          .defaultTo(false)
+          .notNullable();
+      })
+      .raw(
+        `CREATE INDEX feeds_id_array_idx
       ON public.feeds
       USING gin
       ((ARRAY[id]) gin__int_ops);
-    `)
-    // Trigger function for individual posts
-    .raw(`
+    `,
+      )
+      // Trigger function for individual posts
+      .raw(
+        `
       CREATE OR REPLACE FUNCTION public.trgfun_set_post_privacy_on_insert_update()
         RETURNS trigger AS
       $BODY$
@@ -37,9 +47,11 @@ export function up(knex) {
       $BODY$
         LANGUAGE plpgsql VOLATILE
         COST 100;
-    `)
-    // Trigger function for users/groups
-    .raw(`
+    `,
+      )
+      // Trigger function for users/groups
+      .raw(
+        `
       CREATE OR REPLACE FUNCTION public.trgfun_set_posts_privacy_on_user_update()
         RETURNS trigger AS
       $BODY$
@@ -95,27 +107,35 @@ export function up(knex) {
       $BODY$
         LANGUAGE plpgsql VOLATILE
         COST 100;
-      `)
-    // Bind triggers
-    .raw(`CREATE TRIGGER trg_set_post_privacy_on_insert_update
+      `,
+      )
+      // Bind triggers
+      .raw(
+        `CREATE TRIGGER trg_set_post_privacy_on_insert_update
       BEFORE INSERT OR UPDATE OF destination_feed_ids
       ON public.posts
       FOR EACH ROW
-      EXECUTE PROCEDURE public.trgfun_set_post_privacy_on_insert_update();`)
-    .raw(`CREATE TRIGGER trg_set_posts_privacy_on_user_update
+      EXECUTE PROCEDURE public.trgfun_set_post_privacy_on_insert_update();`,
+      )
+      .raw(
+        `CREATE TRIGGER trg_set_posts_privacy_on_user_update
       AFTER UPDATE OF is_private, is_protected
       ON public.users
       FOR EACH ROW
       WHEN (((old.is_protected <> new.is_protected) OR (old.is_private <> new.is_private)))
-      EXECUTE PROCEDURE public.trgfun_set_posts_privacy_on_user_update();`)
-    // Data migration
-    .raw('update posts set destination_feed_ids = destination_feed_ids')
-    // Indexes and constraints
-    .raw('alter table posts add constraint posts_is_protected_check check (is_protected or not is_private)')
-    .table('posts', (table) => {
-      table.index('is_private', 'posts_is_private_idx', 'btree');
-      table.index('is_protected', 'posts_is_protected_idx', 'btree');
-    });
+      EXECUTE PROCEDURE public.trgfun_set_posts_privacy_on_user_update();`,
+      )
+      // Data migration
+      .raw('update posts set destination_feed_ids = destination_feed_ids')
+      // Indexes and constraints
+      .raw(
+        'alter table posts add constraint posts_is_protected_check check (is_protected or not is_private)',
+      )
+      .table('posts', (table) => {
+        table.index('is_private', 'posts_is_private_idx', 'btree');
+        table.index('is_protected', 'posts_is_protected_idx', 'btree');
+      })
+  );
 }
 
 export function down(knex) {

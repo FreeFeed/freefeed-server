@@ -1,7 +1,6 @@
-import { dbAdapter, PubSub as pubSub } from '../../../models'
-import { ForbiddenException, NotFoundException } from '../../../support/exceptions'
+import { dbAdapter, PubSub as pubSub } from '../../../models';
+import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
 import { userSerializerFunction } from '../../../serializers/v2/user';
-
 
 export default class CommentLikesController {
   static async like(ctx) {
@@ -53,7 +52,7 @@ export default class CommentLikesController {
 
     ctx.body = {
       likes: actualCommentLikes,
-      users
+      users,
     };
   }
 
@@ -106,7 +105,7 @@ export default class CommentLikesController {
 
     ctx.body = {
       likes: actualCommentLikes,
-      users
+      users,
     };
   }
 
@@ -154,12 +153,15 @@ export default class CommentLikesController {
 
     const viewerUUID = viewer ? viewer.id : null;
     const commentIntId = await dbAdapter._getCommentIntIdByUUID(comment.id);
-    const actualCommentLikes = await dbAdapter.getCommentLikesWithoutBannedUsers(commentIntId, viewerUUID);
+    const actualCommentLikes = await dbAdapter.getCommentLikesWithoutBannedUsers(
+      commentIntId,
+      viewerUUID,
+    );
     const users = await CommentLikesController._serializeLikers(actualCommentLikes);
 
     ctx.body = {
       likes: actualCommentLikes,
-      users
+      users,
     };
   }
 
@@ -174,7 +176,9 @@ export default class CommentLikesController {
 
     const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc);
 
-    const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user');
+    const users = Object.keys(allUsersAssoc)
+      .map(serializeUser)
+      .filter((u) => u.type === 'user');
     //
 
     return users;

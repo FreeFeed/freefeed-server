@@ -1,15 +1,14 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fetch from 'node-fetch'
-import expect from 'unexpected'
+import fetch from 'node-fetch';
+import expect from 'unexpected';
 
-import cleanDB from '../dbCleaner'
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, User } from '../../app/models'
+import cleanDB from '../dbCleaner';
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
+import { PubSub, User } from '../../app/models';
 
 import { sessionRequest } from './functional_test_helper';
-
 
 describe('SessionController', () => {
   let app;
@@ -17,7 +16,7 @@ describe('SessionController', () => {
   before(async () => {
     app = await getSingleton();
     PubSub.setPublisher(new DummyPublisher());
-  })
+  });
 
   beforeEach(() => cleanDB($pg_database));
 
@@ -28,11 +27,11 @@ describe('SessionController', () => {
       userData = {
         username: 'Luna',
         password: 'password',
-        email:    'luna@luna.space',
-      }
+        email: 'luna@luna.space',
+      };
       user = new User(userData);
       await user.create();
-    })
+    });
 
     it('should sign in with a valid user', async () => {
       const resp = await sessionRequest(userData.username, userData.password);
@@ -52,11 +51,16 @@ describe('SessionController', () => {
       const resp = await sessionRequest(userData.username, 'wrong');
       expect(resp.status, 'to equal', 401);
       const respBody = await resp.json();
-      expect(respBody, 'to satisfy', { err: 'The password you provided does not match the password in our system.' });
+      expect(respBody, 'to satisfy', {
+        err: 'The password you provided does not match the password in our system.',
+      });
     });
 
     it('should not sign in with missing username', async () => {
-      const result = await fetch(`${app.context.config.host}/v1/session`, { method: 'POST', body: 'a=1' });
+      const result = await fetch(`${app.context.config.host}/v1/session`, {
+        method: 'POST',
+        body: 'a=1',
+      });
       const data = await result.json();
       expect(data, 'not to have key', 'authToken');
       expect(data, 'to have key', 'err');
@@ -73,7 +77,9 @@ describe('SessionController', () => {
       const resp = await sessionRequest(userData.username, 'passWorD');
       expect(resp.status, 'to equal', 401);
       const respBody = await resp.json();
-      expect(respBody, 'to satisfy', { err: 'The password you provided does not match the password in our system.' });
+      expect(respBody, 'to satisfy', {
+        err: 'The password you provided does not match the password in our system.',
+      });
     });
 
     it('should sign in with a spaces around username', async () => {
@@ -87,7 +93,9 @@ describe('SessionController', () => {
       const resp = await sessionRequest(userData.username, ` ${userData.password} `);
       expect(resp.status, 'to equal', 401);
       const respBody = await resp.json();
-      expect(respBody, 'to satisfy', { err: 'The password you provided does not match the password in our system.' });
+      expect(respBody, 'to satisfy', {
+        err: 'The password you provided does not match the password in our system.',
+      });
     });
 
     it('should sign in with a email instead of username', async () => {

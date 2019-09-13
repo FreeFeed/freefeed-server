@@ -1,49 +1,46 @@
 /* eslint-env node, mocha */
-import expect from 'unexpected'
+import expect from 'unexpected';
 
 import { Address } from '../../../app/support/ipv6';
-
 
 describe('IPv6 parser', () => {
   describe('Just addresses', () => {
     it(`should parse '::' address`, () => {
       const addr = new Address('::');
-      expect(addr.bytes, 'to equal', [
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-      ]);
+      expect(addr.bytes, 'to equal', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     });
 
     it(`should parse IPv4 address`, () => {
       const addr = new Address('127.0.0.1');
-      expect(addr.bytes, 'to equal', [
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0,  0xff, 0xff,
-        127, 0, 0, 1]);
+      expect(addr.bytes, 'to equal', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 127, 0, 0, 1]);
       expect(addr.isIP4(), 'to be true');
     });
 
     it(`should parse IPv4 tail with '::' prefix`, () => {
       const addr = new Address('::127.0.0.1');
-      expect(addr.bytes, 'to equal', [
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        127, 0, 0, 1
-      ]);
+      expect(addr.bytes, 'to equal', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0, 0, 1]);
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse full-length IPv6 address`, () => {
       const addr = new Address('FEDC:BA98:7654:3210:FEDC:BA98:7654:3210');
       expect(addr.bytes, 'to equal', [
-        0xFE, 0xDC, 0xBA, 0x98,
-        0x76, 0x54, 0x32, 0x10,
-        0xFE, 0xDC, 0xBA, 0x98,
-        0x76, 0x54, 0x32, 0x10,
+        0xfe,
+        0xdc,
+        0xba,
+        0x98,
+        0x76,
+        0x54,
+        0x32,
+        0x10,
+        0xfe,
+        0xdc,
+        0xba,
+        0x98,
+        0x76,
+        0x54,
+        0x32,
+        0x10,
       ]);
       expect(addr.isIP4(), 'to be false');
     });
@@ -51,10 +48,22 @@ describe('IPv6 parser', () => {
     it(`should parse full-length IPv6 address without leading zeros`, () => {
       const addr = new Address('1080:0:0:0:8:800:200C:417A');
       expect(addr.bytes, 'to equal', [
-        0x10, 0x80, 0, 0,
-        0, 0, 0, 0,
-        0, 0x8, 0x8, 0,
-        0x20, 0x0C, 0x41, 0x7A,
+        0x10,
+        0x80,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0x8,
+        0x8,
+        0,
+        0x20,
+        0x0c,
+        0x41,
+        0x7a,
       ]);
       expect(addr.isIP4(), 'to be false');
     });
@@ -62,65 +71,69 @@ describe('IPv6 parser', () => {
     it(`should parse IPv6 address with missing zero blocks [1]`, () => {
       const addr = new Address('FEDC:BA98:7654::FEDC:BA98:7654:3210');
       expect(addr.bytes, 'to equal', [
-        0xFE, 0xDC, 0xBA, 0x98,
-        0x76, 0x54, 0, 0,
-        0xFE, 0xDC, 0xBA, 0x98,
-        0x76, 0x54, 0x32, 0x10,
+        0xfe,
+        0xdc,
+        0xba,
+        0x98,
+        0x76,
+        0x54,
+        0,
+        0,
+        0xfe,
+        0xdc,
+        0xba,
+        0x98,
+        0x76,
+        0x54,
+        0x32,
+        0x10,
       ]);
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse IPv6 address with missing zero blocks [2]`, () => {
       const addr = new Address('FF01::101');
-      expect(addr.bytes, 'to equal', [
-        0xff, 0x01, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0x01, 0x01,
-      ]);
+      expect(addr.bytes, 'to equal', [0xff, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0x01]);
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse IPv6 address with missing zero blocks at start`, () => {
       const addr = new Address('::101');
-      expect(addr.bytes, 'to equal', [
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0x01, 0x01,
-      ]);
+      expect(addr.bytes, 'to equal', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0x01]);
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse IPv6 address with missing zero blocks at end`, () => {
       const addr = new Address('FF01::');
-      expect(addr.bytes, 'to equal', [
-        0xff, 0x01, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-      ]);
+      expect(addr.bytes, 'to equal', [0xff, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse IPv4-in-IPv6 address`, () => {
       const addr = new Address('::FFFF:129.144.52.38');
-      expect(addr.bytes, 'to equal', [
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0xff, 0xff,
-        129, 144, 52, 38,
-      ]);
+      expect(addr.bytes, 'to equal', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 129, 144, 52, 38]);
       expect(addr.isIP4(), 'to be true');
     });
 
     it(`should parse IPv4-in-IPv6 address in hex form`, () => {
       const addr = new Address('::FFFF:8190:3426');
       expect(addr.bytes, 'to equal', [
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0xff, 0xff,
-        0x81, 0x90, 0x34, 0x26,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0xff,
+        0xff,
+        0x81,
+        0x90,
+        0x34,
+        0x26,
       ]);
       expect(addr.isIP4(), 'to be true');
     });

@@ -1,8 +1,8 @@
 import _ from 'lodash';
-import redis from 'redis'
+import redis from 'redis';
 import NodeCache from 'node-cache';
-import cacheManager from 'cache-manager'
-import redisStore from 'cache-manager-redis'
+import cacheManager from 'cache-manager';
+import redisStore from 'cache-manager-redis';
 import { promisifyAll } from 'bluebird';
 
 import { load as configLoader } from '../../../config/config';
@@ -31,7 +31,6 @@ import summaryTrait from './summary';
 import invitationsTrait from './invitations';
 import appTokensTrait from './app-tokens';
 
-
 promisifyAll(redis.RedisClient.prototype);
 promisifyAll(redis.Multi.prototype);
 
@@ -47,9 +46,9 @@ class DbAdapterBase {
     this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: CACHE_TTL });
     this.cache = cacheManager.caching({
       store: redisStore,
-      host:  config.redis.host,
-      port:  config.redis.port,
-      ttl:   CACHE_TTL,
+      host: config.redis.host,
+      port: config.redis.port,
+      ttl: CACHE_TTL,
     });
 
     promisifyAll(this.cache);
