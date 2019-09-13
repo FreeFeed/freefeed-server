@@ -1,4 +1,4 @@
-export async function up(knex, Promise) {
+export async function up(knex) {
   return Promise.all([
     knex.schema.createTable('stats', function(table) {
       table.increments().notNullable().primary();
@@ -15,7 +15,7 @@ export async function up(knex, Promise) {
   ]);
 };
 
-export async function down(knex, Promise) {
+export async function down(knex) {
   return Promise.all([
     knex.schema.dropTableIfExists('stats'),
     knex.raw('DROP EXTENSION IF EXISTS tablefunc'),

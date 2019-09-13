@@ -1,5 +1,5 @@
 
-export async function up(knex, Promise) {
+export async function up(knex) {
   await Promise.all([
     knex.schema.table('posts', function(table) {
       table.dropIndex('', 'posts_feed_ids_idx');
@@ -20,7 +20,7 @@ export async function up(knex, Promise) {
 ]);
 }
 
-export async function down(knex, Promise) {
+export async function down(knex) {
   await Promise.all([
     knex.schema.table('posts', function(table) {
       table.dropIndex('', 'posts_feed_ids_idx');
