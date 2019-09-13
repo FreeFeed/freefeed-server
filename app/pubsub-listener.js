@@ -13,7 +13,6 @@ import {
   map,
   noop,
   uniqBy,
-  values,
 } from 'lodash';
 import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
@@ -72,7 +71,7 @@ export default class PubsubListener {
 
       debug('redis error', err);
     });
-    redisClient.subscribe(values(eventNames));
+    redisClient.subscribe(Object.values(eventNames));
 
     redisClient.on('message', this.onRedisMessage);
   }
