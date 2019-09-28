@@ -1,0 +1,21 @@
+version: '3'
+services:
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+
+  postgres:
+    image: postgres:10
+    restart: always
+    environment:
+      POSTGRES_DB: freefeed
+      POSTGRES_USER: freefeed
+      POSTGRES_PASSWORD: freefeed
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
