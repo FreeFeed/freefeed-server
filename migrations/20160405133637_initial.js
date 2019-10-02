@@ -1,5 +1,5 @@
 
-exports.up = function(knex, Promise) {
+exports.up = function(knex) {
   return Promise.all([
     knex.raw("SET statement_timeout = 0"),
     knex.raw("SET lock_timeout = 0"),
@@ -211,7 +211,7 @@ exports.up = function(knex, Promise) {
   ]);
 };
 
-exports.down = function(knex, Promise) {
+exports.down = function(knex) {
   return Promise.all([
     knex.schema.dropTableIfExists('subscriptions'),
     knex.schema.dropTableIfExists('subscription_requests'),

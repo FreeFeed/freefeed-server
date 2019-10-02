@@ -1,5 +1,5 @@
 
-export async function up(knex, Promise) {
+export async function up(knex) {
   await knex.schema.table('hashtag_usages', (table) => {
     table.uuid('entity_id');
     table.text('type').defaultTo('post').notNullable();
@@ -14,7 +14,7 @@ export async function up(knex, Promise) {
   });
 }
 
-export async function down(knex, Promise) {
+export async function down(knex) {
   await knex.schema.table('hashtag_usages', (table) => {
     table.uuid('post_id')
       .references('uid').inTable('posts')
