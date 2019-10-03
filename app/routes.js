@@ -31,12 +31,14 @@ import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
+import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 
 
 const config = configLoader();
 
 export default function (app) {
   const router = new Router();
+  router.use(normalizeInputStrings);
 
   // unauthenticated routes
   PasswordsRoute(router);

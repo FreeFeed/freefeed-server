@@ -34,6 +34,7 @@ describe('SearchController', () => {
         funcTestHelper.createPostWithCommentsDisabled(marsContext, 'hello from mars', false)
       ]);
       await funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashtaga from luna again', false);
+      await funcTestHelper.createPostWithCommentsDisabled(marsContext, 'É apenas uma publicação de testes'.normalize('NFD'), false);
     });
 
     it('should search posts', async () => {
@@ -44,6 +45,11 @@ describe('SearchController', () => {
     it('should not allow empty query', async () => {
       const response = await funcTestHelper.performSearch(anonContext, '');
       expect(response, 'to satisfy', { posts: [] });
+    });
+
+    it('should search posts by non-normalized unicode query', async () => {
+      const response = await funcTestHelper.performSearch(anonContext, '"publicação"'.normalize('NFD'));
+      expect(response, 'to satisfy', { posts: [{}] });
     });
 
     it('should search user\'s posts', async () => {
