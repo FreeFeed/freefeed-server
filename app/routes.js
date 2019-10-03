@@ -30,6 +30,7 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
+import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 
@@ -77,6 +78,7 @@ export default function (app) {
   CommentLikesRoute(router);
   InvitationsRoute(router);
   AppTokensRoute(router);
+  ServerInfoRoute(router);
 
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
