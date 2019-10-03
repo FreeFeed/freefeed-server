@@ -131,5 +131,16 @@ export function getConfig() {
 
   config.postgres = postgresConfig;
 
+  /**
+   * Fill this object with provider-specific credentials like:
+   * facebook: {
+   *   clientID:     '####',
+   *   clientSecret: '####',
+   * }
+   *
+   * Only 'facebook' and 'google' providers are supported for now.
+   */
+  config.externalAuthProviders = {};
+
   return config;
 }
