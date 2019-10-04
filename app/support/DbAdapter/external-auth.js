@@ -45,6 +45,15 @@ const externalAuthTrait = (superClass) => class extends superClass {
 
     return rows.length > 0;
   }
+
+  async getUserByExtProfile({ provider, externalId }) {
+    const { rows } = await this.database.raw(
+      `select user_id from external_auth where provider = :provider and external_id = :externalId`,
+      { provider, externalId }
+    );
+
+    return rows.length > 0 ? await this.getUserById(rows[0].user_id) : null;
+  }
 };
 
 export default externalAuthTrait;

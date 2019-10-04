@@ -1280,5 +1280,33 @@ export function addModel(dbAdapter) {
     getUnreadNotificationsNumber() {
       return dbAdapter.getUnreadEventsNumber(this.id);
     }
+
+    // External authentication profiles
+
+    getExtProfiles() {
+      return dbAdapter.getExtProfiles(this.id).filter((p) => config.externalAuthProviders[p.provider]);
+    }
+
+    /**
+     * Returns created/updated profile or null if this profile is already belongs to another user
+     */
+    async addOrUpdateExtProfile({ provider, externalId, title }) {
+      if (!config.externalAuthProviders[provider]) {
+        throw new Error(`The '${provider}' provider is not supported`);
+      }
+
+      return await dbAdapter.addOrUpdateExtProfile({ userId: this.id, provider, externalId, title });
+    }
+
+    /**
+     * Returns false if profile was not found for this user
+     */
+    removeExtProfile(profileId) {
+      return dbAdapter.removeExtProfile(this.id, profileId);
+    }
+
+    static async getByExtProfile({ provider, externalId }) {
+      return await dbAdapter.getUserByExtProfile({ provider, externalId });
+    }
   };
 }
