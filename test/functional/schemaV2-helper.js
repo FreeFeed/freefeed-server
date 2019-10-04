@@ -246,4 +246,13 @@ export const appTokenInfo = {
 export const serverInfoResponse = {
   version:               expect.it('to be a string'),
   externalAuthProviders: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
-}
+};
+
+export const extAuthProfilesResponse = {
+  profiles: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    'id':        expect.it('to satisfy', UUID),
+    'provider':  expect.it('to be a string'),
+    'title':     expect.it('to be a string'),
+    'createdAt': expect.it('to satisfy', iso8601TimeString),
+  }),
+};
