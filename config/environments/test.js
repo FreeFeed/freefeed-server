@@ -102,7 +102,7 @@ export function getConfig() {
   /**
    * Fill this object with provider-specific credentials like:
    * facebook: {
-   *   clientID:     '####',
+   *   clientId:     '####',
    *   clientSecret: '####',
    * }
    *
@@ -110,9 +110,13 @@ export function getConfig() {
    */
   config.externalAuthProviders = {
     'facebook': {
-      clientID:     'test',
+      clientId:     'test',
       clientSecret: 'test',
-    }
+    },
+    'test': {
+      clientId:     'test',
+      clientSecret: 'test',
+    },
   };
 
   return config;

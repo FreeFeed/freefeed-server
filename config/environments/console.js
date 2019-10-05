@@ -124,7 +124,7 @@ export function getConfig() {
   /**
    * Fill this object with provider-specific credentials like:
    * facebook: {
-   *   clientID:     '####',
+   *   clientId:     '####',
    *   clientSecret: '####',
    * }
    *
