@@ -1,8 +1,11 @@
 import _ from 'lodash';
+import compose from 'koa-compose';
 
 import { dbAdapter, Group, GroupSerializer, AppTokenV1 } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
+import { authRequired, targetUserRequired } from '../../middlewares';
+import { downloadURL } from '../../../support/download-url';
 
 
 export default class GroupsController {
@@ -133,32 +136,46 @@ export default class GroupsController {
     await GroupsController.changeAdminStatus(ctx, false);
   }
 
-  static async updateProfilePicture(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 403;
-      ctx.body = { err: 'You need to log in before you can manage groups', status: 'fail' };
-      return
-    }
+  /**
+   * File can be sent as 'file' field of multipart/form-data request
+   * or as 'url' field of regular JSON body. In the latter case the
+   * server will download file from the given url.
+   */
+  static updateProfilePicture = compose([
+    authRequired(),
+    targetUserRequired({ groupName: 'group' }),
+    async (ctx) => {
+      const { user, group } = ctx.state;
 
-    const group = await dbAdapter.getGroupByUsername(ctx.params.groupName)
+      const adminIds = await group.getAdministratorIds();
 
-    if (null === group) {
-      throw new NotFoundException(`User "${ctx.params.groupName}" is not found`)
-    }
+      if (!adminIds.includes(user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group");
+      }
 
-    const adminIds = await group.getAdministratorIds()
+      let filePath = null;
 
-    if (!adminIds.includes(ctx.state.user.id)) {
-      throw new ForbiddenException("You aren't an administrator of this group")
-    }
+      if (ctx.request.files && ctx.request.files.file) {
+        filePath = ctx.request.files.file.path;
+      } else if (ctx.request.body.url) {
+        const fileInfo = await downloadURL(ctx.request.body.url);
 
-    const fileHandlerPromises = Object.values(ctx.request.files).map(async (file) => {
-      await group.updateProfilePicture(file);
+        if (!/^image\//.test(fileInfo.type)) {
+          await fileInfo.unlink();
+          throw new Error(`Unsupported content type: '${fileInfo.type}'`);
+        }
+
+        filePath = fileInfo.path;
+      }
+
+      if (!filePath) {
+        throw new BadRequestException('Neither file nor URL was found');
+      }
+
+      await group.updateProfilePicture(filePath);
       ctx.body = { message: 'The profile picture of the group has been updated' };
-    });
-
-    await Promise.all(fileHandlerPromises);
-  }
+    },
+  ]);
 
   static async sendRequest(ctx) {
     if (!ctx.state.user) {

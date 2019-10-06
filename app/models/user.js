@@ -908,8 +908,8 @@ export function addModel(dbAdapter) {
       return new Attachment(attrs);
     }
 
-    async updateProfilePicture(file) {
-      const image = promisifyAll(gm(file.path));
+    async updateProfilePicture(filePath) {
+      const image = promisifyAll(gm(filePath));
 
       let originalSize;
 
@@ -928,7 +928,7 @@ export function addModel(dbAdapter) {
 
       const promises = sizes.map((size) =>
         this.saveProfilePictureWithSize(
-          file.path,
+          filePath,
           this.profilePictureUuid,
           originalSize,
           size

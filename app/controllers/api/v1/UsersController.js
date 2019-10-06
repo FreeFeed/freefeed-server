@@ -4,7 +4,7 @@ import _ from 'lodash'
 import compose from 'koa-compose';
 
 import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0 } from '../../../models'
-import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException } from '../../../support/exceptions'
+import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException, BadRequestException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -12,6 +12,7 @@ import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, targetUserRequired, monitored } from '../../middlewares';
 import { UsersControllerV2 } from '../../../controllers';
 import { profileCache } from '../../../support/ExtAuth';
+import { downloadURL } from '../../../support/download-url';
 
 
 const config = configLoader()
@@ -484,20 +485,39 @@ export default class UsersController {
     ctx.body = { message: 'Your password has been changed' };
   }
 
-  static async updateProfilePicture(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
+  /**
+   * File can be sent as 'file' field of multipart/form-data request
+   * or as 'url' field of regular JSON body. In the latter case the
+   * server will download file from the given url.
+   */
+  static updateProfilePicture = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
 
-    const fileHandlerPromises = Object.values(ctx.request.files).map(async (file) => {
-      await ctx.state.user.updateProfilePicture(file)
+      let filePath = null;
+
+      if (ctx.request.files && ctx.request.files.file) {
+        filePath = ctx.request.files.file.path;
+      } else if (ctx.request.body.url) {
+        const fileInfo = await downloadURL(ctx.request.body.url);
+
+        if (!/^image\//.test(fileInfo.type)) {
+          await fileInfo.unlink();
+          throw new Error(`Unsupported content type: '${fileInfo.type}'`);
+        }
+
+        filePath = fileInfo.path;
+      }
+
+      if (!filePath) {
+        throw new BadRequestException('Neither file nor URL was found');
+      }
+
+      await user.updateProfilePicture(filePath);
       ctx.body = { message: 'Your profile picture has been updated' };
-    });
-
-    await Promise.all(fileHandlerPromises);
-  }
+    },
+  ]);
 }
 
 async function validateInvitationAndSelectUsers(invitation, invitationId) {
