@@ -16,6 +16,7 @@ import {
   SIGN_IN_SUCCESS,
   SIGN_IN_USER_EXISTS,
   SIGN_IN_CONTINUE,
+  profileCache,
 } from '../../../support/ExtAuth';
 import { User, dbAdapter } from '../../../models';
 import { SessionTokenV0 } from '../../../models/auth-tokens';
@@ -138,7 +139,9 @@ export const authFinish = compose([
             email:      state.profile.email,
             pictureURL: state.profile.pictureURL,
           },
-          suggestedUsername: '',
+          suggestedUsername:   '',
+          // Profile data to auto-connect after the user creation is complete.
+          connectToExtProfile: await profileCache.put(profileData),
         };
 
         // Trying to suggest a username

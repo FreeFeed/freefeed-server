@@ -234,7 +234,48 @@ describe('ExtAuthController authorization flow', () => {
           email:      'marcus@example.com',
           pictureURL: 'http://localhost/marcus.jpg',
         },
-        suggestedUsername: 'mars1',
+        suggestedUsername:   'mars1',
+        connectToExtProfile: expect.it('to be a string'),
+      });
+    });
+
+    it('should register user with attached external profile', async () => {
+      // Ubtaining auth URL
+      const authParams = {
+        provider:         'test',
+        redirectURL:      'http://localhost/callback',
+        mode:             'sign-in',
+        // Test values
+        externalId:       '112',
+        externalFullName: 'Marcus Antonius',
+      };
+
+      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
+
+      // Finalizing flow
+      const { connectToExtProfile } = await request(
+        'POST', '/v2/ext-auth/auth-finish',
+        { provider: 'test', query: { code: '12345', state: redirectParams.state } }
+      );
+
+      // Creating new user
+      resp = await request(
+        'POST', '/v1/users',
+        {
+          username: 'marcus',
+          // no password - it should be possible to register user without password
+          connectToExtProfile,
+        }
+      );
+
+      expect(resp, 'to satisfy', { users: { username: 'marcus' }, __httpStatus: 200 });
+
+      // Check the linked profile
+      resp = await request('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${resp.authToken}` });
+      expect(resp, 'to satisfy', {
+        profiles:     [{ provider: 'test', title: 'Marcus Antonius' }],
+        __httpStatus: 200,
       });
     });
   });

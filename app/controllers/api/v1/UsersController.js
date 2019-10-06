@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import _ from 'lodash'
 import compose from 'koa-compose';
 
@@ -9,6 +11,7 @@ import recaptchaVerify from '../../../../lib/recaptcha'
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, targetUserRequired, monitored } from '../../middlewares';
 import { UsersControllerV2 } from '../../../controllers';
+import { profileCache } from '../../../support/ExtAuth';
 
 
 const config = configLoader()
@@ -18,6 +21,22 @@ export default class UsersController {
     const params = {
       username: ctx.request.body.username,
       email:    ctx.request.body.email
+    }
+
+    let extProfileData = null;
+
+    /**
+     * The 'connectToExtProfile' parameter holds the key of profileCache.
+     * If this parameter is present then the user is registered via the
+     * external identity provider and must be linked to the external auth
+     * profile. In this case the password will be randomly generated.
+     */
+    if (ctx.request.body.connectToExtProfile) {
+      extProfileData = await profileCache.get(ctx.request.body.connectToExtProfile);
+
+      // If the connectToExtProfile is defined then we should auto-generate password
+      ctx.request.body.password = (await crypto.randomBytesAsync(8)).toString('base64');
+      ctx.request.body.password_hash = undefined;
     }
 
     params.hashedPassword = ctx.request.body.password_hash
@@ -43,6 +62,10 @@ export default class UsersController {
     await user.create(false)
 
     try {
+      if (extProfileData) {
+        await user.addOrUpdateExtProfile(extProfileData);
+      }
+
       const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
 
       if (null === onboardingUser) {

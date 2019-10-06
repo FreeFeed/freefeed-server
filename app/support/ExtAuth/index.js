@@ -1,6 +1,7 @@
 import { load as configLoader } from '../../../config/config'
 
 import { TestProvider } from './TestProvider';
+import { Cache } from './Cache';
 
 
 export {
@@ -15,11 +16,12 @@ export { AuthError } from './AuthError';
 
 export { Cache } from './Cache';
 
-const config = configLoader();
+// A separate cache that holds profile data to auto-connect after the user creation
+export const profileCache = new Cache('extauthprofile:', 30 * 60); // 30 minutes
 
 export function getAuthProvider(name) {
   const ProvClass = providerByName[name];
-  const conf = config.externalAuthProviders[name];
+  const conf = configLoader().externalAuthProviders[name];
 
   if (!conf || !ProvClass) {
     return null;
