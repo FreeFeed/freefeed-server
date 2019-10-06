@@ -13,6 +13,8 @@ export {
 
 export { AuthError } from './AuthError';
 
+export { Cache } from './Cache';
+
 const config = configLoader();
 
 export function getAuthProvider(name) {

@@ -69,93 +69,99 @@ export const authFinish = compose([
       throw new NotFoundException(`Provider '${provName}' is not supported`);
     }
 
-    let state;
 
     try {
-      state = await authProvider.acceptResponse(ctx.request.body);
+      const state = await authProvider.acceptResponse(ctx.request.body);
+
+      const profileData = {
+        provider:   provName,
+        externalId: state.profile.id,
+        title:      state.profile.fullName,
+      };
+
+      // Connect external profile to FreeFeed account
+      if (state.params.mode === MODE_CONNECT) {
+        const currentUser = ctx.state.user;
+
+        if (!currentUser) {
+          throw new NotAuthorizedException();
+        }
+
+        const profileUser = await User.getByExtProfile(profileData);
+
+        if (profileUser && profileUser.id !== currentUser.id) {
+          throw new ForbiddenException(
+            `The '${state.profile.fullName}' profile on ${authProvider.title} is already ` +
+          `associated with another FreeFeed account: @${profileUser.username}`
+          );
+        }
+
+        const profile = await currentUser.addOrUpdateExtProfile(profileData);
+        ctx.body = { profile: serializeExtProfile(profile) };
+      }
+
+      // Sign in or start to sign up.
+      if (state.params.mode === MODE_SIGN_IN) {
+        const profileUser = await User.getByExtProfile(profileData);
+
+        if (profileUser) {
+          // User found, signing in
+          const authToken =  new SessionTokenV0(profileUser.id).tokenString()
+          ctx.body = {
+            status:  SIGN_IN_SUCCESS,
+            message: `Successfully signed in`,
+            authToken,
+          };
+          return;
+        }
+
+        if (state.profile.email) {
+          const emailUser = await dbAdapter.getUserByEmail(state.profile.email)
+
+          // There is a user with this email
+          if (emailUser) {
+            ctx.body = {
+              status:  SIGN_IN_USER_EXISTS,
+              message: `Another user exists with this email address`,
+              profile: state.profile,
+            };
+            return;
+          }
+        }
+
+        // Can continue to sign up
+        ctx.body = {
+          status:  SIGN_IN_CONTINUE,
+          message: `No user exists with this profile or email address. You can continue signing up.`,
+          profile: {
+            fullName:   state.profile.fullName,
+            email:      state.profile.email,
+            pictureURL: state.profile.pictureURL,
+          },
+          suggestedUsername: '',
+        };
+
+        // Trying to suggest a username
+        {
+          let username = '';
+
+          if (state.profile.nickName) {
+            username = state.profile.nickName.toLowerCase().replace(/[^a-z0-9]/i, '');
+          } else if (state.profile.email && state.profile.email.indexOf('@') !== -1) {
+            username = state.profile.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/i, '');
+          }
+
+          ctx.body.suggestedUsername = await adaptUsername(username);
+        }
+      }
     } catch (err) {
       if (err instanceof AuthError) {
         throw new BadRequestException(err.message);
       }
 
       throw err;
-    }
-
-    const profileData = {
-      provider:   provName,
-      externalId: state.profile.id,
-      title:      state.profile.fullName,
-    };
-
-    if (state.params.mode === MODE_CONNECT) {
-      const currentUser = ctx.state.user;
-
-      if (!currentUser) {
-        throw new NotAuthorizedException();
-      }
-
-      const profileUser = await User.getByExtProfile(profileData);
-
-      if (!profileUser || profileUser.id === currentUser.id) {
-        const profile = await currentUser.addOrUpdateExtProfile(profileData);
-        ctx.body = { profile: serializeExtProfile(profile) };
-      } else {
-        throw new ForbiddenException(
-          `The '${state.profile.fullName}' profile on ${authProvider.title} is already ` +
-          `associated with another FreeFeed account: @${profileUser.username}`
-        );
-      }
-    } else if (state.params.mode === MODE_SIGN_IN) {
-      const profileUser = await User.getByExtProfile(profileData);
-
-      if (profileUser) {
-        // User found, signing in
-        const authToken =  new SessionTokenV0(profileUser.id).tokenString()
-        ctx.body = {
-          status:  SIGN_IN_SUCCESS,
-          message: `Successfully signed in`,
-          authToken,
-        };
-        return;
-      }
-
-      if (state.profile.email) {
-        const emailUser = await dbAdapter.getUserByEmail(state.profile.email)
-
-        if (emailUser) {
-          ctx.body = {
-            status:  SIGN_IN_USER_EXISTS,
-            message: `Another user exists with this email address`,
-            profile: state.profile,
-          };
-          return;
-        }
-      }
-
-      ctx.body = {
-        status:  SIGN_IN_CONTINUE,
-        message: `No user exists with this profile or email address. You can continue signing up.`,
-        profile: {
-          fullName:   state.profile.fullName,
-          email:      state.profile.email,
-          pictureURL: state.profile.pictureURL,
-        },
-        suggestedUsername: '',
-      };
-
-      // Try to suggest a username
-      let username = '';
-
-      if (state.profile.nickName) {
-        username = state.profile.nickName.toLowerCase().replace(/[^a-z0-9]/i, '');
-      } else if (state.profile.email && state.profile.email.indexOf('@') !== -1) {
-        username = state.profile.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/i, '');
-      }
-
-      ctx.body.suggestedUsername = await adaptUsername(username);
-    } else {
-      // We shouldn't be here
-      throw new BadRequestException('Unknown request mode');
+    } finally {
+      await authProvider.done(ctx.request.body);
     }
   },
 ]);

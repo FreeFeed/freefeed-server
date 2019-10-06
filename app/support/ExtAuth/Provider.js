@@ -45,4 +45,13 @@ export class Provider {
   acceptResponse(params) { // eslint-disable-line no-unused-vars
     throw Error('Not implemented');
   }
+
+  /**
+   * Performs cleanup after the authorization flow completes. Receives the
+   * same parameters as the acceptResponse.
+   *
+   * @param {object} params
+   * @return {Promise<void>}
+   */
+  done(params) {} // eslint-disable-line no-unused-vars
 }

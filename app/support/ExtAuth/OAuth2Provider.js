@@ -55,6 +55,12 @@ export class OAuth2Provider extends Provider {
     return state;
   }
 
+  async done({ query:{ state } }) {
+    if (state) {
+      await this.cache.delete(state);
+    }
+  }
+
   // Protected methods
   authorizeURLParams(commonParams) {
     return commonParams;
