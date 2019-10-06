@@ -1,11 +1,8 @@
 import passport from 'koa-passport'
-import jwt from 'jsonwebtoken'
 
-import { load as configLoader } from '../../../../config/config'
 import { UserSerializer } from '../../../models'
+import { SessionTokenV0 } from '../../../models/auth-tokens'
 
-
-const config = configLoader()
 
 export default class SessionController {
   static create(ctx) {
@@ -26,8 +23,7 @@ export default class SessionController {
         return
       }
 
-      const { secret } = config;
-      const authToken = jwt.sign({ userId: user.id }, secret)
+      const authToken = new SessionTokenV0(user.id).tokenString();
 
       const json = await new UserSerializer(user).promiseToJSON();
       ctx.body = { ...json, authToken };

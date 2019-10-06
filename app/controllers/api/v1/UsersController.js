@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken'
 import _ from 'lodash'
 import compose from 'koa-compose';
 
@@ -93,8 +92,7 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const { secret } = config;
-    const authToken = jwt.sign({ userId: user.id }, secret)
+    const authToken = new SessionTokenV0(user.id).tokenString();
 
     const json = await new MyProfileSerializer(user).promiseToJSON()
     ctx.body = { ...json, authToken };
