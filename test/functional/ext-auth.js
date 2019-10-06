@@ -9,7 +9,7 @@ import cleanDB from '../dbCleaner';
 import { dbAdapter } from '../../app/models';
 import { getAuthProvider, SIGN_IN_SUCCESS, SIGN_IN_USER_EXISTS, SIGN_IN_CONTINUE } from '../../app/support/ExtAuth';
 
-import { createTestUsers, performRequest, createUserAsync } from './functional_test_helper';
+import { createTestUsers, performJSONRequest, createUserAsync } from './functional_test_helper';
 import { extAuthProfilesResponse, externalProfile } from './schemaV2-helper';
 
 
@@ -35,28 +35,28 @@ describe('ExtAuthController base methods', () => {
   });
 
   it('should not return profile list to anonymous', async () => {
-    const result = await request('GET', '/v2/ext-auth/profiles', null);
-    expect(result, 'to satisfy', { __httpStatus: 401 });
+    const result = await performJSONRequest('GET', '/v2/ext-auth/profiles', null);
+    expect(result, 'to satisfy', { __httpCode: 401 });
   });
 
   it('should return Luna profile list', async () => {
-    const result = await request('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${lunaToken}` });
+    const result = await performJSONRequest('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${lunaToken}` });
     expect(result, 'to satisfy', extAuthProfilesResponse);
     expect(result, 'to satisfy', { profiles: [{ id: lunaProfile2.id }, { id: lunaProfile1.id }] });
   });
 
   it('should not allow to Mars to remove Luna profile', async () => {
-    const result = await request('DELETE', `/v2/ext-auth/profiles/${lunaProfile1.id}`, {}, { 'Authorization': `Bearer ${marsToken}` });
-    expect(result, 'to satisfy', { __httpStatus: 404 });
+    const result = await performJSONRequest('DELETE', `/v2/ext-auth/profiles/${lunaProfile1.id}`, {}, { 'Authorization': `Bearer ${marsToken}` });
+    expect(result, 'to satisfy', { __httpCode: 404 });
   });
 
   it('should allow to Luna to remove her profile', async () => {
-    const result = await request('DELETE', `/v2/ext-auth/profiles/${lunaProfile1.id}`, {}, { 'Authorization': `Bearer ${lunaToken}` });
-    expect(result, 'to satisfy', { __httpStatus: 200 });
+    const result = await performJSONRequest('DELETE', `/v2/ext-auth/profiles/${lunaProfile1.id}`, {}, { 'Authorization': `Bearer ${lunaToken}` });
+    expect(result, 'to satisfy', { __httpCode: 200 });
   });
 
   it('should return modified Luna profile list', async () => {
-    const result = await request('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${lunaToken}` });
+    const result = await performJSONRequest('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${lunaToken}` });
     expect(result, 'to satisfy', { profiles: [{ id: lunaProfile2.id }] });
   });
 });
@@ -85,7 +85,7 @@ describe('ExtAuthController authorization flow', () => {
         externalFullName: 'Luna Lovegood',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       expect(resp, 'to have key', 'redirectTo');
       expect(resp.redirectTo, 'to start with', testProvider.authorizeURL);
 
@@ -98,7 +98,7 @@ describe('ExtAuthController authorization flow', () => {
       });
 
       // Finalizing flow
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } },
         { Authorization: `Bearer ${luna.authToken}` }
@@ -107,7 +107,7 @@ describe('ExtAuthController authorization flow', () => {
     });
 
     it('should return modified Luna profile list', async () => {
-      const result = await request('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${luna.authToken}` });
+      const result = await performJSONRequest('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${luna.authToken}` });
       expect(result, 'to satisfy', { profiles: [{ provider: 'test', title: 'Luna Lovegood' }] });
     });
 
@@ -122,18 +122,18 @@ describe('ExtAuthController authorization flow', () => {
         externalFullName: 'Luna Lovegood',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
       // Finalizing flow as Mars
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } },
         { Authorization: `Bearer ${mars.authToken}` }
       );
       expect(resp, 'to satisfy', {
-        err:          expect.it('to contain', '@luna', 'Luna Lovegood'),
-        __httpStatus: 403,
+        err:        expect.it('to contain', '@luna', 'Luna Lovegood'),
+        __httpCode: 403,
       });
     });
   });
@@ -152,7 +152,7 @@ describe('ExtAuthController authorization flow', () => {
         externalFullName: 'Luna Lovegood',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       expect(resp, 'to have key', 'redirectTo');
       expect(resp.redirectTo, 'to start with', testProvider.authorizeURL);
 
@@ -165,7 +165,7 @@ describe('ExtAuthController authorization flow', () => {
       });
 
       // Finalizing flow
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } }
       );
@@ -175,10 +175,10 @@ describe('ExtAuthController authorization flow', () => {
       });
 
       // Checking the authToken
-      resp = await request('GET', '/v1/users/me', null, { Authorization: `Bearer ${resp.authToken}` });
+      resp = await performJSONRequest('GET', '/v1/users/me', null, { Authorization: `Bearer ${resp.authToken}` });
       expect(resp, 'to satisfy', {
-        users:        { id: luna.user.id },
-        __httpStatus: 200,
+        users:      { id: luna.user.id },
+        __httpCode: 200,
       });
     });
 
@@ -194,11 +194,11 @@ describe('ExtAuthController authorization flow', () => {
         externalEmail:    'mars@example.com',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
       // Finalizing flow
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } }
       );
@@ -219,11 +219,11 @@ describe('ExtAuthController authorization flow', () => {
         externalPictureURL: 'http://localhost/marcus.jpg'
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
       // Finalizing flow
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } }
       );
@@ -250,17 +250,17 @@ describe('ExtAuthController authorization flow', () => {
         externalFullName: 'Marcus Antonius',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
       // Finalizing flow
-      const { connectToExtProfile } = await request(
+      const { connectToExtProfile } = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } }
       );
 
       // Creating new user
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v1/users',
         {
           username: 'marcus',
@@ -269,26 +269,26 @@ describe('ExtAuthController authorization flow', () => {
         }
       );
 
-      expect(resp, 'to satisfy', { users: { username: 'marcus' }, __httpStatus: 200 });
+      expect(resp, 'to satisfy', { users: { username: 'marcus' }, __httpCode: 200 });
 
       // Check the linked profile
-      resp = await request('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${resp.authToken}` });
+      resp = await performJSONRequest('GET', '/v2/ext-auth/profiles', null, { 'Authorization': `Bearer ${resp.authToken}` });
       expect(resp, 'to satisfy', {
-        profiles:     [{ provider: 'test', title: 'Marcus Antonius' }],
-        __httpStatus: 200,
+        profiles:   [{ provider: 'test', title: 'Marcus Antonius' }],
+        __httpCode: 200,
       });
     });
   });
 
   describe('AuthError', () => {
     it('should throw error if "state" parameter is not valid', async () => {
-      const resp = await request(
+      const resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: 'bad state' } },
       );
       expect(resp, 'to satisfy', {
-        err:          expect.it('to contain', 'state'),
-        __httpStatus: 400,
+        err:        expect.it('to contain', 'state'),
+        __httpCode: 400,
       });
     });
 
@@ -302,14 +302,14 @@ describe('ExtAuthController authorization flow', () => {
         externalFullName: 'Luna Lovegood',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { state: redirectParams.state } },
       );
-      expect(resp, 'to satisfy', { __httpStatus: 400 });
+      expect(resp, 'to satisfy', { __httpCode: 400 });
     });
 
     it('should throw error with "error_description" parameter', async () => {
@@ -322,39 +322,14 @@ describe('ExtAuthController authorization flow', () => {
         externalFullName: 'Luna Lovegood',
       };
 
-      let resp = await request('POST', '/v2/ext-auth/auth-start', authParams);
+      let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
-      resp = await request(
+      resp = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { state: redirectParams.state, error_description: 'fooo' } },
       );
-      expect(resp, 'to satisfy', { __httpStatus: 400, err: 'fooo' });
+      expect(resp, 'to satisfy', { __httpCode: 400, err: 'fooo' });
     });
   });
 });
-
-async function request(method, path, body, headers = {}) {
-  const resp = await performRequest(path, {
-    method,
-    body:    method === 'GET' ? null : JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-  });
-  const textResponse =  await resp.text();
-  let json;
-
-  try {
-    json = JSON.parse(textResponse);
-  } catch (e) {
-    json = {
-      err: `invalid JSON: ${e.message}`,
-      textResponse,
-    };
-  }
-
-  json.__httpStatus = resp.status;
-  return json;
-}
