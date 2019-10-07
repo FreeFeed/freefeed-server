@@ -1,7 +1,8 @@
 import { load as configLoader } from '../../../config/config'
 
-import { TestProvider } from './TestProvider';
 import { Cache } from './Cache';
+import { TestProvider } from './TestProvider';
+import { FacebookProvider } from './FacebookProvider';
 
 
 export {
@@ -30,4 +31,7 @@ export function getAuthProvider(name) {
   return new ProvClass(conf);
 }
 
-const providerByName = { 'test': TestProvider };
+const providerByName = {
+  'test':     TestProvider,
+  'facebook': FacebookProvider,
+};
