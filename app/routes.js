@@ -102,6 +102,11 @@ export default function (app) {
   // Not Found middleware for API-like URIs
   app.use(async (ctx, next) => {
     if (/\/v\d+\//.test(ctx.url)) {
+      if (ctx.request.method === 'OPTIONS') {
+        ctx.status = 200;
+        return;
+      }
+
       ctx.status = 404;
       ctx.body = { err: `API method not found: '${ctx.url}'` };
       return;
