@@ -116,26 +116,16 @@ export const authFinish = compose([
           return;
         }
 
-        if (state.profile.email) {
-          const emailUser = await dbAdapter.getUserByEmail(state.profile.email)
+        const emailUser = state.profile.email && (await dbAdapter.getUserByEmail(state.profile.email));
 
-          // There is a user with this email
-          if (emailUser) {
-            ctx.body = {
-              status:  SIGN_IN_USER_EXISTS,
-              message: `Another user exists with this email address`,
-              profile: state.profile,
-            };
-            return;
-          }
-        }
-
-        // Can continue to sign up
         ctx.body = {
-          status:  SIGN_IN_CONTINUE,
-          message: `No user exists with this profile or email address. You can continue signing up.`,
+          status:  emailUser ? SIGN_IN_USER_EXISTS : SIGN_IN_CONTINUE,
+          message: emailUser ?
+            `Another user exists with this email address.` :
+            `No user exists with this profile or email address. You can continue signing up.`,
           profile: {
-            fullName:   state.profile.fullName,
+            provider:   provName,
+            name:       state.profile.fullName,
             email:      state.profile.email,
             pictureURL: state.profile.pictureURL,
           },

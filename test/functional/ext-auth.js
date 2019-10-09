@@ -230,7 +230,8 @@ describe('ExtAuthController authorization flow', () => {
       expect(resp, 'to satisfy', {
         status:  SIGN_IN_CONTINUE,
         profile: {
-          fullName:   'Marcus Antonius',
+          provider:   'test',
+          name:       'Marcus Antonius',
           email:      'marcus@example.com',
           pictureURL: 'http://localhost/marcus.jpg',
         },
