@@ -3,6 +3,7 @@ import { load as configLoader } from '../../../config/config'
 import { Cache } from './Cache';
 import { TestProvider } from './TestProvider';
 import { FacebookProvider } from './FacebookProvider';
+import { GoogleProvider } from './GoogleProvider';
 
 
 export {
@@ -34,4 +35,5 @@ export function getAuthProvider(name) {
 const providerByName = {
   'test':     TestProvider,
   'facebook': FacebookProvider,
+  'google':   GoogleProvider,
 };
