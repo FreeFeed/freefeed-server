@@ -235,8 +235,8 @@ describe('ExtAuthController authorization flow', () => {
           email:      'marcus@example.com',
           pictureURL: 'http://localhost/marcus.jpg',
         },
-        suggestedUsername:   'mars1',
-        connectToExtProfile: expect.it('to be a string'),
+        suggestedUsername:  'mars1',
+        externalProfileKey: expect.it('to be a string'),
       });
     });
 
@@ -255,7 +255,7 @@ describe('ExtAuthController authorization flow', () => {
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
 
       // Finalizing flow
-      const { connectToExtProfile } = await performJSONRequest(
+      const { externalProfileKey } = await performJSONRequest(
         'POST', '/v2/ext-auth/auth-finish',
         { provider: 'test', query: { code: '12345', state: redirectParams.state } }
       );
@@ -266,7 +266,7 @@ describe('ExtAuthController authorization flow', () => {
         {
           username: 'marcus',
           // no password - it should be possible to register user without password
-          connectToExtProfile,
+          externalProfileKey,
         }
       );
 
