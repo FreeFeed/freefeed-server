@@ -336,7 +336,7 @@ describe('UsersControllerV2', () => {
       ctx.status = 200;
       ctx.response.type = 'image/gif';
       // 1x1 transparent gif
-      ctx.body = new Buffer('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+      ctx.body = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
     });
 
     before(() => server.start());
@@ -366,6 +366,44 @@ describe('UsersControllerV2', () => {
       );
 
       expect(resp, 'to satisfy', { __httpCode: 200, message: expect.it('to be a string') });
+    });
+  });
+
+  describe('create user with different parameters', () => {
+    it('should create user with custom screenName', async () => {
+      const resp = await performJSONRequest('POST', '/v1/users', {
+        username:   'marcus',
+        password:   'password',
+        screenName: 'Marcus Antonius',
+      });
+      expect(resp, 'to satisfy', {
+        __httpCode: 200,
+        users:      { username: 'marcus', screenName: 'Marcus Antonius' },
+      });
+    });
+
+    describe('create user with profile picture by URL', () => {
+      const server = new MockHTTPServer((ctx) => {
+        ctx.status = 200;
+        ctx.response.type = 'image/gif';
+        // 1x1 transparent gif
+        ctx.body = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+      });
+
+      before(() => server.start());
+      after(() => server.stop());
+
+      it('should create user with profile picture by URL', async () => {
+        const resp = await performJSONRequest('POST', '/v1/users', {
+          username:          'luna',
+          password:          'password',
+          profilePictureURL: `${server.origin}/image.gif`,
+        });
+        expect(resp, 'to satisfy', {
+          __httpCode: 200,
+          users:      { username: 'luna', profilePictureLargeUrl: expect.it('to be a string') },
+        });
+      });
     });
   });
 });
