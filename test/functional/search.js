@@ -104,18 +104,38 @@ describe('SearchController', () => {
     });
 
     describe('There is a group', () => {
+      let group;
       before(async () => {
-        const group = await funcTestHelper.createGroupAsync(lunaContext, 'lunagroup');
+        group = await funcTestHelper.createGroupAsync(lunaContext, 'lunagroup');
         await funcTestHelper.subscribeToAsync(marsContext, group);
         await Promise.all([
-          funcTestHelper.createAndReturnPostToFeed(group, lunaContext, 'hello from luna'),
-          funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'hello from mars'),
+          funcTestHelper.createAndReturnPostToFeed(group, lunaContext, 'hello from luna to lunagroup'),
+          funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'hello from mars to lunagroup'),
         ]);
       });
 
       it('should find only post to group', async () => {
-        await expect(funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
-        await expect(funcTestHelper.performSearch(lunaContext, 'from:me group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+        await expect(funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna to lunagroup' }] });
+        await expect(funcTestHelper.performSearch(lunaContext, 'from:me group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna to lunagroup' }] });
+      });
+
+      describe('Group is protected, Luna is public', () => {
+        before(async () => {
+          await funcTestHelper.goPublic(lunaContext);
+          await funcTestHelper.groupToProtected(group.group, lunaContext);
+        });
+
+        it('should not search for group posts as anonymous', async () => {
+          await expect(
+            funcTestHelper.performSearch(anonContext, 'group:lunagroup hello'),
+            'when fulfilled', 'to satisfy', { err: expect.it('to be a string') });
+        });
+
+        it('should not search for user posts in group as anonymous', async () => {
+          await expect(
+            funcTestHelper.performSearch(anonContext, 'from:luna hello'),
+            'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+        });
       });
     });
   });
