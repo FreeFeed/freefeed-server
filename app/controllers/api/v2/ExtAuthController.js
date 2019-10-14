@@ -20,6 +20,7 @@ import {
 } from '../../../support/ExtAuth';
 import { User, dbAdapter } from '../../../models';
 import { SessionTokenV0 } from '../../../models/auth-tokens';
+import { serializeUser } from '../../../serializers/v2/user';
 
 import { authStartInputSchema, authFinishInputSchema } from './data-schemes/ext-auth';
 
@@ -103,6 +104,13 @@ export const authFinish = compose([
 
       // Sign in or start to sign up.
       if (state.params.mode === MODE_SIGN_IN) {
+        const profile = {
+          provider:   provName,
+          name:       state.profile.fullName,
+          email:      state.profile.email,
+          pictureURL: state.profile.pictureURL,
+        }
+
         const profileUser = await User.getByExtProfile(profileData);
 
         if (profileUser) {
@@ -111,6 +119,8 @@ export const authFinish = compose([
           ctx.body = {
             status:  SIGN_IN_SUCCESS,
             message: `Successfully signed in`,
+            profile,
+            user:    serializeUser(profileUser),
             authToken,
           };
           return;
@@ -123,12 +133,7 @@ export const authFinish = compose([
           message: emailUser ?
             `Another user exists with this email address.` :
             `No user exists with this profile or email address. You can continue signing up.`,
-          profile: {
-            provider:   provName,
-            name:       state.profile.fullName,
-            email:      state.profile.email,
-            pictureURL: state.profile.pictureURL,
-          },
+          profile,
           suggestedUsername:  '',
           // Profile data to auto-connect after the user creation is complete.
           externalProfileKey: await profileCache.put(profileData),

@@ -172,6 +172,8 @@ describe('ExtAuthController authorization flow', () => {
       expect(resp, 'to satisfy', {
         status:    SIGN_IN_SUCCESS,
         authToken: expect.it('to be a string'),
+        user:      { username: 'luna' },
+        profile:   { provider: 'test', name: 'Luna Lovegood' },
       });
 
       // Checking the authToken
