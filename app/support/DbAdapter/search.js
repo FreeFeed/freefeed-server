@@ -76,15 +76,16 @@ const searchTrait = (superClass) => class extends superClass {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
+    const isAnonymous = !visibleFeedIds || visibleFeedIds.length === 0;
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and users.${isAnonymous ? 'is_protected' : 'is_private'}=false ` +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
       'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and users.${isAnonymous ? 'is_protected' : 'is_private'}=false ` +
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
@@ -92,7 +93,7 @@ const searchTrait = (superClass) => class extends superClass {
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
-    if (visibleFeedIds && visibleFeedIds.length > 0) {
+    if (!isAnonymous) {
       const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
         'inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name=\'Posts\' ' +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
@@ -125,19 +126,16 @@ const searchTrait = (superClass) => class extends superClass {
     const bannedCommentAuthorFilter = this._getCommentsFromBannedUsersSearchFilterCondition(bannedUserIds);
     const searchCondition = this._getTextSearchCondition(query, textSearchConfigName);
     const commentSearchCondition = this._getCommentSearchCondition(query, textSearchConfigName);
-
-    if (!visibleFeedIds || visibleFeedIds.length == 0) {
-      visibleFeedIds = 'NULL';
-    }
+    const isAnonymous = !visibleFeedIds || visibleFeedIds.length === 0;
 
     const publicPostsSubQuery = 'select "posts".* from "posts" ' +
       `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and users.${isAnonymous ? 'is_protected' : 'is_private'}=false ` +
       `where ${searchCondition} ${bannedUsersFilter}`;
 
     const publicPostsByCommentsSubQuery = 'select "posts".* from "posts" ' +
       `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
-      'inner join "users" on feeds.user_id=users.uid and users.is_private=false ' +
+      `inner join "users" on feeds.user_id=users.uid and users.${isAnonymous ? 'is_protected' : 'is_private'}=false ` +
       `where
           posts.uid in (
             select post_id from comments where ${commentSearchCondition} ${bannedCommentAuthorFilter}
@@ -145,7 +143,7 @@ const searchTrait = (superClass) => class extends superClass {
 
     let subQueries = [publicPostsSubQuery, publicPostsByCommentsSubQuery];
 
-    if (visibleFeedIds && visibleFeedIds.length > 0) {
+    if (!isAnonymous) {
       const visiblePrivatePostsSubQuery = 'select "posts".* from "posts" ' +
         `inner join "feeds" on posts.destination_feed_ids # feeds.id > 0 and feeds.name='Posts' and feeds.uid='${groupFeedId}' ` +
         'inner join "users" on feeds.user_id=users.uid and users.is_private=true ' +
