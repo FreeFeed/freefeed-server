@@ -2,8 +2,9 @@ dist: trusty
 language: node_js
 node_js:
   - 8.11
+  - "12"
 env:
-  - CXX=g++-4.8
+  - CXX=g++-6
 services:
   - redis-server
   - postgresql
@@ -21,7 +22,7 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-4.8
+      - g++-6
       - graphicsmagick
 notifications:
   slack:

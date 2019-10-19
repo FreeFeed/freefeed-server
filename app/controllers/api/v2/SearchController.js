@@ -53,8 +53,12 @@ export default class SearchController {
         throw new NotFoundException(`Group "${preparedQuery.group}" is not found`);
       }
 
+      if (!currentUserId && targetGroup.isProtected === '1') {
+        throw new ForbiddenException(`Please sign in to see content from group "${preparedQuery.group}"`);
+      }
+
       const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-      isSubscribed           = await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId);
+      isSubscribed           = currentUserId && await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId);
 
       if (!isSubscribed && targetGroup.isPrivate == '1') {
         throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`);
