@@ -1,6 +1,5 @@
 #!/usr/bin/env babel-node
 
-import bluebird from 'bluebird'
 import repl from "repl"
 
 import { getSingleton as initApp } from '../app/app'
@@ -8,7 +7,6 @@ import * as models from '../app/models'
 
 
 process.env.NODE_ENV = "console"
-global.Promise = bluebird
 
 initApp()
   .then((app) => {

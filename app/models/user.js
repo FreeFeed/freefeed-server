@@ -1283,8 +1283,9 @@ export function addModel(dbAdapter) {
 
     // External authentication profiles
 
-    getExtProfiles() {
-      return dbAdapter.getExtProfiles(this.id).filter((p) => config.externalAuthProviders[p.provider]);
+    async getExtProfiles() {
+      const profilesFromDb = await dbAdapter.getExtProfiles(this.id);
+      return profilesFromDb.filter((p) => config.externalAuthProviders[p.provider]);
     }
 
     /**

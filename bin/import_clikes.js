@@ -1,18 +1,12 @@
 #!/usr/bin/env babel-node
 import fs from 'fs';
 
-import bluebird from 'bluebird';
-
-
-global.Promise = bluebird;
-global.Promise.onPossiblyUnhandledRejection((e) => {
-  throw e;
-});
-
-Promise.promisifyAll(fs);
+import { promisifyAll } from 'bluebird';
 
 import { postgres, dbAdapter } from '../app/models'
 
+
+promisifyAll(fs);
 
 async function main() {
   process.stdout.write(`Started\n`);
