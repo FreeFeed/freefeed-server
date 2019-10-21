@@ -5,15 +5,8 @@
     "@babel/syntax-class-properties",
     "@babel/syntax-export-default-from",
     "@babel/syntax-export-namespace-from",
-    "@babel/syntax-object-rest-spread",
-    ["@babel/transform-async-to-generator", {
-      "module": "bluebird",
-      "method": "coroutine"
-    }],
-    "@babel/proposal-class-properties",
     "@babel/proposal-export-default-from",
     "@babel/proposal-export-namespace-from",
-    "@babel/proposal-object-rest-spread",
     "@babel/transform-modules-commonjs",
     "@babel/transform-react-jsx"
   ]

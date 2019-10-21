@@ -1,9 +1,4 @@
 #!/usr/bin/env babel-node
-import bluebird from 'bluebird';
-
-global.Promise = bluebird;
-global.Promise.onPossiblyUnhandledRejection((e) => { throw e; });
-
 import { postgres, dbAdapter } from '../app/models'
 
 async function main() {
