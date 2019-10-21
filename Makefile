@@ -1,19 +1,20 @@
-IMAGE = freefeed/server:dev
+VERSION = $(shell git describe --tags)
+IMAGE = docker.pkg.github.com/freefeed/freefeed-server/app:$(VERSION)
 
 all: init
 
-init:
-	@sed 's/localhost/db/g' knexfile.js.dist > knexfile.js
-	@mkdir -p public/files/attachments/thumbnails
-	@mkdir -p public/files/attachments/thumbnails2
+image:
 	@docker build -t $(IMAGE) .
-	@docker run -it --rm -v $(shell pwd):/server -w /server $(IMAGE) npm install
 
-docker-shell:
-	@docker run -it --rm -v $(shell pwd):/server -w /server $(IMAGE) bash
+docker-run:
+	@docker run --name frf-server -t --rm -p 3000:3000 --net freefeed-server_default \
+		-e "REDIS_HOST=redis" -v ${CURDIR}/knexfile.js.docker:/server/knexfile.js $(IMAGE) npm start
+
+push: image
+	@docker push $(IMAGE)
 
 clean:
 	docker rmi $(IMAGE)
 	rm -rf node_modules
 
-.PHONY: all init docker-shell clean
+.PHONY: all image docker-run push clean
