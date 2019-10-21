@@ -9,7 +9,7 @@ import { appTokensScopes } from '../../app/models/app-tokens-scopes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
-  performRequest,
+  performJSONRequest,
   createTestUsers,
   createTestUser,
   goPrivate,
@@ -44,7 +44,7 @@ describe('App tokens controller', () => {
     });
 
     it('should create token', async () => {
-      const resp = await request(
+      const resp = await performJSONRequest(
         'POST', '/v2/app-tokens',
         {
           title:  'App1',
@@ -68,7 +68,7 @@ describe('App tokens controller', () => {
     });
 
     it('should return "whoami" data with token', async () => {
-      const resp = await request(
+      const resp = await performJSONRequest(
         'GET', '/v2/users/whoami',
         null,
         { 'X-Authentication-Token': lunaToken.tokenString() },
@@ -77,7 +77,7 @@ describe('App tokens controller', () => {
     });
 
     it('should reject "/v1/users/:username" request with token', async () => {
-      const resp = await request(
+      const resp = await performJSONRequest(
         'GET', `/v1/users/${luna.username}`,
         null,
         { 'X-Authentication-Token': lunaToken.tokenString() },
@@ -91,39 +91,39 @@ describe('App tokens controller', () => {
       });
 
       it('should invalidate token', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'DELETE', `/v2/app-tokens/${lunaToken.id}`,
           null,
           { 'X-Authentication-Token': luna.authToken },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 200 });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
       });
 
       it('should invalidate invalidated token', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'DELETE', `/v2/app-tokens/${lunaToken.id}`,
           null,
           { 'X-Authentication-Token': luna.authToken },
         );
-        expect(resp.__httpStatus, 'to be', 200);
+        expect(resp.__httpCode, 'to be', 200);
       });
 
       it('should not invalidate token of another user', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'DELETE', `/v2/app-tokens/${marsToken.id}`,
           null,
           { 'X-Authentication-Token': luna.authToken },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 404 });
+        expect(resp, 'to satisfy', { __httpCode: 404 });
       });
 
       it('should reject "whoami" request with invalidated token', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'GET', '/v2/users/whoami',
           null,
           { 'X-Authentication-Token': lunaToken.tokenString() },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 401 });
+        expect(resp, 'to satisfy', { __httpCode: 401 });
       });
     });
 
@@ -135,7 +135,7 @@ describe('App tokens controller', () => {
       });
 
       it('should reissue token', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': luna.authToken },
@@ -153,23 +153,23 @@ describe('App tokens controller', () => {
       });
 
       it('should not reissue token of another user', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'POST', `/v2/app-tokens/${marsToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': luna.authToken },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 404 });
+        expect(resp, 'to satisfy', { __httpCode: 404 });
       });
 
       it('should reissue token being auhtenticated by itself', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': newLunaTokenString },
         );
         expect(resp, 'to satisfy', {
-          __httpStatus: 200,
-          token:        { issue: 3 },
+          __httpCode: 200,
+          token:      { issue: 3 },
         });
 
         newLunaTokenString = resp.tokenString;
@@ -183,23 +183,23 @@ describe('App tokens controller', () => {
         });
         await newToken.create();
 
-        const resp = await request(
+        const resp = await performJSONRequest(
           'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': newToken.tokenString() },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 403 });
+        expect(resp, 'to satisfy', { __httpCode: 403 });
       });
 
       it('should not reissue inactivated token', async () => {
         await lunaToken.inactivate();
 
-        const resp = await request(
+        const resp = await performJSONRequest(
           'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
           {},
           { 'X-Authentication-Token': luna.authToken },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 404 });
+        expect(resp, 'to satisfy', { __httpCode: 404 });
       });
     });
 
@@ -209,33 +209,33 @@ describe('App tokens controller', () => {
       });
 
       it('should change token title', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'PUT', `/v2/app-tokens/${lunaToken.id}`,
           { title: 'New token title' },
           { 'X-Authentication-Token': luna.authToken },
         );
         expect(resp, 'to satisfy', {
-          __httpStatus: 200,
-          token:        { title: 'New token title' },
+          __httpCode: 200,
+          token:      { title: 'New token title' },
         });
       });
 
       it('should not change inactivated token title', async () => {
         await lunaToken.inactivate();
 
-        const resp = await request(
+        const resp = await performJSONRequest(
           'PUT', `/v2/app-tokens/${lunaToken.id}`,
           { title: 'New token title' },
           { 'X-Authentication-Token': luna.authToken },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 404 });
+        expect(resp, 'to satisfy', { __httpCode: 404 });
       });
     });
 
     describe('Scopes list', () => {
       it('should return app tokens scopes list', async () => {
-        const resp = await request('GET', `/v2/app-tokens/scopes`);
-        expect(resp, 'to equal', { scopes: appTokensScopes, __httpStatus: 200 });
+        const resp = await performJSONRequest('GET', `/v2/app-tokens/scopes`);
+        expect(resp, 'to equal', { scopes: appTokensScopes, __httpCode: 200 });
       });
     });
 
@@ -254,7 +254,7 @@ describe('App tokens controller', () => {
       });
 
       it('should return list of tokens', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'GET', `/v2/app-tokens`,
           null,
           { 'X-Authentication-Token': mars.authToken },
@@ -282,12 +282,12 @@ describe('App tokens controller', () => {
       });
 
       it('should allow "/v1/users/me" request with token', async () => {
-        const resp = await request(
+        const resp = await performJSONRequest(
           'GET', `/v1/users/me`,
           null,
           { 'X-Authentication-Token': token.tokenString() },
         );
-        expect(resp, 'to satisfy', { __httpStatus: 200 });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
       });
     });
   });
@@ -413,28 +413,3 @@ describe('Full access', () => {
     expect(resp.users.privateMeta, 'to equal', {});
   });
 });
-
-async function request(method, path, body, headers = {}) {
-  const resp = await performRequest(path, {
-    method,
-    body:    method === 'GET' ? null : JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-  });
-  const textResponse =  await resp.text();
-  let json;
-
-  try {
-    json = JSON.parse(textResponse);
-  } catch (e) {
-    json = {
-      err: `invalid JSON: ${e.message}`,
-      textResponse,
-    };
-  }
-
-  json.__httpStatus = resp.status;
-  return json;
-}

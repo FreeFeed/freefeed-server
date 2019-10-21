@@ -242,3 +242,20 @@ export const appTokenInfo = {
   lastIP:        expect.it('to be null').or('to be a string'),
   lastUserAgent: expect.it('to be null').or('to be a string'),
 };
+
+export const serverInfoResponse = {
+  version:               expect.it('to be a string'),
+  externalAuthProviders: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+};
+
+export const externalProfile = {
+  'id':        expect.it('to satisfy', UUID),
+  'provider':  expect.it('to be a string'),
+  'title':     expect.it('to be a string'),
+  'createdAt': expect.it('to satisfy', iso8601TimeString),
+};
+
+export const extAuthProfilesResponse = {
+  //
+  profiles: expect.it('to be an array').and('to be empty').or('to have items satisfying', externalProfile),
+};

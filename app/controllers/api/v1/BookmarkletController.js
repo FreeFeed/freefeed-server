@@ -1,30 +1,14 @@
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { URL } from 'url';
-
 import compose from 'koa-compose';
-import mediaType from 'media-type';
-import { promisifyAll } from 'bluebird';
-import fetch from 'node-fetch';
-import { wait as waitStream, pipeline } from 'promise-streams';
-import meter from 'stream-meter';
-import { parse as bytesParse } from 'bytes';
 
 import { Post, Comment, AppTokenV1 } from '../../../models';
 import { ForbiddenException } from '../../../support/exceptions';
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
-import { load as configLoader } from '../../../../config/config';
+import { downloadURL } from '../../../support/download-url';
 
 import { bookmarkletCreateInputSchema } from './data-schemes';
 import { checkDestNames } from './PostsController';
 
-
-promisifyAll(fs);
-
-const config = configLoader();
-const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
 
 export const create = compose([
   authRequired(),
@@ -87,55 +71,11 @@ export const create = compose([
 ]);
 
 async function createAttachment(author, imageURL) {
-  const parsedURL = new URL(imageURL);
-
-  if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
-    throw new Error('Unsupported URL protocol');
-  }
-
-  const parsedPath = path.parse(parsedURL.pathname);
-  const originalFileName = parsedPath.base !== '' ? decodeURIComponent(parsedPath.base) : 'file';
-
-  const bytes = crypto.randomBytes(4).readUInt32LE(0);
-  const filePath = `/tmp/pepyatka${bytes}tmp${parsedPath.ext}`;
-
-  const response = await fetch(parsedURL.href);
-
-  if (response.status !== 200) {
-    throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
-  }
-
-  const mType = mediaType.fromString(response.headers.get('content-type'));
-
-  if (mType.type !== 'image') {
-    throw new Error(`Unsupported content type: '${mType.asString() || '-'}'`);
-  }
-
-  if (response.headers.has('content-length')) {
-    const contentLength = parseInt(response.headers.get('content-length'));
-
-    if (!isNaN(contentLength) && contentLength > fileSizeLimit) {
-      throw new Error(`File is too large (${contentLength} bytes, max. ${fileSizeLimit})`);
-    }
-  }
+  const file = await downloadURL(imageURL);
 
   try {
-    const stream = fs.createWriteStream(filePath, { flags: 'w' });
-    const fileWasWritten = waitStream(stream);
-    await pipeline(
-      response.body,
-      meter(fileSizeLimit),
-      stream,
-    );
-    await fileWasWritten; // waiting for the file to be written and closed
-
-    const stats = await fs.statAsync(filePath);
-
-    const file = {
-      name: originalFileName,
-      size: stats.size,
-      type: mType.asString(),
-      path: filePath,
+    if (!/^image\//.test(file.type)) {
+      throw new Error(`Unsupported content type: '${file.type}'`);
     }
 
     const newAttachment = author.newAttachment({ file });
@@ -143,7 +83,7 @@ async function createAttachment(author, imageURL) {
 
     return newAttachment.id;
   } catch (e) {
-    await fs.unlinkAsync(filePath);
+    await file.unlink();
     throw e;
   }
 }

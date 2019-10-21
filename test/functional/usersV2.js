@@ -18,6 +18,9 @@ import {
   createTestUsers,
   getUserAsync,
   banUser,
+  MockHTTPServer,
+  createTestUser,
+  performJSONRequest,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 
@@ -324,5 +327,84 @@ describe('UsersControllerV2', () => {
       });
     });
   });
-})
+
+  describe('updateProfilePicture by URL', () => {
+    // Will not test all corner cases here because they are tested in bookmarklet controller test.
+    // Just ensure that the userpic-by-url is worked.
+
+    const server = new MockHTTPServer((ctx) => {
+      ctx.status = 200;
+      ctx.response.type = 'image/gif';
+      // 1x1 transparent gif
+      ctx.body = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+    });
+
+    before(() => server.start());
+    after(() => server.stop());
+
+    let luna;
+    beforeEach(async () => {
+      luna = await createTestUser();
+      await createGroupAsync(luna, 'selenites', 'Selenites', true, false);
+    });
+
+    it('should set profile picture by URL', async () => {
+      const resp = await performJSONRequest(
+        'POST', '/v1/users/updateProfilePicture',
+        { url: `${server.origin}/image.gif` },
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+
+      expect(resp, 'to satisfy', { __httpCode: 200, message: expect.it('to be a string') });
+    });
+
+    it('should set group profile picture by URL', async () => {
+      const resp = await performJSONRequest(
+        'POST', '/v1/groups/selenites/updateProfilePicture',
+        { url: `${server.origin}/image.gif` },
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+
+      expect(resp, 'to satisfy', { __httpCode: 200, message: expect.it('to be a string') });
+    });
+  });
+
+  describe('create user with different parameters', () => {
+    it('should create user with custom screenName', async () => {
+      const resp = await performJSONRequest('POST', '/v1/users', {
+        username:   'marcus',
+        password:   'password',
+        screenName: 'Marcus Antonius',
+      });
+      expect(resp, 'to satisfy', {
+        __httpCode: 200,
+        users:      { username: 'marcus', screenName: 'Marcus Antonius' },
+      });
+    });
+
+    describe('create user with profile picture by URL', () => {
+      const server = new MockHTTPServer((ctx) => {
+        ctx.status = 200;
+        ctx.response.type = 'image/gif';
+        // 1x1 transparent gif
+        ctx.body = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+      });
+
+      before(() => server.start());
+      after(() => server.stop());
+
+      it('should create user with profile picture by URL', async () => {
+        const resp = await performJSONRequest('POST', '/v1/users', {
+          username:          'luna',
+          password:          'password',
+          profilePictureURL: `${server.origin}/image.gif`,
+        });
+        expect(resp, 'to satisfy', {
+          __httpCode: 200,
+          users:      { username: 'luna', profilePictureLargeUrl: expect.it('to be a string') },
+        });
+      });
+    });
+  });
+});
 
