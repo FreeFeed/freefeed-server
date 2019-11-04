@@ -39,7 +39,7 @@ promisifyAll(redis.Multi.prototype);
 class DbAdapterBase {
   constructor(database) {
     this.database = database;
-    this.statsCache = promisifyAll(new NodeCache({ stdTTL: 300 }));
+    this.statsCache = new NodeCache({ stdTTL: 300 });
 
     const config = configLoader();
 
