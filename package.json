@@ -124,7 +124,7 @@
     "npm-run-all": "~4.1.2",
     "sinon": "~7.1.0",
     "socket.io-client": "~2.3.0",
-    "superagent": "1.8.3",
+    "superagent": "5.0.2",
     "unexpected": "~10.39.0",
     "unexpected-date": "~1.2.1",
     "unexpected-moment": "~3.2.1",
