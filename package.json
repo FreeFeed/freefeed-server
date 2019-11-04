@@ -122,13 +122,13 @@
     "mkdirp": "0.5.1",
     "mocha": "~6.2.2  ",
     "npm-run-all": "~4.1.2",
-    "sinon": "~7.1.0",
+    "sinon": "~7.5.0",
     "socket.io-client": "~2.3.0",
     "superagent": "~5.1.0",
-    "unexpected": "~10.39.0",
+    "unexpected": "~10.40.2",
     "unexpected-date": "~1.2.1",
-    "unexpected-moment": "~3.2.1",
-    "unexpected-sinon": "~10.10.1",
+    "unexpected-moment": "~3.3.0",
+    "unexpected-sinon": "~10.11.2",
     "xml-parser": "~1.2.1"
   }
 }
