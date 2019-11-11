@@ -132,5 +132,10 @@ export function getConfig() {
    */
   config.externalAuthProviders = {};
 
+  config.registrationsLimit = {
+    interval: '1 day', // PostgreSQL 'interval' type syntax
+    maxCount: 100,
+  };
+
   return config;
 }
