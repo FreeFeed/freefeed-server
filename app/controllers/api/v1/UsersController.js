@@ -3,8 +3,15 @@ import crypto from 'crypto';
 import _ from 'lodash'
 import compose from 'koa-compose';
 
-import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0 } from '../../../models'
-import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException, BadRequestException } from '../../../support/exceptions'
+import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
+import {
+  NotFoundException,
+  ForbiddenException,
+  ValidationException,
+  NotAuthorizedException,
+  BadRequestException,
+  TooManyRequestsException,
+} from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
@@ -23,6 +30,12 @@ export default class UsersController {
   static create = compose([
     inputSchemaRequired(userCreateInputSchema),
     async (ctx) => {
+      const registrationOpen = await ServerInfo.isRegistrationOpen();
+
+      if (!registrationOpen) {
+        throw new TooManyRequestsException('New user registrations are temporarily suspended');
+      }
+
       const params = {
         username:   ctx.request.body.username,
         screenName: ctx.request.body.screenName,
@@ -39,11 +52,11 @@ export default class UsersController {
       let extProfileData = null;
 
       /**
-     * The 'externalProfileKey' parameter holds the key of profileCache.
-     * If this parameter is present then the user is registered via the
-     * external identity provider and must be linked to the external auth
-     * profile. In this case the password will be randomly generated.
-     */
+       * The 'externalProfileKey' parameter holds the key of profileCache.
+       * If this parameter is present then the user is registered via the
+       * external identity provider and must be linked to the external auth
+       * profile. In this case the password will be randomly generated.
+       */
       if (ctx.request.body.externalProfileKey) {
       // Do not checking result: at this point we can not return.
       // If record is not found just create account with random password.

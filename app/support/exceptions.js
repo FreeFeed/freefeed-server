@@ -79,6 +79,14 @@ export class ValidationException extends Error {
   }
 }
 
+export class TooManyRequestsException extends Error {
+  constructor(message = 'Too Many Requests') {
+    super(message);
+    Error.captureStackTrace(this, this.constructor);
+    this.status = 429;
+  }
+}
+
 export class ServerErrorException {
   constructor(message) {
     this.message = message || 'Internal server error';
