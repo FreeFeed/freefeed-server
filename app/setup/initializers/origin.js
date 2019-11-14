@@ -1,4 +1,4 @@
-import { load as configLoader } from '../config';
+import { load as configLoader } from '../../../config/config';
 
 
 const config = configLoader();

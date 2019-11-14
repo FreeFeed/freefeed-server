@@ -9,12 +9,12 @@ import { promisify } from 'bluebird';
 import Raven from 'raven';
 import createDebug from 'debug';
 
-import { version as serverVersion } from '../package.json';
+import { version as serverVersion } from '../../package.json';
+import { load as configLoader } from '../../config/config';
 
-import { originMiddleware } from './initializers/origin';
-import { load as configLoader } from './config';
 import { selectDatabase } from './database';
 import { configure as configurePostgres } from './postgres';
+import { originMiddleware } from './initializers/origin';
 import { init as passportInit } from './initializers/passport';
 
 
@@ -102,7 +102,7 @@ exports.init = async function (app) {
     await next();
   });
 
-  const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' });
+  const accessLogStream = fs.createWriteStream(`${__dirname}/../../log/${env}.log`, { flags: 'a' });
   app.use(morgan('combined', { stream: accessLogStream }));
 
   if (config.logResponseTime) {  // should be located BEFORE responseTime

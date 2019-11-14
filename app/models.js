@@ -1,8 +1,8 @@
 /* eslint babel/semi: "error" */
-import { connect as redisConnection } from '../config/database';
-import { connect as postgresConnection } from '../config/postgres';
 import { load as configLoader } from '../config/config';
 
+import { connect as redisConnection } from './setup/database';
+import { connect as postgresConnection } from './setup/postgres';
 import { DbAdapter } from './support/DbAdapter';
 import { PubSubAdapter } from './support/PubSubAdapter';
 import pubSub from './pubsub';

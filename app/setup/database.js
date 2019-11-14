@@ -3,7 +3,7 @@ import _redis from 'redis';
 import createDebug from 'debug';
 import Raven from 'raven';
 
-import { load as configLoader } from './config';
+import { load as configLoader } from '../../config/config';
 
 
 promisifyAll(_redis.RedisClient.prototype);

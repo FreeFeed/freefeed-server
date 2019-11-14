@@ -2,9 +2,8 @@
 import knexjs from 'knex';
 import createDebug from 'debug';
 
-import { stylize } from '../app/support/debugLogger';
-
-import { load as configLoader } from './config';
+import { stylize } from '../support/debugLogger';
+import { load as configLoader } from '../../config/config';
 
 
 const config = configLoader();

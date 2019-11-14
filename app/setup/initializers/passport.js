@@ -1,6 +1,6 @@
 import { Strategy as LocalStrategy } from 'passport-local';
 
-import { dbAdapter } from '../../app/models';
+import { dbAdapter } from '../../models';
 
 
 export function init(passport) {
