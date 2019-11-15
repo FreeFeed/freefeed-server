@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import fs from 'fs';
+import { promises as fs, createReadStream } from 'fs';
 
 import bcrypt from 'bcrypt';
 import { promisifyAll } from 'bluebird';
@@ -979,7 +979,7 @@ export function addModel(dbAdapter) {
           config.profilePictures
         );
 
-        return fs.unlinkAsync(tmpPictureFile);
+        return fs.unlink(tmpPictureFile);
       }
 
       const destPath = this.getProfilePicturePath(uuid, size);
@@ -994,7 +994,7 @@ export function addModel(dbAdapter) {
           ACL:                'public-read',
           Bucket:             subConfig.storage.bucket,
           Key:                subConfig.path + destFile,
-          Body:               fs.createReadStream(sourceFile),
+          Body:               createReadStream(sourceFile),
           ContentType:        'image/jpeg',
           ContentDisposition: 'inline'
         })
