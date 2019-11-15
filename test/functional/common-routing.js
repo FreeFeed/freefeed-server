@@ -37,9 +37,9 @@ describe('Common API routing', () => {
     expect(resp.status, 'to be', 200);
   });
 
-  it(`should response '404 Not Found' to OPTIONS request if API method is not exists`, async () => {
+  it(`should response '200 OK' to OPTIONS request if API method is not exists`, async () => {
     const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, { method: 'OPTIONS' });
-    expect(resp.status, 'to be', 404);
+    expect(resp.status, 'to be', 200);
   });
 
   it('should normalize unicode strings in request', async () => {

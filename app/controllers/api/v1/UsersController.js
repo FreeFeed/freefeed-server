@@ -1,70 +1,112 @@
-import jwt from 'jsonwebtoken'
+import crypto from 'crypto';
+
 import _ from 'lodash'
 import compose from 'koa-compose';
 
 import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0 } from '../../../models'
-import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException } from '../../../support/exceptions'
+import { NotFoundException, ForbiddenException, ValidationException, NotAuthorizedException, BadRequestException } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
 import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 import { serializeUsersByIds } from '../../../serializers/v2/user';
-import { authRequired, targetUserRequired, monitored } from '../../middlewares';
+import { authRequired, targetUserRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { UsersControllerV2 } from '../../../controllers';
+import { profileCache } from '../../../support/ExtAuth';
+import { downloadURL } from '../../../support/download-url';
+
+import { userCreateInputSchema } from './data-schemes';
 
 
 const config = configLoader()
 
 export default class UsersController {
-  static async create(ctx) {
-    const params = {
-      username: ctx.request.body.username,
-      email:    ctx.request.body.email
-    }
-
-    params.hashedPassword = ctx.request.body.password_hash
-
-    if (!config.acceptHashedPasswordsOnly) {
-      params.password = ctx.request.body.password
-    }
-
-    if (config.recaptcha.enabled) {
-      const ip = ctx.request.get('x-forwarded-for') || ctx.request.ip;
-      await recaptchaVerify(ctx.request.body.captcha, ip);
-    }
-
-    const invitationId = ctx.request.body.invitation;
-    let invitation;
-
-    if (invitationId) {
-      invitation = await dbAdapter.getInvitation(invitationId);
-      invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
-    }
-
-    const user = new User(params)
-    await user.create(false)
-
-    try {
-      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
-
-      if (null === onboardingUser) {
-        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`)
+  static create = compose([
+    inputSchemaRequired(userCreateInputSchema),
+    async (ctx) => {
+      const params = {
+        username:   ctx.request.body.username,
+        screenName: ctx.request.body.screenName,
+        email:      ctx.request.body.email,
+        // may be empty if externalProfileKey is present
+        password:   ctx.request.body.password,
       }
 
-      await user.subscribeTo(onboardingUser)
-    } catch (e /* if e instanceof NotFoundException */) {
-      // if onboarding username is not found, just pass
+      if (config.recaptcha.enabled) {
+        const ip = ctx.request.get('x-forwarded-for') || ctx.request.ip;
+        await recaptchaVerify(ctx.request.body.captcha, ip);
+      }
+
+      let extProfileData = null;
+
+      /**
+     * The 'externalProfileKey' parameter holds the key of profileCache.
+     * If this parameter is present then the user is registered via the
+     * external identity provider and must be linked to the external auth
+     * profile. In this case the password will be randomly generated.
+     */
+      if (ctx.request.body.externalProfileKey) {
+      // Do not checking result: at this point we can not return.
+      // If record is not found just create account with random password.
+        extProfileData = await profileCache.get(ctx.request.body.externalProfileKey);
+
+        // If the externalProfileKey is defined then we should auto-generate password
+        params.password = (await crypto.randomBytesAsync(8)).toString('base64');
+      }
+
+      const invitationId = ctx.request.body.invitation;
+      let invitation;
+
+      if (invitationId) {
+        invitation = await dbAdapter.getInvitation(invitationId);
+        invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
+      }
+
+      const user = new User(params)
+      await user.create(false)
+
+      const safeRun = async (foo) => {
+        try {
+          await foo();
+        } catch (e) {
+          // pass
+        }
+      }
+
+      // After-creation tasks can be silently failed
+      await Promise.all([
+      // Connect to external authorization profile
+        extProfileData && safeRun(() => user.addOrUpdateExtProfile(extProfileData)),
+        // Register invitation and subscribe to suggested feeds
+        invitation && safeRun(() => useInvitation(user, invitation, ctx.request.body.cancel_subscription)),
+        // Subscribe to onboarding user
+        safeRun(async () => {
+          const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername)
+
+          if (onboardingUser) {
+            await user.subscribeTo(onboardingUser)
+          }
+        }),
+        // Download and set profile picture by URL
+        ctx.request.body.profilePictureURL && safeRun(async () => {
+          const fileInfo = await downloadURL(ctx.request.body.profilePictureURL);
+
+          try {
+            if (/^image\//.test(fileInfo.type)) {
+              await user.updateProfilePicture(fileInfo.path);
+            }
+          } finally {
+            await fileInfo.unlink();
+          }
+        }),
+      ]);
+
+      const json = await new MyProfileSerializer(user).promiseToJSON()
+      const authToken = new SessionTokenV0(user.id).tokenString();
+
+      ctx.body = { ...json, authToken };
+      AppTokenV1.addLogPayload(ctx, { userId: user.id });
     }
-
-    const json = await new MyProfileSerializer(user).promiseToJSON()
-    const authToken = new SessionTokenV0(user.id).tokenString();
-
-    ctx.body = { ...json, authToken };
-    AppTokenV1.addLogPayload(ctx, { userId: user.id });
-
-    if (invitation) {
-      await useInvitation(user, invitation, ctx.request.body.cancel_subscription);
-    }
-  }
+  ]);
 
   static async sudoCreate(ctx) {
     const params = {
@@ -93,8 +135,7 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const { secret } = config;
-    const authToken = jwt.sign({ userId: user.id }, secret)
+    const authToken = new SessionTokenV0(user.id).tokenString();
 
     const json = await new MyProfileSerializer(user).promiseToJSON()
     ctx.body = { ...json, authToken };
@@ -463,20 +504,39 @@ export default class UsersController {
     ctx.body = { message: 'Your password has been changed' };
   }
 
-  static async updateProfilePicture(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
+  /**
+   * File can be sent as 'file' field of multipart/form-data request
+   * or as 'url' field of regular JSON body. In the latter case the
+   * server will download file from the given url.
+   */
+  static updateProfilePicture = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
 
-    const fileHandlerPromises = Object.values(ctx.request.files).map(async (file) => {
-      await ctx.state.user.updateProfilePicture(file)
+      let filePath = null;
+
+      if (ctx.request.files && ctx.request.files.file) {
+        filePath = ctx.request.files.file.path;
+      } else if (ctx.request.body.url) {
+        const fileInfo = await downloadURL(ctx.request.body.url);
+
+        if (!/^image\//.test(fileInfo.type)) {
+          await fileInfo.unlink();
+          throw new Error(`Unsupported content type: '${fileInfo.type}'`);
+        }
+
+        filePath = fileInfo.path;
+      }
+
+      if (!filePath) {
+        throw new BadRequestException('Neither file nor URL was found');
+      }
+
+      await user.updateProfilePicture(filePath);
       ctx.body = { message: 'Your profile picture has been updated' };
-    });
-
-    await Promise.all(fileHandlerPromises);
-  }
+    },
+  ]);
 }
 
 async function validateInvitationAndSelectUsers(invitation, invitationId) {

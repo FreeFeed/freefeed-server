@@ -30,6 +30,8 @@ import NotificationsRoute from './routes/api/v2/NotificationsRoute';
 import CommentLikesRoute from './routes/api/v2/CommentLikesRoute';
 import InvitationsRoute from './routes/api/v2/InvitationsRoute';
 import AppTokensRoute from './routes/api/v2/AppTokens';
+import ServerInfoRoute from './routes/api/v2/ServerInfo';
+import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 
@@ -77,6 +79,8 @@ export default function (app) {
   CommentLikesRoute(router);
   InvitationsRoute(router);
   AppTokensRoute(router);
+  ServerInfoRoute(router);
+  ExtAuthRoute(router);
 
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
@@ -98,6 +102,11 @@ export default function (app) {
   // Not Found middleware for API-like URIs
   app.use(async (ctx, next) => {
     if (/\/v\d+\//.test(ctx.url)) {
+      if (ctx.request.method === 'OPTIONS') {
+        ctx.status = 200;
+        return;
+      }
+
       ctx.status = 404;
       ctx.body = { err: `API method not found: '${ctx.url}'` };
       return;

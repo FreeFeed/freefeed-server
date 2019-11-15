@@ -30,6 +30,7 @@ import allGroupsTrait from './all-groups';
 import summaryTrait from './summary';
 import invitationsTrait from './invitations';
 import appTokensTrait from './app-tokens';
+import externalAuthTrait from './external-auth';
 
 
 promisifyAll(redis.RedisClient.prototype);
@@ -38,7 +39,7 @@ promisifyAll(redis.Multi.prototype);
 class DbAdapterBase {
   constructor(database) {
     this.database = database;
-    this.statsCache = promisifyAll(new NodeCache({ stdTTL: 300 }));
+    this.statsCache = new NodeCache({ stdTTL: 300 });
 
     const config = configLoader();
 
@@ -84,4 +85,5 @@ export const DbAdapter = _.flow([
   summaryTrait,
   invitationsTrait,
   appTokensTrait,
+  externalAuthTrait,
 ])(DbAdapterBase);

@@ -16,7 +16,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
     let userStats
 
     // Check the cache first
-    const cachedUserStats = await this.statsCache.getAsync(userId)
+    const cachedUserStats = this.statsCache.get(userId);
 
     if (typeof cachedUserStats != 'undefined') {
       // Cache hit
@@ -25,7 +25,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
       // Cache miss, read from the database
       const res = await this.database('user_stats').where('user_id', userId);
       [userStats] = res;
-      await this.statsCache.setAsync(userId, userStats)
+      this.statsCache.set(userId, userStats)
     }
 
     return prepareModelPayload(userStats, USER_STATS_FIELDS, {})
@@ -42,12 +42,12 @@ const usersStatsTrait = (superClass) => class extends superClass {
     }
 
     const uniqIds = _.compact(_.uniq(ids));
-    const cachedStats = await Promise.all(uniqIds.map((id) => this.statsCache.getAsync(id)));
+    const cachedStats = uniqIds.map((id) => this.statsCache.get(id));
 
     const notFoundIds = _.compact(cachedStats.map((stat, i) => stat ? null : uniqIds[i]));
     const dbStats = notFoundIds.length === 0 ? [] : await this.database('user_stats').whereIn('user_id', notFoundIds);
 
-    await Promise.all(dbStats.map((stat) => this.statsCache.setAsync(stat.user_id, stat)));
+    dbStats.map((stat) => this.statsCache.set(stat.user_id, stat));
 
     _.compact(cachedStats).forEach((stat) => idToStat[stat.user_id] = prepareModelPayload(stat, USER_STATS_FIELDS, {}));
     dbStats.forEach((stat) => idToStat[stat.user_id] = prepareModelPayload(stat, USER_STATS_FIELDS, {}));
@@ -90,7 +90,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
     await this.database('user_stats').where('user_id', userId).update(payload)
 
     // Invalidate cache
-    await this.statsCache.delAsync(userId)
+    this.statsCache.del(userId)
   }
 
   statsCommentCreated(authorId) {
@@ -149,7 +149,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
       { userId, counterName }
     );
     // Invalidate cache
-    await this.statsCache.delAsync(userId);
+    this.statsCache.del(userId);
   }
 
   async decrementStatsCounter(userId, counterName) {
@@ -158,7 +158,7 @@ const usersStatsTrait = (superClass) => class extends superClass {
       { userId, counterName }
     );
     // Invalidate cache
-    await this.statsCache.delAsync(userId);
+    this.statsCache.del(userId);
   }
 };
 

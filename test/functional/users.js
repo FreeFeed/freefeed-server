@@ -142,7 +142,7 @@ describe('UsersController', () => {
         .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
-          res.body.err.should.eql('Invalid username')
+          res.status.should.eql(422)
           done()
         })
     })
@@ -156,7 +156,7 @@ describe('UsersController', () => {
         .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
-          res.body.err.should.eql('Password cannot be blank')
+          res.status.should.eql(422)
           done()
         })
     })
@@ -192,8 +192,7 @@ describe('UsersController', () => {
         .end((err, res) => {
           res.should.not.be.empty
           res.body.err.should.not.be.empty
-          err.response.error.should.have.property('text')
-          JSON.parse(err.response.error.text).err.should.eql('Password cannot be blank')
+          res.status.should.eql(422)
           done()
         })
     })
