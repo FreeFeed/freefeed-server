@@ -1,4 +1,4 @@
-import fs from 'fs';
+import { promises as fs, createReadStream } from 'fs';
 import { execFile } from 'child_process';
 
 import { promisify, promisifyAll } from 'bluebird';
@@ -19,7 +19,6 @@ import { load as configLoader } from '../../config/config';
 
 
 const config = configLoader();
-promisifyAll(fs);
 const mvAsync = promisify(mv);
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE);
@@ -294,7 +293,7 @@ export function addModel(dbAdapter) {
         }
 
         // Analyze metadata to get Artist & Title
-        const readStream = fs.createReadStream(tmpAttachmentFile);
+        const readStream = createReadStream(tmpAttachmentFile);
         const { common: metadata } = await mmParseStream(
           readStream,
           this.mimeType,
@@ -319,7 +318,7 @@ export function addModel(dbAdapter) {
       // Store an original attachment
       if (config.attachments.storage.type === 's3') {
         await this.uploadToS3(tmpAttachmentFile, config.attachments.path);
-        await fs.unlinkAsync(tmpAttachmentFile);
+        await fs.unlink(tmpAttachmentFile);
       } else {
         await mvAsync(tmpAttachmentFile, this.getPath(), {});
       }
@@ -437,7 +436,7 @@ export function addModel(dbAdapter) {
             const { path } = config.attachments.imageSizes[sizeId];
             const file = tmpResizedFile(sizeId);
             await this.uploadToS3(file, path);
-            await fs.unlinkAsync(file);
+            await fs.unlink(file);
           })
         );
       } else {
@@ -458,7 +457,7 @@ export function addModel(dbAdapter) {
           ACL:                'public-read',
           Bucket:             config.attachments.storage.bucket,
           Key:                destPath + this.getFilename(),
-          Body:               fs.createReadStream(sourceFile),
+          Body:               createReadStream(sourceFile),
           ContentType:        this.mimeType,
           ContentDisposition: this.getContentDisposition()
         })
@@ -480,7 +479,7 @@ export function addModel(dbAdapter) {
 }
 
 async function getImageSize(fileName) {
-  const input = fs.createReadStream(fileName);
+  const input = createReadStream(fileName);
 
   try {
     const { width, height } = await probe(input);

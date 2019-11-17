@@ -1,9 +1,8 @@
-import fs from 'fs';
+import { promises as fs, createWriteStream } from 'fs';
 import crypto from 'crypto';
 import path from 'path';
 import { URL } from 'url';
 
-import { promisifyAll } from 'bluebird';
 import meter from 'stream-meter';
 import { wait as waitStream, pipeline } from 'promise-streams';
 import fetch from 'node-fetch';
@@ -11,9 +10,6 @@ import mediaType from 'media-type';
 import { parse as bytesParse } from 'bytes';
 
 import { load as configLoader } from '../../config/config';
-
-
-promisifyAll(fs);
 
 
 const config = configLoader();
@@ -57,7 +53,7 @@ export async function downloadURL(url) {
   }
 
   try {
-    const stream = fs.createWriteStream(filePath, { flags: 'w' });
+    const stream = createWriteStream(filePath, { flags: 'w' });
     const fileWasWritten = waitStream(stream);
     await pipeline(
       response.body,
@@ -66,17 +62,17 @@ export async function downloadURL(url) {
     );
     await fileWasWritten; // waiting for the file to be written and closed
 
-    const stats = await fs.statAsync(filePath);
+    const stats = await fs.stat(filePath);
 
     return {
       name: originalFileName,
       size: stats.size,
       type: mType.asString() || 'application/octet-stream',
       path: filePath,
-      unlink() { return fs.unlinkAsync(this.path); },
+      unlink() { return fs.unlink(this.path); },
     }
   } catch (e) {
-    await fs.unlinkAsync(filePath);
+    await fs.unlink(filePath);
     throw e;
   }
 }
