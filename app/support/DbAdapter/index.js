@@ -31,6 +31,7 @@ import summaryTrait from './summary';
 import invitationsTrait from './invitations';
 import appTokensTrait from './app-tokens';
 import externalAuthTrait from './external-auth';
+import serverInfoTrait from './server-info';
 
 
 promisifyAll(redis.RedisClient.prototype);
@@ -86,4 +87,5 @@ export const DbAdapter = _.flow([
   invitationsTrait,
   appTokensTrait,
   externalAuthTrait,
+  serverInfoTrait,
 ])(DbAdapterBase);

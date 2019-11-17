@@ -24,6 +24,7 @@ import { addSerializer as subscriberSerializer } from './serializers/v1/Subscrib
 import { addSerializer as subscriptionSerializer } from './serializers/v1/SubscriptionSerializer';
 import { addSerializer as subscriptionRequestSerializer } from './serializers/v1/SubscriptionRequestSerializer';
 import { addSerializer as userSerializer } from './serializers/v1/UserSerializer';
+import { addServerInfoModel } from './models/server-info';
 
 
 // Be careful: order of exports is important.
@@ -56,6 +57,7 @@ export const Attachment    = attachmentModel(dbAdapter);
 export const Comment       = commentModel(dbAdapter);
 export { AuthToken, SessionTokenV0 } from './models/auth-tokens';
 export const AppTokenV1    = addAppTokenV1Model(dbAdapter);
+export const ServerInfo    = addServerInfoModel(dbAdapter);
 
 export const AdminSerializer               = adminSerializer();
 export const UserSerializer                = userSerializer();

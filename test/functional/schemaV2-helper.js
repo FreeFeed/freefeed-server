@@ -246,6 +246,7 @@ export const appTokenInfo = {
 export const serverInfoResponse = {
   version:               expect.it('to be a string'),
   externalAuthProviders: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+  registrationOpen:      expect.it('to be a boolean'),
 };
 
 export const externalProfile = {
