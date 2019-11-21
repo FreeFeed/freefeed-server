@@ -18,7 +18,7 @@ import {
   updateUserAsync,
   whoami,
 } from './functional_test_helper';
-import { UUID, appTokenInfo } from './schemaV2-helper';
+import { UUID, appTokenInfo, appTokenInfoRestricted } from './schemaV2-helper';
 import Session from './realtime-session';
 
 
@@ -169,7 +169,7 @@ describe('App tokens controller', () => {
         );
         expect(resp, 'to satisfy', {
           __httpCode: 200,
-          token:      { issue: 3 },
+          token:      { ...appTokenInfoRestricted, issue: 3 },
         });
 
         newLunaTokenString = resp.tokenString;

@@ -97,7 +97,7 @@ export const reissue = compose([
     await token.reissue();
 
     ctx.body = {
-      token:       serializeAppToken(token),
+      token:       serializeAppToken(token, !currentToken.hasFullAccess()),
       tokenString: token.tokenString(),
     };
   },
@@ -129,23 +129,23 @@ export const list = compose([
 
     const tokens = await dbAdapter.listActiveAppTokens(user.id);
 
-    ctx.body = { tokens: tokens.map(serializeAppToken) };
+    ctx.body = { tokens: tokens.map((t) => serializeAppToken(t)) };
   },
 ]);
 
 export const scopes = (ctx) => (ctx.body = { scopes: appTokensScopes });
 
-function serializeAppToken(token) {
+function serializeAppToken(token, restricted = false) {
   return pick(token, [
     'id',
-    'title',
+    restricted || 'title',
     'issue',
     'createdAt',
     'updatedAt',
     'scopes',
     'restrictions',
-    'lastUsedAt',
-    'lastIP',
-    'lastUserAgent',
+    restricted || 'lastUsedAt',
+    restricted || 'lastIP',
+    restricted || 'lastUserAgent',
   ]);
 }
