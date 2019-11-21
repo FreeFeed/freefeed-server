@@ -3,7 +3,7 @@ import compose from 'koa-compose';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
-import { ValidationException, NotFoundException, ForbiddenException } from '../../../support/exceptions';
+import { ValidationException, NotFoundException, ForbiddenException, BadRequestException } from '../../../support/exceptions';
 import { appTokensScopes } from '../../../models/app-tokens-scopes';
 import { Address } from '../../../support/ipv6';
 
@@ -134,6 +134,20 @@ export const list = compose([
 ]);
 
 export const scopes = (ctx) => (ctx.body = { scopes: appTokensScopes });
+
+export const current = compose([
+  authRequired(),
+  monitored('app-tokens.current'),
+  (ctx) => {
+    const { authToken: token } = ctx.state;
+
+    if (!(token instanceof AppTokenV1)) {
+      throw new BadRequestException('This method is only available with the application token');
+    }
+
+    ctx.body = { token: serializeAppToken(token, true) };
+  },
+]);
 
 function serializeAppToken(token, restricted = false) {
   return pick(token, [

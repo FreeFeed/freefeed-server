@@ -85,6 +85,24 @@ describe('App tokens controller', () => {
       expect(resp, 'to have key', 'err');
     });
 
+    it('should return current app token', async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/app-tokens/current`,
+        null,
+        { 'X-Authentication-Token': lunaToken.tokenString() },
+      );
+      expect(resp, 'to satisfy', { __httpCode: 200, token: { ...appTokenInfoRestricted, id: lunaToken.id } });
+    });
+
+    it('should not return current app token being used with session token', async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/app-tokens/current`,
+        null,
+        { 'X-Authentication-Token': luna.authToken },
+      );
+      expect(resp, 'to satisfy', { __httpCode: 400 });
+    });
+
     describe('Invalidation', () => {
       after(async () => {
         await dbAdapter.updateAppToken(lunaToken.id, { isActive: true });
