@@ -3,7 +3,7 @@ import compose from 'koa-compose';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
-import { ValidationException, NotFoundException, ForbiddenException, BadRequestException } from '../../../support/exceptions';
+import { ValidationException, NotFoundException, BadRequestException } from '../../../support/exceptions';
 import { appTokensScopes } from '../../../models/app-tokens-scopes';
 import { Address } from '../../../support/ipv6';
 
@@ -80,28 +80,41 @@ export const reissue = compose([
   authRequired(),
   monitored('app-tokens.reissue'),
   async (ctx) => {
-    const { user, authToken: currentToken } = ctx.state;
+    const { user } = ctx.state;
     const token = await dbAdapter.getAppTokenById(ctx.params.tokenId);
 
     if (!token || token.userId !== user.id || !token.isActive) {
       throw new NotFoundException('Token not found');
     }
 
-    if (
-      !currentToken.hasFullAccess()
-      && !(currentToken instanceof AppTokenV1 && currentToken.id === token.id)
-    ) {
-      throw new ForbiddenException('Access denied');
+    await token.reissue();
+
+    ctx.body = {
+      token:       serializeAppToken(token),
+      tokenString: token.tokenString(),
+    };
+  },
+]);
+
+export const reissueCurrent = compose([
+  authRequired(),
+  monitored('app-tokens.reissue-current'),
+  async (ctx) => {
+    const { authToken: token } = ctx.state;
+
+    if (!(token instanceof AppTokenV1)) {
+      throw new BadRequestException('This method is only available with the application token');
     }
 
     await token.reissue();
 
     ctx.body = {
-      token:       serializeAppToken(token, !currentToken.hasFullAccess()),
+      token:       serializeAppToken(token, true),
       tokenString: token.tokenString(),
     };
   },
 ]);
+
 
 export const update = compose([
   authRequired(),

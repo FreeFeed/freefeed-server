@@ -1,7 +1,7 @@
 export const alwaysAllowedRoutes = [
   'GET /v1/users/me',
   'GET /v2/app-tokens/current',
-  'POST /v2/app-tokens/:tokenId/reissue',
+  'POST /v2/app-tokens/current/reissue',
 ];
 
 export const appTokensScopes = [

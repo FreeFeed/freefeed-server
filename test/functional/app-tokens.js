@@ -181,7 +181,7 @@ describe('App tokens controller', () => {
 
       it('should reissue token being auhtenticated by itself', async () => {
         const resp = await performJSONRequest(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
+          'POST', `/v2/app-tokens/current/reissue`,
           {},
           { 'X-Authentication-Token': newLunaTokenString },
         );
@@ -191,22 +191,6 @@ describe('App tokens controller', () => {
         });
 
         newLunaTokenString = resp.tokenString;
-      });
-
-      it('should not reissue token being auhtenticated by another app token', async () => {
-        const newToken = new AppTokenV1({
-          userId: luna.user.id,
-          title:  'My app 2',
-          scopes: ['read-my-info', 'manage-posts'],
-        });
-        await newToken.create();
-
-        const resp = await performJSONRequest(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
-          {},
-          { 'X-Authentication-Token': newToken.tokenString() },
-        );
-        expect(resp, 'to satisfy', { __httpCode: 403 });
       });
 
       it('should not reissue inactivated token', async () => {
