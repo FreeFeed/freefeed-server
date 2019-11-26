@@ -18,7 +18,7 @@ import {
   updateUserAsync,
   whoami,
 } from './functional_test_helper';
-import { UUID, appTokenInfo } from './schemaV2-helper';
+import { UUID, appTokenInfo, appTokenInfoRestricted } from './schemaV2-helper';
 import Session from './realtime-session';
 
 
@@ -83,6 +83,24 @@ describe('App tokens controller', () => {
         { 'X-Authentication-Token': lunaToken.tokenString() },
       );
       expect(resp, 'to have key', 'err');
+    });
+
+    it('should return current app token', async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/app-tokens/current`,
+        null,
+        { 'X-Authentication-Token': lunaToken.tokenString() },
+      );
+      expect(resp, 'to satisfy', { __httpCode: 200, token: { ...appTokenInfoRestricted, id: lunaToken.id } });
+    });
+
+    it('should not return current app token being used with session token', async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/app-tokens/current`,
+        null,
+        { 'X-Authentication-Token': luna.authToken },
+      );
+      expect(resp, 'to satisfy', { __httpCode: 400 });
     });
 
     describe('Invalidation', () => {
@@ -163,32 +181,16 @@ describe('App tokens controller', () => {
 
       it('should reissue token being auhtenticated by itself', async () => {
         const resp = await performJSONRequest(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
+          'POST', `/v2/app-tokens/current/reissue`,
           {},
           { 'X-Authentication-Token': newLunaTokenString },
         );
         expect(resp, 'to satisfy', {
           __httpCode: 200,
-          token:      { issue: 3 },
+          token:      { ...appTokenInfoRestricted, issue: 3 },
         });
 
         newLunaTokenString = resp.tokenString;
-      });
-
-      it('should not reissue token being auhtenticated by another app token', async () => {
-        const newToken = new AppTokenV1({
-          userId: luna.user.id,
-          title:  'My app 2',
-          scopes: ['read-my-info', 'manage-posts'],
-        });
-        await newToken.create();
-
-        const resp = await performJSONRequest(
-          'POST', `/v2/app-tokens/${lunaToken.id}/reissue`,
-          {},
-          { 'X-Authentication-Token': newToken.tokenString() },
-        );
-        expect(resp, 'to satisfy', { __httpCode: 403 });
       });
 
       it('should not reissue inactivated token', async () => {

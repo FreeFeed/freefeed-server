@@ -227,9 +227,8 @@ export const userSubscriptionsResponse = {
 
 export const userSubscribersResponse = { subscribers: expect.it('to be an array').and('to be empty').or('to have items satisfying', user) };
 
-export const appTokenInfo = {
+export const appTokenInfoRestricted = {
   id:           expect.it('to satisfy', UUID),
-  title:        expect.it('to be a string'),
   issue:        expect.it('to be a number'),
   createdAt:    expect.it('to satisfy', iso8601TimeString),
   updatedAt:    expect.it('to satisfy', iso8601TimeString),
@@ -238,6 +237,16 @@ export const appTokenInfo = {
     netmasks: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
     origins:  expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
   }),
+  // Restricted fields
+  title:         expect.it('to be undefined'),
+  lastUsedAt:    expect.it('to be undefined'),
+  lastIP:        expect.it('to be undefined'),
+  lastUserAgent: expect.it('to be undefined'),
+};
+
+export const appTokenInfo = {
+  ...appTokenInfoRestricted,
+  title:         expect.it('to be a string'),
   lastUsedAt:    expect.it('to be null').or('to satisfy', iso8601TimeString),
   lastIP:        expect.it('to be null').or('to be a string'),
   lastUserAgent: expect.it('to be null').or('to be a string'),
