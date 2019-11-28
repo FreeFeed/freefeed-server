@@ -1,10 +1,16 @@
 import { load as configLoader } from '../../../../config/config';
 import { version } from '../../../../package.json';
+import { ServerInfo } from '../../../models';
 
 
 const config = configLoader();
 
-export function serverInfo(ctx) {
+export async function serverInfo(ctx) {
   const externalAuthProviders = Object.keys(config.externalAuthProviders || {});
-  ctx.body = { version, externalAuthProviders };
+  const registrationOpen = await ServerInfo.isRegistrationOpen();
+  ctx.body = {
+    version,
+    externalAuthProviders,
+    registrationOpen,
+  };
 }

@@ -21,11 +21,15 @@ import {
   MockHTTPServer,
   createTestUser,
   performJSONRequest,
+  createUserAsyncPost,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
+import { load as configLoader } from '../../config/config';
 
 import * as schema from './schemaV2-helper';
 
+
+const config = configLoader();
 
 describe('UsersControllerV2', () => {
   let app
@@ -404,6 +408,15 @@ describe('UsersControllerV2', () => {
           users:      { username: 'luna', profilePictureLargeUrl: expect.it('to be a string') },
         });
       });
+    });
+  });
+
+  describe('create too many users', () => {
+    it('should not allow to create more than config.registrationsLimit.maxCount users at once', async () => {
+      // Create maxCount users at first
+      await createTestUsers(config.registrationsLimit.maxCount + 0);
+      const resp = await createUserAsyncPost({ username: 'test', password: 'pw' });
+      expect(resp.status, 'to be', 429);
     });
   });
 });

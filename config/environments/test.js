@@ -119,5 +119,10 @@ export function getConfig() {
     },
   };
 
+  config.registrationsLimit = {
+    interval: '1 day', // PostgreSQL 'interval' type syntax
+    maxCount: 10,
+  };
+
   return config;
 }
