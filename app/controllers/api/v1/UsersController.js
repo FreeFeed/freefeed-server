@@ -154,37 +154,34 @@ export default class UsersController {
     ctx.body = { ...json, authToken };
   }
 
-  static async sendRequest(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
+  static sendRequest = compose([
+    authRequired(),
+    targetUserRequired(),
+    async (ctx) => {
+      const { user, targetUser } = ctx.state;
+
+      if (targetUser.isPrivate !== '1') {
+        throw new ForbiddenException('The user account ie not private');
+      }
+
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, targetUser.id)
+
+      if (hasRequest) {
+        throw new ForbiddenException('You have already sent a subscription request to this user');
+      }
+
+      const banIds = await targetUser.getBanIds();
+
+      if (banIds.includes(user.id)) {
+        // Silently skip request creation because the requestor is blocked
+      } else {
+        await user.sendSubscriptionRequest(targetUser.id)
+        await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);
+      }
+
+      ctx.body = {};
     }
-
-    const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
-
-    if (null === user) {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
-    }
-
-    if (user.isPrivate !== '1') {
-      throw new Error('Invalid')
-    }
-
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, user.id)
-    const banIds = await user.getBanIds()
-
-    const valid = !hasRequest && !banIds.includes(ctx.state.user.id)
-
-    if (!valid) {
-      throw new Error('Invalid')
-    }
-
-    await ctx.state.user.sendSubscriptionRequest(user.id)
-    await EventService.onSubscriptionRequestCreated(ctx.state.user.intId, user.intId);
-
-    ctx.body = {};
-  }
+  ]);
 
   static acceptRequest = compose([
     authRequired(),

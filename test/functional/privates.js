@@ -2,6 +2,7 @@
 /* global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
+import expect from 'unexpected'
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
@@ -165,34 +166,24 @@ describe('Privates', () => {
             })
         })
 
-        it('should not allow banned user to send subscription request', (done) => {
-          request
-            .post(`${app.context.config.host}/v1/users/${zeusContext.user.username}/ban`)
-            .send({ authToken: lunaContext.authToken })
-            .end(() => {
-              request
-                .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
-                .send({
-                  authToken: zeusContext.authToken,
-                  '_method': 'post'
-                })
-                .end((err, res) => {
-                  res.should.not.be.empty
-                  res.body.err.should.not.be.empty
-                  res.body.err.should.eql('Invalid')
-                  request
-                    .get(`${app.context.config.host}/v2/users/whoami`)
-                    .query({ authToken: lunaContext.authToken })
-                    .end((err, res) => {
-                      res.should.not.be.empty
-                      res.body.should.not.be.empty
-                      res.body.should.have.property('users')
-                      res.body.users.subscriptionRequests.should.eql([])
-                      done()
-                    })
-                })
-            })
-        })
+        it('should silently ignore subscription request from banned user', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'POST',
+            `/v1/users/${zeusContext.user.username}/ban`,
+            null,
+            { Authorization: `Bearer ${lunaContext.authToken}` }
+          );
+          expect(resp, 'to satisfy', { __httpCode: 200 });
+
+          const whoami = await funcTestHelper.performJSONRequest(
+            'GET',
+            '/v2/users/whoami',
+            null,
+            { Authorization: `Bearer ${zeusContext.authToken}` }
+          );
+
+          expect(whoami.users.subscriptionRequests, 'to be empty');
+        });
 
         it('should show liked post per context', (done) => {
           request
