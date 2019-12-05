@@ -27,6 +27,7 @@ if (sentryIsEnabled) {
 
 const env = process.env.NODE_ENV || 'development';
 const log = createDebug('freefeed:init');
+process.env.MONITOR_PREFIX = config.monitorPrefix;
 
 passportInit(passport);
 

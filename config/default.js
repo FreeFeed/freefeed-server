@@ -1,0 +1,185 @@
+import { deferConfig as defer } from 'config/defer';
+
+
+const transport = function () {
+  return {
+    name:    'minimal',
+    version: '0.1.0',
+    send:    function (mail, callback) {
+      const input = mail.message.createReadStream();
+      input.pipe(process.stdout);
+      input.on('end', () => {
+        callback(null, true);
+      });
+    }
+  };
+};
+
+const config = {
+  port:     3000,
+  database: 2,
+
+  secret:                    'secret',
+  origin:                    'http://localhost:3333',
+  appRoot:                   '.',
+  acceptHashedPasswordsOnly: false,
+
+  // Configure koa app to trust proxy headers:
+  // X-Forwarded-Host, X-Forwarded-Proto and X-Forwarded-For
+  trustProxyHeaders: false,
+
+  logResponseTime:    true,
+  // disableRealtime: true,
+  onboardingUsername: 'welcome',
+  recaptcha:          { enabled: false },
+  // sentryDsn: '',
+
+  frontendPreferencesLimit: 65536,
+
+  monitorPrefix: 'development',
+};
+
+config.host = defer((cfg) => `http://localhost:${cfg.port}`);
+
+config.application = {
+  // Unavailable for registration (reserved for internal use)
+  USERNAME_STOP_LIST: [
+    '404',
+    'about',
+    'account',
+    'anonymous',
+    'attachments',
+    'dev',
+    'files',
+    'filter',
+    'friends',
+    'groups',
+    'help',
+    'home',
+    'iphone',
+    'list',
+    'logout',
+    'profilepics',
+    'public',
+    'requests',
+    'search',
+    'settings',
+    'share',
+    'signin',
+    'signup',
+    'summary'
+  ],
+
+  // Unavailable for public registration (legacy reasons)
+  EXTRA_STOP_LIST: []
+
+  // To load the list from <FREEFEED_HOME>/banlist.txt (one username per line)
+  // use the following snippet:
+  //
+  // var fs = require('fs')
+  // var array = fs.readFileSync('banlist.txt').toString()
+  //               .split('\n').filter(function(n) { return n != '' })
+  // config.application {
+  //   EXTRA_STOP_LIST = array
+  // }
+};
+
+config.media = {
+  // Public URL prefix
+  url: defer((cfg) => `${cfg.host}/`), // must have trailing slash
+
+  // File storage
+  storage: {
+    // 'fs' for local file system or 's3' for AWS S3
+    type: 'fs',
+
+    // Parameters for 'fs'
+    rootDir: './public/files/', // must have trailing slash
+
+    // Parameters for 's3'
+    accessKeyId:     'ACCESS-KEY-ID',
+    secretAccessKey: 'SECRET-ACCESS-KEY',
+    bucket:          'bucket-name'
+    // endpoint:        'nyc3.digitaloceanspaces.com',
+  }
+};
+config.attachments = {
+  url:           defer((cfg) => cfg.media.url),
+  storage:       defer((cfg) => cfg.media.storage),
+  path:          'attachments/', // must have trailing slash
+  fileSizeLimit: 10 * 1000 * 1000,
+  maxCount:      20,
+  imageSizes:    {
+    t: {
+      path:   'attachments/thumbnails/', // must have trailing slash
+      bounds: { width: 525, height: 175 }
+    },
+    t2: {
+      path:   'attachments/thumbnails2/', // must have trailing slash
+      bounds: { width: 1050, height: 350 }
+    }
+  }
+};
+config.profilePictures = {
+  defaultProfilePictureMediumUrl: 'http://placekitten.com/50/50',
+
+  url:     defer((cfg) => cfg.media.url),
+  storage: defer((cfg) => cfg.media.storage),
+  path:    'profilepics/' // must have trailing slash
+};
+
+config.mailer = {
+  transport,
+  fromName:                 'Pepyatka',
+  fromEmail:                'mail@pepyatka.com',
+  resetPasswordMailSubject: 'Pepyatka password reset',
+  host:                     defer((cfg) => cfg.origin),
+  options:                  {},
+  adminRecipient:           { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' }
+};
+
+config.redis = {
+  host:    'localhost',
+  port:    6379,
+  options: {}
+};
+
+config.performance = {
+  // PostgreSQL 'statement_timeout' for search queries in milliseconds (0 => no timeout)
+  searchQueriesTimeout: 0
+};
+
+config.postgres = {
+  client:     'postgresql',
+  connection: {
+    host:     'localhost',
+    port:     5432,
+    database: 'freefeed',
+    user:     'freefeed',
+    password: 'freefeed'
+  },
+  pool: {
+    min: 2,
+    max: 10
+  },
+  migrations:           { tableName: 'knex_migrations' },
+  textSearchConfigName: 'pg_catalog.russian',
+};
+
+/**
+ * Fill this object with provider-specific credentials like:
+ * facebook: {
+ *   clientId:     '####',
+ *   clientSecret: '####',
+ * }
+ *
+ * Only 'facebook' and 'google' providers are supported for now.
+ */
+config.externalAuthProviders = {};
+
+config.registrationsLimit = {
+  interval: '1 day', // PostgreSQL 'interval' type syntax
+  maxCount: 100
+};
+
+module.exports = config;
