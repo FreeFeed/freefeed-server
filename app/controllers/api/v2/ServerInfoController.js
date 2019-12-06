@@ -1,9 +1,8 @@
-import { load as configLoader } from '../../../../config/config';
+import config from 'config'
+
 import { version } from '../../../../package.json';
 import { ServerInfo } from '../../../models';
 
-
-const config = configLoader();
 
 export async function serverInfo(ctx) {
   const externalAuthProviders = Object.keys(config.externalAuthProviders || {});

@@ -9,8 +9,8 @@ import _ from 'lodash';
 import monitor from 'monitor-dog';
 import validator from 'validator';
 import uuidv4 from 'uuid/v4';
+import config from 'config';
 
-import { load as configLoader } from '../../config/config';
 import { getS3 } from '../support/s3';
 import {
   BadRequestException,
@@ -26,8 +26,6 @@ import { valiate as validateUserPrefs } from './user-prefs';
 
 promisifyAll(crypto);
 promisifyAll(gm);
-
-const config = configLoader();
 
 export function addModel(dbAdapter) {
   return class User {

@@ -1,5 +1,5 @@
 /* eslint babel/semi: "error" */
-import { load as configLoader } from '../config/config';
+import config from 'config';
 
 import { connect as redisConnection } from './setup/database';
 import { connect as postgresConnection } from './setup/postgres';
@@ -33,8 +33,6 @@ export const dbAdapter = new DbAdapter(postgres);
 
 export { AbstractSerializer } from './serializers/abstract_serializer';
 export { Serializer }         from './serializers/serializer';
-
-const config = configLoader();
 
 let _PubSub;
 

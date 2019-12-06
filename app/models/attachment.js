@@ -1,6 +1,7 @@
 import { promises as fs, createReadStream } from 'fs';
 import { execFile } from 'child_process';
 
+import config from 'config';
 import { promisify, promisifyAll } from 'bluebird';
 import createDebug from 'debug';
 import gm from 'gm';
@@ -15,10 +16,8 @@ import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 
 import { getS3 } from '../support/s3';
-import { load as configLoader } from '../../config/config';
 
 
-const config = configLoader();
 const mvAsync = promisify(mv);
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE);

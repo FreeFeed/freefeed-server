@@ -1,7 +1,5 @@
-import { load as configLoader } from '../../../config/config';
+import config from 'config';
 
-
-const config = configLoader();
 
 export const originMiddleware = async (ctx, next) => {
   ctx.response.set('Access-Control-Allow-Origin', config.origin);

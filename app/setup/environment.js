@@ -8,9 +8,9 @@ import responseTime from 'koa-response-time';
 import { promisify } from 'bluebird';
 import Raven from 'raven';
 import createDebug from 'debug';
+import config from 'config';
 
 import { version as serverVersion } from '../../package.json';
-import { load as configLoader } from '../../config/config';
 
 import { selectDatabase } from './database';
 import { configure as configurePostgres } from './postgres';
@@ -18,7 +18,6 @@ import { originMiddleware } from './initializers/origin';
 import { init as passportInit } from './initializers/passport';
 
 
-const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 
 if (sentryIsEnabled) {

@@ -1,8 +1,7 @@
+import config from 'config'
+
 import Mailer from '../../lib/mailer'
-import { load as configLoader } from '../../config/config'
 
-
-const config = configLoader()
 
 export default class UserMailer {
   static async resetPassword(user, locals) {

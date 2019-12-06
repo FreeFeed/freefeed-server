@@ -4,16 +4,14 @@ import _ from 'lodash';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
 import jwt from 'jsonwebtoken'
+import config from 'config';
 
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, AppTokenV1, dbAdapter } from '../../../app/models';
-import { load as configLoader } from '../../../config/config'
 
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
-
-const config = configLoader()
 
 describe('Auth Tokens', () => {
   before(() => cleanDB($pg_database));

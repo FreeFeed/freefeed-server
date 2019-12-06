@@ -1,7 +1,6 @@
 import React from 'react';
-import { load as configLoader } from '../../../../config/config';
+import config from 'config';
 
-const config = configLoader();
 
 export default class Link extends React.Component {
   render() {

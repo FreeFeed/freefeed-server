@@ -8,13 +8,10 @@ import {
   Mention,
   Link,
 } from 'social-text-tokenizer';
-
-import { load as configLoader } from '../../config/config';
+import config from 'config';
 
 import { tokenize } from './tokenize-text';
 
-
-const config = configLoader();
 
 export function extractTitle(text, maxLen) {
   // see https://unicode.org/cldr/utility/list-unicodeset.jsp?a=%5B%3AWord_Break%3DNewline%3A%5D&g=&i=

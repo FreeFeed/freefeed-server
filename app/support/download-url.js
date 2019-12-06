@@ -8,11 +8,9 @@ import { wait as waitStream, pipeline } from 'promise-streams';
 import fetch from 'node-fetch';
 import mediaType from 'media-type';
 import { parse as bytesParse } from 'bytes';
+import config from 'config';
 
-import { load as configLoader } from '../../config/config';
 
-
-const config = configLoader();
 const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
 
 

@@ -1,9 +1,7 @@
-import { load as configLoader } from '../../../../../config/config'
+import config from 'config'
 
 import definitions from './definitions';
 
-
-const config = configLoader();
 
 export const postCreateInputSchema = {
   '$schema': 'http://json-schema.org/schema#',
