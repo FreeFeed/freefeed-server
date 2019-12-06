@@ -10,7 +10,6 @@ services:
 before_script:
   - psql --version
   - psql -c 'create database freefeed_test;' -U postgres
-  - cp  knexfile.js.dist knexfile.js
   - mkdir -p /tmp/pepyatka-media/attachments
   - mkdir /tmp/pepyatka-media/attachments/thumbnails
   - mkdir /tmp/pepyatka-media/attachments/thumbnails2

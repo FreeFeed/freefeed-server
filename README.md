@@ -36,10 +36,10 @@ createdb -O freefeed freefeed
 brew install nvm
 nvm install
 yarn install
-cp knexfile.js{.dist,}
-./node_modules/.bin/knex migrate:latest
+# Create a ./config/local.json file with custom PostgreSQL (and other if need) settings
+yarn knex migrate:latest
 mkdir ./public/files/attachments/thumbnails/ && mkdir ./public/files/attachments/thumbnails2/
-npm start
+yarn start
 ```
 
 ## Testing
@@ -47,7 +47,7 @@ npm start
 ```
 /usr/local/Cellar/postgresql/{VERSION}/bin/createuser -s postgres
 createdb -O freefeed freefeed_test
-npm test
+yarn test
 ```
 
 ## Testing docker image
