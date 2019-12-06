@@ -189,4 +189,6 @@ config.registrationsLimit = {
   maxCount: 100
 };
 
+config.eslint = { linebreakStyle: null };
+
 module.exports = config;
