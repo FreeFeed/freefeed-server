@@ -1,4 +1,5 @@
 {
+  "monitorPrefix": "MONITOR_PREFIX",
   "port": { "__name": "FRFS_PORT", "__format": "json" },
   "redis": {
     "host": "FRFS_REDIS_HOST",
