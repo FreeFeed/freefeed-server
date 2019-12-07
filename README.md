@@ -36,16 +36,22 @@ createdb -O freefeed freefeed
 brew install nvm
 nvm install
 yarn install
-# Create a ./config/local.json file with custom PostgreSQL (and other if need) settings
 yarn knex migrate:latest
 mkdir ./public/files/attachments/thumbnails/ && mkdir ./public/files/attachments/thumbnails2/
 yarn start
 ```
 
+### Custom configuration
+
+If you have other PostgreSQL (or any other) settings than default, you shold configure FreeFeed server in a proper way.
+
+The FreeFeed server uses [node-config](https://github.com/lorenwest/node-config) for configuration. You can create your own local configuration file to override any of default values. See the [Configuration Files](https://github.com/lorenwest/node-config/wiki/Configuration-Files) page of node-config documentation for details.
+
+The default configuration is defined in `config/default.js` file. The `config/test.js` and `config/default-travis.json` files can be used as an example of customized configurations (for the 'test' and Travis CI environments accordingly).
+
 ## Testing
 
 ```
-/usr/local/Cellar/postgresql/{VERSION}/bin/createuser -s postgres
 createdb -O freefeed freefeed_test
 yarn test
 ```
