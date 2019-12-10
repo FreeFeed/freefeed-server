@@ -1,7 +1,14 @@
 #!/usr/bin/env babel-node
 import knexLib from 'knex';
 
-import config from '../knexfile';
+// Forcefully set the NODE_ENV to 'test'
+const prevEnv = process.env.NODE_ENV;
+process.env.NODE_ENV = 'test';
+
+const config = require('../knexfile');
+
+
+process.env.NODE_ENV = prevEnv;
 
 
 if (!('test' in config)) {

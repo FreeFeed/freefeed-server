@@ -10,8 +10,8 @@
     "travis": "run-s -c test lint",
     "test": "run-s reset-test-db test-rollback mocha",
     "lint": "eslint app bin config test",
-    "reset-test-db": "babel-node bin/create-knexfile.js && babel-node bin/clean_test_db.js && knex --env test migrate:latest",
-    "test-rollback": "babel-node bin/create-knexfile.js && knex --env test migrate:rollback && knex --env test migrate:latest",
+    "reset-test-db": "babel-node bin/clean_test_db.js && knex --env test migrate:latest",
+    "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
     "mocha": "cross-env NODE_ENV=test mocha -b --opts test/mocha.opts test/unit test/integration test/functional test/cleanup.js",
     "test-just": "cross-env NODE_ENV=test mocha",
     "console": "babel-node bin/console",
@@ -22,8 +22,7 @@
     "bestof_emails": "babel-node bin/bestof_emails",
     "count_stats": "babel-node bin/count_stats",
     "count-daily-stats": "babel-node bin/count-daily-stats",
-    "import_clikes": "babel-node bin/import_clikes",
-    "knex": "babel-node bin/create-knexfile.js && knex"
+    "import_clikes": "babel-node bin/import_clikes"
   },
   "repository": {
     "type": "git",

@@ -24,6 +24,5 @@ coverage
 /public/config/envLocal.js
 
 dist
-/knexfile.js
 
 .DS_Store

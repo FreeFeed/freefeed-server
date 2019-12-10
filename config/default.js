@@ -37,13 +37,6 @@ const config = {
   frontendPreferencesLimit: 65536,
 
   monitorPrefix: 'development',
-
-  /**
-   * List of Knex environments to autogenerate knexfile by the 'create-knexfile' script.
-   * If you need more environments than listed, override this value in local.* config file.
-   * Do not override it in environment-dependent config files such as {env}.* or local-{env}.*!
-   */
-  knexEnvironments: ['development', 'test']
 };
 
 config.host = defer((cfg) => `http://localhost:${cfg.port}`);
