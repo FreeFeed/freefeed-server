@@ -1,9 +1,10 @@
 import fs from 'fs';
 
+import smtpTransport from 'nodemailer-smtp-transport';
 import { deferConfig as defer } from 'config/defer';
 
 
-const transport = function () {
+const stubTransport = function () {
   return {
     name:    'minimal',
     version: '0.1.0',
@@ -136,7 +137,8 @@ config.profilePictures = {
 };
 
 config.mailer = {
-  transport,
+  useSMTPTransport:         false,
+  transport:                defer((cfg) =>  cfg.mailer.useSMTPTransport ? smtpTransport : stubTransport),
   fromName:                 'Pepyatka',
   fromEmail:                'mail@pepyatka.com',
   resetPasswordMailSubject: 'Pepyatka password reset',
