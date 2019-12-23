@@ -1,3 +1,5 @@
+import fs from 'fs';
+
 import { deferConfig as defer } from 'config/defer';
 
 
@@ -70,18 +72,23 @@ config.application = {
     'summary'
   ],
 
-  // Unavailable for public registration (legacy reasons)
-  EXTRA_STOP_LIST: []
 
-  // To load the list from <FREEFEED_HOME>/banlist.txt (one username per line)
-  // use the following snippet:
-  //
-  // var fs = require('fs')
-  // var array = fs.readFileSync('banlist.txt').toString()
-  //               .split('\n').filter(function(n) { return n != '' })
-  // config.application {
-  //   EXTRA_STOP_LIST = array
-  // }
+  // Path to the file contains usernames unavailable for registration
+  // (plain text file, one username per line).
+  extraStopListPath: null,
+
+  EXTRA_STOP_LIST: defer((cfg) => {
+    const { extraStopListPath } = cfg.application;
+
+    if (!extraStopListPath) {
+      return [];
+    }
+
+    return fs.readFileSync(extraStopListPath)
+      .toString()
+      .split('\n')
+      .filter(Boolean);
+  }),
 };
 
 config.media = {
