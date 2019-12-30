@@ -3,14 +3,13 @@ language: node_js
 node_js:
   - "12"
 env:
-  - CXX=g++-6
+  - CXX=g++-6 NODE_APP_INSTANCE=travis
 services:
   - redis-server
   - postgresql
 before_script:
   - psql --version
   - psql -c 'create database freefeed_test;' -U postgres
-  - cp  knexfile.js.dist knexfile.js
   - mkdir -p /tmp/pepyatka-media/attachments
   - mkdir /tmp/pepyatka-media/attachments/thumbnails
   - mkdir /tmp/pepyatka-media/attachments/thumbnails2

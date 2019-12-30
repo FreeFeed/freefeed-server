@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 import _ from 'lodash'
 import compose from 'koa-compose';
+import config from 'config'
 
 import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
 import {
@@ -13,7 +14,6 @@ import {
   TooManyRequestsException,
 } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
-import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, targetUserRequired, monitored, inputSchemaRequired } from '../../middlewares';
@@ -23,8 +23,6 @@ import { downloadURL } from '../../../support/download-url';
 
 import { userCreateInputSchema } from './data-schemes';
 
-
-const config = configLoader()
 
 export default class UsersController {
   static create = compose([

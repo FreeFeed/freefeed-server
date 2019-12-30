@@ -3,8 +3,7 @@ import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
 import Router from 'koa-router';
-
-import { load as configLoader } from '../config/config';
+import config from 'config';
 
 import { reportError } from './support/exceptions';
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
@@ -35,8 +34,6 @@ import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 
-
-const config = configLoader();
 
 export default function (app) {
   const router = new Router();

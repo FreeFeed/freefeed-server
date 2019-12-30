@@ -6,13 +6,10 @@ import N3 from 'n3';
 import PgCursor from 'pg-cursor';
 import pgFormat from 'pg-format';
 import noop from 'lodash/noop';
-
-import { load as configLoader } from '../../config/config';
+import config from 'config'
 
 
 const { literal, namedNode, quad } = N3.DataFactory;
-const config = configLoader();
-
 
 const schema = 'http://schema.org/';
 const frf = 'http://freefeed.net/';

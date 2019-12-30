@@ -18,8 +18,7 @@ import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import createDebug from 'debug';
 import Raven from 'raven';
-
-import { load as configLoader } from '../config/config';
+import config from 'config';
 
 import { dbAdapter, LikeSerializer, PubsubCommentSerializer, AppTokenV1 } from './models';
 import { eventNames } from './support/PubSubAdapter';
@@ -29,7 +28,6 @@ import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MOD
 import { serializeSinglePost } from './serializers/v2/post';
 
 
-const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
 

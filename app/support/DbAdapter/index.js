@@ -4,8 +4,7 @@ import NodeCache from 'node-cache';
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
 import { promisifyAll } from 'bluebird';
-
-import { load as configLoader } from '../../../config/config';
+import config from 'config';
 
 import usersTrait from './users';
 import usersCacheTrait from './users-cache';
@@ -41,8 +40,6 @@ class DbAdapterBase {
   constructor(database) {
     this.database = database;
     this.statsCache = new NodeCache({ stdTTL: 300 });
-
-    const config = configLoader();
 
     const CACHE_TTL = 60 * 60 * 24; // 24 hours
 

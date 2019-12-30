@@ -9,10 +9,10 @@ import { promisify, promisifyAll } from 'bluebird'
 import chai from 'chai'
 import chaiFS from 'chai-fs'
 import _ from 'lodash';
+import config from 'config';
 
 import cleanDB from '../../dbCleaner'
 import { dbAdapter, User, Attachment } from '../../../app/models'
-import { load as configLoader } from '../../../config/config'
 
 
 chai.use(chaiFS)
@@ -22,8 +22,6 @@ const mkdirpAsync = promisify(mkdirp);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const stat = promisify(fs.stat);
-
-const config = configLoader()
 
 describe('Attachment', () => {
   before(() => cleanDB($pg_database))

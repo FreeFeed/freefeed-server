@@ -2,14 +2,12 @@ import { promisifyAll } from 'bluebird';
 import _redis from 'redis';
 import createDebug from 'debug';
 import Raven from 'raven';
-
-import { load as configLoader } from './config';
+import config from 'config';
 
 
 promisifyAll(_redis.RedisClient.prototype);
 promisifyAll(_redis.Multi.prototype);
 
-const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
 const database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);

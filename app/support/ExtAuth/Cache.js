@@ -3,14 +3,12 @@ import crypto from 'crypto';
 import cacheManager from 'cache-manager'
 import redisStore from 'cache-manager-redis'
 import { promisifyAll } from 'bluebird';
-
-import { load as configLoader } from '../../../config/config';
+import config from 'config';
 
 
 const KEY_LENGTH = 16; // bytes
 
 promisifyAll(crypto);
-const config = configLoader();
 
 /**
  * Wrapper for the redis-based cache with auto-generated and auto-prefixed keys

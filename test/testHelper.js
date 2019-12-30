@@ -1,9 +1,9 @@
 require('@babel/register');
 
-global.$database = require('../config/database').default;  // used by realtime-tests
+global.$database = require('../app/setup/database').default;  // used by realtime-tests
 
 global.$should = require('chai').should()
-global.$postgres = require('../config/postgres')
+global.$postgres = require('../app/setup/postgres')
 
 
 global.$pg_database = global.$postgres.connect()

@@ -1,10 +1,7 @@
 import _ from 'lodash';
 import jwt from 'jsonwebtoken'
+import config from 'config';
 
-import { load as configLoader } from '../../config/config'
-
-
-const config = configLoader()
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
 

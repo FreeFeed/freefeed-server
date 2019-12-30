@@ -1,11 +1,9 @@
 /* eslint babel/semi: "error" */
 import createDebug from 'debug';
 import Raven from 'raven';
+import config from 'config';
 
-import { load as configLoader } from '../../config/config';
 
-
-const config = configLoader();
 const debug = createDebug('freefeed:errors');
 
 const sentryIsEnabled = 'sentryDsn' in config;

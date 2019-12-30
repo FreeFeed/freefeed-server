@@ -8,17 +8,16 @@ import responseTime from 'koa-response-time';
 import { promisify } from 'bluebird';
 import Raven from 'raven';
 import createDebug from 'debug';
+import config from 'config';
 
-import { version as serverVersion } from '../package.json';
+import { version as serverVersion } from '../../package.json';
 
-import { originMiddleware } from './initializers/origin';
-import { load as configLoader } from './config';
 import { selectDatabase } from './database';
 import { configure as configurePostgres } from './postgres';
+import { originMiddleware } from './initializers/origin';
 import { init as passportInit } from './initializers/passport';
 
 
-const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 
 if (sentryIsEnabled) {
@@ -27,6 +26,7 @@ if (sentryIsEnabled) {
 
 const env = process.env.NODE_ENV || 'development';
 const log = createDebug('freefeed:init');
+process.env.MONITOR_PREFIX = config.monitorPrefix;
 
 passportInit(passport);
 
@@ -102,7 +102,7 @@ exports.init = async function (app) {
     await next();
   });
 
-  const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' });
+  const accessLogStream = fs.createWriteStream(`${__dirname}/../../log/${env}.log`, { flags: 'a' });
   app.use(morgan('combined', { stream: accessLogStream }));
 
   if (config.logResponseTime) {  // should be located BEFORE responseTime

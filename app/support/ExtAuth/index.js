@@ -1,4 +1,4 @@
-import { load as configLoader } from '../../../config/config'
+import config from 'config';
 
 import { Cache } from './Cache';
 import { TestProvider } from './TestProvider';
@@ -23,7 +23,7 @@ export const profileCache = new Cache('extauthprofile:', 30 * 60); // 30 minutes
 
 export function getAuthProvider(name) {
   const ProvClass = providerByName[name];
-  const conf = configLoader().externalAuthProviders[name];
+  const conf = config.externalAuthProviders[name];
 
   if (!conf || !ProvClass) {
     return null;

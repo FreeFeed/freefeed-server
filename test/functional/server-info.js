@@ -1,15 +1,12 @@
 /* eslint-env node, mocha */
 import fetch from 'node-fetch';
 import expect from 'unexpected';
+import config from 'config';
 
-import { load as configLoader } from '../../config/config';
 import { getSingleton } from '../../app/app';
 import { version as serverVersion } from '../../package.json';
 
 import { serverInfoResponse } from './schemaV2-helper';
-
-
-const config = configLoader();
 
 
 describe('/v2/server-info', () => {

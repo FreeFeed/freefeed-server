@@ -25,7 +25,7 @@ export async function getSingleton() {
 
     const _app = new Application();
 
-    const environment = require('../config/environment');
+    const environment = require('./setup/environment');
     const server = http.createServer(_app.callback());
 
     await environment.init(_app);

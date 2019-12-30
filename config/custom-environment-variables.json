@@ -1,0 +1,17 @@
+{
+  "monitorPrefix": "MONITOR_PREFIX",
+  "port": { "__name": "FRFS_PORT", "__format": "json" },
+  "redis": {
+    "host": "FRFS_REDIS_HOST",
+    "port": { "__name": "FRFS_REDIS_PORT", "__format": "json" }
+  },
+  "postgres": {
+    "connection": {
+      "host": "FRFS_PG_HOST",
+      "port": { "__name": "FRFS_PG_PORT", "__format": "json" },
+      "database": "FRFS_PG_DATABASE",
+      "user": "FRFS_PG_USER",
+      "password": "FRFS_PG_PASSWORD"
+    }
+  }
+}

@@ -1,15 +1,13 @@
 import _ from 'lodash';
 import expect from 'unexpected';
 import compose from 'koa-compose';
+import config from 'config'
 
 import Mailer from '../../../../lib/mailer'
-import { load as configLoader } from '../../../../config/config'
 import { dbAdapter } from '../../../models';
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
 import { authRequired, monitored } from '../../middlewares';
 
-
-const config = configLoader();
 
 export const restoration = compose([
   authRequired(),
