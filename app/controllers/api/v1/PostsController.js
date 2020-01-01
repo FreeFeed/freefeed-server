@@ -292,7 +292,7 @@ export default class PostsController {
  * @returns {string[]}
  */
 export async function checkDestNames(destNames, author) {
-  destNames = _.uniq(destNames);
+  destNames = _.uniq(destNames.map((u) => u.toLowerCase()));
   const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
   const destUserNames = destUsers.map((u) => u.username);
 
