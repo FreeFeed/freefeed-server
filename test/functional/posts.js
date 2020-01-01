@@ -393,6 +393,11 @@ describe('PostsController', () => {
           })
       })
 
+      it('should not depend of feed name case', async () => {
+        const test = funcTestHelper.createAndReturnPostToFeed({ username: 'PepYatka-dEV' }, ctx, 'Hello');
+        await expect(test, 'to be fulfilled');
+      });
+
       it("should cross-post between a group and a user's feed", (done) => {
         const body = 'Post body'
 
