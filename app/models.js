@@ -15,7 +15,6 @@ import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
 import { addAppTokenV1Model } from './models/auth-tokens';
 import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
-import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer';
 import { addSerializer as groupSerializer } from './serializers/v1/GroupSerializer';
 import { addSerializer as myProfileSerializer } from './serializers/v1/MyProfileSerializer';
 import { addSerializer as pubsubCommentSerializer } from './serializers/v1/PubsubCommentSerializer';
@@ -63,7 +62,6 @@ export const SubscriptionSerializer        = subscriptionSerializer();
 export const SubscriptionRequestSerializer = subscriptionRequestSerializer();
 export const MyProfileSerializer           = myProfileSerializer();
 export const GroupSerializer               = groupSerializer();
-export const AttachmentSerializer          = attachmentSerializer();
 export const PubsubCommentSerializer       = pubsubCommentSerializer();
 
 export {
