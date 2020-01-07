@@ -20,12 +20,12 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { dbAdapter, LikeSerializer, PubsubCommentSerializer, AppTokenV1 } from './models';
+import { dbAdapter, PubsubCommentSerializer, AppTokenV1 } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
-import { serializeSinglePost } from './serializers/v2/post';
+import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -393,7 +393,7 @@ export default class PubsubListener {
       await dbAdapter.getUserById(userId),
       await dbAdapter.getPostById(postId),
     ]);
-    const json = await new LikeSerializer(user).promiseToJSON();
+    const json = serializeLike(user);
     json.meta = { postId };
 
     const type = eventNames.LIKE_ADDED;
