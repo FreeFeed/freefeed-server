@@ -4,7 +4,7 @@ import _ from 'lodash'
 import compose from 'koa-compose';
 import config from 'config'
 
-import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
+import { dbAdapter, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
 import {
   NotFoundException,
   ForbiddenException,
@@ -111,10 +111,11 @@ export default class UsersController {
         }),
       ]);
 
-      const json = await new MyProfileSerializer(user).promiseToJSON()
-      const authToken = new SessionTokenV0(user.id).tokenString();
+      ctx.state.user = user;
+      ctx.state.authToken = new SessionTokenV0(user.id);
+      await UsersControllerV2.whoAmI(ctx);
+      ctx.body.authToken = ctx.state.authToken.tokenString();
 
-      ctx.body = { ...json, authToken };
       AppTokenV1.addLogPayload(ctx, { userId: user.id });
     }
   ]);
@@ -146,10 +147,10 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const authToken = new SessionTokenV0(user.id).tokenString();
-
-    const json = await new MyProfileSerializer(user).promiseToJSON()
-    ctx.body = { ...json, authToken };
+    ctx.state.user = user;
+    ctx.state.authToken = new SessionTokenV0(user.id);
+    await UsersControllerV2.whoAmI(ctx);
+    ctx.body.authToken = ctx.state.authToken.tokenString();
   }
 
   static sendRequest = compose([

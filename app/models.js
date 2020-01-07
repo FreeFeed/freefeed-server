@@ -16,7 +16,6 @@ import { addModel as userModel } from './models/user';
 import { addAppTokenV1Model } from './models/auth-tokens';
 import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
 import { addSerializer as groupSerializer } from './serializers/v1/GroupSerializer';
-import { addSerializer as myProfileSerializer } from './serializers/v1/MyProfileSerializer';
 import { addSerializer as pubsubCommentSerializer } from './serializers/v1/PubsubCommentSerializer';
 import { addSerializer as subscriberSerializer } from './serializers/v1/SubscriberSerializer';
 import { addSerializer as subscriptionSerializer } from './serializers/v1/SubscriptionSerializer';
@@ -60,7 +59,6 @@ export const UserSerializer                = userSerializer();
 export const SubscriberSerializer          = subscriberSerializer();
 export const SubscriptionSerializer        = subscriptionSerializer();
 export const SubscriptionRequestSerializer = subscriptionRequestSerializer();
-export const MyProfileSerializer           = myProfileSerializer();
 export const GroupSerializer               = groupSerializer();
 export const PubsubCommentSerializer       = pubsubCommentSerializer();
 
