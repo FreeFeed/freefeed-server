@@ -14,8 +14,6 @@ import { addModel as postModel } from './models/post';
 import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
 import { addAppTokenV1Model } from './models/auth-tokens';
-import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
-import { addSerializer as userSerializer } from './serializers/v1/UserSerializer';
 import { addServerInfoModel } from './models/server-info';
 
 
@@ -48,9 +46,6 @@ export const Comment       = commentModel(dbAdapter);
 export { AuthToken, SessionTokenV0 } from './models/auth-tokens';
 export const AppTokenV1    = addAppTokenV1Model(dbAdapter);
 export const ServerInfo    = addServerInfoModel(dbAdapter);
-
-export const AdminSerializer               = adminSerializer();
-export const UserSerializer                = userSerializer();
 
 export {
   HOMEFEED_MODE_CLASSIC,
