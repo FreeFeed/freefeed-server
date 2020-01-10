@@ -292,6 +292,43 @@ describe('App tokens controller', () => {
         expect(resp, 'to satisfy', { __httpCode: 200 });
       });
     });
+
+    describe('Token without scopes', () => {
+      let token;
+      before(async () => {
+        token = new AppTokenV1({
+          userId: luna.user.id,
+          title:  'My app',
+        });
+        await token.create();
+      });
+
+      it('should allow "/v1/users/me" request with token', async () => {
+        const resp = await performJSONRequest(
+          'GET', `/v1/users/me`,
+          null,
+          { 'X-Authentication-Token': token.tokenString() },
+        );
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+      });
+
+      it('should allow "/v2/app-tokens/current" request with token', async () => {
+        const resp = await performJSONRequest(
+          'GET', `/v2/app-tokens/current`,
+          null,
+          { 'X-Authentication-Token': token.tokenString() },
+        );
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+      });
+      it('should reject "/v1/users/:username" request with token', async () => {
+        const resp = await performJSONRequest(
+          'GET', `/v1/users/${luna.username}`,
+          null,
+          { 'X-Authentication-Token': token.tokenString() },
+        );
+        expect(resp, 'to have key', 'err');
+      });
+    });
   });
 });
 

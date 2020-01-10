@@ -23,7 +23,7 @@ export const appTokenCreateInputSchema = {
       type:        'array',
       items:       { '$ref': '#/definitions/nonEmptyString' },
       uniqueItems: true,
-      minItems:    1,
+      minItems:    0,
     },
     restrictions: {
       type:     'object',
