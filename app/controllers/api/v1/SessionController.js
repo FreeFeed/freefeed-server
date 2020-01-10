@@ -1,7 +1,8 @@
 import passport from 'koa-passport'
 
-import { UserSerializer } from '../../../models'
 import { SessionTokenV0 } from '../../../models/auth-tokens'
+
+import UsersController from './UsersController';
 
 
 export default class SessionController {
@@ -25,8 +26,10 @@ export default class SessionController {
 
       const authToken = new SessionTokenV0(user.id).tokenString();
 
-      const json = await new UserSerializer(user).promiseToJSON();
-      ctx.body = { ...json, authToken };
+      // The same output as of the UsersController.show with 'authToken'
+      ctx.params['username'] = user.username;
+      await UsersController.show(ctx);
+      ctx.body.authToken = authToken;
     })(ctx);
   }
 }

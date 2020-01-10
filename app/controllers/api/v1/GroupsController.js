@@ -1,11 +1,13 @@
 import _ from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter, Group, GroupSerializer, AppTokenV1 } from '../../../models'
+import { dbAdapter, Group, AppTokenV1 } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 import { authRequired, targetUserRequired } from '../../middlewares';
 import { downloadURL } from '../../../support/download-url';
+
+import UsersController from './UsersController';
 
 
 export default class GroupsController {
@@ -27,8 +29,13 @@ export default class GroupsController {
     const group = new Group(params)
     await group.create(ctx.state.user.id, false)
     await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
-    const json = await new GroupSerializer(group).promiseToJSON()
-    ctx.body = json;
+
+    // The same output as of the UsersController.show with 'users' -> 'groups' replacing
+    ctx.params['username'] = group.username;
+    await UsersController.show(ctx);
+    ctx.body.groups = ctx.body.users;
+    Reflect.deleteProperty(ctx.body, 'users');
+
     AppTokenV1.addLogPayload(ctx, { groupId: group.id });
   }
 
@@ -61,8 +68,11 @@ export default class GroupsController {
 
     await Promise.all(promises)
 
-    const json = await new GroupSerializer(group).promiseToJSON()
-    ctx.body = json
+    // The same output as of the UsersController.show with 'users' -> 'groups' replacing
+    ctx.params['username'] = group.username;
+    await UsersController.show(ctx);
+    ctx.body.groups = ctx.body.users;
+    Reflect.deleteProperty(ctx.body, 'users');
   }
 
   static async update(ctx) {
@@ -88,8 +98,11 @@ export default class GroupsController {
 
     await group.update(attrs)
 
-    const json = await new GroupSerializer(group).promiseToJSON()
-    ctx.body = json;
+    // The same output as of the UsersController.show with 'users' -> 'groups' replacing
+    ctx.params['username'] = group.username;
+    await UsersController.show(ctx);
+    ctx.body.groups = ctx.body.users;
+    Reflect.deleteProperty(ctx.body, 'users');
   }
 
   static async changeAdminStatus(ctx, newStatus) {

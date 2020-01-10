@@ -14,16 +14,6 @@ import { addModel as postModel } from './models/post';
 import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
 import { addAppTokenV1Model } from './models/auth-tokens';
-import { addSerializer as adminSerializer } from './serializers/v1/AdminSerializer';
-import { addSerializer as attachmentSerializer } from './serializers/v1/AttachmentSerializer';
-import { addSerializer as groupSerializer } from './serializers/v1/GroupSerializer';
-import { addSerializer as likeSerializer } from './serializers/v1/LikeSerializer';
-import { addSerializer as myProfileSerializer } from './serializers/v1/MyProfileSerializer';
-import { addSerializer as pubsubCommentSerializer } from './serializers/v1/PubsubCommentSerializer';
-import { addSerializer as subscriberSerializer } from './serializers/v1/SubscriberSerializer';
-import { addSerializer as subscriptionSerializer } from './serializers/v1/SubscriptionSerializer';
-import { addSerializer as subscriptionRequestSerializer } from './serializers/v1/SubscriptionRequestSerializer';
-import { addSerializer as userSerializer } from './serializers/v1/UserSerializer';
 import { addServerInfoModel } from './models/server-info';
 
 
@@ -56,17 +46,6 @@ export const Comment       = commentModel(dbAdapter);
 export { AuthToken, SessionTokenV0 } from './models/auth-tokens';
 export const AppTokenV1    = addAppTokenV1Model(dbAdapter);
 export const ServerInfo    = addServerInfoModel(dbAdapter);
-
-export const AdminSerializer               = adminSerializer();
-export const UserSerializer                = userSerializer();
-export const SubscriberSerializer          = subscriberSerializer();
-export const SubscriptionSerializer        = subscriptionSerializer();
-export const SubscriptionRequestSerializer = subscriptionRequestSerializer();
-export const MyProfileSerializer           = myProfileSerializer();
-export const LikeSerializer                = likeSerializer();
-export const GroupSerializer               = groupSerializer();
-export const AttachmentSerializer          = attachmentSerializer();
-export const PubsubCommentSerializer       = pubsubCommentSerializer();
 
 export {
   HOMEFEED_MODE_CLASSIC,
