@@ -633,7 +633,7 @@ async function useInvitation(newUser, invitation, cancel_subscription = false) {
   }));
 
   await Promise.all(invitation.privateGroups.map(async (recommendedGroup) => {
-    await newUser.sendPrivateGroupSubscriptionRequest(recommendedGroup.id);
+    await newUser.sendSubscriptionRequest(recommendedGroup.id);
     return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
   }));
 }
