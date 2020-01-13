@@ -190,42 +190,10 @@ export default class GroupsController {
     },
   ]);
 
-  static async sendRequest(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Unauthorized', status: 'fail' };
-      return
-    }
-
-    const { groupName } = ctx.params;
-    const group = await dbAdapter.getGroupByUsername(groupName)
-
-    if (null === group) {
-      throw new NotFoundException(`Group "${groupName}" is not found`)
-    }
-
-    if (group.isPrivate !== '1') {
-      throw new Error('Group is public')
-    }
-
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, group.id)
-
-    if (hasRequest) {
-      throw new ForbiddenException('Subscription request already sent')
-    }
-
-    const followedGroups = await ctx.state.user.getFollowedGroups();
-    const followedGroupIds = followedGroups.map((followedGroup) => followedGroup.id);
-
-    if (followedGroupIds.includes(group.id)) {
-      throw new ForbiddenException('You are already subscribed to that group')
-    }
-
-    await ctx.state.user.sendPrivateGroupSubscriptionRequest(group.id)
-    await EventService.onGroupSubscriptionRequestCreated(ctx.state.user.intId, group);
-
-    ctx.body = { err: null, status: 'success' };
-  }
+  static sendRequest = (ctx) => {
+    ctx.params.username = ctx.params.groupName;
+    return UsersController.sendRequest(ctx);
+  };
 
   static async acceptRequest(ctx) {
     if (!ctx.state.user) {

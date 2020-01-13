@@ -153,6 +153,7 @@ export default class UsersController {
     ctx.body.authToken = ctx.state.authToken.tokenString();
   }
 
+  // This method handles both user and group requests
   static sendRequest = compose([
     authRequired(),
     targetUserRequired(),
@@ -160,22 +161,36 @@ export default class UsersController {
       const { user, targetUser } = ctx.state;
 
       if (targetUser.isPrivate !== '1') {
-        throw new ForbiddenException('The user account ie not private');
+        throw new ForbiddenException(`The ${targetUser.isUser() ? 'user account' : 'group'} is not private`);
       }
 
       const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, targetUser.id)
 
       if (hasRequest) {
-        throw new ForbiddenException('You have already sent a subscription request to this user');
+        throw new ForbiddenException(`You have already sent a subscription request to this ${targetUser.type}`);
       }
 
       const banIds = await targetUser.getBanIds();
 
       if (banIds.includes(user.id)) {
         // Silently skip request creation because the requestor is blocked
-      } else {
-        await user.sendSubscriptionRequest(targetUser.id)
+        ctx.body = {};
+        return;
+      }
+
+      const postsTimelineId = await targetUser.getPostsTimelineId();
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, postsTimelineId);
+
+      if (isSubscribed) {
+        throw new ForbiddenException(`You are already subscribed to this ${targetUser.type}`);
+      }
+
+      await user.sendSubscriptionRequest(targetUser.id);
+
+      if (targetUser.isUser()) {
         await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);
+      } else {
+        await EventService.onGroupSubscriptionRequestCreated(user.intId, targetUser);
       }
 
       ctx.body = {};
