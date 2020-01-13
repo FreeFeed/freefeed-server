@@ -413,7 +413,7 @@ describe('PrivateGroups', () => {
             .post(`${app.context.config.host}/v1/groups/pepyatka-dev/sendRequest`)
             .send({ authToken: nonAdminContext.authToken })
             .end((err, res) => {
-              res.status.should.eql(500)
+              res.status.should.eql(403)
               done()
             })
         })
