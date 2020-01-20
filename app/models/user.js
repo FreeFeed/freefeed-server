@@ -1174,10 +1174,6 @@ export function addModel(dbAdapter) {
       return await dbAdapter.createSubscriptionRequest(this.id, userId);
     }
 
-    async sendPrivateGroupSubscriptionRequest(groupId) {
-      return await dbAdapter.createSubscriptionRequest(this.id, groupId);
-    }
-
     async acceptSubscriptionRequest(userId) {
       await dbAdapter.deleteSubscriptionRequest(this.id, userId);
 
