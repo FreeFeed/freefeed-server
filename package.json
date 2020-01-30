@@ -131,5 +131,8 @@
     "unexpected-moment": "~3.3.0",
     "unexpected-sinon": "~10.11.2",
     "xml-parser": "~1.2.1"
+  },
+  "resolutions": {
+    "strtok3": "3.1.2"
   }
 }

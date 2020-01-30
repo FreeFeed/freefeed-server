@@ -6575,13 +6575,14 @@ strip-outer@^1.0.0:
   dependencies:
     escape-string-regexp "^1.0.2"
 
-strtok3@^3.0.6:
-  version "3.1.7"
-  resolved "https://registry.yarnpkg.com/strtok3/-/strtok3-3.1.7.tgz#e236e955e7c93c156442a06f7b385a90a7f528d4"
-  integrity sha512-N0qFNf5vkyXgaPr4AHRmCTqdFwTnB1LxX3xo1N5KHMLhqircDdL9m8qem3Lpb8IIuJaNL1Jddazvb9WRwUdSlw==
+strtok3@3.1.2, strtok3@^3.0.6:
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/strtok3/-/strtok3-3.1.2.tgz#0aa7d84a06c1ece03ce775cc035d5669309d661e"
+  integrity sha512-dwzaZhSHdZUWqXAhaw53Wx+2g86C2dbOm0ZmWoKuhRx+Zr3qxa0+NRQpVni6br71UXWPq3f94khwJSH7AEGl/Q==
   dependencies:
     debug "^4.1.1"
     then-read-stream "^2.0.8"
+    token-types "^1.1.0"
 
 superagent@~5.1.1:
   version "5.1.4"
