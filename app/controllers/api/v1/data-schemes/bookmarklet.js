@@ -1,9 +1,7 @@
-import { load as configLoader } from '../../../../../config/config'
+import config from 'config';
 
 import definitions from './definitions';
 
-
-const config = configLoader();
 
 /**
  * Bookmarklet schema is based on schemas used by the following

@@ -1,7 +1,5 @@
-import { load as configLoader } from '../../config/config';
+import config from 'config';
 
-
-const config = configLoader();
 
 export function addServerInfoModel(dbAdapter) {
   return class ServerInfo {

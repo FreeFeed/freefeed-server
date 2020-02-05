@@ -1,11 +1,13 @@
 import _ from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter, Group, GroupSerializer, AppTokenV1 } from '../../../models'
+import { dbAdapter, Group, AppTokenV1 } from '../../../models'
 import { EventService } from '../../../support/EventService'
 import { BadRequestException, NotFoundException, ForbiddenException }  from '../../../support/exceptions'
 import { authRequired, targetUserRequired } from '../../middlewares';
 import { downloadURL } from '../../../support/download-url';
+
+import UsersController from './UsersController';
 
 
 export default class GroupsController {
@@ -27,8 +29,13 @@ export default class GroupsController {
     const group = new Group(params)
     await group.create(ctx.state.user.id, false)
     await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
-    const json = await new GroupSerializer(group).promiseToJSON()
-    ctx.body = json;
+
+    // The same output as of the UsersController.show with 'users' -> 'groups' replacing
+    ctx.params['username'] = group.username;
+    await UsersController.show(ctx);
+    ctx.body.groups = ctx.body.users;
+    Reflect.deleteProperty(ctx.body, 'users');
+
     AppTokenV1.addLogPayload(ctx, { groupId: group.id });
   }
 
@@ -61,8 +68,11 @@ export default class GroupsController {
 
     await Promise.all(promises)
 
-    const json = await new GroupSerializer(group).promiseToJSON()
-    ctx.body = json
+    // The same output as of the UsersController.show with 'users' -> 'groups' replacing
+    ctx.params['username'] = group.username;
+    await UsersController.show(ctx);
+    ctx.body.groups = ctx.body.users;
+    Reflect.deleteProperty(ctx.body, 'users');
   }
 
   static async update(ctx) {
@@ -88,8 +98,11 @@ export default class GroupsController {
 
     await group.update(attrs)
 
-    const json = await new GroupSerializer(group).promiseToJSON()
-    ctx.body = json;
+    // The same output as of the UsersController.show with 'users' -> 'groups' replacing
+    ctx.params['username'] = group.username;
+    await UsersController.show(ctx);
+    ctx.body.groups = ctx.body.users;
+    Reflect.deleteProperty(ctx.body, 'users');
   }
 
   static async changeAdminStatus(ctx, newStatus) {
@@ -177,42 +190,10 @@ export default class GroupsController {
     },
   ]);
 
-  static async sendRequest(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Unauthorized', status: 'fail' };
-      return
-    }
-
-    const { groupName } = ctx.params;
-    const group = await dbAdapter.getGroupByUsername(groupName)
-
-    if (null === group) {
-      throw new NotFoundException(`Group "${groupName}" is not found`)
-    }
-
-    if (group.isPrivate !== '1') {
-      throw new Error('Group is public')
-    }
-
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, group.id)
-
-    if (hasRequest) {
-      throw new ForbiddenException('Subscription request already sent')
-    }
-
-    const followedGroups = await ctx.state.user.getFollowedGroups();
-    const followedGroupIds = followedGroups.map((followedGroup) => followedGroup.id);
-
-    if (followedGroupIds.includes(group.id)) {
-      throw new ForbiddenException('You are already subscribed to that group')
-    }
-
-    await ctx.state.user.sendPrivateGroupSubscriptionRequest(group.id)
-    await EventService.onGroupSubscriptionRequestCreated(ctx.state.user.intId, group);
-
-    ctx.body = { err: null, status: 'success' };
-  }
+  static sendRequest = (ctx) => {
+    ctx.params.username = ctx.params.groupName;
+    return UsersController.sendRequest(ctx);
+  };
 
   static async acceptRequest(ctx) {
     if (!ctx.state.user) {

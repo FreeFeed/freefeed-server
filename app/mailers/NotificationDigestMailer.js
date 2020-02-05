@@ -1,11 +1,9 @@
 import moment from 'moment';
 import createDebug from 'debug';
+import config from 'config'
 
 import Mailer from '../../lib/mailer';
-import { load as configLoader } from '../../config/config';
 
-
-const config = configLoader();
 
 export function sendEventsDigestEmail(user, events, users, groups, digestInterval) {
   // TODO: const subject = config.mailer.notificationDigestEmailSubject

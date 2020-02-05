@@ -4,14 +4,12 @@ import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
 import jwt from 'jsonwebtoken'
 import uuidv4 from 'uuid/v4';
+import config from 'config';
 
-import { load as configLoader } from '../../../config/config'
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, AppTokenV1, dbAdapter } from '../../../app/models';
 import { withAuthToken, tokenFromJWT } from '../../../app/controllers/middlewares/with-auth-token';
 
-
-const config = configLoader()
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);

@@ -1,8 +1,9 @@
 import _ from 'lodash';
 import createDebug from 'debug';
 
-import { AttachmentSerializer } from '../../../models';
 import { reportError } from '../../../support/exceptions';
+import { serializeAttachment } from '../../../serializers/v2/post';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
 
 
 export default class AttachmentsController {
@@ -26,8 +27,10 @@ export default class AttachmentsController {
         const newAttachment = await ctx.state.user.newAttachment({ file });
         await newAttachment.create();
 
-        const json = new AttachmentSerializer(newAttachment).promiseToJSON();
-        ctx.body = await json;
+        ctx.body = {
+          attachments: serializeAttachment(newAttachment),
+          users:       serializeUsersByIds([newAttachment.createdBy]),
+        };
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
           this.debug(e.message);

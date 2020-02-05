@@ -2,6 +2,7 @@
 /* global $pg_database */
 import request from 'superagent'
 import _ from 'lodash'
+import expect from 'unexpected'
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
@@ -165,34 +166,24 @@ describe('Privates', () => {
             })
         })
 
-        it('should not allow banned user to send subscription request', (done) => {
-          request
-            .post(`${app.context.config.host}/v1/users/${zeusContext.user.username}/ban`)
-            .send({ authToken: lunaContext.authToken })
-            .end(() => {
-              request
-                .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
-                .send({
-                  authToken: zeusContext.authToken,
-                  '_method': 'post'
-                })
-                .end((err, res) => {
-                  res.should.not.be.empty
-                  res.body.err.should.not.be.empty
-                  res.body.err.should.eql('Invalid')
-                  request
-                    .get(`${app.context.config.host}/v2/users/whoami`)
-                    .query({ authToken: lunaContext.authToken })
-                    .end((err, res) => {
-                      res.should.not.be.empty
-                      res.body.should.not.be.empty
-                      res.body.should.have.property('users')
-                      res.body.users.subscriptionRequests.should.eql([])
-                      done()
-                    })
-                })
-            })
-        })
+        it('should silently ignore subscription request from banned user', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'POST',
+            `/v1/users/${zeusContext.user.username}/ban`,
+            null,
+            { Authorization: `Bearer ${lunaContext.authToken}` }
+          );
+          expect(resp, 'to satisfy', { __httpCode: 200 });
+
+          const whoami = await funcTestHelper.performJSONRequest(
+            'GET',
+            '/v2/users/whoami',
+            null,
+            { Authorization: `Bearer ${zeusContext.authToken}` }
+          );
+
+          expect(whoami.users.subscriptionRequests, 'to be empty');
+        });
 
         it('should show liked post per context', (done) => {
           request
@@ -257,119 +248,113 @@ describe('Privates', () => {
             })
         })
 
-        it('should be able to accept', (done) => {
-          request
-            .post(`${app.context.config.host}/v1/users/acceptRequest/${zeusContext.user.username}`)
-            .send({
-              authToken: lunaContext.authToken,
-              '_method': 'post'
-            })
-            .end((err, res) => {
-              res.should.not.be.empty
-              res.error.should.be.empty
+        describe('full cycle of accept/reject', () => {
+          beforeEach(async () => {
+            { // Hercules sends request to Luna
+              const resp = await funcTestHelper.performJSONRequest(
+                'POST', `/v1/users/${lunaContext.user.username}/sendRequest`, null,
+                { Authorization: `Bearer ${herculesContext.authToken}` }
+              );
+              expect(resp.__httpCode, 'to be', 200);
+            }
 
-              request
-                .get(`${app.context.config.host}/v2/users/whoami`)
-                .query({ authToken: lunaContext.authToken })
-                .end((err, res) => {
-                  // check there are no subscription requests
-                  res.should.not.be.empty
-                  res.body.should.not.be.empty
-                  res.body.should.have.property('users')
-                  res.body.users.subscriptionRequests.should.eql([])
-                  res.body.requests.should.eql([])
+            { // Luna can see Hercules request
+              const resp = await funcTestHelper.performJSONRequest(
+                'GET', `/v2/users/whoami`, null,
+                { Authorization: `Bearer ${lunaContext.authToken}` }
+              );
+              expect(resp, 'to satisfy', {
+                __httpCode: 200,
+                users:      { subscriptionRequests: [herculesContext.user.id] },
+                requests:   [{ id: herculesContext.user.id }],
+              });
+            }
 
-                  request
-                    .get(`${app.context.config.host}/v2/users/whoami`)
-                    .query({ authToken: lunaContext.authToken })
-                    .end((err, res) => {
-                      // check there are no pending requests
-                      res.should.not.be.empty
-                      res.body.should.not.be.empty
-                      res.body.should.have.property('users')
-                      res.body.users.pendingSubscriptionRequests.should.eql([])
-                      res.body.requests.should.eql([])
+            { // Hercules can see his request
+              const resp = await funcTestHelper.performJSONRequest(
+                'GET', `/v2/users/whoami`, null,
+                { Authorization: `Bearer ${herculesContext.authToken}` }
+              );
+              expect(resp, 'to satisfy', {
+                __httpCode: 200,
+                users:      { pendingSubscriptionRequests: [lunaContext.user.id] },
+                requests:   [{ id: lunaContext.user.id }],
+              });
+            }
+          });
 
-                      funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
-                        // check user is subscribed
-                        res.should.not.be.empty
-                        res.body.should.not.be.empty
-                        res.body.should.have.property('timelines')
-                        res.body.timelines.should.have.property('name')
-                        res.body.timelines.name.should.eql('RiverOfNews')
-                        res.body.timelines.should.have.property('posts')
-                        res.body.timelines.posts.length.should.eql(1)
-                        res.body.should.have.property('posts')
-                        res.body.posts.length.should.eql(1)
+          it('should be able to accept', async () => {
+            { // Luna accepts Hercules request
+              const resp = await funcTestHelper.performJSONRequest(
+                'POST', `/v1/users/acceptRequest/${herculesContext.user.username}`, null,
+                { Authorization: `Bearer ${lunaContext.authToken}` }
+              );
+              expect(resp.__httpCode, 'to be', 200);
+            }
 
-                        const [firstHomePost] = res.body.posts;
-                        firstHomePost.body.should.eql(firstHomePost.body);
-                        done();
-                      })
-                    })
-                })
-            })
+            { // Luna can not see request anymore
+              const resp = await funcTestHelper.performJSONRequest(
+                'GET', `/v2/users/whoami`, null,
+                { Authorization: `Bearer ${lunaContext.authToken}` }
+              );
+              expect(resp, 'to satisfy', {
+                __httpCode: 200,
+                users:      { subscriptionRequests: [] },
+                requests:   []
+              });
+            }
+
+            { // Hercules can not see request anymore but can see Luna in subscriptions
+              const resp = await funcTestHelper.performJSONRequest(
+                'GET', `/v2/users/whoami`, null,
+                { Authorization: `Bearer ${herculesContext.authToken}` }
+              );
+              expect(resp, 'to satisfy', {
+                __httpCode:    200,
+                users:         { pendingSubscriptionRequests: [] },
+                requests:      [],
+                subscriptions: [{ user: lunaContext.user.id }],
+              });
+            }
+          });
+
+          it('should be able to reject', async () => {
+            { // Luna rejects Hercules request
+              const resp = await funcTestHelper.performJSONRequest(
+                'POST', `/v1/users/rejectRequest/${herculesContext.user.username}`, null,
+                { Authorization: `Bearer ${lunaContext.authToken}` }
+              );
+              expect(resp.__httpCode, 'to be', 200);
+            }
+
+            { // Luna can not see request anymore
+              const resp = await funcTestHelper.performJSONRequest(
+                'GET', `/v2/users/whoami`, null,
+                { Authorization: `Bearer ${lunaContext.authToken}` }
+              );
+              expect(resp, 'to satisfy', {
+                __httpCode: 200,
+                users:      { subscriptionRequests: [] },
+                requests:   []
+              });
+            }
+
+            { // Hercules can not see request anymore and have no subscriptions
+              const resp = await funcTestHelper.performJSONRequest(
+                'GET', `/v2/users/whoami`, null,
+                { Authorization: `Bearer ${herculesContext.authToken}` }
+              );
+              expect(resp, 'to satisfy', {
+                __httpCode:    200,
+                users:         { pendingSubscriptionRequests: [] },
+                requests:      [],
+                subscriptions: [],
+              });
+            }
+          });
         })
+      });
 
-        it('should be able to reject', (done) => {
-          request
-            .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
-            .send({
-              authToken: herculesContext.authToken,
-              '_method': 'post'
-            })
-            .end(() => {
-              request
-                .post(`${app.context.config.host}/v1/users/rejectRequest/${herculesContext.user.username}`)
-                .send({
-                  authToken: lunaContext.authToken,
-                  '_method': 'post'
-                })
-                .end((err, res) => {
-                  res.should.not.be.empty
-                  res.error.should.be.empty
-
-                  request
-                    .get(`${app.context.config.host}/v2/users/whoami`)
-                    .query({ authToken: lunaContext.authToken })
-                    .end((err, res) => {
-                      // check there are no subscription requests
-                      res.should.not.be.empty
-                      res.body.should.not.be.empty
-                      res.body.should.have.property('users')
-                      res.body.users.should.have.property('subscriptionRequests')
-                      res.body.should.have.property('requests')
-                      // request from zeus
-                      res.body.users.subscriptionRequests.length.should.eql(1)
-                      res.body.requests.length.should.eql(1)
-
-                      request
-                        .get(`${app.context.config.host}/v2/users/whoami`)
-                        .query({ authToken: herculesContext.authToken })
-                        .end((err, res) => {
-                          res.should.not.be.empty
-                          res.body.should.not.be.empty
-                          res.body.should.have.property('users')
-                          res.body.users.pendingSubscriptionRequests.should.eql([])
-                          res.body.requests.should.eql([])
-
-                          funcTestHelper.getTimeline('/v2/timelines/home', herculesContext.authToken, (err, res) => {
-                            // check user is not subscribed
-                            res.should.not.be.empty
-                            res.body.should.not.be.empty
-                            res.body.should.have.property('timelines')
-                            res.body.timelines.should.have.property('name')
-                            res.body.timelines.name.should.eql('RiverOfNews')
-                            res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
-                            res.body.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'))
-                            done()
-                          })
-                        })
-                    })
-                })
-            })
-        })
-      })
 
       xit('should protect user stats', (done) => {
         funcTestHelper.getTimeline(`/v2/timelines/${lunaContext.user.username}`, herculesContext.authToken, (err, res) => {
@@ -595,50 +580,6 @@ describe('Privates', () => {
             done()
           })
         })
-      })
-
-      it('should be able to send and receive subscription request', (done) => {
-        request
-          .post(`${app.context.config.host}/v1/users/${lunaContext.user.username}/sendRequest`)
-          .send({
-            authToken: zeusContext.authToken,
-            '_method': 'post'
-          })
-          .end((err, res) => {
-            res.should.not.be.empty
-            res.error.should.be.empty
-
-            request
-              .get(`${app.context.config.host}/v2/users/whoami`)
-              .query({ authToken: lunaContext.authToken })
-              .end((err, res) => {
-                // check there are subscription requests
-                res.should.not.be.empty
-                res.body.should.not.be.empty
-                res.body.should.have.property('users')
-                res.body.users.should.have.property('subscriptionRequests')
-                res.body.users.subscriptionRequests.length.should.eql(1)
-                res.body.should.have.property('requests')
-                res.body.requests.length.should.eql(1)
-                res.body.requests[0].id.should.eql(zeusContext.user.id)
-
-                request
-                  .get(`${app.context.config.host}/v2/users/whoami`)
-                  .query({ authToken: zeusContext.authToken })
-                  .end((err, res) => {
-                    // check there are pending requests
-                    res.should.not.be.empty
-                    res.body.should.not.be.empty
-                    res.body.should.have.property('users')
-                    res.body.users.should.have.property('pendingSubscriptionRequests')
-                    res.body.users.pendingSubscriptionRequests.length.should.eql(1)
-                    res.body.should.have.property('requests')
-                    res.body.requests.length.should.eql(1)
-                    res.body.requests[0].id.should.eql(lunaContext.user.id)
-                    done()
-                  })
-              })
-          })
       })
 
       it('that should be visible to subscribers only', (done) => {

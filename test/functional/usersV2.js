@@ -3,6 +3,7 @@
 import fetch from 'node-fetch'
 import request from 'superagent'
 import expect from 'unexpected'
+import config from 'config';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
@@ -24,12 +25,9 @@ import {
   createUserAsyncPost,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
-import { load as configLoader } from '../../config/config';
 
 import * as schema from './schemaV2-helper';
 
-
-const config = configLoader();
 
 describe('UsersControllerV2', () => {
   let app

@@ -2,6 +2,7 @@ import { escape as urlEscape } from 'querystring';
 
 import _ from 'lodash';
 import compose from 'koa-compose';
+import config from 'config'
 
 import {
   dbAdapter,
@@ -9,15 +10,12 @@ import {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from '../../../models';
-import { load as configLoader } from '../../../../config/config';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
 
 export const ORD_UPDATED = 'bumped';
 export const ORD_CREATED = 'created';
-
-const config = configLoader();
 
 export const bestOf = compose([
   monitored('timelines.bestof'),

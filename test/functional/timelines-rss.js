@@ -5,9 +5,9 @@ import { escape as urlEscape } from 'querystring';
 import expect from 'unexpected';
 import parseXML from 'xml-parser';
 import { unescape as htmlUnescape, escape as htmlEscape } from 'lodash';
+import config from 'config';
 
 import cleanDB from '../dbCleaner';
-import { load as configLoader } from '../../config/config';
 import { textToHTML } from '../../app/support/rss-text-parser';
 
 import {
@@ -27,8 +27,6 @@ import {
   mutualSubscriptions,
 } from './functional_test_helper';
 
-
-const config = configLoader();
 
 describe('TimelinesAsRSS', () => {
   beforeEach(() => cleanDB($pg_database));

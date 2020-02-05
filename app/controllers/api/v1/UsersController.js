@@ -2,8 +2,9 @@ import crypto from 'crypto';
 
 import _ from 'lodash'
 import compose from 'koa-compose';
+import config from 'config'
 
-import { dbAdapter, MyProfileSerializer, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
+import { dbAdapter, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
 import {
   NotFoundException,
   ForbiddenException,
@@ -13,7 +14,6 @@ import {
   TooManyRequestsException,
 } from '../../../support/exceptions'
 import { EventService } from '../../../support/EventService'
-import { load as configLoader } from '../../../../config/config'
 import recaptchaVerify from '../../../../lib/recaptcha'
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, targetUserRequired, monitored, inputSchemaRequired } from '../../middlewares';
@@ -23,8 +23,6 @@ import { downloadURL } from '../../../support/download-url';
 
 import { userCreateInputSchema } from './data-schemes';
 
-
-const config = configLoader()
 
 export default class UsersController {
   static create = compose([
@@ -113,10 +111,11 @@ export default class UsersController {
         }),
       ]);
 
-      const json = await new MyProfileSerializer(user).promiseToJSON()
-      const authToken = new SessionTokenV0(user.id).tokenString();
+      ctx.state.user = user;
+      ctx.state.authToken = new SessionTokenV0(user.id);
+      await UsersControllerV2.whoAmI(ctx);
+      ctx.body.authToken = ctx.state.authToken.tokenString();
 
-      ctx.body = { ...json, authToken };
       AppTokenV1.addLogPayload(ctx, { userId: user.id });
     }
   ]);
@@ -148,43 +147,55 @@ export default class UsersController {
       // if onboarding username is not found, just pass
     }
 
-    const authToken = new SessionTokenV0(user.id).tokenString();
-
-    const json = await new MyProfileSerializer(user).promiseToJSON()
-    ctx.body = { ...json, authToken };
+    ctx.state.user = user;
+    ctx.state.authToken = new SessionTokenV0(user.id);
+    await UsersControllerV2.whoAmI(ctx);
+    ctx.body.authToken = ctx.state.authToken.tokenString();
   }
 
-  static async sendRequest(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
+  // This method handles both user and group requests
+  static sendRequest = compose([
+    authRequired(),
+    targetUserRequired(),
+    async (ctx) => {
+      const { user, targetUser } = ctx.state;
+
+      if (targetUser.isPrivate !== '1') {
+        throw new ForbiddenException(`The ${targetUser.isUser() ? 'user account' : 'group'} is not private`);
+      }
+
+      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, targetUser.id)
+
+      if (hasRequest) {
+        throw new ForbiddenException(`You have already sent a subscription request to this ${targetUser.type}`);
+      }
+
+      const banIds = await targetUser.getBanIds();
+
+      if (banIds.includes(user.id)) {
+        // Silently skip request creation because the requestor is blocked
+        ctx.body = {};
+        return;
+      }
+
+      const postsTimelineId = await targetUser.getPostsTimelineId();
+      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, postsTimelineId);
+
+      if (isSubscribed) {
+        throw new ForbiddenException(`You are already subscribed to this ${targetUser.type}`);
+      }
+
+      await user.sendSubscriptionRequest(targetUser.id);
+
+      if (targetUser.isUser()) {
+        await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);
+      } else {
+        await EventService.onGroupSubscriptionRequestCreated(user.intId, targetUser);
+      }
+
+      ctx.body = {};
     }
-
-    const user = await dbAdapter.getFeedOwnerByUsername(ctx.params.username)
-
-    if (null === user) {
-      throw new NotFoundException(`Feed "${ctx.params.username}" is not found`)
-    }
-
-    if (user.isPrivate !== '1') {
-      throw new Error('Invalid')
-    }
-
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(ctx.state.user.id, user.id)
-    const banIds = await user.getBanIds()
-
-    const valid = !hasRequest && !banIds.includes(ctx.state.user.id)
-
-    if (!valid) {
-      throw new Error('Invalid')
-    }
-
-    await ctx.state.user.sendSubscriptionRequest(user.id)
-    await EventService.onSubscriptionRequestCreated(ctx.state.user.intId, user.intId);
-
-    ctx.body = {};
-  }
+  ]);
 
   static acceptRequest = compose([
     authRequired(),
@@ -622,7 +633,7 @@ async function useInvitation(newUser, invitation, cancel_subscription = false) {
   }));
 
   await Promise.all(invitation.privateGroups.map(async (recommendedGroup) => {
-    await newUser.sendPrivateGroupSubscriptionRequest(recommendedGroup.id);
+    await newUser.sendSubscriptionRequest(recommendedGroup.id);
     return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
   }));
 }

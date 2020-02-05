@@ -2,8 +2,8 @@ import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
 import createDebug from 'debug';
 import Raven from 'raven';
+import config from 'config'
 
-import { load as configLoader } from '../../../config/config';
 import { dbAdapter, SessionTokenV0, AppTokenV1 } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
 import { alwaysAllowedRoutes, appTokensScopes } from '../../models/app-tokens-scopes';
@@ -11,7 +11,6 @@ import { Address } from '../../support/ipv6';
 
 
 promisifyAll(jwt);
-const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const authDebug = createDebug('freefeed:authentication');
 

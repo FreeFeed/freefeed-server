@@ -1,0 +1,8 @@
+{
+  "postgres": {
+    "connection": {
+      "user": "postgres",
+      "password": ""
+    }
+  }
+}

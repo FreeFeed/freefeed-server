@@ -2,10 +2,10 @@
 import { readdirSync, statSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
-import { load as configLoader } from '../config/config'
+import config from 'config';
 
 
-after(() => cleanDir(configLoader().attachments.storage.rootDir));
+after(() => cleanDir(config.attachments.storage.rootDir));
 
 /**
  * cleanDir recursively removes all files in the given directory

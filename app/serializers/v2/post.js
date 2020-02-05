@@ -20,6 +20,10 @@ export function serializeComment(comment) {
   };
 }
 
+export function serializeLike(user) {
+  return { users: pick(user, ['id', 'username', 'screenName']) };
+}
+
 export function serializeAttachment(att) {
   const result = {
     ...pick(att, [

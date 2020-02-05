@@ -1,13 +1,11 @@
 /* eslint babel/semi: "error" */
 import knexjs from 'knex';
 import createDebug from 'debug';
+import config from 'config';
 
-import { stylize } from '../app/support/debugLogger';
-
-import { load as configLoader } from './config';
+import { stylize } from '../support/debugLogger';
 
 
-const config = configLoader();
 const knex = knexjs(config.postgres);
 const log = createDebug('freefeed:sql');
 const errLog = createDebug('freefeed:sql:error');

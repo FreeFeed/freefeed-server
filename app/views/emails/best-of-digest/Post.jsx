@@ -1,8 +1,8 @@
 import React from 'react';
 import classnames from 'classnames';
 import _ from 'lodash';
+import config from 'config';
 
-import { load as configLoader } from '../../../../config/config';
 import PostAttachments from './post-attachments.jsx';
 import PostLikes from './post-likes.jsx';
 import UserName from './user-name.jsx';
@@ -11,10 +11,8 @@ import PostComments from './post-comments.jsx';
 import TimeDisplay from './time-display.jsx';
 import Link from './link.jsx';
 
-const config = configLoader();
 
 export default class Post extends React.Component {
-
   render() {
     const { props } = this;
 
@@ -22,10 +20,10 @@ export default class Post extends React.Component {
     const profilePictureSize = 50;
 
     const postClass = classnames({
-      'post': true,
-      'single-post': false,
+      'post':          true,
+      'single-post':   false,
       'timeline-post': true,
-      'direct-post': false
+      'direct-post':   false
     });
 
     const recipientCustomDisplay = function (recipient) {
@@ -40,6 +38,7 @@ export default class Post extends React.Component {
     };
 
     let { recipients } = props;
+
     // Check if the post has been only submitted to one recipient
     // and if we can omit it
     if (recipients.length === 1) {
@@ -51,6 +50,7 @@ export default class Post extends React.Component {
         recipients = [];
       }
     }
+
     recipients = recipients.map((recipient, index) => (
       <span key={index}>
         <UserName
@@ -73,6 +73,7 @@ export default class Post extends React.Component {
         if (r.isPrivate === '1') {
           r.isProtected = '1';
         }
+
         return r;
       });
     const isPublic = authorOrGroupsRecipients.some((r) => r.isProtected === '0');
@@ -81,6 +82,7 @@ export default class Post extends React.Component {
 
     // "Comments disabled" / "Comment"
     let commentLink;
+
     if (props.commentsDisabled === '1') {
       commentLink = (
         <span>
@@ -140,9 +142,9 @@ export default class Post extends React.Component {
           <div className="post-footer">
             {isPrivate ? (
               <img src="cid:falock@2x" className="post-lock-icon fa fa-lock" width="16px" height="16px" title="This entry is private"/>
-              ) : isProtected ? (
+            ) : isProtected ? (
               <img src="cid:postprotected@2x" className="post-lock-icon post-protected-icon fa fa-lock" width="16px" height="16px" title="This entry is only visible to FreeFeed users"/>
-              ) : false}
+            ) : false}
             <Link to={canonicalPostURI} className="post-timestamp">
               <TimeDisplay timeStamp={+props.createdAt} />
             </Link>
@@ -173,8 +175,10 @@ export default class Post extends React.Component {
 export function canonicalURI(post) {
   // If posted _only_ into groups, use first recipient's username
   let urlName = post.createdBy.username;
-  if (post.recipients.length > 0 && !post.recipients.some((r) => r.type === "user")) {
+
+  if (post.recipients.length > 0 && !post.recipients.some((r) => r.type === 'user')) {
     urlName = post.recipients[0].username;
   }
+
   return `/${encodeURIComponent(urlName)}/${encodeURIComponent(post.id)}`;
 }

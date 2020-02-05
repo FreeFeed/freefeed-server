@@ -18,18 +18,17 @@ import IoServer from 'socket.io';
 import redis_adapter from 'socket.io-redis';
 import createDebug from 'debug';
 import Raven from 'raven';
+import config from 'config';
 
-import { load as configLoader } from '../config/config';
-
-import { dbAdapter, LikeSerializer, PubsubCommentSerializer, AppTokenV1 } from './models';
+import { dbAdapter, AppTokenV1 } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
-import { serializeSinglePost } from './serializers/v2/post';
+import { serializeSinglePost, serializeLike } from './serializers/v2/post';
+import { serializeCommentForRealtime } from './serializers/v2/comment';
 
 
-const config = configLoader();
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
 
@@ -363,7 +362,7 @@ export default class PubsubListener {
     }
 
     const post = await dbAdapter.getPostById(comment.postId);
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
+    const json = await serializeCommentForRealtime(comment);
 
     const type = eventNames.COMMENT_CREATED;
     const rooms = await getRoomsOfPost(post);
@@ -373,7 +372,7 @@ export default class PubsubListener {
   onCommentUpdate = async (data) => {
     const comment = await dbAdapter.getCommentById(data.commentId);
     const post = await dbAdapter.getPostById(comment.postId);
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
+    const json = await serializeCommentForRealtime(comment);
 
     const type = eventNames.COMMENT_UPDATED;
     const rooms = await getRoomsOfPost(post);
@@ -395,7 +394,7 @@ export default class PubsubListener {
       await dbAdapter.getUserById(userId),
       await dbAdapter.getPostById(postId),
     ]);
-    const json = await new LikeSerializer(user).promiseToJSON();
+    const json = serializeLike(user);
     json.meta = { postId };
 
     const type = eventNames.LIKE_ADDED;
@@ -476,7 +475,7 @@ export default class PubsubListener {
       return;
     }
 
-    const json = await new PubsubCommentSerializer(comment).promiseToJSON();
+    const json = await serializeCommentForRealtime(comment);
 
     if (msgType === eventNames.COMMENT_LIKE_ADDED) {
       json.comments.userId = data.likerUUID;
