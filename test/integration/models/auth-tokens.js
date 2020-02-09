@@ -142,6 +142,17 @@ describe('Auth Tokens', () => {
         expect(t2.lastUserAgent, 'to be', userAgent);
       });
 
+      it('should set last* fields even with empty user agent', async () => {
+        const ip = '127.0.0.127';
+
+        await token.registerUsage({ ip });
+
+        const t2 = await dbAdapter.getAppTokenById(token.id);
+        expect(new Date(t2.lastUsedAt), 'to be close to', new Date());
+        expect(t2.lastIP, 'to be', ip);
+        expect(t2.lastUserAgent, 'to be', '');
+      });
+
       describe('logRequest', () => {
         beforeEach(() => $pg_database.raw('delete from app_tokens_log'));
 
@@ -168,6 +179,32 @@ describe('Auth Tokens', () => {
             request:    'POST /v1/posts',
             ip:         '127.0.0.127',
             user_agent: 'Lynx browser, Linux',
+            extra:      { postId: 'post1', 'x-real-ip': '127.0.0.128' },
+          }]);
+        });
+
+        it('should write log entry even with empty user agent', async () => {
+          const ctx = {
+            ip:            '127.0.0.127',
+            method:        'POST',
+            url:           '/v1/posts',
+            _matchedRoute: '/v1/posts',
+            headers:       {
+              'x-real-ip': '127.0.0.128',
+              'origin':    'https://localhost',
+            },
+            state: {},
+          };
+
+          ctx.state.appTokenLogPayload = { postId: 'post1' };
+          await token.logRequest(ctx);
+
+          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
+          expect(logRows, 'to satisfy', [{
+            token_id:   token.id,
+            request:    'POST /v1/posts',
+            ip:         '127.0.0.127',
+            user_agent: '',
             extra:      { postId: 'post1', 'x-real-ip': '127.0.0.128' },
           }]);
         });
