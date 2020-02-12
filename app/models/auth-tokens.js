@@ -105,7 +105,7 @@ export function addAppTokenV1Model(dbAdapter) {
       }
     }
 
-    async registerUsage({ ip, userAgent }) {
+    async registerUsage({ ip, userAgent = '' }) {
       await dbAdapter.registerAppTokenUsage(this.id, { ip, userAgent, debounce: appTokenUsageDebounce });
     }
 
@@ -125,7 +125,7 @@ export function addAppTokenV1Model(dbAdapter) {
         token_id:   this.id,
         request:    `${ctx.method} ${ctx.url}`,
         ip:         ctx.ip,
-        user_agent: ctx.headers['user-agent'],
+        user_agent: ctx.headers['user-agent'] || '',
         extra:      {
           ..._.pick(ctx.headers, ['x-real-ip', 'x-forwarded-for']),
           ...(ctx.state.appTokenLogPayload || {}),

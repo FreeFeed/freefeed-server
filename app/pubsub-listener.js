@@ -682,7 +682,7 @@ async function getAuthUser(jwtToken, socket) {
   if (authData.authToken instanceof AppTokenV1) {
     await authData.authToken.registerUsage({
       ip:        socket.handshake.address,
-      userAgent: socket.handshake.headers['user-agent'] || '<undefined>',
+      userAgent: socket.handshake.headers['user-agent'],
     });
   }
 

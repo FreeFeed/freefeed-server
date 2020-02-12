@@ -51,7 +51,7 @@ export async function withAuthToken(ctx, next) {
     await authToken.registerUsage({
       // Beautify address for user: remove ::ffff: prefix from IPv4 addresses
       ip:        new Address(ctx.ip).toString(),
-      userAgent: ctx.headers['user-agent'] || '<undefined>',
+      userAgent: ctx.headers['user-agent'],
     });
 
     await next();
