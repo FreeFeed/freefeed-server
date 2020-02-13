@@ -142,7 +142,7 @@ config.mailer = {
   fromName:                 'Pepyatka',
   fromEmail:                'mail@pepyatka.com',
   resetPasswordMailSubject: 'Pepyatka password reset',
-  host:                     defer((cfg) => cfg.origin),
+  host:                     defer((cfg) => cfg.host),
   options:                  {},
   adminRecipient:           { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' }
 };
