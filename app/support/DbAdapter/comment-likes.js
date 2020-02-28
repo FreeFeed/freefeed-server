@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import pgFormat from 'pg-format';
 
-import { unexistedUID } from './utils';
+import { sqlIn, sqlNotIn } from './utils';
 
 ///////////////////////////////////////////////////
 // Comment likes
@@ -88,25 +88,20 @@ const commentLikesTrait = (superClass) => class extends superClass {
     const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
     const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
 
-    if (bannedUsersIds.length === 0) {
-      bannedUsersIds.push(unexistedUID);
-    }
-
     const commentLikesSQL = pgFormat(
       `
         select uid,
             (select coalesce(count(*), '0') from comment_likes cl
               where cl.comment_id = comments.id
-                and cl.user_id not in (select id from users where uid in (%L))
+                and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
             ) as c_likes,
             (select count(*) = 1 from comment_likes cl
               where cl.comment_id = comments.id
                 and cl.user_id = %L
             ) as has_own_like
         from comments
-        where uid in (%L) and user_id not in (%L)`,
-      bannedUsersIds, viewerIntId, commentsUUIDs, bannedUsersIds
-    );
+        where ${sqlIn('uid', commentsUUIDs)} and ${sqlNotIn('user_id', bannedUsersIds)}`,
+      viewerIntId);
 
     const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
     return commentLikes;
@@ -120,10 +115,6 @@ const commentLikesTrait = (superClass) => class extends superClass {
     const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
     const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
 
-    if (bannedUsersIds.length === 0) {
-      bannedUsersIds.push(unexistedUID);
-    }
-
     const commentLikesSQL = pgFormat(
       `
         select  p.uid,
@@ -131,20 +122,20 @@ const commentLikesTrait = (superClass) => class extends superClass {
                 from comment_likes cl join comments c
                   on c.id = cl.comment_id
                 where c.post_id = p.uid and
-                      c.user_id not in (%L) and
-                      cl.user_id not in (select id from users where uid in (%L))
+                      ${sqlNotIn('c.user_id', bannedUsersIds)} and
+                      cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
               ) as post_c_likes_count,
               (select count(cl.*)
                 from comment_likes cl join comments c
                   on c.id = cl.comment_id
                 where c.post_id = p.uid and
-                      c.user_id not in (%L) and
+                      ${sqlNotIn('c.user_id', bannedUsersIds)} and
                       cl.user_id = %L
               ) as own_c_likes_count
         from
           posts p
-        where p.uid in (%L)`,
-      bannedUsersIds, bannedUsersIds, bannedUsersIds, viewerIntId, postsUUIDs);
+        where ${sqlIn('p.uid', postsUUIDs)}`,
+      viewerIntId);
 
     const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
     return postsCommentLikes;
