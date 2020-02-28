@@ -6,7 +6,7 @@ import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
-import { List, intersection as listIntersection } from '../support/open-lists';
+import { List } from '../support/open-lists';
 
 import {
   HOMEFEED_MODE_FRIENDS_ONLY,
@@ -886,7 +886,7 @@ export function addModel(dbAdapter) {
       }
 
       const allowedIds = await dbAdapter.getUsersWhoCanSeePrivateFeeds(this.destinationFeedIds);
-      return listIntersection(allowedIds, allExceptBanned);
+      return List.intersection(allowedIds, allExceptBanned);
     }
 
     async processHashtagsOnCreate() {
