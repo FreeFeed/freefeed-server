@@ -13,96 +13,41 @@ import { sqlIn, sqlIntarrayIn, sqlNotIn } from './utils';
 // Posts Select to fill timeline
 ///////////////////////////////////////////////////
 
+const maxOffsetWithLocalBumps = 1000;
+const smallFeedThreshold = 5;
+
 const timelinesPostsTrait = (superClass) => class extends superClass {
   /**
-   * Returns UIDs of timelines posts
-   *
-   * @param {number[]|null} timelineIntIds null means select everything
-   * @param {string|null} viewerId UID of the authenticated viewer
-   * @param {object} params
-   * @returns {string[]}
+   * A general posts-selection method that selects posts by selectSQL taking into account
+   * all bans and privates visibility of the viewerId.
    */
-  async getTimelinePostsIds(timelineIntIds = null, viewerId = null, params = {}) {
-    params = {
-      limit:           30,
-      offset:          0,
-      sort:            'bumped',
-      withLocalBumps:  false,
-      withoutDirects:  false,
-      createdBefore:   null,
-      createdAfter:    null,
-      activityFeedIds: [],
-      authorsIds:      List.everything(),
-      ...params,
-    };
+  async selectPosts({
+    viewerId = null,
+    limit = 30,
+    offset = 0,
+    sort = 'bumped',
+    withLocalBumps = false,
+    wideSelect = false,
+    selectSQL = 'true',
+  }) {
+    withLocalBumps = withLocalBumps && !!viewerId && sort === 'bumped';
 
-    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'bumped';
+    const [
+      // Private feeds viewer can read
+      visiblePrivateFeedIntIds,
+      // Users who banned viewer or banned by viewer (viewer should not see their posts)
+      bannedUsersIds,
+    ] = await Promise.all([
+      viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
+      viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
+    ]);
 
-    // Private feeds viewer can read
-    let visiblePrivateFeedIntIds = [];
-    // Users who banned viewer or banned by viewer (viewer should not see their posts)
-    let  bannedUsersIds = [];
-    // Additional condition for params.withoutDirects option
-    let noDirectsSQL = 'true';
-    let postsAuthorsSQL = null;
-
-    if (viewerId) {
-      [
-        visiblePrivateFeedIntIds,
-        bannedUsersIds,
-      ] = await Promise.all([
-        this.getVisiblePrivateFeedIntIds(viewerId),
-        this.getUsersBansOrWasBannedBy(viewerId),
-      ]);
-
-      if (params.withoutDirects) {
-        // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
-        const [directsIntId] = await this.database.pluck('id').from('feeds').where({ user_id: viewerId, name: 'Directs' });
-        noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
-      }
-
-      // Also show posts from these authors
-      postsAuthorsSQL = sqlIn('p.user_id', params.authorsIds);
-    }
-
-    let sourceConditionSQL = 'true'; // select everything
-
-    if (timelineIntIds) {
-      const sourceConditionParts = [];
-      sourceConditionParts.push(sqlIntarrayIn('p.feed_ids', timelineIntIds));
-
-      if (params.activityFeedIds.length > 0) {
-        sourceConditionParts.push(`${sqlIntarrayIn('p.feed_ids', params.activityFeedIds)} and p.is_propagable`);
-      }
-
-      if (postsAuthorsSQL) {
-        sourceConditionParts.push(postsAuthorsSQL);
-      }
-
-      sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
-    }
-
-    const createdAtParts = [];
-
-    if (params.createdBefore) {
-      createdAtParts.push(pgFormat('p.created_at < %L', params.createdBefore));
-    }
-
-    if (params.createdAfter) {
-      createdAtParts.push(pgFormat('p.created_at > %L', params.createdAfter));
-    }
-
-    const createdAtSQL = createdAtParts.length === 0 ? 'true' : createdAtParts.join(' and ');
     const privacyCondition = viewerId ?
-      `(not p.is_private or ${sqlIntarrayIn('p.destination_feed_ids', visiblePrivateFeedIntIds)})`
+      pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`)
       : 'not p.is_protected';
-
     const bansSQL = sqlNotIn('p.user_id', bannedUsersIds);
 
-    const restrictionsSQL = [bansSQL, privacyCondition, noDirectsSQL, createdAtSQL].join(' and ');
-
-    const maxOffsetWithLocalBumps = 1000;
-    const smallFeedThreshold = 5;
+    const restrictionsSQL = `${bansSQL} and ${privacyCondition}`;
 
     /**
      * PostgreSQL is not very good dealing with queries like
@@ -114,16 +59,16 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
      * few (<= 5) source timelines then CTE is used, otherwise
      * normal 'where' is used.
      *
-     * @param {number} limit
-     * @param {number} offset
-     * @param {string} sort
+     * @param {number} _limit
+     * @param {number} _offset
+     * @param {string} _sort
      */
-    const getPostsSQL = (limit, offset, sort) => {
-      if (timelineIntIds && timelineIntIds.length <= smallFeedThreshold) {
+    const getPostsSQL = (_limit, _offset, _sort) => {
+      if (!wideSelect) {
         // Request with CTE for the relatively small feed
         return pgFormat(`
           with posts as (
-            select * from posts p where ${sourceConditionSQL}
+            select * from posts p where ${selectSQL}
           )
           select p.uid, p.bumped_at as date
           from 
@@ -133,7 +78,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
           order by
             p.%I desc
           limit %L offset %L
-        `, `${sort}_at`, limit, offset);
+        `, `${_sort}_at`, _limit, _offset);
       }
 
       // Request without CTE for the large (tipically RiverOfNews) feed
@@ -142,21 +87,21 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         from 
           posts p
         where
-          ${sourceConditionSQL} and ${restrictionsSQL}
+          (${selectSQL}) and (${restrictionsSQL})
         order by
           p.%I desc
         limit %L offset %L
-      `, `${sort}_at`, limit, offset);
+      `, `${_sort}_at`, _limit, _offset);
     };
 
-    if (!params.withLocalBumps || params.offset > maxOffsetWithLocalBumps) {
+    if (!withLocalBumps || offset > maxOffsetWithLocalBumps) {
       // without local bumps
-      const sql = getPostsSQL(params.limit, params.offset, params.sort);
+      const sql = getPostsSQL(limit, offset, sort);
       return (await this.database.raw(sql)).rows.map((r) => r.uid);
     }
 
     // with local bumps
-    const fullCount = params.limit + params.offset;
+    const fullCount = limit + offset;
     const postsSQL = getPostsSQL(fullCount, 0, 'bumped');
     const localBumpsSQL = pgFormat(`
         with local_bumps as (
@@ -167,7 +112,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
           local_bumps b
           join posts p on p.uid = b.post_id
         where
-          ${sourceConditionSQL} and ${restrictionsSQL}
+          (${selectSQL}) and (${restrictionsSQL})
         order by b.created_at desc
         limit %L
     `, viewerId, fullCount);
@@ -232,7 +177,79 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
       }
     }
 
-    return result.slice(params.offset, fullCount);
+    return result.slice(offset, fullCount);
+  }
+
+  /**
+   * Returns UIDs of timelines posts
+   *
+   * @param {number[]|null} timelineIntIds null means select everything
+   * @param {string|null} viewerId UID of the authenticated viewer
+   * @param {object} params
+   * @returns {string[]}
+   */
+  async getTimelinePostsIds(timelineIntIds = null, viewerId = null, params = {}) {
+    params = {
+      limit:           30,
+      offset:          0,
+      sort:            'bumped',
+      withLocalBumps:  false,
+      withoutDirects:  false,
+      createdBefore:   null,
+      createdAfter:    null,
+      activityFeedIds: [],
+      authorsIds:      List.everything(),
+      ...params,
+    };
+
+    params.withLocalBumps = params.withLocalBumps && !!viewerId && params.sort === 'bumped';
+
+    // Additional condition for params.withoutDirects option
+    let noDirectsSQL = 'true';
+    let postsAuthorsSQL = null;
+
+    if (viewerId && params.withoutDirects) {
+      // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
+      const [directsIntId] = await this.database.pluck('id').from('feeds').where({ user_id: viewerId, name: 'Directs' });
+      noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
+    }
+
+    // Also show posts from these authors
+    postsAuthorsSQL = sqlIn('p.user_id', params.authorsIds);
+
+    let sourceConditionSQL = 'true'; // select everything
+
+    if (timelineIntIds) {
+      const sourceConditionParts = [];
+      sourceConditionParts.push(sqlIntarrayIn('p.feed_ids', timelineIntIds));
+
+      if (params.activityFeedIds.length > 0) {
+        sourceConditionParts.push(`${sqlIntarrayIn('p.feed_ids', params.activityFeedIds)} and p.is_propagable`);
+      }
+
+      if (postsAuthorsSQL) {
+        sourceConditionParts.push(postsAuthorsSQL);
+      }
+
+      sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
+    }
+
+    const createdAtSQL = [
+      params.createdBefore && pgFormat('p.created_at < %L', params.createdBefore),
+      params.createdAfter && pgFormat('p.created_at > %L', params.createdAfter)
+    ].filter(Boolean).join(' and ') || 'true';
+
+    const selectSQL = [`(${sourceConditionSQL})`, noDirectsSQL, createdAtSQL].join(' and ');
+
+    return this.selectPosts({
+      viewerId,
+      limit:          params.limit,
+      offset:         params.offset,
+      sort:           params.sort,
+      withLocalBumps: params.withLocalBumps,
+      wideSelect:     timelineIntIds ? timelineIntIds.length > smallFeedThreshold : true,
+      selectSQL,
+    });
   }
 
   /**
