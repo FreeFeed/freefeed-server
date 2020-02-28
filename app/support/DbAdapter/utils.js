@@ -1,4 +1,7 @@
 import _ from 'lodash';
+import pgFormat from 'pg-format';
+
+import { List } from '../open-lists';
 
 
 export const unexistedUID = '00000000-0000-0000-C000-000000000046';
@@ -18,4 +21,40 @@ export function prepareModelPayload(payload, namesMapping, valuesMapping) {
   }
 
   return result;
+}
+
+// These helpers allow to use the IN operator with the empty list of values.
+// 'IN <empty list>' always returns 'false' and 'NOT IN <empty list>' always returns 'true'.
+// We don't escape 'field' here because pgFormat escaping doesn't work properly with dot-joined
+// identifiers (as in 'table.field').
+
+// export const sqlIn = (field, list) => list.length === 0 ? 'false' : pgFormat(`${field} in (%L)`, list);
+// export const sqlNotIn = (field, list) => list.length === 0 ? 'true' : pgFormat(`${field} not in (%L)`, list);
+
+export function sqlIn(field, list) {
+  list = List.from(list);
+
+  if (list.isEmpty()) {
+    return 'false';
+  } else if (list.isEverything()) {
+    return 'true';
+  }
+
+  return pgFormat(`${field} ${list.inclusive ? 'in' : 'not in'} (%L)`, list.items);
+}
+
+export function sqlNotIn(field, list) {
+  return sqlIn(field, List.difference(List.everything(), list));
+}
+
+export function sqlIntarrayIn(field, list) {
+  list = new List(list);
+
+  if (list.isEmpty()) {
+    return 'false';
+  } else if (list.isEverything()) {
+    return 'true';
+  }
+
+  return pgFormat(`(${list.inclusive ? '' : 'not '}${field} && %L)`, `{${list.items.join(',')}}`);
 }
