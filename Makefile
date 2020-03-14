@@ -1,20 +1,23 @@
 VERSION = $(shell git describe --tags)
-IMAGE = docker.pkg.github.com/freefeed/freefeed-server/app:$(VERSION)
+IMAGE = freefeed/freefeed-server
 
 all: init
 
 image:
-	@docker build -t $(IMAGE) .
+	@docker build -t $(IMAGE):$(VERSION) .
 
-docker-run:
-	@docker run --name frf-server -t --rm -p 3000:3000 --net freefeed-server_default \
-		-e "REDIS_HOST=redis" -v ${CURDIR}/knexfile.js.docker:/server/knexfile.js $(IMAGE) npm start
+latest: image
+	@docker tag $(IMAGE):$(VERSION) $(IMAGE):latest
 
-push: image
-	@docker push $(IMAGE)
+push:
+	@docker push $(IMAGE):$(VERSION)
+
+push-latest: latest
+	@docker push $(IMAGE):latest
 
 clean:
-	docker rmi $(IMAGE)
+	docker rmi $(IMAGE):$(VERSION)
+	docker rmi $(IMAGE):latest
 	rm -rf node_modules
 
-.PHONY: all image docker-run push clean
+.PHONY: all image latest push push-latest clean

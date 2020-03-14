@@ -1,0 +1,31 @@
+on:
+  push:
+    branches:
+      - stable
+      - unstable
+      - release
+
+name: Build and push docker image
+
+env:
+  NODE_CONFIG_ENV: ${{ github.base_ref }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Build docker image
+      run: make latest
+
+    - name: Login to Docker hub
+      run: echo '${{ secrets.DOCKER_HUB_TOKEN }}' | docker login --username ivan.dyachkov --password-stdin
+
+    - name: Push the image
+      run: |
+        make push
+        make push-latest
