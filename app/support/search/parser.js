@@ -156,3 +156,7 @@ export function parseQuery(query) {
 
   return result;
 }
+
+export function queryComplexity(tokens) {
+  return tokens.reduce((acc, token) => acc + token.getComplexity(), 0);
+}

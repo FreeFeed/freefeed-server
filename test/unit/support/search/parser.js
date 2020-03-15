@@ -10,11 +10,18 @@ import {
   IN_COMMENTS,
   IN_POSTS
 } from '../../../../app/support/search/parser-tools';
-import { parseQuery } from '../../../../app/support/search/parser';
+import {
+  parseQuery,
+  queryComplexity
+} from '../../../../app/support/search/parser';
 
 
 describe('search:parseQuery', () => {
   const testData = [
+    {
+      query:  '',
+      result: []
+    },
     {
       query:  'a b c',
       result: [
@@ -113,6 +120,23 @@ describe('search:parseQuery', () => {
   for (const { query, comment, result } of testData) {
     it(`should parse '${query}'${comment ? ` (${comment})` : ''}`, () => {
       expect(parseQuery(query), 'to satisfy', result);
+    });
+  }
+});
+
+describe('search:queryComplexity', () => {
+  const testData = [
+    { query: '', result: 0 },
+    { query: 'foo', result: 1 },
+    { query: 'foo bar from:me', result: 2.5 },
+    { query: '"foo bar baz" from:me', result: 3.5 },
+    { query: 'foo bar from:me,too', result: 3 },
+    { query: 'the really | long and complex in-comment:query', result: 6 }
+  ];
+
+  for (const { query, result } of testData) {
+    it(`should calculate the '${query}' compexity`, () => {
+      expect(queryComplexity(parseQuery(query)), 'to be', result);
     });
   }
 });

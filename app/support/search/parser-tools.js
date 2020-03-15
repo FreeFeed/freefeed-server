@@ -13,6 +13,10 @@ export class ScopeStart {
   constructor(scope) {
     this.scope = scope;
   }
+
+  getComplexity() {
+    return 0;
+  }
 }
 
 export class Condition {
@@ -24,6 +28,10 @@ export class Condition {
     this.exclude = exclude;
     this.condition = condition;
     this.args = args;
+  }
+
+  getComplexity() {
+    return 0.5 * this.args.length;
   }
 }
 
@@ -37,6 +45,10 @@ export class Text {
     this.phrase = phrase;
     this.text = text;
   }
+
+  getComplexity() {
+    return this.phrase ? this.text.split(/\s+/).length : 1;
+  }
 }
 
 export class AnyText {
@@ -44,6 +56,10 @@ export class AnyText {
 
   constructor(texts) {
     this.texts = texts;
+  }
+
+  getComplexity() {
+    return this.texts.reduce((acc, t) => acc + t.getComplexity(), 0);
   }
 }
 
@@ -54,6 +70,10 @@ export class InScope {
   constructor(scope, anyTexts) {
     this.scope = scope;
     this.anyTexts = anyTexts;
+  }
+
+  getComplexity() {
+    return this.anyTexts.reduce((acc, t) => acc + t.getComplexity(), 0);
   }
 }
 
