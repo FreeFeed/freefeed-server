@@ -3,6 +3,7 @@ import validator from 'validator'
 import pgFormat from 'pg-format';
 
 import { Post } from '../../models';
+import { toTSVector } from '../search/to-tsvector';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -15,13 +16,27 @@ const postsTrait = (superClass) => class extends superClass {
     const preparedPayload = prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
     preparedPayload.destination_feed_ids = destinationsIntIds
     preparedPayload.feed_ids = destinationsIntIds
+    preparedPayload.body_tsvector = this.database.raw(
+      // raw() interprets '?' chars as positional placeholders so we must escape them
+      // https://github.com/knex/knex/issues/2622
+      toTSVector(preparedPayload.body).replace('?', '\\?')
+    );
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
   }
 
-  updatePost(postId, payload) {
+  async updatePost(postId, payload) {
     const preparedPayload = prepareModelPayload(payload, POST_COLUMNS, POST_COLUMNS_MAPPING)
-    return this.database('posts').where('uid', postId).update(preparedPayload)
+
+    if ('body' in preparedPayload) {
+      preparedPayload.body_tsvector = this.database.raw(
+        // raw() interprets '?' chars as positional placeholders so we must escape them
+        // https://github.com/knex/knex/issues/2622
+        toTSVector(preparedPayload.body).replace('?', '\\?')
+      );
+    }
+
+    return await this.database('posts').where('uid', postId).update(preparedPayload)
   }
 
   async getPostById(id, params) {
