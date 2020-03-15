@@ -113,7 +113,11 @@ const postsTrait = (superClass) => class extends superClass {
       );
 
       if (rows.length === 0) {
-        const { intId } = await this.getUserNamedFeed(commentatorId, 'Comments');
+        const feedRes = await trx.raw(
+          `select id from feeds where name = :name and user_id = :commentatorId`,
+          { name: 'Comments', commentatorId },
+        );
+        const intId = feedRes.rows[0].id;
         await trx.raw(
           `update posts set feed_ids = feed_ids - :intId::int where uid = :postId`,
           { intId, postId }
