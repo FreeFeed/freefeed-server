@@ -23,7 +23,7 @@ jobs:
       run: make latest
 
     - name: Login to Docker hub
-      run: echo '${{ secrets.DOCKER_HUB_TOKEN }}' | docker login --username ivan.dyachkov --password-stdin
+      run: echo '${{ secrets.DOCKER_HUB_TOKEN }}' | docker login --username dyachkov --password-stdin
 
     - name: Push the image
       run: |
