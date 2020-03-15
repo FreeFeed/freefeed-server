@@ -1,4 +1,10 @@
 import XRegExp from 'xregexp';
+import pgFormat from 'pg-format';
+import { Link, HashTag, Mention } from 'social-text-tokenizer';
+
+import { tokenize } from '../tokenize-text';
+
+import { linkToText } from './norm';
 
 
 export const IN_POSTS = 1,
@@ -49,6 +55,33 @@ export class Text {
   getComplexity() {
     return this.phrase ? this.text.split(/\s+/).length : 1;
   }
+
+  toTSQuery() {
+    const prefix = this.exclude ? '!!' : '';
+
+    if (this.phrase) {
+      const queries = tokenize(this.text).map((token) => {
+        if (token instanceof HashTag || token instanceof Mention) {
+          return pgFormat(`%L::tsquery`, token.text);
+        } else if (token instanceof Link) {
+          return pgFormat('phraseto_tsquery(%L)', linkToText(token));
+        }
+
+        return pgFormat('phraseto_tsquery(%L)', token.text);
+      });
+      return `${prefix}(${queries.join('<->')})`;
+    } else if (/^[#@]/.test(this.text)) {
+      return prefix + pgFormat(`%L::tsquery`, this.text);
+    }
+
+    const [firstToken] = tokenize(this.text);
+
+    if (firstToken instanceof Link) {
+      return prefix + pgFormat('phraseto_tsquery(%L)', linkToText(firstToken));
+    }
+
+    return prefix + pgFormat(`plainto_tsquery(%L)`, this.text);
+  }
 }
 
 export class AnyText {
@@ -60,6 +93,10 @@ export class AnyText {
 
   getComplexity() {
     return this.texts.reduce((acc, t) => acc + t.getComplexity(), 0);
+  }
+
+  toTSQuery() {
+    return `(${this.texts.map((t) => t.toTSQuery()).join(' || ')})`;
   }
 }
 

@@ -11,7 +11,7 @@ import {
   AnyText,
   InScope,
   trimText
-} from './parser-tools';
+} from './query-tokens';
 
 // -?(scope:)?(double-quoted-string|string)
 const tokenRe = new XRegExp(

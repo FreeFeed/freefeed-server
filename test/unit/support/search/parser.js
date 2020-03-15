@@ -9,7 +9,7 @@ import {
   InScope,
   IN_COMMENTS,
   IN_POSTS
-} from '../../../../app/support/search/parser-tools';
+} from '../../../../app/support/search/query-tokens';
 import {
   parseQuery,
   queryComplexity
