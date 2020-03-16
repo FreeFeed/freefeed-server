@@ -212,6 +212,8 @@ config.registrationsLimit = {
   maxCount: 100
 };
 
+config.search = { maxQueryComplexity: 30 };
+
 config.eslint = { linebreakStyle: null };
 
 module.exports = config;

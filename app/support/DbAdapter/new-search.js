@@ -1,4 +1,6 @@
-import { parseQuery } from '../search/parser';
+import config from 'config';
+
+import { parseQuery, queryComplexity } from '../search/parser';
 import { toTSQuery } from '../search/to-tsquery';
 import { IN_POSTS, IN_COMMENTS } from '../search/query-tokens';
 
@@ -10,10 +12,20 @@ const searchTrait = (superClass) =>
   class extends superClass {
     async search(
       query,
-      { viewerId = null, limit = 30, offset = 0, sort = 'bumped' } = {}
+      {
+        viewerId = null,
+        limit = 30,
+        offset = 0,
+        sort = 'bumped',
+        maxQueryComplexity = config.search.maxQueryComplexity
+      } = {}
     ) {
       const parsedQuery = parseQuery(query);
-      // TODO: check complexity
+
+      if (queryComplexity(parsedQuery) > maxQueryComplexity) {
+        throw new Error(`The search query is too complex, try to simplify it`);
+      }
+
       // TODO: support conditions
       const postsTSVQuery = toTSQuery(parsedQuery, IN_POSTS);
       const commentsTSVQuery = toTSQuery(parsedQuery, IN_COMMENTS);

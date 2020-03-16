@@ -351,4 +351,11 @@ describe('Search', () => {
       }
     ]);
   });
+
+  describe('Search query complexity', () => {
+    it('should throw error if query is too complex', async () => {
+      const test = dbAdapter.search('The quick brown fox jumps over the lazy dog', { maxQueryComplexity: 5 });
+      await expect(test, 'to be rejected with', /too complex/);
+    });
+  });
 });
