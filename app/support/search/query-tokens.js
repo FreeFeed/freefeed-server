@@ -96,7 +96,8 @@ export class AnyText {
   }
 
   toTSQuery() {
-    return `(${this.texts.map((t) => t.toTSQuery()).join(' || ')})`;
+    const parts = this.texts.map((t) => t.toTSQuery());
+    return parts.length > 1 ? `(${parts.join(' || ')})` : parts.join(' || ');
   }
 }
 

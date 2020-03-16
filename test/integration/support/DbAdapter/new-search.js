@@ -134,12 +134,16 @@ describe('Search', () => {
         testSearch([
           {
             query:   'venus',
-            comment: 'all posts have this comment'
+            comment: 'all posts have "venus" in comments'
           },
           {
             query:   'mars venus',
             filter:  () => false,
             comment: 'none of posts have both this words in body or comment'
+          },
+          {
+            query:   'mars | venus',
+            comment: 'all posts have "venus" in comments'
           },
           {
             query:  'in-body:venus',
@@ -152,6 +156,11 @@ describe('Search', () => {
           {
             query:  'in-comment: venus -luna',
             filter: (p) => p.userId !== luna.id
+          },
+          {
+            query:   'in-comment:venus -in-body:luna',
+            filter:  (p) => p.userId !== luna.id,
+            comment: `all posts (by "venus") expect the Luna's (by "luna")`
           }
         ]);
       });

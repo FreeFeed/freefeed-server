@@ -29,7 +29,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
     withLocalBumps = false,
     wideSelect = false,
     selectSQL = 'true',
-    commentsSelectSQL = '',
+    useCommentsTable = false,
   }) {
     withLocalBumps = withLocalBumps && !!viewerId && sort === 'bumped';
 
@@ -38,12 +38,9 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
       visiblePrivateFeedIntIds,
       // Users who banned viewer or banned by viewer (viewer should not see their posts)
       bannedUsersIds,
-      // Users banned by viewer (viewer should not see their comments)
-      bannedUsersIdsForComments,
     ] = await Promise.all([
       viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
       viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
-      viewerId && commentsSelectSQL ? this.getUserBansIds(viewerId) : []
     ]);
 
     const privacyCondition = viewerId ?
@@ -52,11 +49,6 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
     const bansSQL = sqlNotIn('p.user_id', bannedUsersIds);
 
     const restrictionsSQL = `${bansSQL} and ${privacyCondition}`;
-
-    if (commentsSelectSQL) {
-      const commentsRestrictionSQL = `${pgFormat('c.hide_type=%L', Comment.VISIBLE)} and ${sqlNotIn('c.user_id', bannedUsersIdsForComments)}`;
-      selectSQL = `(${selectSQL}) or (${commentsSelectSQL}) and (${commentsRestrictionSQL})`;
-    }
 
     /**
      * PostgreSQL is not very good dealing with queries like
@@ -77,9 +69,9 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         // Request with CTE for the relatively small feed
         return pgFormat(`
           with posts as (
-            select ${commentsSelectSQL ? 'distinct' : ''} p.* from 
+            select ${useCommentsTable ? 'distinct' : ''} p.* from 
               posts p
-              ${commentsSelectSQL ? 'left join comments c on c.post_id = p.uid' : ''}
+              ${useCommentsTable ? 'left join comments c on c.post_id = p.uid' : ''}
             where ${selectSQL}
           )
           select p.uid, p.bumped_at as date
@@ -95,10 +87,10 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
       // Request without CTE for the large (tipically RiverOfNews) feed
       return pgFormat(`
-        select ${commentsSelectSQL ? 'distinct' : ''} p.uid, p.bumped_at as date
+        select ${useCommentsTable ? 'distinct' : ''} p.uid, p.bumped_at as date
         from 
           posts p
-          ${commentsSelectSQL ? 'left join comments c on c.post_id = p.uid' : ''}
+          ${useCommentsTable ? 'left join comments c on c.post_id = p.uid' : ''}
         where
           (${selectSQL}) and (${restrictionsSQL})
         order by
