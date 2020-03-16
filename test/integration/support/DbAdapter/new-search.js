@@ -7,10 +7,37 @@ import { Post, User, dbAdapter, Comment } from '../../../../app/models';
 
 
 describe('Search', () => {
+  const posts = [];
+  function testSearch(testData) {
+    for (const {
+      query = '',
+      viewerName = null,
+      filter = () => true,
+      comment = ''
+    } of testData) {
+      const description = [
+        `should search by`,
+        query ? `'${query}'` : 'empty',
+        `query`,
+        viewerName && `as ${viewerName}`,
+        comment && `(${comment})`
+      ]
+        .filter(Boolean)
+        .join(' ');
+      it(description, async () => {
+        const viewer = viewerName
+          ? await dbAdapter.getUserByUsername(viewerName)
+          : null;
+        const postIds = await dbAdapter.search(query, { viewerId: viewer ? viewer.id : undefined });
+        const expected = posts.filter(filter).map((p) => p.id);
+        expect(postIds, 'to equal', expected);
+      });
+    }
+  }
+
   describe('Luna, Mars and Venus wrote two post each in their feeds', () => {
     let luna, mars, venus;
     let lunaFeed, marsFeed, venusFeed;
-    const posts = [];
 
     before(async () => {
       await cleanDB($pg_database);
@@ -76,33 +103,6 @@ describe('Search', () => {
       posts.reverse();
     });
     after(() => Promise.all(posts.map((post) => post.destroy())));
-
-    function testSearch(testData) {
-      for (const {
-        query = '',
-        viewerName = null,
-        filter = () => true,
-        comment = ''
-      } of testData) {
-        const description = [
-          `should search by`,
-          query ? `'${query}'` : 'empty',
-          `query`,
-          viewerName && `as ${viewerName}`,
-          comment && `(${comment})`
-        ]
-          .filter(Boolean)
-          .join(' ');
-        it(description, async () => {
-          const viewer = viewerName
-            ? await dbAdapter.getUserByUsername(viewerName)
-            : null;
-          const postIds = await dbAdapter.search(query, { viewerId: viewer ? viewer.id : undefined });
-          const expected = posts.filter(filter).map((p) => p.id);
-          expect(postIds, 'to equal', expected);
-        });
-      }
-    }
 
     describe('General text search', () => {
       testSearch([
@@ -222,5 +222,133 @@ describe('Search', () => {
         });
       });
     });
+  });
+
+  describe('Mentions, hashtags and links', () => {
+    before(async () => {
+      await cleanDB($pg_database);
+      posts.length = 0;
+
+      const luna = new User({ username: 'luna', password: 'pw' });
+      await luna.create();
+      const lunaFeed = await luna.getPostsTimeline();
+
+      const newLunaPost = (body) =>
+        new Post({ body, userId: luna.id, timelineIds: [lunaFeed.id] });
+
+      posts.push(newLunaPost(`#first post mentions @luna`));
+      posts.push(newLunaPost(`#second post mentions @mars`));
+      posts.push(newLunaPost(`third post #mentions @mars and @luna`));
+      posts.push(newLunaPost(`fourth post mentions @celestials`));
+      posts.push(newLunaPost(`post about $3 fruits: apple.com`));
+      posts.push(
+        newLunaPost(
+          `post that mentions https://get.adobe.com/ru/reader/ software`
+        )
+      );
+      posts.push(
+        newLunaPost(
+          `complex stuff post https4_(%D0%BC%D0%B0%D1%82%D0%B5%D0%BC%D0%B0%D1%82%D0%B8%D0%BA%D0%B0) /cc @luna`
+        )
+      );
+      posts.push(newLunaPost(`let me https://lmgtfy.com/?q=freefeed`));
+
+      for (const post of posts) {
+        await post.create(); // eslint-disable-line no-await-in-loop
+      }
+
+      // We will receive posts in reverse order
+      posts.reverse();
+    });
+
+    testSearch([
+      {
+        query:  '@luna',
+        filter: (p) => /@luna/.test(p.body)
+      },
+      {
+        query:  'luna',
+        filter: (p) => /@luna/.test(p.body)
+      },
+      {
+        query:  '@luna @mars',
+        filter: (p) => /@luna/.test(p.body) && /@mars/.test(p.body)
+      },
+      {
+        query:  'mention @celestials',
+        filter: (p) => /@celestials/.test(p.body)
+      },
+      {
+        query:  'meNtIOn @CeleStials',
+        filter: (p) => /@celestials/.test(p.body)
+      },
+      {
+        query:  '"mention @celestials"',
+        filter: (p) => /@celestials/.test(p.body)
+      },
+      {
+        query:   '"@celestials mention"',
+        filter:  () => false,
+        comment: 'no post with such word order'
+      },
+      {
+        query:   'mention @celestial',
+        filter:  () => false,
+        comment: 'mentions should be exact matched'
+      },
+      {
+        query:  '#first',
+        filter: (p) => /#first/.test(p.body)
+      },
+      {
+        query:  '#mentions',
+        filter: (p) => /#mentions/.test(p.body)
+      },
+      {
+        query:   '#mention',
+        filter:  () => false,
+        comment: 'hashtag should be exact matched'
+      },
+      {
+        query:  'apple.com',
+        filter: (p) => /apple.com/.test(p.body),
+      },
+      {
+        query:  'apple',
+        filter: (p) => /apple.com/.test(p.body),
+      },
+      {
+        query:  'com.apple',
+        filter: () => false,
+      },
+      {
+        query:  'fruit apples',
+        filter: (p) => /apple.com/.test(p.body),
+      },
+      {
+        query:  'adobe.com',
+        filter: (p) => /adobe.com/.test(p.body),
+      },
+      {
+        query:  'adobe reader',
+        filter: (p) => /adobe.com/.test(p.body),
+      },
+      {
+        query:  'wikipedia',
+        filter: (p) => /wikipedia/.test(p.body),
+      },
+      {
+        query:  'wikipedia про математику',
+        filter: (p) => /wikipedia/.test(p.body),
+      },
+      {
+        query:  'freefeed',
+        filter: (p) => /freefeed/.test(p.body),
+      },
+      {
+        query:  'https://lmgtfy.com/?q=freefeed',
+        filter: (p) => /freefeed/.test(p.body),
+      }
+    ]);
   });
 });
