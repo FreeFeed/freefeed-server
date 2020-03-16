@@ -311,51 +311,84 @@ describe('Search', () => {
       },
       {
         query:  'apple.com',
-        filter: (p) => /apple.com/.test(p.body),
+        filter: (p) => /apple.com/.test(p.body)
       },
       {
         query:  'apple',
-        filter: (p) => /apple.com/.test(p.body),
+        filter: (p) => /apple.com/.test(p.body)
       },
       {
         query:  'com.apple',
-        filter: () => false,
+        filter: () => false
       },
       {
         query:  'fruit apples',
-        filter: (p) => /apple.com/.test(p.body),
+        filter: (p) => /apple.com/.test(p.body)
       },
       {
         query:  'adobe.com',
-        filter: (p) => /adobe.com/.test(p.body),
+        filter: (p) => /adobe.com/.test(p.body)
       },
       {
         query:  'adobe reader',
-        filter: (p) => /adobe.com/.test(p.body),
+        filter: (p) => /adobe.com/.test(p.body)
       },
       {
         query:  'wikipedia',
-        filter: (p) => /wikipedia/.test(p.body),
+        filter: (p) => /wikipedia/.test(p.body)
       },
       {
         query:  'wikipedia про математику',
-        filter: (p) => /wikipedia/.test(p.body),
+        filter: (p) => /wikipedia/.test(p.body)
       },
       {
         query:  'freefeed',
-        filter: (p) => /freefeed/.test(p.body),
+        filter: (p) => /freefeed/.test(p.body)
       },
       {
         query:  'https://lmgtfy.com/?q=freefeed',
-        filter: (p) => /freefeed/.test(p.body),
+        filter: (p) => /freefeed/.test(p.body)
       }
     ]);
   });
 
   describe('Search query complexity', () => {
     it('should throw error if query is too complex', async () => {
-      const test = dbAdapter.search('The quick brown fox jumps over the lazy dog', { maxQueryComplexity: 5 });
+      const test = dbAdapter.search(
+        'The quick brown fox jumps over the lazy dog',
+        { maxQueryComplexity: 5 }
+      );
       await expect(test, 'to be rejected with', /too complex/);
+    });
+  });
+
+  describe('Search condition operators', () => {
+    let luna;
+    before(async () => {
+      await cleanDB($pg_database);
+
+      luna = new User({ username: 'luna', password: 'pw' });
+      await luna.create();
+    });
+
+    it("should throw error if anonymous uses the 'me' username", async () => {
+      const test = dbAdapter.search('from:me');
+      await expect(test, 'to be rejected with', /sign in/);
+    });
+
+    it('should not throw error if anonymous uses someone username', async () => {
+      const test = dbAdapter.search('from:luna');
+      await expect(test, 'to be fulfilled');
+    });
+
+    it("should not throw error if logged in user uses the 'me' username", async () => {
+      const test = dbAdapter.search('from:me', { viewerId: luna.id });
+      await expect(test, 'to be fulfilled');
+    });
+
+    it('should not throw error if logged in user uses someone username', async () => {
+      const test = dbAdapter.search('from:luna', { viewerId: luna.id });
+      await expect(test, 'to be fulfilled');
     });
   });
 });
