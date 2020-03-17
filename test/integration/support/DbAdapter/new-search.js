@@ -323,6 +323,53 @@ describe('Search', () => {
           }
         ]);
       });
+      describe('in:', () => {
+        testSearch([
+          {
+            query:  'in:luna',
+            filter: (p) => p.userId === luna.id
+          },
+          {
+            query:  'commented-by:mars -in:luna',
+            filter: (p) => p.userId !== luna.id
+          },
+          {
+            query:  'commented-by:mars,unknown',
+            filter: () => true
+          },
+          {
+            query:  'posts-from:venus commented-by:mars',
+            filter: (p) => p.userId === venus.id
+          },
+          {
+            query:  'posts-from:venus -commented-by:mars',
+            filter: () => false
+          },
+        ]);
+        describe('Luna likes some post', () => {
+          let likedPost;
+          before(async () => {
+            likedPost = posts[3]; // eslint-disable-line prefer-destructuring
+            await likedPost.addLike(luna);
+          });
+          after(() => likedPost.removeLike(luna));
+
+          testSearch([
+            {
+              query:  'commented-by:mars -liked-by:luna',
+              filter: (p) => p.id !== likedPost.id
+            },
+            {
+              query:  'liked-by:luna',
+              filter: (p) => p.id === likedPost.id
+            },
+            {
+              query:  'liked-by:luna,mars',
+              filter: (p) => p.id === likedPost.id
+            },
+          ]);
+        });
+      });
     });
   });
 

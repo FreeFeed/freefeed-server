@@ -16,7 +16,7 @@ import {
 import { List } from '../open-lists';
 import { Comment } from '../../models';
 
-import { sqlIn, sqlNotIn } from './utils';
+import { sqlIn, sqlNotIn, sqlIntarrayIn } from './utils';
 
 ///////////////////////////////////////////////////
 // Search
@@ -71,6 +71,12 @@ const searchTrait = (superClass) =>
           .filter(Boolean);
       }
 
+      // Posts feeds
+      const postsFeedIdsLists = await this._getFeedIdsLists(
+        parsedQuery,
+        accounts
+      );
+
       // Text search
       const inAllTSQuery = getTSQuery(parsedQuery, IN_ALL);
       const inPostsTSQuery = getTSQuery(parsedQuery, IN_POSTS);
@@ -89,7 +95,8 @@ const searchTrait = (superClass) =>
 
       const inPostsSQL = andJoin([
         inPostsTSQuery && `p.body_tsvector @@ ${inPostsTSQuery}`,
-        sqlIn('p.user_id', postAuthors)
+        sqlIn('p.user_id', postAuthors),
+        ...postsFeedIdsLists.map((list) => sqlIntarrayIn('p.feed_ids', list))
       ]);
 
       let inCommentsSQL = andJoin([
@@ -195,6 +202,36 @@ const searchTrait = (superClass) =>
 
       return accounts;
     }
+
+    /**
+     * Post can belongs to many feeds, so this function returns an array of Lists of feed intId's.
+     *
+     * @param {Array} tokens
+     * @param {Object} accountsMap
+     * @returns {Promise<Array>}
+     */
+    async _getFeedIdsLists(tokens, accountsMap) {
+      const condToFeedNames = {
+        in:             'Posts',
+        'commented-by': 'Comments',
+        'liked-by':     'Likes'
+      };
+
+      return await Promise.all(
+        tokens
+          .filter((t) => t instanceof Condition && !!condToFeedNames[t.condition])
+          .map(async (t) => {
+            const userIds = uniq(t.args)
+              .map((n) => accountsMap[n] && accountsMap[n].id)
+              .filter(Boolean);
+
+            const feedIntIds = await this.getUsersNamedFeedsIntIds(userIds, [
+              condToFeedNames[t.condition]
+            ]);
+            return new List(feedIntIds, !t.exclude);
+          })
+      );
+    }
   };
 
 export default searchTrait;
@@ -244,14 +281,15 @@ function getTSQuery(tokens, targetScope) {
   return result.length > 1 ? `(${result.join(' && ')})` : result.join(' && ');
 }
 
-export function getAuthorNames(tokens, targetScope) {
+function getAuthorNames(tokens, targetScope) {
   let result = List.everything();
 
   walkWithScope(tokens, (token, currentScope) => {
     if (
-      (token.condition === 'comments-from' && targetScope === IN_COMMENTS) ||
-      (token.condition === 'posts-from' && targetScope === IN_POSTS) ||
-      (token.condition === 'from' && targetScope === currentScope)
+      token instanceof Condition &&
+      ((token.condition === 'comments-from' && targetScope === IN_COMMENTS) ||
+        (token.condition === 'posts-from' && targetScope === IN_POSTS) ||
+        (token.condition === 'from' && targetScope === currentScope))
     ) {
       result = List.intersection(
         result,
