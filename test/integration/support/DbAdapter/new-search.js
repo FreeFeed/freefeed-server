@@ -163,6 +163,31 @@ describe('Search', () => {
             comment: `all posts (by "venus") expect the Luna's (by "luna")`
           }
         ]);
+
+        describe('Luna bans Mars', () => {
+          before(() => luna.ban(mars.username));
+          after(() => luna.unban(mars.username));
+
+          testSearch([
+            {
+              query:      'mars',
+              viewerName: 'luna',
+              filter:     () => false,
+              comment:    'nothing from Mars'
+            },
+            {
+              query:      'in-comments: luna',
+              viewerName: 'mars',
+              filter:     () => false,
+              comment:    'Mars doesnt see Luna posts'
+            },
+            {
+              query:      'in-comments: venus',
+              viewerName: 'mars',
+              filter:     (p) => p.userId !== luna.id,
+            },
+          ]);
+        });
       });
     });
 
@@ -229,6 +254,74 @@ describe('Search', () => {
             }
           ]);
         });
+      });
+    });
+
+    describe('Search condition operators', () => {
+      describe('"me" username checking', () => {
+        it("should throw error if anonymous uses the 'me' username", async () => {
+          const test = dbAdapter.search('from:me');
+          await expect(test, 'to be rejected with', /sign in/);
+        });
+
+        it('should not throw error if anonymous uses someone username', async () => {
+          const test = dbAdapter.search('from:luna');
+          await expect(test, 'to be fulfilled');
+        });
+
+        it("should not throw error if logged in user uses the 'me' username", async () => {
+          const test = dbAdapter.search('from:me', { viewerId: luna.id });
+          await expect(test, 'to be fulfilled');
+        });
+
+        it('should not throw error if logged in user uses someone username', async () => {
+          const test = dbAdapter.search('from:luna', { viewerId: luna.id });
+          await expect(test, 'to be fulfilled');
+        });
+      });
+
+      describe('from:', () => {
+        testSearch([
+          {
+            query:  'from:luna',
+            filter: (p) => p.userId === luna.id
+          },
+          {
+            query:      'from:me',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
+            query:  'from:unknown',
+            filter: () => false
+          },
+          {
+            query:  'from:unknown,luna',
+            filter: (p) => p.userId === luna.id
+          },
+          {
+            query:  'from:mars from:luna',
+            filter: () => false
+          },
+          {
+            query:   'from:mars',
+            filter:  () => true,
+            comment: 'Mars commented everything'
+          },
+          {
+            query:  'posts-from:mars',
+            filter: (p) => p.userId === mars.id
+          },
+          {
+            query:   'comments-from:mars',
+            filter:  () => true,
+            comment: 'Mars commented everything'
+          },
+          {
+            query:  'comments-from:mars -posts-from:luna',
+            filter: (p) => p.userId !== luna.id
+          }
+        ]);
       });
     });
   });
