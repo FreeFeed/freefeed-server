@@ -258,9 +258,14 @@ describe('Search', () => {
     });
 
     describe('Search condition operators', () => {
-      describe('"me" username checking', () => {
+      describe('"me" and "in-my:" checking', () => {
         it("should throw error if anonymous uses the 'me' username", async () => {
           const test = dbAdapter.search('from:me');
+          await expect(test, 'to be rejected with', /sign in/);
+        });
+
+        it("should throw error if anonymous uses the 'in-my:' condition", async () => {
+          const test = dbAdapter.search('in-my:saves');
           await expect(test, 'to be rejected with', /sign in/);
         });
 
@@ -271,6 +276,11 @@ describe('Search', () => {
 
         it("should not throw error if logged in user uses the 'me' username", async () => {
           const test = dbAdapter.search('from:me', { viewerId: luna.id });
+          await expect(test, 'to be fulfilled');
+        });
+
+        it("should not throw error if logged in user uses the 'in-my:' condition", async () => {
+          const test = dbAdapter.search('in-my:saves', { viewerId: luna.id });
           await expect(test, 'to be fulfilled');
         });
 

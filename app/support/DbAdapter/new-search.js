@@ -42,6 +42,13 @@ const searchTrait = (superClass) =>
         throw new Error(`The search query is too complex, try to simplify it`);
       }
 
+      if (
+        !viewerId &&
+        parsedQuery.some((t) => t instanceof Condition && t.condition === 'in-my')
+      ) {
+        throw new Error(`Please sign in to use 'in-my:' filter`);
+      }
+
       /**
        * There are three search scopes:
        * - IN_ALL (search something in posts OR in comments)
