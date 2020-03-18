@@ -184,8 +184,8 @@ describe('Search', () => {
             {
               query:      'in-comments: venus',
               viewerName: 'mars',
-              filter:     (p) => p.userId !== luna.id,
-            },
+              filter:     (p) => p.userId !== luna.id
+            }
           ]);
         });
       });
@@ -333,6 +333,7 @@ describe('Search', () => {
           }
         ]);
       });
+
       describe('in:', () => {
         testSearch([
           {
@@ -354,7 +355,7 @@ describe('Search', () => {
           {
             query:  'posts-from:venus -commented-by:mars',
             filter: () => false
-          },
+          }
         ]);
         describe('Luna likes some post', () => {
           let likedPost;
@@ -376,7 +377,94 @@ describe('Search', () => {
             {
               query:  'liked-by:luna,mars',
               filter: (p) => p.id === likedPost.id
+            }
+          ]);
+        });
+      });
+
+      describe('in-my:', () => {
+        describe('Luna subscribed to Mars, saves and likes some posts', () => {
+          let postsToLike, postsToSave;
+          before(async () => {
+            postsToLike = [posts[4], posts[3]];
+            postsToSave = [posts[5], posts[2]];
+            await luna.subscribeTo(mars);
+            await Promise.all(postsToLike.map((post) => post.addLike(luna)));
+            await Promise.all(postsToSave.map((post) => post.save(luna.id)));
+          });
+
+          after(async () => {
+            await Promise.all(postsToSave.map((post) => post.unsave(luna.id)));
+            await Promise.all(postsToLike.map((post) => post.removeLike(luna)));
+            await luna.unsubscribeFrom(mars);
+          });
+
+          testSearch([
+            {
+              query:      'in-my:saves',
+              viewerName: 'luna',
+              filter:     (p) => postsToSave.map((p1) => p1.id).includes(p.id)
             },
+            {
+              query:      'in-my:friends',
+              viewerName: 'luna',
+              filter:     (p) => p.userId === mars.id || p.userId === luna.id
+            },
+            {
+              query:      'in-my:discussions',
+              viewerName: 'luna',
+              filter:     (p) =>
+                p.userId === luna.id ||
+                postsToLike.map((p1) => p1.id).includes(p.id)
+            },
+            {
+              query:      '-in-my:discussions',
+              viewerName: 'luna',
+              filter:     (p) =>
+                p.userId !== luna.id &&
+                !postsToLike.map((p1) => p1.id).includes(p.id)
+            }
+          ]);
+        });
+
+        describe('Luna sends direct to Mars', () => {
+          let directPost;
+          before(async () => {
+            await luna.subscribeTo(mars);
+            await mars.subscribeTo(luna);
+            const lunaDirectFeed = await luna.getDirectsTimeline();
+            const marsDirectFeed = await mars.getDirectsTimeline();
+            directPost = new Post({
+              body:        'Direct',
+              userId:      luna.id,
+              timelineIds: [lunaDirectFeed.id, marsDirectFeed.id]
+            });
+            await directPost.create();
+            posts.push(directPost);
+          });
+          after(async () => {
+            posts.pop(directPost);
+            await directPost.destroy();
+            await mars.unsubscribeFrom(luna);
+            await luna.unsubscribeFrom(mars);
+          });
+
+          testSearch([
+            {
+              query:      'in-my:directs',
+              viewerName: 'luna',
+              filter:     (p) => p.id === directPost.id
+            },
+            {
+              query:      'in-my:directs',
+              viewerName: 'mars',
+              filter:     (p) => p.id === directPost.id
+            },
+            {
+              query:      'in-my:directs -from:me',
+              viewerName: 'luna',
+              filter:     () => false
+            }
           ]);
         });
       });
@@ -518,36 +606,6 @@ describe('Search', () => {
         { maxQueryComplexity: 5 }
       );
       await expect(test, 'to be rejected with', /too complex/);
-    });
-  });
-
-  describe('Search condition operators', () => {
-    let luna;
-    before(async () => {
-      await cleanDB($pg_database);
-
-      luna = new User({ username: 'luna', password: 'pw' });
-      await luna.create();
-    });
-
-    it("should throw error if anonymous uses the 'me' username", async () => {
-      const test = dbAdapter.search('from:me');
-      await expect(test, 'to be rejected with', /sign in/);
-    });
-
-    it('should not throw error if anonymous uses someone username', async () => {
-      const test = dbAdapter.search('from:luna');
-      await expect(test, 'to be fulfilled');
-    });
-
-    it("should not throw error if logged in user uses the 'me' username", async () => {
-      const test = dbAdapter.search('from:me', { viewerId: luna.id });
-      await expect(test, 'to be fulfilled');
-    });
-
-    it('should not throw error if logged in user uses someone username', async () => {
-      const test = dbAdapter.search('from:luna', { viewerId: luna.id });
-      await expect(test, 'to be fulfilled');
     });
   });
 });
