@@ -14,7 +14,7 @@ import { sqlIn, sqlIntarrayIn, sqlNotIn } from './utils';
 ///////////////////////////////////////////////////
 
 const maxOffsetWithLocalBumps = 1000;
-const smallFeedThreshold = 5;
+export const smallFeedThreshold = 5;
 
 const timelinesPostsTrait = (superClass) => class extends superClass {
   /**

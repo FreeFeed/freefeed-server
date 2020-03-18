@@ -17,6 +17,7 @@ import { List } from '../open-lists';
 import { Comment } from '../../models';
 
 import { sqlIn, sqlNotIn, sqlIntarrayIn } from './utils';
+import { smallFeedThreshold } from './timelines-posts';
 
 ///////////////////////////////////////////////////
 // Search
@@ -181,14 +182,31 @@ const searchTrait = (superClass) =>
 
       debug('selectSQL:', selectSQL);
 
-      // TODO: wideSelect
+      // wideSelect heuristics
+      let wideSelect = false;
+
+      for (const authors of [allContentAuthors, postAuthors]) {
+        // Selection is 'wide' if post authors list is infinite
+        wideSelect =
+          wideSelect || (!authors.inclusive && authors.items.length > 0);
+      }
+
+      for (const feeds of postsFeedIdsLists) {
+        // Selection is 'wide' if feeds list have more than smallFeedThreshold items
+        wideSelect =
+          wideSelect ||
+          (!feeds.inclusive && feeds.items.length > 0) ||
+          feeds.items.length > smallFeedThreshold;
+      }
+
       return await this.selectPosts({
         viewerId,
         limit,
         offset,
         sort,
         selectSQL,
-        useCommentsTable
+        useCommentsTable,
+        wideSelect
       });
     }
 
