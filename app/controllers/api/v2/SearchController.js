@@ -1,121 +1,43 @@
-/* eslint babel/semi: "error" */
+import compose from 'koa-compose';
+
 import { dbAdapter } from '../../../models';
-import { NotFoundException, ForbiddenException } from '../../../support/exceptions';
-import { SearchQueryParser } from '../../../support/SearchQueryParser';
 import { serializeFeed } from '../../../serializers/v2/post';
+import { monitored } from '../../middlewares';
 
 
 export default class SearchController {
-  app = null;
+  search = compose([
+    monitored('search'),
+    async (ctx) => {
+      const DEFAULT_LIMIT = 30;
+      const MAX_LIMIT = 120;
 
-  constructor(app) {
-    this.app = app;
-  }
+      const { state: { user } } = ctx;
+      const query = ctx.request.query.qs || '';
+      let offset = parseInt(ctx.request.query.offset, 10);
+      let limit = parseInt(ctx.request.query.limit, 10);
 
-  search = async (ctx) => {
-    const preparedQuery = SearchQueryParser.parse(ctx.request.query.qs, ctx.state.user ? ctx.state.user.username : null);
-    const DEFAULT_LIMIT = 30;
+      if (!Number.isFinite(offset) || offset < 0) {
+        offset = 0;
+      }
 
-    let foundPostsIds = [],
-      isSubscribed = false,
-      targetUser = null,
-      targetGroup,
-      offset,
-      limit;
+      if (!Number.isFinite(limit) || limit < 0 || limit > MAX_LIMIT) {
+        limit = DEFAULT_LIMIT;
+      }
 
-    offset = parseInt(ctx.request.query.offset, 10) || 0;
-    limit =  parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
+      const postIds = await dbAdapter.search(query, {
+        viewerId: user && user.id,
+        limit:    limit + 1,
+        offset
+      });
 
-    if (offset < 0) {
-      offset = 0;
+      const isLastPage = postIds.length <= limit;
+
+      if (!isLastPage) {
+        postIds.length = limit;
+      }
+
+      ctx.body = await serializeFeed(postIds, user && user.id, null, { isLastPage });
     }
-
-    if (limit < 0) {
-      limit = DEFAULT_LIMIT;
-    }
-
-    const requestedLimit = limit;
-    limit++;
-
-    const bannedUserIds = ctx.state.user ? await ctx.state.user.getBanIds() : [];
-    const feedIntIdsBannedForUser = ctx.state.user ? await dbAdapter.getFeedsIntIdsOfUsersWhoBannedViewer(ctx.state.user.id) : [];
-    const currentUserId = ctx.state.user ? ctx.state.user.id : null;
-    const isAnonymous = !ctx.state.user;
-    const visibleFeedIds = ctx.state.user ? [await ctx.state.user.getPostsTimelineIntId(), ...ctx.state.user.subscribedFeedIds] : [];
-
-    if (ctx.request.query.qs.trim().length === 0) {
-      // block "empty" queries for now, as they're too slow
-      foundPostsIds = [];
-    } else if (preparedQuery.group) {
-      targetGroup = await dbAdapter.getGroupByUsername(preparedQuery.group);
-
-      if (!targetGroup) {
-        throw new NotFoundException(`Group "${preparedQuery.group}" is not found`);
-      }
-
-      if (!currentUserId && targetGroup.isProtected === '1') {
-        throw new ForbiddenException(`Please sign in to see content from group "${preparedQuery.group}"`);
-      }
-
-      const groupPostsFeedId = await targetGroup.getPostsTimelineId();
-      isSubscribed           = currentUserId && await dbAdapter.isUserSubscribedToTimeline(currentUserId, groupPostsFeedId);
-
-      if (!isSubscribed && targetGroup.isPrivate == '1') {
-        throw new ForbiddenException(`You are not subscribed to group "${preparedQuery.group}"`);
-      }
-
-      let targetUserId = null;
-
-      if (preparedQuery.username) {
-        if (preparedQuery.username === 'me') {
-          throw new NotFoundException(`Please sign in to use 'from:me' operator`);
-        }
-
-        targetUser = await dbAdapter.getUserByUsername(preparedQuery.username);
-
-        if (!targetUser) {
-          throw new NotFoundException(`User "${preparedQuery.username}" is not found`);
-        }
-
-        targetUserId = targetUser.id;
-      }
-
-      foundPostsIds = await dbAdapter.searchGroupPosts(preparedQuery, groupPostsFeedId, targetUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
-    } else if (preparedQuery.username) {
-      if (preparedQuery.username === 'me') {
-        throw new NotFoundException(`Please sign in to use 'from:me' operator`);
-      }
-
-      targetUser = await dbAdapter.getUserByUsername(preparedQuery.username);
-
-      if (!targetUser) {
-        throw new NotFoundException(`User "${preparedQuery.username}" is not found`);
-      }
-
-      if (isAnonymous && targetUser.isProtected === '1') {
-        throw new ForbiddenException(`Please sign in to view user "${preparedQuery.username}"`);
-      }
-
-      if (targetUser.id != currentUserId) {
-        const userPostsFeedId = await targetUser.getPostsTimelineId();
-        isSubscribed          = await dbAdapter.isUserSubscribedToTimeline(currentUserId, userPostsFeedId);
-
-        if (!isSubscribed && targetUser.isPrivate == '1') {
-          throw new ForbiddenException(`You are not subscribed to user "${preparedQuery.username}"`);
-        }
-      }
-
-      foundPostsIds = await dbAdapter.searchUserPosts(preparedQuery, targetUser.id, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
-    } else {
-      foundPostsIds = await dbAdapter.searchPosts(preparedQuery, currentUserId, visibleFeedIds, bannedUserIds, feedIntIdsBannedForUser, offset, limit);
-    }
-
-    const isLastPage = foundPostsIds.length <= requestedLimit;
-
-    if (!isLastPage) {
-      foundPostsIds.length = requestedLimit;
-    }
-
-    ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage });
-  };
+  ]);
 }

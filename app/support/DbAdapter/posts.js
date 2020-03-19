@@ -5,7 +5,7 @@ import pgFormat from 'pg-format';
 import { Post } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
 
-import { initObject, prepareModelPayload } from './utils';
+import { initObject, prepareModelPayload, sqlNotIn } from './utils';
 
 ///////////////////////////////////////////////////
 // Posts
@@ -287,7 +287,7 @@ const postsTrait = (superClass) => class extends superClass {
         this.getUserIdsWhoBannedUser(currentUser.id)
       ]);
 
-      bannedUsersFilter = this._getPostsFromBannedUsersSearchFilterCondition(iBanned, []);
+      bannedUsersFilter = ` and ${sqlNotIn('posts.user_id', iBanned)}`;
 
       if (bannedMe.length > 0) {
         usersWhoBannedMeFilter = pgFormat('AND "feeds"."user_id" NOT IN (%L) ', bannedMe);
