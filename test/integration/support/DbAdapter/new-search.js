@@ -290,7 +290,7 @@ describe('Search', () => {
         });
       });
 
-      describe('from:', () => {
+      describe('from:, author:', () => {
         testSearch([
           {
             query:  'from:luna',
@@ -314,22 +314,18 @@ describe('Search', () => {
             filter: () => false
           },
           {
-            query:   'from:mars',
+            query:   'author:mars',
             filter:  () => true,
             comment: 'Mars commented everything'
           },
           {
-            query:  'posts-from:mars',
+            query:  'from:mars',
             filter: (p) => p.userId === mars.id
           },
           {
-            query:   'comments-from:mars',
+            query:   'in-comments: author:mars',
             filter:  () => true,
             comment: 'Mars commented everything'
-          },
-          {
-            query:  'comments-from:mars -posts-from:luna',
-            filter: (p) => p.userId !== luna.id
           }
         ]);
       });
@@ -349,11 +345,11 @@ describe('Search', () => {
             filter: () => true
           },
           {
-            query:  'posts-from:venus commented-by:mars',
+            query:  'from:venus commented-by:mars',
             filter: (p) => p.userId === venus.id
           },
           {
-            query:  'posts-from:venus -commented-by:mars',
+            query:  'from:venus -commented-by:mars',
             filter: () => false
           }
         ]);

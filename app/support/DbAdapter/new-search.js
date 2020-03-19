@@ -216,8 +216,7 @@ const searchTrait = (superClass) =>
         'commented-by',
         'liked-by',
         'from',
-        'comments-from',
-        'posts-from'
+        'author'
       ];
 
       const accounts = {}; // Map from username to User/Group object (or null)
@@ -389,9 +388,8 @@ function getAuthorNames(tokens, targetScope) {
   walkWithScope(tokens, (token, currentScope) => {
     if (
       token instanceof Condition &&
-      ((token.condition === 'comments-from' && targetScope === IN_COMMENTS) ||
-        (token.condition === 'posts-from' && targetScope === IN_POSTS) ||
-        (token.condition === 'from' && targetScope === currentScope))
+      ((token.condition === 'from' && targetScope === IN_POSTS) ||
+        (token.condition === 'author' && targetScope === currentScope))
     ) {
       result = List.intersection(
         result,

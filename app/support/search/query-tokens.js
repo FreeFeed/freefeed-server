@@ -130,8 +130,7 @@ export const listConditions = [
   // [/^cliked-?by$/, 'cliked-by'],
   // Authorship
   [/^from$/, 'from'],
-  [/^comments?-?from$/, 'comments-from'],
-  [/^posts?-?from$/, 'posts-from'],
+  [/^authors?$/, 'author'],
 ];
 
 // A simple trimmer, trims punctuation, separators and some symbols.

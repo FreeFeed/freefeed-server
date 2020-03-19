@@ -24,8 +24,7 @@ Some operators takes user name as an arguments. In such operators you can use a 
 * in-body:
 * in-comments:
 * from:
-* posts-from:
-* comments-from:
+* author:
 * in:
 * in-my:
 * commented-by:
@@ -40,38 +39,27 @@ By default, the search is performed both in post and comment bodies. The followi
 
 **in-body:** — starting from this operator the search will be performed only in the post bodies. 
 
-Example: `cat in-body: mouse` — the "cat" will be searched in posts and comments but the "mouse" will be searched only in post bodies.
+Example: `cat in-body: mouse` — the "cat" will be searched in posts and comments but the "mouse" will be searched only in post bodies. Note that there's a space after a colon because "in-body:" is a separate operator here.
 
 **in-comments:** — starting from this operator the search will be performed only in the comment bodies.
 
 Example: `in-comments: mouse` — the "mouse" will be searched only in comment bodies.
 
+The global search scope operators swithces search scope from itself to the end of the query or to the other global scope operator. 
+
 ### Local search scope
 
-The global search scope operators swithces search scope from itself to the end of the query ot to the other operator from this group. If this is not what you want, you can use local syntax:
+Local search scope operator are like global ones but without switching the global search scope.
 
-**in-body:word1,word2** or **in-body:"quoted text"** will search _any_ of word1, word2 or the "quoted text" in post body but will not change the global query scope.
+**in-body:word1,word2** or **in-body:"quoted text"** will search _any_ of word1, word2 or the "quoted text" in post body but will not change the global query scope. Note that there is no space after a colon.
 
 **in-comments:word1,word2** or **in-comments:"quoted text"** do the same for comments.
 
 Example: `cat in-body:mouse dog` — the "cat" and "dog" will be searched in post and comments but the "mouse" will be searched only in posts.
 
-### Content authorship
-
-**from:user1,user2** performs search only in content from user1 or user2.
-
-The "content" is defined by the current search scope. By default it is a post and comment bodies: `cat from:alice` will search the "cat" word in all Alice's posts and comments bodies.
-
-`in-body: from:alice cat` will search the "cat" word only in Alice's posts bodies.
-
-`in-comments: from:alice cat` will search the "cat" word only in Alice's comments bodies.
-
-**posts-from:user1,user2** limits search to posts authored by user1 or user2. This operator isn't change scope, so the `posts-from:alice cat` query by default will search "cat" in posts authored by Alice _and in any their comments_ (not only in Alice's comments').
-
-
-**comments-from:user1,user2** limits search to comments authored by user1 or user2. This is the shorter equivalent of `in-comments: from:user1,user2`.
-
 ### Posts filtering
+
+**from:user1,user2** limits search to posts authored by user1 or user2. The `from:alice cat` query will search "cat" in posts authored by Alice _and in any their comments_ (not only in Alice's comments').
 
 **in:user1,group2** limits search to posts published in user1 or group2 feeds.
 
@@ -96,3 +84,13 @@ The "in:" operator has the "group:" alias, it left for compatibility.
 **liked-by:user1,user2** limits search to posts liked by user1 or user2.
 
 `cat liked-by:alice` will find all posts liked by Alice with the "cat" word.
+
+### Content authorship
+
+**author:user1,user2** performs search only in content from user1 or user2.
+
+The "content" is defined by the current search scope. By default it is a post and comment bodies: `cat author:alice` will search the "cat" word in all Alice's posts and comments bodies.
+
+`in-body: author:alice cat` will search the "cat" word only in Alice's posts bodies. In this context the 'author:' works in same way as 'from:'.
+
+`in-comments: author:alice cat` will search the "cat" word only in Alice's comments bodies.
