@@ -484,6 +484,7 @@ describe('Search', () => {
       posts.push(newLunaPost(`third post #mentions @mars and @luna`));
       posts.push(newLunaPost(`fourth post mentions @celestials`));
       posts.push(newLunaPost(`post about $3 fruits: apple.com`));
+      posts.push(newLunaPost(`a @time-and-space group with #long_hashtag #many-words`));
       posts.push(
         newLunaPost(
           `post that mentions https://get.adobe.com/ru/reader/ software`
@@ -591,6 +592,38 @@ describe('Search', () => {
       {
         query:  'https://lmgtfy.com/?q=freefeed',
         filter: (p) => /freefeed/.test(p.body)
+      },
+      {
+        query:  'time',
+        filter: (p) => /time/.test(p.body)
+      },
+      {
+        query:  '@time-and-space',
+        filter: (p) => /time/.test(p.body)
+      },
+      {
+        query:  '@timeandspace',
+        filter: () => false
+      },
+      {
+        query:  '#long-hashtag',
+        filter: (p) => /time/.test(p.body)
+      },
+      {
+        query:  '#long_hashtag',
+        filter: (p) => /time/.test(p.body)
+      },
+      {
+        query:  '#longhashtag',
+        filter: (p) => /time/.test(p.body)
+      },
+      {
+        query:  'long',
+        filter: (p) => /time/.test(p.body)
+      },
+      {
+        query:  'words',
+        filter: (p) => /time/.test(p.body)
       }
     ]);
   });

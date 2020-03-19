@@ -62,7 +62,11 @@ export class Text {
     if (this.phrase) {
       const queries = tokenize(this.text).map((token) => {
         if (token instanceof HashTag || token instanceof Mention) {
-          return pgFormat(`%L::tsquery`, token.text);
+          const exactText =
+            token instanceof HashTag
+              ? token.text.replace(/[_-]/, '')
+              : token.text;
+          return pgFormat(`%L::tsquery`, exactText);
         } else if (token instanceof Link) {
           return pgFormat('phraseto_tsquery(%L)', linkToText(token));
         }
@@ -71,7 +75,9 @@ export class Text {
       });
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
-      return prefix + pgFormat(`%L::tsquery`, this.text);
+      const exactText =
+        this.text.charAt(0) === '#' ? this.text.replace(/[_-]/, '') : this.text;
+      return prefix + pgFormat(`%L::tsquery`, exactText);
     }
 
     const [firstToken] = tokenize(this.text);
@@ -117,7 +123,7 @@ export class InScope {
 
 export const scopeStarts = [
   [/^in-?body$/, IN_POSTS],
-  [/^in-?comments?$/, IN_COMMENTS],
+  [/^in-?comments?$/, IN_COMMENTS]
 ];
 
 export const listConditions = [
@@ -130,7 +136,7 @@ export const listConditions = [
   // [/^cliked-?by$/, 'cliked-by'],
   // Authorship
   [/^from$/, 'from'],
-  [/^authors?$/, 'author'],
+  [/^authors?$/, 'author']
 ];
 
 // A simple trimmer, trims punctuation, separators and some symbols.
