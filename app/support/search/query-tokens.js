@@ -64,7 +64,7 @@ export class Text {
         if (token instanceof HashTag || token instanceof Mention) {
           const exactText =
             token instanceof HashTag
-              ? token.text.replace(/[_-]/, '')
+              ? token.text.replace(/[_-]/g, '')
               : token.text;
           return pgFormat(`%L::tsquery`, exactText);
         } else if (token instanceof Link) {
@@ -76,7 +76,7 @@ export class Text {
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
       const exactText =
-        this.text.charAt(0) === '#' ? this.text.replace(/[_-]/, '') : this.text;
+        this.text.charAt(0) === '#' ? this.text.replace(/[_-]/g, '') : this.text;
       return prefix + pgFormat(`%L::tsquery`, exactText);
     }
 

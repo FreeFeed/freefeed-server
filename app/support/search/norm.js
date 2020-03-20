@@ -23,11 +23,11 @@ export function normalizeText(text) {
     text
       // The "'" has a special meaning in Postgres literals and has no
       // meaning in search context. Remove them for simplicity.
-      .replace("'", ' ')
+      .replace(/'/g, ' ')
       .normalize('NFKD')
       // Preserve cyrillic 'short i' (convert it back to NFC)
-      .replace('\u0418\u0306', '\u0419')
-      .replace('\u0438\u0306', '\u0439')
+      .replace(/\u0418\u0306/g, '\u0419')
+      .replace(/\u0438\u0306/g, '\u0439')
       .replace(marksCharsRe, '')
       .normalize('NFC')
       .toLowerCase()

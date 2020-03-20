@@ -19,7 +19,7 @@ const postsTrait = (superClass) => class extends superClass {
     preparedPayload.body_tsvector = this.database.raw(
       // raw() interprets '?' chars as positional placeholders so we must escape them
       // https://github.com/knex/knex/issues/2622
-      toTSVector(preparedPayload.body).replace('?', '\\?')
+      toTSVector(preparedPayload.body).replace(/\?/g, '\\?')
     );
     const res = await this.database('posts').returning('uid').insert(preparedPayload)
     return res[0]
@@ -32,7 +32,7 @@ const postsTrait = (superClass) => class extends superClass {
       preparedPayload.body_tsvector = this.database.raw(
         // raw() interprets '?' chars as positional placeholders so we must escape them
         // https://github.com/knex/knex/issues/2622
-        toTSVector(preparedPayload.body).replace('?', '\\?')
+        toTSVector(preparedPayload.body).replace(/\?/g, '\\?')
       );
     }
 

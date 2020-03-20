@@ -144,9 +144,9 @@ export const authFinish = compose([
           let username = '';
 
           if (state.profile.nickName) {
-            username = state.profile.nickName.toLowerCase().replace(/[^a-z0-9]/i, '');
+            username = state.profile.nickName.toLowerCase().replace(/[^a-z0-9]/gi, '');
           } else if (state.profile.email && state.profile.email.indexOf('@') !== -1) {
-            username = state.profile.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/i, '');
+            username = state.profile.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/gi, '');
           }
 
           ctx.body.suggestedUsername = await adaptUsername(username);
