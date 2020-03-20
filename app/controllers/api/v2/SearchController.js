@@ -4,6 +4,8 @@ import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored } from '../../middlewares';
 
+import { ORD_CREATED, ORD_UPDATED } from './TimelinesController';
+
 
 export default class SearchController {
   search = compose([
@@ -16,6 +18,11 @@ export default class SearchController {
       const query = ctx.request.query.qs || '';
       let offset = parseInt(ctx.request.query.offset, 10);
       let limit = parseInt(ctx.request.query.limit, 10);
+      const sort =
+        ctx.request.query.sort === ORD_CREATED ||
+        ctx.request.query.sort === ORD_UPDATED
+          ? ctx.request.query.sort
+          : ORD_UPDATED;
 
       if (!Number.isFinite(offset) || offset < 0) {
         offset = 0;
@@ -28,7 +35,8 @@ export default class SearchController {
       const postIds = await dbAdapter.search(query, {
         viewerId: user && user.id,
         limit:    limit + 1,
-        offset
+        offset,
+        sort
       });
 
       const isLastPage = postIds.length <= limit;
