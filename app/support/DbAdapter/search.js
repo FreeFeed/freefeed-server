@@ -17,7 +17,6 @@ import { List } from '../open-lists';
 import { Comment } from '../../models';
 
 import { sqlIn, sqlNotIn, sqlIntarrayIn } from './utils';
-import { smallFeedThreshold } from './timelines-posts';
 
 ///////////////////////////////////////////////////
 // Search
@@ -52,12 +51,35 @@ const searchTrait = (superClass) =>
 
       /**
        * There are three search scopes:
-       * - IN_ALL (search something in posts OR in comments)
+       * - IN_ALL (default scope, search something in posts OR in comments)
        * - IN_POSTS (search something in posts only)
        * - IN_COMMENTS (search something in comments only)
        *
-       * These scopes produces a corresponding SQL-queries that joins by AND. IN_ALL query, in turn,
-       * consists of two sub-queries, for 'posts' and for 'comments' tables, joined by OR.
+       * These scopes produces a corresponding conditions that joins by AND.
+       * IN_ALL query, in turn, consists of two sub-conditions, for 'posts' and
+       * for 'comments' tables, joined by OR. Also we have additional
+       * restrictions for the posts (privacy and bans) and comments (hideType
+       * and bans). So the resulting query is looks like:
+       *
+       * ((Posts_inAll AND Posts_restr) OR (Comments_inAll AND Comments_restr))
+       * AND (Posts_inPosts AND Posts_restr) AND (Comments_inComments AND
+       * Comments_restr)
+       *
+       * Using the UNION statement instead of explicit OR we can write this
+       * request in the following form:
+       *
+       * Posts_inAll AND Posts_inPosts
+       * AND Comments_inComments AND Posts_restr AND Comments_restr
+       * UNION
+       * Comments_inAll
+       * AND Comments_inComments AND Posts_restr AND Comments_restr
+       *
+       * It is the full form of request but in practice it may be simple. For
+       * example, if query uses only the IN_ALL scope we have:
+       *
+       * Posts_inAll AND Posts_restr
+       * UNION
+       * Comments_inAll AND Posts_restr AND Comments_restr
        */
 
       // Map from username to User/Group object (or null)
@@ -119,7 +141,7 @@ const searchTrait = (superClass) =>
         sqlIn('p.user_id', allContentAuthors)
       ]);
 
-      let inAllCommentsSQL = andJoin([
+      const inAllCommentsSQL = andJoin([
         inAllTSQuery && `c.body_tsvector @@ ${inAllTSQuery}`,
         sqlIn('c.user_id', allContentAuthors)
       ]);
@@ -141,7 +163,7 @@ const searchTrait = (superClass) =>
         )
       ]);
 
-      let inCommentsSQL = andJoin([
+      const inCommentsSQL = andJoin([
         inCommentsTSQuery && `c.body_tsvector @@ ${inCommentsTSQuery}`,
         sqlIn('c.user_id', commentAuthors)
       ]);
@@ -150,64 +172,76 @@ const searchTrait = (superClass) =>
       const useCommentsTable =
         inAllCommentsSQL !== 'true' || inCommentsSQL !== 'true';
 
-      // Additional restrictions for comments
-      if (useCommentsTable) {
-        const bannedByViewer = viewerId
-          ? await this.getUserBansIds(viewerId)
-          : [];
-        const commentsRestrictionSQL = andJoin([
-          pgFormat('c.hide_type=%L', Comment.VISIBLE),
-          sqlNotIn('c.user_id', bannedByViewer)
-        ]);
-
-        if (inAllCommentsSQL !== 'true') {
-          inAllCommentsSQL = andJoin([
-            inAllCommentsSQL,
-            commentsRestrictionSQL
-          ]);
-        }
-
-        if (inCommentsSQL !== 'true') {
-          inCommentsSQL = andJoin([inCommentsSQL, commentsRestrictionSQL]);
-        }
-      }
-
-      // Build the final query
-      const inAllSQL = orJoin([inAllPostsSQL, inAllCommentsSQL]);
-      const selectSQL = andJoin([
-        inAllSQL !== 'true' && `(${inAllSQL})`,
-        inPostsSQL,
-        inCommentsSQL
+      const [
+        // Private feeds viewer can read
+        visiblePrivateFeedIntIds,
+        // Users who banned viewer or banned by viewer (viewer should not see their posts)
+        bannedUsersIds,
+        // Users banned by viewer (for comments)
+        bannedByViewer
+      ] = await Promise.all([
+        viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
+        viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
+        viewerId && useCommentsTable ? await this.getUserBansIds(viewerId) : []
       ]);
 
-      debug('selectSQL:', selectSQL);
+      // Additional restrictions for comments
+      const commentsRestrictionSQL = useCommentsTable
+        ? andJoin([
+          pgFormat('c.hide_type=%L', Comment.VISIBLE),
+          sqlNotIn('c.user_id', bannedByViewer)
+        ])
+        : 'true';
 
-      // wideSelect heuristics
-      let wideSelect = false;
+      // Additional restrictions for posts
+      const postsRestrictionsSQL = andJoin([
+        // Privacy
+        viewerId
+          ? pgFormat(
+            `(not p.is_private or p.destination_feed_ids && %L)`,
+            `{${visiblePrivateFeedIntIds.join(',')}}`
+          )
+          : 'not p.is_protected',
+        // Bans
+        sqlNotIn('p.user_id', bannedUsersIds)
+      ]);
 
-      for (const authors of [allContentAuthors, postAuthors]) {
-        // Selection is 'wide' if post authors list is infinite
-        wideSelect =
-          wideSelect || (!authors.inclusive && authors.items.length > 0);
-      }
+      // Now we buid full query
+      const postsPart = andJoin([
+        inAllPostsSQL,
+        inPostsSQL,
+        postsRestrictionsSQL,
+        inCommentsSQL,
+        inCommentsSQL !== 'true' && commentsRestrictionSQL
+      ]);
+      const commentsPart =
+        useCommentsTable &&
+        andJoin([
+          inAllCommentsSQL,
+          inPostsSQL,
+          postsRestrictionsSQL,
+          inCommentsSQL,
+          commentsRestrictionSQL
+        ]);
 
-      for (const feeds of postsFeedIdsLists) {
-        // Selection is 'wide' if feeds list have more than smallFeedThreshold items
-        wideSelect =
-          wideSelect ||
-          (!feeds.inclusive && feeds.items.length > 0) ||
-          feeds.items.length > smallFeedThreshold;
-      }
+      const fullPostsSQL = `select p.uid, p.${sort}_at as date from posts p ${
+        inCommentsSQL !== 'true'
+          ? 'left join comments c on c.post_id = p.uid'
+          : ''
+      } where ${postsPart}`;
 
-      return await this.selectPosts({
-        viewerId,
-        limit,
-        offset,
-        sort,
-        selectSQL,
-        useCommentsTable,
-        wideSelect
-      });
+      const fullCommentsSQL =
+        useCommentsTable &&
+        `select p.uid, p.${sort}_at as date from posts p ` +
+          ` join comments c on c.post_id = p.uid where ${commentsPart}`;
+
+      const fullSQL = `${fullPostsSQL} ${
+        fullCommentsSQL ? `\nunion\n${fullCommentsSQL}` : ''
+      }\norder by date desc limit ${+limit} offset ${+offset}`;
+
+      debug(fullSQL);
+
+      return (await this.database.raw(fullSQL)).rows.map((r) => r.uid);
     }
 
     async _getAccountsUsedInQuery(parsedQuery, viewerId) {

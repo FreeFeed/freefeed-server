@@ -29,7 +29,6 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
     withLocalBumps = false,
     wideSelect = false,
     selectSQL = 'true',
-    useCommentsTable = false,
   }) {
     withLocalBumps = withLocalBumps && !!viewerId && sort === 'bumped';
 
@@ -69,9 +68,8 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         // Request with CTE for the relatively small feed
         return pgFormat(`
           with posts as (
-            select ${useCommentsTable ? 'distinct' : ''} p.* from 
+            select p.* from 
               posts p
-              ${useCommentsTable ? 'left join comments c on c.post_id = p.uid' : ''}
             where ${selectSQL}
           )
           select p.uid, p.bumped_at as date
@@ -87,10 +85,9 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
       // Request without CTE for the large (tipically RiverOfNews) feed
       return pgFormat(`
-        select ${useCommentsTable ? 'distinct' : ''} p.uid, p.bumped_at as date
+        select p.uid, p.bumped_at as date
         from 
           posts p
-          ${useCommentsTable ? 'left join comments c on c.post_id = p.uid' : ''}
         where
           (${selectSQL}) and (${restrictionsSQL})
         order by
