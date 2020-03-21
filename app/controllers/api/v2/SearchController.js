@@ -15,7 +15,7 @@ export default class SearchController {
       const MAX_LIMIT = 120;
 
       const { state: { user } } = ctx;
-      const query = ctx.request.query.qs || '';
+      const query = (ctx.request.query.qs || '').trim();
       let offset = parseInt(ctx.request.query.offset, 10);
       let limit = parseInt(ctx.request.query.limit, 10);
       const sort =
@@ -32,12 +32,14 @@ export default class SearchController {
         limit = DEFAULT_LIMIT;
       }
 
-      const postIds = await dbAdapter.search(query, {
-        viewerId: user && user.id,
-        limit:    limit + 1,
-        offset,
-        sort
-      });
+      const postIds = query
+        ? await dbAdapter.search(query, {
+          viewerId: user && user.id,
+          limit:    limit + 1,
+          offset,
+          sort
+        })
+        : []; // return nothing if query is empty
 
       const isLastPage = postIds.length <= limit;
 

@@ -42,9 +42,9 @@ describe('SearchController', () => {
       expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
-    it('should allow empty query', async () => {
+    it('should return empty response on empty query', async () => {
       const response = await funcTestHelper.performSearch(anonContext, '');
-      expect(response, 'to satisfy', { posts: [{}, {}, {}, {}, {}] });
+      expect(response, 'to satisfy', { posts: [] });
     });
 
     it('should search posts by non-normalized unicode query', async () => {
