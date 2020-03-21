@@ -1,6 +1,7 @@
 export function up(knex) {
   return knex.schema
     .raw('DROP INDEX IF EXISTS posts_body_search_idx')
+    .raw('DROP INDEX IF EXISTS comments_body_search_idx')
     .raw(`alter table "posts" add column "body_tsvector" tsvector`)
     .raw(`alter table "comments" add column "body_tsvector" tsvector`)
     .raw(
@@ -17,6 +18,9 @@ export function down(knex) {
   return knex.schema
     .raw(`alter table "posts" drop column "body_tsvector"`)
     .raw(`alter table "comments" drop column "body_tsvector"`)
+    .raw(
+      `CREATE INDEX IF NOT EXISTS comments_body_search_idx ON comments USING GIN (to_tsvector('${textSearchConfigName}', body))`
+    )
     .raw(
       `CREATE INDEX IF NOT EXISTS posts_body_search_idx ON posts USING GIN (to_tsvector('${textSearchConfigName}', body))`
     );
