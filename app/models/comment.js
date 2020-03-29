@@ -167,7 +167,7 @@ export function addModel(dbAdapter) {
       await dbAdapter.deleteComment(this.id, this.postId);
 
       if (this.userId) {
-        dbAdapter.withdrawPostFromCommentsFeedIfNoMoreComments(this.postId, this.userId);
+        await dbAdapter.withdrawPostFromCommentsFeedIfNoMoreComments(this.postId, this.userId);
       }
 
       await Promise.all([
