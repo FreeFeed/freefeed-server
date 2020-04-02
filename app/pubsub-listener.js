@@ -22,7 +22,7 @@ import config from 'config';
 
 import { dbAdapter, AppTokenV1 } from './models';
 import { eventNames } from './support/PubSubAdapter';
-import { difference as listDifference, intersection as listIntersection } from './support/open-lists';
+import { List } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
@@ -230,7 +230,7 @@ export default class PubsubListener {
           // could not see post before. They should
           // receive a 'post:new' event.
 
-          const newUserIds = listIntersection(json.newUserIds, userIds).items;
+          const newUserIds = List.intersection(json.newUserIds, userIds).items;
           const newUserRooms = flatten(
             destSockets
               .filter((s) => newUserIds.includes((s.user.id)))
@@ -245,7 +245,7 @@ export default class PubsubListener {
             this._postEventEmitter,
           );
 
-          userIds = listDifference(userIds, newUserIds).items;
+          userIds = List.difference(userIds, newUserIds).items;
         }
 
         if (json.removedUserIds && !json.removedUserIds.isEmpty()) {
@@ -253,7 +253,7 @@ export default class PubsubListener {
           // can not see post anymore. They should
           // receive a 'post:destroy' event.
 
-          const removedUserIds = listIntersection(json.removedUserIds, userIds).items;
+          const removedUserIds = List.intersection(json.removedUserIds, userIds).items;
           const removedUserRooms = flatten(
             destSockets
               .filter((s) => removedUserIds.includes((s.user.id)))
@@ -266,7 +266,7 @@ export default class PubsubListener {
             { meta: { postId: post.id } },
           );
 
-          userIds = listDifference(userIds, removedUserIds).items;
+          userIds = List.difference(userIds, removedUserIds).items;
         }
 
         users = users.filter((u) => userIds.includes(u.id));
@@ -340,8 +340,8 @@ export default class PubsubListener {
       // destinations it will become invisible or visible for the some users.
       // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
       const currentUserIds = await post.usersCanSeePostIds();
-      json.newUserIds = listDifference(currentUserIds, usersBeforeIds);
-      json.removedUserIds = listDifference(usersBeforeIds, currentUserIds);
+      json.newUserIds = List.difference(currentUserIds, usersBeforeIds);
+      json.removedUserIds = List.difference(usersBeforeIds, currentUserIds);
     }
 
     await this.broadcastMessage(

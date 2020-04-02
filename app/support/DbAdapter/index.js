@@ -17,9 +17,9 @@ import likesTrait from './likes';
 import commentsTrait from './comments';
 import feedsTrait from './feeds';
 import postsTrait from './posts';
+import timelinesPostsTrait from './timelines-posts';
 import subscriptionsTrait from './subscriptions';
 import localBumpsTrait from './local-bumps';
-import searchTrait from './search';
 import hashtagsTrait from './hashtags';
 import unreadDirectsTrait from './unread-directs';
 import statsTrait from './stats';
@@ -31,6 +31,7 @@ import invitationsTrait from './invitations';
 import appTokensTrait from './app-tokens';
 import externalAuthTrait from './external-auth';
 import serverInfoTrait from './server-info';
+import searchTrait from './search';
 
 
 promisifyAll(redis.RedisClient.prototype);
@@ -71,9 +72,9 @@ export const DbAdapter = _.flow([
   commentsTrait,
   feedsTrait,
   postsTrait,
+  timelinesPostsTrait,
   subscriptionsTrait,
   localBumpsTrait,
-  searchTrait,
   hashtagsTrait,
   unreadDirectsTrait,
   statsTrait,
@@ -85,4 +86,5 @@ export const DbAdapter = _.flow([
   appTokensTrait,
   externalAuthTrait,
   serverInfoTrait,
+  searchTrait,
 ])(DbAdapterBase);

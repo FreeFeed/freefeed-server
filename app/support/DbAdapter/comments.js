@@ -1,6 +1,7 @@
 import validator from 'validator'
 
 import { Comment } from '../../models';
+import { toTSVector } from '../search/to-tsvector';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -11,6 +12,11 @@ import { initObject, prepareModelPayload } from './utils';
 const commentsTrait = (superClass) => class extends superClass {
   async createComment(payload) {
     const preparedPayload = prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
+    preparedPayload.body_tsvector = this.database.raw(
+      // raw() interprets '?' chars as positional placeholders so we must escape them
+      // https://github.com/knex/knex/issues/2622
+      toTSVector(preparedPayload.body).replace(/\?/g, '\\?')
+    );
     const res = await this.database('comments').returning('uid').insert(preparedPayload)
     return res[0]
   }
@@ -42,10 +48,18 @@ const commentsTrait = (superClass) => class extends superClass {
     return res.id;
   }
 
-  updateComment(commentId, payload) {
+  async updateComment(commentId, payload) {
     const preparedPayload = prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
 
-    return this.database('comments').where('uid', commentId).update(preparedPayload)
+    if ('body' in preparedPayload) {
+      preparedPayload.body_tsvector = this.database.raw(
+        // raw() interprets '?' chars as positional placeholders so we must escape them
+        // https://github.com/knex/knex/issues/2622
+        toTSVector(preparedPayload.body).replace(/\?/g, '\\?')
+      );
+    }
+
+    return await this.database('comments').where('uid', commentId).update(preparedPayload)
   }
 
   deleteComment(commentId, postId) {
