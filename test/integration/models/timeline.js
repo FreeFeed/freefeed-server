@@ -1,6 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
 import cleanDB from '../../dbCleaner'
 import { dbAdapter, Timeline, User } from '../../../app/models'
@@ -11,7 +11,7 @@ describe('Timeline', () => {
 
   describe('#create()', () => {
     it('should create without error', (done) => {
-      const userId = uuid.v4()
+      const userId = uuidv4();
       const timeline = new Timeline({
         name: 'name',
         userId
@@ -36,7 +36,7 @@ describe('Timeline', () => {
     })
 
     it('should ignore whitespaces in name', (done) => {
-      const userId = uuid.v4()
+      const userId = uuidv4();
       const name = '   name    '
       const timeline = new Timeline({ name, userId })
 
@@ -54,7 +54,7 @@ describe('Timeline', () => {
     })
 
     it('should not create with empty name', (done) => {
-      const userId = uuid.v4()
+      const userId = uuidv4();
       const timeline = new Timeline({
         name: '',
         userId
@@ -70,7 +70,7 @@ describe('Timeline', () => {
 
   describe('#findById()', () => {
     it('should find timeline with a valid id', (done) => {
-      const userId = uuid.v4()
+      const userId = uuidv4();
       const timeline = new Timeline({
         name: 'name',
         userId

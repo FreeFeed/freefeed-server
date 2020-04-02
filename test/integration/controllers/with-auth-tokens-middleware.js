@@ -3,7 +3,7 @@
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
 import jwt from 'jsonwebtoken'
-import uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';

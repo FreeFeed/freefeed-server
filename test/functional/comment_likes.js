@@ -3,7 +3,7 @@
 
 import fetch from 'node-fetch'
 import expect from 'unexpected'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 import validator from 'validator'
 
 import cleanDB from '../dbCleaner'
@@ -48,7 +48,7 @@ describe('Comment likes', () => {
   describe('CommentLikesController', () => {
     describe('#like', () => {
       it('should reject unauthenticated users', async () => {
-        const res = await likeComment(uuid.v4());
+        const res = await likeComment(uuidv4());
         expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
       });
 
@@ -71,7 +71,7 @@ describe('Comment likes', () => {
           });
 
           it('should not allow to like nonexisting comment', async () => {
-            const res = await likeComment(uuid.v4(), luna);
+            const res = await likeComment(uuidv4(), luna);
             expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find comment"));
           });
 
@@ -267,7 +267,7 @@ describe('Comment likes', () => {
 
     describe('#unlike', () => {
       it('should reject unauthenticated users', async () => {
-        const res = await unlikeComment(uuid.v4());
+        const res = await unlikeComment(uuidv4());
         expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
       });
 
@@ -290,7 +290,7 @@ describe('Comment likes', () => {
           });
 
           it('should not allow to unlike nonexisting comment', async () => {
-            const res = await unlikeComment(uuid.v4(), luna);
+            const res = await unlikeComment(uuidv4(), luna);
             expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find comment"));
           });
 
@@ -535,7 +535,7 @@ describe('Comment likes', () => {
       });
 
       it('should not allow to show likes of nonexisting comment', async () => {
-        const res = await getCommentLikes(uuid.v4(), luna);
+        const res = await getCommentLikes(uuidv4(), luna);
         expect(res, 'to exhaustively satisfy', apiErrorExpectation(404, "Can't find comment"));
       });
 

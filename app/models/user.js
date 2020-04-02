@@ -8,7 +8,7 @@ import GraphemeBreaker from 'grapheme-breaker';
 import _ from 'lodash';
 import monitor from 'monitor-dog';
 import validator from 'validator';
-import uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import config from 'config';
 
 import { getS3 } from '../support/s3';
