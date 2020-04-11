@@ -51,7 +51,7 @@ process.stdout.write(`\n`);
           .join('');
 
         // eslint-disable-next-line no-await-in-loop
-        await dbAdapter.database.raw(sql.replace(/\?/g, '\\?'));
+        await dbAdapter.database.transaction(async (trx) => await trx.raw(sql.replace(/\?/g, '\\?')));
 
         indexed += rows.length;
         lastUID = rows[rows.length - 1].uid;
