@@ -1,31 +1,29 @@
 on:
-  push:
+  pull_request:
     branches:
       - stable
-      - unstable
       - release
+  push:
+    tags:
+      - '**'
+
 
 name: Build and push docker image
 
-env:
-  NODE_CONFIG_ENV: ${{ github.base_ref }}
-
 jobs:
   build:
-    name: Build
+    name: Build and push docker image
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Build docker image
-      run: make latest
-
-    - name: Login to Docker hub
-      run: echo '${{ secrets.DOCKER_HUB_TOKEN }}' | docker login --username dyachkov --password-stdin
-
-    - name: Push the image
-      run: |
-        make push
-        make push-latest
+    - name: Build and push docker image
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: freefeed/freefeed-server
+        tag_with_ref: true
+        tags: latest

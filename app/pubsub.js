@@ -17,6 +17,8 @@ export class DummyPublisher {
   commentLikeAdded() {}
   commentLikeRemoved() {}
   globalUserUpdated() {}
+  postSaved() {}
+  postUnsaved() {}
 }
 
 export default class pubSub {

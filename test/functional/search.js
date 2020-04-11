@@ -42,7 +42,7 @@ describe('SearchController', () => {
       expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
-    it('should not allow empty query', async () => {
+    it('should return empty response on empty query', async () => {
       const response = await funcTestHelper.performSearch(anonContext, '');
       expect(response, 'to satisfy', { posts: [] });
     });
@@ -128,7 +128,7 @@ describe('SearchController', () => {
         it('should not search for group posts as anonymous', async () => {
           await expect(
             funcTestHelper.performSearch(anonContext, 'group:lunagroup hello'),
-            'when fulfilled', 'to satisfy', { err: expect.it('to be a string') });
+            'when fulfilled', 'to satisfy', { posts: [] });
         });
 
         it('should not search for user posts in group as anonymous', async () => {

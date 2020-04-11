@@ -2,7 +2,7 @@
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
-import Router from 'koa-router';
+import Router from '@koa/router';
 import config from 'config';
 
 import { reportError } from './support/exceptions';
