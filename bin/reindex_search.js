@@ -1,10 +1,25 @@
+import { program } from 'commander';
+
 import { dbAdapter } from '../app/models';
 import { toTSVector } from '../app/support/search/to-tsvector';
 
 // Reindex search columns in 'posts' and 'comments' tables.
-// Usage: yarn babel-node bin/reindex_search.js
+// Usage: yarn babel-node bin/reindex_search.js --help
 
-const batchSize = 1000;
+program
+  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), '1000')
+  .option('--delay <delay>', 'delay between batches, seconds', (v) => parseInt(v, 10), '1');
+program.parse(process.argv);
+
+const { batchSize, delay } = program;
+
+if (!isFinite(batchSize) || !isFinite(delay)) {
+  process.stderr.write(`⛔ Invalid program option\n`);
+  program.help();
+}
+
+process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delay}\n`);
+process.stdout.write(`\n`);
 
 (async () => {
   try {
@@ -42,13 +57,16 @@ const batchSize = 1000;
         lastUID = rows[rows.length - 1].uid;
 
         process.stdout.write(`\tindexed ${indexed} ${table}\n`);
+
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => setTimeout(resolve, 1000 * delay));
       }
 
       process.stdout.write(
-        `All ${table} indexed, starting VACUUM FULL ANALYZE...\n`
+        `All ${table} indexed, starting VACUUM ANALYZE...\n`
       );
       // eslint-disable-next-line no-await-in-loop
-      await dbAdapter.database.raw(`vacuum full analyze ${table}`);
+      await dbAdapter.database.raw(`vacuum analyze ${table}`);
       process.stdout.write(`Done with ${table}.\n`);
     }
 
