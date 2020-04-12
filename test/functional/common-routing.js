@@ -1,5 +1,9 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
+import { promises as fs } from 'fs';
+import path from 'path';
+
+import config from 'config';
 import fetch from 'node-fetch'
 import expect from 'unexpected'
 
@@ -48,5 +52,35 @@ describe('Common API routing', () => {
     const user = await createTestUser();
     const result = await updateUserAsync(user, { screenName: newName.normalize('NFD') }).then((r) => r.json());
     expect(result.users.screenName, 'to be', newName.normalize('NFC'));
+  });
+
+  it(`should response '503 Service Unavailable' if MAINTENANCE.txt is exists`, async () => {
+    const { messageFile } = config.maintenance;
+
+    await fs.mkdir(path.dirname(messageFile), { recursive: true });
+    await fs.writeFile(messageFile, 'Maintenance message', { flag: 'w' });
+
+    try {
+      const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`);
+      expect(resp.status, 'to be', 503);
+      const respData = await resp.json();
+      expect(respData, 'to satisfy', { err: 'Maintenance message', errType: 'ServiceUnavailable.Maintenance' });
+    } finally {
+      await fs.unlink(messageFile);
+    }
+  });
+
+  it(`should response '200 OK' for OPRIONS requests even if MAINTENANCE.txt is exists`, async () => {
+    const { messageFile } = config.maintenance;
+
+    await fs.mkdir(path.dirname(messageFile), { recursive: true });
+    await fs.writeFile(messageFile, 'Maintenance message', { flag: 'w' });
+
+    try {
+      const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, { method: 'OPTIONS' });
+      expect(resp.status, 'to be', 200);
+    } finally {
+      await fs.unlink(messageFile);
+    }
   });
 });
