@@ -33,6 +33,7 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
+import { maintenanceCheck } from './support/maintenance';
 
 
 export default function (app) {
@@ -80,6 +81,8 @@ export default function (app) {
   ExtAuthRoute(router);
 
   app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
+
+  app.use(maintenanceCheck);
 
   app.use(async (ctx, next) => {
     try {

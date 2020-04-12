@@ -214,6 +214,8 @@ config.registrationsLimit = {
 
 config.search = { maxQueryComplexity: 30 };
 
+config.maintenance = { messageFile: 'tmp/MAINTENANCE.txt' };
+
 config.eslint = { linebreakStyle: null };
 
 module.exports = config;
