@@ -146,21 +146,21 @@ const searchTrait = (superClass) =>
         sqlIn('c.user_id', allContentAuthors)
       ]);
 
+      let postsFeedsSQL = andJoin([
+        ...postsFeedIdsLists.map((list) =>
+          sqlIntarrayIn('p.feed_ids', list)
+        )
+      ]);
+
+      // Special hack for in-my:discussions
+      if (orPostsFromMe) {
+        postsFeedsSQL = orJoin([postsFeedsSQL, pgFormat('p.user_id=%L', viewerId)], 'true');
+      }
+
       const inPostsSQL = andJoin([
         inPostsTSQuery && `p.body_tsvector @@ ${inPostsTSQuery}`,
         sqlIn('p.user_id', postAuthors),
-        orJoin(
-          [
-            andJoin([
-              ...postsFeedIdsLists.map((list) =>
-                sqlIntarrayIn('p.feed_ids', list)
-              )
-            ]),
-            // Special hack for in-my:discussions
-            orPostsFromMe && pgFormat('p.user_id=%L', viewerId)
-          ],
-          'true'
-        )
+        postsFeedsSQL
       ]);
 
       const inCommentsSQL = andJoin([
@@ -319,6 +319,7 @@ const searchTrait = (superClass) =>
               (!!condToFeedNames[t.condition] || t.condition === 'in-my')
           )
           .map(async (t) => {
+            // in:, commented-by:, liked-by:
             if (condToFeedNames[t.condition]) {
               const userIds = uniq(t.args)
                 .map((n) => accountsMap[n] && accountsMap[n].id)

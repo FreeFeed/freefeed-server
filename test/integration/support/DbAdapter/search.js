@@ -351,7 +351,16 @@ describe('Search', () => {
           {
             query:  'from:venus -commented-by:mars',
             filter: () => false
-          }
+          },
+          {
+            query:   'in:jupiter luna',
+            filter:  () => false,
+            comment: 'Non-existing user/group',
+          },
+          {
+            query:  'in:luna,jupiter',
+            filter: (p) => p.userId === luna.id,
+          },
         ]);
         describe('Luna likes some post', () => {
           let likedPost;
