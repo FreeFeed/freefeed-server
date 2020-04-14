@@ -351,7 +351,16 @@ describe('Search', () => {
           {
             query:  'from:venus -commented-by:mars',
             filter: () => false
-          }
+          },
+          {
+            query:   'in:jupiter luna',
+            filter:  () => false,
+            comment: 'Non-existing user/group',
+          },
+          {
+            query:  'in:luna,jupiter',
+            filter: (p) => p.userId === luna.id,
+          },
         ]);
         describe('Luna likes some post', () => {
           let likedPost;
@@ -399,27 +408,42 @@ describe('Search', () => {
             {
               query:      'in-my:saves',
               viewerName: 'luna',
-              filter:     (p) => postsToSave.map((p1) => p1.id).includes(p.id)
+              filter:     (p) => postsToSave.map((p1) => p1.id).includes(p.id),
             },
             {
               query:      'in-my:friends',
               viewerName: 'luna',
-              filter:     (p) => p.userId === mars.id || p.userId === luna.id
+              filter:     (p) => p.userId === mars.id || p.userId === luna.id,
             },
             {
               query:      'in-my:discussions',
               viewerName: 'luna',
               filter:     (p) =>
                 p.userId === luna.id ||
-                postsToLike.map((p1) => p1.id).includes(p.id)
+                postsToLike.map((p1) => p1.id).includes(p.id),
             },
             {
               query:      '-in-my:discussions',
               viewerName: 'luna',
               filter:     (p) =>
                 p.userId !== luna.id &&
-                !postsToLike.map((p1) => p1.id).includes(p.id)
-            }
+                !postsToLike.map((p1) => p1.id).includes(p.id),
+            },
+            {
+              query:      'in-my:discussions in-body:mars',
+              viewerName: 'luna',
+              filter:     (p) =>
+                (p.userId === luna.id ||
+                  postsToLike.map((p1) => p1.id).includes(p.id)) &&
+                /mars/.test(p.body),
+              comment: 'word with filter',
+            },
+            {
+              query:      'in-my:something',
+              viewerName: 'luna',
+              filter:     () => false,
+              comment:    'invalid feed name',
+            },
           ]);
         });
 
