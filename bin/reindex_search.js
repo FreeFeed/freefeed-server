@@ -1,5 +1,6 @@
 import { program } from 'commander';
 
+import { configure as configurePostgres } from '../app/setup/postgres';
 import { dbAdapter } from '../app/models';
 import { toTSVector } from '../app/support/search/to-tsvector';
 
@@ -23,6 +24,8 @@ process.stdout.write(`\n`);
 
 (async () => {
   try {
+    await configurePostgres();
+
     for (const table of ['posts', 'comments']) {
       process.stdout.write(`Indexing ${table}...\n`);
 
