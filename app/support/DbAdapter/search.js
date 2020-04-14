@@ -372,20 +372,30 @@ const searchTrait = (superClass) =>
 
 export default searchTrait;
 
-function andJoin(array, def = 'true') {
-  if (array.some((x) => x === 'false')) {
-    return 'false';
+function joinThem(array, joinBy, defaultValue, shortcutValue, skipValue) {
+  if (array.some((x) => x === shortcutValue)) {
+    return shortcutValue;
   }
 
-  return array.filter((x) => !!x && x !== 'true').join(' and ') || def;
+  const parts = array.filter((x) => !!x && x !== skipValue);
+
+  if (parts.length === 0) {
+    return defaultValue;
+  }
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+  return `(${parts.join(` ${joinBy} `)})`;
+}
+
+function andJoin(array, def = 'true') {
+  return joinThem(array, 'and', def, 'false', 'true');
 }
 
 function orJoin(array, def = 'false') {
-  if (array.some((x) => x === 'true')) {
-    return 'true';
-  }
-
-  return array.filter((x) => !!x && x !== 'false').join(' or ') || def;
+  return joinThem(array, 'or', def, 'true', 'false');
 }
 
 function walkWithScope(tokens, action) {
