@@ -1,11 +1,14 @@
 import XRegExp from 'xregexp';
 import pgFormat from 'pg-format';
 import { Link, HashTag, Mention } from 'social-text-tokenizer';
+import config from 'config';
 
 import { tokenize } from '../tokenize-text';
 
 import { linkToText } from './norm';
 
+
+const ftsCfg = config.postgres.textSearchConfigName;
 
 export const IN_POSTS = 1,
   IN_COMMENTS = 2,
@@ -68,10 +71,10 @@ export class Text {
               : token.text;
           return pgFormat(`%L::tsquery`, exactText);
         } else if (token instanceof Link) {
-          return pgFormat('phraseto_tsquery(%L)', linkToText(token));
+          return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(token));
         }
 
-        return pgFormat('phraseto_tsquery(%L)', token.text);
+        return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, token.text);
       });
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
@@ -83,10 +86,10 @@ export class Text {
     const [firstToken] = tokenize(this.text);
 
     if (firstToken instanceof Link) {
-      return prefix + pgFormat('phraseto_tsquery(%L)', linkToText(firstToken));
+      return prefix + pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(firstToken));
     }
 
-    return prefix + pgFormat(`plainto_tsquery(%L)`, this.text);
+    return prefix + pgFormat(`plainto_tsquery(%L, %L)`, ftsCfg, this.text);
   }
 }
 
