@@ -590,8 +590,9 @@ describe('Search', () => {
         filter: () => false
       },
       {
-        query:  'fruit apples',
-        filter: (p) => /apple.com/.test(p.body)
+        query:   'fruit appl',
+        filter:  (p) => /apple.com/.test(p.body),
+        comment: 'test wordforms'
       },
       {
         query:  'adobe.com',
