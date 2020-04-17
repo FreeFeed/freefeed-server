@@ -5,11 +5,10 @@ import config from 'config';
 import { promisify, promisifyAll } from 'bluebird';
 import createDebug from 'debug';
 import gm from 'gm';
-import { parseStream as mmParseStream } from 'music-metadata';
+import { parseFile } from 'music-metadata';
+import { fromFile } from 'file-type';
 import mime from 'mime-types';
 import mmm from 'mmmagic';
-import readChunk from 'read-chunk';
-import fileType from 'file-type';
 import _ from 'lodash';
 import mv from 'mv';
 import gifsicle from 'gifsicle';
@@ -30,9 +29,7 @@ const debug = createDebug('freefeed:model:attachment');
 
 async function mimeTypeDetect(fileName, filePath) {
   // The file type is detected by checking the magic number of the buffer.
-  // It only needs the first "minimumBytes" bytes.
-  const buffer = await readChunk(filePath, 0, fileType.minimumBytes);
-  const info = fileType(buffer);
+  const info = await fromFile(filePath);
 
   if (info && info.mime && info.mime !== 'application/octet-stream') {
     return info.mime;
@@ -292,12 +289,7 @@ export function addModel(dbAdapter) {
         }
 
         // Analyze metadata to get Artist & Title
-        const readStream = createReadStream(tmpAttachmentFile);
-        const { common: metadata } = await mmParseStream(
-          readStream,
-          this.mimeType,
-          { mergeTagHeaders: true }
-        );
+        const { common: metadata } = await parseFile(tmpAttachmentFile);
 
         debug(`Metadata of ${tmpAttachmentFileName}`, metadata);
 
