@@ -1,6 +1,9 @@
 {
   "retainLines": true,
   "sourceMaps": "both",
+  "presets": [
+    "@babel/preset-typescript"
+  ],
   "plugins": [
     "@babel/syntax-class-properties",
     "@babel/syntax-export-default-from",
