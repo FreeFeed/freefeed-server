@@ -71,23 +71,22 @@ process.stdout.write(`\n`);
           break;
         }
 
-        const sql = rows
-          .map(
-            (r) =>
-              `update ${table} set body_tsvector = ${toTSVector(
-                r.body
-              )} where uid = '${r.uid}';`
-          )
-          .join('');
-
-        await dbAdapter.database.transaction(async (trx) => await trx.raw(sql.replace(/\?/g, '\\?')));
+        const start = Date.now();
+        await dbAdapter.database.transaction(async (trx) => {
+          await trx.raw(`create temp table ftsdata (uid uuid, vector tsvector) on commit drop`);
+          await trx('ftsdata').insert(
+            rows.map((r) => ({ uid: r.uid, vector: trx.raw(toTSVector(r.body).replace(/\?/g, '\\?')) }))
+          );
+          await trx.raw(`update ${table} set body_tsvector = vector from ftsdata where ${table}.uid = ftsdata.uid`);
+        });
 
         indexed += rows.length;
         lastUID = rows[rows.length - 1].uid;
 
 
         const percent = parseInt(lastUID.substr(0, 2), 16) * 100 >> 8;
-        process.stdout.write(`\tindexed ${indexed} ${table} (${percent}% of total)\n`);
+        const speed = Math.round(batchSize * 1000 / (Date.now() - start));
+        process.stdout.write(`\tindexed ${indexed} ${table} at ${speed} upd/sec (${percent}% of total)\n`);
 
         await Promise.all([
           saveStatus(lastUID, table),

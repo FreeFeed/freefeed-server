@@ -6276,10 +6276,10 @@ snapdragon@^0.8.1:
     source-map-resolve "^0.5.0"
     use "^3.1.0"
 
-social-text-tokenizer@~2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/social-text-tokenizer/-/social-text-tokenizer-2.1.0.tgz#9c5de6889ae55aa9814d8ec1253960093d72ea7c"
-  integrity sha512-ZtBgbPa7NBJXR2fqgBMwHgkqcInhbuJ1AmHIrzjjkf6lcxojZqAFZnaEqr50iFlFKTkorExd++AvYK+u8SHS0w==
+social-text-tokenizer@~2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/social-text-tokenizer/-/social-text-tokenizer-2.1.1.tgz#598c69ead68f125e810675b2ca97e19879f5b3d5"
+  integrity sha512-wUgN76V4K2s684NEaUm1SFlggKzkYh+rxfTz94MJ6RNMExlmX3d9IHANZIX4QHIo+RLoZi0npi3q95d2OCliag==
   dependencies:
     lodash.escaperegexp "^4.1.2"
     punycode "^2.1.1"
