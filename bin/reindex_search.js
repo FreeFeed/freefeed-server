@@ -18,10 +18,12 @@ const statusFile =  path.join(__dirname, '../tmp/reindex_search.json');
 program
   .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), '1000')
   .option('--delay <delay>', 'delay between batches, seconds', (v) => parseInt(v, 10), '1')
+  .option('--retries <count>', 'count of retries in case of failure', (v) => parseInt(v, 10), '10')
+  .option('--timeout <timeout>', 'timeout of transaction in PostgreSQL syntax', '1min')
   .option('--restart', 'start indexing from the beginning');
 program.parse(process.argv);
 
-const { batchSize, delay } = program;
+const { batchSize, delay, retries, timeout } = program;
 
 if (!isFinite(batchSize) || !isFinite(delay)) {
   process.stderr.write(`⛔ Invalid program option\n`);
@@ -71,14 +73,32 @@ process.stdout.write(`\n`);
           break;
         }
 
-        const start = Date.now();
-        await dbAdapter.database.transaction(async (trx) => {
-          await trx.raw(`create temp table ftsdata (uid uuid, vector tsvector) on commit drop`);
-          await trx('ftsdata').insert(
-            rows.map((r) => ({ uid: r.uid, vector: trx.raw(toTSVector(r.body).replace(/\?/g, '\\?')) }))
-          );
-          await trx.raw(`update ${table} set body_tsvector = vector from ftsdata where ${table}.uid = ftsdata.uid`);
-        });
+        let start = Date.now();
+        let attemptsLeft = retries;
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          try {
+            await dbAdapter.database.transaction(async (trx) => {
+              // Cannot use placeholder here: Postgres doesn't allow prepared statements for 'set'
+              await trx.raw(`set local statement_timeout to '${timeout.replace(/'/g, `''`)}'`);
+              await trx.raw(`create temp table ftsdata (uid uuid, vector tsvector) on commit drop`);
+              await trx('ftsdata').insert(
+                rows.map((r) => ({ uid: r.uid, vector: trx.raw(toTSVector(r.body).replace(/\?/g, '\\?')) }))
+              );
+              await trx.raw(`update ${table} set body_tsvector = vector from ftsdata where ${table}.uid = ftsdata.uid`);
+            });
+            break;
+          } catch (e) {
+            if (e.code === '57014' /* query_canceled */ && attemptsLeft > 0) {
+              process.stdout.write(`\tquery canceled at ${Date.now() - start} ms, retrying...\n`);
+              start = Date.now();
+              attemptsLeft--;
+            } else {
+              throw e;
+            }
+          }
+        }
 
         indexed += rows.length;
         lastUID = rows[rows.length - 1].uid;
