@@ -73,11 +73,12 @@ process.stdout.write(`\n`);
           break;
         }
 
-        let start = Date.now();
         let attemptsLeft = retries;
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
+          const start = Date.now();
+
           try {
             await dbAdapter.database.transaction(async (trx) => {
               // Cannot use placeholder here: Postgres doesn't allow prepared statements for 'set'
@@ -88,30 +89,28 @@ process.stdout.write(`\n`);
               );
               await trx.raw(`update ${table} set body_tsvector = vector from ftsdata where ${table}.uid = ftsdata.uid`);
             });
+
+            indexed += rows.length;
+            lastUID = rows[rows.length - 1].uid;
+
+            const percent = parseInt(lastUID.substr(0, 2), 16) * 100 >> 8;
+            const speed = Math.round(batchSize * 1000 / (Date.now() - start));
+            process.stdout.write(`\tindexed ${indexed} ${table} at ${speed} upd/sec (${percent}% of total)\n`);
+
+            await saveStatus(lastUID, table);
+
             break;
           } catch (e) {
             if (e.code === '57014' /* query_canceled */ && attemptsLeft > 0) {
               process.stdout.write(`\tquery canceled at ${Date.now() - start} ms, retrying...\n`);
-              start = Date.now();
               attemptsLeft--;
             } else {
               throw e;
             }
           }
+
+          await new Promise((resolve) => setTimeout(resolve, 1000 * delay));
         }
-
-        indexed += rows.length;
-        lastUID = rows[rows.length - 1].uid;
-
-
-        const percent = parseInt(lastUID.substr(0, 2), 16) * 100 >> 8;
-        const speed = Math.round(batchSize * 1000 / (Date.now() - start));
-        process.stdout.write(`\tindexed ${indexed} ${table} at ${speed} upd/sec (${percent}% of total)\n`);
-
-        await Promise.all([
-          saveStatus(lastUID, table),
-          new Promise((resolve) => setTimeout(resolve, 1000 * delay)),
-        ]);
       }
 
       process.stdout.write(
