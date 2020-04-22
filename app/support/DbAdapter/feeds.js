@@ -8,6 +8,11 @@ import { initObject, prepareModelPayload } from './utils';
 // Feeds
 ///////////////////////////////////////////////////
 
+// By default this trait methods returns only *inherent* user timelines (with
+// ord is null) that was created with user account. The user-created *auxiliary*
+// RiverOfNews timelines (with non-null 'ord') are handled by a separate methods
+// with explicit mention in comment.
+
 const feedsTrait = (superClass) => class extends superClass {
   async createTimeline(payload) {
     const preparedPayload = prepareModelPayload(payload, FEED_COLUMNS, FEED_COLUMNS_MAPPING)
@@ -16,22 +21,12 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   createUserTimelines(userId, timelineNames) {
-    const currentTime = new Date().getTime()
-    const promises = timelineNames.map((n) => {
-      const payload = {
-        'name':      n,
-        userId,
-        'createdAt': currentTime.toString(),
-        'updatedAt': currentTime.toString()
-      }
-      return this.createTimeline(payload)
-    })
-    return Promise.all(promises)
+    return Promise.all(timelineNames.map((name) => this.createTimeline({ name, userId })));
   }
 
   async cacheFetchUserTimelinesIds(userId) {
     // cacheVersion should change when all users' feeds sets changes.
-    const cacheVersion = 1;
+    const cacheVersion = 2;
     const cacheKey = `timelines_user_${cacheVersion}_${userId}`;
 
     // Check the cache first
@@ -43,7 +38,7 @@ const feedsTrait = (superClass) => class extends superClass {
     }
 
     // Cache miss, read from the database
-    const res = await this.database('feeds').where('user_id', userId);
+    const res = await this.database('feeds').where({ 'user_id': userId, ord: null });
     const timelines = {};
 
     for (const name of User.feedNames) {
@@ -94,8 +89,16 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getTimelinesByIntIds(ids, params) {
-    const responses = await this.database('feeds').whereIn('id', ids).orderByRaw(`position(id::text in '${ids.toString()}')`);
-    return responses.map((r) => initTimelineObject(r, params));
+    const { rows } = await this.database.raw(
+      `select f.* 
+      from
+        unnest(:ids::int[]) with ordinality as src (id, ord)
+        join feeds f on f.id = src.id
+      order by src.ord
+      `,
+      { ids }
+    );
+    return rows.map((r) => initTimelineObject(r, params));
   }
 
   async getTimelinesIntIdsByUUIDs(uuids) {
@@ -130,10 +133,8 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getUserNamedFeedId(userId, name) {
-    const response = await this.database('feeds').select('uid').where({
-      user_id: userId,
-      name
-    });
+    const response = await this.database('feeds').select('uid')
+      .where({ user_id: userId, name, ord: null });
 
     if (response.length === 0) {
       return null;
@@ -143,10 +144,8 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getUserNamedFeed(userId, name, params) {
-    const response = await this.database('feeds').first().returning('uid').where({
-      user_id: userId,
-      name
-    });
+    const response = await this.database('feeds').first().returning('uid')
+      .where({ user_id: userId, name, ord: null });
     return initTimelineObject(response, params);
   }
 
@@ -157,6 +156,7 @@ const feedsTrait = (superClass) => class extends superClass {
       from
         unnest(:names::text[]) with ordinality as src (name, ord)
         left join feeds f on f.user_id = :userId and f.name = src.name
+      where f.ord is null
       order by src.ord
       `,
       { userId, names }
@@ -165,7 +165,10 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   async getUsersNamedFeedsIntIds(userIds, names) {
-    const responses = await this.database('feeds').select('id').where('user_id', 'in', userIds).where('name', 'in', names);
+    const responses = await this.database('feeds').select('id')
+      .where('user_id', 'in', userIds)
+      .where('name', 'in', names)
+      .where({ ord: null });
     return responses.map((record) => record.id);
   }
 
@@ -175,6 +178,7 @@ const feedsTrait = (superClass) => class extends superClass {
       from
         unnest(:userIds::uuid[]) with ordinality as src (uid, ord)
         join feeds f on f.user_id = src.uid and f.name = :name
+      where f.ord is null
       order by src.ord
       `,
       { userIds, name }
@@ -200,7 +204,8 @@ const FEED_COLUMNS = {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   name:      'name',
-  userId:    'user_id'
+  userId:    'user_id',
+  title:     'title',
 }
 
 const FEED_COLUMNS_MAPPING = {
@@ -222,11 +227,16 @@ const FEED_FIELDS = {
   created_at: 'createdAt',
   updated_at: 'updatedAt',
   name:       'name',
-  user_id:    'userId'
+  user_id:    'userId',
+  title:      'title',
+  ord:        'ord',
 }
 
 const FEED_FIELDS_MAPPING = {
   created_at: (time) => { return time.getTime().toString() },
   updated_at: (time) => { return time.getTime().toString() },
-  user_id:    (user_id) => {return user_id ? user_id : ''}
+  user_id:    (user_id) => {return user_id ? user_id : ''},
+  title:      (title, { name }) =>  name === 'RiverOfNews' && title === null
+    ? Timeline.defaultRiverOfNewsTitle
+    : title,
 }

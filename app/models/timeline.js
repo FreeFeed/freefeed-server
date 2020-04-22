@@ -38,6 +38,13 @@ export function addModel(dbAdapter) {
     limit;
     currentUser;
     name_;
+    title;
+    // The *inherent* feeds are created with account itself and cannot be
+    // modified or deleted. If isInherent is false, the feed is *auxiliary*, and
+    // it can be modified or deleted.
+    isInherent;
+
+    static defaultRiverOfNewsTitle = 'Home Feed';
 
     constructor(params) {
       this.id = params.id;
@@ -45,6 +52,8 @@ export function addModel(dbAdapter) {
       this.name = params.name;
       this.userId = params.userId;
       this.user = null;
+      this.title = params.title || null;
+      this.isInherent = params.ord === null;
 
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;

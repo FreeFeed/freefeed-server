@@ -14,7 +14,10 @@ export function prepareModelPayload(payload, namesMapping, valuesMapping) {
 
   for (const key of keys) {
     const mappedKey = namesMapping[key];
-    const mappedVal = valuesMapping[key] ? valuesMapping[key](payload[key]) : payload[key];
+    const mappedVal = valuesMapping[key]
+      // Passing payload as the second argument for cross-keys dependencies
+      ? valuesMapping[key](payload[key], payload)
+      : payload[key];
     result[mappedKey] = mappedVal;
   }
 
