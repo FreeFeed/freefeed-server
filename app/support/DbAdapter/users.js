@@ -428,6 +428,11 @@ const usersTrait = (superClass) => class extends superClass {
       .whereRaw(`preferences -> 'sendWeeklyBestOfDigest' = 'true'::jsonb`);
     return users.map(initUserObject);
   }
+
+  async deleteUser(uid) {
+    await this.database('users').where({ uid }).delete();
+    await this.cacheFlushUser(uid)
+  }
 };
 
 export default usersTrait;

@@ -181,11 +181,6 @@ const feedsTrait = (superClass) => class extends superClass {
     );
     return rows.map((r) => initTimelineObject(r, params));
   }
-
-  async deleteUser(uid) {
-    await this.database('users').where({ uid }).delete();
-    await this.cacheFlushUser(uid)
-  }
 };
 
 export default feedsTrait;
