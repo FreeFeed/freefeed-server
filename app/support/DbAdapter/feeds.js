@@ -149,6 +149,43 @@ const feedsTrait = (superClass) => class extends superClass {
     return initTimelineObject(response, params);
   }
 
+  /**
+   * Returns all (incuding auxiliary) user's feeds with the given name
+   *
+   * @param {string} userId
+   * @param {string} name
+   * @returns {Promise<Timeline[]>}
+   */
+  async getAllUserNamedFeed(userId, name) {
+    const { rows } = await this.database.raw(`select * from feeds 
+      where user_id = :userId and name = :name 
+      order by ord asc nulls first, created_at desc`, { userId, name });
+
+    return rows.map((r) => initTimelineObject(r));
+  }
+
+  /**
+   * Add a new auxiliary user's feed with the given name
+   *
+   * @param {string} userId
+   * @param {string} name
+   * @param {string} title
+   * @returns {Promise<Timeline>}
+   */
+  async addNamedFeed(userId, name, title) {
+    const [row] = await this.database('feeds').returning('*').insert({
+      title,
+      name,
+      user_id: userId,
+      ord:     this.database.raw(
+        '(select coalesce(max(ord), 0) + 1 from feeds where user_id = :userId and name = :name)',
+        { userId, name }
+      ),
+    });
+    return initTimelineObject(row);
+  }
+
+
   async getUserNamedFeedsIntIds(userId, names) {
     // Use unnest magic to ensure that ids will be in the same order as names
     const { rows } = await this.database.raw(
@@ -184,6 +221,62 @@ const feedsTrait = (superClass) => class extends superClass {
       { userIds, name }
     );
     return rows.map((r) => initTimelineObject(r, params));
+  }
+
+  /**
+   * Returns false if the feed is not exists or cannot be deleted
+   * @param {string} feedId
+   * @returns {Promise<boolean>}
+   */
+  async destroyFeed(feedId) {
+    const { rows } = await this.database.raw(
+      `delete from feeds where uid = :feedId and ord is not null returning 1`,
+      { feedId }
+    );
+    return rows.length > 0;
+  }
+
+  async updateFeed(feedId, { title }) {
+    const { rows: [row] } = await this.database.raw(
+      `update feeds set title = :title, updated_at = default
+        where uid = :feedId and ord is not null returning *`,
+      { feedId, title }
+    );
+    return row ? initTimelineObject(row) : null;
+  }
+
+  /**
+   * Reorders feeds in the order of the given UIDs. All feeds must have same
+   * names and must belong to the same user. Only  auxiliary feeds will be
+   * reordered.
+   *
+   * @param {string[]} feedIds
+   * @return {Promise<void>}
+   */
+  async reorderFeeds(feedIds) {
+    const { rows: feeds } = await this.database.raw(
+      `select f.*  from
+        unnest(:feedIds::uuid[]) with ordinality as src (uid, ord)
+        join feeds f on f.uid = src.uid
+        where f.ord is not null
+      order by src.ord`, { feedIds });
+
+    if (feeds.length <= 1) {
+      // Nothing to do
+      return;
+    }
+
+    if (feeds.some((f) => f.user_id !== feeds[0].user_id || f.name !== feeds[0].name)) {
+      // Feeds are not uniform
+      return;
+    }
+
+    feedIds = feeds.map((f) => f.uid);
+
+    await this.database.raw(
+      `update feeds set ord = src.ord, updated_at = default from
+        unnest(:feedIds::uuid[]) with ordinality as src (uid, ord)
+        where feeds.uid = src.uid`, { feedIds });
   }
 };
 

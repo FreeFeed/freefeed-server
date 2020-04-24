@@ -702,6 +702,21 @@ export function addModel(dbAdapter) {
     }
 
     /**
+     * @param {string} title
+     * @returns {Promise<Timeline>}
+     */
+    createHomeFeed(title) {
+      return dbAdapter.addNamedFeed(this.id, 'RiverOfNews', title)
+    }
+
+    /**
+     * @returns {Promise<Timeline[]>}
+     */
+    getHomeFeeds() {
+      return dbAdapter.getAllUserNamedFeed(this.id, 'RiverOfNews');
+    }
+
+    /**
      * @return {Timeline[]}
      */
     async getSubscriptions() {

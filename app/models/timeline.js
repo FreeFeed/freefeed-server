@@ -484,6 +484,34 @@ export function addModel(dbAdapter) {
       const banIds = await dbAdapter.getUsersBansOrWasBannedBy(readerId);
       return !banIds.includes(user.id);
     }
+
+    /**
+     * Only auxiliary feeds can be destroyed!
+     *
+     * @returns {Promise<boolean>} sucess of operation
+     */
+    destroy() {
+      return dbAdapter.destroyFeed(this.id);
+    }
+
+    /**
+     * Only auxiliary feeds can be updated!
+     *
+     * @returns {Promise<boolean>} sucess of operation
+     */
+    async update({ title }) {
+      const updated = await dbAdapter.updateFeed(this.id, { title });
+
+      if (!updated) {
+        return false;
+      }
+
+      for (const key of Object.keys(updated)) {
+        this[key] = updated[key];
+      }
+
+      return true;
+    }
   }
 
   return Timeline;
