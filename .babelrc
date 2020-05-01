@@ -1,12 +1,17 @@
 {
   "retainLines": true,
   "sourceMaps": "both",
+  "presets": [
+    "@babel/preset-typescript"
+  ],
   "plugins": [
     "@babel/syntax-class-properties",
     "@babel/syntax-export-default-from",
     "@babel/syntax-export-namespace-from",
     "@babel/proposal-export-default-from",
     "@babel/proposal-export-namespace-from",
+    "@babel/plugin-proposal-optional-chaining",
+    "@babel/plugin-proposal-nullish-coalescing-operator",
     "@babel/transform-modules-commonjs",
     "@babel/transform-react-jsx"
   ]
