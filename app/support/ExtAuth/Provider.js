@@ -10,7 +10,7 @@ export class Provider {
    *
    * @param {object} config
    */
-  constructor(config) {} // eslint-disable-line no-unused-vars
+  constructor(config) {} // eslint-disable-line @typescript-eslint/no-unused-vars
 
   /**
    * getAuthorizeURL receives full JSON-parsed body of `auth-start` request
@@ -19,7 +19,7 @@ export class Provider {
    * @param {object} params
    * @return {Promise<string>}
    */
-  getAuthorizeURL(startParams) { // eslint-disable-line no-unused-vars
+  getAuthorizeURL(startParams) { // eslint-disable-line @typescript-eslint/no-unused-vars
     throw Error('Not implemented');
   }
 
@@ -42,7 +42,7 @@ export class Provider {
    * @param {object} params
    * @return {Promise<object>}
    */
-  acceptResponse(params) { // eslint-disable-line no-unused-vars
+  acceptResponse(params) { // eslint-disable-line @typescript-eslint/no-unused-vars
     throw Error('Not implemented');
   }
 
@@ -53,5 +53,5 @@ export class Provider {
    * @param {object} params
    * @return {Promise<void>}
    */
-  done(params) {} // eslint-disable-line no-unused-vars
+  done(params) {} // eslint-disable-line @typescript-eslint/no-unused-vars
 }

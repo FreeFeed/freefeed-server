@@ -183,6 +183,9 @@ module.exports = {
     "you-dont-need-lodash-underscore/to-lower": 2,
     "you-dont-need-lodash-underscore/to-upper": 2,
     "you-dont-need-lodash-underscore/trim": 2,
-    "you-dont-need-lodash-underscore/values": 2
+    "you-dont-need-lodash-underscore/values": 2,
+
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": ["error"]
   }
 };
