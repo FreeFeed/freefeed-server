@@ -10,11 +10,12 @@ import {
   Text,
   AnyText,
   InScope,
-  trimText
+  trimText,
+  Token
 } from './query-tokens';
 
 // -?(scope:)?(double-quoted-string|string)
-const tokenRe = new XRegExp(
+const tokenRe = XRegExp(
   `
   (?:
     (?<pipe> \\|) |
@@ -31,10 +32,10 @@ const tokenRe = new XRegExp(
   'gx'
 );
 
-export function parseQuery(query) {
+export function parseQuery(query: string) {
   // 1-st run: Split the query string into tokens
 
-  const tokens = [];
+  const tokens = [] as Token[];
 
   XRegExp.forEach(normalizeText(query), tokenRe, (match) => {
     const [raw] = match;
@@ -86,7 +87,7 @@ export function parseQuery(query) {
             );
             inner.push(new AnyText([phrase]));
           } else {
-            const words = match.word
+            const words = (match.word as string)
               .split(',')
               .map(trimText)
               .filter(Boolean);
@@ -131,7 +132,7 @@ export function parseQuery(query) {
   // 2-nd run: Merge all "AnyText (Pipe AnyText)+" combinations into one AnyText.
   // Result should not contain any Pipe's.
 
-  const result = [];
+  const result = [] as Token[];
   let prevToken = null;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -143,7 +144,7 @@ export function parseQuery(query) {
 
       if (i < tokens.length - 1 && tokens[i + 1] instanceof AnyText) {
         // Next token is AnyText, join it with the prevToken
-        prevToken.texts.push(...tokens[i + 1].texts);
+        prevToken.texts.push(...(tokens[i + 1] as AnyText).texts);
         // Jump over the joined token
         i++;
         continue;
@@ -157,6 +158,6 @@ export function parseQuery(query) {
   return result;
 }
 
-export function queryComplexity(tokens) {
+export function queryComplexity(tokens: Token[]) {
   return tokens.reduce((acc, token) => acc + token.getComplexity(), 0);
 }

@@ -2,12 +2,13 @@ import { promises as fs } from 'fs';
 
 import config from 'config';
 import createDebug from 'debug';
+import Koa from 'koa';
 
 
 const debug = createDebug('freefeed:maintenanceCheck');
 const { messageFile } = config.maintenance;
 
-export async function maintenanceCheck(ctx, next) {
+export async function maintenanceCheck(ctx: Koa.Context, next: Koa.Next) {
   try {
     const message = await fs.readFile(messageFile, { encoding: 'utf8' });
 

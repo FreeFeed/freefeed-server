@@ -2,21 +2,19 @@
 const ip4Octet = `25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]`;
 
 export class Address {
-  bytes = [
+  public bytes = [
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
   ];
 
-  maskBits = 128;
+  public maskBits = 128;
 
   /**
    * Parses the string representation of IPv6/IPv4 address
-   *
-   * @param {string} str
    */
-  constructor(str) {
+  constructor(str: string) {
     const origStr = str;
     const assert = (test = false) => {
       if (!test) {
@@ -68,7 +66,7 @@ export class Address {
         assert(/^[0-9a-f]{1,4}$/i.test(word));
         const p = parseInt(word, 16);
         return [...acc, p >> 8, p & 0xff];
-      }, []);
+      }, [] as number[]);
     });
 
     if (bytesBlocks.length === 1) {
@@ -94,8 +92,6 @@ export class Address {
 
   /**
    * Returns true if address is IPv4 i.e. matches the '::ffff:0:0/96' mask
-   *
-   * @returns {boolean}
    */
   isIP4() {
     return ip4Mask.contains(this);
@@ -103,8 +99,6 @@ export class Address {
 
   /**
    * Formats address to string
-   *
-   * @returns {string}
    */
   toString() {
     if (this.isIP4()) {
@@ -153,11 +147,8 @@ export class Address {
 
   /**
    * Returns true if this mask contains the subj address/mask
-   *
-   * @param {Address} mask
-   * @returns {boolean}
    */
-  contains(subj) {
+  contains(subj: Address) {
     if (this.maskBits > subj.maskBits) {
       return false;
     }
