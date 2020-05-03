@@ -1,23 +1,45 @@
-export async function up(knex) {
-  await knex.schema
-    .raw('alter table feeds add column title text')
-    .raw('alter table feeds add column ord integer')
-    .raw(`alter table feeds drop constraint feeds_unique_feed_names`)
-    // Only RiverOfNews feeds can have non-NULL ord or title
-    .raw(`alter table feeds add constraint feeds_names_chk
-      check (ord is null and title is null or name = 'RiverOfNews')`)
-    // User cannot have multiple feeds with same name and ord is NULL
-    .raw(`create unique index feeds_unique_names_idx on feeds (user_id, name) where ord is null`)
-}
+export const up = (knex) => knex.schema.raw(`do $$begin
+  -- FEEDS TABLE
+  alter table feeds add column title text;
+  alter table feeds add column ord integer;
+  alter table feeds drop constraint feeds_unique_feed_names;
 
-export async function down(knex) {
-  // TODO: move extra subscriptions to main feed?
-  await knex.schema
-    // Remove extra RiverOfNews feeds
-    .raw(`delete from feeds where name = 'RiverOfNews' and ord is not null`)
-    .raw(`drop index feeds_unique_names_idx`)
-    .raw('alter table feeds drop constraint feeds_names_chk')
-    .raw('alter table feeds drop column title')
-    .raw('alter table feeds drop column ord')
-    .raw(`alter table feeds add constraint feeds_unique_feed_names unique(user_id, name)`);
-}
+  -- Only RiverOfNews feeds can have non-NULL ord or title
+  alter table feeds add constraint feeds_names_chk 
+    check (ord is null and title is null or name = 'RiverOfNews');
+
+  -- User cannot have multiple feeds with same name and ord is NULL
+  create unique index feeds_unique_names_idx on feeds (user_id, name) where ord is null;
+
+  -- HOMEFEED_SUBSCRIPTIONS TABLE
+  create table homefeed_subscriptions (
+    homefeed_id uuid not null
+      references feeds (uid) on delete cascade on update cascade,
+    target_user_id uuid not null
+      references users (uid) on delete cascade on update cascade,
+    primary key (homefeed_id, target_user_id)
+  );
+
+  -- Assign all existing subscriptions to the main users homefeeds
+  insert into homefeed_subscriptions (homefeed_id, target_user_id)
+  select h.uid, f.user_id from
+    subscriptions s
+      join feeds h on h.user_id = s.user_id and h.name = 'RiverOfNews'
+      join feeds f on f.uid = s.feed_id and f.name = 'Posts';
+
+end$$`);
+
+export const down = (knex) => knex.schema.raw(`do $$begin
+  -- HOMEFEED_SUBSCRIPTIONS TABLE
+    drop table homefeed_subscriptions;
+
+  -- FEEDS TABLE
+  -- Remove extra RiverOfNews feeds
+  delete from feeds where name = 'RiverOfNews' and ord is not null;
+  drop index feeds_unique_names_idx;
+  alter table feeds drop constraint feeds_names_chk;
+  alter table feeds drop column title;
+  alter table feeds drop column ord;
+  alter table feeds add constraint feeds_unique_feed_names unique(user_id, name);
+
+end$$`);
