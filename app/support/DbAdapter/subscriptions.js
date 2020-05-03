@@ -12,14 +12,6 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     return this.database('subscriptions').pluck('feed_id').orderBy('created_at', 'desc').where('user_id', userId)
   }
 
-  getUserSubscriptionsIdsByType(userId, feedType) {
-    return this.database
-      .pluck('s.feed_id')
-      .from('subscriptions as s').innerJoin('feeds as f', 's.feed_id', 'f.uid')
-      .where({ 's.user_id': userId, 'f.name': feedType })
-      .orderBy('s.created_at', 'desc')
-  }
-
   getUserFriendIds(userId) {
     const feedType = 'Posts';
     return this.database
@@ -36,31 +28,6 @@ const subscriptionsTrait = (superClass) => class extends superClass {
       { userId, timelineId }
     )
     return rows.length > 0;
-  }
-
-  async areUsersMutuallySubscribed(userAId, userBId) {
-    const { rows } = await this.database.raw(
-      ` 
-      -- A subscribed to B 
-      select 1 from 
-        subscriptions s join feeds f on f.uid = s.feed_id 
-        where s.user_id = :userAId and f.user_id = :userBId and f.name = 'Posts' 
-      union all 
-      -- B subscribed to A 
-      select 1 from 
-        subscriptions s join feeds f on f.uid = s.feed_id 
-        where s.user_id = :userBId and f.user_id = :userAId and f.name = 'Posts' 
-      `,
-      { userAId, userBId }
-    )
-    return rows.length === 2;
-  }
-
-  async isUserSubscribedToOneOfTimelines(currentUserId, timelineIds) {
-    const q = pgFormat('SELECT COUNT(*) AS "cnt" FROM "subscriptions" WHERE "feed_id" IN (%L) AND "user_id" = ?', timelineIds);
-    const res = await this.database.raw(q, [currentUserId]);
-
-    return res.rows[0].cnt > 0;
   }
 
   async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {

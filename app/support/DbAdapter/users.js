@@ -311,14 +311,8 @@ const usersTrait = (superClass) => class extends superClass {
   }
 
   async getUserSubscribersIds(userId) {
-    return await this.database
-      .pluck('s.user_id')
-      .from('subscriptions as s')
-      .innerJoin('feeds as f', 'f.uid', 's.feed_id')
-      .where('f.name', 'Posts')
-      .where('f.user_id', userId)
-      .orderBy('s.created_at', 'desc')
-      .orderBy('s.id', 'desc');
+    const feedId = await this.getUserNamedFeedId(userId, 'Posts');
+    return await this.getTimelineSubscribersIds(feedId);
   }
 
   // Insert record to 'archives' table for the test purposes.
