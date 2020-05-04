@@ -488,10 +488,12 @@ export function addModel(dbAdapter) {
     /**
      * Only auxiliary feeds can be destroyed!
      *
+     * @param {object} [params] destroy parameters (may be different for
+     * different feed types)
      * @returns {Promise<boolean>} sucess of operation
      */
-    destroy() {
-      return dbAdapter.destroyFeed(this.id);
+    destroy(params) {
+      return dbAdapter.destroyFeed(this.id, params);
     }
 
     /**

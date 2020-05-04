@@ -3,6 +3,7 @@ import validator from 'validator'
 import { Timeline, User } from '../../models';
 
 import { initObject, prepareModelPayload } from './utils';
+import { lockByUUID, USER_SUBSCRIPTIONS } from './adv-locks';
 
 ///////////////////////////////////////////////////
 // Feeds
@@ -224,16 +225,74 @@ const feedsTrait = (superClass) => class extends superClass {
   }
 
   /**
-   * Returns false if the feed is not exists or cannot be deleted
+   * Destroys auxiliary feed. Returns false if the feed is not exists or cannot
+   * be deleted.
+   *
    * @param {string} feedId
+   * @param {object} [params]
    * @returns {Promise<boolean>}
    */
-  async destroyFeed(feedId) {
-    const { rows } = await this.database.raw(
-      `delete from feeds where uid = :feedId and ord is not null returning 1`,
-      { feedId }
-    );
-    return rows.length > 0;
+  async destroyFeed(feedId, params = {}) {
+    const thisFeed = await this.getTimelineById(feedId);
+
+    if (!thisFeed || thisFeed.isInherent) {
+      return false;
+    }
+
+    if (thisFeed.name !== 'RiverOfNews') {
+      // Just delete the feed
+      return !!(await this.database.raw(
+        `delete from feeds where uid = :feedId returning true`,
+        { feedId }));
+    }
+
+    // RiverOfNews
+    return await this.database.transaction(async (trx) => {
+      // Prevent other subscriberId subscription operations
+      await lockByUUID(trx, USER_SUBSCRIPTIONS, thisFeed.userId);
+
+      // Select and lock all user's RiverOfNews (to prevent removal)
+      const feeds = await trx.getAll(
+        `select * from feeds
+          where user_id = :userId and name = :name
+          order by uid for key share`,
+        { userId: thisFeed.userId, name: thisFeed.name });
+
+      // Feed is already removed?
+      if (!feeds.find((f) => f.uid === feedId)) {
+        return false;
+      }
+
+      // We should move existing subscriptions of this feed
+      let backupFeed;
+
+      if (params.backupFeedId && params.backupFeedId !== thisFeed.id) {
+        backupFeed = feeds.find((f) => f.uid === params.backupFeedId);
+      }
+
+      if (!backupFeed) {
+        // Use the inherent RiverOfNews as the backup feed
+        backupFeed = feeds.find((f) => f.ord === null);
+      }
+
+      // Move subscriptions to the backup feed
+      await trx.raw(
+        `insert into homefeed_subscriptions (homefeed_id, target_user_id)
+            select :toFeedId, s.target_user_id
+            from homefeed_subscriptions s
+              where s.homefeed_id = :fromFeedId
+            on conflict do nothing`,
+        {
+          userId:     thisFeed.userId,
+          fromFeedId: thisFeed.id,
+          toFeedId:   backupFeed.uid,
+        }
+      );
+
+      // Now we can the feed
+      await trx.raw(`delete from feeds where uid = :feedId`, { feedId });
+      return true;
+    });
   }
 
   async updateFeed(feedId, { title }) {
