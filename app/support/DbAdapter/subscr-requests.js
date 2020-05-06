@@ -3,16 +3,22 @@
 ///////////////////////////////////////////////////
 
 const subscrRequestsTrait = (superClass) => class extends superClass {
-  createSubscriptionRequest(fromUserId, toUserId) {
-    const currentTime = new Date().toISOString()
-
+  /**
+   * @param {string} fromUserId
+   * @param {string} toUserId
+   * @param {string[]} homeFeedIds - home feeds to add user, null is interprets
+   * as default home feed
+   * @returns {Promise<boolean>} - true if request was successfully created
+   */
+  async createSubscriptionRequest(fromUserId, toUserId, homeFeedIds = null) {
     const payload = {
       from_user_id: fromUserId,
       to_user_id:   toUserId,
-      created_at:   currentTime
+      homefeed_ids: homeFeedIds,
     }
 
-    return this.database('subscription_requests').returning('id').insert(payload)
+    return !!(await this.database('subscription_requests')
+      .returning('id').insert(payload));
   }
 
   deleteSubscriptionRequest(toUserId, fromUserId) {
@@ -44,6 +50,21 @@ const subscrRequestsTrait = (superClass) => class extends superClass {
       return record.to_user_id
     })
     return attrs
+  }
+
+  /**
+   * Returns the subscription request data or null if there is no request.
+   *
+   * @param {string} toUserId
+   * @param {string} fromUserId
+   * @returns {Object | null}
+   */
+  getSubscriptionRequest(toUserId, fromUserId) {
+    return this.database.getRow(
+      `select * from subscription_requests
+        where from_user_id = :fromUserId and to_user_id = :toUserId`,
+      { fromUserId, toUserId }
+    );
   }
 };
 

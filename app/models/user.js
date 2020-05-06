@@ -1199,15 +1199,40 @@ export function addModel(dbAdapter) {
       }
     }
 
-    async sendSubscriptionRequest(userId) {
-      return await dbAdapter.createSubscriptionRequest(this.id, userId);
+    /**
+     * @param {string} toUserId
+     * @param {string[]} homeFeedIds - null means the default home feed
+     * of subscriber
+     * @returns {Promise<boolean>} - true if request was successfully created
+     */
+    sendSubscriptionRequest(toUserId, homeFeedIds = []) {
+      return dbAdapter.createSubscriptionRequest(this.id, toUserId, homeFeedIds);
     }
 
-    async acceptSubscriptionRequest(userId) {
-      await dbAdapter.deleteSubscriptionRequest(this.id, userId);
+    /**
+     * Accepts subscription request to this user
+     *
+     * @param {*} fromUser - subscriber
+     * @param {*} acceptedBy - user who accepted request, the group admin in
+     * case of group account
+     * @returns {Promise<boolean>} - false if there is no request
+     */
+    async acceptSubscriptionRequest(fromUser, acceptedBy = this) {
+      const request = await dbAdapter.getSubscriptionRequest(this.id, fromUser.id);
 
-      const user = await dbAdapter.getUserById(userId);
-      return user.subscribeTo(this);
+      if (!request) {
+        return false;
+      }
+
+      await fromUser.subscribeTo(this, { homeFeedIds: request.homefeed_ids });
+
+      if (this.isGroup()) {
+        await EventService.onGroupSubscriptionRequestApproved(acceptedBy.intId, this, fromUser.intId);
+      } else {
+        await EventService.onSubscriptionRequestApproved(fromUser.intId, this.intId);
+      }
+
+      return true;
     }
 
     async rejectSubscriptionRequest(userId) {

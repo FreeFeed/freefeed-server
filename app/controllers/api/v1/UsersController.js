@@ -203,18 +203,15 @@ export default class UsersController {
     async (ctx) => {
       const { user: targetUser, targetUser: subscriber } = ctx.state;
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
+      const ok = await targetUser.acceptSubscriptionRequest(subscriber)
 
-      if (!hasRequest) {
+      if (!ok) {
         throw new ForbiddenException('There is no subscription requests');
       }
 
-      await targetUser.acceptSubscriptionRequest(subscriber.id);
-      await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
       ctx.body = {};
     }
   ]);
-
 
   static async rejectRequest(ctx) {
     if (!ctx.state.user) {

@@ -165,6 +165,12 @@ const subscriptionsTrait = (superClass) => class extends superClass {
         ]);
       }
 
+      // Delete subscription request if any
+      await trx.raw(
+        `delete from subscription_requests 
+          where from_user_id = :subscriberId and to_user_id = :targetId`,
+        { subscriberId, targetId });
+
       return { wasSubscribed, subscribedFeedIds };
     });
 
@@ -245,6 +251,12 @@ const subscriptionsTrait = (superClass) => class extends superClass {
           ),
         ]);
       }
+
+      // Delete subscription request if any
+      await trx.raw(
+        `delete from subscription_requests 
+          where from_user_id = :subscriberId and to_user_id = :targetId`,
+        { subscriberId, targetId });
 
       return { wasUnsubscribed, subscribedFeedIds };
     });

@@ -218,4 +218,63 @@ describe(`Multiple home feeds`, () => {
       });
     });
   });
+
+  describe('Subscription requests', () => {
+    before(() => cleanDB($pg_database));
+
+    let luna, mars,
+      mainHomeFeed,
+      secondaryHomeFeed;
+
+    before(async () => {
+      luna = new User({ username: 'luna', password: 'pw' });
+      mars = new User({ username: 'mars', password: 'pw', isPrivate: '1' });
+      await luna.create();
+      await mars.create();
+      mainHomeFeed = await luna.getRiverOfNewsTimeline();
+      secondaryHomeFeed = await luna.createHomeFeed('The Second One');
+    });
+
+    it(`should allow Luna to send subscription request to Mars with home feed ids`, async () => {
+      expect(await luna.sendSubscriptionRequest(mars.id, [secondaryHomeFeed.id]),
+        'to be true');
+
+      expect(await luna.getPendingSubscriptionRequests(),
+        'to satisfy', [{ id: mars.id }]);
+
+      expect(await luna.getHomeFeedIdsSubscribedTo(mars),
+        'to equal', []);
+    });
+
+    it(`should subscribe Luna to Mars with proper home feed when Mars approved request`, async () => {
+      expect(await mars.acceptSubscriptionRequest(luna),
+        'to be true');
+
+      expect(await luna.getPendingSubscriptionRequests(),
+        'to equal', []);
+
+      expect(await luna.getHomeFeedIdsSubscribedTo(mars),
+        'to equal', [secondaryHomeFeed.id]);
+    });
+
+    it(`should subscribe Luna to Mars with default home feed if the desired home feed was removed`, async () => {
+      expect(await luna.unsubscribeFrom(mars),
+        'to be true');
+
+      expect(await luna.sendSubscriptionRequest(mars.id, [secondaryHomeFeed.id]),
+        'to be true');
+
+      expect(await await secondaryHomeFeed.destroy(),
+        'to be true');
+
+      expect(await mars.acceptSubscriptionRequest(luna),
+        'to be true');
+
+      expect(await luna.getPendingSubscriptionRequests(),
+        'to equal', []);
+
+      expect(await luna.getHomeFeedIdsSubscribedTo(mars),
+        'to equal', [mainHomeFeed.id]);
+    });
+  });
 });

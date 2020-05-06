@@ -27,9 +27,18 @@ export const up = (knex) => knex.schema.raw(`do $$begin
       join feeds h on h.user_id = s.user_id and h.name = 'RiverOfNews'
       join feeds f on f.uid = s.feed_id and f.name = 'Posts';
 
+  -- SUBSCRIPTION_REQUESTS TABLE
+  alter table subscription_requests add column homefeed_ids uuid[] not null default '{}';
+  alter table subscription_requests add constraint subscription_requests_user_ids_unique
+    unique (from_user_id, to_user_id);
+    
 end$$`);
 
 export const down = (knex) => knex.schema.raw(`do $$begin
+  -- SUBSCRIPTION_REQUESTS TABLE
+  alter table subscription_requests drop constraint subscription_requests_user_ids_unique;
+  alter table subscription_requests drop column homefeed_ids;
+  
   -- HOMEFEED_SUBSCRIPTIONS TABLE
     drop table homefeed_subscriptions;
 
