@@ -1,4 +1,4 @@
-import { map } from 'lodash';
+import { map, difference } from 'lodash';
 import pgFormat from 'pg-format';
 
 import { initUserObject } from './users';
@@ -371,6 +371,61 @@ const subscriptionsTrait = (superClass) => class extends superClass {
         left join homefeed_subscriptions hs on hs.target_user_id = u.user_id
         group by u.user_id`,
       { subscriberId });
+  }
+
+  async updateHomeFeedSubscriptions(feedId, { addUsers = [], removeUsers = [] } = {}) {
+    if (addUsers.length === 0 && removeUsers.length === 0) {
+      return;
+    }
+
+    addUsers = difference(addUsers, removeUsers);
+
+    const feed = await this.getTimelineById(feedId);
+
+    if (feed.name !== 'RiverOfNews') {
+      throw new Error(`Invalid feed type: ${feed.name} ('RiverOfNews' required)`);
+    }
+
+    await this.database.transaction(async (trx) => {
+      // Prevent other subscriberId subscription operations
+      await lockByUUID(trx, USER_SUBSCRIPTIONS, feed.userId);
+
+      // Lock the feed
+      const ok = trx.getOne(`select true from feeds
+        where uid = :feedId for key share`, { feedId });
+
+      if (!ok) {
+        throw new Error(`Feed is not exists`);
+      }
+
+      if (addUsers.length > 0) {
+        // Only users feed owner subscribed to
+        addUsers = await trx.getCol(
+          `select f.user_id from 
+            feeds f
+            join subscriptions s on f.uid = s.feed_id
+            where
+              s.user_id = :subscriberId
+              and f.name = 'Posts'
+              and f.user_id = any(:addUsers)`,
+          { subscriberId: feed.userId, addUsers });
+
+        if (addUsers.length > 0) {
+          await trx.raw(
+            `insert into homefeed_subscriptions (homefeed_id, target_user_id)
+              select :feedId, id from unnest(:addUsers::uuid[]) id
+              on conflict do nothing`,
+            { feedId, addUsers });
+        }
+      }
+
+      if (removeUsers.length > 0) {
+        await trx.raw(
+          `delete from homefeed_subscriptions
+            where homefeed_id = :feedId and target_user_id = any(:removeUsers)`,
+          { feedId, removeUsers });
+      }
+    });
   }
 };
 

@@ -514,6 +514,10 @@ export function addModel(dbAdapter) {
 
       return true;
     }
+
+    updateHomeFeedSubscriptions({ addUsers = [], removeUsers = [] } = {}) {
+      return dbAdapter.updateHomeFeedSubscriptions(this.id, { addUsers, removeUsers });
+    }
   }
 
   return Timeline;

@@ -308,15 +308,6 @@ describe(`Multiple home feeds`, () => {
       ]);
     });
 
-    afterEach(async () => {
-      await Promise.all([
-        luna.unsubscribeFrom(mars),
-        luna.unsubscribeFrom(venus),
-        luna.unsubscribeFrom(jupiter),
-        luna.unsubscribeFrom(saturn),
-      ]);
-    });
-
     it(`should return all home feeds with subscriptions`, async () => {
       expect(await luna.subscribeTo(mars),
         'to be true');
@@ -338,6 +329,38 @@ describe(`Multiple home feeds`, () => {
           { user_id: venus.id, homefeed_ids: expect.it('when sorted', 'to equal', [mainHomeFeed.id, secondaryHomeFeed.id].sort()) },
           { user_id: jupiter.id, homefeed_ids: [secondaryHomeFeed.id] },
           { user_id: saturn.id, homefeed_ids: [] },
+        ].sort((a, b) => a.user_id.localeCompare(b.user_id)));
+    });
+
+    it(`should update mainHomeFeed subscriptions`, async () => {
+      await mainHomeFeed.updateHomeFeedSubscriptions({
+        addUsers:    [saturn.id, venus.id],
+        removeUsers: [mars.id, jupiter.id],
+      });
+
+      expect(await luna.getSubscriptionsWithHomeFeeds(),
+        'when sorted by', (a, b) => a.user_id.localeCompare(b.user_id),
+        'to satisfy', [
+          { user_id: mars.id, homefeed_ids: [] },
+          { user_id: venus.id, homefeed_ids: expect.it('when sorted', 'to equal', [mainHomeFeed.id, secondaryHomeFeed.id].sort()) },
+          { user_id: jupiter.id, homefeed_ids: [secondaryHomeFeed.id] },
+          { user_id: saturn.id, homefeed_ids: [mainHomeFeed.id] },
+        ].sort((a, b) => a.user_id.localeCompare(b.user_id)));
+    });
+
+    it(`should move all subscriptions to the secondary home feed`, async () => {
+      await Promise.all([
+        mainHomeFeed.updateHomeFeedSubscriptions({ removeUsers: [mars.id, venus.id, jupiter.id, saturn.id] }),
+        secondaryHomeFeed.updateHomeFeedSubscriptions({ addUsers: [mars.id, venus.id, jupiter.id, saturn.id] }),
+      ]);
+
+      expect(await luna.getSubscriptionsWithHomeFeeds(),
+        'when sorted by', (a, b) => a.user_id.localeCompare(b.user_id),
+        'to satisfy', [
+          { user_id: mars.id, homefeed_ids: [secondaryHomeFeed.id] },
+          { user_id: venus.id, homefeed_ids: [secondaryHomeFeed.id] },
+          { user_id: jupiter.id, homefeed_ids: [secondaryHomeFeed.id] },
+          { user_id: saturn.id, homefeed_ids: [secondaryHomeFeed.id] },
         ].sort((a, b) => a.user_id.localeCompare(b.user_id)));
     });
   });
