@@ -346,6 +346,32 @@ const subscriptionsTrait = (superClass) => class extends superClass {
       { subscriberId, targetId }
     );
   }
+
+  /**
+   * Returns all users that subscriber subscribed to with the home feeds. The
+   * result is array of objects like: { user_id: ..., homefeed_ids: [...] }
+   *
+   * @param {string} subscriberId
+   * @returns {Promise<object[]>}
+   */
+  async getSubscriptionsWithHomeFeeds(subscriberId) {
+    return await this.database.getAll(
+      `with homefeeds as (
+          select * from feeds
+            where user_id = :subscriberId and name = 'RiverOfNews'
+        ),
+        users as (
+          select f.user_id from
+            subscriptions s
+            join feeds f on f.uid = s.feed_id and f.name = 'Posts'
+            where s.user_id = :subscriberId
+        )
+      select u.user_id, array_remove(array_agg(hs.homefeed_id), null) as homefeed_ids from
+        users u
+        left join homefeed_subscriptions hs on hs.target_user_id = u.user_id
+        group by u.user_id`,
+      { subscriberId });
+  }
 };
 
 export default subscriptionsTrait;

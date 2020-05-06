@@ -277,4 +277,68 @@ describe(`Multiple home feeds`, () => {
         'to equal', [mainHomeFeed.id]);
     });
   });
+
+  describe('Mass subscription management', () => {
+    before(() => cleanDB($pg_database));
+
+    let luna, mars, venus, jupiter, saturn,
+      mainHomeFeed,
+      secondaryHomeFeed;
+
+    before(async () => {
+      luna = new User({ username: 'luna', password: 'pw' });
+      mars = new User({ username: 'mars', password: 'pw' });
+      venus = new User({ username: 'venus', password: 'pw' });
+      jupiter = new User({ username: 'jupiter', password: 'pw' });
+      saturn = new User({ username: 'saturn', password: 'pw' });
+      await Promise.all([
+        luna.create(),
+        mars.create(),
+        venus.create(),
+        jupiter.create(),
+        saturn.create(),
+      ]);
+      [
+        mainHomeFeed,
+        secondaryHomeFeed,
+      ] =
+      await Promise.all([
+        await luna.getRiverOfNewsTimeline(),
+        luna.createHomeFeed('The Second One'),
+      ]);
+    });
+
+    afterEach(async () => {
+      await Promise.all([
+        luna.unsubscribeFrom(mars),
+        luna.unsubscribeFrom(venus),
+        luna.unsubscribeFrom(jupiter),
+        luna.unsubscribeFrom(saturn),
+      ]);
+    });
+
+    it(`should return all home feeds with subscriptions`, async () => {
+      expect(await luna.subscribeTo(mars),
+        'to be true');
+      expect(await luna.subscribeTo(venus, { homeFeedIds: [mainHomeFeed.id, secondaryHomeFeed.id] }),
+        'to be true');
+      expect(await luna.subscribeTo(jupiter, { homeFeedIds: [secondaryHomeFeed.id] }),
+        'to be true');
+      expect(await luna.subscribeTo(saturn),
+        'to be true');
+
+      // Exclude Saturn from all home feeds
+      expect(await luna.setHomeFeedsSubscribedTo(saturn, []),
+        'to be true');
+
+      expect(await luna.getSubscriptionsWithHomeFeeds(),
+        'when sorted by', (a, b) => a.user_id.localeCompare(b.user_id),
+        'to satisfy', [
+          { user_id: mars.id, homefeed_ids: [mainHomeFeed.id] },
+          { user_id: venus.id, homefeed_ids: expect.it('when sorted', 'to equal', [mainHomeFeed.id, secondaryHomeFeed.id].sort()) },
+          { user_id: jupiter.id, homefeed_ids: [secondaryHomeFeed.id] },
+          { user_id: saturn.id, homefeed_ids: [] },
+        ].sort((a, b) => a.user_id.localeCompare(b.user_id)));
+    });
+  });
 });

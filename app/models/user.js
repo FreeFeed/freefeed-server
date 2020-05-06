@@ -716,6 +716,10 @@ export function addModel(dbAdapter) {
       return dbAdapter.getAllUserNamedFeed(this.id, 'RiverOfNews');
     }
 
+    getSubscriptionsWithHomeFeeds() {
+      return dbAdapter.getSubscriptionsWithHomeFeeds(this.id);
+    }
+
     /**
      * @return {Timeline[]}
      */
