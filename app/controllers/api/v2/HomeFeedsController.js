@@ -10,6 +10,7 @@ import {
   createHomeFeedInputSchema,
   updateHomeFeedInputSchema,
   deleteHomeFeedInputSchema,
+  reorderHomeFeedsInputSchema,
 } from './data-schemes/homefeeds';
 
 
@@ -98,5 +99,27 @@ export const deleteHomeFeed = compose([
     }
 
     ctx.body = {};
+  },
+]);
+
+export const reorderHomeFeeds = compose([
+  authRequired(),
+  inputSchemaRequired(reorderHomeFeedsInputSchema),
+  monitored('homefeeds.reorder'),
+  async (ctx) => {
+    const { state: { user }, request: { body } } = ctx;
+
+    const feeds = await dbAdapter.getTimelinesByIds(body.reorder);
+
+    if (
+      feeds.length === 0 ||
+      feeds.some((f) => f.userId !== user.id || f.name !== 'RiverOfNews')
+    ) {
+      throw new ForbiddenException(`These feeds cannot be reordered`);
+    }
+
+    await dbAdapter.reorderFeeds(feeds.map((f) => f.id));
+
+    await listHomeFeeds(ctx);
   },
 ]);

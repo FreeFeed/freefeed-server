@@ -136,6 +136,29 @@ describe(`Multiple home feeds API`, () => {
       });
     });
 
+    it(`should move the third home feed up`, async () => {
+      const resp = await performJSONRequest(
+        'PATCH',
+        `/v2/timelines/home/`,
+        {
+          reorder: [
+            tertiaryHomeFeedId,
+            secondaryHomeFeedId,
+            mainHomeFeedId, // should not be touched
+          ]
+        },
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', homeFeedsListResponse);
+      expect(resp, 'to satisfy', {
+        timelines: [
+          { id: mainHomeFeedId },
+          { id: tertiaryHomeFeedId },
+          { id: secondaryHomeFeedId },
+        ],
+      });
+    });
+
     it(`should remove the second homefeed`, async () => {
       const resp = await performJSONRequest(
         'DELETE',

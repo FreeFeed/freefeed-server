@@ -41,3 +41,21 @@ export const updateHomeFeedInputSchema = {
     },
   }
 }
+
+export const reorderHomeFeedsInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type:     'object',
+  required: ['reorder'],
+
+  properties: {
+    reorder: {
+      type:        'array',
+      items:       { '$ref': '#/definitions/uuid' },
+      minItems:    1,
+      uniqueItems: true,
+    }
+  }
+}
