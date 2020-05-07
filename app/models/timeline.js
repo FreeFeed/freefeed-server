@@ -106,10 +106,8 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       const payload = {
-        'name':      this.name,
-        'userId':    this.userId,
-        'createdAt': currentTime.toString(),
-        'updatedAt': currentTime.toString()
+        'name':   this.name,
+        'userId': this.userId,
       };
 
       const ids = await dbAdapter.createTimeline(payload);

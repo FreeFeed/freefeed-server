@@ -361,16 +361,8 @@ const FEED_COLUMNS = {
 }
 
 const FEED_COLUMNS_MAPPING = {
-  createdAt: (timestamp) => {
-    const d = new Date()
-    d.setTime(timestamp)
-    return d.toISOString()
-  },
-  updatedAt: (timestamp) => {
-    const d = new Date()
-    d.setTime(timestamp)
-    return d.toISOString()
-  }
+  createdAt: (timestamp) => new Date(timestamp),
+  updatedAt: (timestamp) => new Date(timestamp),
 }
 
 const FEED_FIELDS = {
@@ -385,8 +377,8 @@ const FEED_FIELDS = {
 }
 
 const FEED_FIELDS_MAPPING = {
-  created_at: (time) => { return time.getTime().toString() },
-  updated_at: (time) => { return time.getTime().toString() },
+  created_at: (time) => time.toISOString(),
+  updated_at: (time) => time.toISOString(),
   user_id:    (user_id) => {return user_id ? user_id : ''},
   title:      (title, { name }) =>  name === 'RiverOfNews' && title === null
     ? Timeline.defaultRiverOfNewsTitle
