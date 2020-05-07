@@ -85,7 +85,7 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
  *
  * @param {Array.<string>} userIds
  * @param {boolean} withAdmins
- * @returns {Array}
+ * @returns {Promise<Array>}
  */
 export async function serializeUsersByIds(userIds, withAdmins = true, viewerId = null) {
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds, viewerId);

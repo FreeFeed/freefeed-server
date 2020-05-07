@@ -1,0 +1,43 @@
+import definitions from '../../v1/data-schemes/definitions';
+
+
+export const createHomeFeedInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: ['title'],
+
+  properties: {
+    title: {
+      type:      'string',
+      pattern:   '\\S',
+      minLength: 1,
+      maxLength: 250,
+    },
+  }
+};
+
+export const deleteHomeFeedInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type:       'object',
+  properties: { backupFeed: { '$ref': '#/definitions/uuid' } }
+};
+
+export const updateHomeFeedInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: ['title'],
+
+  properties: {
+    title: {
+      type:      'string',
+      pattern:   '\\S',
+      minLength: 1,
+      maxLength: 250,
+    },
+  }
+}
