@@ -20,6 +20,7 @@ export default function addRoutes(app) {
   app.post('/v1/users/:username/ban',               UsersController.ban);
   app.post('/v1/users/:username/unban',             UsersController.unban);
   app.post('/v1/users/:username/subscribe',         UsersController.subscribe);
+  app.put('/v1/users/:username/subscribe',          UsersController.updateSubscription);
   app.post('/v1/users/:username/unsubscribe',       UsersController.unsubscribe);
   app.get('/v1/users/:username/subscribers',        UsersController.subscribers);
   app.get('/v1/users/:username/subscriptions',      UsersController.subscriptions);

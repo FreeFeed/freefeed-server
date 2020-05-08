@@ -35,3 +35,43 @@ export const userCreateInputSchema = {
     },
   },
 };
+
+export const userSubscribeInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type:     'object',
+  required: [
+    'homeFeeds',
+  ],
+  default: { homeFeeds: [] },
+
+  properties: {
+    homeFeeds: {
+      type:        'array',
+      items:       { '$ref': '#/definitions/uuid' },
+      uniqueItems: true,
+      default:     [],
+    }
+  }
+};
+
+export const updateSubscriptionInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  definitions,
+
+  type:     'object',
+  required: [
+    'homeFeeds',
+  ],
+
+  properties: {
+    homeFeeds: {
+      type:        'array',
+      items:       { '$ref': '#/definitions/uuid' },
+      uniqueItems: true,
+    }
+  }
+};
