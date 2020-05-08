@@ -5,7 +5,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { Timeline } from '../../app/models';
 
-import { createTestUser, performJSONRequest, createTestUsers } from './functional_test_helper';
+import { createTestUser, performJSONRequest, createTestUsers, goPrivate } from './functional_test_helper';
 import { homeFeedsListResponse, homeFeedsOneResponse } from './schemaV2-helper';
 
 
@@ -259,6 +259,49 @@ describe(`Multiple home feeds API`, () => {
       expect(resp, 'to satisfy', {
         inHomeFeeds: expect.it('when sorted', 'to equal',
           [mainHomeFeedId, tertiaryHomeFeedId].sort())
+      });
+    });
+  });
+
+  describe(`Subscription request`, () => {
+    before(() => cleanDB($pg_database));
+
+    let luna, mars,
+      secondaryHomeFeedId, tertiaryHomeFeedId;
+
+    before(async () => {
+      [luna, mars] = await createTestUsers(['luna', 'mars']);
+      await goPrivate(mars);
+      ({ timeline: { id: secondaryHomeFeedId } } = await createHomeFeed(luna, 'The Second One'));
+      ({ timeline: { id: tertiaryHomeFeedId } } = await createHomeFeed(luna, 'The Third One'));
+    });
+
+    it(`should accept requests with homeFeeds parameter`, async () => {
+      const resp = await performJSONRequest(
+        'POST', `/v1/users/${mars.user.username}/sendRequest`,
+        { homeFeeds: [secondaryHomeFeedId, tertiaryHomeFeedId] },
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+
+    it(`should subscribe the desired home feeds to Mars`, async () => {
+      {
+        const resp = await performJSONRequest(
+          'POST', `/v1/users/acceptRequest/${luna.user.username}`,
+          null,
+          { Authorization: `Bearer ${mars.authToken}` }
+        );
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+      }
+
+      const resp = await performJSONRequest(
+        'GET', `/v1/users/${mars.user.username}`, null,
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', {
+        inHomeFeeds: expect.it('when sorted', 'to equal',
+          [secondaryHomeFeedId, tertiaryHomeFeedId].sort())
       });
     });
   });

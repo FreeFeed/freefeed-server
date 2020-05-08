@@ -25,6 +25,7 @@ import {
   userCreateInputSchema,
   userSubscribeInputSchema,
   updateSubscriptionInputSchema,
+  sendRequestInputSchema,
 } from './data-schemes';
 
 
@@ -161,6 +162,7 @@ export default class UsersController {
   static sendRequest = compose([
     authRequired(),
     targetUserRequired(),
+    inputSchemaRequired(sendRequestInputSchema),
     async (ctx) => {
       const { user, targetUser } = ctx.state;
 
@@ -189,7 +191,7 @@ export default class UsersController {
         throw new ForbiddenException(`You are already subscribed to this ${targetUser.type}`);
       }
 
-      await user.sendSubscriptionRequest(targetUser.id);
+      await user.sendSubscriptionRequest(targetUser.id, ctx.request.body.homeFeeds);
 
       if (targetUser.isUser()) {
         await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);

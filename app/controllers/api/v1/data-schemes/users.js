@@ -57,6 +57,8 @@ export const userSubscribeInputSchema = {
   }
 };
 
+export const sendRequestInputSchema = userSubscribeInputSchema;
+
 export const updateSubscriptionInputSchema = {
   '$schema': 'http://json-schema.org/schema#',
 
