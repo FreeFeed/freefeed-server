@@ -373,6 +373,12 @@ const subscriptionsTrait = (superClass) => class extends superClass {
       { subscriberId });
   }
 
+  getHomeFeedSubscriptions(feedId) {
+    return this.database.getCol(
+      `select target_user_id from homefeed_subscriptions where homefeed_id = :feedId`,
+      { feedId });
+  }
+
   async updateHomeFeedSubscriptions(feedId, { addUsers = [], removeUsers = [] } = {}) {
     if (addUsers.length === 0 && removeUsers.length === 0) {
       return;

@@ -6,7 +6,7 @@ import cleanDB from '../dbCleaner';
 import { Timeline } from '../../app/models';
 
 import { createTestUser, performJSONRequest, createTestUsers, goPrivate } from './functional_test_helper';
-import { homeFeedsListResponse, homeFeedsOneResponse, homeFeedsSubscriptionsResponse } from './schemaV2-helper';
+import { homeFeedsListResponse, homeFeedsOneResponse, homeFeedsSubscriptionsResponse, homeFeedUpdateSubscriptionsResponse } from './schemaV2-helper';
 
 
 describe(`Multiple home feeds API`, () => {
@@ -356,6 +356,39 @@ describe(`Multiple home feeds API`, () => {
             },
           ].sort((a, b) => a.id.localeCompare(b.id)))
       });
+    });
+
+    it(`should update subscriptions of homefeed`, async () => {
+      {
+        const resp = await performJSONRequest(
+          'PATCH', `/v2/timelines/home/${mainHomeFeedId}/subscriptions`, {
+            addUsers:    [venus.user.id],
+            removeUsers: [jupiter.user.id, mars.user.id]
+          },
+          { Authorization: `Bearer ${luna.authToken}` }
+        );
+        expect(resp, 'to satisfy', homeFeedUpdateSubscriptionsResponse);
+        expect(resp, 'to satisfy', { subscribedTo: [venus.user.id] });
+      }
+
+      {
+        const resp = await performJSONRequest(
+          'GET', `/v2/timelines/home/subscriptions`, null,
+          { Authorization: `Bearer ${luna.authToken}` }
+        );
+        expect(resp, 'to satisfy', homeFeedsSubscriptionsResponse);
+        expect(resp, 'to satisfy', {
+          usersInHomeFeeds: expect.it(
+            'when sorted by', (a, b) => a.id.localeCompare(b.id), 'to satisfy', [
+              { id: mars.user.id, homeFeeds: [] },
+              {
+                id:        venus.user.id,
+                homeFeeds: expect.it('when sorted', 'to equal', [mainHomeFeedId, secondaryHomeFeedId].sort()),
+              },
+              { id: jupiter.user.id, homeFeeds: [tertiaryHomeFeedId] },
+            ].sort((a, b) => a.id.localeCompare(b.id)))
+        });
+      }
     });
   });
 });

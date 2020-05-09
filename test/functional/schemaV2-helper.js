@@ -297,3 +297,8 @@ export const homeFeedsSubscriptionsResponse = {
   timelines: expect.it('to be an array').and('to have items satisfying', homeFeed),
   users:     expect.it('to be an array').and('to have items satisfying', user),
 };
+
+export const homeFeedUpdateSubscriptionsResponse = {
+  subscribedTo: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  users:        expect.it('to be an array').and('to have items satisfying', user),
+};

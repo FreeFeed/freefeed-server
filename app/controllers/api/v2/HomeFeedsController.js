@@ -1,4 +1,5 @@
 import compose from 'koa-compose';
+import { pick } from 'lodash';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { serializeTimeline } from '../../../serializers/v2/timeline';
@@ -11,6 +12,7 @@ import {
   updateHomeFeedInputSchema,
   deleteHomeFeedInputSchema,
   reorderHomeFeedsInputSchema,
+  updateHomeFeedSubscriptionsInputSchema,
 } from './data-schemes/homefeeds';
 
 
@@ -143,6 +145,31 @@ export const listSubscriptions = compose([
     ctx.body = {
       usersInHomeFeeds,
       timelines,
+      users,
+    };
+  },
+]);
+
+export const updateHomeFeedSubscriptions = compose([
+  authRequired(),
+  inputSchemaRequired(updateHomeFeedSubscriptionsInputSchema),
+  monitored('homefeeds.update-subscriptions'),
+  async (ctx) => {
+    const { state: { user }, request: { body } } = ctx;
+
+    const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
+
+    if (!feed || feed.userId !== user.id || feed.name !== 'RiverOfNews') {
+      throw new NotFoundException(`Home feed is not found`);
+    }
+
+    await feed.updateHomeFeedSubscriptions(pick(body, ['addUsers', 'removeUsers']));
+
+    const subscribedTo = await feed.getHomeFeedSubscriptions();
+    const users = await serializeUsersByIds(subscribedTo, true, user.id);
+
+    ctx.body = {
+      subscribedTo,
       users,
     };
   },
