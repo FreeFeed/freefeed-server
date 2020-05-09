@@ -288,3 +288,12 @@ export const homeFeedsOneResponse = {
   timeline: expect.it('to satisfy', homeFeed),
   users:    [expect.it('to satisfy', user)], // just one user (owner of home feed)
 }
+
+export const homeFeedsSubscriptionsResponse = {
+  usersInHomeFeeds: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    id:        expect.it('to satisfy', UUID),
+    homeFeeds: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  }),
+  timelines: expect.it('to be an array').and('to have items satisfying', homeFeed),
+  users:     expect.it('to be an array').and('to have items satisfying', user),
+};

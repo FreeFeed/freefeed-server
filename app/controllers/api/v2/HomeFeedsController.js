@@ -123,3 +123,27 @@ export const reorderHomeFeeds = compose([
     await listHomeFeeds(ctx);
   },
 ]);
+
+export const listSubscriptions = compose([
+  authRequired(),
+  monitored('homefeeds.list-subscriptions'),
+  async (ctx) => {
+    const { state: { user } } = ctx;
+
+    const [subs, homeFeeds] = await Promise.all([
+      user.getSubscriptionsWithHomeFeeds(),
+      user.getHomeFeeds(),
+    ]);
+
+    const timelines = homeFeeds.map((t) => serializeTimeline(t));
+    const usersInHomeFeeds = subs.map((s) => ({ id: s.user_id, homeFeeds: s.homefeed_ids }));
+    const users = await serializeUsersByIds([user.id, ...usersInHomeFeeds.map((s) => s.id)],
+      true, user.id);
+
+    ctx.body = {
+      usersInHomeFeeds,
+      timelines,
+      users,
+    };
+  },
+]);

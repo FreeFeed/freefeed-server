@@ -12,6 +12,7 @@ import {
   deleteHomeFeed,
   updateHomeFeed,
   reorderHomeFeeds,
+  listSubscriptions,
 } from '../../../controllers/api/v2/HomeFeedsController';
 
 
@@ -20,6 +21,7 @@ export default function addRoutes(app) {
   app.get('/v2/everything',                   everything);
   app.get('/v2/timelines/home',               ownTimeline('RiverOfNews', { withLocalBumps: true }));
   app.get('/v2/timelines/home/list',          listHomeFeeds);
+  app.get('/v2/timelines/home/subscriptions', listSubscriptions);
   app.post('/v2/timelines/home',              createHomeFeed);
   app.put('/v2/timelines/home/:feedId',       updateHomeFeed);
   app.delete('/v2/timelines/home/:feedId',    deleteHomeFeed);

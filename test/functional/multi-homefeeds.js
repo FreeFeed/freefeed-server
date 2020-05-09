@@ -6,7 +6,7 @@ import cleanDB from '../dbCleaner';
 import { Timeline } from '../../app/models';
 
 import { createTestUser, performJSONRequest, createTestUsers, goPrivate } from './functional_test_helper';
-import { homeFeedsListResponse, homeFeedsOneResponse } from './schemaV2-helper';
+import { homeFeedsListResponse, homeFeedsOneResponse, homeFeedsSubscriptionsResponse } from './schemaV2-helper';
 
 
 describe(`Multiple home feeds API`, () => {
@@ -305,6 +305,59 @@ describe(`Multiple home feeds API`, () => {
       });
     });
   });
+
+  describe(`Mass subscription management`, () => {
+    before(() => cleanDB($pg_database));
+
+    let luna, mars, venus, jupiter,
+      mainHomeFeedId, secondaryHomeFeedId, tertiaryHomeFeedId;
+
+    before(async () => {
+      [luna, mars, venus, jupiter] = await createTestUsers(['luna', 'mars', 'venus', 'jupiter']);
+      ({ timelines: [{ id: mainHomeFeedId }] } = await listHomeFeeds(luna));
+      ({ timeline: { id: secondaryHomeFeedId } } = await createHomeFeed(luna, 'The Second One'));
+      ({ timeline: { id: tertiaryHomeFeedId } } = await createHomeFeed(luna, 'The Third One'));
+    });
+
+    it(`should return empty subscriptions list at start`, async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/timelines/home/subscriptions`, null,
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', homeFeedsSubscriptionsResponse);
+      expect(resp, 'to satisfy', {
+        usersInHomeFeeds: [],
+        timelines:        [
+          { id: mainHomeFeedId },
+          { id: secondaryHomeFeedId },
+          { id: tertiaryHomeFeedId },
+        ]
+      });
+    });
+
+    it(`should return proper subscriptions when Luna subscribed to users`, async () => {
+      await subscribe(luna, mars, [mainHomeFeedId]);
+      await subscribe(luna, venus, [secondaryHomeFeedId]);
+      await subscribe(luna, jupiter, [mainHomeFeedId, tertiaryHomeFeedId]);
+
+      const resp = await performJSONRequest(
+        'GET', `/v2/timelines/home/subscriptions`, null,
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', homeFeedsSubscriptionsResponse);
+      expect(resp, 'to satisfy', {
+        usersInHomeFeeds: expect.it(
+          'when sorted by', (a, b) => a.id.localeCompare(b.id), 'to satisfy', [
+            { id: mars.user.id, homeFeeds: [mainHomeFeedId] },
+            { id: venus.user.id, homeFeeds: [secondaryHomeFeedId] },
+            {
+              id:        jupiter.user.id,
+              homeFeeds: expect.it('when sorted', 'to equal', [mainHomeFeedId, tertiaryHomeFeedId].sort())
+            },
+          ].sort((a, b) => a.id.localeCompare(b.id)))
+      });
+    });
+  });
 });
 
 function createHomeFeed(userCtx, title) {
@@ -319,4 +372,12 @@ function listHomeFeeds(userCtx) {
     'GET', '/v2/timelines/home/list', null,
     { Authorization: `Bearer ${userCtx.authToken}` }
   );
+}
+
+async function subscribe(subscriber, target, homeFeeds = []) {
+  const resp = await performJSONRequest(
+    'POST', `/v1/users/${target.user.username}/subscribe`, { homeFeeds },
+    { Authorization: `Bearer ${subscriber.authToken}` }
+  );
+  expect(resp, 'to satisfy', { __httpCode: 200 });
 }
