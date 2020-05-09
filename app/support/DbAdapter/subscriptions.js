@@ -186,6 +186,36 @@ const subscriptionsTrait = (superClass) => class extends superClass {
   }
 
   /**
+   * Returns integer ids of feeds that home feed is subscribed to. These ids are
+   * separated into two groups: 'destinations' — 'Posts' and 'Directs' feeds and
+   * 'activities' — 'Comments' and 'Likes'.
+   *
+   * @param {Timeline} homeFeed
+   * @return {{destinations: number[], activities: number[]}} - ids of feeds
+   */
+  async getSubscriprionsIntIds(homeFeed) {
+    const rows = await this.database.getAll(
+      `with feeds as (
+        select f.id, f.name from
+          homefeed_subscriptions hs
+          join feeds f on f.user_id = hs.target_user_id and f.name in ('Posts', 'Comments', 'Likes')
+          where hs.homefeed_id = :homeFeedId
+        ${homeFeed.isInherent ? `union  -- viewer's own feeds
+        select id, name from feeds where user_id = :userId 
+          and name in ('Posts', 'Directs', 'Comments', 'Likes')` : ``}
+      )
+      select 
+        case when name in ('Comments', 'Likes') then 'activities' else 'destinations' end as type,
+        array_remove(array_agg(id), null) as ids
+      from feeds group by type`,
+      { homeFeedId: homeFeed.id, userId: homeFeed.userId });
+
+    const result = { destinations: [], activities: [] };
+    rows.forEach(({ ids, type }) => result[type] = ids);
+    return result;
+  }
+
+  /**
    * Smart unsubscribe one user from another
    *
    * This function performs all necessary database updates within single
