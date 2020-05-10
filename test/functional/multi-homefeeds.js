@@ -555,7 +555,50 @@ describe(`Multiple home feeds API`, () => {
         );
         expect(resp, 'to satisfy', { timelines: { posts: expect.it(`not to contain`, venusPost.id) } });
       });
-    })
+    });
+
+    describe('Realtime', () => {
+      let lunaSession;
+      before(async () => {
+        lunaSession = await Session.create(port, 'Luna session');
+        await lunaSession.sendAsync('auth', { authToken: luna.authToken });
+      });
+
+      after(() => lunaSession.disconnect());
+
+      it(`should deliver 'post:new' event to main home feed when Jupiter wrote post`, async () => {
+        await lunaSession.sendAsync('subscribe', { timeline: [mainHomeFeedId] });
+        const event = lunaSession.receive('post:new');
+        await Promise.all([
+          createAndReturnPost(jupiter, 'Jupiter post'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
+        expect(event, 'to be fulfilled');
+      });
+
+      it(`should not deliver 'post:new' event to second home feed when Jupiter wrote post`, async () => {
+        await lunaSession.sendAsync('subscribe', { timeline: [secondaryHomeFeedId] });
+        const event = lunaSession.notReceive('post:new');
+        await Promise.all([
+          createAndReturnPost(jupiter, 'Jupiter post'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [secondaryHomeFeedId] });
+        expect(event, 'to be fulfilled');
+      });
+
+      it(`should deliver 'post:new' event to third home feed when Jupiter wrote post`, async () => {
+        await lunaSession.sendAsync('subscribe', { timeline: [tertiaryHomeFeedId] });
+        const event = lunaSession.receive('post:new');
+        await Promise.all([
+          createAndReturnPost(jupiter, 'Jupiter post'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [tertiaryHomeFeedId] });
+        expect(event, 'to be fulfilled');
+      });
+    });
   });
 });
 

@@ -70,6 +70,21 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     return responses.map(initUserObject)
   }
 
+  getHomeFeedSubscribedToUsers(userIds, inherentOnly = false) {
+    if (inherentOnly) {
+      return this.database.getCol(
+        `select homefeed_id from
+          homefeed_subscriptions hs
+          join feeds f on f.uid = hs.homefeed_id
+          where f.ord is null and hs.target_user_id = any(:userIds)`,
+        { userIds });
+    }
+
+    return this.database.getCol(
+      `select homefeed_id from homefeed_subscriptions where target_user_id = any(:userIds)`,
+      { userIds });
+  }
+
   /**
    * Smart subscribe one user to another
    *

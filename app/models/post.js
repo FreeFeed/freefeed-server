@@ -371,38 +371,33 @@ export function addModel(dbAdapter) {
       const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
 
       /**
-       * 'RiverOfNews' feeds of:
-       * - post author
-       * - users subscribed to post destinations feeds ('Posts')
-       * - owners of post destinations feeds ('Posts' and 'Directs')
-       * - and:
-       *  + if mode === HOMEFEED_MODE_CLASSIC
-       *       (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments')
-       *  + if mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
-       *       users subscribed to post activity feeds ('Likes' and 'Comments') and to author's 'Posts' feed
+       * If post have author U, destination feeds owned by D's and activity feeds owned by A's then
+       * it belongs to the following RiverOfNewses:
+       * - any (inherent or auxiliary) RoNs subscribed to D
+       * - inherent RoN of U
+       * - if HOMEFEED_MODE_CLASSIC and post is propagable: inherent RoNs subscribed to A
+       * - if HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY inherent RoNs subscribed to A or inherent RoNs
+       *   subscribed to U
        */
-      const riverOfNewsSources = [...destinations];
 
-      if (mode === HOMEFEED_MODE_CLASSIC) {
-        (this.isPropagable === '1') && riverOfNewsSources.push(...activities);
-      }
+      const destinationsFeedsOwners = destinations.map((f) => f.userId);
+      const activityFeedsOwners = activities.map((f) => f.userId);
 
-      if (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
-        riverOfNewsSources.push(...activities);
-        riverOfNewsSources.push(await dbAdapter.getUserNamedFeed(this.userId, 'Posts'));
-      }
+      const homeFeedLists = await Promise.all([
+        dbAdapter.getHomeFeedSubscribedToUsers(destinationsFeedsOwners),
+        dbAdapter.getUserNamedFeedId(this.userId, 'RiverOfNews'),
+        (
+          (mode === HOMEFEED_MODE_CLASSIC && this.isPropagable === '1')
+          || mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+        )
+          ? dbAdapter.getHomeFeedSubscribedToUsers(activityFeedsOwners, true)
+          : [],
+        (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY)
+          ? dbAdapter.getHomeFeedSubscribedToUsers([this.userId], true)
+          : [],
+      ]);
 
-      const riverOfNewsSourceIds = riverOfNewsSources.map((f) => f.id);
-      const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
-      const destinationOwnerIds = destinations.map((f) => f.userId);
-      return await dbAdapter.getUsersNamedTimelines(
-        _.uniq([
-          ...riverOfNewsOwnerIds,
-          ...destinationOwnerIds,
-          this.userId,
-        ]),
-        'RiverOfNews',
-      );
+      return await dbAdapter.getTimelinesByIds(_.uniq(_.flatten(homeFeedLists)));
     }
 
     /**
