@@ -5,7 +5,7 @@ import { authRequired, monitored, inputSchemaRequired } from '../../middlewares'
 import { serializeTimeline } from '../../../serializers/v2/timeline';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { ValidationException, NotFoundException, ForbiddenException } from '../../../support/exceptions'
-import { dbAdapter } from '../../../models';
+import { dbAdapter, PubSub as pubSub } from '../../../models';
 
 import {
   createHomeFeedInputSchema,
@@ -44,6 +44,8 @@ export const createHomeFeed = compose([
 
     const feed = await user.createHomeFeed(body.title);
 
+    await pubSub.updateHomeFeeds(user.id);
+
     const users = await serializeUsersByIds([user.id]);
     ctx.body = { timeline: serializeTimeline(feed), users };
   },
@@ -71,6 +73,8 @@ export const updateHomeFeed = compose([
     if (!ok) {
       throw new NotFoundException(`Home feed is not found`);
     }
+
+    await pubSub.updateHomeFeeds(user.id);
 
     const users = await serializeUsersByIds([user.id]);
     ctx.body = { timeline: serializeTimeline(feed), users };
@@ -100,6 +104,8 @@ export const deleteHomeFeed = compose([
       throw new NotFoundException(`Home feed is not found`);
     }
 
+    await pubSub.updateHomeFeeds(user.id);
+
     ctx.body = {};
   },
 ]);
@@ -121,6 +127,8 @@ export const reorderHomeFeeds = compose([
     }
 
     await dbAdapter.reorderFeeds(feeds.map((f) => f.id));
+
+    await pubSub.updateHomeFeeds(user.id);
 
     await listHomeFeeds(ctx);
   },

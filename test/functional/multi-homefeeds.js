@@ -1,9 +1,11 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
-import { Timeline } from '../../app/models';
+import { Timeline, PubSub } from '../../app/models';
+import { getSingleton } from '../../app/app';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
   createTestUser,
@@ -20,9 +22,19 @@ import {
   homeFeedsSubscriptionsResponse,
   homeFeedUpdateSubscriptionsResponse,
 } from './schemaV2-helper';
+import Session from './realtime-session';
 
 
 describe(`Multiple home feeds API`, () => {
+  let port;
+
+  before(async () => {
+    const app = await getSingleton();
+    port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter)
+  });
+
   describe(`Home feeds management`, () => {
     before(() => cleanDB($pg_database));
 
@@ -174,6 +186,74 @@ describe(`Multiple home feeds API`, () => {
         { Authorization: `Bearer ${luna.authToken}` }
       );
       expect(resp, 'to satisfy', { __httpCode: 403 });
+    });
+
+    describe('Realtime', () => {
+      let lunaSession;
+      before(async () => {
+        lunaSession = await Session.create(port, 'Luna session');
+        await lunaSession.sendAsync('auth', { authToken: luna.authToken });
+        await lunaSession.sendAsync('subscribe', { user: [luna.user.id] });
+      });
+
+      after(() => lunaSession.disconnect());
+
+      it(`should send message when home feed created`, async () => {
+        const event = lunaSession.receive('user:update');
+        const [resp] = await Promise.all([
+          createHomeFeed(luna, 'The Second One'),
+          event,
+        ]);
+        secondaryHomeFeedId = resp.timeline.id;
+        expect(event, 'to be fulfilled with', {
+          homeFeeds: [
+            { id: mainHomeFeedId },
+            { id: tertiaryHomeFeedId },
+            { id: secondaryHomeFeedId },
+          ]
+        });
+      });
+
+      it(`should send message when home feeds reordered`, async () => {
+        const event = lunaSession.receive('user:update');
+        await Promise.all([
+          await performJSONRequest(
+            'PATCH', `/v2/timelines/home/`,
+            {
+              reorder: [
+                secondaryHomeFeedId,
+                tertiaryHomeFeedId,
+              ]
+            },
+            { Authorization: `Bearer ${luna.authToken}` }
+          ),
+          event,
+        ]);
+        expect(event, 'to be fulfilled with', {
+          homeFeeds: [
+            { id: mainHomeFeedId },
+            { id: secondaryHomeFeedId },
+            { id: tertiaryHomeFeedId },
+          ]
+        });
+      });
+
+      it(`should send message when home feed removed`, async () => {
+        const event = lunaSession.receive('user:update');
+        await Promise.all([
+          await performJSONRequest(
+            'DELETE', `/v2/timelines/home/${tertiaryHomeFeedId}`, null,
+            { Authorization: `Bearer ${luna.authToken}` }
+          ),
+          event,
+        ]);
+        expect(event, 'to be fulfilled with', {
+          homeFeeds: [
+            { id: mainHomeFeedId },
+            { id: secondaryHomeFeedId },
+          ]
+        });
+      });
     });
   });
 
