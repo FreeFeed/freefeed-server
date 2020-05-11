@@ -272,7 +272,7 @@ export const extAuthProfilesResponse = {
 
 export const homeFeed = {
   id:         expect.it('to satisfy', UUID),
-  userId:     expect.it('to satisfy', UUID),
+  user:       expect.it('to satisfy', UUID),
   name:       expect.it('to be', 'RiverOfNews'),
   title:      expect.it('to be a string'),
   isInherent: expect.it('to be a boolean'),

@@ -3,7 +3,7 @@
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
-import { Timeline, PubSub } from '../../app/models';
+import { Timeline, PubSub, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY } from '../../app/models';
 import { getSingleton } from '../../app/app';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
@@ -56,7 +56,7 @@ describe(`Multiple home feeds API`, () => {
         timelines: [
           {
             name:       'RiverOfNews',
-            userId:     luna.user.id,
+            user:       luna.user.id,
             title:      Timeline.defaultRiverOfNewsTitle,
             isInherent: true,
           },
@@ -72,7 +72,7 @@ describe(`Multiple home feeds API`, () => {
         expect(resp, 'to satisfy', {
           timeline: {
             name:       'RiverOfNews',
-            userId:     luna.user.id,
+            user:       luna.user.id,
             title:      'The Second One',
             isInherent: false,
           },
@@ -86,7 +86,7 @@ describe(`Multiple home feeds API`, () => {
         expect(resp, 'to satisfy', {
           timeline: {
             name:       'RiverOfNews',
-            userId:     luna.user.id,
+            user:       luna.user.id,
             title:      'The Third One',
             isInherent: false,
           },
@@ -103,21 +103,21 @@ describe(`Multiple home feeds API`, () => {
           {
             id:         mainHomeFeedId,
             name:       'RiverOfNews',
-            userId:     luna.user.id,
+            user:       luna.user.id,
             title:      Timeline.defaultRiverOfNewsTitle,
             isInherent: true,
           },
           {
             id:         secondaryHomeFeedId,
             name:       'RiverOfNews',
-            userId:     luna.user.id,
+            user:       luna.user.id,
             title:      'The Second One',
             isInherent: false,
           },
           {
             id:         tertiaryHomeFeedId,
             name:       'RiverOfNews',
-            userId:     luna.user.id,
+            user:       luna.user.id,
             title:      'The Third One',
             isInherent: false,
           },
@@ -596,6 +596,39 @@ describe(`Multiple home feeds API`, () => {
           event,
         ]);
         await lunaSession.sendAsync('unsubscribe', { timeline: [tertiaryHomeFeedId] });
+        expect(event, 'to be fulfilled');
+      });
+
+      it(`should not deliver 'comment:new' event to second home feed when Venus comments Luna's post`, async () => {
+        await lunaSession.sendAsync('subscribe', { timeline: [secondaryHomeFeedId] });
+        const event = lunaSession.notReceive('comment:new');
+        await Promise.all([
+          createCommentAsync(venus, lunaPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [secondaryHomeFeedId] });
+        expect(event, 'to be fulfilled');
+      });
+
+      it(`should not deliver 'comment:new' event to second home feed in wide mode when Venus comments Luna's post`, async () => {
+        await lunaSession.sendAsync('subscribe', { timeline: [`${secondaryHomeFeedId}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`] });
+        const event = lunaSession.notReceive('comment:new');
+        await Promise.all([
+          createCommentAsync(venus, lunaPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [secondaryHomeFeedId] });
+        expect(event, 'to be fulfilled');
+      });
+
+      it(`should deliver 'comment:new' event to second home feed when Venus comments Venus' post`, async () => {
+        await lunaSession.sendAsync('subscribe', { timeline: [secondaryHomeFeedId] });
+        const event = lunaSession.receive('comment:new');
+        await Promise.all([
+          createCommentAsync(venus, venusPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [secondaryHomeFeedId] });
         expect(event, 'to be fulfilled');
       });
     });
