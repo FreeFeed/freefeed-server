@@ -342,7 +342,10 @@ describe(`Multiple home feeds API`, () => {
           'PUT', `/v1/users/${mars.user.username}/subscribe`, { homeFeeds: [mainHomeFeedId, tertiaryHomeFeedId] },
           { Authorization: `Bearer ${luna.authToken}` }
         );
-        expect(resp, 'to satisfy', { __httpCode: 200 });
+        expect(resp, 'to satisfy', {
+          __httpCode:  200,
+          inHomeFeeds: expect.it('when sorted', 'to equal', [mainHomeFeedId, tertiaryHomeFeedId].sort()),
+        });
       }
 
       const resp = await performJSONRequest(

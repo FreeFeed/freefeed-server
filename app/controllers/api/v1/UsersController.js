@@ -447,7 +447,7 @@ export default class UsersController {
         throw new ForbiddenException('You are not subscribed to that user');
       }
 
-      ctx.body = {};
+      await UsersController.show(ctx);
     },
   ]);
 
