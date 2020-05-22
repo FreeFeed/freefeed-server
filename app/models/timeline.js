@@ -44,7 +44,7 @@ export function addModel(dbAdapter) {
     // it can be modified or deleted.
     isInherent;
 
-    static defaultRiverOfNewsTitle = 'Home Feed';
+    static defaultRiverOfNewsTitle = 'Home';
 
     constructor(params) {
       this.id = params.id;
