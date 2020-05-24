@@ -411,9 +411,10 @@ const subscriptionsTrait = (superClass) => class extends superClass {
             join feeds f on f.uid = s.feed_id and f.name = 'Posts'
             where s.user_id = :subscriberId
         )
-      select u.user_id, array_remove(array_agg(hs.homefeed_id), null) as homefeed_ids from
+      select u.user_id, array_remove(array_agg(h.uid), null) as homefeed_ids from
         users u
         left join homefeed_subscriptions hs on hs.target_user_id = u.user_id
+        left join homefeeds h on hs.homefeed_id = h.uid
         group by u.user_id`,
       { subscriberId });
   }

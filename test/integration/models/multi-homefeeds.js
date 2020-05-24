@@ -317,6 +317,11 @@ describe(`Multiple home feeds`, () => {
         'to be true');
       expect(await luna.subscribeTo(saturn),
         'to be true');
+      // Some other user's subscriptions
+      expect(await venus.subscribeTo(mars),
+        'to be true');
+      expect(await jupiter.subscribeTo(venus),
+        'to be true');
 
       // Exclude Saturn from all home feeds
       expect(await luna.setHomeFeedsSubscribedTo(saturn, []),

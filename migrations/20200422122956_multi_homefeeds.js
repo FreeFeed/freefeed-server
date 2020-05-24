@@ -19,6 +19,8 @@ export const up = (knex) => knex.schema.raw(`do $$begin
       references users (uid) on delete cascade on update cascade,
     primary key (homefeed_id, target_user_id)
   );
+  create index homefeed_subscriptions_target_user_id_idx 
+    on homefeed_subscriptions using btree (target_user_id);
 
   -- Assign all existing subscriptions to the main users homefeeds
   insert into homefeed_subscriptions (homefeed_id, target_user_id)
