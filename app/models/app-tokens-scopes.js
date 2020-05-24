@@ -12,13 +12,15 @@ export const appTokensScopes = [
       'GET /v2/users/whoami',
       'GET /v2/managedGroups',
       'GET /v2/users/blockedByMe',
+      'GET /v2/timelines/home/list',
     ]
   },
   {
     name:   'read-feeds',
     title:  'Read feeds, including my feeds and direct messages',
     routes: [
-      'GET /v2/timelines/home',
+      'GET /v2/timelines/home/:feedId?',
+      'GET /v2/timelines/home/list',
       'GET /v2/timelines/filter/discussions',
       'GET /v2/timelines/filter/directs',
       'GET /v2/timelines/filter/saves',
@@ -90,6 +92,7 @@ export const appTokensScopes = [
     title:  'Manage my subscriptions, hides, bans, and saves',
     routes: [
       'POST /v1/users/:username/subscribe',
+      'PUT /v1/users/:username/subscribe',
       'POST /v1/users/:username/unsubscribe',
       'POST /v1/posts/:postId/hide',
       'POST /v1/posts/:postId/unhide',
@@ -99,6 +102,12 @@ export const appTokensScopes = [
       'DELETE /v1/posts/:postId/save',
       'POST /v1/users/:username/sendRequest',
       'POST /v2/requests/:followedUserName/revoke',
+      'POST /v2/timelines/home',
+      'DELETE /v2/timelines/home/:feedId',
+      'PUT /v2/timelines/home/:feedId',
+      'PATCH /v2/timelines/home/list',
+      'PATCH /v2/timelines/home/:feedId/subscriptions',
+      'GET /v2/timelines/home/subscriptions',
     ]
   },
   {
