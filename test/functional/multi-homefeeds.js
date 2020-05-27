@@ -20,7 +20,6 @@ import {
   homeFeedsListResponse,
   homeFeedsOneResponse,
   homeFeedsSubscriptionsResponse,
-  homeFeedUpdateSubscriptionsResponse,
 } from './schemaV2-helper';
 import Session from './realtime-session';
 
@@ -127,7 +126,7 @@ describe(`Multiple home feeds API`, () => {
 
     it(`should rename the second homefeed`, async () => {
       const resp = await performJSONRequest(
-        'PUT',
+        'PATCH',
         `/v2/timelines/home/${secondaryHomeFeedId}`,
         { title: 'The Updated Second One' },
         { Authorization: `Bearer ${luna.authToken}` }
@@ -454,16 +453,22 @@ describe(`Multiple home feeds API`, () => {
       });
     });
 
+    it(`should return subscriptions of homefeed`, async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/timelines/home/${mainHomeFeedId}`, null,
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', homeFeedsOneResponse);
+      expect(resp, 'to satisfy', { subscribedTo: expect.it('when sorted', 'to equal', [mars.user.id, jupiter.user.id].sort()) });
+    });
+
     it(`should update subscriptions of homefeed`, async () => {
       {
         const resp = await performJSONRequest(
-          'PATCH', `/v2/timelines/home/${mainHomeFeedId}/subscriptions`, {
-            addUsers:    [venus.user.id],
-            removeUsers: [jupiter.user.id, mars.user.id]
-          },
+          'PATCH', `/v2/timelines/home/${mainHomeFeedId}`, { subscribedTo: [venus.user.id] },
           { Authorization: `Bearer ${luna.authToken}` }
         );
-        expect(resp, 'to satisfy', homeFeedUpdateSubscriptionsResponse);
+        expect(resp, 'to satisfy', homeFeedsOneResponse);
         expect(resp, 'to satisfy', { subscribedTo: [venus.user.id] });
       }
 

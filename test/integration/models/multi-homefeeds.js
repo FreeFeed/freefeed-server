@@ -337,11 +337,13 @@ describe(`Multiple home feeds`, () => {
         ].sort((a, b) => a.user_id.localeCompare(b.user_id)));
     });
 
+    it(`should return only mainHomeFeed subscriptions`, async () => {
+      expect(await mainHomeFeed.getHomeFeedSubscriptions(),
+        'when sorted', 'to satisfy', [mars.id, venus.id].sort());
+    });
+
     it(`should update mainHomeFeed subscriptions`, async () => {
-      await mainHomeFeed.updateHomeFeedSubscriptions({
-        addUsers:    [saturn.id, venus.id],
-        removeUsers: [mars.id, jupiter.id],
-      });
+      await mainHomeFeed.updateHomeFeedSubscriptions([saturn.id, venus.id]);
 
       expect(await luna.getSubscriptionsWithHomeFeeds(),
         'when sorted by', (a, b) => a.user_id.localeCompare(b.user_id),
@@ -355,8 +357,8 @@ describe(`Multiple home feeds`, () => {
 
     it(`should move all subscriptions to the secondary home feed`, async () => {
       await Promise.all([
-        mainHomeFeed.updateHomeFeedSubscriptions({ removeUsers: [mars.id, venus.id, jupiter.id, saturn.id] }),
-        secondaryHomeFeed.updateHomeFeedSubscriptions({ addUsers: [mars.id, venus.id, jupiter.id, saturn.id] }),
+        mainHomeFeed.updateHomeFeedSubscriptions([]),
+        secondaryHomeFeed.updateHomeFeedSubscriptions([mars.id, venus.id, jupiter.id, saturn.id]),
       ]);
 
       expect(await luna.getSubscriptionsWithHomeFeeds(),

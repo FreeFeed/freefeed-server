@@ -1,5 +1,4 @@
 import compose from 'koa-compose';
-import { pick } from 'lodash';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { serializeTimeline } from '../../../serializers/v2/timeline';
@@ -12,7 +11,6 @@ import {
   updateHomeFeedInputSchema,
   deleteHomeFeedInputSchema,
   reorderHomeFeedsInputSchema,
-  updateHomeFeedSubscriptionsInputSchema,
 } from './data-schemes/homefeeds';
 
 
@@ -46,8 +44,8 @@ export const createHomeFeed = compose([
 
     await pubSub.updateHomeFeeds(user.id);
 
-    const users = await serializeUsersByIds([user.id]);
-    ctx.body = { timeline: serializeTimeline(feed), users };
+    ctx.params.feedId = feed.id;
+    await getHomeFeedInfo(ctx);
   },
 ]);
 
@@ -64,20 +62,25 @@ export const updateHomeFeed = compose([
       throw new NotFoundException(`Home feed is not found`);
     }
 
-    if (feed.isInherent) {
-      throw new NotFoundException(`This inherent feed cannot be updated`);
+    if ('title' in body) {
+      if (feed.isInherent) {
+        throw new ForbiddenException(`The inherent feed title cannot be updated`);
+      }
+
+      const ok = await feed.update({ title: body.title });
+
+      if (!ok) {
+        throw new NotFoundException(`Home feed is not found`);
+      }
+
+      await pubSub.updateHomeFeeds(user.id);
     }
 
-    const ok = await feed.update({ title: body.title });
-
-    if (!ok) {
-      throw new NotFoundException(`Home feed is not found`);
+    if ('subscribedTo' in body) {
+      await feed.updateHomeFeedSubscriptions(body.subscribedTo);
     }
 
-    await pubSub.updateHomeFeeds(user.id);
-
-    const users = await serializeUsersByIds([user.id]);
-    ctx.body = { timeline: serializeTimeline(feed), users };
+    await getHomeFeedInfo(ctx);
   },
 ]);
 
@@ -158,12 +161,10 @@ export const listSubscriptions = compose([
   },
 ]);
 
-export const updateHomeFeedSubscriptions = compose([
+export const getHomeFeedInfo = compose([
   authRequired(),
-  inputSchemaRequired(updateHomeFeedSubscriptionsInputSchema),
-  monitored('homefeeds.update-subscriptions'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const { state: { user } } = ctx;
 
     const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
 
@@ -171,12 +172,11 @@ export const updateHomeFeedSubscriptions = compose([
       throw new NotFoundException(`Home feed is not found`);
     }
 
-    await feed.updateHomeFeedSubscriptions(pick(body, ['addUsers', 'removeUsers']));
-
     const subscribedTo = await feed.getHomeFeedSubscriptions();
-    const users = await serializeUsersByIds(subscribedTo, true, user.id);
+    const users = await serializeUsersByIds([...subscribedTo, feed.userId], true, user.id);
 
     ctx.body = {
+      timeline: serializeTimeline(feed),
       subscribedTo,
       users,
     };

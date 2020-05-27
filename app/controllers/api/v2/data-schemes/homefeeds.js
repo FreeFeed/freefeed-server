@@ -29,8 +29,9 @@ export const deleteHomeFeedInputSchema = {
 export const updateHomeFeedInputSchema = {
   '$schema': 'http://json-schema.org/schema#',
 
-  type:     'object',
-  required: ['title'],
+  definitions,
+
+  type: 'object',
 
   properties: {
     title: {
@@ -38,6 +39,11 @@ export const updateHomeFeedInputSchema = {
       pattern:   '\\S',
       minLength: 1,
       maxLength: 250,
+    },
+    subscribedTo: {
+      type:        'array',
+      items:       { '$ref': '#/definitions/uuid' },
+      uniqueItems: true,
     },
   }
 }
@@ -59,24 +65,3 @@ export const reorderHomeFeedsInputSchema = {
     }
   }
 }
-
-export const updateHomeFeedSubscriptionsInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
-
-  definitions,
-
-  type: 'object',
-
-  properties: {
-    addUsers: {
-      type:        'array',
-      items:       { '$ref': '#/definitions/uuid' },
-      uniqueItems: true,
-    },
-    removeUsers: {
-      type:        'array',
-      items:       { '$ref': '#/definitions/uuid' },
-      uniqueItems: true,
-    },
-  }
-};

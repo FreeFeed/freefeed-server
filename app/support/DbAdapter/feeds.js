@@ -289,14 +289,14 @@ const feedsTrait = (superClass) => class extends superClass {
         }
       );
 
-      // Now we can the feed
+      // Now we can delete the feed
       await trx.raw(`delete from feeds where uid = :feedId`, { feedId });
       return true;
     });
   }
 
   async updateFeed(feedId, { title }) {
-    const { rows: [row] } = await this.database.raw(
+    const row = await this.database.getRow(
       `update feeds set title = :title, updated_at = default
         where uid = :feedId and ord is not null returning *`,
       { feedId, title }
