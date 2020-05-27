@@ -2,6 +2,53 @@ export const alwaysAllowedRoutes = [
   'GET /v1/users/me',
   'GET /v2/app-tokens/current',
   'POST /v2/app-tokens/current/reissue',
+  'GET /v2/server-info', // Doesn't require authorization
+];
+
+export const alwaysDisallowedRoutes = [
+  // Passwords
+  'POST /v1/passwords',
+  'PUT /v1/passwords/:resetPasswordToken',
+  'PUT /v1/users/updatePassword',
+  // Session
+  'POST /v1/session',
+  // SUDO methods
+  'POST /v1/groups/sudo',
+  'POST /v1/users/sudo',
+  // Deprecated, use /v2/
+  'GET /v1/posts/:postId',
+  'GET /v1/timelines/home',
+  'GET /v1/timelines/filter/discussions',
+  'GET /v1/timelines/filter/directs',
+  'GET /v1/timelines/:username',
+  'GET /v1/timelines/:username/likes',
+  'GET /v1/timelines/:username/comments',
+  'POST /v1/users',
+  'GET /v1/users/whoami',
+  // Stats
+  'GET /v2/stats',
+  // SSI Metatags
+  'GET /v2/timelines-metatags/:username',
+  'GET /v2/posts-opengraph/:postId',
+  // Archives
+  'POST /v2/archives/restoration',
+  'PUT /v2/archives/activities',
+  'GET /v2/archives-stats',
+  // Invitations
+  'GET /v2/invitations/:secureId',
+  'POST /v2/invitations',
+  // App tokens
+  'GET /v2/app-tokens/scopes',
+  'GET /v2/app-tokens',
+  'POST /v2/app-tokens',
+  'POST /v2/app-tokens/:tokenId/reissue',
+  'PUT /v2/app-tokens/:tokenId',
+  'DELETE /v2/app-tokens/:tokenId',
+  // Ext. auth
+  'GET /v2/ext-auth/profiles',
+  'DELETE /v2/ext-auth/profiles/:profileId',
+  'POST /v2/ext-auth/auth-start',
+  'POST /v2/ext-auth/auth-finish',
 ];
 
 export const appTokensScopes = [
@@ -19,7 +66,8 @@ export const appTokensScopes = [
     name:   'read-feeds',
     title:  'Read feeds, including my feeds and direct messages',
     routes: [
-      'GET /v2/timelines/home/:feedId?',
+      'GET /v2/timelines/home',
+      'GET /v2/timelines/home/:feedId/posts',
       'GET /v2/timelines/home/list',
       'GET /v2/timelines/filter/discussions',
       'GET /v2/timelines/filter/directs',
@@ -37,6 +85,7 @@ export const appTokensScopes = [
       'GET /v2/archives/post-by-old-name/:name',
       'GET /v2/allGroups',
       'GET /v2/comments/:commentId/likes',
+      'GET /v2/everything',
     ]
   },
   {
@@ -103,11 +152,12 @@ export const appTokensScopes = [
       'POST /v1/users/:username/sendRequest',
       'POST /v2/requests/:followedUserName/revoke',
       'POST /v2/timelines/home',
+      'PATCH /v2/timelines/home',
       'DELETE /v2/timelines/home/:feedId',
-      'PUT /v2/timelines/home/:feedId',
-      'PATCH /v2/timelines/home/list',
-      'PATCH /v2/timelines/home/:feedId/subscriptions',
+      'PATCH /v2/timelines/home/:feedId',
+      'GET /v2/timelines/home/:feedId',
       'GET /v2/timelines/home/subscriptions',
+      'PATCH /v2/timelines/home',
     ]
   },
   {
