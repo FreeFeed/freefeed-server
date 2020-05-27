@@ -522,7 +522,7 @@ describe(`Multiple home feeds API`, () => {
 
     it(`should return posts from the second home feed`, async () => {
       const resp = await performJSONRequest(
-        'GET', `/v2/timelines/home/${secondaryHomeFeedId}`, null,
+        'GET', `/v2/timelines/home/${secondaryHomeFeedId}/posts`, null,
         { Authorization: `Bearer ${luna.authToken}` }
       );
       expect(resp, 'to satisfy', { posts: [venusPost] });
@@ -530,7 +530,7 @@ describe(`Multiple home feeds API`, () => {
 
     it(`should return posts from the third home feed`, async () => {
       const resp = await performJSONRequest(
-        'GET', `/v2/timelines/home/${tertiaryHomeFeedId}`, null,
+        'GET', `/v2/timelines/home/${tertiaryHomeFeedId}/posts`, null,
         { Authorization: `Bearer ${luna.authToken}` }
       );
       expect(resp, 'to satisfy', { posts: [jupiterPost] });
@@ -553,7 +553,7 @@ describe(`Multiple home feeds API`, () => {
 
       it(`should not return Venus post in the third home feed`, async () => {
         const resp = await performJSONRequest(
-          'GET', `/v2/timelines/home/${tertiaryHomeFeedId}`, null,
+          'GET', `/v2/timelines/home/${tertiaryHomeFeedId}/posts`, null,
           { Authorization: `Bearer ${luna.authToken}` }
         );
         expect(resp, 'to satisfy', { timelines: { posts: expect.it(`not to contain`, venusPost.id) } });
