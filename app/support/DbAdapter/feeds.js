@@ -289,6 +289,9 @@ const feedsTrait = (superClass) => class extends superClass {
         }
       );
 
+      // Set the returning parameter
+      params.backupFeedId = backupFeed.uid;
+
       // Now we can delete the feed
       await trx.raw(`delete from feeds where uid = :feedId`, { feedId });
       return true;

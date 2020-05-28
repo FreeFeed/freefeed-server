@@ -170,7 +170,7 @@ describe(`Multiple home feeds API`, () => {
         null,
         { Authorization: `Bearer ${luna.authToken}` }
       );
-      expect(resp, 'to satisfy', { __httpCode: 200 });
+      expect(resp, 'to satisfy', { __httpCode: 200, backupFeed: mainHomeFeedId });
 
       const list = await listHomeFeeds(luna);
       expect(list, 'to satisfy', homeFeedsListResponse);

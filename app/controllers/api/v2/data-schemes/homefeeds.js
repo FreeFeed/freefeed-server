@@ -4,6 +4,8 @@ import definitions from '../../v1/data-schemes/definitions';
 export const createHomeFeedInputSchema = {
   '$schema': 'http://json-schema.org/schema#',
 
+  definitions,
+
   type:     'object',
   required: ['title'],
 
@@ -14,6 +16,12 @@ export const createHomeFeedInputSchema = {
       minLength: 1,
       maxLength: 250,
     },
+    subscribedTo: {
+      type:        'array',
+      items:       { '$ref': '#/definitions/uuid' },
+      uniqueItems: true,
+      default:     [],
+    },
   }
 };
 
@@ -23,7 +31,8 @@ export const deleteHomeFeedInputSchema = {
   definitions,
 
   type:       'object',
-  properties: { backupFeed: { '$ref': '#/definitions/uuid' } }
+  properties: { backupFeed: { '$ref': '#/definitions/uuid' } },
+  default:    {},
 };
 
 export const updateHomeFeedInputSchema = {

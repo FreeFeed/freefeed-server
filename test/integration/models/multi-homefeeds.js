@@ -47,8 +47,10 @@ describe(`Multiple home feeds`, () => {
     });
 
     it(`should remove the second homefeed`, async () => {
-      const ok = await secondaryHomeFeed.destroy();
+      const params = {};
+      const ok = await secondaryHomeFeed.destroy(params);
       expect(ok, 'to be true');
+      expect(params, 'to satisfy', { backupFeedId: mainHomeFeed.id });
 
       const homefeeds = await luna.getHomeFeeds();
       expect(homefeeds, 'to satisfy', [

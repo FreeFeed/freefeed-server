@@ -44,6 +44,10 @@ export const createHomeFeed = compose([
 
     await pubSub.updateHomeFeeds(user.id);
 
+    if ('subscribedTo' in body) {
+      await feed.updateHomeFeedSubscriptions(body.subscribedTo);
+    }
+
     ctx.params.feedId = feed.id;
     await getHomeFeedInfo(ctx);
   },
@@ -101,7 +105,8 @@ export const deleteHomeFeed = compose([
       throw new ForbiddenException(`This inherent feed cannot be removed`);
     }
 
-    const ok = await feed.destroy({ backupFeedId: body.backupFeed });
+    const params = { backupFeedId: body.backupFeed };
+    const ok = await feed.destroy(params);
 
     if (!ok) {
       throw new NotFoundException(`Home feed is not found`);
@@ -109,7 +114,7 @@ export const deleteHomeFeed = compose([
 
     await pubSub.updateHomeFeeds(user.id);
 
-    ctx.body = {};
+    ctx.body = { backupFeed: params.backupFeedId };
   },
 ]);
 
