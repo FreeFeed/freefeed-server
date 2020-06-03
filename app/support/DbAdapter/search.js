@@ -209,7 +209,7 @@ const searchTrait = (superClass) =>
       // Now we buid full query
       const postsPart = andJoin([
         inAllPostsSQL,
-        inPostsSQL,
+        // inPostsSQL, // Use in in CTE (see fullSQL below)
         postsRestrictionsSQL,
         inCommentsSQL,
         inCommentsSQL !== 'true' && commentsRestrictionSQL
@@ -218,7 +218,7 @@ const searchTrait = (superClass) =>
         useCommentsTable &&
         andJoin([
           inAllCommentsSQL,
-          inPostsSQL,
+          // inPostsSQL, // Use in in CTE (see fullSQL below)
           postsRestrictionsSQL,
           inCommentsSQL,
           commentsRestrictionSQL
@@ -235,9 +235,17 @@ const searchTrait = (superClass) =>
         `select p.uid, p.${sort}_at as date from posts p ` +
           ` join comments c on c.post_id = p.uid where ${commentsPart}`;
 
-      const fullSQL = `${fullPostsSQL} ${
-        fullCommentsSQL ? `\nunion\n${fullCommentsSQL}` : ''
-      }\norder by date desc limit ${+limit} offset ${+offset}`;
+      const fullSQL = [
+        // Use CTE here for better performance. PostgreSQL optimizer cannot
+        // properly optimize conditions like `where feed_ids && '{111}' and
+        // user_id <> '222-222-222'`. It is better to filter `feed_ids &&` first
+        // and `user_id <>` later. We force this order using the CTE (inPostsSQL
+        // is mostly about `feed_ids &&` conditions).
+        inPostsSQL !== 'true' && `with posts as (select * from posts p where ${inPostsSQL})`,
+        fullPostsSQL,
+        fullCommentsSQL && `union\n${fullCommentsSQL}`,
+        `order by date desc limit ${+limit} offset ${+offset}`
+      ].filter(Boolean).join('\n');
 
       debug(fullSQL);
 
