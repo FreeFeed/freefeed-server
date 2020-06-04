@@ -3,3 +3,4 @@
 --recursive
 --timeout 60000
 --colors
+--extension js,ts

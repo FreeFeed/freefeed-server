@@ -1,5 +1,5 @@
 /* eslint-env node, mocha */
-import expect from 'unexpected'
+import expect from 'unexpected';
 
 import { Address } from '../../../app/support/ipv6';
 

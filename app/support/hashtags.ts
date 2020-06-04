@@ -5,10 +5,8 @@ import { tokenize } from './tokenize-text';
 
 /**
  * Extract all unique hashtags as strings from the given text
- * @param {string} text
- * @return {string[]}
  */
-export function extractHashtags(text) {
+export function extractHashtags(text: string) {
   if (typeof text !== 'string' || text === '' || text.indexOf('#') < 0) {
     return [];
   }

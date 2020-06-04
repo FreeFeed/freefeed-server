@@ -4,8 +4,16 @@
  */
 declare module 'config' {
   type Config = {
+    host: string;
     attachments: {
       fileSizeLimit: number;
+    },
+    maintenance: {
+      messageFile: string;
+    }
+
+    postgres: {
+      textSearchConfigName: string;
     }
   }
 

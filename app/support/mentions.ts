@@ -4,12 +4,9 @@ import { tokenize } from './tokenize-text';
 
 
 /**
- * Extract all mentions with their start offsets
- * from the given text
- * @param {string} text
- * @return {{username: string, offset: number}[]}
+ * Extract all mentions with their start offsets from the given text
  */
-export function extractMentionsWithOffsets(text) {
+export function extractMentionsWithOffsets(text: string) {
   if (typeof text !== 'string' || text === '' || text.indexOf('@') < 0) {
     return [];
   }
@@ -22,9 +19,7 @@ export function extractMentionsWithOffsets(text) {
 
 /**
  * Extract all mentions as strings from the given text
- * @param {string} text
- * @return {string[]}
  */
-export function extractMentions(text) {
+export function extractMentions(text: string) {
   return extractMentionsWithOffsets(text).map((m) => m.username);
 }

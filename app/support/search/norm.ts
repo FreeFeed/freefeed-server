@@ -1,8 +1,9 @@
-import  XRegExp from 'xregexp';
+import XRegExp from 'xregexp';
+import { Link } from 'social-text-tokenizer';
 
 
-const marksCharsRe = new XRegExp(`[\\pM]`, 'g');
-const notAlNum = new XRegExp(`[^\\pL\\pN]+`, 'g');
+const marksCharsRe = XRegExp(`[\\pM]`, 'g');
+const notAlNum = XRegExp(`[^\\pL\\pN]+`, 'g');
 
 /**
  * Prepare text for search:
@@ -14,11 +15,8 @@ const notAlNum = new XRegExp(`[^\\pL\\pN]+`, 'g');
  * As a result, the 'Pražského povstání' string becomes 'prazskeho povstani'.
  * It isn't a complete solution (keeps ligatures ß, æ and some other joined)
  * but can handle most of european diactrics.
- *
- * @param {string} text
- * @returns {string}
  */
-export function normalizeText(text) {
+export function normalizeText(text: string) {
   return (
     text
       // The "'" has a special meaning in Postgres literals and has no
@@ -34,11 +32,7 @@ export function normalizeText(text) {
   );
 }
 
-/**
- * @param {Link} link
- * @returns {string}
- */
-export function linkToText(link) {
+export function linkToText(link: Link) {
   return normalizeText(link.pretty)
     .replace(notAlNum, ' ')
     .replace(/^www /, '');

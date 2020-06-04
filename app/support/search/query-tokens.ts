@@ -10,50 +10,50 @@ import { linkToText } from './norm';
 
 const ftsCfg = config.postgres.textSearchConfigName;
 
-export const IN_POSTS = 1,
-  IN_COMMENTS = 2,
-  IN_ALL = IN_POSTS | IN_COMMENTS;
+export type Scope = 1 | 2 | 3;
 
-export class Pipe {}
+export const IN_POSTS = 1 as Scope,
+  IN_COMMENTS = 2 as Scope,
+  IN_ALL = (IN_POSTS | IN_COMMENTS) as Scope;
 
-export class ScopeStart {
-  scope = 0;
+export interface Token {
+  getComplexity(): number;
+}
 
-  constructor(scope) {
-    this.scope = scope;
+export class Pipe implements Token {
+  getComplexity() {
+    return 0;
   }
+}
+
+export class ScopeStart implements Token {
+  constructor(
+    public scope: Scope,
+  ) { }
 
   getComplexity() {
     return 0;
   }
 }
 
-export class Condition {
-  exclude = false;
-  condition = '';
-  args = [];
-
-  constructor(exclude, condition, args) {
-    this.exclude = exclude;
-    this.condition = condition;
-    this.args = args;
-  }
+export class Condition implements Token {
+  constructor(
+    public exclude: boolean,
+    public condition: string,
+    public args: string[],
+  ) { }
 
   getComplexity() {
     return 0.5 * this.args.length;
   }
 }
 
-export class Text {
-  exclude = false;
-  phrase = false;
-  text = '';
-
-  constructor(exclude, phrase, text) {
-    this.exclude = exclude;
-    this.phrase = phrase;
-    this.text = text;
-  }
+export class Text implements Token {
+  constructor(
+    public exclude: boolean,
+    public phrase: boolean,
+    public text: string,
+  ) { }
 
   getComplexity() {
     return this.phrase ? this.text.split(/\s+/).length : 1;
@@ -93,12 +93,10 @@ export class Text {
   }
 }
 
-export class AnyText {
-  texts = [];
-
-  constructor(texts) {
-    this.texts = texts;
-  }
+export class AnyText implements Token {
+  constructor(
+    public texts: Text[],
+  ) { }
 
   getComplexity() {
     return this.texts.reduce((acc, t) => acc + t.getComplexity(), 0);
@@ -110,26 +108,23 @@ export class AnyText {
   }
 }
 
-export class InScope {
-  scope = 0;
-  anyTexts = [];
-
-  constructor(scope, anyTexts) {
-    this.scope = scope;
-    this.anyTexts = anyTexts;
-  }
+export class InScope implements Token {
+  constructor(
+    public scope: Scope,
+    public anyTexts: AnyText[],
+  ) { }
 
   getComplexity() {
     return this.anyTexts.reduce((acc, t) => acc + t.getComplexity(), 0);
   }
 }
 
-export const scopeStarts = [
+export const scopeStarts: [RegExp, Scope][] = [
   [/^in-?body$/, IN_POSTS],
   [/^in-?comments?$/, IN_COMMENTS]
 ];
 
-export const listConditions = [
+export const listConditions: [RegExp, string][] = [
   // Feeds
   [/^(in|groups?)$/, 'in'],
   [/^in-?my$/, 'in-my'],
@@ -143,13 +138,13 @@ export const listConditions = [
 ];
 
 // A simple trimmer, trims punctuation, separators and some symbols.
-const trimTextRe = new XRegExp(
+const trimTextRe = XRegExp(
   `^[\\pP\\pZ\\pC\\pS]*(.*?)[\\pP\\pZ\\pC\\pS]*$`,
   'u'
 );
-const trimTextRightRe = new XRegExp(`^(.*?)[\\pP\\pZ\\pC\\pS]*$`, 'u');
+const trimTextRightRe = XRegExp(`^(.*?)[\\pP\\pZ\\pC\\pS]*$`, 'u');
 
-export function trimText(text) {
+export function trimText(text: string) {
   if (/^[#@]/.test(text)) {
     return text.replace(trimTextRightRe, '$1');
   }

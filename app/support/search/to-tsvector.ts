@@ -10,7 +10,7 @@ import { normalizeText, linkToText } from './norm';
 const ftsCfg = config.postgres.textSearchConfigName;
 
 // Prepares post/comment text for indexing
-export function toTSVector(text) {
+export function toTSVector(text: string) {
   const vectors = tokenize(normalizeText(text || '')).map((token) => {
     if (token instanceof HashTag || token instanceof Mention) {
       // Mentions and hashtags should be found by exact @-query or by regular word query
