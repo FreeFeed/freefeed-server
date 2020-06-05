@@ -4,11 +4,9 @@
 
 const unreadDirectsTrait = (superClass) => class extends superClass {
   markAllDirectsAsRead(userId) {
-    const currentTime = new Date().toISOString()
-
-    const payload = { directs_read_at: currentTime }
-
-    return this.database('users').where('uid', userId).update(payload)
+    return this.database.raw(
+      `update users set directs_read_at = now() where uid = :userId`,
+      { userId });
   }
 
   async getUnreadDirectsNumber(userId) {
