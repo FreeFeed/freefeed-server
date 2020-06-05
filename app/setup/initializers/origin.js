@@ -3,7 +3,7 @@ import config from 'config';
 
 export const originMiddleware = async (ctx, next) => {
   ctx.response.set('Access-Control-Allow-Origin', config.origin);
-  ctx.response.set('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  ctx.response.set('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
   ctx.response.set('Access-Control-Allow-Headers', [
     'Origin',
     'X-Requested-With',

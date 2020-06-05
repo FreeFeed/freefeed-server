@@ -21,7 +21,12 @@ import { UsersControllerV2 } from '../../../controllers';
 import { profileCache } from '../../../support/ExtAuth';
 import { downloadURL } from '../../../support/download-url';
 
-import { userCreateInputSchema } from './data-schemes';
+import {
+  userCreateInputSchema,
+  userSubscribeInputSchema,
+  updateSubscriptionInputSchema,
+  sendRequestInputSchema,
+} from './data-schemes';
 
 
 export default class UsersController {
@@ -157,6 +162,7 @@ export default class UsersController {
   static sendRequest = compose([
     authRequired(),
     targetUserRequired(),
+    inputSchemaRequired(sendRequestInputSchema),
     async (ctx) => {
       const { user, targetUser } = ctx.state;
 
@@ -185,7 +191,7 @@ export default class UsersController {
         throw new ForbiddenException(`You are already subscribed to this ${targetUser.type}`);
       }
 
-      await user.sendSubscriptionRequest(targetUser.id);
+      await user.sendSubscriptionRequest(targetUser.id, ctx.request.body.homeFeeds);
 
       if (targetUser.isUser()) {
         await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);
@@ -203,18 +209,15 @@ export default class UsersController {
     async (ctx) => {
       const { user: targetUser, targetUser: subscriber } = ctx.state;
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(subscriber.id, targetUser.id)
+      const ok = await targetUser.acceptSubscriptionRequest(subscriber)
 
-      if (!hasRequest) {
+      if (!ok) {
         throw new ForbiddenException('There is no subscription requests');
       }
 
-      await targetUser.acceptSubscriptionRequest(subscriber.id);
-      await EventService.onSubscriptionRequestApproved(subscriber.intId, targetUser.intId);
       ctx.body = {};
     }
   ]);
-
 
   static async rejectRequest(ctx) {
     if (!ctx.state.user) {
@@ -250,16 +253,24 @@ export default class UsersController {
         serUsers,
         acceptsDirects,
         pastUsernames,
+        inHomeFeeds,
       ] = await Promise.all([
         serializeUsersByIds([targetUser.id], true, viewer && viewer.id),
         targetUser.acceptsDirectsFrom(viewer),
         targetUser.getPastUsernames(),
+        viewer ? viewer.getHomeFeedIdsSubscribedTo(targetUser) : []
       ]);
 
       const users = serUsers.find((u) => u.id === targetUser.id);
       const admins = serUsers.filter((u) => u.type === 'user');
 
-      ctx.body = { users, admins, acceptsDirects, pastUsernames };
+      ctx.body = {
+        users,
+        admins,
+        acceptsDirects,
+        pastUsernames,
+        inHomeFeeds,
+      };
     },
   ]);
 
@@ -267,13 +278,8 @@ export default class UsersController {
     authRequired(),
     monitored('users.show-me'),
     async (ctx) => {
-      const { user } = ctx.state;
-
-      const serUsers = await serializeUsersByIds([user.id]);
-      const users = serUsers.find((u) => u.id === user.id);
-      const admins = serUsers.filter((u) => u.type === 'user');
-
-      ctx.body = { users, admins, acceptsDirects: false };
+      ctx.params.username = ctx.state.user.username;
+      await UsersController.show(ctx);
     },
   ]);
 
@@ -381,6 +387,7 @@ export default class UsersController {
   static subscribe = compose([
     authRequired(),
     targetUserRequired(),
+    inputSchemaRequired(userSubscribeInputSchema),
     monitored('users.subscribe'),
     async (ctx) => {
       const { user: subscriber, targetUser } = ctx.state;
@@ -409,7 +416,10 @@ export default class UsersController {
         throw new ForbiddenException('This user prevented your from subscribing to them');
       }
 
-      const success = await subscriber.subscribeTo(targetUser);
+      const success = await subscriber.subscribeTo(
+        targetUser,
+        { homeFeedIds: ctx.request.body.homeFeeds },
+      );
 
       if (!success) {
         throw new ForbiddenException('You are already subscribed to that user');
@@ -417,6 +427,27 @@ export default class UsersController {
 
       // should return the same response as 'whoami'
       await UsersControllerV2.whoAmI(ctx);
+    },
+  ]);
+
+  static updateSubscription = compose([
+    authRequired(),
+    targetUserRequired(),
+    inputSchemaRequired(updateSubscriptionInputSchema),
+    monitored('users.updateSubscription'),
+    async (ctx) => {
+      const { user: subscriber, targetUser } = ctx.state;
+
+      const success = await subscriber.setHomeFeedsSubscribedTo(
+        targetUser,
+        ctx.request.body.homeFeeds,
+      );
+
+      if (!success) {
+        throw new ForbiddenException('You are not subscribed to that user');
+      }
+
+      await UsersController.show(ctx);
     },
   ]);
 

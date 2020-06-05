@@ -3,29 +3,20 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 
 import { dbAdapter, PubSub as pubSub } from '../../../models'
-import { serializeSelfUser, serializeUser } from '../../../serializers/v2/user'
+import { serializeSelfUser, serializeUser, serializeUsersByIds } from '../../../serializers/v2/user'
 import { monitored, authRequired } from '../../middlewares';
 
 
 export default class UsersController {
-  static async blockedByMe(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return
-    }
-
-    const banIds = await ctx.state.user.getBanIds()
-    const bannedUsers = await dbAdapter.getUsersByIds(banIds)
-    const profilePicsPromises = bannedUsers.map(async (user) => {
-      const request = _.pick(user, ['id', 'username', 'screenName'])
-      request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl()
-      request.profilePictureMediumUrl = await user.getProfilePictureMediumUrl()
-      return request
-    })
-    const result = await Promise.all(profilePicsPromises)
-    ctx.body = result
-  }
+  static blockedByMe = compose([
+    authRequired(),
+    async (ctx) => {
+      const { state: { user } } = ctx;
+      const banIds = await user.getBanIds();
+      const users = await serializeUsersByIds(banIds, false);
+      ctx.body = banIds.map((id) => users.find((u) => u.id === id));
+    },
+  ]);
 
   static async getUnreadDirectsNumber(ctx) {
     if (!ctx.state.user) {
@@ -124,6 +115,7 @@ export default class UsersController {
         subscriptionRequestsUIDs,
         managedGroupUIDs,
         groupRequestersUIDs,
+        users.banIds,
       );
 
       const [

@@ -513,14 +513,18 @@ export async function createUserAsync(username, password, attributes = {}) {
 }
 
 let testUserCounter = 1;
-export function createTestUser() {
-  return createUserAsync(`testuser${testUserCounter++}`, 'pw');
+export function createTestUser(username = null) {
+  return createUserAsync(username || `testuser${testUserCounter++}`, 'pw');
 }
 
-export function createTestUsers(count) {
+export function createTestUsers(countOrUsernames) {
+  if (Array.isArray(countOrUsernames)) {
+    return Promise.all(countOrUsernames.map((username) => createTestUser(username)));
+  }
+
   const promises = [];
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < countOrUsernames; i++) {
     promises.push(createTestUser());
   }
 

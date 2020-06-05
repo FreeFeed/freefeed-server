@@ -702,6 +702,25 @@ export function addModel(dbAdapter) {
     }
 
     /**
+     * @param {string} title
+     * @returns {Promise<Timeline>}
+     */
+    createHomeFeed(title) {
+      return dbAdapter.addNamedFeed(this.id, 'RiverOfNews', title)
+    }
+
+    /**
+     * @returns {Promise<Timeline[]>}
+     */
+    getHomeFeeds() {
+      return dbAdapter.getAllUserNamedFeed(this.id, 'RiverOfNews');
+    }
+
+    getSubscriptionsWithHomeFeeds() {
+      return dbAdapter.getSubscriptionsWithHomeFeeds(this.id);
+    }
+
+    /**
      * @return {Timeline[]}
      */
     async getSubscriptions() {
@@ -794,31 +813,25 @@ export function addModel(dbAdapter) {
      * @param {object} [params]
      * @returns {boolean}
      */
-    async subscribeTo(targetUser, params = {}) {
-      params = {
-        noEvents: false, // do not fire subscription event
-        ...params
-      };
-      const subscribedFeedIds = await dbAdapter.subscribeUserToUser(
+    async subscribeTo(targetUser, { noEvents = false, homeFeedIds = [] } = {}) {
+      const {
+        wasSubscribed,
+        subscribedFeedIds,
+      } = await dbAdapter.subscribeUserToUser(
         this.id,
-        targetUser.id
+        targetUser.id,
+        homeFeedIds,
       );
 
-      if (!subscribedFeedIds) {
+      if (!wasSubscribed) {
         return false;
       }
 
       this.subscribedFeedIds = subscribedFeedIds;
 
-      await Promise.all([
-        dbAdapter.cacheFlushUser(this.id),
-        dbAdapter.statsSubscriptionCreated(this.id),
-        dbAdapter.statsSubscriberAdded(targetUser.id)
-      ]);
-
       monitor.increment('users.subscriptions');
 
-      if (!params.noEvents) {
+      if (!noEvents) {
         if (targetUser.isUser()) {
           await EventService.onUserSubscribed(this.intId, targetUser.intId);
         } else {
@@ -840,22 +853,19 @@ export function addModel(dbAdapter) {
      * @returns {boolean}
      */
     async unsubscribeFrom(targetUser) {
-      const subscribedFeedIds = await dbAdapter.unsubscribeUserFromUser(
+      const {
+        wasUnsubscribed,
+        subscribedFeedIds,
+      } = await dbAdapter.unsubscribeUserFromUser(
         this.id,
         targetUser.id
       );
 
-      if (!subscribedFeedIds) {
-        return false;
-      }
-
       this.subscribedFeedIds = subscribedFeedIds;
 
-      await Promise.all([
-        dbAdapter.cacheFlushUser(this.id),
-        dbAdapter.statsSubscriptionDeleted(this.id),
-        dbAdapter.statsSubscriberRemoved(targetUser.id)
-      ]);
+      if (!wasUnsubscribed) {
+        return false;
+      }
 
       monitor.increment('users.unsubscriptions');
 
@@ -866,6 +876,29 @@ export function addModel(dbAdapter) {
       }
 
       return true;
+    }
+
+    /**
+     * Updates the set of user's home feeds that are subscribed to the target
+     * user. This user must be subscribed to the target user.
+     *
+     * @param {string} subscriberId
+     * @param {string} targetId
+     * @param {string[]} homeFeeds
+     * @returns {Promise<boolean>} - false if this user is not subscribed to the
+     * target
+     */
+    async setHomeFeedsSubscribedTo(targetUser, homeFeedIds) {
+      return await dbAdapter.updateSubscription(this.id, targetUser.id, homeFeedIds);
+    }
+
+    /**
+     * Returns IDs of all home feeds that subscribed to targetUser
+     * @param {User} targetUser
+     * @returns {Promise<string[]>}
+     */
+    async getHomeFeedIdsSubscribedTo(targetUser) {
+      return await dbAdapter.getHomeFeedsSubscribedTo(this.id, targetUser.id);
     }
 
     async calculateStatsValues() {
@@ -1170,15 +1203,40 @@ export function addModel(dbAdapter) {
       }
     }
 
-    async sendSubscriptionRequest(userId) {
-      return await dbAdapter.createSubscriptionRequest(this.id, userId);
+    /**
+     * @param {string} toUserId
+     * @param {string[]} homeFeedIds - null means the default home feed
+     * of subscriber
+     * @returns {Promise<boolean>} - true if request was successfully created
+     */
+    sendSubscriptionRequest(toUserId, homeFeedIds = []) {
+      return dbAdapter.createSubscriptionRequest(this.id, toUserId, homeFeedIds);
     }
 
-    async acceptSubscriptionRequest(userId) {
-      await dbAdapter.deleteSubscriptionRequest(this.id, userId);
+    /**
+     * Accepts subscription request to this user
+     *
+     * @param {*} fromUser - subscriber
+     * @param {*} acceptedBy - user who accepted request, the group admin in
+     * case of group account
+     * @returns {Promise<boolean>} - false if there is no request
+     */
+    async acceptSubscriptionRequest(fromUser, acceptedBy = this) {
+      const request = await dbAdapter.getSubscriptionRequest(this.id, fromUser.id);
 
-      const user = await dbAdapter.getUserById(userId);
-      return user.subscribeTo(this);
+      if (!request) {
+        return false;
+      }
+
+      await fromUser.subscribeTo(this, { homeFeedIds: request.homefeed_ids });
+
+      if (this.isGroup()) {
+        await EventService.onGroupSubscriptionRequestApproved(acceptedBy.intId, this, fromUser.intId);
+      } else {
+        await EventService.onSubscriptionRequestApproved(fromUser.intId, this.intId);
+      }
+
+      return true;
     }
 
     async rejectSubscriptionRequest(userId) {

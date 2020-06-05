@@ -12,6 +12,7 @@ import {
 } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
+import { NotFoundException } from '../../../support/exceptions';
 
 
 export const ORD_UPDATED = 'bumped';
@@ -56,7 +57,18 @@ export const ownTimeline = (feedName, params = {}) => compose([
   monitored(`timelines.${monitoredFeedName(feedName)}-v2`),
   async (ctx) => {
     const { user } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+    let timeline;
+
+    if (ctx.params.feedId) {
+      timeline = await dbAdapter.getTimelineById(ctx.params.feedId);
+    } else {
+      timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+    }
+
+    if (!timeline || timeline.userId !== user.id || timeline.name !== feedName) {
+      throw new NotFoundException(`Timeline is not found`);
+    }
+
     ctx.body = await genericTimeline(timeline, user.id, { ...params, ...getCommonParams(ctx) });
   },
 ]);
@@ -189,9 +201,13 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
       timelineIds.length = 0;
       timelineIds.push(...srcIds);
     } else if (timeline.name === 'RiverOfNews') {
-      const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(viewerId);
+      const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(timeline);
       timelineIds.length = 0;
       timelineIds.push(...destinations);
+
+      if (!timeline.isInherent) {
+        params.homefeedMode = HOMEFEED_MODE_FRIENDS_ONLY;
+      }
 
       if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
         timelineIds.push(...activities);

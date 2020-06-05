@@ -356,7 +356,8 @@ const searchTrait = (superClass) =>
                       ]);
                     }
                     case 'friends': {
-                      const { destinations } = await this.getSubscriprionsIntIds(currentUser.id);
+                      const homeFeed = await currentUser.getRiverOfNewsTimeline();
+                      const { destinations } = await this.getSubscriprionsIntIds(homeFeed);
                       return destinations;
                     }
                   }

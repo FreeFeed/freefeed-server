@@ -85,15 +85,17 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
  *
  * @param {Array.<string>} userIds
  * @param {boolean} withAdmins
- * @returns {Array}
+ * @returns {Promise<Array>}
  */
 export async function serializeUsersByIds(userIds, withAdmins = true, viewerId = null) {
+  // Use copy of userIds to prevent original array modifying
+  let allUserIds = [...userIds];
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds, viewerId);
 
   if (withAdmins) {
-    // Complement userIds array by the group admins
-    Object.values(adminsAssoc).forEach((ids) => ids.forEach((s) => userIds.push(s)));
-    userIds = uniq(userIds);
+    // Complement allUserIds array by the group admins
+    Object.values(adminsAssoc).forEach((ids) => ids.forEach((s) => allUserIds.push(s)));
+    allUserIds = uniq(allUserIds);
   }
 
   // Select users and their stats
@@ -101,8 +103,8 @@ export async function serializeUsersByIds(userIds, withAdmins = true, viewerId =
     usersAssoc,
     statsAssoc,
   ] = await Promise.all([
-    dbAdapter.getUsersByIdsAssoc(userIds),
-    dbAdapter.getUsersStatsAssoc(userIds),
+    dbAdapter.getUsersByIdsAssoc(allUserIds),
+    dbAdapter.getUsersStatsAssoc(allUserIds),
   ]);
 
   // Create serializer

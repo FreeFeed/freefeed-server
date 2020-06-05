@@ -1,12 +1,14 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
 import expect from 'unexpected';
+import { uniq, difference } from 'lodash';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { AppTokenV1, dbAdapter, PubSub } from '../../app/models';
-import { appTokensScopes } from '../../app/models/app-tokens-scopes';
+import { appTokensScopes, alwaysAllowedRoutes, alwaysDisallowedRoutes } from '../../app/models/app-tokens-scopes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import { createRouter } from '../../app/routes';
 
 import {
   performJSONRequest,
@@ -21,6 +23,40 @@ import {
 import { UUID, appTokenInfo, appTokenInfoRestricted } from './schemaV2-helper';
 import Session from './realtime-session';
 
+
+describe('Routes coverage', () => {
+  const router = createRouter();
+  const allRoutes = uniq(router.stack
+    .map((l) => l.methods.map((m) => `${m === 'HEAD' ? 'GET' : m} ${l.path}`))
+    .flat()
+  );
+  const allScopedRoutes = uniq([
+    alwaysAllowedRoutes,
+    alwaysDisallowedRoutes,
+    appTokensScopes.map((s) => s.routes),
+  ].flat(2));
+
+  it('should be no routes in scopes that isnt exists in router', () => {
+    const diff = difference(allScopedRoutes, allRoutes);
+    // Only the 'WS *' pseudo-route is allowed
+    expect(diff, 'to equal', ['WS *']);
+  });
+
+  for (const route of allRoutes) {
+    it(`should cover the '${route}' route`, () => {
+      const inLists =
+        (alwaysAllowedRoutes.includes(route) ? 1 : 0) +
+        (alwaysDisallowedRoutes.includes(route) ? 1 : 0) +
+        (appTokensScopes.some(({ routes }) => routes.includes(route)) ? 1 : 0) ;
+
+      if (inLists === 0) {
+        expect.fail(`Route isn't found in any lists (effectively disallowed)`);
+      } else if (inLists > 1) {
+        expect.fail(`Route is found in more that one lists`);
+      }
+    });
+  }
+});
 
 describe('App tokens controller', () => {
   before(() => cleanDB($pg_database));

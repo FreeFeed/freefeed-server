@@ -1,5 +1,6 @@
 import { dbAdapter } from './models'
 import { serializeUser } from './serializers/v2/user'
+import { serializeTimeline } from './serializers/v2/timeline';
 
 
 export class DummyPublisher {
@@ -42,6 +43,15 @@ export default class pubSub {
     const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(userId);
     const user = { id: userId, unreadNotificationsNumber };
     const payload = JSON.stringify({ user });
+    await this.publisher.userUpdated(payload);
+  }
+
+  async updateHomeFeeds(userId) {
+    const feedObjects = await dbAdapter.getAllUserNamedFeed(userId, 'RiverOfNews');
+    const payload = JSON.stringify({
+      homeFeeds: feedObjects.map((f) => serializeTimeline(f)),
+      user:      { id: userId },
+    });
     await this.publisher.userUpdated(payload);
   }
 
