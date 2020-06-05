@@ -241,7 +241,7 @@ const searchTrait = (superClass) =>
         // user_id <> '222-222-222'`. It is better to filter `feed_ids &&` first
         // and `user_id <>` later. We force this order using the CTE (inPostsSQL
         // is mostly about `feed_ids &&` conditions).
-        inPostsSQL !== 'true' && `with posts as (select * from posts p where ${inPostsSQL})`,
+        inPostsSQL !== 'true' && `with posts as materialized (select * from posts p where ${inPostsSQL})`,
         fullPostsSQL,
         fullCommentsSQL && `union\n${fullCommentsSQL}`,
         `order by date desc limit ${+limit} offset ${+offset}`
