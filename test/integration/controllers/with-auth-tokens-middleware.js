@@ -211,8 +211,11 @@ describe('withAuthToken middleware', () => {
       ctx.headers['x-authentication-token'] = t1.tokenString();
       await withAuthToken(ctx, () => null);
 
-      const t2 = await dbAdapter.getAppTokenById(t1.id);
-      expect(new Date(t2.lastUsedAt), 'to be close to', new Date());
+      const [t2, now] = await Promise.all([
+        dbAdapter.getAppTokenById(t1.id),
+        dbAdapter.now(),
+      ]);
+      expect(new Date(t2.lastUsedAt), 'to be close to', now);
       expect(t2.lastIP, 'to be', ctx.ip);
       expect(t2.lastUserAgent, 'to be', ctx.headers['user-agent']);
     });
