@@ -60,7 +60,7 @@ export async function up(knex) {
             [{ exists: hasPosts }],
             [{ exists: hasSubscribers }],
           ] = await Promise.all([
-            query(`select exists (select 1 from posts where (feed_ids && ?) || (destination_feed_ids && ?))`,
+            query(`select exists (select 1 from posts where (feed_ids && ?) or (destination_feed_ids && ?))`,
               [feed.id, feed.id]),
             query(`select exists (select 1 from subscriptions where feed_id = ?)`,
               [feed.uid]),
