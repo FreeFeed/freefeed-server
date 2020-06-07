@@ -1,5 +1,6 @@
 {
   "monitorPrefix": "MONITOR_PREFIX",
+  "secret": "FRFS_SECRET",
   "port": { "__name": "FRFS_PORT", "__format": "json" },
   "redis": {
     "host": "FRFS_REDIS_HOST",
