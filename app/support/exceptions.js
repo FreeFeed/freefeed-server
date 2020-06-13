@@ -22,9 +22,9 @@ export function reportError(ctx) {
       }
     }
 
-    if ('internalQuery' in err) {
+    if ('internalQuery' in err || err.message.includes('when compiling RAW query')) {
       // looks like postgres err
-      Reflect.deleteProperty(err, 'message');  // do not expose DB internals
+      err.message = 'Dadabase-related internal error'; // do not expose DB internals
     }
 
     if (err && 'message' in err && err.message) {
