@@ -112,7 +112,7 @@ export async function up(knex) {
 
           // Add firstId to posts with idsToDelete
           await Promise.all(fields.map((field) => query(
-            `update posts set ${field} = (${field} | :firstId) where ${field} && :idsToDelete`,
+            `update posts set ${field} = (${field} | :firstId::int) where ${field} && :idsToDelete`,
             { firstId, idsToDelete },
           )));
 
