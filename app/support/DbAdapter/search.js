@@ -16,7 +16,7 @@ import {
 import { List } from '../open-lists';
 import { Comment } from '../../models';
 
-import { sqlIn, sqlNotIn, sqlIntarrayIn } from './utils';
+import { sqlIn, sqlNotIn, sqlIntarrayIn, andJoin, orJoin } from './utils';
 
 ///////////////////////////////////////////////////
 // Search
@@ -372,32 +372,6 @@ const searchTrait = (superClass) =>
   };
 
 export default searchTrait;
-
-function joinThem(array, joinBy, defaultValue, shortcutValue, skipValue) {
-  if (array.some((x) => x === shortcutValue)) {
-    return shortcutValue;
-  }
-
-  const parts = array.filter((x) => !!x && x !== skipValue);
-
-  if (parts.length === 0) {
-    return defaultValue;
-  }
-
-  if (parts.length === 1) {
-    return parts[0];
-  }
-
-  return `(${parts.join(` ${joinBy} `)})`;
-}
-
-function andJoin(array, def = 'true') {
-  return joinThem(array, 'and', def, 'false', 'true');
-}
-
-function orJoin(array, def = 'false') {
-  return joinThem(array, 'or', def, 'true', 'false');
-}
 
 function walkWithScope(tokens, action) {
   let currentScope = IN_ALL;
