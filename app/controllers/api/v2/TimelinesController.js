@@ -185,6 +185,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
   const timelineIds = timeline ? [timeline.intId] : null;
   const activityFeedIds = [];
   const authorsIds = [];
+  let activityOnPropagable = true;
 
   if (params.withMyPosts) {
     authorsIds.push(viewerId);
@@ -210,7 +211,8 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
       }
 
       if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
-        timelineIds.push(...activities);
+        activityOnPropagable = false;
+        activityFeedIds.push(...activities);
         const friendsIds = await dbAdapter.getHomeFeedSubscriptions(timeline.id);
         authorsIds.push(...friendsIds);
 
@@ -225,8 +227,13 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
 
   const postsIds = (!timeline || await timeline.canShow(viewerId)) ?
-    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, authorsIds, activityFeedIds, limit: params.limit + 1 }) :
-    [];
+    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, {
+      ...params,
+      authorsIds,
+      activityFeedIds,
+      activityOnPropagable,
+      limit: params.limit + 1,
+    }) : [];
 
   const isLastPage = postsIds.length <= params.limit;
 
