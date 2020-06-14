@@ -211,7 +211,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
       if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
         timelineIds.push(...activities);
-        const friendsIds = await dbAdapter.getUserFriendIds(viewerId);
+        const friendsIds = await dbAdapter.getHomeFeedSubscriptions(timeline.id);
         authorsIds.push(...friendsIds);
 
         if (!authorsIds.includes(viewerId)) {

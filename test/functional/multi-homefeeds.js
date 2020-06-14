@@ -15,6 +15,8 @@ import {
   createAndReturnPost,
   createCommentAsync,
   removeCommentAsync,
+  createGroupAsync,
+  createAndReturnPostToFeed,
 } from './functional_test_helper';
 import {
   homeFeedsListResponse,
@@ -496,12 +498,13 @@ describe(`Multiple home feeds API`, () => {
   describe(`Home feeds posts`, () => {
     before(() => cleanDB($pg_database));
 
-    let luna, mars, venus, jupiter,
+    let luna, mars, venus, jupiter, venusGroup,
       mainHomeFeedId, secondaryHomeFeedId, tertiaryHomeFeedId,
       lunaPost, marsPost, venusPost, jupiterPost;
 
     before(async () => {
       [luna, mars, venus, jupiter] = await createTestUsers(['luna', 'mars', 'venus', 'jupiter']);
+      venusGroup = await createGroupAsync(venus, 'venus-group');
       ({ timelines: [{ id: mainHomeFeedId }] } = await listHomeFeeds(luna));
       ({ timeline: { id: secondaryHomeFeedId } } = await createHomeFeed(luna, 'The Second One'));
       ({ timeline: { id: tertiaryHomeFeedId } } = await createHomeFeed(luna, 'The Third One'));
@@ -515,11 +518,20 @@ describe(`Multiple home feeds API`, () => {
       marsPost = await createAndReturnPost(mars, 'Mars post');
       venusPost = await createAndReturnPost(venus, 'Venus post');
       jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
+      await createAndReturnPostToFeed(venusGroup, venus, 'Venus post to group');
     });
 
     it(`should return posts from the main home feed`, async () => {
       const resp = await performJSONRequest(
         'GET', `/v2/timelines/home`, null,
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', { posts: [jupiterPost, marsPost, lunaPost] });
+    });
+
+    it(`should not include Venus post to group from the main home feed in HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY`, async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/timelines/home?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`, null,
         { Authorization: `Bearer ${luna.authToken}` }
       );
       expect(resp, 'to satisfy', { posts: [jupiterPost, marsPost, lunaPost] });
