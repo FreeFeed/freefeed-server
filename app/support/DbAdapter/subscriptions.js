@@ -423,6 +423,33 @@ const subscriptionsTrait = (superClass) => class extends superClass {
       { feedId });
   }
 
+  /**
+   * The home feed hide list is a list of users/groups on which the feed owner
+   * is subscribed but the feed itself is not. So if F is all feed owner's
+   * friends and S is all feed subscriptions, then the hide list H = F - S.
+   *
+   * This function returns *intIds* of hide list users *Posts* feeds.
+   *
+   * @param {Timeline} homeFeed
+   * @returns {Promise<number[]>}
+   */
+  getHomeFeedHideListPostIntIds(homeFeed) {
+    return this.database.getCol(
+      `with friends as (
+          select f.user_id, f.id from
+            subscriptions s
+            join feeds f on f.uid = s.feed_id and f.name = 'Posts'
+          where s.user_id = :ownerId
+        )
+        select f.id from 
+          friends f
+          left join homefeed_subscriptions hs on 
+            hs.target_user_id = f.user_id and hs.homefeed_id = :feedId
+         where
+          hs.target_user_id is null`,
+      { feedId: homeFeed.id, ownerId: homeFeed.userId });
+  }
+
   async updateHomeFeedSubscriptions(feedId, userIds) {
     const feed = await this.getTimelineById(feedId);
 

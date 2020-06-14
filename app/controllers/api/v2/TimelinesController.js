@@ -184,6 +184,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
   const timelineIds = timeline ? [timeline.intId] : null;
   const activityFeedIds = [];
+  const activityHideIds = [];
   const authorsIds = [];
   let activityOnPropagable = true;
 
@@ -212,14 +213,17 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
       if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
         activityOnPropagable = false;
-        activityFeedIds.push(...activities);
         const friendsIds = await dbAdapter.getHomeFeedSubscriptions(timeline.id);
         authorsIds.push(...friendsIds);
 
         if (!authorsIds.includes(viewerId)) {
           authorsIds.push(viewerId);
         }
-      } else if (params.homefeedMode === HOMEFEED_MODE_CLASSIC) {
+      }
+
+      if (params.homefeedMode !== HOMEFEED_MODE_FRIENDS_ONLY) {
+        const hideIntIds = await dbAdapter.getHomeFeedHideListPostIntIds(timeline);
+        activityHideIds.push(...hideIntIds);
         activityFeedIds.push(...activities);
       }
     }
@@ -232,6 +236,7 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
       authorsIds,
       activityFeedIds,
       activityOnPropagable,
+      activityHideIds,
       limit: params.limit + 1,
     }) : [];
 
