@@ -453,5 +453,20 @@ describe(`Multiple home feeds`, () => {
         expect(hides, 'when sorted', 'to equal', expected.sort());
       }
     });
+
+    it(`should return all hide lists for the given feeds`, async () => {
+      const lists = await dbAdapter.getHomeFeedHideLists([
+        mainHomeFeedLuna.id,
+        secondaryHomeFeedLuna.id,
+        mainHomeFeedMars.id,
+        secondaryHomeFeedMars.id,
+      ]);
+      expect(lists, 'to satisfy', {
+        [mainHomeFeedLuna.id]:      expect.it('when sorted', 'to equal', [jupiter.id].sort()),
+        [secondaryHomeFeedLuna.id]: expect.it('when sorted', 'to equal', [mars.id, venus.id].sort()),
+        [mainHomeFeedMars.id]:      expect.it('when sorted', 'to equal', [].sort()),
+        [secondaryHomeFeedMars.id]: expect.it('when sorted', 'to equal', [luna.id, venus.id, saturn.id].sort()),
+      });
+    });
   });
 });

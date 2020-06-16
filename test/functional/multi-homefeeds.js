@@ -662,6 +662,30 @@ describe(`Multiple home feeds API`, () => {
         await lunaSession.sendAsync('unsubscribe', { timeline: [secondaryHomeFeedId] });
         expect(event, 'to be fulfilled');
       });
+
+      it(`should not deliver 'comment:new' event to main home feed when Jupiter comments Venus' post`, async () => {
+        // Venus is friend of Luna but main home feed is not subscribed to Venus. So Venus is in main home feed hide list.
+        await lunaSession.sendAsync('subscribe', { timeline: [mainHomeFeedId] });
+        const event = lunaSession.notReceive('comment:new');
+        await Promise.all([
+          createCommentAsync(jupiter, venusPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
+        await expect(event, 'to be fulfilled');
+      });
+
+      it(`should deliver 'comment:new' event to main home feed when Jupiter comments Saturn's post`, async () => {
+        // Saturn is not a friend of Luna, so Saturn is not in main home feed hide list.
+        await lunaSession.sendAsync('subscribe', { timeline: [mainHomeFeedId] });
+        const event = lunaSession.receive('comment:new');
+        await Promise.all([
+          createCommentAsync(jupiter, saturnPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
+        await expect(event, 'to be fulfilled');
+      });
     });
   });
 });

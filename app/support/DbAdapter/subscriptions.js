@@ -68,18 +68,16 @@ const subscriptionsTrait = (superClass) => class extends superClass {
     return responses.map(initUserObject)
   }
 
-  getHomeFeedSubscribedToUsers(userIds, inherentOnly = false) {
-    if (inherentOnly) {
-      return this.database.getCol(
-        `select homefeed_id from
-          homefeed_subscriptions hs
-          join feeds f on f.uid = hs.homefeed_id
-          where f.ord is null and hs.target_user_id = any(:userIds)`,
-        { userIds });
-    }
-
+  /**
+   * @param {string[]} userIds
+   * @return {Promise<string[]>}
+   */
+  getHomeFeedSubscribedToUsers(userIds) {
+    // Inherent RiverOfNews is always indirectly subscribed to it owner
     return this.database.getCol(
-      `select homefeed_id from homefeed_subscriptions where target_user_id = any(:userIds)`,
+      `select homefeed_id from homefeed_subscriptions where target_user_id = any(:userIds)
+      union
+      select uid from feeds where ord is null and name = 'RiverOfNews' and user_id = any(:userIds)`,
       { userIds });
   }
 
@@ -448,6 +446,61 @@ const subscriptionsTrait = (superClass) => class extends superClass {
          where
           hs.target_user_id is null`,
       { feedId: homeFeed.id, ownerId: homeFeed.userId });
+  }
+
+  /**
+   * The home feed hide list is a list of users/groups on which the feed owner
+   * is subscribed but the feed itself is not. So if F is all feed owner's
+   * friends and S is all feed subscriptions, then the hide list H = F - S.
+   *
+   * This function returns hide lists of the several home feeds as object
+   * { feedId: [userId1, userId2…] }
+   */
+  async getHomeFeedsHideLists(feedIds) {
+    const rows = await this.database.getAll(
+      `with 
+        -- Home feeds
+        homefeeds as (
+          select uid, user_id from
+            feeds where uid = any(:feedIds) and name = 'RiverOfNews'
+        ),
+        -- All owner's friends by home feed ID
+        friends as (
+          select h.uid as homefeed_id, f.user_id as target_user_id from
+            subscriptions s
+            join homefeeds h on s.user_id = h.user_id
+            join feeds f on f.uid = s.feed_id and f.name = 'Posts'
+        ),
+        -- All selected home feeds subscriptions
+        subscriptions as (
+          select * from
+            homefeed_subscriptions hs
+            join homefeeds h on hs.homefeed_id = h.uid
+        )
+      select
+        f.homefeed_id,
+        array_remove(array_agg(f.target_user_id), null) as hide_list
+      from
+        friends f
+        left join subscriptions s on 
+          s.homefeed_id = f.homefeed_id and s.target_user_id = f.target_user_id
+        where 
+          s.target_user_id is null
+        group by f.homefeed_id`,
+      { feedIds });
+    const result = {};
+
+    for (const { homefeed_id, hide_list } of rows) {
+      result[homefeed_id] = hide_list;
+    }
+
+    for (const feedId of feedIds) {
+      if (!result[feedId]) {
+        result[feedId] = [];
+      }
+    }
+
+    return result;
   }
 
   async updateHomeFeedSubscriptions(feedId, userIds) {

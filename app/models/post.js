@@ -359,45 +359,63 @@ export function addModel(dbAdapter) {
     }
 
     /**
-     * Returns all RiverOfNews timelines this post belongs to.
-     * Timelines are calculated dynamically.
+     * Returns all RiverOfNews timelines this post belongs to. Timelines are
+     * calculated dynamically.
+     *
+     * If post have author U, destination feeds owned by D's and activity feeds
+     * owned by A's then it belongs to the union of the following RiverOfNewses:
+     *
+     *  - Timelines subscribed to D
+     *  - Timelines subscribed to U if mode is
+     *    HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+     *  - Timelines subscribed to A if mode is HOMEFEED_MODE_CLASSIC and post is
+     *    propagable or mode is HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+     *
+     * The latest timelines (A-subscribed) are additionally filtered by its hide
+     * lists: if timeline's hide list intersects with D, then this timeline
+     * excludes from the result set.
      *
      * @param {string} [mode] one of HOMEFEED_MODE_constants
      * @return {Timeline[]}
      */
     async getRiverOfNewsTimelines(mode = HOMEFEED_MODE_CLASSIC) {
       const postFeeds = await this.getTimelines();
-      const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
-      const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
+      const destinationsFeedsOwners = postFeeds
+        .filter((f) => f.isPosts() || f.isDirects())
+        .map((f) => f.userId);
+      const activityFeedsOwners = postFeeds
+        .filter((f) => f.isLikes() || f.isComments())
+        .map((f) => f.userId);
 
-      /**
-       * If post have author U, destination feeds owned by D's and activity feeds owned by A's then
-       * it belongs to the following RiverOfNewses:
-       * - any (inherent or auxiliary) RoNs subscribed to D
-       * - inherent RoN of U
-       * - if HOMEFEED_MODE_CLASSIC and post is propagable: inherent RoNs subscribed to A
-       * - if HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY inherent RoNs subscribed to A or inherent RoNs
-       *   subscribed to U
-       */
+      // This post can propagate via activity feeds
+      const withActivities = (mode === HOMEFEED_MODE_CLASSIC && this.isPropagable === '1')
+        || mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY;
 
-      const destinationsFeedsOwners = destinations.map((f) => f.userId);
-      const activityFeedsOwners = activities.map((f) => f.userId);
+      const users = [
+        ...destinationsFeedsOwners,
+        mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY && this.userId,
+      ].filter(Boolean);
 
-      const homeFeedLists = await Promise.all([
-        dbAdapter.getHomeFeedSubscribedToUsers(destinationsFeedsOwners),
-        dbAdapter.getUserNamedFeedId(this.userId, 'RiverOfNews'),
-        (
-          (mode === HOMEFEED_MODE_CLASSIC && this.isPropagable === '1')
-          || mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
-        )
-          ? dbAdapter.getHomeFeedSubscribedToUsers(activityFeedsOwners, true)
-          : [],
-        (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY)
-          ? dbAdapter.getHomeFeedSubscribedToUsers([this.userId], true)
-          : [],
+      let [
+        feedIds,
+        activityFeedIds,
+      ] = await Promise.all([
+        dbAdapter.getHomeFeedSubscribedToUsers(users),
+        withActivities ? dbAdapter.getHomeFeedSubscribedToUsers(activityFeedsOwners) : [],
       ]);
 
-      return await dbAdapter.getTimelinesByIds(_.uniq(_.flatten(homeFeedLists)));
+      if (activityFeedIds.length > 0) {
+        activityFeedIds = _.difference(activityFeedIds, feedIds);
+
+        if (activityFeedIds.length > 0) {
+          const hideLists  = await dbAdapter.getHomeFeedsHideLists(activityFeedIds);
+          activityFeedIds = Object.keys(hideLists)
+            .filter((k) => _.intersection(hideLists[k], destinationsFeedsOwners).length === 0);
+          feedIds = _.union(feedIds, activityFeedIds);
+        }
+      }
+
+      return await dbAdapter.getTimelinesByIds(feedIds);
     }
 
     /**
