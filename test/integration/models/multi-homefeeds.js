@@ -455,7 +455,7 @@ describe(`Multiple home feeds`, () => {
     });
 
     it(`should return all hide lists for the given feeds`, async () => {
-      const lists = await dbAdapter.getHomeFeedHideLists([
+      const lists = await dbAdapter.getHomeFeedsHideLists([
         mainHomeFeedLuna.id,
         secondaryHomeFeedLuna.id,
         mainHomeFeedMars.id,
