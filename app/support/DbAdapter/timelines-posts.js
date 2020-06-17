@@ -67,7 +67,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
       if (!wideSelect) {
         // Request with CTE for the relatively small feed
         return pgFormat(`
-          with posts as materialized (
+          with posts as (
             select p.* from 
               posts p
             where ${selectSQL}
