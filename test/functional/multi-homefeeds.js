@@ -15,6 +15,8 @@ import {
   createAndReturnPost,
   createCommentAsync,
   removeCommentAsync,
+  createGroupAsync,
+  createAndReturnPostToFeed,
 } from './functional_test_helper';
 import {
   homeFeedsListResponse,
@@ -496,15 +498,22 @@ describe(`Multiple home feeds API`, () => {
   describe(`Home feeds posts`, () => {
     before(() => cleanDB($pg_database));
 
-    let luna, mars, venus, jupiter,
+    let luna, mars, venus, jupiter, saturn, venusGroup,
       mainHomeFeedId, secondaryHomeFeedId, tertiaryHomeFeedId,
-      lunaPost, marsPost, venusPost, jupiterPost;
+      lunaPost, marsPost, venusPost, jupiterPost, saturnPost;
 
     before(async () => {
-      [luna, mars, venus, jupiter] = await createTestUsers(['luna', 'mars', 'venus', 'jupiter']);
+      [luna, mars, venus, jupiter, saturn]
+        = await createTestUsers(['luna', 'mars', 'venus', 'jupiter', 'saturn']);
+      venusGroup = await createGroupAsync(venus, 'venus-group');
       ({ timelines: [{ id: mainHomeFeedId }] } = await listHomeFeeds(luna));
       ({ timeline: { id: secondaryHomeFeedId } } = await createHomeFeed(luna, 'The Second One'));
       ({ timeline: { id: tertiaryHomeFeedId } } = await createHomeFeed(luna, 'The Third One'));
+      /**
+       * Main feed is subscribed to Mars and Jupiter
+       * Secondary feed is subscribed to Venus
+       * Tertiary feed is subscribed to Jupiter
+       */
       await Promise.all([
         subscribe(luna, mars, [mainHomeFeedId]),
         subscribe(luna, venus, [secondaryHomeFeedId]),
@@ -515,11 +524,21 @@ describe(`Multiple home feeds API`, () => {
       marsPost = await createAndReturnPost(mars, 'Mars post');
       venusPost = await createAndReturnPost(venus, 'Venus post');
       jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
+      saturnPost = await createAndReturnPost(saturn, 'Saturn post');
+      await createAndReturnPostToFeed(venusGroup, venus, 'Venus post to group');
     });
 
     it(`should return posts from the main home feed`, async () => {
       const resp = await performJSONRequest(
         'GET', `/v2/timelines/home`, null,
+        { Authorization: `Bearer ${luna.authToken}` }
+      );
+      expect(resp, 'to satisfy', { posts: [jupiterPost, marsPost, lunaPost] });
+    });
+
+    it(`should not include Venus post to group from the main home feed in HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY`, async () => {
+      const resp = await performJSONRequest(
+        'GET', `/v2/timelines/home?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`, null,
         { Authorization: `Bearer ${luna.authToken}` }
       );
       expect(resp, 'to satisfy', { posts: [jupiterPost, marsPost, lunaPost] });
@@ -541,19 +560,23 @@ describe(`Multiple home feeds API`, () => {
       expect(resp, 'to satisfy', { posts: [jupiterPost] });
     });
 
-    describe(`Jupiter commented Venus post`, () => {
-      let commentId;
+    describe(`Jupiter commented Venus and Saturn posts`, () => {
+      let commentId1, commentId2;
       before(async () => {
-        ({ id: commentId } = await createCommentAsync(jupiter, venusPost.id, 'Hi!'));
+        ({ id: commentId1 } = await createCommentAsync(jupiter, venusPost.id, 'Hi!'));
+        ({ id: commentId2 } = await createCommentAsync(jupiter, saturnPost.id, 'Hi!'));
       });
-      after(() => removeCommentAsync(jupiter, commentId));
+      after(() => Promise.all([
+        removeCommentAsync(jupiter, commentId1),
+        removeCommentAsync(jupiter, commentId2),
+      ]));
 
-      it(`should return Venus post in the main home feed`, async () => {
+      it(`should return only the Saturn post in the main home feed`, async () => {
         const resp = await performJSONRequest(
           'GET', `/v2/timelines/home`, null,
           { Authorization: `Bearer ${luna.authToken}` }
         );
-        expect(resp, 'to satisfy', { timelines: { posts: expect.it(`to contain`, venusPost.id) } });
+        expect(resp.timelines.posts, 'to satisfy', expect.it(`to contain`, saturnPost.id).and(`not to contain`, venusPost.id));
       });
 
       it(`should not return Venus post in the third home feed`, async () => {
@@ -638,6 +661,30 @@ describe(`Multiple home feeds API`, () => {
         ]);
         await lunaSession.sendAsync('unsubscribe', { timeline: [secondaryHomeFeedId] });
         expect(event, 'to be fulfilled');
+      });
+
+      it(`should not deliver 'comment:new' event to main home feed when Jupiter comments Venus' post`, async () => {
+        // Venus is friend of Luna but main home feed is not subscribed to Venus. So Venus is in main home feed hide list.
+        await lunaSession.sendAsync('subscribe', { timeline: [mainHomeFeedId] });
+        const event = lunaSession.notReceive('comment:new');
+        await Promise.all([
+          createCommentAsync(jupiter, venusPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
+        await expect(event, 'to be fulfilled');
+      });
+
+      it(`should deliver 'comment:new' event to main home feed when Jupiter comments Saturn's post`, async () => {
+        // Saturn is not a friend of Luna, so Saturn is not in main home feed hide list.
+        await lunaSession.sendAsync('subscribe', { timeline: [mainHomeFeedId] });
+        const event = lunaSession.receive('comment:new');
+        await Promise.all([
+          createCommentAsync(jupiter, saturnPost.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
+        await expect(event, 'to be fulfilled');
       });
     });
   });

@@ -7,7 +7,7 @@ import { List } from '../open-lists';
 import { COMMENT_FIELDS, initCommentObject } from './comments';
 import { ATTACHMENT_FIELDS, initAttachmentObject } from './attachments';
 import { POST_FIELDS, initPostObject } from './posts';
-import { sqlIn, sqlIntarrayIn, sqlNotIn } from './utils';
+import { sqlIn, sqlIntarrayIn, sqlNotIn, andJoin, orJoin } from './utils';
 
 ///////////////////////////////////////////////////
 // Posts Select to fill timeline
@@ -192,15 +192,19 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
    */
   async getTimelinePostsIds(timelineIntIds = null, viewerId = null, params = {}) {
     params = {
-      limit:           30,
-      offset:          0,
-      sort:            'bumped',
-      withLocalBumps:  false,
-      withoutDirects:  false,
-      createdBefore:   null,
-      createdAfter:    null,
-      activityFeedIds: [],
-      authorsIds:      List.everything(),
+      limit:                30,
+      offset:               0,
+      sort:                 'bumped',
+      withLocalBumps:       false,
+      withoutDirects:       false,
+      createdBefore:        null,
+      createdAfter:         null,
+      activityFeedIds:      [],
+      // Select only the propagable posts from activity feeds
+      activityOnPropagable: true,
+      // Hide activity-selected posts if they are posted to these feeds
+      activityHideIds:      [],
+      authorsIds:           List.everything(),
       ...params,
     };
 
@@ -208,7 +212,6 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
     // Additional condition for params.withoutDirects option
     let noDirectsSQL = 'true';
-    let postsAuthorsSQL = null;
 
     if (viewerId && params.withoutDirects) {
       // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
@@ -216,32 +219,30 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
       noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
     }
 
-    // Also show posts from these authors
-    postsAuthorsSQL = sqlIn('p.user_id', params.authorsIds);
+    const sourceConditionSQL = timelineIntIds
+      ? orJoin([
+      // Show posts from destination feeds
+        sqlIntarrayIn('p.feed_ids', timelineIntIds),
+        andJoin([
+        // Show posts from activities
+          sqlIntarrayIn('p.feed_ids', params.activityFeedIds),
+          // Except of hide list
+          sqlIntarrayIn('p.feed_ids', List.inverse(params.activityHideIds)),
+          // Probably only propagable posts (classic mode)
+          params.activityOnPropagable && 'p.is_propagable',
+        ]),
+        // Also show posts from these authors (wide mode)
+        sqlIn('p.user_id', params.authorsIds),
+      ])
+      : 'true'; /* Just select everything */
 
-    let sourceConditionSQL = 'true'; // select everything
-
-    if (timelineIntIds) {
-      const sourceConditionParts = [];
-      sourceConditionParts.push(sqlIntarrayIn('p.feed_ids', timelineIntIds));
-
-      if (params.activityFeedIds.length > 0) {
-        sourceConditionParts.push(`${sqlIntarrayIn('p.feed_ids', params.activityFeedIds)} and p.is_propagable`);
-      }
-
-      if (postsAuthorsSQL) {
-        sourceConditionParts.push(postsAuthorsSQL);
-      }
-
-      sourceConditionSQL = `(${sourceConditionParts.join(' or ')})`;
-    }
-
-    const createdAtSQL = [
+    const selectSQL = andJoin([
+      sourceConditionSQL,
+      noDirectsSQL,
+      // Date filter
       params.createdBefore && pgFormat('p.created_at < %L', params.createdBefore),
-      params.createdAfter && pgFormat('p.created_at > %L', params.createdAfter)
-    ].filter(Boolean).join(' and ') || 'true';
-
-    const selectSQL = [`(${sourceConditionSQL})`, noDirectsSQL, createdAtSQL].join(' and ');
+      params.createdAfter && pgFormat('p.created_at > %L', params.createdAfter),
+    ]);
 
     return this.selectPosts({
       viewerId,

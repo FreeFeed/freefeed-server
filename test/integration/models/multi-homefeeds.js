@@ -305,7 +305,7 @@ describe(`Multiple home feeds`, () => {
         secondaryHomeFeed,
       ] =
       await Promise.all([
-        await luna.getRiverOfNewsTimeline(),
+        luna.getRiverOfNewsTimeline(),
         luna.createHomeFeed('The Second One'),
       ]);
     });
@@ -371,6 +371,102 @@ describe(`Multiple home feeds`, () => {
           { user_id: jupiter.id, homefeed_ids: [secondaryHomeFeed.id] },
           { user_id: saturn.id, homefeed_ids: [secondaryHomeFeed.id] },
         ].sort((a, b) => a.user_id.localeCompare(b.user_id)));
+    });
+  });
+
+  describe('Hide lists', () => {
+    before(() => cleanDB($pg_database));
+
+    let luna, mars, venus, jupiter, saturn,
+      mainHomeFeedLuna,
+      secondaryHomeFeedLuna,
+      mainHomeFeedMars,
+      secondaryHomeFeedMars;
+
+    before(async () => {
+      luna = new User({ username: 'luna', password: 'pw' });
+      mars = new User({ username: 'mars', password: 'pw' });
+      venus = new User({ username: 'venus', password: 'pw' });
+      jupiter = new User({ username: 'jupiter', password: 'pw' });
+      saturn = new User({ username: 'saturn', password: 'pw' });
+      await Promise.all([
+        luna.create(),
+        mars.create(),
+        venus.create(),
+        jupiter.create(),
+        saturn.create(),
+      ]);
+      [
+        mainHomeFeedLuna,
+        secondaryHomeFeedLuna,
+        mainHomeFeedMars,
+        secondaryHomeFeedMars,
+      ] =
+      await Promise.all([
+        luna.getRiverOfNewsTimeline(),
+        luna.createHomeFeed('The Second One'),
+        mars.getRiverOfNewsTimeline(),
+        mars.createHomeFeed('The Second One'),
+      ]);
+
+      await Promise.all([
+        luna.subscribeTo(mars),
+        luna.subscribeTo(venus),
+        luna.subscribeTo(jupiter),
+        mars.subscribeTo(luna),
+        mars.subscribeTo(venus),
+        mars.subscribeTo(saturn),
+      ]);
+
+      await mainHomeFeedLuna.updateHomeFeedSubscriptions([mars.id, venus.id]);
+      await secondaryHomeFeedLuna.updateHomeFeedSubscriptions([jupiter.id]);
+    });
+
+    function usersPostIntIds(users) {
+      return Promise.all(users.map((u) => u.getPostsTimelineIntId()));
+    }
+
+    it(`should return hide lists for Luna's home feeds`, async () => {
+      {
+        const hides = await dbAdapter.getHomeFeedHideListPostIntIds(mainHomeFeedLuna);
+        const expected = await usersPostIntIds([jupiter]);
+        expect(hides, 'when sorted', 'to equal', expected.sort());
+      }
+
+      {
+        const hides = await dbAdapter.getHomeFeedHideListPostIntIds(secondaryHomeFeedLuna);
+        const expected = await usersPostIntIds([mars, venus]);
+        expect(hides, 'when sorted', 'to equal', expected.sort());
+      }
+    });
+
+    it(`should return hide lists for Mars' home feeds`, async () => {
+      {
+        const hides = await dbAdapter.getHomeFeedHideListPostIntIds(mainHomeFeedMars);
+        const expected = await usersPostIntIds([]);
+        expect(hides, 'when sorted', 'to equal', expected.sort());
+      }
+
+      {
+        const hides = await dbAdapter.getHomeFeedHideListPostIntIds(secondaryHomeFeedMars);
+        const expected = await usersPostIntIds([luna, venus, saturn]);
+        expect(hides, 'when sorted', 'to equal', expected.sort());
+      }
+    });
+
+    it(`should return all hide lists for the given feeds`, async () => {
+      const lists = await dbAdapter.getHomeFeedsHideLists([
+        mainHomeFeedLuna.id,
+        secondaryHomeFeedLuna.id,
+        mainHomeFeedMars.id,
+        secondaryHomeFeedMars.id,
+      ]);
+      expect(lists, 'to satisfy', {
+        [mainHomeFeedLuna.id]:      expect.it('when sorted', 'to equal', [jupiter.id].sort()),
+        [secondaryHomeFeedLuna.id]: expect.it('when sorted', 'to equal', [mars.id, venus.id].sort()),
+        [mainHomeFeedMars.id]:      expect.it('when sorted', 'to equal', [].sort()),
+        [secondaryHomeFeedMars.id]: expect.it('when sorted', 'to equal', [luna.id, venus.id, saturn.id].sort()),
+      });
     });
   });
 });

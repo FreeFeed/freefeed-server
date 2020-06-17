@@ -594,11 +594,13 @@ export async function getRoomsOfPost(post) {
     if (t.isRiverOfNews()) {
       const inNarrowMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ONLY].some((f) => f.id === t.id);
       const inClassicMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_CLASSIC].some((f) => f.id === t.id);
-      return [
+      return t.isInherent ? [
         `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`,
-        inClassicMode && `timeline:${t.id}`, // Default mode
+        inClassicMode && `timeline:${t.id}`, // Default mode for inherent feed
         inClassicMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`,
         inNarrowMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`,
+      ] : [
+        inNarrowMode && `timeline:${t.id}`, // The only available mode for auxiliary feed
       ];
     }
 
