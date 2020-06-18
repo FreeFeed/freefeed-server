@@ -60,8 +60,8 @@ export async function up(knex) {
             [{ exists: hasPosts }],
             [{ exists: hasSubscribers }],
           ] = await Promise.all([
-            query(`select exists (select 1 from posts where (feed_ids && ?) || (destination_feed_ids && ?))`,
-              [feed.id, feed.id]),
+            query(`select exists (select 1 from posts where (feed_ids && :feedIds) or (destination_feed_ids && :feedIds))`,
+              { feedIds: [feed.id] }),
             query(`select exists (select 1 from subscriptions where feed_id = ?)`,
               [feed.uid]),
           ]);
@@ -112,7 +112,7 @@ export async function up(knex) {
 
           // Add firstId to posts with idsToDelete
           await Promise.all(fields.map((field) => query(
-            `update posts set ${field} = (${field} | :firstId) where ${field} && :idsToDelete`,
+            `update posts set ${field} = (${field} | :firstId::int) where ${field} && :idsToDelete`,
             { firstId, idsToDelete },
           )));
 
