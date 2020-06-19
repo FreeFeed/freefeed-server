@@ -27,6 +27,8 @@ export async function up(knex) {
     return rows;
   }
 
+  await knex.raw('SET statement_timeout = 0');  // it might take a LONG time
+
   // Remove all RiverOfNews feeds from the posts table. We don't need them
   // anymore because of dynamic building of homefeeds.
   await query(`with rons as (select array_agg(id) as ids from feeds where name = 'RiverOfNews')
