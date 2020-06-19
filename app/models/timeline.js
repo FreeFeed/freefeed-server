@@ -38,6 +38,13 @@ export function addModel(dbAdapter) {
     limit;
     currentUser;
     name_;
+    title;
+    // The *inherent* feeds are created with account itself and cannot be
+    // modified or deleted. If isInherent is false, the feed is *auxiliary*, and
+    // it can be modified or deleted.
+    isInherent;
+
+    static defaultRiverOfNewsTitle = 'Home';
 
     constructor(params) {
       this.id = params.id;
@@ -45,6 +52,8 @@ export function addModel(dbAdapter) {
       this.name = params.name;
       this.userId = params.userId;
       this.user = null;
+      this.title = params.title || null;
+      this.isInherent = params.ord === null;
 
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;
@@ -97,10 +106,8 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       const payload = {
-        'name':      this.name,
-        'userId':    this.userId,
-        'createdAt': currentTime.toString(),
-        'updatedAt': currentTime.toString()
+        'name':   this.name,
+        'userId': this.userId,
       };
 
       const ids = await dbAdapter.createTimeline(payload);
@@ -474,6 +481,44 @@ export function addModel(dbAdapter) {
       // Viewer cannot see feeds of users in ban relations with him
       const banIds = await dbAdapter.getUsersBansOrWasBannedBy(readerId);
       return !banIds.includes(user.id);
+    }
+
+    /**
+     * Only auxiliary feeds can be destroyed!
+     *
+     * @param {object} [params] destroy parameters (may be different for
+     * different feed types)
+     * @returns {Promise<boolean>} sucess of operation
+     */
+    destroy(params) {
+      return dbAdapter.destroyFeed(this.id, params);
+    }
+
+    /**
+     * Only auxiliary feeds can be updated!
+     *
+     * @returns {Promise<boolean>} sucess of operation
+     */
+    async update({ title }) {
+      const updated = await dbAdapter.updateFeed(this.id, { title });
+
+      if (!updated) {
+        return false;
+      }
+
+      for (const key of Object.keys(updated)) {
+        this[key] = updated[key];
+      }
+
+      return true;
+    }
+
+    updateHomeFeedSubscriptions(userIds) {
+      return dbAdapter.updateHomeFeedSubscriptions(this.id, userIds);
+    }
+
+    getHomeFeedSubscriptions() {
+      return dbAdapter.getHomeFeedSubscriptions(this.id);
     }
   }
 

@@ -222,34 +222,6 @@ const postsTrait = (superClass) => class extends superClass {
     return _.map(rows, 'id');
   }
 
-  /**
-   * Returns integer ids of feeds that user is subscribed to. These ids are
-   * separated in two groups: 'destinations' — 'Posts' and 'Directs' feeds and
-   * 'activities' — 'Comments' and 'Likes'.
-   *
-   * @param {String} userId
-   * @return {{destinations: number[], activities: number[]}} - ids of feeds
-   */
-  async getSubscriprionsIntIds(userId) {
-    const sql = `
-      with feeds as (
-        select f.id, f.name from
-          subscriptions s join feeds f on f.uid = s.feed_id 
-          where s.user_id = :userId
-        union  -- viewer's own feeds
-          select id, name from feeds where user_id = :userId and name in ('Posts', 'Directs', 'Comments', 'Likes')
-      )
-      select 
-        case when name in ('Comments', 'Likes') then 'activities' else 'destinations' end as type,
-        array_agg(id) as ids
-      from feeds group by type
-    `;
-    const { rows } = await this.database.raw(sql, { userId });
-    const result = { destinations: [], activities: [] };
-    rows.forEach(({ ids, type }) => result[type] = ids);
-    return result;
-  }
-
   async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {
     const res1 = await this.database('posts').select('uid', 'updated_at').orderBy('bumped_at', 'desc').whereRaw('feed_ids && ?', [[timelineId1]])
     const postIds1 = res1.map((record) => {

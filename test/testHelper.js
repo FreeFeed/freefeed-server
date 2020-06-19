@@ -1,4 +1,4 @@
-require('@babel/register');
+require('@babel/register')({ extensions: ['.js', '.jsx', '.es6', '.es', '.mjs', '.ts', '.tsx'] });
 
 global.$database = require('../app/setup/database').default;  // used by realtime-tests
 

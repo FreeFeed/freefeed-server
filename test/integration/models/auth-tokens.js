@@ -136,8 +136,11 @@ describe('Auth Tokens', () => {
 
         await token.registerUsage({ ip, userAgent });
 
-        const t2 = await dbAdapter.getAppTokenById(token.id);
-        expect(new Date(t2.lastUsedAt), 'to be close to', new Date());
+        const [t2, now] = await Promise.all([
+          dbAdapter.getAppTokenById(token.id),
+          dbAdapter.now(),
+        ]);
+        expect(new Date(t2.lastUsedAt), 'to be close to', now);
         expect(t2.lastIP, 'to be', ip);
         expect(t2.lastUserAgent, 'to be', userAgent);
       });
@@ -147,8 +150,11 @@ describe('Auth Tokens', () => {
 
         await token.registerUsage({ ip });
 
-        const t2 = await dbAdapter.getAppTokenById(token.id);
-        expect(new Date(t2.lastUsedAt), 'to be close to', new Date());
+        const [t2, now] = await Promise.all([
+          dbAdapter.getAppTokenById(token.id),
+          dbAdapter.now(),
+        ]);
+        expect(new Date(t2.lastUsedAt), 'to be close to', now);
         expect(t2.lastIP, 'to be', ip);
         expect(t2.lastUserAgent, 'to be', '');
       });

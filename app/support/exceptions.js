@@ -14,16 +14,17 @@ export function reportError(ctx) {
     const result = {};
     const status = err && err.status ? err.status : 500;
 
+    debug(err);
+
     if (status === 500) {
       if (sentryIsEnabled) {
         Raven.captureException(err, { req: ctx.request });
       }
     }
 
-    if ('internalQuery' in err) {
+    if ('internalQuery' in err || err.message.includes('when compiling RAW query')) {
       // looks like postgres err
-      debug(err);
-      Reflect.deleteProperty(err, 'message');  // do not expose DB internals
+      err.message = 'Dadabase-related internal error'; // do not expose DB internals
     }
 
     if (err && 'message' in err && err.message) {

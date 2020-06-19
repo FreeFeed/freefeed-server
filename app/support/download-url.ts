@@ -14,7 +14,7 @@ import config from 'config';
 const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
 
 
-export async function downloadURL(url) {
+export async function downloadURL(url: string) {
   const parsedURL = new URL(url);
 
   if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
@@ -34,14 +34,14 @@ export async function downloadURL(url) {
     throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
   }
 
-  const mType = mediaType.fromString(response.headers.get('content-type'));
+  const mType = mediaType.fromString(response.headers.get('content-type') || '');
 
   // if (mType.type !== 'image') {
   //   throw new Error(`Unsupported content type: '${mType.asString() || '-'}'`);
   // }
 
   if (response.headers.has('content-length')) {
-    const contentLength = parseInt(response.headers.get('content-length'));
+    const contentLength = parseInt(response.headers.get('content-length')!);
 
     if (!isNaN(contentLength) && contentLength > fileSizeLimit) {
       throw new Error(

@@ -26,7 +26,8 @@ export const generalSummary = compose([
     let activities  = [];
 
     // Get timelines that forms a "RiverOfNews" of current user
-    ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(currentUser.id));
+    const homeFeed = await currentUser.getRiverOfNewsTimeline();
+    ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(homeFeed));
 
     // Get posts current user subscribed to
     const foundPostsIds = await dbAdapter.getSummaryPostsIds(currentUser.id, days, destinations, activities, limit);

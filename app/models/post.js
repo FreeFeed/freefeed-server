@@ -359,50 +359,63 @@ export function addModel(dbAdapter) {
     }
 
     /**
-     * Returns all RiverOfNews timelines this post belongs to.
-     * Timelines are calculated dynamically.
+     * Returns all RiverOfNews timelines this post belongs to. Timelines are
+     * calculated dynamically.
+     *
+     * If post have author U, destination feeds owned by D's and activity feeds
+     * owned by A's then it belongs to the union of the following RiverOfNewses:
+     *
+     *  - Timelines subscribed to D
+     *  - Timelines subscribed to U if mode is
+     *    HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+     *  - Timelines subscribed to A if mode is HOMEFEED_MODE_CLASSIC and post is
+     *    propagable or mode is HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
+     *
+     * The latest timelines (A-subscribed) are additionally filtered by its hide
+     * lists: if timeline's hide list intersects with D, then this timeline
+     * excludes from the result set.
      *
      * @param {string} [mode] one of HOMEFEED_MODE_constants
      * @return {Timeline[]}
      */
     async getRiverOfNewsTimelines(mode = HOMEFEED_MODE_CLASSIC) {
       const postFeeds = await this.getTimelines();
-      const activities = postFeeds.filter((f) => f.isLikes() || f.isComments());
-      const destinations = postFeeds.filter((f) => f.isPosts() || f.isDirects());
+      const destinationsFeedsOwners = postFeeds
+        .filter((f) => f.isPosts() || f.isDirects())
+        .map((f) => f.userId);
+      const activityFeedsOwners = postFeeds
+        .filter((f) => f.isLikes() || f.isComments())
+        .map((f) => f.userId);
 
-      /**
-       * 'RiverOfNews' feeds of:
-       * - post author
-       * - users subscribed to post destinations feeds ('Posts')
-       * - owners of post destinations feeds ('Posts' and 'Directs')
-       * - and:
-       *  + if mode === HOMEFEED_MODE_CLASSIC
-       *       (if post is propagable) users subscribed to post activity feeds ('Likes' and 'Comments')
-       *  + if mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
-       *       users subscribed to post activity feeds ('Likes' and 'Comments') and to author's 'Posts' feed
-       */
-      const riverOfNewsSources = [...destinations];
+      // This post can propagate via activity feeds
+      const withActivities = (mode === HOMEFEED_MODE_CLASSIC && this.isPropagable === '1')
+        || mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY;
 
-      if (mode === HOMEFEED_MODE_CLASSIC) {
-        (this.isPropagable === '1') && riverOfNewsSources.push(...activities);
+      const users = [
+        ...destinationsFeedsOwners,
+        mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY && this.userId,
+      ].filter(Boolean);
+
+      let [
+        feedIds,
+        activityFeedIds,
+      ] = await Promise.all([
+        dbAdapter.getHomeFeedSubscribedToUsers(users),
+        withActivities ? dbAdapter.getHomeFeedSubscribedToUsers(activityFeedsOwners) : [],
+      ]);
+
+      if (activityFeedIds.length > 0) {
+        activityFeedIds = _.difference(activityFeedIds, feedIds);
+
+        if (activityFeedIds.length > 0) {
+          const hideLists  = await dbAdapter.getHomeFeedsHideLists(activityFeedIds);
+          activityFeedIds = Object.keys(hideLists)
+            .filter((k) => _.intersection(hideLists[k], destinationsFeedsOwners).length === 0);
+          feedIds = _.union(feedIds, activityFeedIds);
+        }
       }
 
-      if (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
-        riverOfNewsSources.push(...activities);
-        riverOfNewsSources.push(await dbAdapter.getUserNamedFeed(this.userId, 'Posts'));
-      }
-
-      const riverOfNewsSourceIds = riverOfNewsSources.map((f) => f.id);
-      const riverOfNewsOwnerIds = await dbAdapter.getUsersSubscribedToTimelines(riverOfNewsSourceIds);
-      const destinationOwnerIds = destinations.map((f) => f.userId);
-      return await dbAdapter.getUsersNamedTimelines(
-        _.uniq([
-          ...riverOfNewsOwnerIds,
-          ...destinationOwnerIds,
-          this.userId,
-        ]),
-        'RiverOfNews',
-      );
+      return await dbAdapter.getTimelinesByIds(feedIds);
     }
 
     /**

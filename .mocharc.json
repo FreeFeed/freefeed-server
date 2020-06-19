@@ -1,0 +1,8 @@
+{
+  "exit": true,
+  "recursive": true,
+  "require": "./test/testHelper",
+  "timeout": 60000,
+  "colors": true,
+  "extension": ["js", "ts"]
+}

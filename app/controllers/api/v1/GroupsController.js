@@ -195,43 +195,27 @@ export default class GroupsController {
     return UsersController.sendRequest(ctx);
   };
 
-  static async acceptRequest(ctx) {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Unauthorized', status: 'fail' };
-      return
+  static acceptRequest = compose([
+    authRequired(),
+    targetUserRequired({ userName: 'subscriber', groupName: 'group' }),
+    async (ctx) => {
+      const { user: thisUser, subscriber, group } = ctx.state;
+
+      const adminIds = await group.getAdministratorIds();
+
+      if (!adminIds.includes(thisUser.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group");
+      }
+
+      const ok = await group.acceptSubscriptionRequest(subscriber, thisUser);
+
+      if (!ok) {
+        throw new Error('Subscription request is not found')
+      }
+
+      ctx.body = {};
     }
-
-    const { groupName, userName } = ctx.params;
-    const group = await dbAdapter.getGroupByUsername(groupName)
-
-    if (null === group) {
-      throw new NotFoundException(`Group "${groupName}" is not found`)
-    }
-
-    const adminIds = await group.getAdministratorIds()
-
-    if (!adminIds.includes(ctx.state.user.id)) {
-      throw new ForbiddenException("You aren't an administrator of this group")
-    }
-
-    const user = await dbAdapter.getUserByUsername(userName)
-
-    if (null === user) {
-      throw new NotFoundException(`User "${userName}" is not found`)
-    }
-
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id)
-
-    if (!hasRequest) {
-      throw new Error('Subscription request is not found')
-    }
-
-    await group.acceptSubscriptionRequest(user.id)
-    await EventService.onGroupSubscriptionRequestApproved(ctx.state.user.intId, group, user.intId);
-
-    ctx.body = { err: null, status: 'success' };
-  }
+  ]);
 
   static async rejectRequest(ctx) {
     if (!ctx.state.user) {

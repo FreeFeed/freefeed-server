@@ -32,6 +32,8 @@ import appTokensTrait from './app-tokens';
 import externalAuthTrait from './external-auth';
 import serverInfoTrait from './server-info';
 import searchTrait from './search';
+import { withDbHelpers } from './utils';
+import nowTrait from './now';
 
 
 promisifyAll(redis.RedisClient.prototype);
@@ -39,7 +41,7 @@ promisifyAll(redis.Multi.prototype);
 
 class DbAdapterBase {
   constructor(database) {
-    this.database = database;
+    this.database = withDbHelpers(database);
     this.statsCache = new NodeCache({ stdTTL: 300 });
 
     const CACHE_TTL = 60 * 60 * 24; // 24 hours
@@ -87,4 +89,5 @@ export const DbAdapter = _.flow([
   externalAuthTrait,
   serverInfoTrait,
   searchTrait,
+  nowTrait,
 ])(DbAdapterBase);

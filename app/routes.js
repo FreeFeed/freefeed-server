@@ -37,8 +37,46 @@ import { maintenanceCheck } from './support/maintenance';
 
 
 export default function (app) {
+  app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
+
+  app.use(maintenanceCheck);
+
+  app.use(async (ctx, next) => {
+    try {
+      await next();
+    } catch (e) {
+      reportError(ctx)(e);
+    }
+  });
+
+  // naive (hash-based) implementation of ETags for dynamic content
+  app.use(conditional());
+  app.use(etag());
+  app.use(normalizeInputStrings);
+
+  const router = createRouter();
+  app.use(router.routes());
+  app.use(router.allowedMethods());
+
+  // Not Found middleware for API-like URIs
+  app.use(async (ctx, next) => {
+    if (/\/v\d+\//.test(ctx.url)) {
+      if (ctx.request.method === 'OPTIONS') {
+        ctx.status = 200;
+        return;
+      }
+
+      ctx.status = 404;
+      ctx.body = { err: `API method not found: '${ctx.url}'` };
+      return;
+    }
+
+    await next();
+  });
+}
+
+export function createRouter() {
   const router = new Router();
-  router.use(normalizeInputStrings);
 
   // unauthenticated routes
   PasswordsRoute(router);
@@ -80,38 +118,5 @@ export default function (app) {
   ServerInfoRoute(router);
   ExtAuthRoute(router);
 
-  app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
-
-  app.use(maintenanceCheck);
-
-  app.use(async (ctx, next) => {
-    try {
-      await next();
-    } catch (e) {
-      reportError(ctx)(e);
-    }
-  });
-
-  // naive (hash-based) implementation of ETags for dynamic content
-  app.use(conditional());
-  app.use(etag());
-
-  app.use(router.routes());
-  app.use(router.allowedMethods());
-
-  // Not Found middleware for API-like URIs
-  app.use(async (ctx, next) => {
-    if (/\/v\d+\//.test(ctx.url)) {
-      if (ctx.request.method === 'OPTIONS') {
-        ctx.status = 200;
-        return;
-      }
-
-      ctx.status = 404;
-      ctx.body = { err: `API method not found: '${ctx.url}'` };
-      return;
-    }
-
-    await next();
-  });
+  return router;
 }

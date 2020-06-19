@@ -14,7 +14,10 @@ export function prepareModelPayload(payload, namesMapping, valuesMapping) {
 
   for (const key of keys) {
     const mappedKey = namesMapping[key];
-    const mappedVal = valuesMapping[key] ? valuesMapping[key](payload[key]) : payload[key];
+    const mappedVal = valuesMapping[key]
+      // Passing payload as the second argument for cross-keys dependencies
+      ? valuesMapping[key](payload[key], payload)
+      : payload[key];
     result[mappedKey] = mappedVal;
   }
 
@@ -52,4 +55,72 @@ export function sqlIntarrayIn(field, list) {
   }
 
   return pgFormat(`(${list.inclusive ? '' : 'not '}${field} && %L)`, `{${list.items.join(',')}}`);
+}
+
+const dbHelpers = {
+  async getAll(sql, args = {}) {
+    const { rows } = await this.raw(sql, args);
+    return rows;
+  },
+
+  async getRow(sql, args = {}) {
+    const rows = await this.getAll(sql, args);
+    return rows[0];
+  },
+
+  async getOne(sql, args = {}, column = 0) {
+    const cols = await this.getCol(sql, args, column);
+    return cols[0];
+  },
+
+  async getCol(sql, args = {}, column = 0) {
+    const { rows, fields } = await this.raw(sql, args);
+
+    if (typeof column === 'number') {
+      column = fields[column].name;
+    }
+
+    return rows.map((r) => r[column]);
+  },
+
+  transaction(action) {
+    // eslint-disable-next-line prefer-reflect
+    return Object.getPrototypeOf(this)
+      .transaction((trx) => action(withDbHelpers(trx)));
+  }
+}
+
+export function withDbHelpers(db) {
+  // db is a function with additional properties, so extending is tricky
+  const wrapper = Object.assign(function (...args) {
+    return db.apply(this, args); // eslint-disable-line prefer-reflect
+  }, dbHelpers);
+  Object.setPrototypeOf(wrapper, db); // eslint-disable-line prefer-reflect
+  return wrapper;
+}
+
+function joinThem(array, joinBy, defaultValue, shortcutValue, skipValue) {
+  if (array.some((x) => x === shortcutValue)) {
+    return shortcutValue;
+  }
+
+  const parts = array.filter((x) => !!x && x !== skipValue);
+
+  if (parts.length === 0) {
+    return defaultValue;
+  }
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+  return `(${parts.join(` ${joinBy} `)})`;
+}
+
+export function andJoin(array, def = 'true') {
+  return joinThem(array, 'and', def, 'false', 'true');
+}
+
+export function orJoin(array, def = 'false') {
+  return joinThem(array, 'or', def, 'true', 'false');
 }

@@ -5,6 +5,8 @@ export default class pubSubStub {
 
   updateUnreadNotifications() {}
 
+  updateHomeFeeds() {}
+
   newPost() {}
 
   destroyPost() {}

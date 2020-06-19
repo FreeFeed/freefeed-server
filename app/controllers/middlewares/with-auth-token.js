@@ -6,7 +6,7 @@ import config from 'config'
 
 import { dbAdapter, SessionTokenV0, AppTokenV1 } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
-import { alwaysAllowedRoutes, appTokensScopes } from '../../models/app-tokens-scopes';
+import { alwaysAllowedRoutes, appTokensScopes, alwaysDisallowedRoutes } from '../../models/app-tokens-scopes';
 import { Address } from '../../support/ipv6';
 
 
@@ -39,7 +39,7 @@ export async function withAuthToken(ctx, next) {
     {
       headers:  ctx.headers,
       remoteIP: ctx.ip,
-      route:    `${ctx.method} ${ctx._matchedRoute}`,
+      route:    `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${ctx._matchedRoute}`,
     },
   );
 
@@ -144,8 +144,11 @@ export async function tokenFromJWT(
 
     // Route access
     {
-      const routeAllowed = alwaysAllowedRoutes.includes(route)
-      || appTokensScopes.some(({ name, routes }) => token.scopes.includes(name) && routes.includes(route));
+      const routeAllowed =
+        !alwaysDisallowedRoutes.includes(route) && (
+          alwaysAllowedRoutes.includes(route)
+          || appTokensScopes.some(({ name, routes }) => token.scopes.includes(name) && routes.includes(route))
+        );
 
       if (!routeAllowed) {
         authDebug(`app token has no access to '${route}'`);

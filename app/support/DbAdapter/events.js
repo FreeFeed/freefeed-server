@@ -78,27 +78,35 @@ const eventsTrait = (superClass) => class extends superClass {
   ///////////////////////////////////////////////////
 
   async markAllEventsAsRead(userId) {
-    const currentTime = new Date().toISOString();
-
-    const payload = { notifications_read_at: currentTime };
-
-    await this.database('users').where('uid', userId).update(payload);
+    await this.database.raw(
+      `update users set notifications_read_at = now() where uid = :userId`,
+      { userId });
     await this.cacheFlushUser(userId);
   }
 
   async getUnreadEventsNumber(userId) {
-    const user = await this.getUserById(userId);
-    const notificationsLastReadTime = user.notificationsReadAt ? user.notificationsReadAt : new Date(0);
+    const { rows: [userData] } = await this.database.raw(
+      `select notifications_read_at, id from users where uid = :userId`,
+      { userId });
 
-    const res = await this.database('events')
-      .where('user_id', user.intId)
-      .whereRaw('("created_by_user_id" IS NULL OR "user_id" <> "created_by_user_id")')
-      .whereIn('event_type', COUNTABLE_EVENT_TYPES)
-      .where('created_at', '>=', notificationsLastReadTime)
-      .count();
+    if (!userData) {
+      throw new Error(`User ${userId} is not found`);
+    }
 
+    const { rows: [{ count }] } = await this.database.raw(
+      `select count(*)::int from events where
+          user_id = :userIntId
+          and (created_by_user_id is null or user_id <> created_by_user_id)
+          and event_type = any(:eventTypes)
+          and created_at >= :notificationsReadAt`,
+      {
+        userIntId:           userData.id,
+        notificationsReadAt: userData.notifications_read_at,
+        eventTypes:          COUNTABLE_EVENT_TYPES,
+      }
+    );
 
-    return parseInt(res[0].count, 10) || 0;
+    return count;
   }
 
   async getDigestSentAt(userIntIds) {

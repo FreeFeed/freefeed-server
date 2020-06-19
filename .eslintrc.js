@@ -2,14 +2,18 @@ require("@babel/register");
 const config = require("config");
 
 module.exports = {
-  extends: "eslint:recommended",
-  parser: "babel-eslint",
+  extends: [
+    "eslint:recommended",
+    "plugin:import/typescript"
+  ],
+  parser: "@typescript-eslint/parser",
   plugins: [
     "babel",
     "import",
     "lodash",
     "promise",
-    "you-dont-need-lodash-underscore"
+    "you-dont-need-lodash-underscore",
+    "@typescript-eslint"
   ],
   env: {
     node: true,
@@ -179,6 +183,9 @@ module.exports = {
     "you-dont-need-lodash-underscore/to-lower": 2,
     "you-dont-need-lodash-underscore/to-upper": 2,
     "you-dont-need-lodash-underscore/trim": 2,
-    "you-dont-need-lodash-underscore/values": 2
+    "you-dont-need-lodash-underscore/values": 2,
+
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": ["error"]
   }
 };

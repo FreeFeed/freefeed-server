@@ -12,6 +12,7 @@ import {
 } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
+import { NotFoundException } from '../../../support/exceptions';
 
 
 export const ORD_UPDATED = 'bumped';
@@ -56,7 +57,18 @@ export const ownTimeline = (feedName, params = {}) => compose([
   monitored(`timelines.${monitoredFeedName(feedName)}-v2`),
   async (ctx) => {
     const { user } = ctx.state;
-    const timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+    let timeline;
+
+    if (ctx.params.feedId) {
+      timeline = await dbAdapter.getTimelineById(ctx.params.feedId);
+    } else {
+      timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+    }
+
+    if (!timeline || timeline.userId !== user.id || timeline.name !== feedName) {
+      throw new NotFoundException(`Timeline is not found`);
+    }
+
     ctx.body = await genericTimeline(timeline, user.id, { ...params, ...getCommonParams(ctx) });
   },
 ]);
@@ -172,7 +184,9 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
   const timelineIds = timeline ? [timeline.intId] : null;
   const activityFeedIds = [];
+  const activityHideIds = [];
   const authorsIds = [];
+  let activityOnPropagable = true;
 
   if (params.withMyPosts) {
     authorsIds.push(viewerId);
@@ -189,19 +203,27 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
       timelineIds.length = 0;
       timelineIds.push(...srcIds);
     } else if (timeline.name === 'RiverOfNews') {
-      const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(viewerId);
+      const { destinations, activities } = await dbAdapter.getSubscriprionsIntIds(timeline);
       timelineIds.length = 0;
       timelineIds.push(...destinations);
 
+      if (!timeline.isInherent) {
+        params.homefeedMode = HOMEFEED_MODE_FRIENDS_ONLY;
+      }
+
       if (params.homefeedMode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
-        timelineIds.push(...activities);
-        const friendsIds = await dbAdapter.getUserFriendIds(viewerId);
+        activityOnPropagable = false;
+        const friendsIds = await dbAdapter.getHomeFeedSubscriptions(timeline.id);
         authorsIds.push(...friendsIds);
 
         if (!authorsIds.includes(viewerId)) {
           authorsIds.push(viewerId);
         }
-      } else if (params.homefeedMode === HOMEFEED_MODE_CLASSIC) {
+      }
+
+      if (params.homefeedMode !== HOMEFEED_MODE_FRIENDS_ONLY) {
+        const hideIntIds = await dbAdapter.getHomeFeedHideListPostIntIds(timeline);
+        activityHideIds.push(...hideIntIds);
         activityFeedIds.push(...activities);
       }
     }
@@ -209,8 +231,14 @@ async function genericTimeline(timeline = null, viewerId = null, params = {}) {
 
 
   const postsIds = (!timeline || await timeline.canShow(viewerId)) ?
-    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, { ...params, authorsIds, activityFeedIds, limit: params.limit + 1 }) :
-    [];
+    await dbAdapter.getTimelinePostsIds(timelineIds, viewerId, {
+      ...params,
+      authorsIds,
+      activityFeedIds,
+      activityOnPropagable,
+      activityHideIds,
+      limit: params.limit + 1,
+    }) : [];
 
   const isLastPage = postsIds.length <= params.limit;
 
