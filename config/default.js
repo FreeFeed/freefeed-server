@@ -22,7 +22,9 @@ const config = {
   port:     3000,
   database: 2,
 
-  secret:                    'secret',
+  // You MUST override the site secret in your config
+  secret: undefined,
+
   origin:                    'http://localhost:3333',
   appRoot:                   '.',
   acceptHashedPasswordsOnly: false,

@@ -41,6 +41,19 @@ async function selectEnvironment(app) {
 }
 
 exports.init = async function (app) {
+  if (!config.secret) {
+    process.stderr.write(`⛔ Configuration error: config.secret is not defined\n`);
+    process.stderr.write(`\n`);
+    process.stderr.write(`It is required to configure site secret before starting the server.\n`);
+    process.stderr.write(`Use the FRFS_SECRET environment variable or set the "secret" key in\n`);
+    process.stderr.write(`config/local* file (see https://github.com/lorenwest/node-config for\n`);
+    process.stderr.write(`configuration help). Use long random string for the secret.\n`);
+    process.stderr.write(`\n`);
+    process.stderr.write(`Server cannot be started without the secret.\n`);
+    process.stderr.write(`\n`);
+    process.exit(1);
+  }
+
   await selectEnvironment(app);
 
   if (config.media.storage.type === 'fs') {
