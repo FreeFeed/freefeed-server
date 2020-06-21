@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import request from 'superagent'
 import expect from 'unexpected'
 import config from 'config';
+import { sortBy } from 'lodash';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
@@ -23,6 +24,7 @@ import {
   createTestUser,
   performJSONRequest,
   createUserAsyncPost,
+  authHeaders,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 
@@ -415,6 +417,48 @@ describe('UsersControllerV2', () => {
       await createTestUsers(config.registrationsLimit.maxCount + 0);
       const resp = await createUserAsyncPost({ username: 'test', password: 'pw' });
       expect(resp.status, 'to be', 429);
+    });
+  });
+
+  describe('subscribers/subscriptions order', () => {
+    const nUsers = 6;
+    let allUsers, user, others, othersByIds;
+
+    beforeEach(async () => {
+      allUsers = await createTestUsers(nUsers);
+      [user, ...others] = allUsers;
+
+      for (const u of others) {
+        await subscribeToAsync(user, u); // eslint-disable-line no-await-in-loop
+        await subscribeToAsync(u, user); // eslint-disable-line no-await-in-loop
+      }
+
+      others.reverse();
+      othersByIds = sortBy([...others], 'user.id');
+    });
+
+    it(`should return subscribers to anonymous in IDs order`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscribers`);
+      expect(resp, 'to satisfy', { subscribers: othersByIds.map((u) => ({ id: u.user.id })) });
+    });
+
+    it(`should return subscribers to other user in IDs order`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscribers`, null, authHeaders(others[0]));
+      expect(resp, 'to satisfy', { subscribers: othersByIds.map((u) => ({ id: u.user.id })) });
+    });
+
+    it(`should return subscribers to user themself in reverse time order`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscribers`,
+        null, authHeaders(user));
+      expect(resp, 'to satisfy', { subscribers: others.map((u) => ({ id: u.user.id })) });
+    });
+
+    it(`should return subscriptions to user themself in reverse time order`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/timelines/home/subscriptions`,
+        null, authHeaders(user)
+      );
+
+      expect(resp, 'to satisfy', { usersInHomeFeeds: othersByIds.map((u) => ({ id: u.user.id })) });
     });
   });
 });
