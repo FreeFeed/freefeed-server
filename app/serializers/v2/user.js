@@ -83,13 +83,15 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
 /**
  * Serialises users by their ids
  *
+ * Keeps userIds order, but adds uniqueness and puts admins (if withAdmins is
+ * true) to the end of list.
+ *
  * @param {Array.<string>} userIds
  * @param {boolean} withAdmins
  * @returns {Promise<Array>}
  */
 export async function serializeUsersByIds(userIds, withAdmins = true, viewerId = null) {
-  // Use copy of userIds to prevent original array modifying
-  let allUserIds = [...userIds];
+  let allUserIds = uniq(userIds);
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds, viewerId);
 
   if (withAdmins) {
@@ -111,5 +113,5 @@ export async function serializeUsersByIds(userIds, withAdmins = true, viewerId =
   const getSerializedUserById = userSerializerFunction(usersAssoc, statsAssoc, adminsAssoc);
 
   // Serialize
-  return Object.keys(usersAssoc).map(getSerializedUserById);
+  return allUserIds.map(getSerializedUserById);
 }

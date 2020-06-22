@@ -402,7 +402,7 @@ const subscriptionsTrait = (superClass) => class extends superClass {
             where user_id = :subscriberId and name = 'RiverOfNews'
         ),
         users as (
-          select f.user_id from
+          select f.user_id, s.created_at as date from
             subscriptions s
             join feeds f on f.uid = s.feed_id and f.name = 'Posts'
             where s.user_id = :subscriberId
@@ -411,7 +411,8 @@ const subscriptionsTrait = (superClass) => class extends superClass {
         users u
         left join homefeed_subscriptions hs on hs.target_user_id = u.user_id
         left join homefeeds h on hs.homefeed_id = h.uid
-        group by u.user_id`,
+        group by u.user_id, u.date
+        order by u.date desc`,
       { subscriberId });
   }
 
