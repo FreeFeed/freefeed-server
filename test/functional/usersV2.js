@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import request from 'superagent'
 import expect from 'unexpected'
 import config from 'config';
-import { sortBy } from 'lodash';
+import { sortBy, uniq } from 'lodash';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
@@ -451,6 +451,25 @@ describe('UsersControllerV2', () => {
       const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscribers`,
         null, authHeaders(user));
       expect(resp, 'to satisfy', { subscribers: others.map((u) => ({ id: u.user.id })) });
+    });
+
+    it(`should return subscriptions to anonymous in IDs order`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscriptions`);
+      const subscriptionsUsers = uniq(resp.subscriptions.map((s) => s.user));
+      expect(subscriptionsUsers, 'to satisfy', othersByIds.map((u) => u.user.id));
+    });
+
+    it(`should return subscriptions to other user in IDs order`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscriptions`, null, authHeaders(others[0]));
+      const subscriptionsUsers = uniq(resp.subscriptions.map((s) => s.user));
+      expect(subscriptionsUsers, 'to satisfy', othersByIds.map((u) => u.user.id));
+    });
+
+    it(`should return subscriptions to user themself in reverse time order`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscriptions`,
+        null, authHeaders(user));
+      const subscriptionsUsers = uniq(resp.subscriptions.map((s) => s.user));
+      expect(subscriptionsUsers, 'to satisfy', others.map((u) => u.user.id));
     });
 
     it(`should return subscriptions to user themself in reverse time order`, async () => {

@@ -303,7 +303,7 @@ export default class UsersController {
         throw new ForbiddenException('User is private')
       }
 
-      let subscribers = await serializeUsersByIds(subscriberIds, true, viewer && viewer.id);
+      let subscribers = await serializeUsersByIds(subscriberIds, true, viewer?.id);
 
       if (viewer?.id !== user.id) {
         // Sort by 'random' id to mask actual subscription order
@@ -342,14 +342,18 @@ export default class UsersController {
       timelineOwnersIds = timelineOwnersIds.filter((id) => groupsVisibility[id] !== false);
       timelines = timelines.filter(({ userId }) => groupsVisibility[userId] !== false);
 
-      const serUsers = await serializeUsersByIds(timelineOwnersIds, false, viewer && viewer.id);
-      // Sorting by 'random' id to mask actual subscription order (even if viewer and user is the same)
-      const subscribers = _.sortBy(serUsers, 'id');
-      const subscriptions = _.sortBy(timelines.map((t) => ({
+      let subscribers = await serializeUsersByIds(timelineOwnersIds, false, viewer?.id);
+      let subscriptions = timelines.map((t) => ({
         id:   t.id,
         name: t.name,
         user: t.userId,
-      })), 'id');
+      }));
+
+      if (viewer?.id !== user.id) {
+        // Sort by 'random' id to mask actual subscription order
+        subscribers = _.sortBy(subscribers, 'id');
+        subscriptions = _.sortBy(subscriptions, 'user', 'name', 'id');
+      }
 
       ctx.body = { subscribers, subscriptions };
     },
