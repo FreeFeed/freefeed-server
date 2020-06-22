@@ -472,12 +472,12 @@ describe('UsersControllerV2', () => {
       expect(subscriptionsUsers, 'to satisfy', others.map((u) => u.user.id));
     });
 
-    it(`should return subscriptions to user themself in reverse time order`, async () => {
+    it(`should return home/subscriptions to user themself in reverse time order`, async () => {
       const resp = await performJSONRequest('GET', `/v2/timelines/home/subscriptions`,
         null, authHeaders(user)
       );
 
-      expect(resp, 'to satisfy', { usersInHomeFeeds: othersByIds.map((u) => ({ id: u.user.id })) });
+      expect(resp.usersInHomeFeeds, 'to satisfy', others.map((u) => ({ id: u.user.id })));
     });
   });
 });
