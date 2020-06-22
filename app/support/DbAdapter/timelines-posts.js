@@ -63,11 +63,12 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
      * @param {number} _offset
      * @param {string} _sort
      */
-    const getPostsSQL = (_limit, _offset, _sort) => {
+    const getPostsSQL = async (_limit, _offset, _sort) => {
       if (!wideSelect) {
+        const pgVersion = await this.getPGVersion();
         // Request with CTE for the relatively small feed
         return pgFormat(`
-          with posts as (
+          with posts as ${pgVersion >= 120000 ? 'materialized' : ''} (
             select p.* from 
               posts p
             where ${selectSQL}
@@ -98,13 +99,13 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
     if (!withLocalBumps || offset > maxOffsetWithLocalBumps) {
       // without local bumps
-      const sql = getPostsSQL(limit, offset, sort);
+      const sql = await getPostsSQL(limit, offset, sort);
       return (await this.database.raw(sql)).rows.map((r) => r.uid);
     }
 
     // with local bumps
     const fullCount = limit + offset;
-    const postsSQL = getPostsSQL(fullCount, 0, 'bumped');
+    const postsSQL = await getPostsSQL(fullCount, 0, 'bumped');
     const localBumpsSQL = pgFormat(`
         with local_bumps as (
           select post_id, min(created_at) as created_at from local_bumps where user_id = %L group by post_id

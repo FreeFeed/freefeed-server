@@ -58,6 +58,18 @@ class DbAdapterBase {
     promisifyAll(this.memoryCache);
 
     this.searchQueriesTimeout = config.performance.searchQueriesTimeout;
+    this._pgVersion = null;
+  }
+
+  /**
+   * Return PostgreSQL version as number (PG_VERSION_NUM)
+   */
+  async getPGVersion() {
+    if (!this._pgVersion) {
+      this._pgVersion = parseInt(await this.database.getOne('show server_version_num'), 10);
+    }
+
+    return this._pgVersion;
   }
 }
 
