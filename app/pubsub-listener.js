@@ -27,6 +27,7 @@ import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
+import { serializeUser } from './serializers/v2/user';
 
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -194,6 +195,7 @@ export default class PubsubListener {
       [eventNames.COMMENT_LIKE_REMOVED]: this.onCommentLikeRemove,
 
       [eventNames.GLOBAL_USER_UPDATED]: this.onGlobalUserUpdate,
+      [eventNames.GROUP_TIMES_UPDATED]: this.onGroupTimesUpdate,
     };
 
     try {
@@ -465,6 +467,31 @@ export default class PubsubListener {
     await this.broadcastMessage(['global:users'], eventNames.GLOBAL_USER_UPDATED, { user });
   };
 
+  onGroupTimesUpdate = async ({ groupIds }) => {
+    const groups = (await dbAdapter.getFeedOwnersByIds(groupIds))
+      .filter((g) => g.isGroup());
+
+    if (groups.length === 0) {
+      return;
+    }
+
+    groupIds = groups.map((g) => g.id);
+    const feedIds = (await dbAdapter.getUsersNamedTimelines(groupIds, 'Posts'))
+      .map((f) => f.id);
+
+    const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds))
+      .map((id) => `user:${id}`);
+    const updatedGroups = groups.map(serializeUser);
+
+    await this.broadcastMessage(
+      rooms,
+      'user:update',
+      { updatedGroups },
+      null,
+      this._withUserIdEmitter,
+    );
+  };
+
   // Helpers
 
   _sendCommentLikeMsg = async (data, msgType) => {
@@ -511,6 +538,9 @@ export default class PubsubListener {
       defaultEmitter(socket, type, json);
     }
   };
+
+  _withUserIdEmitter = (socket, type, json) =>
+    socket.user.id && defaultEmitter(socket, type, { ...json, id: socket.user.id });
 
   async _insertCommentLikesInfo(postPayload, viewerUUID) {
     postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };

@@ -15,6 +15,7 @@ export const eventNames = {
   COMMENT_LIKE_ADDED:   'comment_like:new',
   COMMENT_LIKE_REMOVED: 'comment_like:remove',
   GLOBAL_USER_UPDATED:  'global:user:update',
+  GROUP_TIMES_UPDATED:  ':GROUP_TIMES_UPDATED',
 }
 
 export class PubSubAdapter {
@@ -96,6 +97,10 @@ export class PubSubAdapter {
 
   globalUserUpdated(payload) {
     return this._publish(eventNames.GLOBAL_USER_UPDATED, payload);
+  }
+
+  groupTimesUpdated(payload) {
+    return this._publish(eventNames.GROUP_TIMES_UPDATED, payload);
   }
 
   ///////////////////////////////////////////////////

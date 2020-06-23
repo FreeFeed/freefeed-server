@@ -30,4 +30,6 @@ export default class pubSubStub {
   savePost() {}
 
   unsavePost() {}
+
+  updateGroupTimes() {}
 }
