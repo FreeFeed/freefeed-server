@@ -90,6 +90,25 @@ export function addModel(dbAdapter) {
         this.resetPasswordToken = params.resetPasswordToken;
         this.resetPasswordSentAt = params.resetPasswordSentAt;
       }
+
+      if (!this.isActive) {
+        // 'Anonymize' inactive users
+        // Only id's, username and createdAt are visible
+        this.screenName = this.username;
+        this.email = '';
+        this.description = '';
+        this.frontendPreferences = {};
+        this.preferences = validateUserPrefs({}, true);
+        this.isPrivate = '1';
+        this.isProtected = '1';
+        this.updatedAt = this.createdAt;
+        this.profilePictureUuid =  '';
+        this.subscribedFeedIds =  [];
+        this.privateMeta = {};
+        this.notificationsReadAt = this.createdAt;
+        this.resetPasswordToken = null;
+        this.resetPasswordSentAt = null;
+      }
     }
 
     get username() {
