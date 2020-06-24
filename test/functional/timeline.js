@@ -6,7 +6,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { dbAdapter, PubSub } from '../../app/models'
+import { dbAdapter, PubSub, User } from '../../app/models'
 
 import * as funcTestHelper from './functional_test_helper'
 
@@ -101,7 +101,7 @@ describe('TimelinesController', () => {
     })
 
     it('should respond with 404 for "deleted" user', async () => {
-      await dbAdapter.updateUser(context.user.id, { hashedPassword: '' });
+      await dbAdapter.setUserGoneStatus(context.user.id, User.GONE_DELETED);
       return expect(funcTestHelper.getUserFeed(context), 'to be rejected with', new Error('HTTP/1.1 404'));
     });
   })
@@ -202,7 +202,7 @@ describe('TimelinesController', () => {
 
 
     it('should respond with 404 for "deleted" user', async () => {
-      await dbAdapter.updateUser(context.user.id, { hashedPassword: '' });
+      await dbAdapter.setUserGoneStatus(context.user.id, User.GONE_DELETED);
       return expect(funcTestHelper.getUserLikesFeed(context), 'to be rejected with', new Error('HTTP/1.1 404'));
     });
   })
@@ -280,7 +280,7 @@ describe('TimelinesController', () => {
     })
 
     it('should respond with 404 for "deleted" user', async () => {
-      await dbAdapter.updateUser(context.user.id, { hashedPassword: '' });
+      await dbAdapter.setUserGoneStatus(context.user.id, User.GONE_DELETED);
       return expect(funcTestHelper.getUserCommentsFeed(context), 'to be rejected with', new Error('HTTP/1.1 404'));
     });
   })

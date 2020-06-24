@@ -29,6 +29,14 @@ const usersTrait = (superClass) => class extends superClass {
     await this.cacheFlushUser(userId)
   }
 
+  async setUserGoneStatus(userId, goneStatus) {
+    const goneAt = goneStatus === null ? null : this.database.raw('now()');
+    await this.database.raw(
+      `update users set gone_status = :goneStatus, gone_at = :goneAt where uid = :userId`,
+      { userId, goneStatus, goneAt });
+    await this.cacheFlushUser(userId);
+  }
+
   /**
    * Update username of user or group
    *
@@ -514,6 +522,7 @@ const USER_FIELDS = {
   subscribed_feed_ids:       'subscribedFeedIds',
   private_meta:              'privateMeta',
   preferences:               'preferences',
+  gone_status:               'goneStatus',
 };
 
 const USER_FIELDS_MAPPING = {

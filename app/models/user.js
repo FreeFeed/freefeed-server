@@ -35,6 +35,9 @@ export function addModel(dbAdapter) {
     static ACCEPT_DIRECTS_FROM_ALL = 'all';
     static ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
 
+    static GONE_SUSPENDED = 1;
+    static GONE_DELETED = 2;
+
     static feedNames = [
       'RiverOfNews',
       'Hides',
@@ -49,6 +52,7 @@ export function addModel(dbAdapter) {
     type = 'user';
 
     constructor(params) {
+      this.goneStatus = params.goneStatus || null;
       this.intId = params.intId;
       this.id = params.id;
       this.username = params.username;
@@ -150,10 +154,10 @@ export function addModel(dbAdapter) {
     }
 
     /**
-     * User.isActive is true for non-disabled users (having hashedPassword !== '')
+     * User.isActive is true for non-disabled users
      */
     get isActive() {
-      return this.hashedPassword !== '';
+      return this.goneStatus === null;
     }
 
     static stopList(skipExtraList) {
