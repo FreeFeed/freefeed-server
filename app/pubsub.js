@@ -20,6 +20,7 @@ export class DummyPublisher {
   globalUserUpdated() {}
   postSaved() {}
   postUnsaved() {}
+  groupTimesUpdated() {}
 }
 
 export default class pubSub {
@@ -125,5 +126,9 @@ export default class pubSub {
     const user = await dbAdapter.getUserById(userId);
     const payload = JSON.stringify(serializeUser(user));
     await this.publisher.globalUserUpdated(payload);
+  }
+
+  async updateGroupTimes(groupIds) {
+    await this.publisher.groupTimesUpdated(JSON.stringify({ groupIds }));
   }
 }

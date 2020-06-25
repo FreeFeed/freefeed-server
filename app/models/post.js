@@ -159,6 +159,8 @@ export function addModel(dbAdapter) {
         dbAdapter.statsPostCreated(this.userId),
       ]);
 
+      await pubSub.updateGroupTimes(destFeeds.map((f) => f.userId));
+
       return this;
     }
 
@@ -577,6 +579,8 @@ export function addModel(dbAdapter) {
       ];
 
       await Promise.all(promises);
+
+      await pubSub.updateGroupTimes(timelineOwnersIds);
     }
 
     async getOmittedComments() {

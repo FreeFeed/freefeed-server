@@ -829,3 +829,100 @@ describe('Realtime: Homefeed modes', () => {
       () => testPostActivity(venus, mars2celestialsPost));
   });
 });
+
+describe('Realtime: Group time updates', () => {
+  let luna, mars, venus, celestials, selenites;
+  let lunaSession, marsSession, venusSession;
+
+  before(async () => {
+    await cleanDB($pg_database);
+
+    const app = await getSingleton();
+    const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter);
+
+    // luna, mars, venus are users
+    [luna, mars, venus] = await funcTestHelper.createTestUsers(['luna', 'mars', 'venus']);
+    // selenites, celestials are groups owned by luna and mars
+    [selenites, celestials] = await Promise.all([
+      funcTestHelper.createGroupAsync(luna, 'selenites'),
+      funcTestHelper.createGroupAsync(mars, 'celestials'),
+    ]);
+    // luna and mars subscribed to both groups, venus isn't subscribed to any
+    await Promise.all([
+      funcTestHelper.subscribeToAsync(mars, selenites),
+      funcTestHelper.subscribeToAsync(luna, celestials),
+    ]);
+
+    // luna, mars, venus are listen to their own 'user:' RT channel
+    [lunaSession, marsSession, venusSession] = await Promise.all([luna, mars, venus]
+      .map(async (ctx) => {
+        const session = await Session.create(port, `${ctx.username} session`);
+        await session.sendAsync('auth', { authToken: ctx.authToken });
+        await session.sendAsync('subscribe', { user: [ctx.user.id] });
+        return session;
+      }));
+  });
+
+  after(() => Promise.all([lunaSession, marsSession, venusSession].map((s) => s.disconnect())));
+
+  it(`should deliver 'user:update' to Luna when Luna writes a post to Selenites`, async () => {
+    const test = lunaSession.receiveWhile(
+      'user:update',
+      funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
+  });
+
+  it(`should deliver 'user:update' to Luna when Luna writes a comment to post in Selenites`, async () => {
+    const post = await funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello');
+    const test = lunaSession.receiveWhile(
+      'user:update',
+      funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
+  });
+
+  it(`should deliver 'user:update' to Mars when Luna writes a post to Selenites`, async () => {
+    const test = marsSession.receiveWhile(
+      'user:update',
+      funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
+  });
+
+  it(`should deliver 'user:update' with two groups to Luna when Luna writes a post to Selenites and Celestials`, async () => {
+    const test = lunaSession.receiveWhile(
+      'user:update',
+      funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled with', {
+      updatedGroups: expect
+        .it('to have length', 2)
+        .and('to have an item satisfying', { id: selenites.group.id })
+        .and('to have an item satisfying', { id: celestials.group.id }),
+    });
+  });
+
+  it(`should deliver 'user:update' with two groups to Mars when Luna writes a post to Selenites and Celestials`, async () => {
+    const test = marsSession.receiveWhile(
+      'user:update',
+      funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled with', {
+      updatedGroups: expect
+        .it('to have length', 2)
+        .and('to have an item satisfying', { id: selenites.group.id })
+        .and('to have an item satisfying', { id: celestials.group.id }),
+    });
+  });
+
+  it(`should not deliver 'user:update' to Venus when Luna writes a post to Selenites`, async () => {
+    const test = venusSession.notReceiveWhile(
+      'user:update',
+      funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled');
+  });
+});
