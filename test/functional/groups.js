@@ -1,8 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import request from 'superagent'
-import { mkdirp } from 'mkdirp'
-import { promisify } from 'bluebird'
+import mkdirp from 'mkdirp'
 import config from 'config';
 
 import cleanDB from '../dbCleaner'
@@ -12,8 +11,6 @@ import { PubSub } from '../../app/models'
 
 import * as funcTestHelper from './functional_test_helper'
 
-
-const mkdirpAsync = promisify(mkdirp);
 
 describe('GroupsController', () => {
   let app
@@ -338,7 +335,7 @@ describe('GroupsController', () => {
 
     beforeEach(async () => {
       context = await funcTestHelper.createUserAsync('Luna', 'password')
-      await mkdirpAsync(config.profilePictures.storage.rootDir + config.profilePictures.path)
+      await mkdirp(config.profilePictures.storage.rootDir + config.profilePictures.path)
       await funcTestHelper.createGroupAsync(context, 'pepyatka-dev', 'Pepyatka Developers');
     })
 

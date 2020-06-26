@@ -2,9 +2,8 @@
 /* global $pg_database, $should */
 import fetch from 'node-fetch'
 import _ from 'lodash'
-import { mkdirp } from 'mkdirp'
+import mkdirp from 'mkdirp'
 import request from 'superagent'
-import { promisify } from 'bluebird'
 import expect from 'unexpected'
 import config from 'config';
 
@@ -16,8 +15,6 @@ import { PubSub } from '../../app/models'
 import * as funcTestHelper from './functional_test_helper'
 import * as schema from './schemaV2-helper';
 
-
-const mkdirpAsync = promisify(mkdirp)
 
 describe('UsersController', () => {
   let app
@@ -1240,7 +1237,7 @@ describe('UsersController', () => {
     beforeEach(async () => {
       const [user] = await Promise.all([
         funcTestHelper.createUserAsync('Luna', 'password'),
-        mkdirpAsync(config.profilePictures.storage.rootDir + config.profilePictures.path)
+        mkdirp(config.profilePictures.storage.rootDir + config.profilePictures.path)
       ]);
 
       ({ authToken } = user);
