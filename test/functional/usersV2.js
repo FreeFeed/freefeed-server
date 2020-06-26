@@ -9,7 +9,7 @@ import { sortBy, uniq } from 'lodash';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, Comment, dbAdapter } from '../../app/models'
+import { PubSub, Comment, dbAdapter, User } from '../../app/models'
 import {
   createUserAsync,
   mutualSubscriptions,
@@ -478,6 +478,22 @@ describe('UsersControllerV2', () => {
       );
 
       expect(resp.usersInHomeFeeds, 'to satisfy', others.map((u) => ({ id: u.user.id })));
+    });
+  });
+
+  describe('gone users', () => {
+    let luna, mars;
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(['luna', 'mars']);
+      await mutualSubscriptions([luna, mars]);
+
+      // Mars is gone
+      await dbAdapter.setUserGoneStatus(mars.user.id, User.GONE_SUSPENDED);
+    });
+
+    it(`should return Mars with isGone field in Luna's friends`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${luna.username}/subscribers`);
+      expect(resp, 'to satisfy', { subscribers: [{ id: mars.user.id, isGone: true }] });
     });
   });
 });
