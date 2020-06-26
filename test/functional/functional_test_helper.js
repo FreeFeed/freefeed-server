@@ -405,6 +405,10 @@ export async function performJSONRequest(method, relativePath, body = undefined,
   }
 }
 
+export function authHeaders(userCtx) {
+  return { 'Authorization': `Bearer ${userCtx.authToken}` };
+}
+
 export async function sessionRequest(username, password) {
   return await fetch(
     await apiUrl('/v1/session'),

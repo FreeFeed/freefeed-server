@@ -129,6 +129,8 @@ export function addModel(dbAdapter) {
         EventService.onCommentChanged(this, true),
       ]);
 
+      await pubSub.updateGroupTimes(postDestFeeds.map((f) => f.userId));
+
       monitor.increment('users.comments');
     }
 

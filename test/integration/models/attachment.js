@@ -3,7 +3,7 @@
 import fs from 'fs'
 import path from 'path'
 
-import { mkdirp } from 'mkdirp'
+import mkdirp from 'mkdirp'
 import gm from 'gm'
 import { promisify, promisifyAll } from 'bluebird'
 import chai from 'chai'
@@ -18,7 +18,6 @@ import { dbAdapter, User, Attachment } from '../../../app/models'
 chai.use(chaiFS)
 
 const { expect } = chai;
-const mkdirpAsync = promisify(mkdirp);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const stat = promisify(fs.stat);
@@ -145,11 +144,11 @@ describe('Attachment', () => {
       await user.create()
 
       // Create directories for attachments
-      mkdirp.sync(config.attachments.storage.rootDir + config.attachments.path)
+      await mkdirp(config.attachments.storage.rootDir + config.attachments.path);
 
       await Promise.all(_.map(
         config.attachments.imageSizes,
-        (size) => mkdirpAsync(config.attachments.storage.rootDir + size.path)
+        (size) => mkdirp(config.attachments.storage.rootDir + size.path)
       ));
 
       // "Upload" files
