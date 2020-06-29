@@ -11,30 +11,21 @@ const sentryIsEnabled = 'sentryDsn' in config;
 
 export function reportError(ctx) {
   return (err) => {
-    const result = {};
-    const status = err && err.status ? err.status : 500;
+    const status = err?.status || 500;
 
     debug(err);
 
-    if (status === 500) {
-      if (sentryIsEnabled) {
-        Raven.captureException(err, { req: ctx.request });
-      }
+    if (status === 500 && sentryIsEnabled) {
+      Raven.captureException(err, { req: ctx.request });
     }
 
     if ('internalQuery' in err || err.message.includes('when compiling RAW query')) {
       // looks like postgres err
-      err.message = 'Dadabase-related internal error'; // do not expose DB internals
-    }
-
-    if (err && 'message' in err && err.message) {
-      result.err = err.message;
-    } else {
-      result.err = 'Internal Server Error';
+      err = { message: 'Dadabase-related internal error' }; // do not expose DB internals
     }
 
     ctx.status = status;
-    ctx.body = result;
+    ctx.body = { err: err?.message || 'Internal Server Error' };
   };
 }
 
