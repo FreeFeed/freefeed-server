@@ -75,7 +75,14 @@ export class Text implements Token {
         }
 
         return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, token.text);
-      });
+      }).filter(Boolean);
+
+      if (queries.length === 0) {
+        return "''";
+      } else if (queries.length === 1) {
+        return `${prefix}${queries[0]}`;
+      }
+
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
       const exactText =

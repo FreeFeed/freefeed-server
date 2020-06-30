@@ -127,7 +127,22 @@ describe('Search', () => {
           query:   '"luna post"',
           filter:  (p) => /luna post/.test(p.body),
           comment: 'by phrase'
-        }
+        },
+        {
+          query:   '""',
+          filter:  () => false,
+          comment: 'none posts for invalid query'
+        },
+        {
+          query:   '"',
+          filter:  () => false,
+          comment: 'none posts for invalid query'
+        },
+        {
+          query:   '" "',
+          filter:  () => false,
+          comment: 'none posts for invalid query'
+        },
       ]);
 
       describe('Scoped (in posts and comments bodies) search', () => {
