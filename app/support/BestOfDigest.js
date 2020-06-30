@@ -12,10 +12,10 @@ const BESTOF_DIGEST_POSTS_LIMIT = 15;
 export async function sendBestOfEmails() {
   const debug = createDebug('freefeed:sendBestOfEmails');
 
-  const weeklyDigestRecipients = await dbAdapter.getWeeklyBestOfDigestRecipients();
+  const weeklyDigestRecipients = (await dbAdapter.getWeeklyBestOfDigestRecipients()).filter((u) => u.isActive);
   debug(`getWeeklyBestOfDigestRecipients returned ${weeklyDigestRecipients.length} records`);
 
-  const dailyDigestRecipients = await dbAdapter.getDailyBestOfDigestRecipients();
+  const dailyDigestRecipients = (await dbAdapter.getDailyBestOfDigestRecipients()).filter((u) => u.isActive);
   debug(`getDailyBestOfDigestRecipients returned ${dailyDigestRecipients.length} records`);
 
   const dailyDigestDate = moment().format('MMMM Do');
