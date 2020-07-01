@@ -464,6 +464,10 @@ export function addModel(dbAdapter) {
         throw new Error(`Feed without owner: ${this.id}`);
       }
 
+      if (!user.isActive) {
+        return false; // No one can read an inactive user feed
+      }
+
       if (!readerId) {
         return (user.isProtected === '0');
       }
