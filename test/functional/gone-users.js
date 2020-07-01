@@ -1,14 +1,32 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
+import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner'
-import { dbAdapter, User } from '../../app/models';
+import { dbAdapter, User, AppTokenV1, PubSub } from '../../app/models';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
-import { createTestUsers, mutualSubscriptions, createAndReturnPost, performJSONRequest, authHeaders } from './functional_test_helper';
+import {
+  createTestUsers,
+  mutualSubscriptions,
+  createAndReturnPost,
+  performJSONRequest,
+  authHeaders
+} from './functional_test_helper';
+import Session from './realtime-session';
 
 
 describe('Gone users', () => {
+  let port;
+
+  before(async () => {
+    const app = await getSingleton();
+    port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter)
+  });
+
   beforeEach(() => cleanDB($pg_database));
 
   let luna, mars;
@@ -115,6 +133,43 @@ describe('Gone users', () => {
           meta: { feeds: [luna.username] },
         }, authHeaders(mars));
       expect(resp, 'to satisfy', { __httpCode: 403 });
+    });
+  });
+
+  describe(`Auth tokens`, () => {
+    it(`should not authorize Luna by session token`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/me`, null, authHeaders(luna));
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+
+    it(`should not authorize Luna by app token`, async () => {
+      const token = new AppTokenV1({
+        userId: luna.user.id,
+        title:  `My token`,
+        scopes: [],
+      });
+      await token.create();
+
+      const resp = await performJSONRequest(
+        'GET', `/v1/users/me`, null,
+        { 'Authorization': `Bearer ${token.tokenString()}` }
+      );
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+
+    describe(`Realtime`, () => {
+      let lunaSession;
+
+      beforeEach(async () => {
+        lunaSession = await Session.create(port, 'Luna session')
+      });
+
+      afterEach(() => lunaSession.disconnect());
+
+      it(`should not authorize Luna's realtime session`, async () => {
+        const test = lunaSession.sendAsync('auth', { authToken: luna.authToken });
+        await expect(test, 'to be rejected with', /not exists or is not active/);
+      });
     });
   });
 });
