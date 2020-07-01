@@ -85,4 +85,19 @@ describe('Gone users', () => {
       });
     });
   });
+
+  describe(`Bans`, () => {
+    it(`should allow Mars to ban Luna`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/ban`,
+        null, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+    it(`should allow Mars to unban Luna`, async () => {
+      await performJSONRequest('POST', `/v1/users/${luna.username}/ban`,
+        null, authHeaders(mars));
+      const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/unban`,
+        null, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+  });
 });
