@@ -172,4 +172,21 @@ describe('Gone users', () => {
       });
     });
   });
+
+  describe('Posts', () => {
+    it(`should not show Luna's post in Mars homefeed`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/timelines/home`, null, authHeaders(mars));
+      expect(resp, 'to satisfy', { timelines: { posts: [] }, posts: [] });
+    });
+
+    it(`should not show Luna's post in everything feed`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/everything`);
+      expect(resp, 'to satisfy', { posts: [] });
+    });
+
+    it(`should not show Luna's post in global summary feed`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/summary/1`, null, authHeaders(mars));
+      expect(resp, 'to satisfy', { posts: [] });
+    });
+  });
 });

@@ -42,12 +42,19 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
       viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
     ]);
 
-    const privacyCondition = viewerId ?
-      pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`)
-      : 'not p.is_protected';
-    const bansSQL = sqlNotIn('p.user_id', bannedUsersIds);
-
-    const restrictionsSQL = `${bansSQL} and ${privacyCondition}`;
+    const restrictionsSQL = andJoin([
+      // Privacy
+      viewerId
+        ? orJoin([
+          'not p.is_private',
+          sqlIntarrayIn('p.destination_feed_ids', visiblePrivateFeedIntIds),
+        ])
+        : 'not p.is_protected',
+      // Bans
+      sqlNotIn('p.user_id', bannedUsersIds),
+      // Gone post's authors
+      'u.gone_status is null',
+    ]);
 
     /**
      * PostgreSQL is not very good dealing with queries like
@@ -76,6 +83,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
           select p.uid, p.bumped_at as date
           from 
             posts p
+            join users u on p.user_id = u.uid
           where
             ${restrictionsSQL}
           order by
@@ -89,6 +97,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         select p.uid, p.bumped_at as date
         from 
           posts p
+          join users u on p.user_id = u.uid
         where
           (${selectSQL}) and (${restrictionsSQL})
         order by
@@ -114,6 +123,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         from
           local_bumps b
           join posts p on p.uid = b.post_id
+          join users u on p.user_id = u.uid
         where
           (${selectSQL}) and (${restrictionsSQL})
         order by b.created_at desc
