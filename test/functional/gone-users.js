@@ -100,4 +100,21 @@ describe('Gone users', () => {
       expect(resp, 'to satisfy', { __httpCode: 200 });
     });
   });
+
+  describe(`Directs`, () => {
+    it(`should return Luna's info to Mars with acceptsDirects = false`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${luna.username}`,
+        null, authHeaders(mars));
+      expect(resp, 'to satisfy', { acceptsDirects: false });
+    });
+
+    it(`should not allow Mars to send direct message to Luna`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/posts`,
+        {
+          post: { body: 'Hello' },
+          meta: { feeds: [luna.username] },
+        }, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 403 });
+    });
+  });
 });

@@ -1172,6 +1172,10 @@ export function addModel(dbAdapter) {
         return false;
       }
 
+      if (!this.isActive) {
+        return false;
+      }
+
       if (
         this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS
       ) {
