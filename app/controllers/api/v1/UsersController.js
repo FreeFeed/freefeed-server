@@ -166,6 +166,10 @@ export default class UsersController {
     async (ctx) => {
       const { user, targetUser } = ctx.state;
 
+      if (!targetUser.isActive) {
+        throw new ForbiddenException(`The ${targetUser.isUser() ? 'user account' : 'group'} is not active`);
+      }
+
       if (targetUser.isPrivate !== '1') {
         throw new ForbiddenException(`The ${targetUser.isUser() ? 'user account' : 'group'} is not private`);
       }
@@ -468,7 +472,7 @@ export default class UsersController {
       const { username } = ctx.params;
       const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
 
-      if (!targetUser || !targetUser.isActive) {
+      if (!targetUser) {
         throw new NotFoundException(`User "${username}" is not found`);
       }
 
