@@ -21,7 +21,7 @@ export function reportError(ctx) {
 
     if ('internalQuery' in err || err.message.includes('when compiling RAW query')) {
       // looks like postgres err
-      err = { message: 'Dadabase-related internal error' }; // do not expose DB internals
+      err = { message: 'Database-related internal error' }; // do not expose DB internals
     }
 
     ctx.status = status;
