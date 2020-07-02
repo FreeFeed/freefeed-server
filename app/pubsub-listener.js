@@ -601,6 +601,12 @@ export async function getRoomsOfPost(post) {
     return [];
   }
 
+  const author = await dbAdapter.getUserById(post.userId);
+
+  if (!author.isActive) {
+    return [];
+  }
+
   const [
     postFeeds,
     myDiscussionsFeeds,
