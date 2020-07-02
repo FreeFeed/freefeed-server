@@ -35,7 +35,8 @@ const commentLikesTrait = (superClass) => class extends superClass {
       .from('comment_likes')
       .innerJoin('users', 'users.id', 'comment_likes.user_id')
       .orderBy('comment_likes.created_at', 'desc')
-      .where('comment_likes.comment_id', commentIntId);
+      .where('comment_likes.comment_id', commentIntId)
+      .whereNull('users.gone_status');
 
     if (viewerUserUUID) {
       const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserUUID);

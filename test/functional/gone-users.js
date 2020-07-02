@@ -13,7 +13,9 @@ import {
   createAndReturnPost,
   performJSONRequest,
   authHeaders,
-  like
+  like,
+  createCommentAsync,
+  likeComment
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -235,17 +237,29 @@ describe('Gone users', () => {
   });
 
   describe(`Likes`, () => {
-    let marsPost;
+    let marsPost, marsComment;
     beforeEach(async () => {
       marsPost = await createAndReturnPost(mars, 'Mars post');
+      marsComment = (await createCommentAsync(mars, marsPost.id, 'Comment').then((r) => r.json())).comments;
       await dbAdapter.setUserGoneStatus(luna.user.id, null);
       await like(marsPost.id, luna.authToken);
+      await likeComment(marsComment.id, luna);
       await dbAdapter.setUserGoneStatus(luna.user.id, User.GONE_SUSPENDED);
     });
 
     it(`should not show Luna's like to Mars post`, async () => {
       const resp = await performJSONRequest('GET', `/v2/posts/${marsPost.id}`);
       expect(resp, 'to satisfy', { posts: { likes: [] } });
+    });
+
+    it(`should not show Luna's like to Mars comment`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/comments/${marsComment.id}/likes`);
+      expect(resp, 'to satisfy', { likes: [] });
+    });
+
+    it(`should not show Luna's comment like in post response`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/posts/${marsPost.id}`);
+      expect(resp, 'to satisfy', { comments: [{ likes: 0 }] });
     });
   });
 });

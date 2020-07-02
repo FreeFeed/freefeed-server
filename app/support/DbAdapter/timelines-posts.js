@@ -381,9 +381,12 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         ${commentFields.join(', ')}, id,
         rank() over (partition by post_id order by created_at, id),
         count(*) over (partition by post_id),
-        (select coalesce(count(*), 0) from comment_likes cl
+        (select coalesce(count(*), 0) from 
+          comment_likes cl
+          join users u on cl.user_id = u.id
           where cl.comment_id = comments.id
             and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+            and u.gone_status is null
         ) as c_likes,
         (select true from comment_likes cl
           where cl.comment_id = comments.id
