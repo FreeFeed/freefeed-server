@@ -114,6 +114,10 @@ export const authFinish = compose([
         const profileUser = await User.getByExtProfile(profileData);
 
         if (profileUser) {
+          if (!profileUser.isActive) {
+            throw new ForbiddenException('Your account is not active');
+          }
+
           // User found, signing in
           const authToken =  new SessionTokenV0(profileUser.id).tokenString()
           ctx.body = {
