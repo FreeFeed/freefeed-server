@@ -12,6 +12,7 @@ export const up = (knex) => knex.schema.raw(`do $$begin
   alter table users add column gone_at timestamptz;
   alter table users add constraint users_gone_check 
     check ((gone_status is null) = (gone_at is null));
+  create index users_gone_status_not_null_idx on users ((gone_status is null));
 
   -- Update gone status for already gone users
   update users set gone_status = 2, gone_at = now() 
