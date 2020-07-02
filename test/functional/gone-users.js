@@ -220,4 +220,11 @@ describe('Gone users', () => {
       expect(resp, 'to satisfy', { textResponse: '' });
     });
   });
+
+  describe(`Session`, () => {
+    it(`should not allow Luna to start session`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/session`, { username: 'luna', password: 'pw' });
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+  });
 });

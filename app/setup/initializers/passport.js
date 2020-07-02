@@ -17,8 +17,7 @@ export function init(passport) {
         user = await dbAdapter.getUserByEmail(username.trim());
       }
 
-      if (!user) {
-        // db inconsistency. got id, but didn't find object
+      if (!user?.isActive) {
         done({ message: 'We could not find the nickname you provided.' });
         return;
       }
