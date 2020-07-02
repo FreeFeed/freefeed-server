@@ -219,6 +219,11 @@ describe('Gone users', () => {
       const resp = await performJSONRequest('GET', `/v2/posts-opengraph/${post.id}`);
       expect(resp, 'to satisfy', { textResponse: '' });
     });
+
+    it(`should not show Luna's post in search results`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/search?qs=from:${luna.username}`);
+      expect(resp, 'to satisfy', { posts: [] });
+    });
   });
 
   describe(`Session`, () => {
