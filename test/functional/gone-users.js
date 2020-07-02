@@ -12,7 +12,8 @@ import {
   mutualSubscriptions,
   createAndReturnPost,
   performJSONRequest,
-  authHeaders
+  authHeaders,
+  like
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -230,6 +231,21 @@ describe('Gone users', () => {
     it(`should not allow Luna to start session`, async () => {
       const resp = await performJSONRequest('POST', `/v1/session`, { username: 'luna', password: 'pw' });
       expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+  });
+
+  describe(`Likes`, () => {
+    let marsPost;
+    beforeEach(async () => {
+      marsPost = await createAndReturnPost(mars, 'Mars post');
+      await dbAdapter.setUserGoneStatus(luna.user.id, null);
+      await like(marsPost.id, luna.authToken);
+      await dbAdapter.setUserGoneStatus(luna.user.id, User.GONE_SUSPENDED);
+    });
+
+    it(`should not show Luna's like to Mars post`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/posts/${marsPost.id}`);
+      expect(resp, 'to satisfy', { posts: { likes: [] } });
     });
   });
 });

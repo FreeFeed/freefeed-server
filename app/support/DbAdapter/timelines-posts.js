@@ -336,17 +336,19 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
     const allLikesSQL = `
       select
-        post_id, user_id,
-        rank() over (partition by post_id order by
-          ${sqlIn('user_id', [viewerId])} desc,
-          ${sqlIn('user_id', friendsIds)} desc,
-          created_at desc,
-          id desc
+      l.post_id, l.user_id,
+        rank() over (partition by l.post_id order by
+          ${sqlIn('l.user_id', [viewerId])} desc,
+          ${sqlIn('l.user_id', friendsIds)} desc,
+          l.created_at desc,
+          l.id desc
         ),
-        count(*) over (partition by post_id) 
-      from likes
-      where ${sqlIn('post_id', uniqPostsIds)} and ${sqlNotIn('user_id', bannedUsersIds)}
-    `;
+        count(*) over (partition by l.post_id) 
+      from likes l
+          join users u on l.user_id = u.uid
+      where ${sqlIn('l.post_id', uniqPostsIds)} 
+        and ${sqlNotIn('l.user_id', bannedUsersIds)}
+        and u.gone_status is null`;
 
     const foldLikesSql = params.foldLikes ? pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) : ``;
     const likesSQL = `
