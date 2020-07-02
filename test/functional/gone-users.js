@@ -198,5 +198,26 @@ describe('Gone users', () => {
       const resp = await performJSONRequest('GET', `/v2/posts/${post.id}`, null, authHeaders(mars));
       expect(resp, 'to satisfy', { __httpCode: 404 });
     });
+
+    it(`should not allow Mars to comment Luna's post`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/comments`,
+        { comment: { body: 'Hello', postId: post.id } }, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 404 });
+    });
+
+    it(`should not allow Mars to like Luna's post`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/posts/${post.id}/like`, null, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 404 });
+    });
+
+    it(`should not allow Mars to hide Luna's post`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/posts/${post.id}/hide`, null, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 404 });
+    });
+
+    it(`should not show opengraph of Luna's post`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/posts-opengraph/${post.id}`);
+      expect(resp, 'to satisfy', { textResponse: '' });
+    });
   });
 });
