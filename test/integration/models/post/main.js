@@ -702,6 +702,35 @@ describe('Post', () => {
       });
     });
 
+    describe('Luna becomes gone', () => {
+      beforeEach(async () => {
+        await dbAdapter.setUserGoneStatus(luna.id, User.GONE_SUSPENDED);
+        post = await dbAdapter.getPostById(post.id);
+      });
+
+      it('should not allow anonymous to view post', async () => {
+        await expect(post.isVisibleFor(null), 'to be fulfilled with', false);
+      });
+
+      it('should not allow Mars to view post', async () => {
+        await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
+      });
+
+      it('should not allow Luna to view post', async () => {
+        await expect(post.isVisibleFor(luna), 'to be fulfilled with', false);
+      });
+
+      describe('Mars subscribes to Luna', () => {
+        beforeEach(async () => {
+          await mars.subscribeTo(luna);
+        });
+
+        it('should not allow Mars to view post', async () => {
+          await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
+        });
+      });
+    });
+
     describe('Luna bans Mars', () => {
       beforeEach(async () => {
         await luna.ban(mars.username);

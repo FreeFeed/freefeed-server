@@ -29,12 +29,12 @@ describe('Gone users', () => {
 
   beforeEach(() => cleanDB($pg_database));
 
-  let luna, mars;
+  let luna, mars, post;
   beforeEach(async () => {
     [luna, mars] = await createTestUsers(['luna', 'mars']);
     await mutualSubscriptions([luna, mars]);
     // Luna writes a post
-    await createAndReturnPost(luna, 'Luna post');
+    post = await createAndReturnPost(luna, 'Luna post');
     // Luna is gone
     await dbAdapter.setUserGoneStatus(luna.user.id, User.GONE_SUSPENDED);
   });
@@ -187,6 +187,16 @@ describe('Gone users', () => {
     it(`should not show Luna's post in global summary feed`, async () => {
       const resp = await performJSONRequest('GET', `/v2/summary/1`, null, authHeaders(mars));
       expect(resp, 'to satisfy', { posts: [] });
+    });
+
+    it(`should not show Luna's post by direct link to anonymous`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/posts/${post.id}`);
+      expect(resp, 'to satisfy', { __httpCode: 404 });
+    });
+
+    it(`should not show Luna's post by direct link to Mars`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/posts/${post.id}`, null, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 404 });
     });
   });
 });
