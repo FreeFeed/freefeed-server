@@ -16,7 +16,14 @@ import {
   authHeaders,
   like,
   createCommentAsync,
-  likeComment
+  likeComment,
+  goPrivate,
+  unsubscribeUserFromMeAsync,
+  sendRequestToSubscribe,
+  createGroupAsync,
+  groupToPrivate,
+  sendRequestToJoinGroup,
+  unsubscribeFromAsync
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -261,6 +268,42 @@ describe('Gone users', () => {
     it(`should not show Luna's comment like in post response`, async () => {
       const resp = await performJSONRequest('GET', `/v2/posts/${marsPost.id}`);
       expect(resp, 'to satisfy', { comments: [{ likes: 0 }] });
+    });
+  });
+
+  describe(`Requests`, () => {
+    describe(`Mars is private, Luna sent request and gone`, () => {
+      beforeEach(async () => {
+        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await goPrivate(mars);
+        await unsubscribeUserFromMeAsync(mars, luna);
+        await sendRequestToSubscribe(luna, mars);
+        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+      });
+
+      it(`should not show Luna's request in Mars whoami`, async () => {
+        const resp = await performJSONRequest('GET', `/v2/users/whoami`, null, authHeaders(mars));
+        expect(resp, 'to satisfy', { users: { subscriptionRequests: [] }, requests: [] });
+      });
+    });
+
+    describe(`Mars have private group, Luna sent request and gone`, () => {
+      beforeEach(async () => {
+        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        const selenites = await createGroupAsync(mars, 'selenites');
+        await groupToPrivate(selenites.group, mars);
+        await unsubscribeFromAsync(luna, mars);
+        await sendRequestToJoinGroup(luna, selenites);
+        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+      });
+
+      it(`should not show Luna's request in Mars whoami`, async () => {
+        const resp = await performJSONRequest('GET', `/v2/users/whoami`, null, authHeaders(mars));
+        expect(resp, 'to satisfy', {
+          users:         { pendingGroupRequests: false },
+          managedGroups: [{ requests: [] }]
+        });
+      });
     });
   });
 });

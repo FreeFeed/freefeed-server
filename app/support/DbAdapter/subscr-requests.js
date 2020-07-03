@@ -28,12 +28,13 @@ const subscrRequestsTrait = (superClass) => class extends superClass {
     }).delete()
   }
 
-  async getUserSubscriptionRequestsIds(toUserId) {
-    const res = await this.database('subscription_requests').select('from_user_id').orderBy('created_at', 'desc').where('to_user_id', toUserId)
-    const attrs = res.map((record) => {
-      return record.from_user_id
-    })
-    return attrs
+  getUserSubscriptionRequestsIds(toUserId) {
+    return this.database.getCol(
+      `select from_user_id from 
+        subscription_requests s
+        join users from_users on from_users.uid = from_user_id
+        where to_user_id = :toUserId and from_users.gone_status is null
+        order by s.created_at desc`, { toUserId });
   }
 
   async isSubscriptionRequestPresent(fromUserId, toUserId) {

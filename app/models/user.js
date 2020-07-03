@@ -1350,10 +1350,6 @@ export function addModel(dbAdapter) {
       return _.some(await Promise.all(promises), Boolean);
     }
 
-    getPendingGroupRequests() {
-      return dbAdapter.userHavePendingGroupRequests(this.id);
-    }
-
     /**
      * Returns array of comment's hideType's which should not be visible by user
      * @return {string[]}
