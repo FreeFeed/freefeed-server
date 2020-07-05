@@ -75,7 +75,7 @@ const defaultStats = {
 export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) {
   return (id) => {
     const obj = serializeUser(allUsers[id]);
-    obj.statistics = allStats[id] || defaultStats;
+    obj.statistics = (!obj.isGone && allStats[id]) || defaultStats;
 
     if (obj.type === 'group') {
       obj.administrators = allGroupAdmins[obj.id] || [];

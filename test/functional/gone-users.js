@@ -269,6 +269,21 @@ describe('Gone users', () => {
       const resp = await performJSONRequest('GET', `/v2/posts/${marsPost.id}`);
       expect(resp, 'to satisfy', { comments: [{ likes: 0 }] });
     });
+
+    it(`should not show Luna's likes in Luna's statistics`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${luna.username}`);
+      expect(resp, 'to satisfy', {
+        users: {
+          statistics: {
+            posts:         '0',
+            likes:         '0',
+            comments:      '0',
+            subscribers:   '0',
+            subscriptions: '0',
+          }
+        }
+      });
+    });
   });
 
   describe(`Requests`, () => {
