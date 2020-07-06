@@ -34,7 +34,7 @@ describe(`User's 'gone' status`, () => {
     });
 
     it(`should return cleaned Lunas's props when Luna is gone`, async () => {
-      await dbAdapter.setUserGoneStatus(luna.id, GONE_SUSPENDED);
+      await luna.setGoneStatus(GONE_SUSPENDED);
       const luna1 = await dbAdapter.getUserById(luna.id);
       expect(
         pick(luna1, [
@@ -56,7 +56,7 @@ describe(`User's 'gone' status`, () => {
     });
 
     it(`should return initial Lunas's props when Luna isn't gone anymore`, async () => {
-      await dbAdapter.setUserGoneStatus(luna.id, null);
+      await luna.setGoneStatus(null);
       const luna1 = await dbAdapter.getUserById(luna.id);
       expect(
         pick(luna1, ['username', 'screenName', 'email']),

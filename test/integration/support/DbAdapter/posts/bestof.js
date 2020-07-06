@@ -60,7 +60,7 @@ describe('BestOf', () => {
     })
 
     describe(`popular post's author is gone`, () => {
-      beforeEach(() => dbAdapter.setUserGoneStatus(users[0].id, GONE_SUSPENDED));
+      beforeEach(() => users[0].setGoneStatus(GONE_SUSPENDED));
 
       it('should not show the popular post', async () => {
         bestPosts = await dbAdapter.bestPostsIds(users[1])
@@ -69,7 +69,7 @@ describe('BestOf', () => {
     });
 
     describe(`one of popular post's likers is gone`, () => {
-      beforeEach(() => dbAdapter.setUserGoneStatus(users[1].id, GONE_SUSPENDED));
+      beforeEach(() => users[1].setGoneStatus(GONE_SUSPENDED));
 
       it('should not show the popular post', async () => {
         bestPosts = await dbAdapter.bestPostsIds(users[2])

@@ -705,7 +705,7 @@ describe('Post', () => {
 
     describe('Luna becomes gone', () => {
       beforeEach(async () => {
-        await dbAdapter.setUserGoneStatus(luna.id, GONE_SUSPENDED);
+        await luna.setGoneStatus(GONE_SUSPENDED);
         post = await dbAdapter.getPostById(post.id);
       });
 

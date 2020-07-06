@@ -50,7 +50,7 @@ describe('Gone users', () => {
     // Luna writes a post
     post = await createAndReturnPost(luna, 'Luna post');
     // Luna is gone
-    await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+    await setGoneStatus(luna, GONE_SUSPENDED);
   });
 
   describe(`Gone user's timelines`, () => {
@@ -252,10 +252,10 @@ describe('Gone users', () => {
     beforeEach(async () => {
       marsPost = await createAndReturnPost(mars, 'Mars post');
       marsComment = (await createCommentAsync(mars, marsPost.id, 'Comment').then((r) => r.json())).comments;
-      await dbAdapter.setUserGoneStatus(luna.user.id, null);
+      await setGoneStatus(luna, null);
       await like(marsPost.id, luna.authToken);
       await likeComment(marsComment.id, luna);
-      await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+      await setGoneStatus(luna, GONE_SUSPENDED);
     });
 
     it(`should not show Luna's like to Mars post`, async () => {
@@ -292,11 +292,11 @@ describe('Gone users', () => {
   describe(`Requests`, () => {
     describe(`Mars is private, Luna sent request and gone`, () => {
       beforeEach(async () => {
-        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await setGoneStatus(luna, null);
         await goPrivate(mars);
         await unsubscribeUserFromMeAsync(mars, luna);
         await sendRequestToSubscribe(luna, mars);
-        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+        await setGoneStatus(luna, GONE_SUSPENDED);
       });
 
       it(`should not show Luna's request in Mars whoami`, async () => {
@@ -307,12 +307,12 @@ describe('Gone users', () => {
 
     describe(`Mars have private group, Luna sent request and gone`, () => {
       beforeEach(async () => {
-        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await setGoneStatus(luna, null);
         const selenites = await createGroupAsync(mars, 'selenites');
         await groupToPrivate(selenites.group, mars);
         await unsubscribeFromAsync(luna, mars);
         await sendRequestToJoinGroup(luna, selenites);
-        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+        await setGoneStatus(luna, GONE_SUSPENDED);
       });
 
       it(`should not show Luna's request in Mars whoami`, async () => {
@@ -328,10 +328,10 @@ describe('Gone users', () => {
   describe(`Group Administration`, () => {
     let selenites;
     beforeEach(async () => {
-      await dbAdapter.setUserGoneStatus(luna.user.id, null);
+      await setGoneStatus(luna, null);
       selenites = await createGroupAsync(mars, 'selenites');
       await subscribeToAsync(luna, selenites);
-      await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+      await setGoneStatus(luna, GONE_SUSPENDED);
     });
 
     it(`should not allow Mars to promote Luna to admin`, async () => {
@@ -343,9 +343,9 @@ describe('Gone users', () => {
 
     describe(`Luna and Mars are group admins`, () => {
       beforeEach(async () => {
-        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await setGoneStatus(luna, null);
         await promoteToAdmin(selenites, mars, luna);
-        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+        await setGoneStatus(luna, GONE_SUSPENDED);
       });
 
       it(`should not allow Mars to unadmin themself`, async () => {
@@ -358,10 +358,10 @@ describe('Gone users', () => {
 
     describe(`Luna is the only group admin`, () => {
       beforeEach(async () => {
-        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await setGoneStatus(luna, null);
         await promoteToAdmin(selenites, mars, luna);
         await demoteFromAdmin(selenites, mars, mars);
-        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+        await setGoneStatus(luna, GONE_SUSPENDED);
       });
 
       it(`should show group as restricted`, async () => {
@@ -378,3 +378,8 @@ describe('Gone users', () => {
     });
   });
 });
+
+async function setGoneStatus(userCtx, status) {
+  const user = await dbAdapter.getUserById(userCtx.user.id);
+  await user.setGoneStatus(status);
+}

@@ -549,6 +549,19 @@ export function addModel(dbAdapter) {
       return this;
     }
 
+    /**
+     * This method doesn't update the current object properties
+     * @param {number|null} status
+     */
+    async setGoneStatus(status) {
+      await dbAdapter.setUserGoneStatus(this.id, status);
+      await pubSub.globalUserUpdate(this.id);
+      const managedGroupIds = await dbAdapter.getManagedGroupIds(this.id);
+      // Some managed groups may change their isRestricted status so send update
+      // for all of them (just to be safe)
+      await Promise.all(managedGroupIds.map((id) => pubSub.globalUserUpdate(id)));
+    }
+
     async getPastUsernames() {
       return await dbAdapter.getPastUsernames(this.id);
     }

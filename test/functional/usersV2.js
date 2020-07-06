@@ -489,7 +489,7 @@ describe('UsersControllerV2', () => {
       await mutualSubscriptions([luna, mars]);
 
       // Mars is gone
-      await dbAdapter.setUserGoneStatus(mars.user.id, GONE_SUSPENDED);
+      await setGoneStatus(mars, GONE_SUSPENDED);
     });
 
     it(`should return Mars with isGone field in Luna's friends`, async () => {
@@ -499,3 +499,7 @@ describe('UsersControllerV2', () => {
   });
 });
 
+async function setGoneStatus(userCtx, status) {
+  const user = await dbAdapter.getUserById(userCtx.user.id);
+  await user.setGoneStatus(status);
+}
