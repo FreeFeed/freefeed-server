@@ -130,6 +130,10 @@ export default class GroupsController {
       throw new NotFoundException(`User "${ctx.params.adminName}" is not found`)
     }
 
+    if (newStatus && !newAdmin.isActive) {
+      throw new ForbiddenException(`User "${ctx.params.adminName}" is not active`);
+    }
+
     if (newStatus) {
       await group.addAdministrator(newAdmin.id)
       await EventService.onGroupAdminPromoted(ctx.state.user.intId, group, newAdmin.intId);

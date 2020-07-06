@@ -23,7 +23,8 @@ import {
   createGroupAsync,
   groupToPrivate,
   sendRequestToJoinGroup,
-  unsubscribeFromAsync
+  unsubscribeFromAsync,
+  subscribeToAsync
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -319,6 +320,23 @@ describe('Gone users', () => {
           managedGroups: [{ requests: [] }]
         });
       });
+    });
+  });
+
+  describe(`Group Administration`, () => {
+    let selenites;
+    beforeEach(async () => {
+      await dbAdapter.setUserGoneStatus(luna.user.id, null);
+      selenites = await createGroupAsync(mars, 'selenites');
+      await subscribeToAsync(luna, selenites);
+      await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+    });
+
+    it(`should not allow Mars to promote Luna to admin`, async () => {
+      const resp = await performJSONRequest(
+        'POST', `/v1/groups/${selenites.username}/subscribers/${luna.username}/admin`,
+        null, authHeaders(mars));
+      expect(resp, 'to satisfy', { __httpCode: 403 });
     });
   });
 });
