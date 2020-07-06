@@ -179,14 +179,14 @@ export function addModel(dbAdapter) {
     }
 
     async removeAdministrator(feedId) {
-      const adminIds = await this.getAdministratorIds();
+      const admins = await this.getActiveAdministrators();
 
-      if (!adminIds.includes(feedId)) {
-        throw new Error('Not an administrator');
+      if (!admins.some((a) => a.id === feedId)) {
+        throw new ForbiddenException('Not an administrator');
       }
 
-      if (adminIds.length == 1) {
-        throw new Error('Cannot remove last administrator');
+      if (admins.length == 1) {
+        throw new ForbiddenException('Cannot remove last administrator');
       }
 
       return dbAdapter.removeAdministratorFromGroup(this.id, feedId);
@@ -204,6 +204,10 @@ export function addModel(dbAdapter) {
       this.administrators = await dbAdapter.getUsersByIds(adminIds);
 
       return this.administrators;
+    }
+
+    async getActiveAdministrators() {
+      return (await this.getAdministrators()).filter((admin) => admin.isActive);
     }
 
     /**

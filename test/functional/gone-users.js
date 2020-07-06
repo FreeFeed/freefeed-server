@@ -24,7 +24,8 @@ import {
   groupToPrivate,
   sendRequestToJoinGroup,
   unsubscribeFromAsync,
-  subscribeToAsync
+  subscribeToAsync,
+  promoteToAdmin
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -337,6 +338,21 @@ describe('Gone users', () => {
         'POST', `/v1/groups/${selenites.username}/subscribers/${luna.username}/admin`,
         null, authHeaders(mars));
       expect(resp, 'to satisfy', { __httpCode: 403 });
+    });
+
+    describe(`Luna and Mars are group admins`, () => {
+      beforeEach(async () => {
+        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await promoteToAdmin(selenites, mars, luna);
+        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+      });
+
+      it(`should not allow Mars to unadmin themself`, async () => {
+        const resp = await performJSONRequest(
+          'POST', `/v1/groups/${selenites.username}/subscribers/${mars.username}/unadmin`,
+          null, authHeaders(mars));
+        expect(resp, 'to satisfy', { __httpCode: 403 });
+      });
     });
   });
 });
