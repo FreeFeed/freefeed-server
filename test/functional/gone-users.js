@@ -25,7 +25,8 @@ import {
   sendRequestToJoinGroup,
   unsubscribeFromAsync,
   subscribeToAsync,
-  promoteToAdmin
+  promoteToAdmin,
+  demoteFromAdmin
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -351,6 +352,27 @@ describe('Gone users', () => {
         const resp = await performJSONRequest(
           'POST', `/v1/groups/${selenites.username}/subscribers/${mars.username}/unadmin`,
           null, authHeaders(mars));
+        expect(resp, 'to satisfy', { __httpCode: 403 });
+      });
+    });
+
+    describe(`Luna is the only group admin`, () => {
+      beforeEach(async () => {
+        await dbAdapter.setUserGoneStatus(luna.user.id, null);
+        await promoteToAdmin(selenites, mars, luna);
+        await demoteFromAdmin(selenites, mars, mars);
+        await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
+      });
+
+      it(`should show group as restricted`, async () => {
+        const resp = await performJSONRequest('GET', `/v1/users/${selenites.username}`);
+        expect(resp, 'to satisfy', { users: { isRestricted: '1' } });
+      });
+
+      it(`should not allow Mars to create post in group`, async () => {
+        const resp = await performJSONRequest(
+          'POST', `/v1/posts`,
+          { post: { body: 'Hello' }, meta: { feeds: [selenites.username] } }, authHeaders(mars));
         expect(resp, 'to satisfy', { __httpCode: 403 });
       });
     });

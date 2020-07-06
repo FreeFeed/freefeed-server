@@ -79,6 +79,11 @@ export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) 
 
     if (obj.type === 'group') {
       obj.administrators = allGroupAdmins[obj.id] || [];
+
+      // Groups that have no active admins are restricted
+      if (!obj.administrators.some((a) => allUsers[a]?.isActive)) {
+        obj.isRestricted = '1';
+      }
     }
 
     return obj;

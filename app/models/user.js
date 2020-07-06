@@ -14,7 +14,6 @@ import config from 'config';
 import { getS3 } from '../support/s3';
 import {
   BadRequestException,
-  ForbiddenException,
   NotFoundException,
   ValidationException
 } from '../support/exceptions';
@@ -1133,37 +1132,6 @@ export function addModel(dbAdapter) {
           User.PROFILE_PICTURE_SIZE_MEDIUM
         )
       );
-    }
-
-    /**
-     * Checks if the specified user can post to the timeline of this user.
-     */
-    async validateCanPost(postingUser) {
-      // NOTE: when user is subscribed to another user she in fact is
-      // subscribed to her posts timeline
-      const [timelineIdA, timelineIdB] = await Promise.all([
-        postingUser.getPostsTimelineId(),
-        this.getPostsTimelineId()
-      ]);
-
-      const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(
-        this.id,
-        timelineIdA
-      );
-      const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(
-        postingUser.id,
-        timelineIdB
-      );
-
-      if (
-        (!currentUserSubscribedToPostingUser ||
-          !postingUserSubscribedToCurrentUser) &&
-        postingUser.username != this.username
-      ) {
-        throw new ForbiddenException(
-          "You can't send private messages to friends that are not mutual"
-        );
-      }
     }
 
     /**
