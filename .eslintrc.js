@@ -141,7 +141,6 @@ module.exports = {
     'prefer-destructuring':        2,
     'prefer-numeric-literals':     1,
     'prefer-object-spread':        2,
-    'prefer-reflect':              1,
     'prefer-rest-params':          2,
     'prefer-spread':               2,
     'prefer-template':             2,
