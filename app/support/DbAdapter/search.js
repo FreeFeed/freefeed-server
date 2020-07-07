@@ -323,6 +323,9 @@ const searchTrait = (superClass) =>
         'commented-by': 'Comments',
         'liked-by':     'Likes'
       };
+      // For gone users only the Comments feed is available (comments aren't
+      // deleted when user gone)
+      const goneUsersFeeds = ['Comments'];
       const myFeedNames = ['saves', 'directs', 'discussions', 'friends'];
 
       return await Promise.all(
@@ -333,15 +336,16 @@ const searchTrait = (superClass) =>
               (!!condToFeedNames[t.condition] || t.condition === 'in-my')
           )
           .map(async (t) => {
-            // in:, commented-by:, liked-by:
-            if (condToFeedNames[t.condition]) {
-              const userIds = uniq(t.args)
-                .map((n) => accountsMap[n] && accountsMap[n].id)
-                .filter(Boolean);
+            const feedName = condToFeedNames[t.condition];
 
-              const feedIntIds = await this.getUsersNamedFeedsIntIds(userIds, [
-                condToFeedNames[t.condition]
-              ]);
+            // in:, commented-by:, liked-by:
+            if (feedName) {
+              const userIds = uniq(t.args)
+                .map((n) => accountsMap[n])
+                .filter((u) => u && (u.isActive || goneUsersFeeds.includes(feedName)))
+                .map((u) => u.id);
+
+              const feedIntIds = await this.getUsersNamedFeedsIntIds(userIds, [feedName]);
               return new List(feedIntIds, !t.exclude);
             }
 

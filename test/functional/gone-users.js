@@ -325,6 +325,11 @@ describe('Gone users', () => {
         }
       });
     });
+
+    it(`should not show liked post during search in Luna likes`, async () => {
+      const resp = await performJSONRequest('GET', `/v2/search?qs=liked-by:${luna.username}`);
+      expect(resp, 'to satisfy', { posts: [] });
+    });
   });
 
   describe(`Requests`, () => {
