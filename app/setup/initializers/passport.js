@@ -18,7 +18,16 @@ export function init(passport) {
       }
 
       if (!user?.isActive) {
-        done({ message: 'We could not find the nickname you provided.' });
+        if (user?.isResumable) {
+          done({
+            message:     'Your account is now inactive but you can resume it.',
+            userId:      user.id,
+            isResumable: true,
+          });
+        } else {
+          done({ message: 'We could not find the nickname you provided.' });
+        }
+
         return;
       }
 

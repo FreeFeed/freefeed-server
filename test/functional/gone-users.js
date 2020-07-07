@@ -6,7 +6,7 @@ import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner'
 import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
-import { GONE_SUSPENDED } from '../../app/models/user';
+import { GONE_SUSPENDED, GONE_COOLDOWN } from '../../app/models/user';
 
 import {
   createTestUsers,
@@ -50,7 +50,7 @@ describe('Gone users', () => {
     // Luna writes a post
     post = await createAndReturnPost(luna, 'Luna post');
     // Luna is gone
-    await setGoneStatus(luna, GONE_SUSPENDED);
+    await setGoneStatus(luna, GONE_COOLDOWN);
   });
 
   describe(`Gone user's timelines`, () => {
@@ -280,7 +280,7 @@ describe('Gone users', () => {
 
   describe(`Session`, () => {
     it(`should not allow Luna to start session`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/session`, { username: 'luna', password: 'pw' });
+      const resp = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
       expect(resp, 'to satisfy', { __httpCode: 401 });
     });
   });
@@ -435,6 +435,11 @@ describe('Gone users', () => {
         const resp = await performJSONRequest('GET', `/v1/users/${luna.username}`);
         expect(resp, 'to satisfy', { users: { isGone: true } });
       }
+    });
+
+    it(`should not allow Luna to start session but return token to resume`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      expect(resp, 'to satisfy', { __httpCode: 401, resumeToken: expect.it('to be a string') });
     });
   });
 });

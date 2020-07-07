@@ -1,4 +1,6 @@
 import passport from 'koa-passport'
+import jwt from 'jsonwebtoken';
+import config from 'config';
 
 import { SessionTokenV0 } from '../../../models/auth-tokens'
 
@@ -11,7 +13,18 @@ export default class SessionController {
       if (err) {
         ctx.status = 401;
         ctx.body = { err: err.message };
-        return
+
+        if (err.isResumable) {
+          const { secret } = config;
+          ctx.body.resumeToken = jwt.sign(
+            {
+              type:   'resume-account',
+              userId: err.userId
+            },
+            secret, { expiresIn: '10m' });
+        }
+
+        return;
       }
 
       if (user === false) {

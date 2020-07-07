@@ -184,6 +184,13 @@ export function addModel(dbAdapter) {
       return this.goneStatus === null;
     }
 
+    /**
+     * User.isResumable is true if user is gone but can be resumed
+     */
+    get isResumable() {
+      return [GONE_COOLDOWN, GONE_SUSPENDED].includes(this.goneStatus);
+    }
+
     static stopList(skipExtraList) {
       if (skipExtraList) {
         return config.application.USERNAME_STOP_LIST;
