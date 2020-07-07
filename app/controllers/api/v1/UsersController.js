@@ -20,12 +20,14 @@ import { authRequired, targetUserRequired, monitored, inputSchemaRequired } from
 import { UsersControllerV2 } from '../../../controllers';
 import { profileCache } from '../../../support/ExtAuth';
 import { downloadURL } from '../../../support/download-url';
+import { GONE_COOLDOWN } from '../../../models/user';
 
 import {
   userCreateInputSchema,
   userSubscribeInputSchema,
   updateSubscriptionInputSchema,
   sendRequestInputSchema,
+  userSuspendMeInputSchema,
 } from './data-schemes';
 
 
@@ -284,6 +286,23 @@ export default class UsersController {
     async (ctx) => {
       ctx.params.username = ctx.state.user.username;
       await UsersController.show(ctx);
+    },
+  ]);
+
+  static suspendMe = compose([
+    authRequired(),
+    inputSchemaRequired(userSuspendMeInputSchema),
+    monitored('users.suspend-me'),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const { password } = ctx.request.body;
+
+      if (!(await user.validPassword(password))) {
+        throw new ForbiddenException('Provided password is invalid');
+      }
+
+      await user.setGoneStatus(GONE_COOLDOWN);
+      ctx.body = { message: 'Your account has been suspended' };
     },
   ]);
 

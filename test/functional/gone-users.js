@@ -420,6 +420,23 @@ describe('Gone users', () => {
       });
     });
   });
+
+  describe(`Gone API`, () => {
+    it(`should allow Luna to suspend themself`, async () => {
+      await setGoneStatus(luna, null);
+
+      {
+        const resp = await performJSONRequest('POST', `/v1/users/suspend-me`,
+          { password: luna.password }, authHeaders(luna));
+        expect(resp, 'to satisfy', { __httpCode: 200, message: /suspended/ });
+      }
+
+      {
+        const resp = await performJSONRequest('GET', `/v1/users/${luna.username}`);
+        expect(resp, 'to satisfy', { users: { isGone: true } });
+      }
+    });
+  });
 });
 
 async function setGoneStatus(userCtx, status) {
