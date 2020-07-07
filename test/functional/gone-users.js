@@ -172,17 +172,31 @@ describe('Gone users', () => {
     });
 
     describe(`Realtime`, () => {
-      let lunaSession;
+      let rtSession;
 
       beforeEach(async () => {
-        lunaSession = await Session.create(port, 'Luna session')
+        rtSession = await Session.create(port, 'Luna session');
       });
 
-      afterEach(() => lunaSession.disconnect());
+      afterEach(() => rtSession.disconnect());
 
       it(`should not authorize Luna's realtime session`, async () => {
-        const test = lunaSession.sendAsync('auth', { authToken: luna.authToken });
+        const test = rtSession.sendAsync('auth', { authToken: luna.authToken });
         await expect(test, 'to be rejected with', /not exists or is not active/);
+      });
+
+      it(`should send 'global:user:update' event when gone status is changed`, async () => {
+        await rtSession.sendAsync('subscribe', { global: ['users'] });
+
+        {
+          const test = rtSession.receiveWhile('global:user:update', setGoneStatus(luna, null));
+          await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: undefined } });
+        }
+
+        {
+          const test = rtSession.receiveWhile('global:user:update', setGoneStatus(luna, GONE_SUSPENDED));
+          await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: true } });
+        }
       });
     });
   });
