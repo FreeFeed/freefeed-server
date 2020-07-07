@@ -48,7 +48,9 @@ export async function serializeSelfUser(user) {
   return result;
 }
 
-export function serializeUser(user) {
+// This function just selects some props from User/Group object and it is not
+// enough to API output.
+function pickAccountProps(user) {
   const s = pick(
     user,
     user.type === 'user' ? commonUserFields : commonGroupFields
@@ -74,7 +76,7 @@ const defaultStats = {
  */
 export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) {
   return (id) => {
-    const obj = serializeUser(allUsers[id]);
+    const obj = pickAccountProps(allUsers[id]);
     obj.statistics = (!obj.isGone && allStats[id]) || defaultStats;
 
     if (obj.type === 'group') {

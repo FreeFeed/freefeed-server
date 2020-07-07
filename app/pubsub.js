@@ -1,6 +1,6 @@
 import { dbAdapter } from './models'
-import { serializeUser } from './serializers/v2/user'
 import { serializeTimeline } from './serializers/v2/timeline';
+import { serializeUsersByIds } from './serializers/v2/user';
 
 
 export class DummyPublisher {
@@ -123,9 +123,8 @@ export default class pubSub {
   }
 
   async globalUserUpdate(userId) {
-    const user = await dbAdapter.getUserById(userId);
-    const payload = JSON.stringify(serializeUser(user));
-    await this.publisher.globalUserUpdated(payload);
+    const [user] = await serializeUsersByIds([userId], false);
+    await this.publisher.globalUserUpdated(JSON.stringify(user));
   }
 
   async updateGroupTimes(groupIds) {
