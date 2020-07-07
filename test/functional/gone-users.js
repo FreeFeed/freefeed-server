@@ -6,7 +6,7 @@ import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner'
 import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
-import { GONE_SUSPENDED, GONE_COOLDOWN } from '../../app/models/user';
+import { GONE_SUSPENDED, GONE_COOLDOWN, GONE_DELETED } from '../../app/models/user';
 
 import {
   createTestUsers,
@@ -440,6 +440,34 @@ describe('Gone users', () => {
     it(`should not allow Luna to start session but return token to resume`, async () => {
       const resp = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
       expect(resp, 'to satisfy', { __httpCode: 401, resumeToken: expect.it('to be a string') });
+    });
+
+    it(`should allow Luna resume themself`, async () => {
+      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+
+      {
+        const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+      }
+
+      {
+        const resp = await performJSONRequest('GET', `/v1/users/${luna.username}`);
+        expect(resp, 'to satisfy', { users: { isGone: undefined } });
+      }
+    });
+
+    it(`should not allow to resume active account`, async () => {
+      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      await setGoneStatus(luna, null);
+      const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
+      expect(resp, 'to satisfy', { __httpCode: 403 });
+    });
+
+    it(`should not allow to resume deleted account`, async () => {
+      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      await setGoneStatus(luna, GONE_DELETED);
+      const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
+      expect(resp, 'to satisfy', { __httpCode: 403 });
     });
   });
 });

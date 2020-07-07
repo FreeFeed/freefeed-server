@@ -91,3 +91,18 @@ export const userSuspendMeInputSchema = {
     }
   }
 };
+
+
+export const userResumeMeInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: ['resumeToken'],
+
+  properties: {
+    resumeToken: {
+      type:        'string',
+      description: 'JWT-token for resume account'
+    }
+  }
+};

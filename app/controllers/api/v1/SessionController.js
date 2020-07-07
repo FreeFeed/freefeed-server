@@ -21,7 +21,7 @@ export default class SessionController {
               type:   'resume-account',
               userId: err.userId
             },
-            secret, { expiresIn: '10m' });
+            secret, { expiresIn: config.goneUsers.resumeTokenTTL });
         }
 
         return;

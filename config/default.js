@@ -220,4 +220,9 @@ config.maintenance = { messageFile: 'tmp/MAINTENANCE.txt' };
 
 config.eslint = { linebreakStyle: null };
 
+config.goneUsers = {
+  //
+  resumeTokenTTL: 600, // in seconds
+};
+
 module.exports = config;

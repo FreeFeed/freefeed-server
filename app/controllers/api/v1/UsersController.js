@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import _ from 'lodash'
 import compose from 'koa-compose';
 import config from 'config'
+import jwt from 'jsonwebtoken';
 
 import { dbAdapter, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
 import {
@@ -28,6 +29,7 @@ import {
   updateSubscriptionInputSchema,
   sendRequestInputSchema,
   userSuspendMeInputSchema,
+  userResumeMeInputSchema,
 } from './data-schemes';
 
 
@@ -303,6 +305,31 @@ export default class UsersController {
 
       await user.setGoneStatus(GONE_COOLDOWN);
       ctx.body = { message: 'Your account has been suspended' };
+    },
+  ]);
+
+  static resumeMe = compose([
+    inputSchemaRequired(userResumeMeInputSchema),
+    monitored('users.resume-me'),
+    async (ctx) => {
+      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, config.secret);
+
+      if (token.type !== 'resume-account') {
+        throw new ForbiddenException('Unknown token type');
+      }
+
+      const user = await dbAdapter.getUserById(token.userId);
+
+      if (user?.isActive) {
+        throw new ForbiddenException('This account is already active');
+      }
+
+      if (!user?.isResumable) {
+        throw new ForbiddenException('This account cannot be resumed');
+      }
+
+      await user.setGoneStatus(null);
+      ctx.body = { message: 'Your account has been resumed' };
     },
   ]);
 
