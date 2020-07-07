@@ -198,6 +198,30 @@ describe('Gone users', () => {
           await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: true } });
         }
       });
+
+      describe(`Luna is a group admin`, () => {
+        let selenites;
+        beforeEach(async () => {
+          await setGoneStatus(luna, null);
+          selenites = await createGroupAsync(luna, 'selenites');
+        });
+
+        it(`should send 'global:user:update' event for group when gone status is changed`, async () => {
+          await rtSession.sendAsync('subscribe', { global: ['users'] });
+
+          const test = rtSession.receiveWhileSeq(
+            ['global:user:update', 'global:user:update'],
+            setGoneStatus(luna, GONE_SUSPENDED)
+          );
+          await expect(
+            test, 'when fulfilled', 'to satisfy',
+            [
+              { user: { id: luna.user.id, isGone: true } },
+              { user: { id: selenites.group.id, isRestricted: '1' } },
+            ]
+          );
+        });
+      });
     });
   });
 
