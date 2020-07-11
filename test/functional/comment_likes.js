@@ -49,7 +49,7 @@ describe('Comment likes', () => {
     describe('#like', () => {
       it('should reject unauthenticated users', async () => {
         const res = await likeComment(uuidv4());
-        expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
+        expect(res, 'to exhaustively satisfy', apiErrorExpectation(401, 'Unauthorized'));
       });
 
       describe('for authenticated users', () => {
@@ -268,7 +268,7 @@ describe('Comment likes', () => {
     describe('#unlike', () => {
       it('should reject unauthenticated users', async () => {
         const res = await unlikeComment(uuidv4());
-        expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
+        expect(res, 'to exhaustively satisfy', apiErrorExpectation(401, 'Unauthorized'));
       });
 
       describe('for authenticated users', () => {
@@ -559,7 +559,7 @@ describe('Comment likes', () => {
         it('should not display comment likes for private post', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
           const res = await getCommentLikes(marsComment.id);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You cannot see this post'));
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
         });
       });
 
@@ -672,7 +672,7 @@ describe('Comment likes', () => {
 
         it("should not show Luna Mars' comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, luna);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned the author of this comment'));
+          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned by the author of this comment'));
         });
 
         it("should not show Luna Pluto's comment likes", async () => {

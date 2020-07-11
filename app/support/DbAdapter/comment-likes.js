@@ -8,16 +8,22 @@ import { sqlIn, sqlNotIn } from './utils';
 ///////////////////////////////////////////////////
 
 const commentLikesTrait = (superClass) => class extends superClass {
+  /**
+   * Returns true if like is created or false if like is already exists
+   *
+   * @param {string} commentUUID
+   * @param {string} likerUUID
+   * @returns {Promise<boolean>}
+   */
   async createCommentLike(commentUUID, likerUUID) {
     const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
-
-    const payload = {
-      comment_id: commentId,
-      user_id:    userId
-    };
-
-    await this.database('comment_likes').insert(payload);
-    return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
+    const ok = await this.database.getOne(
+      `insert into comment_likes 
+        (comment_id, user_id) values (:commentId, :userId)
+        on conflict do nothing
+        returning true`,
+      { commentId, userId });
+    return !!ok;
   }
 
   async _getCommentAndUserIntId(commentUUID, likerUUID) {
@@ -73,12 +79,12 @@ const commentLikesTrait = (superClass) => class extends superClass {
 
   async deleteCommentLike(commentUUID, likerUUID) {
     const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
-
-    await this.database('comment_likes').where({
-      comment_id: commentId,
-      user_id:    userId
-    }).delete();
-    return this.getCommentLikesWithoutBannedUsers(commentId, likerUUID);
+    const ok = await this.database.getOne(
+      `delete from comment_likes
+        where (comment_id, user_id) = (:commentId, :userId)
+        returning true`,
+      { commentId, userId });
+    return !!ok;
   }
 
   async getLikesInfoForComments(commentsUUIDs, viewerUUID) {
