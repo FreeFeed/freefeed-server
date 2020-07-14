@@ -158,5 +158,13 @@ export function addAppTokenV1Model(dbAdapter) {
     async reissue() {
       this.issue = await dbAdapter.reissueAppToken(this.id);
     }
+
+    /**
+     * Token can be destroyed only when it's owner is permanently deleted. Do
+     * not destroy tokens of active users, instead use inactivate() method.
+     */
+    async destroy() {
+      await dbAdapter.deleteAppToken(this.id);
+    }
   }
 }

@@ -57,6 +57,10 @@ const appTokensTrait = (superClass) => class extends superClass {
     const { rows } = await this.database.raw(`select * from app_tokens where user_id = :userId and is_active order by created_at desc`, { userId });
     return rows.map((r) => initAppTokenObject(r));
   }
+
+  async deleteAppToken(id) {
+    await this.database.raw(`delete from app_tokens where uid = :id`, { id });
+  }
 };
 
 export default appTokensTrait;
