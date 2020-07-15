@@ -24,7 +24,7 @@ import { UUID } from './DbAdapter/adv-locks';
 // 15. [x] Local bumps
 // 16. [x] sent_emails_log records
 // 17. [x] Statistics (posts, likes, subscriptions = 0, update comments count)
-// 18. [ ] User's attachments
+// 18. [x] User's attachments
 
 /**
  * Delete user data. User must be in GONE_DELETION status, when all data is
@@ -50,6 +50,7 @@ export const deleteAllUserData = combineTasks(
   deleteLocalBumps,
   deleteSentEmailsLog,
   resetUserStatistics,
+  deleteAttachments,
   // This ↓ must be the last task
   setDeletedStatus,
 );
@@ -281,6 +282,27 @@ export async function resetUserStatistics(userId: UUID) {
       comments_count = :commentsCount
       where user_id = :userId`,
     { userId, commentsCount });
+}
+
+export async function deleteAttachments(userId: UUID, runUntil: Date) {
+  const batchSize = 20;
+
+  do {
+    // eslint-disable-next-line no-await-in-loop
+    const attIds = await dbAdapter.database.getCol(
+      `select uid from attachments where user_id = :userId order by created_at limit :batchSize`,
+      { userId, batchSize }) as UUID[];
+
+    if (attIds.length === 0) {
+      break;
+    }
+
+    // eslint-disable-next-line no-await-in-loop
+    await forEachAsync(attIds, async (attId: UUID) => {
+      const att = await dbAdapter.getAttachmentById(attId);
+      await att.destroy();
+    });
+  } while (new Date() < runUntil);
 }
 
 // Helpers

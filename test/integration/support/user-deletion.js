@@ -1,9 +1,12 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
+import path from 'path'
+import { promises as fs } from 'fs'
+
 import expect from 'unexpected';
 
 import cleanDB from '../../dbCleaner';
-import { User, dbAdapter, Post, Comment, Group, AppTokenV1 } from '../../../app/models';
+import { User, dbAdapter, Post, Comment, Group, AppTokenV1, Attachment } from '../../../app/models';
 import {
   deletePersonalInfo,
   deletePosts,
@@ -19,8 +22,10 @@ import {
   deleteArchives,
   deleteInvitations,
   deleteAllUserData,
+  deleteAttachments,
 } from '../../../app/support/user-deletion';
 import { GONE_DELETION } from '../../../app/models/user';
+import { filesMustExist } from '../helpers/attachments';
 
 
 describe('User data deletion', () => {
@@ -270,6 +275,31 @@ describe('User data deletion', () => {
     await deleteInvitations(luna.id);
 
     expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 0);
+  });
+
+  it(`should delete attachments`, async () => {
+    const localFile = path.resolve(__dirname, '../../fixtures/test-image.900x300.png');
+    const uploadedFile = '/tmp/upload_23456789012345678901234567890123_1';
+    // "Upload" file
+    await fs.copyFile(localFile, uploadedFile);
+
+    const stat = await fs.stat(localFile);
+    const att = new Attachment({
+      userId: luna.id,
+      file:   {
+        name: path.basename(localFile),
+        size: stat.size,
+        path: uploadedFile,
+        type: 'image/png'
+      },
+    });
+    await att.create();
+    await filesMustExist(att);
+
+    await deleteAttachments(luna.id, afterHour());
+
+    expect(await dbAdapter.database.getOne(`select count(*)::int from attachments`), 'to be', 0);
+    await filesMustExist(att, false);
   });
 });
 
