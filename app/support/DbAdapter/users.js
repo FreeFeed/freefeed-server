@@ -32,7 +32,11 @@ const usersTrait = (superClass) => class extends superClass {
   async setUserGoneStatus(userId, goneStatus) {
     const goneAt = goneStatus === null ? null : this.database.raw('now()');
     await this.database.raw(
-      `update users set gone_status = :goneStatus, gone_at = :goneAt where uid = :userId`,
+      `update users set
+          gone_status = :goneStatus,
+          gone_at = :goneAt,
+          updated_at = now()
+        where uid = :userId`,
       { userId, goneStatus, goneAt });
     await this.cacheFlushUser(userId);
   }
@@ -523,6 +527,7 @@ const USER_FIELDS = {
   private_meta:              'privateMeta',
   preferences:               'preferences',
   gone_status:               'goneStatus',
+  gone_at:                   'goneAt',
 };
 
 const USER_FIELDS_MAPPING = {

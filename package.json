@@ -6,7 +6,7 @@
   "version": "1.82.2",
   "private": true,
   "scripts": {
-    "start": "babel-node --extensions \".js,.ts\" index.js",
+    "start": "babel-node --extensions \".js,.jsx,.ts\" index.js",
     "travis": "run-s -c test lint",
     "test": "run-s reset-test-db test-rollback mocha",
     "lint": "eslint app bin config test",
@@ -22,7 +22,7 @@
     "bestof_emails": "babel-node bin/bestof_emails",
     "count_stats": "babel-node bin/count_stats",
     "count-daily-stats": "babel-node bin/count-daily-stats",
-    "import_clikes": "babel-node bin/import_clikes"
+    "usermod": "babel-node --extensions \".js,.jsx,.ts\" bin/usermod.js"
   },
   "repository": {
     "type": "git",

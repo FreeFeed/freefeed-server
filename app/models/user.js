@@ -35,6 +35,13 @@ export const GONE_DELETION = 30;
 // User data is fully deleted
 export const GONE_DELETED = 40;
 
+export const GONE_NAMES = {
+  [GONE_SUSPENDED]: 'SUSPENDED',
+  [GONE_COOLDOWN]:  'COOLDOWN',
+  [GONE_DELETION]:  'DELETION',
+  [GONE_DELETED]:   'DELETED',
+};
+
 export function addModel(dbAdapter) {
   return class User {
     static PROFILE_PICTURE_SIZE_LARGE = 75;
@@ -77,6 +84,8 @@ export function addModel(dbAdapter) {
       if (parseInt(params.updatedAt, 10)) {
         this.updatedAt = params.updatedAt;
       }
+
+      this.goneAt = params.goneAt;
 
       this.profilePictureUuid = params.profilePictureUuid || '';
       this.subscribedFeedIds = params.subscribedFeedIds || [];
