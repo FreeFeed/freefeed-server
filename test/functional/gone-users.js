@@ -4,8 +4,9 @@ import expect from 'unexpected';
 
 import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner'
-import { dbAdapter, User, AppTokenV1, PubSub } from '../../app/models';
+import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import { GONE_SUSPENDED } from '../../app/models/user';
 
 import {
   createTestUsers,
@@ -39,7 +40,7 @@ describe('Gone users', () => {
     // Luna writes a post
     post = await createAndReturnPost(luna, 'Luna post');
     // Luna is gone
-    await dbAdapter.setUserGoneStatus(luna.user.id, User.GONE_SUSPENDED);
+    await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
   });
 
   describe(`Gone user's timelines`, () => {
@@ -244,7 +245,7 @@ describe('Gone users', () => {
       await dbAdapter.setUserGoneStatus(luna.user.id, null);
       await like(marsPost.id, luna.authToken);
       await likeComment(marsComment.id, luna);
-      await dbAdapter.setUserGoneStatus(luna.user.id, User.GONE_SUSPENDED);
+      await dbAdapter.setUserGoneStatus(luna.user.id, GONE_SUSPENDED);
     });
 
     it(`should not show Luna's like to Mars post`, async () => {

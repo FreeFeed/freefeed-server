@@ -9,7 +9,7 @@ import { sortBy, uniq } from 'lodash';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, Comment, dbAdapter, User } from '../../app/models'
+import { PubSub, Comment, dbAdapter } from '../../app/models'
 import {
   createUserAsync,
   mutualSubscriptions,
@@ -27,6 +27,7 @@ import {
   authHeaders,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
+import { GONE_SUSPENDED } from '../../app/models/user';
 
 import * as schema from './schemaV2-helper';
 
@@ -488,7 +489,7 @@ describe('UsersControllerV2', () => {
       await mutualSubscriptions([luna, mars]);
 
       // Mars is gone
-      await dbAdapter.setUserGoneStatus(mars.user.id, User.GONE_SUSPENDED);
+      await dbAdapter.setUserGoneStatus(mars.user.id, GONE_SUSPENDED);
     });
 
     it(`should return Mars with isGone field in Luna's friends`, async () => {

@@ -5,6 +5,7 @@ import { pick } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
 import { User, dbAdapter } from '../../../app/models';
+import { GONE_SUSPENDED } from '../../../app/models/user';
 
 
 describe(`User's 'gone' status`, () => {
@@ -33,7 +34,7 @@ describe(`User's 'gone' status`, () => {
     });
 
     it(`should return cleaned Lunas's props when Luna is gone`, async () => {
-      await dbAdapter.setUserGoneStatus(luna.id, User.GONE_SUSPENDED);
+      await dbAdapter.setUserGoneStatus(luna.id, GONE_SUSPENDED);
       const luna1 = await dbAdapter.getUserById(luna.id);
       expect(
         pick(luna1, [

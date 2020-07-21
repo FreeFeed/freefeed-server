@@ -1,8 +1,8 @@
+import { GONE_DELETED } from '../app/models/user';
+
 /**
  * The *gone_status* is null for the active users. If it is not null then the
- * user shows as deleted in any public contexts. Actual values can be:
- *  - 1: user is suspended but can be restored
- *  - 2: user (and their data) is fully deleted
+ * user shows as deleted in any public contexts.
  *
  *  The *gone_at* is null if the *gone_status* is null, otherwise it is the last
  *  time the gone_status changed.
@@ -15,8 +15,24 @@ export const up = (knex) => knex.schema.raw(`do $$begin
   create index users_gone_status_not_null_idx on users ((gone_status is null));
 
   -- Update gone status for already gone users
-  update users set gone_status = 2, gone_at = now() 
+  update users set gone_status = ${GONE_DELETED}, gone_at = updated_at
     where hashed_password is null or hashed_password = '';
+  
+  -- Restore previously deleted feeds of gone users
+  insert into feeds (name, user_id)
+    select names.name, users.uid
+    from users, (values (
+      ('RiverOfNews'),
+      ('Hides'),
+      ('Comments'),
+      ('Likes'),
+      ('Posts'),
+      ('Directs'),
+      ('MyDiscussions'),
+      ('Saves')
+    )) as names (name)
+    where users.gone_status is null on conflict do nothing;
+
 end$$`);
 
 export const down = (knex) => knex.schema.raw(`do $$begin

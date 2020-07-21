@@ -27,6 +27,15 @@ import { valiate as validateUserPrefs } from './user-prefs';
 promisifyAll(crypto);
 promisifyAll(gm);
 
+// Account is suspended for unknown period
+export const GONE_SUSPENDED = 10;
+// Account is suspended for cooldown period, the next state is GONE_DELETION
+export const GONE_COOLDOWN = 20;
+// Cooldown period is over, user data is being deleted, the next state is GONE_DELETED
+export const GONE_DELETION = 30;
+// User data is fully deleted
+export const GONE_DELETED = 40;
+
 export function addModel(dbAdapter) {
   return class User {
     static PROFILE_PICTURE_SIZE_LARGE = 75;
@@ -34,9 +43,6 @@ export function addModel(dbAdapter) {
 
     static ACCEPT_DIRECTS_FROM_ALL = 'all';
     static ACCEPT_DIRECTS_FROM_FRIENDS = 'friends';
-
-    static GONE_SUSPENDED = 1;
-    static GONE_DELETED = 2;
 
     static feedNames = [
       'RiverOfNews',

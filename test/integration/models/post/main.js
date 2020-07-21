@@ -4,6 +4,7 @@ import expect from 'unexpected'
 
 import cleanDB from '../../../dbCleaner';
 import { dbAdapter, Post, User } from '../../../../app/models'
+import { GONE_SUSPENDED } from '../../../../app/models/user';
 
 
 describe('Post', () => {
@@ -704,7 +705,7 @@ describe('Post', () => {
 
     describe('Luna becomes gone', () => {
       beforeEach(async () => {
-        await dbAdapter.setUserGoneStatus(luna.id, User.GONE_SUSPENDED);
+        await dbAdapter.setUserGoneStatus(luna.id, GONE_SUSPENDED);
         post = await dbAdapter.getPostById(post.id);
       });
 

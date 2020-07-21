@@ -4,6 +4,7 @@ import _ from 'lodash'
 
 import cleanDB from '../../../../dbCleaner'
 import { dbAdapter, User } from '../../../../../app/models'
+import { GONE_SUSPENDED } from '../../../../../app/models/user'
 
 
 describe('BestOf', () => {
@@ -59,7 +60,7 @@ describe('BestOf', () => {
     })
 
     describe(`popular post's author is gone`, () => {
-      beforeEach(() => dbAdapter.setUserGoneStatus(users[0].id, User.GONE_SUSPENDED));
+      beforeEach(() => dbAdapter.setUserGoneStatus(users[0].id, GONE_SUSPENDED));
 
       it('should not show the popular post', async () => {
         bestPosts = await dbAdapter.bestPostsIds(users[1])
@@ -68,7 +69,7 @@ describe('BestOf', () => {
     });
 
     describe(`one of popular post's likers is gone`, () => {
-      beforeEach(() => dbAdapter.setUserGoneStatus(users[1].id, User.GONE_SUSPENDED));
+      beforeEach(() => dbAdapter.setUserGoneStatus(users[1].id, GONE_SUSPENDED));
 
       it('should not show the popular post', async () => {
         bestPosts = await dbAdapter.bestPostsIds(users[2])
