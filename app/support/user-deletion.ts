@@ -1,5 +1,3 @@
-import { Promise } from 'bluebird';
-
 import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
@@ -29,9 +27,6 @@ import { UUID } from './DbAdapter/adv-locks';
 /**
  * Delete user data. User must be in GONE_DELETION status, when all data is
  * deleted the status becomes GONE_DELETED.
- *
- * @param userId ID of user
- * @param taskTimeout max function run time in milliseconds
  */
 export const deleteAllUserData = combineTasks(
   deletePersonalInfo,

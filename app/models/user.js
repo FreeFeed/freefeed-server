@@ -19,6 +19,7 @@ import {
 } from '../support/exceptions';
 import { Attachment, Comment, Post, PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
+import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
 
 import { valiate as validateUserPrefs } from './user-prefs';
 
@@ -70,6 +71,7 @@ export function addModel(dbAdapter) {
       this.username = params.username;
       this.screenName = params.screenName;
       this.email = params.email;
+      this.hiddenEmail = params.email;
       this.description = params.description || '';
       this.frontendPreferences = params.frontendPreferences || {};
       this.preferences = validateUserPrefs(params.preferences, true);
@@ -571,6 +573,18 @@ export function addModel(dbAdapter) {
      */
     async setGoneStatus(status) {
       await dbAdapter.setUserGoneStatus(this.id, status);
+      const modified = await dbAdapter.getFeedOwnerById(this.id);
+      this.goneAt = modified.goneAt;
+      this.goneStatus = modified.goneStatus;
+
+      if (status === GONE_COOLDOWN) {
+        await userCooldownStart(this);
+      }
+
+      if (status === GONE_DELETION) {
+        await userDataDeletionStart(this);
+      }
+
       await pubSub.globalUserUpdate(this.id);
       const managedGroupIds = await dbAdapter.getManagedGroupIds(this.id);
       // Some managed groups may change their isRestricted status so send update

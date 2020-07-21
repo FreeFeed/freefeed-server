@@ -50,6 +50,12 @@ export default function jobsTrait(superClass) {
       return rows.map(initJobObject);
     }
 
+    // For testing purposes only
+    async getAllJobs() {
+      const rows = await this.database.getAll(`select * from jobs order by created_at`);
+      return rows.map(initJobObject);
+    }
+
     _jobUnlockAt(unlockAt) {
       if (Number.isFinite(unlockAt)) {
         return this.database.raw(`now() + :unlockAt * '1 second'::interval`, { unlockAt });

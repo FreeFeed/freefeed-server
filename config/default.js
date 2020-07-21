@@ -231,4 +231,11 @@ config.jobManager = {
   batchSize:    5,
 };
 
+config.userDeletion = {
+  cooldownDays: 30, // in days
+  reminderDays: 27, // in days
+};
+
+config.ianaTimeZone = 'Europe/Tallinn';
+
 module.exports = config;
