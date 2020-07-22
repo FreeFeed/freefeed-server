@@ -34,6 +34,7 @@ import serverInfoTrait from './server-info';
 import searchTrait from './search';
 import { withDbHelpers } from './utils';
 import nowTrait from './now';
+import jobsTrait from './jobs';
 
 
 promisifyAll(redis.RedisClient.prototype);
@@ -102,4 +103,5 @@ export const DbAdapter = _.flow([
   serverInfoTrait,
   searchTrait,
   nowTrait,
+  jobsTrait,
 ])(DbAdapterBase);

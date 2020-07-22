@@ -225,4 +225,10 @@ config.goneUsers = {
   resumeTokenTTL: 600, // in seconds
 };
 
+config.jobManager = {
+  pollInterval: 5, // in seconds
+  jobLockTime:  120, // in seconds
+  batchSize:    5,
+};
+
 module.exports = config;
