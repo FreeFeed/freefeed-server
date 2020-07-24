@@ -30,6 +30,36 @@ process.env.MONITOR_PREFIX = config.monitorPrefix;
 
 passportInit(passport);
 
+const checkIfMediaDirectoriesExist = async () => {
+  const access = promisify(fs.access);
+  let gotErrors = false;
+
+  const attachmentsDir = config.attachments.storage.rootDir + config.attachments.path;
+
+  try {
+    await access(attachmentsDir, fs.W_OK);
+  } catch (e) {
+    gotErrors = true;
+    log(`Attachments dir does not exist: ${attachmentsDir}`);
+  }
+
+  const checkPromises = Object.values(config.attachments.imageSizes).map(async (sizeConfig) => {
+    const thumbnailsDir = config.attachments.storage.rootDir + sizeConfig.path;
+
+    try {
+      await access(thumbnailsDir, fs.W_OK);
+    } catch (e) {
+      gotErrors = true;
+      log(`Thumbnails dir does not exist: ${thumbnailsDir}`);
+    }
+  });
+  await Promise.all(checkPromises);
+
+  if (gotErrors) {
+    throw new Error(`some of required directories are missing`);
+  }
+};
+
 exports.init = async function (app) {
   if (!config.secret) {
     process.stderr.write(`⛔ Configuration error: config.secret is not defined\n`);
@@ -48,33 +78,7 @@ exports.init = async function (app) {
   await setPostgresSearchConfig();
 
   if (config.media.storage.type === 'fs') {
-    const access = promisify(fs.access);
-    let gotErrors = false;
-
-    const attachmentsDir = config.attachments.storage.rootDir + config.attachments.path;
-
-    try {
-      await access(attachmentsDir, fs.W_OK);
-    } catch (e) {
-      gotErrors = true;
-      log(`Attachments dir does not exist: ${attachmentsDir}`);
-    }
-
-    const checkPromises = Object.values(config.attachments.imageSizes).map(async (sizeConfig) => {
-      const thumbnailsDir = config.attachments.storage.rootDir + sizeConfig.path;
-
-      try {
-        await access(thumbnailsDir, fs.W_OK);
-      } catch (e) {
-        gotErrors = true;
-        log(`Thumbnails dir does not exist: ${thumbnailsDir}`);
-      }
-    });
-    await Promise.all(checkPromises);
-
-    if (gotErrors) {
-      throw new Error(`some of required directories are missing`);
-    }
+    await checkIfMediaDirectoriesExist();
   }
 
   app.context.config = config;
