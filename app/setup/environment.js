@@ -12,8 +12,8 @@ import config from 'config';
 
 import { version as serverVersion } from '../../package.json';
 
-import { selectDatabase } from './database';
-import { configure as configurePostgres } from './postgres';
+import { selectRedisDatabase } from './database';
+import { setSearchConfig as setPostgresSearchConfig } from './postgres';
 import { originMiddleware } from './initializers/origin';
 import { init as passportInit } from './initializers/passport';
 
@@ -30,16 +30,6 @@ process.env.MONITOR_PREFIX = config.monitorPrefix;
 
 passportInit(passport);
 
-async function selectEnvironment(app) {
-  app.context.config = config;
-  app.context.port = process.env.PORT || config.port;
-
-  await selectDatabase();
-  await configurePostgres();
-
-  return app;
-}
-
 exports.init = async function (app) {
   if (!config.secret) {
     process.stderr.write(`⛔ Configuration error: config.secret is not defined\n`);
@@ -54,7 +44,8 @@ exports.init = async function (app) {
     process.exit(1);
   }
 
-  await selectEnvironment(app);
+  await selectRedisDatabase();
+  await setPostgresSearchConfig();
 
   if (config.media.storage.type === 'fs') {
     const access = promisify(fs.access);
@@ -85,6 +76,9 @@ exports.init = async function (app) {
       throw new Error(`some of required directories are missing`);
     }
   }
+
+  app.context.config = config;
+  app.context.port = process.env.PORT || config.port;
 
   if (config.trustProxyHeaders) {
     app.proxy = true;

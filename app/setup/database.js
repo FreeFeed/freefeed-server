@@ -36,7 +36,7 @@ function logAndQuit(type) {
   };
 }
 
-export function selectDatabase() {
+export function selectRedisDatabase() {
   return database.selectAsync(config.database);
 }
 
