@@ -18,7 +18,7 @@ describe('toTSVector', () => {
 
   it('should return vector of regular text', () => {
     const string = 'the quick brown fox jumped over the lazy dog';
-    expect(toTSVector(string), 'to be', `to_tsvector('${ftsCfg}', '${string}')`);
+    expect(toTSVector(string), 'to be', `to_tsvector_with_exact('${ftsCfg}', '${string}')`);
   });
 
   it('should return vector of text with mentions and hashtags', () => {
@@ -26,13 +26,13 @@ describe('toTSVector', () => {
     expect(
       toTSVector(string), 'to be',
       `(`
-      + `to_tsvector('${ftsCfg}', 'the quick brown') || `
+      + `to_tsvector_with_exact('${ftsCfg}', 'the quick brown') || `
       + `(`
-        + `to_tsvector('${ftsCfg}', 'fox jump')::text || ' ' || `
+        + `to_tsvector_with_exact('${ftsCfg}', 'fox jump')::text || ' ' || `
         + `'''@fox-jump'':1'`
       + `)::tsvector || `
       + `(`
-        + `to_tsvector('${ftsCfg}', 'lazy dog')::text || ' ' || `
+        + `to_tsvector_with_exact('${ftsCfg}', 'lazy dog')::text || ' ' || `
         + `'''#lazydog'':1'`
       + `)::tsvector`
       + `)`
@@ -44,8 +44,8 @@ describe('toTSVector', () => {
     expect(
       toTSVector(string), 'to be',
       `(`
-      + `to_tsvector('${ftsCfg}', 'the quick brown') || `
-      + `to_tsvector('${ftsCfg}', 'foxnews com')`
+      + `to_tsvector_with_exact('${ftsCfg}', 'the quick brown') || `
+      + `to_tsvector_with_exact('${ftsCfg}', 'foxnews com')`
       + `)`
     );
   });
