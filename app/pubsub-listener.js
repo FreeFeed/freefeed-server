@@ -27,7 +27,7 @@ import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
-import { serializeUser } from './serializers/v2/user';
+import { serializeUsersByIds } from './serializers/v2/user';
 
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -481,7 +481,7 @@ export default class PubsubListener {
 
     const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds))
       .map((id) => `user:${id}`);
-    const updatedGroups = groups.map(serializeUser);
+    const updatedGroups = await serializeUsersByIds(groupIds, false);
 
     await this.broadcastMessage(
       rooms,
@@ -598,6 +598,12 @@ export default class PubsubListener {
  */
 export async function getRoomsOfPost(post) {
   if (!post) {
+    return [];
+  }
+
+  const author = await dbAdapter.getUserById(post.userId);
+
+  if (!author.isActive) {
     return [];
   }
 

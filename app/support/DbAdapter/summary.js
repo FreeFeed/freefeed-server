@@ -32,6 +32,8 @@ const summaryTrait = (superClass) => class extends superClass {
       banFilter = (bannedUserIds.length > 0) ? pgFormat('AND (posts.user_id NOT IN (%L))', bannedUserIds) : '';
     }
 
+    privacyFilter += ' AND u.gone_status is null';
+
     let postSourceCondition = `posts.feed_ids && '{${timelineIntIds.join(',')}}'`;
 
     if (activityIntIds.length > 0) {
@@ -48,6 +50,7 @@ const summaryTrait = (superClass) => class extends superClass {
           ) AS metric
         FROM
           posts
+          join users u on posts.user_id = u.uid
           LEFT JOIN
             (
               SELECT 
@@ -63,11 +66,13 @@ const summaryTrait = (superClass) => class extends superClass {
           LEFT JOIN
             (
               SELECT
-                post_id, COUNT(id) AS likes_count 
+                post_id, COUNT(likes.id) AS likes_count 
               FROM 
                 likes 
+                join users on likes.user_id = users.uid
               WHERE 
-                created_at > (now() - ${days} * interval '1 day')
+                likes.created_at > (now() - ${days} * interval '1 day')
+                and users.gone_status is null
               GROUP BY 
                 likes.post_id
             ) AS l

@@ -132,15 +132,6 @@ const groupAdminTrait = (superClass) => class extends superClass {
     return this.database('group_admins').pluck('group_id').orderBy('created_at', 'desc').where('user_id', userId);
   }
 
-  async userHavePendingGroupRequests(userId) {
-    const res = await this.database.first('r.id')
-      .from('subscription_requests as r')
-      .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
-      .where({ 'a.user_id': userId })
-      .limit(1);
-    return !!res;
-  }
-
   /**
    * Returns plain object with group UIDs as keys and arrays of requester's UIDs as values
    */
@@ -148,7 +139,9 @@ const groupAdminTrait = (superClass) => class extends superClass {
     const rows = await this.database.select('r.from_user_id as user_id', 'r.to_user_id as group_id')
       .from('subscription_requests as r')
       .innerJoin('group_admins as a', 'a.group_id', 'r.to_user_id')
-      .where({ 'a.user_id': groupsAdminId });
+      .innerJoin('users as u', 'u.uid', 'r.from_user_id')
+      .where({ 'a.user_id': groupsAdminId })
+      .whereNull('u.gone_status');
 
     const res = {};
     rows.forEach(({ group_id, user_id }) => {

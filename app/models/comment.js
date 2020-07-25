@@ -215,6 +215,42 @@ export function addModel(dbAdapter) {
         await dbAdapter.linkCommentHashtagsByNames(tagsToLink, this.id);
       }
     }
+
+    /**
+     * Adds like to comment. This method does not performs any access check.
+     * It returns true on success and false if this comment was already
+     * liked by this user.
+     *
+     * @param {User} user
+     * @returns {Promise<boolean>}
+     */
+    async addLike(user) {
+      const ok = await dbAdapter.createCommentLike(this.id, user.id);
+
+      if (ok) {
+        await pubSub.newCommentLike(this.id, this.postId, user.id);
+      }
+
+      return ok;
+    }
+
+    /**
+     * Removes like from comment. This method does not performs any access check.
+     * It returns true on success and false if this comment was not already
+     * liked by this user.
+     *
+     * @param {User} user
+     * @returns {boolean}
+     */
+    async removeLike(user) {
+      const ok = await dbAdapter.deleteCommentLike(this.id, user.id);
+
+      if (ok) {
+        await pubSub.removeCommentLike(this.id, this.postId, user.id);
+      }
+
+      return ok;
+    }
   }
 
   return Comment;

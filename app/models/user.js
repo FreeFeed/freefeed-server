@@ -14,18 +14,34 @@ import config from 'config';
 import { getS3 } from '../support/s3';
 import {
   BadRequestException,
-  ForbiddenException,
   NotFoundException,
   ValidationException
 } from '../support/exceptions';
 import { Attachment, Comment, Post, PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
+import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
 
 import { valiate as validateUserPrefs } from './user-prefs';
 
 
 promisifyAll(crypto);
 promisifyAll(gm);
+
+// Account is suspended for unknown period
+export const GONE_SUSPENDED = 10;
+// Account is suspended for cooldown period, the next state is GONE_DELETION
+export const GONE_COOLDOWN = 20;
+// Cooldown period is over, user data is being deleted, the next state is GONE_DELETED
+export const GONE_DELETION = 30;
+// User data is fully deleted
+export const GONE_DELETED = 40;
+
+export const GONE_NAMES = {
+  [GONE_SUSPENDED]: 'SUSPENDED',
+  [GONE_COOLDOWN]:  'COOLDOWN',
+  [GONE_DELETION]:  'DELETION',
+  [GONE_DELETED]:   'DELETED',
+};
 
 export function addModel(dbAdapter) {
   return class User {
@@ -49,11 +65,13 @@ export function addModel(dbAdapter) {
     type = 'user';
 
     constructor(params) {
+      this.goneStatus = params.goneStatus || null;
       this.intId = params.intId;
       this.id = params.id;
       this.username = params.username;
       this.screenName = params.screenName;
       this.email = params.email;
+      this.hiddenEmail = params.email;
       this.description = params.description || '';
       this.frontendPreferences = params.frontendPreferences || {};
       this.preferences = validateUserPrefs(params.preferences, true);
@@ -68,6 +86,8 @@ export function addModel(dbAdapter) {
       if (parseInt(params.updatedAt, 10)) {
         this.updatedAt = params.updatedAt;
       }
+
+      this.goneAt = params.goneAt;
 
       this.profilePictureUuid = params.profilePictureUuid || '';
       this.subscribedFeedIds = params.subscribedFeedIds || [];
@@ -85,6 +105,25 @@ export function addModel(dbAdapter) {
 
         this.resetPasswordToken = params.resetPasswordToken;
         this.resetPasswordSentAt = params.resetPasswordSentAt;
+      }
+
+      if (!this.isActive) {
+        // 'Anonymize' inactive users
+        // Only id's, username and createdAt are visible
+        this.screenName = this.username;
+        this.email = '';
+        this.description = '';
+        this.frontendPreferences = {};
+        this.preferences = validateUserPrefs({}, true);
+        this.isPrivate = '1';
+        this.isProtected = '1';
+        this.updatedAt = this.createdAt;
+        this.profilePictureUuid =  '';
+        this.subscribedFeedIds =  [];
+        this.privateMeta = {};
+        this.notificationsReadAt = this.createdAt;
+        this.resetPasswordToken = null;
+        this.resetPasswordSentAt = null;
       }
     }
 
@@ -150,10 +189,17 @@ export function addModel(dbAdapter) {
     }
 
     /**
-     * User.isActive is true for non-disabled users (having hashedPassword !== '')
+     * User.isActive is true for non-disabled users
      */
     get isActive() {
-      return this.hashedPassword !== '';
+      return this.goneStatus === null;
+    }
+
+    /**
+     * User.isResumable is true if user is gone but can be resumed
+     */
+    get isResumable() {
+      return [GONE_COOLDOWN, GONE_SUSPENDED].includes(this.goneStatus);
     }
 
     static stopList(skipExtraList) {
@@ -519,6 +565,31 @@ export function addModel(dbAdapter) {
       await dbAdapter.updateUsername(this.id, newUsername);
       await pubSub.globalUserUpdate(this.id);
       return this;
+    }
+
+    /**
+     * This method doesn't update the current object properties
+     * @param {number|null} status
+     */
+    async setGoneStatus(status) {
+      await dbAdapter.setUserGoneStatus(this.id, status);
+      const modified = await dbAdapter.getFeedOwnerById(this.id);
+      this.goneAt = modified.goneAt;
+      this.goneStatus = modified.goneStatus;
+
+      if (status === GONE_COOLDOWN) {
+        await userCooldownStart(this);
+      }
+
+      if (status === GONE_DELETION) {
+        await userDataDeletionStart(this);
+      }
+
+      await pubSub.globalUserUpdate(this.id);
+      const managedGroupIds = await dbAdapter.getManagedGroupIds(this.id);
+      // Some managed groups may change their isRestricted status so send update
+      // for all of them (just to be safe)
+      await Promise.all(managedGroupIds.map((id) => pubSub.globalUserUpdate(id)));
     }
 
     async getPastUsernames() {
@@ -1107,37 +1178,6 @@ export function addModel(dbAdapter) {
     }
 
     /**
-     * Checks if the specified user can post to the timeline of this user.
-     */
-    async validateCanPost(postingUser) {
-      // NOTE: when user is subscribed to another user she in fact is
-      // subscribed to her posts timeline
-      const [timelineIdA, timelineIdB] = await Promise.all([
-        postingUser.getPostsTimelineId(),
-        this.getPostsTimelineId()
-      ]);
-
-      const currentUserSubscribedToPostingUser = await dbAdapter.isUserSubscribedToTimeline(
-        this.id,
-        timelineIdA
-      );
-      const postingUserSubscribedToCurrentUser = await dbAdapter.isUserSubscribedToTimeline(
-        postingUser.id,
-        timelineIdB
-      );
-
-      if (
-        (!currentUserSubscribedToPostingUser ||
-          !postingUserSubscribedToCurrentUser) &&
-        postingUser.username != this.username
-      ) {
-        throw new ForbiddenException(
-          "You can't send private messages to friends that are not mutual"
-        );
-      }
-    }
-
-    /**
      * Returns true if postingUser can send direct message to
      * this user.
      *
@@ -1146,6 +1186,10 @@ export function addModel(dbAdapter) {
      */
     async acceptsDirectsFrom(postingUser) {
       if (!postingUser || this.id === postingUser.id) {
+        return false;
+      }
+
+      if (!this.isActive) {
         return false;
       }
 
@@ -1315,10 +1359,6 @@ export function addModel(dbAdapter) {
       });
 
       return _.some(await Promise.all(promises), Boolean);
-    }
-
-    getPendingGroupRequests() {
-      return dbAdapter.userHavePendingGroupRequests(this.id);
     }
 
     /**

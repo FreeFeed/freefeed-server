@@ -1,0 +1,11 @@
+Your account has been suspended
+-------------------------------
+
+Your account @<%= user.username %> has been suspended by your request.
+You can restore your account at any time before <%= deletionDate.toDateString() %>. 
+After that all your data will be deleted.
+
+To restore your account, enter your username/email and password
+on <%= config.mailer.host %>/signin page and follow the instructions.
+
+FreeFeed.net Team

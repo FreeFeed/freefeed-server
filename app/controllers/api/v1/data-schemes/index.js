@@ -6,4 +6,6 @@ export {
   userSubscribeInputSchema,
   updateSubscriptionInputSchema,
   sendRequestInputSchema,
+  userSuspendMeInputSchema,
+  userResumeMeInputSchema,
 } from './users';

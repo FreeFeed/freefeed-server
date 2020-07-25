@@ -17,9 +17,17 @@ export function init(passport) {
         user = await dbAdapter.getUserByEmail(username.trim());
       }
 
-      if (!user) {
-        // db inconsistency. got id, but didn't find object
-        done({ message: 'We could not find the nickname you provided.' });
+      if (!user?.isActive) {
+        if (user?.isResumable) {
+          done({
+            message:     'Your account is now inactive but you can resume it.',
+            userId:      user.id,
+            isResumable: true,
+          });
+        } else {
+          done({ message: 'We could not find the nickname you provided.' });
+        }
+
         return;
       }
 

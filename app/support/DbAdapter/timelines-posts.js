@@ -42,12 +42,19 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
       viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
     ]);
 
-    const privacyCondition = viewerId ?
-      pgFormat(`(not p.is_private or p.destination_feed_ids && %L)`, `{${visiblePrivateFeedIntIds.join(',')}}`)
-      : 'not p.is_protected';
-    const bansSQL = sqlNotIn('p.user_id', bannedUsersIds);
-
-    const restrictionsSQL = `${bansSQL} and ${privacyCondition}`;
+    const restrictionsSQL = andJoin([
+      // Privacy
+      viewerId
+        ? orJoin([
+          'not p.is_private',
+          sqlIntarrayIn('p.destination_feed_ids', visiblePrivateFeedIntIds),
+        ])
+        : 'not p.is_protected',
+      // Bans
+      sqlNotIn('p.user_id', bannedUsersIds),
+      // Gone post's authors
+      'u.gone_status is null',
+    ]);
 
     /**
      * PostgreSQL is not very good dealing with queries like
@@ -76,6 +83,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
           select p.uid, p.bumped_at as date
           from 
             posts p
+            join users u on p.user_id = u.uid
           where
             ${restrictionsSQL}
           order by
@@ -89,6 +97,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         select p.uid, p.bumped_at as date
         from 
           posts p
+          join users u on p.user_id = u.uid
         where
           (${selectSQL}) and (${restrictionsSQL})
         order by
@@ -114,6 +123,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         from
           local_bumps b
           join posts p on p.uid = b.post_id
+          join users u on p.user_id = u.uid
         where
           (${selectSQL}) and (${restrictionsSQL})
         order by b.created_at desc
@@ -326,17 +336,19 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
     const allLikesSQL = `
       select
-        post_id, user_id,
-        rank() over (partition by post_id order by
-          ${sqlIn('user_id', [viewerId])} desc,
-          ${sqlIn('user_id', friendsIds)} desc,
-          created_at desc,
-          id desc
+      l.post_id, l.user_id,
+        rank() over (partition by l.post_id order by
+          ${sqlIn('l.user_id', [viewerId])} desc,
+          ${sqlIn('l.user_id', friendsIds)} desc,
+          l.created_at desc,
+          l.id desc
         ),
-        count(*) over (partition by post_id) 
-      from likes
-      where ${sqlIn('post_id', uniqPostsIds)} and ${sqlNotIn('user_id', bannedUsersIds)}
-    `;
+        count(*) over (partition by l.post_id) 
+      from likes l
+          join users u on l.user_id = u.uid
+      where ${sqlIn('l.post_id', uniqPostsIds)} 
+        and ${sqlNotIn('l.user_id', bannedUsersIds)}
+        and u.gone_status is null`;
 
     const foldLikesSql = params.foldLikes ? pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) : ``;
     const likesSQL = `
@@ -369,9 +381,12 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
         ${commentFields.join(', ')}, id,
         rank() over (partition by post_id order by created_at, id),
         count(*) over (partition by post_id),
-        (select coalesce(count(*), 0) from comment_likes cl
+        (select coalesce(count(*), 0) from 
+          comment_likes cl
+          join users u on cl.user_id = u.id
           where cl.comment_id = comments.id
             and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+            and u.gone_status is null
         ) as c_likes,
         (select true from comment_likes cl
           where cl.comment_id = comments.id

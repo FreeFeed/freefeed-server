@@ -96,6 +96,7 @@ function fixCachedUserAttrs(attrs) {
   // Convert dates back to the Date type
   attrs['created_at'] = fixDateType(attrs['created_at']);
   attrs['updated_at'] = fixDateType(attrs['updated_at']);
+  attrs['gone_at'] = fixDateType(attrs['gone_at']);
   attrs['reset_password_sent_at'] = fixDateType(attrs['reset_password_sent_at']);
   attrs['reset_password_expires_at'] = fixDateType(attrs['reset_password_expires_at']);
   return attrs;

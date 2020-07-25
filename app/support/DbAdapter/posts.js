@@ -270,13 +270,21 @@ const postsTrait = (superClass) => class extends superClass {
       SELECT
         DISTINCT "posts".uid, "posts"."bumped_at" FROM "posts"
       LEFT JOIN (SELECT post_id, COUNT("id") AS "comments_count", COUNT(DISTINCT "user_id") as "comment_authors_count" FROM "comments" GROUP BY "comments"."post_id") AS "c" ON "c"."post_id" = "posts"."uid"
-      LEFT JOIN (SELECT post_id, COUNT("id") AS "likes_count" FROM "likes" GROUP BY "likes"."post_id") AS "l" ON "l"."post_id" = "posts"."uid"
+      LEFT JOIN (
+        SELECT post_id, COUNT(likes.id) AS "likes_count" 
+        FROM "likes"
+          join users on users.uid = likes.user_id
+        where users.gone_status is null
+        GROUP BY "likes"."post_id"
+      ) AS "l" ON "l"."post_id" = "posts"."uid"
       INNER JOIN "feeds" ON "posts"."destination_feed_ids" # feeds.id > 0 AND "feeds"."name" = 'Posts'
       INNER JOIN "users" ON "feeds"."user_id" = "users"."uid" AND ${publicOrVisibleForAnonymous}
+      inner join users authors on posts.user_id = authors.uid
       WHERE
         "l"."likes_count" >= ${MIN_LIKES} AND "c"."comments_count" >= ${MIN_COMMENTS} AND "c"."comment_authors_count" >= ${MIN_COMMENT_AUTHORS} AND "posts"."created_at" > (current_date - ${MAX_DAYS} * interval '1 day')
         ${bannedUsersFilter}
         ${usersWhoBannedMeFilter}
+        and authors.gone_status is null
       ORDER BY "posts"."bumped_at" DESC
       OFFSET ${offset} LIMIT ${limit}`;
 

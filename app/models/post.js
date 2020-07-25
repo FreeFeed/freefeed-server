@@ -843,6 +843,12 @@ export function addModel(dbAdapter) {
      * @returns {boolean}
      */
     async isVisibleFor(viewer) {
+      const author = await dbAdapter.getUserById(this.userId);
+
+      if (!author.isActive) {
+        return false;
+      }
+
       // Check if viewer is anonymous and post is not public
       if (!viewer) {
         return this.isProtected === '0';

@@ -8,6 +8,7 @@ import Application from 'koa';
 
 import routesInit from './routes';
 import PubsubListener from './pubsub-listener';
+import { initJobProcessing } from './jobs';
 
 
 let app = null;
@@ -30,6 +31,7 @@ export async function getSingleton() {
 
     await environment.init(_app);
     routesInit(_app);
+    initJobProcessing();
 
     _app.context.pubsub = new PubsubListener(server, _app);
 

@@ -20,7 +20,7 @@ import {
 } from '../../../support/ExtAuth';
 import { User, dbAdapter } from '../../../models';
 import { SessionTokenV0 } from '../../../models/auth-tokens';
-import { serializeUser } from '../../../serializers/v2/user';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
 
 import { authStartInputSchema, authFinishInputSchema } from './data-schemes/ext-auth';
 
@@ -114,13 +114,18 @@ export const authFinish = compose([
         const profileUser = await User.getByExtProfile(profileData);
 
         if (profileUser) {
+          if (!profileUser.isActive) {
+            throw new ForbiddenException('Your account is not active');
+          }
+
           // User found, signing in
           const authToken =  new SessionTokenV0(profileUser.id).tokenString()
+          const [user] = await serializeUsersByIds([profileUser.id]);
           ctx.body = {
             status:  SIGN_IN_SUCCESS,
             message: `Successfully signed in`,
             profile,
-            user:    serializeUser(profileUser),
+            user,
             authToken,
           };
           return;

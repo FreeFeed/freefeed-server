@@ -1,12 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import request from 'superagent'
-import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { dbAdapter, PubSub } from '../../app/models'
+import { PubSub } from '../../app/models'
 
 import * as funcTestHelper from './functional_test_helper'
 
@@ -99,11 +98,6 @@ describe('TimelinesController', () => {
         done()
       })
     })
-
-    it('should respond with 404 for "deleted" user', async () => {
-      await dbAdapter.updateUser(context.user.id, { hashedPassword: '' });
-      return expect(funcTestHelper.getUserFeed(context), 'to be rejected with', new Error('HTTP/1.1 404'));
-    });
   })
 
   describe('#pagination', () => {
@@ -199,12 +193,6 @@ describe('TimelinesController', () => {
           })
         })
     })
-
-
-    it('should respond with 404 for "deleted" user', async () => {
-      await dbAdapter.updateUser(context.user.id, { hashedPassword: '' });
-      return expect(funcTestHelper.getUserLikesFeed(context), 'to be rejected with', new Error('HTTP/1.1 404'));
-    });
   })
 
   describe('#comments()', () => {
@@ -278,10 +266,5 @@ describe('TimelinesController', () => {
         })
       })
     })
-
-    it('should respond with 404 for "deleted" user', async () => {
-      await dbAdapter.updateUser(context.user.id, { hashedPassword: '' });
-      return expect(funcTestHelper.getUserCommentsFeed(context), 'to be rejected with', new Error('HTTP/1.1 404'));
-    });
   })
 })

@@ -203,7 +203,9 @@ const searchTrait = (superClass) =>
           )
           : 'not p.is_protected',
         // Bans
-        sqlNotIn('p.user_id', bannedUsersIds)
+        sqlNotIn('p.user_id', bannedUsersIds),
+        // Gone post's authors
+        'u.gone_status is null',
       ]);
 
       // Now we buid full query
@@ -224,15 +226,16 @@ const searchTrait = (superClass) =>
           commentsRestrictionSQL
         ]);
 
-      const fullPostsSQL = `select p.uid, p.${sort}_at as date from posts p ${
-        inCommentsSQL !== 'true'
-          ? 'left join comments c on c.post_id = p.uid'
-          : ''
-      } where ${postsPart}`;
+      const fullPostsSQL = [
+        `select p.uid, p.${sort}_at as date from posts p `,
+        `join users u on p.user_id = u.uid`,
+        inCommentsSQL !== 'true' && 'left join comments c on c.post_id = p.uid',
+        `where ${postsPart}`,
+      ].filter(Boolean).join(' ');
 
       const fullCommentsSQL =
         useCommentsTable &&
-        `select p.uid, p.${sort}_at as date from posts p ` +
+        `select p.uid, p.${sort}_at as date from posts p join users u on p.user_id = u.uid ` +
           ` join comments c on c.post_id = p.uid where ${commentsPart}`;
 
       const pgVersion = await this.getPGVersion();
@@ -320,6 +323,9 @@ const searchTrait = (superClass) =>
         'commented-by': 'Comments',
         'liked-by':     'Likes'
       };
+      // For gone users only the Comments feed is available (comments aren't
+      // deleted when user gone)
+      const goneUsersFeeds = ['Comments'];
       const myFeedNames = ['saves', 'directs', 'discussions', 'friends'];
 
       return await Promise.all(
@@ -330,15 +336,16 @@ const searchTrait = (superClass) =>
               (!!condToFeedNames[t.condition] || t.condition === 'in-my')
           )
           .map(async (t) => {
-            // in:, commented-by:, liked-by:
-            if (condToFeedNames[t.condition]) {
-              const userIds = uniq(t.args)
-                .map((n) => accountsMap[n] && accountsMap[n].id)
-                .filter(Boolean);
+            const feedName = condToFeedNames[t.condition];
 
-              const feedIntIds = await this.getUsersNamedFeedsIntIds(userIds, [
-                condToFeedNames[t.condition]
-              ]);
+            // in:, commented-by:, liked-by:
+            if (feedName) {
+              const userIds = uniq(t.args)
+                .map((n) => accountsMap[n])
+                .filter((u) => u && (u.isActive || goneUsersFeeds.includes(feedName)))
+                .map((u) => u.id);
+
+              const feedIntIds = await this.getUsersNamedFeedsIntIds(userIds, [feedName]);
               return new List(feedIntIds, !t.exclude);
             }
 

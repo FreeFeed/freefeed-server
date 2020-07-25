@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import _ from 'lodash'
 import compose from 'koa-compose';
 import config from 'config'
+import jwt from 'jsonwebtoken';
 
 import { dbAdapter, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
 import {
@@ -20,12 +21,15 @@ import { authRequired, targetUserRequired, monitored, inputSchemaRequired } from
 import { UsersControllerV2 } from '../../../controllers';
 import { profileCache } from '../../../support/ExtAuth';
 import { downloadURL } from '../../../support/download-url';
+import { GONE_COOLDOWN } from '../../../models/user';
 
 import {
   userCreateInputSchema,
   userSubscribeInputSchema,
   updateSubscriptionInputSchema,
   sendRequestInputSchema,
+  userSuspendMeInputSchema,
+  userResumeMeInputSchema,
 } from './data-schemes';
 
 
@@ -166,6 +170,10 @@ export default class UsersController {
     async (ctx) => {
       const { user, targetUser } = ctx.state;
 
+      if (!targetUser.isActive) {
+        throw new ForbiddenException(`The ${targetUser.isUser() ? 'user account' : 'group'} is not active`);
+      }
+
       if (targetUser.isPrivate !== '1') {
         throw new ForbiddenException(`The ${targetUser.isUser() ? 'user account' : 'group'} is not private`);
       }
@@ -280,6 +288,48 @@ export default class UsersController {
     async (ctx) => {
       ctx.params.username = ctx.state.user.username;
       await UsersController.show(ctx);
+    },
+  ]);
+
+  static suspendMe = compose([
+    authRequired(),
+    inputSchemaRequired(userSuspendMeInputSchema),
+    monitored('users.suspend-me'),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const { password } = ctx.request.body;
+
+      if (!(await user.validPassword(password))) {
+        throw new ForbiddenException('Provided password is invalid');
+      }
+
+      await user.setGoneStatus(GONE_COOLDOWN);
+      ctx.body = { message: 'Your account has been suspended' };
+    },
+  ]);
+
+  static resumeMe = compose([
+    inputSchemaRequired(userResumeMeInputSchema),
+    monitored('users.resume-me'),
+    async (ctx) => {
+      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, config.secret);
+
+      if (token.type !== 'resume-account') {
+        throw new ForbiddenException('Unknown token type');
+      }
+
+      const user = await dbAdapter.getUserById(token.userId);
+
+      if (user?.isActive) {
+        throw new ForbiddenException('This account is already active');
+      }
+
+      if (!user?.isResumable) {
+        throw new ForbiddenException('This account cannot be resumed');
+      }
+
+      await user.setGoneStatus(null);
+      ctx.body = { message: 'Your account has been resumed' };
     },
   ]);
 
@@ -468,7 +518,7 @@ export default class UsersController {
       const { username } = ctx.params;
       const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
 
-      if (!targetUser || !targetUser.isActive) {
+      if (!targetUser) {
         throw new NotFoundException(`User "${username}" is not found`);
       }
 

@@ -179,14 +179,14 @@ export function addModel(dbAdapter) {
     }
 
     async removeAdministrator(feedId) {
-      const adminIds = await this.getAdministratorIds();
+      const admins = await this.getActiveAdministrators();
 
-      if (!adminIds.includes(feedId)) {
-        throw new Error('Not an administrator');
+      if (!admins.some((a) => a.id === feedId)) {
+        throw new ForbiddenException('Not an administrator');
       }
 
-      if (adminIds.length == 1) {
-        throw new Error('Cannot remove last administrator');
+      if (admins.length == 1) {
+        throw new ForbiddenException('Cannot remove last administrator');
       }
 
       return dbAdapter.removeAdministratorFromGroup(this.id, feedId);
@@ -206,26 +206,8 @@ export function addModel(dbAdapter) {
       return this.administrators;
     }
 
-    /**
-     * Checks if the specified user can post to the timeline of this group.
-     */
-    async validateCanPost(postingUser) {
-      const timeline = await this.getPostsTimeline();
-      const ids = await timeline.getSubscriberIds();
-
-      if (!ids.includes(postingUser.id)) {
-        throw new ForbiddenException(
-          "You can't post to a group to which you aren't subscribed"
-        );
-      }
-
-      if (this.isRestricted === '1') {
-        const adminIds = await this.getAdministratorIds();
-
-        if (!adminIds.includes(postingUser.id)) {
-          throw new ForbiddenException("You can't post to a restricted group");
-        }
-      }
+    async getActiveAdministrators() {
+      return (await this.getAdministrators()).filter((admin) => admin.isActive);
     }
 
     /**
@@ -256,15 +238,13 @@ export function addModel(dbAdapter) {
         return [];
       }
 
-      if (this.isRestricted === '1') {
-        const isAdmin = await dbAdapter.isUserAdminOfGroup(
-          postingUser.id,
-          this.id
-        );
+      const admins = await this.getActiveAdministrators();
 
-        if (!isAdmin) {
-          return [];
-        }
+      if (
+        admins.length === 0 ||
+        (this.isRestricted === '1' && !admins.some((a) => a.id === postingUser.id))
+      ) {
+        return [];
       }
 
       return [timeline];

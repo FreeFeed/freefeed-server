@@ -35,6 +35,9 @@ const attachmentsTrait = (superClass) => class extends superClass {
     return this.database('attachments').where('uid', attachmentId).update(preparedPayload)
   }
 
+  async deleteAttachment(id) {
+    await this.database.raw(`delete from attachments where uid = ?`, id);
+  }
 
   linkAttachmentToPost(attachmentId, postId, ord = 0) {
     const payload = { post_id: postId, ord }
