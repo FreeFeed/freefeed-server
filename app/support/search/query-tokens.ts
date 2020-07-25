@@ -71,10 +71,10 @@ export class Text implements Token {
               : token.text;
           return pgFormat(`%L::tsquery`, exactText);
         } else if (token instanceof Link) {
-          return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(token));
+          return exactPhraseToTSQuery(linkToText(token));
         }
 
-        return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, token.text);
+        return exactPhraseToTSQuery(token.text);
       }).filter(Boolean);
 
       if (queries.length === 0) {
@@ -157,4 +157,8 @@ export function trimText(text: string) {
   }
 
   return text.replace(trimTextRe, '$1');
+}
+
+function exactPhraseToTSQuery(text: string): string {
+  return pgFormat(`regexp_replace(phraseto_tsquery('simple', %L)::text, '''([^ ])', '''=\\1', 'g')::tsquery`, text);
 }

@@ -566,8 +566,23 @@ describe('Search', () => {
         filter: (p) => /@celestials/.test(p.body)
       },
       {
-        query:  '"mention @celestials"',
-        filter: (p) => /@celestials/.test(p.body)
+        query:   '"mention @celestials"',
+        filter:  () => false,
+        comment: 'no post with exact wordforms'
+      },
+      {
+        query:   '"mentions @celestials"',
+        filter:  (p) => /@celestials/.test(p.body),
+        comment: 'one post with exact exact wordforms'
+      },
+      {
+        query:   'posts "mentions @celestials"',
+        filter:  (p) => /@celestials/.test(p.body),
+        comment: 'word + exact exact wordforms'
+      },
+      {
+        query:  '"celestials"',
+        filter: (p) => /@celestials/.test(p.body),
       },
       {
         query:   '"@celestials mention"',
