@@ -71,7 +71,9 @@ export function addModel(dbAdapter) {
       this.username = params.username;
       this.screenName = params.screenName;
       this.email = params.email;
-      this.hiddenEmail = params.email;
+      // The .hiddenEmail field holds real email address of inactive user (the
+      // .email field of such user is always empty)
+      this.hiddenEmail = params.email || '';
       this.description = params.description || '';
       this.frontendPreferences = params.frontendPreferences || {};
       this.preferences = validateUserPrefs(params.preferences, true);
