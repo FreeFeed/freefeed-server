@@ -6,7 +6,6 @@ import Raven from 'raven';
 import createDebug from 'debug';
 import config from 'config';
 
-import { selectRedisDatabase } from './database';
 import { setSearchConfig as setPostgresSearchConfig } from './postgres';
 import { init as passportInit } from './initializers/passport';
 
@@ -66,7 +65,6 @@ exports.init = async function () {
     process.exit(1);
   }
 
-  await selectRedisDatabase();
   await setPostgresSearchConfig();
 
   if (config.media.storage.type === 'fs') {
