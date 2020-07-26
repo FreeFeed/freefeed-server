@@ -10,6 +10,7 @@ import {
   Condition,
   IN_ALL,
   ScopeStart,
+  Text,
   AnyText,
   InScope
 } from '../search/query-tokens';
@@ -412,8 +413,12 @@ function getTSQuery(tokens, targetScope) {
       result.push(token.toTSQuery());
     }
 
+    if (token instanceof Text && currentScope === targetScope) {
+      result.push(token.toTSQuery());
+    }
+
     if (token instanceof InScope && token.scope === targetScope) {
-      result.push(...token.anyTexts.map((t) => t.toTSQuery()));
+      result.push(token.text.toTSQuery());
     }
   });
 

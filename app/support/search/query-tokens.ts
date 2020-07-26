@@ -20,12 +20,19 @@ export interface Token {
   getComplexity(): number;
 }
 
+/**
+ * Pipe represents the pipe symbol (`|`). This token is used only on initial
+ * parsing phase, the Pipe-joined Text tokens are converting to AnyText later.
+ */
 export class Pipe implements Token {
   getComplexity() {
     return 0;
   }
 }
 
+/**
+ * ScopeStart marks the start of global query scope.
+ */
 export class ScopeStart implements Token {
   constructor(
     public scope: Scope,
@@ -36,6 +43,9 @@ export class ScopeStart implements Token {
   }
 }
 
+/**
+ * Condition is the some post/comment non-textual filter.
+ */
 export class Condition implements Token {
   constructor(
     public exclude: boolean,
@@ -48,6 +58,10 @@ export class Condition implements Token {
   }
 }
 
+/**
+ * Text is a textual term: it may be a single word, mention, hashtag, double
+ * quoted phrase. It is an atomic piece of query and have no internal elements.
+ */
 export class Text implements Token {
   constructor(
     public exclude: boolean,
@@ -110,29 +124,37 @@ export class Text implements Token {
   }
 }
 
+/**
+ * AnyText contains one or more Text tokens. If there are more than one token,
+ * the query will find any of them. But even a single Text must be wrapped in
+ * AnyText.
+ */
 export class AnyText implements Token {
   constructor(
-    public texts: Text[],
+    public children: Text[],
   ) { }
 
   getComplexity() {
-    return this.texts.reduce((acc, t) => acc + t.getComplexity(), 0);
+    return this.children.reduce((acc, t) => acc + t.getComplexity(), 0);
   }
 
   toTSQuery() {
-    const parts = this.texts.map((t) => t.toTSQuery());
-    return parts.length > 1 ? `(${parts.join(' || ')})` : parts.join(' || ');
+    const parts = this.children.map((t) => t.toTSQuery());
+    return parts.length > 1 ? `(${parts.join(' || ')})` : parts[0];
   }
 }
 
+/**
+ * InScope contains the subquery that have a specific local scope.
+ */
 export class InScope implements Token {
   constructor(
     public scope: Scope,
-    public anyTexts: AnyText[],
+    public text: AnyText,
   ) { }
 
   getComplexity() {
-    return this.anyTexts.reduce((acc, t) => acc + t.getComplexity(), 0);
+    return this.text.getComplexity();
   }
 }
 

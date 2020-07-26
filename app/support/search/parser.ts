@@ -10,10 +10,10 @@ import {
   Pipe,
   Condition,
   Text,
-  AnyText,
   InScope,
   trimText,
-  Token
+  Token,
+  AnyText
 } from './query-tokens';
 
 // -?(scope:)?(double-quoted-string|string)
@@ -82,16 +82,17 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
       // (-)in-body:cat,mouse
       for (const [re, scope] of scopeStarts) {
         if (re.test(match.cond)) {
-          const inner = [];
-
           if (match.qstring) {
             // in-body:"cat mouse" => "cat mouse"
-            const phrase = new Text(
-              !!match.exclude,
-              true,
-              JSON.parse(match.qstring)
+            tokens.push(new InScope(scope,
+              new AnyText([
+                new Text(
+                  !!match.exclude,
+                  true,
+                  JSON.parse(match.qstring)
+                )
+              ]))
             );
-            inner.push(new AnyText([phrase]));
           } else {
             const words = (match.word as string)
               .split(',')
@@ -101,17 +102,14 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
             if (!match.exclude) {
               // in-body:cat,mouse => cat || mouse
               const texts = words.map((word) => new Text(false, false, word));
-              inner.push(new AnyText(texts));
+              tokens.push(new InScope(scope, new AnyText(texts)));
             } else {
               // -in-body:cat,mouse => !cat && !mouse
-              const parts = words.map(
-                (word) => new AnyText([new Text(true, false, word)])
-              );
-              inner.push(...parts);
+              const texts = words.map((word) => new Text(true, false, word));
+              tokens.push(...texts.map((t) => new InScope(scope, new AnyText([t]))));
             }
           }
 
-          tokens.push(new InScope(scope, inner));
           return;
         }
       }
@@ -150,7 +148,7 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
 
       if (i < tokens.length - 1 && tokens[i + 1] instanceof AnyText) {
         // Next token is AnyText, join it with the prevToken
-        prevToken.texts.push(...(tokens[i + 1] as AnyText).texts);
+        prevToken.children.push(...(tokens[i + 1] as AnyText).children);
         // Jump over the joined token
         i++;
         continue;

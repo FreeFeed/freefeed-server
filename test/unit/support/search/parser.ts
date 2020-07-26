@@ -83,36 +83,34 @@ describe('search:parseQuery', () => {
       query:  'inbody: in-comment:"a b"',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, [new AnyText([new Text(false, true, 'a b')])])
+        new InScope(IN_COMMENTS, new AnyText([new Text(false, true, 'a b')]))
       ]
     },
     {
       query:  'inbody: -in-comment:qwer',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, [new AnyText([new Text(true, false, 'qwer')])])
+        new InScope(IN_COMMENTS, new AnyText([new Text(true, false, 'qwer')]))
       ]
     },
     {
       query:  'inbody: -in-comment:qwer,ty',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, [
-          new AnyText([new Text(true, false, 'qwer')]),
-          new AnyText([new Text(true, false, 'ty')])
-        ])
+        new InScope(IN_COMMENTS, new AnyText([new Text(true, false, 'qwer')])),
+        new InScope(IN_COMMENTS, new AnyText([new Text(true, false, 'ty')])),
       ]
     },
     {
       query:  'inbody: in-comment:qwer,ty',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, [
+        new InScope(IN_COMMENTS,
           new AnyText([
             new Text(false, false, 'qwer'),
             new Text(false, false, 'ty')
           ])
-        ])
+        )
       ]
     }
   ];
