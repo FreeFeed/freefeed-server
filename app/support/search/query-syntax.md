@@ -6,12 +6,15 @@ You can put the minus sign (`-`) right before the text term or operator to _excl
 
 ## Text terms
 
-The text term is a word without whitespaces (like `cat`, or `#mouse` or even `http://freefeed.net/`) or a double-quoted string that can include spaces: `"cat mouse"`. Putting text in double quotes tells search engine to search these words in the specific order.
+The text term is a word without whitespaces (like `cat`, or `#mouse` or even `http://freefeed.net/`) or a double-quoted string that can include spaces: `"cat mouse"`. Putting text in double quotes tells search engine to search these words in the specific order and in exact word forms. It is also possible to search words by prefix (not in double quotes): `cat*`.
 
-By default _all_ text terms in query will be searched (AND operator is implied). You can use the "pipe" symbol (`|`) to search _any_ of them: `cat | mouse` will find documents with "cat" OR with "mouse". Two important rules about this operator:
+By default _all_ text terms in query will be searched (AND is implied). You can use the "pipe" symbol (`|`) to search _any_ of them: `cat | mouse` will find documents with "cat" OR with "mouse". To search words in the specific order use the "plus" symbol (`+`): `cat + mouse` means these two words standing next to each other in that order.
 
-1. The OR operator ranked higher than AND: `cat mouse | dog` means 'the documents with "cat" AND ("mouse" OR "dog")'.
-2. You can use the OR operator only with the text terms, not with the other operators.
+Two important rules about the `+` and `|` symbols:
+
+1. The `|` symbol has the higest priority: `cat mouse | dog` means 'the documents with "cat" AND ("mouse" OR "dog")'; `cat + mouse | dog` means 'the documents with "cat" FOLLOWEB_BY ("mouse" OR "dog")'.
+2. The AND symbol has the lowest priority: `cat + mouse dog` means 'the documents with ("cat" FOLLOWEB_BY "mouse") AND "dog"'.
+3. You can use the `|` and `+` symbols only between the text terms, not with the other operators.
 
 ## Operators
 
