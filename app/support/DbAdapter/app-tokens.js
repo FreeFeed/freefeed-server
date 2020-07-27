@@ -91,11 +91,7 @@ const APP_TOKEN_FIELDS = {
   last_user_agent: 'lastUserAgent',
 };
 
-const APP_TOKEN_FIELDS_MAPPING = {
-  created_at:   (time) =>  time ? time.toISOString() : undefined,
-  updated_at:   (time) =>  time ? time.toISOString() : undefined,
-  last_used_at: (time) =>  time ? time.toISOString() : null,
-};
+const APP_TOKEN_FIELDS_MAPPING = {};
 
 const APP_TOKEN_COLUMNS = {
   id:            'uid',
@@ -112,8 +108,4 @@ const APP_TOKEN_COLUMNS = {
   lastUserAgent: 'last_user_agent',
 };
 
-const APP_TOKEN_COLUMNS_MAPPING = {
-  createdAt:  (ts) => ts ? new Date(ts) : undefined,
-  updatedAt:  (ts) => ts ? new Date(ts) : undefined,
-  lastUsedAt: (ts) => ts ? new Date(ts) : null,
-};
+const APP_TOKEN_COLUMNS_MAPPING = {};
