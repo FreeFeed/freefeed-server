@@ -2,6 +2,8 @@ import _ from 'lodash';
 import jwt from 'jsonwebtoken'
 import config from 'config';
 
+import { scheduleTokenInactivation } from '../jobs/app-tokens';
+
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
 
@@ -94,6 +96,8 @@ export function addAppTokenV1Model(dbAdapter) {
       for (const f of fieldsToUpdate) {
         this[f] = newToken[f];
       }
+
+      await scheduleTokenInactivation(this);
     }
 
     async registerUsage({ ip, userAgent = '' }) {

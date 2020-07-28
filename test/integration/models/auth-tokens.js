@@ -8,7 +8,9 @@ import { DateTime } from 'luxon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, AppTokenV1, dbAdapter } from '../../../app/models';
+import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job } from '../../../app/models';
+import { APP_TOKEN_INACTIVATE } from '../../../app/jobs/app-tokens';
+import { initJobProcessing } from '../../../app/jobs';
 
 
 const expect = unexpected.clone();
@@ -331,6 +333,49 @@ describe('Auth Tokens', () => {
           const t = await dbAdapter.getActiveAppTokenByIdAndIssue(token.id, token.issue);
           expect(t, 'to be null');
         });
+      });
+    });
+
+    describe(`Expired tokens inactivation`, () => {
+      before(() => cleanDB($pg_database));
+
+      let token, jobId, jobManager;
+
+      before(async () => {
+        luna = new User({ username: 'luna', password: 'pw' });
+        await luna.create();
+
+        token = new AppTokenV1({
+          userId:           luna.id,
+          title:            'My app',
+          expiresAtSeconds: 100,
+        });
+        await token.create();
+
+        jobManager = initJobProcessing();
+      });
+
+      it(`should create job that should inactivate token`, async () => {
+        const jobs = await dbAdapter.getAllJobs();
+        expect(jobs, 'to satisfy', [{ name: APP_TOKEN_INACTIVATE, payload: { tokenId: token.id } }]);
+        jobId = jobs[0].id;
+      });
+
+      it(`should inactivate token when job completed`, async () => {
+        const job = await Job.getById(jobId);
+        await job.setUnlockAt(0);
+
+        {
+          const t = await dbAdapter.getAppTokenById(token.id);
+          expect(t.isActive, 'to be true');
+        }
+
+        await jobManager.fetchAndProcess();
+
+        {
+          const t = await dbAdapter.getAppTokenById(token.id);
+          expect(t.isActive, 'to be false');
+        }
       });
     });
   });

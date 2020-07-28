@@ -5,11 +5,15 @@ import config from 'config';
 import { JobManager } from '../models';
 
 import { initHandlers as initUserGoneHandlers } from './user-gone';
+import { initHandlers as initAppTokensHandlers } from './app-tokens';
 
 
 export function initJobProcessing() {
   const jobManager = new JobManager(config.jobManager);
-  initUserGoneHandlers(jobManager);
+  [
+    initUserGoneHandlers,
+    initAppTokensHandlers,
+  ].forEach((h) => h(jobManager));
 
   // Use monitor and Sentry to collect job statistics and report errors
   jobManager.use((handler) => async (job) => {
