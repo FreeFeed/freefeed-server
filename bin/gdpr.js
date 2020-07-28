@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import childProcess from 'child_process';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import util from 'util';
 import url from 'url';
@@ -32,12 +32,12 @@ async function main(username) {
   process.stdout.write(`Writing data to file…\n`);
   const dirname = `${process.cwd()}/export-${username}`;
 
-  if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname);
+  if (!(await fs.exists(dirname))) {
+    await fs.mkdir(dirname);
   }
 
   const filename = `${dirname}/${username}.nt`;
-  fs.writeFileSync(filename, result.ntriples);
+  await fs.writeFile(filename, result.ntriples);
   result.ntriples = null;  // clearing memory
   process.stdout.write(`-> ${filename}\n`);
 
@@ -49,12 +49,11 @@ async function main(username) {
   // attachments
   const attachmentsDir = `${process.cwd()}/export-${username}/attachments`;
 
-  if (!fs.existsSync(attachmentsDir)) {
-    fs.mkdirSync(attachmentsDir);
+  if (!(await fs.exists(attachmentsDir))) {
+    await fs.mkdir(attachmentsDir);
   }
 
   process.stdout.write(`Downloading attachments:\n`);
-  const writeFile = util.promisify(fs.writeFile);
   const urlChunks = chunk(result.downloadUrls, 8);
 
   for (const urls of urlChunks) {
@@ -62,13 +61,13 @@ async function main(username) {
       const _url = new url.URL(downloadUrl);
       const filePath = `${attachmentsDir}/${path.basename(_url.pathname)}`;
 
-      if (fs.existsSync(filePath)) {
+      if (await fs.exists(filePath)) {
         return;
       }
 
       const downloadResult = await fetch(downloadUrl);
       const buffer = await downloadResult.buffer();
-      await writeFile(filePath, buffer);
+      await fs.writeFile(filePath, buffer);
       process.stdout.write(`-> ${filePath}\n`);
     });
 

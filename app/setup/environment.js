@@ -1,7 +1,6 @@
-import fs from 'fs';
+import fs, { promises as fsPromises } from 'fs';
 
 import passport from 'koa-passport';
-import { promisify } from 'bluebird';
 import Raven from 'raven';
 import createDebug from 'debug';
 import config from 'config';
@@ -22,13 +21,12 @@ process.env.MONITOR_PREFIX = config.monitorPrefix;
 passportInit(passport);
 
 const checkIfMediaDirectoriesExist = async () => {
-  const access = promisify(fs.access);
   let gotErrors = false;
 
   const attachmentsDir = config.attachments.storage.rootDir + config.attachments.path;
 
   try {
-    await access(attachmentsDir, fs.W_OK);
+    await fsPromises.access(attachmentsDir, fs.W_OK);
   } catch (e) {
     gotErrors = true;
     log(`Attachments dir does not exist: ${attachmentsDir}`);
@@ -38,7 +36,7 @@ const checkIfMediaDirectoriesExist = async () => {
     const thumbnailsDir = config.attachments.storage.rootDir + sizeConfig.path;
 
     try {
-      await access(thumbnailsDir, fs.W_OK);
+      await fsPromises.access(thumbnailsDir, fs.W_OK);
     } catch (e) {
       gotErrors = true;
       log(`Thumbnails dir does not exist: ${thumbnailsDir}`);

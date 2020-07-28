@@ -1,11 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fs from 'fs'
+import { promises as fsPromises } from 'fs';
 import path from 'path'
 
 import mkdirp from 'mkdirp'
 import gm from 'gm'
-import { promisify, promisifyAll } from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import chai from 'chai'
 import chaiFS from 'chai-fs'
 import _ from 'lodash';
@@ -19,9 +19,7 @@ import { filesMustExist } from '../helpers/attachments'
 chai.use(chaiFS)
 
 const { expect } = chai;
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
-const stat = promisify(fs.stat);
+const { readFile, writeFile, stat } = fsPromises;
 
 describe('Attachment', () => {
   before(() => cleanDB($pg_database))

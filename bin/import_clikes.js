@@ -1,12 +1,8 @@
 #!/usr/bin/env babel-node
-import fs from 'fs';
-
-import { promisifyAll } from 'bluebird';
+import { promises as fs } from 'fs';
 
 import { postgres, dbAdapter } from '../app/models'
 
-
-promisifyAll(fs);
 
 async function main() {
   process.stdout.write(`Started\n`);
@@ -17,7 +13,7 @@ async function main() {
     return;
   }
 
-  const file = await fs.readFileAsync(dataFilePath, 'utf8');
+  const file = await fs.readFile(dataFilePath, 'utf8');
   const clikesData = JSON.parse(file);
   const clikesCount = clikesData.length;
 
