@@ -106,6 +106,6 @@ export class PubSubAdapter {
   ///////////////////////////////////////////////////
 
   _publish(channel, payload) {
-    return this.redisClient.publishAsync(channel, payload)
+    return this.redisClient.publish(channel, payload)
   }
 }

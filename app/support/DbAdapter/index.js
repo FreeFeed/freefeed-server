@@ -1,8 +1,7 @@
 import _ from 'lodash';
-import redis from 'redis'
 import NodeCache from 'node-cache';
 import cacheManager from 'cache-manager'
-import redisStore from 'cache-manager-redis'
+import redisStore from 'cache-manager-ioredis'
 import { promisifyAll } from 'bluebird';
 import config from 'config';
 
@@ -37,9 +36,6 @@ import nowTrait from './now';
 import jobsTrait from './jobs';
 
 
-promisifyAll(redis.RedisClient.prototype);
-promisifyAll(redis.Multi.prototype);
-
 class DbAdapterBase {
   constructor(database) {
     this.database = withDbHelpers(database);
@@ -52,6 +48,7 @@ class DbAdapterBase {
       store: redisStore,
       host:  config.redis.host,
       port:  config.redis.port,
+      db:    config.database,
       ttl:   CACHE_TTL,
     });
 

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import cacheManager from 'cache-manager'
-import redisStore from 'cache-manager-redis'
+import redisStore from 'cache-manager-ioredis'
 import { promisifyAll } from 'bluebird';
 import config from 'config';
 
@@ -23,6 +23,7 @@ export class Cache {
       store: redisStore,
       host:  config.redis.host,
       port:  config.redis.port,
+      db:    config.database,
       ttl,
     });
   }

@@ -43,15 +43,12 @@ const usersCacheTrait = (superClass) => class extends superClass {
     let cachedUsers;
 
     if (this.cache.store.name === 'redis') {
-      const { client, done } = await this.cache.store.getClient();
+      const client = await this.cache.store.getClient();
 
-      try {
-        const cacheKeys = ids.map((id) => `user_${id}`);
-        const result = await client.mgetAsync(cacheKeys);
-        cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(fixCachedUserAttrs);
-      } finally {
-        done();
-      }
+      const cacheKeys = ids.map((id) => `user_${id}`);
+      const result = await client.mget(cacheKeys);
+
+      cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(fixCachedUserAttrs);
     } else {
       cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
     }

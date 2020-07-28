@@ -1,12 +1,8 @@
-import { promisifyAll } from 'bluebird';
-import redis from 'redis';
+import Redis from 'ioredis';
 import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-
-promisifyAll(redis.RedisClient.prototype);
-promisifyAll(redis.Multi.prototype);
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
@@ -16,7 +12,7 @@ const options = {
   db:   config.database,
   ...config.redis.options,
 };
-const database = redis.createClient(options);
+const database = new Redis(options);
 export default database;
 
 database.on('connect', log('connect'));

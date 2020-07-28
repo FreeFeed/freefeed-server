@@ -1,6 +1,6 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
-import { createClient as createRedisClient } from 'redis';
+import Redis from 'ioredis';
 import {
   compact,
   flatten,
@@ -40,8 +40,19 @@ export default class PubsubListener {
   constructor(server, app) {
     this.app = app;
 
+    const pubClient = new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      db:   config.database,
+    });
+    const subClient = new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      db:   config.database,
+    });
+
     this.io = IoServer(server);
-    this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
+    this.io.adapter(redis_adapter({ pubClient, subClient }));
 
     this.io.on('error', (err) => {
       debug('socket.io error', err);
@@ -63,7 +74,11 @@ export default class PubsubListener {
 
     this.io.on('connection', this.onConnect);
 
-    const redisClient = createRedisClient(config.redis.port, config.redis.host, {});
+    const redisClient = new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      db:   config.database,
+    });
     redisClient.on('error', (err) => {
       if (sentryIsEnabled) {
         Raven.captureException(err, { extra: { err: 'PubsubListener Redis subscriber error' } });
