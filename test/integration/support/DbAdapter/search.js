@@ -679,7 +679,37 @@ describe('Search', () => {
       {
         query:  'words',
         filter: (p) => /time/.test(p.body)
-      }
+      },
+      {
+        query:   'ment*',
+        filter:  (p) => /ment/.test(p.body),
+        comment: 'wildcard'
+      },
+      {
+        query:   '#ment*',
+        filter:  (p) => /#ment/.test(p.body),
+        comment: 'wildcard in hashtag'
+      },
+      {
+        query:   'com*',
+        filter:  (p) => /com/.test(p.body),
+        comment: 'wildcard that contains full word'
+      },
+      {
+        query:   'co*',
+        filter:  (p) => /\bco/.test(p.body),
+        comment: 'short wildcard'
+      },
+      {
+        query:   '*',
+        filter:  () => false,
+        comment: '"*" wildcard is not supported'
+      },
+      {
+        query:   'mention + luna',
+        filter:  (p) => /first/.test(p.body),
+        comment: 'plus operator'
+      },
     ]);
   });
 

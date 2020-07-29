@@ -15,6 +15,11 @@ declare module 'config' {
     postgres: {
       textSearchConfigName: string;
     }
+
+    search: {
+      maxQueryComplexity: number;
+      minPrefixLength:    number;
+    }
   }
 
   const c: Config;

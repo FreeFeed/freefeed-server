@@ -1,4 +1,6 @@
 import XRegExp from 'xregexp';
+import { flow } from 'lodash';
+import config from 'config';
 
 import { normalizeText } from './norm';
 import {
@@ -32,7 +34,11 @@ const tokenRe = XRegExp(
   'gx'
 );
 
-export function parseQuery(query: string) {
+export type ParseQueryOptions = {
+  minPrefixLength: number
+}
+
+export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions = config.search) {
   // 1-st run: Split the query string into tokens
 
   const tokens = [] as Token[];
@@ -89,7 +95,7 @@ export function parseQuery(query: string) {
           } else {
             const words = (match.word as string)
               .split(',')
-              .map(trimText)
+              .map((w) => trimText(w, { minPrefixLength }))
               .filter(Boolean);
 
             if (!match.exclude) {
@@ -112,7 +118,7 @@ export function parseQuery(query: string) {
 
       // Scope not found, treat as raw text
       tokens.push(
-        new AnyText([new Text(!!match.exclude, false, trimText(raw))])
+        new AnyText([new Text(!!match.exclude, false, trimText(raw, { minPrefixLength }))])
       );
       return;
     }
@@ -123,7 +129,7 @@ export function parseQuery(query: string) {
         new Text(
           !!match.exclude,
           !!match.qstring,
-          match.qstring ? JSON.parse(match.qstring) : trimText(match.word)
+          match.qstring ? JSON.parse(match.qstring) : trimText(match.word, { minPrefixLength })
         )
       ])
     );

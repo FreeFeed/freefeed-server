@@ -85,8 +85,13 @@ export class Text implements Token {
 
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
-      const exactText =
+      let exactText =
         this.text.charAt(0) === '#' ? this.text.replace(/[_-]/g, '') : this.text;
+
+      if (/\*$/.test(this.text)) {
+        exactText = `${exactText.substring(0, exactText.length - 1)}:*`;
+      }
+
       return prefix + pgFormat(`%L::tsquery`, exactText);
     }
 
@@ -94,6 +99,11 @@ export class Text implements Token {
 
     if (firstToken instanceof Link) {
       return prefix + pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(firstToken));
+    }
+
+    // Prefix search
+    if (/\*$/.test(this.text)) {
+      return prefix + pgFormat(`%L::tsquery`, `=${this.text.substring(0, this.text.length - 1)}:*`);
     }
 
     return prefix + pgFormat(`plainto_tsquery(%L, %L)`, ftsCfg, this.text);
@@ -151,9 +161,21 @@ const trimTextRe = XRegExp(
 );
 const trimTextRightRe = XRegExp(`^(.*?)[\\pP\\pZ\\pC\\pS]*$`, 'u');
 
-export function trimText(text: string) {
+export type TrimTextOptions = {
+  minPrefixLength: number;
+}
+
+export function trimText(text: string, { minPrefixLength }: TrimTextOptions) {
   if (/^[#@]/.test(text)) {
+    if (text.endsWith('*') && text.length > minPrefixLength + 1) {
+      return `${text.replace(trimTextRightRe, '$1')}*`;
+    }
+
     return text.replace(trimTextRightRe, '$1');
+  }
+
+  if (text.endsWith('*') && text.length > minPrefixLength) {
+    return `${text.replace(trimTextRe, '$1')}*`;
   }
 
   return text.replace(trimTextRe, '$1');
