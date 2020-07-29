@@ -10,9 +10,8 @@ import {
   Condition,
   IN_ALL,
   ScopeStart,
-  Text,
-  AnyText,
-  InScope
+  InScope,
+  SeqTexts
 } from '../search/query-tokens';
 import { List } from '../open-lists';
 import { Comment } from '../../models';
@@ -409,11 +408,7 @@ function getTSQuery(tokens, targetScope) {
   const result = [];
 
   walkWithScope(tokens, (token, currentScope) => {
-    if (token instanceof AnyText && currentScope === targetScope) {
-      result.push(token.toTSQuery());
-    }
-
-    if (token instanceof Text && currentScope === targetScope) {
+    if (token instanceof SeqTexts && currentScope === targetScope) {
       result.push(token.toTSQuery());
     }
 

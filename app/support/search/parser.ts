@@ -8,11 +8,13 @@ import {
   listConditions,
   ScopeStart,
   Pipe,
+  Plus,
   Condition,
   Text,
   InScope,
   trimText,
   Token,
+  SeqTexts,
   AnyText
 } from './query-tokens';
 
@@ -21,6 +23,7 @@ const tokenRe = XRegExp(
   `
   (?:
     (?<pipe> \\|) |
+    (?<plus> \\+) |
     (?:
       (?<exclude> -)?
       (?:(?<cond> [\\w-]+):)?
@@ -48,6 +51,11 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
 
     if (match.pipe) {
       tokens.push(new Pipe());
+      return;
+    }
+
+    if (match.plus) {
+      tokens.push(new Plus());
       return;
     }
 
@@ -133,9 +141,23 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
     );
   });
 
-  // 2-nd run: Merge all "AnyText (Pipe AnyText)+" combinations into one AnyText.
-  // Result should not contain any Pipe's.
+  return flow([
+    joinByPipes,
+    joinByPluses,
+  ])(tokens) as Token[];
+}
 
+export function queryComplexity(tokens: Token[]) {
+  return tokens.reduce((acc, token) => acc + token.getComplexity(), 0);
+}
+
+// Token list post-processors
+
+/**
+ *  1-st run: Merge all "AnyText (Pipe AnyText)+" combinations into one
+ *  AnyText.Result should not contain any Pipe's.
+ */
+function joinByPipes(tokens: Token[]) {
   const result = [] as Token[];
   let prevToken = null;
 
@@ -162,6 +184,34 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
   return result;
 }
 
-export function queryComplexity(tokens: Token[]) {
-  return tokens.reduce((acc, token) => acc + token.getComplexity(), 0);
+function joinByPluses(tokens: Token[]) {
+  const result = [] as Token[];
+  let prevToken = null;
+
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] instanceof Plus) {
+      if (!prevToken || !(prevToken instanceof SeqTexts)) {
+        // Last inserted token is not an SeqTexts
+        continue;
+      }
+
+      if (i < tokens.length - 1 && tokens[i + 1] instanceof AnyText) {
+        // Next token is AnyText, join it with the prevToken
+        prevToken.children.push(tokens[i + 1] as AnyText);
+        // Jump over the joined token
+        i++;
+        continue;
+      }
+    } else {
+      prevToken = tokens[i];
+
+      if (prevToken instanceof AnyText) {
+        prevToken = new SeqTexts([prevToken]);
+      }
+
+      result.push(prevToken);
+    }
+  }
+
+  return result;
 }

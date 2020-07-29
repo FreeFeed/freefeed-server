@@ -31,6 +31,16 @@ export class Pipe implements Token {
 }
 
 /**
+ * Plus represents the plus symbol (`+`). This token is used only on initial
+ * parsing phase, the Plus-joined tokens are converting to SeqTexts later.
+ */
+export class Plus implements Token {
+  getComplexity() {
+    return 0;
+  }
+}
+
+/**
  * ScopeStart marks the start of global query scope.
  */
 export class ScopeStart implements Token {
@@ -141,6 +151,25 @@ export class AnyText implements Token {
   toTSQuery() {
     const parts = this.children.map((t) => t.toTSQuery());
     return parts.length > 1 ? `(${parts.join(' || ')})` : parts[0];
+  }
+}
+
+/**
+ * SeqTexts contains one or more AnyText tokens. The query will find them in the
+ * specific order. Even a single AnyText must be wrapped in SeqTexts.
+ */
+export class SeqTexts implements Token {
+  constructor(
+    public children: AnyText[],
+  ) { }
+
+  getComplexity() {
+    return this.children.reduce((acc, t) => acc + t.getComplexity(), 0);
+  }
+
+  toTSQuery() {
+    const parts = this.children.map((t) => t.toTSQuery());
+    return parts.length > 1 ? `(${parts.join(' <-> ')})` : parts[0];
   }
 }
 

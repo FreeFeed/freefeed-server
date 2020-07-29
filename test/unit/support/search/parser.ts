@@ -8,7 +8,8 @@ import {
   ScopeStart,
   InScope,
   IN_COMMENTS,
-  IN_POSTS
+  IN_POSTS,
+  SeqTexts
 } from '../../../../app/support/search/query-tokens';
 import {
   parseQuery,
@@ -25,27 +26,29 @@ describe('search:parseQuery', () => {
     {
       query:  'a b c',
       result: [
-        new AnyText([new Text(false, false, 'a')]),
-        new AnyText([new Text(false, false, 'b')]),
-        new AnyText([new Text(false, false, 'c')])
+        seqTexts(new Text(false, false, 'a')),
+        seqTexts(new Text(false, false, 'b')),
+        seqTexts(new Text(false, false, 'c')),
       ]
     },
     {
       query:   'a, #b: c!',
       comment: 'remove the extra punctuation',
       result:  [
-        new AnyText([new Text(false, false, 'a')]),
-        new AnyText([new Text(false, false, '#b')]),
-        new AnyText([new Text(false, false, 'c')])
+        seqTexts(new Text(false, false, 'a')),
+        seqTexts(new Text(false, false, '#b')),
+        seqTexts(new Text(false, false, 'c')),
       ]
     },
     {
       query:  'a | b | c',
       result: [
-        new AnyText([
-          new Text(false, false, 'a'),
-          new Text(false, false, 'b'),
-          new Text(false, false, 'c')
+        new SeqTexts([
+          anyText(
+            new Text(false, false, 'a'),
+            new Text(false, false, 'b'),
+            new Text(false, false, 'c')
+          )
         ])
       ]
     },
@@ -53,52 +56,78 @@ describe('search:parseQuery', () => {
       query:   'a || | b |',
       comment: 'multiple | should be merged into one',
       result:  [
-        new AnyText([new Text(false, false, 'a'), new Text(false, false, 'b')])
+        new SeqTexts([
+          anyText(
+            new Text(false, false, 'a'),
+            new Text(false, false, 'b'),
+          )
+        ])
       ]
     },
     {
       query:   'a | from:me',
       comment: '| near the operator should be ignored',
       result:  [
-        new AnyText([new Text(false, false, 'a')]),
+        seqTexts(new Text(false, false, 'a')),
         new Condition(false, 'from', ['me'])
+      ]
+    },
+    {
+      query:  'a + b',
+      result: [
+        seqTexts(new Text(false, false, 'a'), new Text(false, false, 'b'))
+      ]
+    },
+    {
+      query:  'a ++ | b',
+      result: [
+        seqTexts(new Text(false, false, 'a'), new Text(false, false, 'b'))
+      ]
+    },
+    {
+      query:  'a + b | c',
+      result: [
+        new SeqTexts([
+          anyText(new Text(false, false, 'a')),
+          anyText(new Text(false, false, 'b'), new Text(false, false, 'c'))
+        ])
       ]
     },
     {
       query:  'inmy:a,b -c',
       result: [
         new Condition(false, 'in-my', ['a', 'b']),
-        new AnyText([new Text(true, false, 'c')])
+        seqTexts(new Text(true, false, 'c'))
       ]
     },
     {
       query:   'inmy: -c',
       comment: 'inmy: should become text',
       result:  [
-        new AnyText([new Text(false, false, 'inmy')]),
-        new AnyText([new Text(true, false, 'c')])
+        seqTexts(new Text(false, false, 'inmy')),
+        seqTexts(new Text(true, false, 'c')),
       ]
     },
     {
       query:  'inbody: in-comment:"a b"',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, new AnyText([new Text(false, true, 'a b')]))
+        new InScope(IN_COMMENTS, anyText(new Text(false, true, 'a b')))
       ]
     },
     {
       query:  'inbody: -in-comment:qwer',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, new AnyText([new Text(true, false, 'qwer')]))
+        new InScope(IN_COMMENTS, anyText(new Text(true, false, 'qwer')))
       ]
     },
     {
       query:  'inbody: -in-comment:qwer,ty',
       result: [
         new ScopeStart(IN_POSTS),
-        new InScope(IN_COMMENTS, new AnyText([new Text(true, false, 'qwer')])),
-        new InScope(IN_COMMENTS, new AnyText([new Text(true, false, 'ty')])),
+        new InScope(IN_COMMENTS, anyText(new Text(true, false, 'qwer'))),
+        new InScope(IN_COMMENTS, anyText(new Text(true, false, 'ty'))),
       ]
     },
     {
@@ -106,10 +135,10 @@ describe('search:parseQuery', () => {
       result: [
         new ScopeStart(IN_POSTS),
         new InScope(IN_COMMENTS,
-          new AnyText([
+          anyText(
             new Text(false, false, 'qwer'),
             new Text(false, false, 'ty')
-          ])
+          )
         )
       ]
     }
@@ -138,3 +167,12 @@ describe('search:queryComplexity', () => {
     });
   }
 });
+
+function anyText(...ts: Text[]) {
+  return new AnyText(ts);
+}
+
+function seqTexts(...ts: Text[]) {
+  return new SeqTexts(ts.map((t) => anyText(t)));
+}
+
