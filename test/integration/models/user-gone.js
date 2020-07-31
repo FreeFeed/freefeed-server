@@ -204,7 +204,7 @@ describe(`User's 'gone' status`, () => {
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
         to:      { text: 'luna <luna@lovegood.good>' },
-        subject: 'Your account data has been deleted',
+        subject: 'Your account has been deleted',
       });
     });
   });
