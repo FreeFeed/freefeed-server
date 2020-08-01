@@ -1,5 +1,7 @@
 import { pick, difference } from 'lodash';
 import compose from 'koa-compose';
+import { DateTime } from 'luxon';
+import config from 'config';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
@@ -43,11 +45,26 @@ export const create = compose([
       throw new ValidationException(`Invalid origins: ${invalidOrigins.join(', ')}`);
     }
 
+    let expiresAt = undefined;
+    let expiresAtSeconds = undefined;
+
+    if (typeof body.expiresAt === 'number') {
+      expiresAtSeconds = body.expiresAt;
+    } else if (typeof body.expiresAt === 'string') {
+      expiresAt = DateTime.fromISO(body.expiresAt, { zone: config.ianaTimeZone }).toJSDate();
+
+      if (!expiresAt || isNaN(expiresAt)) {
+        throw new ValidationException(`Invalid ISO 8601 date string: ${body.expiresAt}`);
+      }
+    }
+
     const token = new AppTokenV1({
       userId:       user.id,
       title:        body.title,
       scopes:       body.scopes,
       restrictions: body.restrictions,
+      expiresAt,
+      expiresAtSeconds,
     });
 
     await token.create();
@@ -169,6 +186,7 @@ function serializeAppToken(token, restricted = false) {
     'issue',
     'createdAt',
     'updatedAt',
+    'expiresAt',
     'scopes',
     'restrictions',
     restricted || 'lastUsedAt',

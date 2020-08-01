@@ -2,6 +2,7 @@
 /* global $database, $pg_database */
 import expect from 'unexpected';
 import { uniq, difference } from 'lodash';
+import { DateTime } from 'luxon';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
@@ -19,6 +20,7 @@ import {
   createCommentAsync,
   updateUserAsync,
   whoami,
+  authHeaders,
 } from './functional_test_helper';
 import { UUID, appTokenInfo, appTokenInfoRestricted } from './schemaV2-helper';
 import Session from './realtime-session';
@@ -95,12 +97,44 @@ describe('App tokens controller', () => {
           title:         'App1',
           issue:         1,
           scopes:        ['read-my-info', 'manage-posts'],
+          expiresAt:     null,
           lastUsedAt:    null,
           lastIP:        null,
           lastUserAgent: null,
         },
         tokenString: expect.it('to be a string'),
       });
+    });
+
+    it('should create token with expiration time in seconds', async () => {
+      const resp = await performJSONRequest(
+        'POST', '/v2/app-tokens',
+        {
+          title:     'App1',
+          scopes:    [],
+          expiresAt: 100,
+        },
+        authHeaders(luna),
+      );
+
+      const createdAt = new Date(resp.token.createdAt);
+      const expiresAt = new Date(resp.token.expiresAt);
+      expect(expiresAt - createdAt, 'to be', 100 * 1000);
+    });
+
+    it('should create token with expiration time in ISO 8601 format', async () => {
+      const expiresAt = DateTime.local().plus({ seconds: 100 }).toJSDate();
+      const resp = await performJSONRequest(
+        'POST', '/v2/app-tokens',
+        {
+          title:     'App1',
+          scopes:    [],
+          expiresAt: expiresAt.toISOString(),
+        },
+        authHeaders(luna),
+      );
+
+      expect(resp.token.expiresAt, 'to be', expiresAt.toISOString());
     });
 
     it('should return "whoami" data with token', async () => {
