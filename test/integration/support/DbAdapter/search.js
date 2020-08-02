@@ -317,6 +317,16 @@ describe('Search', () => {
             filter:     (p) => p.userId === luna.id
           },
           {
+            query:      'from:luna from:luna',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
+            query:      'from:me from:luna',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
             query:  'from:unknown',
             filter: () => false
           },
