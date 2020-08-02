@@ -48,6 +48,10 @@ export function addAppTokenV1Model(dbAdapter) {
     issue = 1;
     createdAt;
     updatedAt;
+    expiresAt;
+    // This field of type number is for token creation only. Use it to set the
+    // expiration time in seconds from the token's creation time.
+    expiresAtSeconds;
     scopes = [];
     restrictions = {};
     lastUsedAt = null;
@@ -57,22 +61,7 @@ export function addAppTokenV1Model(dbAdapter) {
     constructor(params) {
       super(params.userId);
 
-      const fields = [
-        'id',
-        'userId',
-        'title',
-        'isActive',
-        'issue',
-        'createdAt',
-        'updatedAt',
-        'scopes',
-        'restrictions',
-        'lastUsedAt',
-        'lastIP',
-        'lastUserAgent',
-      ];
-
-      for (const f of fields) {
+      for (const f of Object.keys(this)) {
         if (f in params) {
           this[f] = params[f];
         }
@@ -98,6 +87,8 @@ export function addAppTokenV1Model(dbAdapter) {
       const fieldsToUpdate = [
         'createdAt',
         'updatedAt',
+        'expiresAt',
+        'expiresAtSeconds', // for clean up
       ];
 
       for (const f of fieldsToUpdate) {

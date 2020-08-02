@@ -6,6 +6,11 @@ import { prepareModelPayload, initObject } from './utils';
 const appTokensTrait = (superClass) => class extends superClass {
   async createAppToken(payload) {
     const preparedPayload = prepareModelPayload(payload, APP_TOKEN_COLUMNS, APP_TOKEN_COLUMNS_MAPPING);
+
+    if (Number.isFinite(payload.expiresAtSeconds)) {
+      preparedPayload.expires_at = this.database.raw(`now() + ? * '1 second'::interval`, payload.expiresAtSeconds);
+    }
+
     const [id] = await this.database('app_tokens').returning('uid').insert(preparedPayload);
     return id;
   }
@@ -16,7 +21,13 @@ const appTokensTrait = (superClass) => class extends superClass {
   }
 
   async getActiveAppTokenByIdAndIssue(uid, issue) {
-    const row = await this.database('app_tokens').first().where({ uid, issue, is_active: true })
+    const row = await this.database.getRow(
+      `select * from app_tokens where 
+          uid = :uid 
+          and issue = :issue
+          and is_active
+          and (expires_at is null or expires_at > now())`,
+      { uid, issue });
     return initAppTokenObject(row);
   }
 
@@ -54,7 +65,13 @@ const appTokensTrait = (superClass) => class extends superClass {
   }
 
   async listActiveAppTokens(userId) {
-    const { rows } = await this.database.raw(`select * from app_tokens where user_id = :userId and is_active order by created_at desc`, { userId });
+    const rows = await this.database.getAll(
+      `select * from app_tokens where 
+         user_id = :userId 
+         and is_active 
+         and (expires_at is null or expires_at > now())
+         order by created_at desc`,
+      { userId });
     return rows.map((r) => initAppTokenObject(r));
   }
 
@@ -84,6 +101,7 @@ const APP_TOKEN_FIELDS = {
   issue:           'issue',
   created_at:      'createdAt',
   updated_at:      'updatedAt',
+  expires_at:      'expiresAt',
   scopes:          'scopes',
   restrictions:    'restrictions',
   last_used_at:    'lastUsedAt',
@@ -101,6 +119,7 @@ const APP_TOKEN_COLUMNS = {
   issue:         'issue',
   createdAt:     'created_at',
   updatedAt:     'updated_at',
+  expiresAt:     'expires_at',
   scopes:        'scopes',
   restrictions:  'restrictions',
   lastUsedAt:    'last_used_at',
