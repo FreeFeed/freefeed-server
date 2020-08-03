@@ -98,7 +98,7 @@ export function initHandlers(jobManager) {
       await Mailer.sendMail(
         // User is gone so the regular .email field is empty
         { screenName: user.screenName, email },
-        'Your account data has been deleted',
+        'Your account has been deleted',
         { user },
         `${config.appRoot}/app/scripts/views/mailer/user-cooldown-finish.ejs`
       );
