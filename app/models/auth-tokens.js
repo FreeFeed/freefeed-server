@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import config from 'config';
 
 import { scheduleTokenInactivation } from '../jobs/app-tokens';
+import { Address } from '../support/ipv6';
 
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
@@ -189,6 +190,22 @@ export function addAppTokenV1Model(dbAdapter) {
         .replace(/U/g, 'V')
         .replace(new RegExp(`[^${activationCodeChars}]`, 'g'), '');
       return code.length === 6 ? code : null;
+    }
+
+    checkRestrictions({ headers, remoteIP } /** koa's ctx */) {
+      const { netmasks = [], origins = [] } = this.restrictions;
+
+      if (netmasks.length > 0) {
+        const remoteAddr = new Address(remoteIP);
+
+        if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
+          throw new Error(`app token is not allowed from IP ${remoteIP}`)
+        }
+      }
+
+      if (origins.length > 0 && !origins.includes(headers.origin)) {
+        throw new Error(`app token is not allowed from origin ${headers.origin}`)
+      }
     }
   }
 }

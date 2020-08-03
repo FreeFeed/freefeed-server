@@ -83,3 +83,14 @@ export const appTokenUpdateInputSchema = {
     },
   }
 };
+
+export const appTokenActivateInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: [
+    'activationCode',
+  ],
+
+  properties: { activationCode: { type: 'string' } }
+}
