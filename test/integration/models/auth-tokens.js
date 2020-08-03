@@ -378,5 +378,45 @@ describe('Auth Tokens', () => {
         }
       });
     });
+
+    describe('Activation codes', () => {
+      before(() => cleanDB($pg_database));
+
+      let token;
+
+      before(async () => {
+        luna = new User({ username: 'luna', password: 'pw' });
+        await luna.create();
+
+        token = new AppTokenV1({
+          userId:           luna.id,
+          title:            'My app',
+          expiresAtSeconds: 100,
+        });
+        await token.create();
+      });
+
+      it(`should generate activation code for new token`, () => {
+        expect(token.activationCode, 'to satisfy', /\w{6}/);
+      });
+
+      it(`should refresh activation code when token reissues`, async () => {
+        const prevCode = token.activationCode;
+        await token.reissue();
+        expect(token.activationCode, 'to satisfy', /\w{6}/);
+        expect(token.activationCode, 'not to equal', prevCode);
+      });
+
+      it(`should fetch token by activation code`, async () => {
+        const t = await dbAdapter.getAppTokenByActivationCode(token.activationCode, 100);
+        expect(t, 'to equal', token);
+      });
+
+      it(`should not fetch token by expired activation code`, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const t = await dbAdapter.getAppTokenByActivationCode(token.activationCode, 0);
+        expect(t, 'to be null');
+      });
+    });
   });
 });

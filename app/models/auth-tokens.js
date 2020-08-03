@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import _ from 'lodash';
 import jwt from 'jsonwebtoken'
 import config from 'config';
@@ -38,6 +40,8 @@ export class SessionTokenV0 extends AuthToken {
 
 
 export function addAppTokenV1Model(dbAdapter) {
+  const activationCodeChars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
   /**
    * Application token v1
    */
@@ -59,6 +63,7 @@ export function addAppTokenV1Model(dbAdapter) {
     lastUsedAt = null;
     lastIP = null;
     lastUserAgent = null;
+    activationCode = null;
 
     constructor(params) {
       super(params.userId);
@@ -83,6 +88,7 @@ export function addAppTokenV1Model(dbAdapter) {
     }
 
     async create() {
+      this.activationCode = AppTokenV1.newActivationCode();
       this.id = await dbAdapter.createAppToken(this);
 
       const newToken = await dbAdapter.getAppTokenById(this.id);
@@ -151,7 +157,16 @@ export function addAppTokenV1Model(dbAdapter) {
     }
 
     async reissue() {
-      this.issue = await dbAdapter.reissueAppToken(this.id);
+      const updatedToken = await dbAdapter.reissueAppToken(this.id, AppTokenV1.newActivationCode());
+      const fieldsToUpdate = [
+        'issue',
+        'updatedAt',
+        'activationCode',
+      ];
+
+      for (const f of fieldsToUpdate) {
+        this[f] = updatedToken[f];
+      }
     }
 
     /**
@@ -160,6 +175,20 @@ export function addAppTokenV1Model(dbAdapter) {
      */
     async destroy() {
       await dbAdapter.deleteAppToken(this.id);
+    }
+
+    static newActivationCode() {
+      const bytes = crypto.randomBytes(6);
+      return [...bytes].map((b) => activationCodeChars.charAt(b & 0x1f)).join('');
+    }
+
+    static normalizeActivationCode(input) {
+      const code = input.toUpperCase()
+        .replace(/[IL]/g, '1')
+        .replace(/O/g, '0')
+        .replace(/U/g, 'V')
+        .replace(new RegExp(`[^${activationCodeChars}]`, 'g'), '');
+      return code.length === 6 ? code : null;
     }
   }
 }

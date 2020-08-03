@@ -31,6 +31,19 @@ const appTokensTrait = (superClass) => class extends superClass {
     return initAppTokenObject(row);
   }
 
+  async getAppTokenByActivationCode(code, codeTTL) {
+    const row = await this.database.getRow(
+      `select * from app_tokens where 
+          activation_code = :code 
+          and updated_at > now() - :codeTTL * '1 second'::interval
+          and is_active
+          and (expires_at is null or expires_at > now())
+        order by updated_at
+        limit 1`,
+      { code, codeTTL });
+    return initAppTokenObject(row);
+  }
+
   async registerAppTokenUsage(id, { ip, userAgent, debounce }) {
     const sql = `
       update app_tokens set 
@@ -51,17 +64,21 @@ const appTokensTrait = (superClass) => class extends superClass {
     await this.database('app_tokens_log').insert(payload);
   }
 
-  async reissueAppToken(id) {
-    const { rows } = await this.database.raw(
-      `update app_tokens set issue = issue + 1, updated_at = default where uid = :id returning issue`,
-      { id },
+  async reissueAppToken(id, activationCode) {
+    const row = await this.database.getRow(
+      `update app_tokens set 
+        issue = issue + 1,
+        updated_at = default,
+        activation_code = :activationCode
+        where uid = :id returning *`,
+      { id, activationCode },
     );
 
-    if (rows.length === 0) {
+    if (!row) {
       throw new Error(`cannot find app token ${id}`);
     }
 
-    return rows[0].issue;
+    return initAppTokenObject(row);
   }
 
   async listActiveAppTokens(userId) {
@@ -107,24 +124,26 @@ const APP_TOKEN_FIELDS = {
   last_used_at:    'lastUsedAt',
   last_ip:         'lastIP',
   last_user_agent: 'lastUserAgent',
+  activation_code: 'activationCode',
 };
 
 const APP_TOKEN_FIELDS_MAPPING = {};
 
 const APP_TOKEN_COLUMNS = {
-  id:            'uid',
-  userId:        'user_id',
-  title:         'title',
-  isActive:      'is_active',
-  issue:         'issue',
-  createdAt:     'created_at',
-  updatedAt:     'updated_at',
-  expiresAt:     'expires_at',
-  scopes:        'scopes',
-  restrictions:  'restrictions',
-  lastUsedAt:    'last_used_at',
-  lastIP:        'last_ip',
-  lastUserAgent: 'last_user_agent',
+  id:             'uid',
+  userId:         'user_id',
+  title:          'title',
+  isActive:       'is_active',
+  issue:          'issue',
+  createdAt:      'created_at',
+  updatedAt:      'updated_at',
+  expiresAt:      'expires_at',
+  scopes:         'scopes',
+  restrictions:   'restrictions',
+  lastUsedAt:     'last_used_at',
+  lastIP:         'last_ip',
+  lastUserAgent:  'last_user_agent',
+  activationCode: 'activation_code',
 };
 
 const APP_TOKEN_COLUMNS_MAPPING = {};
