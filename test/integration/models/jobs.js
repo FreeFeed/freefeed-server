@@ -98,6 +98,33 @@ describe('Jobs', () => {
     });
   });
 
+  describe('Jobs with unique keys', () => {
+    before(() => cleanDB($pg_database));
+
+    it(`should create multiple jobs with the same name and without keys`, async () => {
+      const [job1, job2] = await Promise.all([Job.create('job'), Job.create('job')]);
+      expect(job1, 'not to be null');
+      expect(job2, 'not to be null');
+      expect(job1.id, 'not to be', job2.id);
+
+      await job1.delete();
+      await job2.delete();
+    });
+
+    it(`should update existing job with same key`, async () => {
+      const job1 = await Job.create('job', 42, { unlockAt: 100, uniqKey: 'key' });
+      const [job2, now] = await Promise.all([
+        Job.create('job', 43, { unlockAt: 200, uniqKey: 'key' }),
+        dbAdapter.now(),
+      ]);
+      expect(job2, 'to satisfy', {
+        id:       job1.id,
+        payload:  43,
+        unlockAt: expect.it('to be close to', new Date(now.getTime() + (200 * 1000))),
+      });
+    });
+  });
+
   describe('Job manager', () => {
     beforeEach(() => cleanDB($pg_database));
 

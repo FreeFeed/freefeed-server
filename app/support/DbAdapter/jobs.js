@@ -5,12 +5,15 @@ import { prepareModelPayload, initObject } from './utils';
 
 export default function jobsTrait(superClass) {
   return class extends superClass {
-    async createJob(name, payload = {}, { unlockAt } = {}) {
+    async createJob(name, payload = {}, { unlockAt, uniqKey } = {}) {
       const row = await this.database.getRow(
         `insert into jobs 
-          (name, payload, unlock_at) values (:name, :payload, :unlockAt)
+          (name, payload, unlock_at, uniq_key) 
+          values (:name, :payload, :unlockAt, :uniqKey)
+          on conflict (name, uniq_key) do 
+            update set (payload, unlock_at) = (:payload, :unlockAt)
           returning *`,
-        { name, payload, unlockAt: this._jobUnlockAt(unlockAt) }
+        { name, payload, uniqKey, unlockAt: this._jobUnlockAt(unlockAt) }
       );
 
       return initJobObject(row);
@@ -84,6 +87,7 @@ const JOB_FIELDS = {
   name:       'name',
   payload:    'payload',
   attempts:   'attempts',
+  uniq_key:   'uniqKey',
 };
 
 const JOB_FIELDS_MAPPING = {};
