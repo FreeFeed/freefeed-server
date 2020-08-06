@@ -4,16 +4,18 @@ import config from 'config';
 
 import { JobManager } from '../models';
 
+import { initHandlers as initPeriodicHandlers } from './periodic';
 import { initHandlers as initUserGoneHandlers } from './user-gone';
 import { initHandlers as initAppTokensHandlers } from './app-tokens';
 
 
-export function initJobProcessing() {
+export function initJobProcessing(app) {
   const jobManager = new JobManager(config.jobManager);
   [
+    initPeriodicHandlers,
     initUserGoneHandlers,
     initAppTokensHandlers,
-  ].forEach((h) => h(jobManager));
+  ].forEach((h) => h(jobManager, app));
 
   // Use monitor and Sentry to collect job statistics and report errors
   jobManager.use((handler) => async (job) => {

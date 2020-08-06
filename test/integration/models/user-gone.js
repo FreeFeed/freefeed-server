@@ -28,6 +28,12 @@ import { addMailListener } from '../../../lib/mailer';
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
 
+const jobTypes = [
+  USER_COOLDOWN_START,
+  USER_COOLDOWN_REMINDER,
+  USER_DELETION_START,
+  USER_DELETE_DATA,
+];
 
 describe(`User's 'gone' status`, () => {
   describe(`Clean gone user's fields`, () => {
@@ -111,7 +117,7 @@ describe(`User's 'gone' status`, () => {
         dbAdapter.now(),
       ]);
 
-      const jobs = await dbAdapter.getAllJobs();
+      const jobs = await dbAdapter.getAllJobs(jobTypes);
       expect(jobs, 'to satisfy', [{
         name:     USER_COOLDOWN_START,
         payload:  { id: luna.id, goneAt: luna.goneAt.getTime() },
@@ -142,7 +148,7 @@ describe(`User's 'gone' status`, () => {
         .plus({ days: config.userDeletion.cooldownDays })
         .toJSDate();
 
-      const jobs = await dbAdapter.getAllJobs();
+      const jobs = await dbAdapter.getAllJobs(jobTypes);
       expect(sortBy(jobs, 'unlockAt'), 'to satisfy', [
         {
           name:     USER_COOLDOWN_REMINDER,
@@ -158,7 +164,7 @@ describe(`User's 'gone' status`, () => {
     });
 
     it(`should send a reminder email`, async () => {
-      const jobs = await dbAdapter.getAllJobs();
+      const jobs = await dbAdapter.getAllJobs(jobTypes);
       const reminderJob = jobs.find((job) => job.name === USER_COOLDOWN_REMINDER);
       // Manually unlock reminder job
       await reminderJob.setUnlockAt(0);
@@ -174,7 +180,7 @@ describe(`User's 'gone' status`, () => {
     });
 
     it(`should switch user to GONE_DELETION status`, async () => {
-      const jobs = await dbAdapter.getAllJobs();
+      const jobs = await dbAdapter.getAllJobs(jobTypes);
       expect(jobs, 'to satisfy', [{ name: USER_DELETION_START }]);
       const [deletionJob] = jobs;
       // Manually unlock deletion job
@@ -186,14 +192,14 @@ describe(`User's 'gone' status`, () => {
 
       expect(user.goneStatus, 'to be', GONE_DELETION);
 
-      const newJobs = await dbAdapter.getAllJobs();
+      const newJobs = await dbAdapter.getAllJobs(jobTypes);
       expect(newJobs, 'to satisfy', [{ name: USER_DELETE_DATA }]);
     });
 
     it(`should delete user data`, async () => {
       await jobManager.fetchAndProcess();
 
-      const newJobs = await dbAdapter.getAllJobs();
+      const newJobs = await dbAdapter.getAllJobs(jobTypes);
       expect(newJobs, 'to be empty');
 
       const user = await dbAdapter.getUserById(luna.id);

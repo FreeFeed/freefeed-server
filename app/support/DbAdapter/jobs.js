@@ -54,8 +54,18 @@ export default function jobsTrait(superClass) {
     }
 
     // For testing purposes only
-    async getAllJobs() {
-      const rows = await this.database.getAll(`select * from jobs order by created_at`);
+    async getAllJobs(names = null) {
+      let rows;
+
+      if (names) {
+        rows = await this.database.getAll(
+          `select * from jobs where name = any(:names) order by created_at`,
+          { names }
+        );
+      } else {
+        rows = await this.database.getAll(`select * from jobs order by created_at`);
+      }
+
       return rows.map(initJobObject);
     }
 

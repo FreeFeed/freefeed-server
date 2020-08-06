@@ -108,7 +108,7 @@ export function initHandlers(jobManager) {
     }
 
     // Repeat this job if we are not done
-    await Job.create(job.name, job.payload, { uniqKey: job.uniqKey });
+    await Job.clone();
   });
 }
 

@@ -356,7 +356,7 @@ describe('Auth Tokens', () => {
       });
 
       it(`should create job that should inactivate token`, async () => {
-        const jobs = await dbAdapter.getAllJobs();
+        const jobs = await dbAdapter.getAllJobs([APP_TOKEN_INACTIVATE]);
         expect(jobs, 'to satisfy', [{ name: APP_TOKEN_INACTIVATE, payload: { tokenId: token.id } }]);
         jobId = jobs[0].id;
       });

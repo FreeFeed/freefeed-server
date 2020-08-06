@@ -59,6 +59,16 @@ export function addJobModel(dbAdapter) {
     delete() {
       return dbAdapter.deleteJob(this.id);
     }
+
+    /**
+     * Create a new job with the same properties as this but with a new unlockAt
+     * time.
+     *
+     * @returns {Promise<Job>}
+     */
+    clone(unlockAt = 0) {
+      return Job.create(this.name, this.payload, { uniqKey: this.uniqKey, unlockAt });
+    }
   }
 }
 
