@@ -15,7 +15,11 @@ export function scheduleTokenInactivation(token) {
     .plus({ minutes: 10 })
     .toJSDate();
 
-  return Job.create(APP_TOKEN_INACTIVATE, { tokenId: token.id }, { unlockAt });
+  return Job.create(
+    APP_TOKEN_INACTIVATE,
+    { tokenId: token.id },
+    { unlockAt, uniqKey: token.id }
+  );
 }
 
 /**
