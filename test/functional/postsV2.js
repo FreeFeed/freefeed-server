@@ -112,6 +112,16 @@ describe('TimelinesControllerV2', () => {
           it('should return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0, true));
           it('should return post whith 5 likes without folding', async () => await expectFolding(5, 5, 0, true));
         });
+
+        describe('Likes order', () => {
+          it('should keep likes order after unfolding', async () => {
+            // 5 likes
+            await Promise.all(users.slice(0, 5).map((u) => like(lunaPost.id, u.authToken)));
+            const { posts:{ likes: foldedLikes } } = await fetchPost(lunaPost.id, null, { allLikes: false });
+            const { posts:{ likes: unfoldedLikes } } = await fetchPost(lunaPost.id, null, { allLikes: true });
+            expect(unfoldedLikes.slice(0, foldedLikes.length), 'to equal', foldedLikes);
+          });
+        });
       });
 
       describe('Luna is a public user', () => {
