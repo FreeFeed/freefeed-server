@@ -244,6 +244,14 @@ export function addModel(dbAdapter) {
         }
       }
 
+      afterUpdate.push(async () => {
+        await EventService.onPostCreated(
+          this,
+          await dbAdapter.getTimelinesUUIDsByIntIds(this.destinationFeedIds),
+          await this.getCreatedBy()
+        );
+      });
+
       await this.validate();
 
       // Update post in DB
