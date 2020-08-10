@@ -18,6 +18,7 @@
     "noUnusedParameters": true,
     "allowSyntheticDefaultImports": true,
     "diagnostics": true,
+    "resolveJsonModule": true,
     "typeRoots": ["./types", "node_modules/@types"]
   },
   "include": ["app", "config", "lib", "migrations", "test", "types"]

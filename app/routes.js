@@ -1,11 +1,6 @@
 /* eslint babel/semi: "error" */
-import conditional from 'koa-conditional-get';
-import etag from 'koa-etag';
-import koaStatic from 'koa-static';
 import Router from '@koa/router';
-import config from 'config';
 
-import { reportError } from './support/exceptions';
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute';
 import CommentsRoute from './routes/api/v1/CommentsRoute';
@@ -32,28 +27,9 @@ import AppTokensRoute from './routes/api/v2/AppTokens';
 import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
-import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
-import { maintenanceCheck } from './support/maintenance';
 
 
 export default function (app) {
-  app.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
-
-  app.use(maintenanceCheck);
-
-  app.use(async (ctx, next) => {
-    try {
-      await next();
-    } catch (e) {
-      reportError(ctx)(e);
-    }
-  });
-
-  // naive (hash-based) implementation of ETags for dynamic content
-  app.use(conditional());
-  app.use(etag());
-  app.use(normalizeInputStrings);
-
   const router = createRouter();
   app.use(router.routes());
   app.use(router.allowedMethods());
