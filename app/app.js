@@ -25,16 +25,6 @@ export async function getSingleton() {
       return app;
     }
 
-    // Always print these namespaces to stderr in non-test environment
-    if (process.env.NODE_ENV !== 'test') {
-      createDebug.enable([
-        'freefeed:*error*',
-        'freefeed:*critical*',
-        'freefeed:*fail*',
-        process.env.DEBUG,
-      ].filter(Boolean).join(','));
-    }
-
     await initEnvironment();
 
     const _app = new FreefeedApp();
