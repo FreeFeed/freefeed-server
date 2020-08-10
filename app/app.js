@@ -9,6 +9,7 @@ import FreefeedApp from './freefeed-app';
 import routesInit from './routes';
 import PubsubListener from './pubsub-listener';
 import { initJobProcessing } from './jobs';
+import { init as initEnvironment } from './setup/environment';
 
 
 let app = null;
@@ -34,8 +35,7 @@ export async function getSingleton() {
       ].filter(Boolean).join(','));
     }
 
-    const environment = require('./setup/environment');
-    await environment.init();
+    await initEnvironment();
 
     const _app = new FreefeedApp();
     routesInit(_app);

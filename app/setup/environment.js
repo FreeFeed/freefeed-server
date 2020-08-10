@@ -51,7 +51,7 @@ const checkIfMediaDirectoriesExist = async () => {
   }
 };
 
-exports.init = async function () {
+export const init = async function () {
   if (!config.secret) {
     process.stderr.write(`⛔ Configuration error: config.secret is not defined\n`);
     process.stderr.write(`\n`);
