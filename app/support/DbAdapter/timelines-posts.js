@@ -353,7 +353,7 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
     const foldLikesSql = params.foldLikes ? pgFormat(`where count <= %L or rank <= %L`, params.maxUnfoldedLikes, params.visibleFoldedLikes) : ``;
     const likesSQL = `
       with likes as (${allLikesSQL})
-      select post_id, array_agg(user_id) as likes, count from likes
+      select post_id, array_agg(user_id order by rank) as likes, count from likes
       ${foldLikesSql}
       group by post_id, count 
     `;
