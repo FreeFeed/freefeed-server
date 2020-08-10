@@ -62,7 +62,7 @@ export function createRouter() {
   // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
   // See https://github.com/ZijianHe/koa-router/issues/246
   router.use((ctx, next) => {
-    ctx._matchedRoute = ctx.matched.find((layer) => layer.methods.includes(ctx.method)).path;
+    ctx.state.matchedRoute = ctx.matched.find((layer) => layer.methods.includes(ctx.method)).path;
     return next();
   });
 

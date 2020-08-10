@@ -164,16 +164,15 @@ describe('Auth Tokens', () => {
 
         it('should write log entry after POST request', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'POST',
-            url:           '/v1/posts',
-            _matchedRoute: '/v1/posts',
-            headers:       {
+            ip:      '127.0.0.127',
+            method:  'POST',
+            url:     '/v1/posts',
+            headers: {
               'user-agent': 'Lynx browser, Linux',
               'x-real-ip':  '127.0.0.128',
               'origin':     'https://localhost',
             },
-            state: {},
+            state: { matchedRoute: '/v1/posts' },
           };
 
           ctx.state.appTokenLogPayload = { postId: 'post1' };
@@ -191,15 +190,14 @@ describe('Auth Tokens', () => {
 
         it('should write log entry even with empty user agent', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'POST',
-            url:           '/v1/posts',
-            _matchedRoute: '/v1/posts',
-            headers:       {
+            ip:      '127.0.0.127',
+            method:  'POST',
+            url:     '/v1/posts',
+            headers: {
               'x-real-ip': '127.0.0.128',
               'origin':    'https://localhost',
             },
-            state: {},
+            state: { matchedRoute: '/v1/posts' },
           };
 
           ctx.state.appTokenLogPayload = { postId: 'post1' };
@@ -217,16 +215,15 @@ describe('Auth Tokens', () => {
 
         it('should not write log entry after GET request', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'GET', // <-- here
-            url:           '/v1/posts',
-            _matchedRoute: '/v1/posts',
-            headers:       {
+            ip:      '127.0.0.127',
+            method:  'GET', // <-- here
+            url:     '/v1/posts',
+            headers: {
               'user-agent': 'Lynx browser, Linux',
               'x-real-ip':  '127.0.0.128',
               'origin':     'https://localhost',
             },
-            state: {},
+            state: { matchedRoute: '/v1/posts' },
           };
 
           ctx.state.appTokenLogPayload = { postId: 'post1' };
@@ -238,16 +235,15 @@ describe('Auth Tokens', () => {
 
         it('should not write log entry after unsuccessful request', async () => {
           const ctx = {
-            ip:            '127.0.0.127',
-            method:        'POST',
-            url:           '/v1/posts',
-            _matchedRoute: '/v1/posts',
-            headers:       {
+            ip:      '127.0.0.127',
+            method:  'POST',
+            url:     '/v1/posts',
+            headers: {
               'user-agent': 'Lynx browser, Linux',
               'x-real-ip':  '127.0.0.128',
               'origin':     'https://localhost',
             },
-            state:  {},
+            state:  { matchedRoute: '/v1/posts' },
             status: 422, // <-- here
           };
 

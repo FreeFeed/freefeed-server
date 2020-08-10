@@ -168,17 +168,16 @@ describe('withAuthToken middleware', () => {
     let token;
 
     const context = () => ({
-      ip:            '127.0.0.127',
-      method:        'POST',
-      url:           '/v1/posts',
-      _matchedRoute: '/v1/posts',
-      headers:       {
+      ip:      '127.0.0.127',
+      method:  'POST',
+      url:     '/v1/posts',
+      headers: {
         'user-agent': 'Lynx browser, Linux',
         'x-real-ip':  '127.0.0.128',
         'origin':     'https://localhost',
       },
       request: { body: {} },
-      state:   {},
+      state:   { matchedRoute: '/v1/posts' },
     });
 
 

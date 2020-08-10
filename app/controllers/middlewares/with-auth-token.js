@@ -39,7 +39,7 @@ export async function withAuthToken(ctx, next) {
     {
       headers:  ctx.headers,
       remoteIP: ctx.ip,
-      route:    `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${ctx._matchedRoute}`,
+      route:    `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${ctx.state.matchedRoute}`,
     },
   );
 
