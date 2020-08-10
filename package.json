@@ -29,7 +29,7 @@
     "url": "git://github.com/FreeFeed/freefeed-server.git"
   },
   "dependencies": {
-    "@koa/router": "~9.0.1",
+    "@koa/router": "~9.3.1",
     "ajv": "~6.12.3",
     "await-lock": "~2.0.1",
     "aws-sdk": "^2.705.0",
