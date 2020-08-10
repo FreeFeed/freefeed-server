@@ -33,7 +33,7 @@
     "ajv": "~6.12.3",
     "await-lock": "~2.0.1",
     "aws-sdk": "^2.705.0",
-    "bcrypt": "~4.0.1",
+    "bcrypt": "~5.0.0",
     "bluebird": "~3.5.5",
     "bytes": "~3.1.0",
     "cache-manager": "~3.3.0",
