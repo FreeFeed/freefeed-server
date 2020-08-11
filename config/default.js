@@ -220,4 +220,22 @@ config.maintenance = { messageFile: 'tmp/MAINTENANCE.txt' };
 
 config.eslint = { linebreakStyle: null };
 
+config.goneUsers = {
+  //
+  resumeTokenTTL: 600, // in seconds
+};
+
+config.jobManager = {
+  pollInterval: 5, // in seconds
+  jobLockTime:  120, // in seconds
+  batchSize:    5,
+};
+
+config.userDeletion = {
+  cooldownDays: 30, // in days
+  reminderDays: 27, // in days
+};
+
+config.ianaTimeZone = 'Europe/Tallinn';
+
 module.exports = config;

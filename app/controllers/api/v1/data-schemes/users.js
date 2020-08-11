@@ -77,3 +77,32 @@ export const updateSubscriptionInputSchema = {
     }
   }
 };
+
+export const userSuspendMeInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: ['password'],
+
+  properties: {
+    password: {
+      type:        'string',
+      description: 'Current user password'
+    }
+  }
+};
+
+
+export const userResumeMeInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: ['resumeToken'],
+
+  properties: {
+    resumeToken: {
+      type:        'string',
+      description: 'JWT-token for resume account'
+    }
+  }
+};

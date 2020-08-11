@@ -1,6 +1,6 @@
 /* eslint babel/semi: "error" */
 import { promisifyAll } from 'bluebird';
-import { createClient as createRedisClient } from 'redis';
+import Redis from 'ioredis';
 import {
   compact,
   flatten,
@@ -27,7 +27,7 @@ import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
-import { serializeUser } from './serializers/v2/user';
+import { serializeUsersByIds } from './serializers/v2/user';
 
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -40,8 +40,19 @@ export default class PubsubListener {
   constructor(server, app) {
     this.app = app;
 
+    const pubClient = new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      db:   config.database,
+    });
+    const subClient = new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      db:   config.database,
+    });
+
     this.io = IoServer(server);
-    this.io.adapter(redis_adapter({ host: config.redis.host, port: config.redis.port }));
+    this.io.adapter(redis_adapter({ pubClient, subClient }));
 
     this.io.on('error', (err) => {
       debug('socket.io error', err);
@@ -63,7 +74,11 @@ export default class PubsubListener {
 
     this.io.on('connection', this.onConnect);
 
-    const redisClient = createRedisClient(config.redis.port, config.redis.host, {});
+    const redisClient = new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      db:   config.database,
+    });
     redisClient.on('error', (err) => {
       if (sentryIsEnabled) {
         Raven.captureException(err, { extra: { err: 'PubsubListener Redis subscriber error' } });
@@ -481,7 +496,7 @@ export default class PubsubListener {
 
     const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds))
       .map((id) => `user:${id}`);
-    const updatedGroups = groups.map(serializeUser);
+    const updatedGroups = await serializeUsersByIds(groupIds, false);
 
     await this.broadcastMessage(
       rooms,
@@ -598,6 +613,12 @@ export default class PubsubListener {
  */
 export async function getRoomsOfPost(post) {
   if (!post) {
+    return [];
+  }
+
+  const author = await dbAdapter.getUserById(post.userId);
+
+  if (!author.isActive) {
     return [];
   }
 

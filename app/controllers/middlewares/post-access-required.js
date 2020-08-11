@@ -15,8 +15,9 @@ export function postAccessRequired(map = { postId: 'post' }) {
 
       const { [key]: postId } = ctx.params;
       const post = await dbAdapter.getPostById(postId);
+      const author = post ? await dbAdapter.getUserById(post.userId) : null;
 
-      if (!post) {
+      if (!post || !author.isActive) {
         throw notFound();
       }
 

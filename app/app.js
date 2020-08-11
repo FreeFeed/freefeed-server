@@ -4,10 +4,12 @@ import http from 'http';
 import AwaitLock from 'await-lock';
 import { promisifyAll } from 'bluebird';
 import createDebug from 'debug';
-import Application from 'koa';
 
+import FreefeedApp from './freefeed-app';
 import routesInit from './routes';
 import PubsubListener from './pubsub-listener';
+import { initJobProcessing } from './jobs';
+import { init as initEnvironment } from './setup/environment';
 
 
 let app = null;
@@ -23,14 +25,13 @@ export async function getSingleton() {
       return app;
     }
 
-    const _app = new Application();
+    await initEnvironment();
 
-    const environment = require('./setup/environment');
-    const server = http.createServer(_app.callback());
-
-    await environment.init(_app);
+    const _app = new FreefeedApp();
     routesInit(_app);
+    initJobProcessing();
 
+    const server = http.createServer(_app.callback());
     _app.context.pubsub = new PubsubListener(server, _app);
 
     const port = (process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port);

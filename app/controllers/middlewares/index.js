@@ -51,3 +51,4 @@ export function authRequired() {
 export { postAccessRequired } from './post-access-required';
 export { targetUserRequired } from './target-user-required';
 export { inputSchemaRequired } from './input-schema-required';
+export { commentAccessRequired } from './comment-access-required';

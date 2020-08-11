@@ -1,16 +1,18 @@
-import { promisifyAll } from 'bluebird';
-import _redis from 'redis';
+import Redis from 'ioredis';
 import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
 
-promisifyAll(_redis.RedisClient.prototype);
-promisifyAll(_redis.Multi.prototype);
-
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
-const database = _redis.createClient(config.redis.port, config.redis.host, config.redis.options);
+const options = {
+  host: config.redis.host,
+  port: config.redis.port,
+  db:   config.database,
+  ...config.redis.options,
+};
+const database = new Redis(options);
 export default database;
 
 database.on('connect', log('connect'));
@@ -36,14 +38,6 @@ function logAndQuit(type) {
   };
 }
 
-export function selectDatabase() {
-  return database.selectAsync(config.database);
-}
-
 export function connect() {
   return database;
-}
-
-export function redis() {
-  return redis;
 }

@@ -49,6 +49,9 @@ export const alwaysDisallowedRoutes = [
   'DELETE /v2/ext-auth/profiles/:profileId',
   'POST /v2/ext-auth/auth-start',
   'POST /v2/ext-auth/auth-finish',
+  // User suspend/resume
+  'POST /v1/users/suspend-me',
+  'POST /v1/users/resume-me',
 ];
 
 export const appTokensScopes = [

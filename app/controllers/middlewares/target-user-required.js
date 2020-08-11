@@ -21,7 +21,7 @@ export function targetUserRequired(mapping = { username: 'targetUser' }) {
       const { [key]: username } = ctx.params;
       const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
 
-      if (!targetUser || !targetUser.isActive) {
+      if (!targetUser) {
         throw new NotFoundException(`User "${username}" is not found`);
       }
 

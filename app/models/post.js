@@ -244,6 +244,14 @@ export function addModel(dbAdapter) {
         }
       }
 
+      afterUpdate.push(async () => {
+        await EventService.onPostCreated(
+          this,
+          await dbAdapter.getTimelinesUUIDsByIntIds(this.destinationFeedIds),
+          await this.getCreatedBy()
+        );
+      });
+
       await this.validate();
 
       // Update post in DB
@@ -843,6 +851,12 @@ export function addModel(dbAdapter) {
      * @returns {boolean}
      */
     async isVisibleFor(viewer) {
+      const author = await dbAdapter.getUserById(this.userId);
+
+      if (!author.isActive) {
+        return false;
+      }
+
       // Check if viewer is anonymous and post is not public
       if (!viewer) {
         return this.isProtected === '0';

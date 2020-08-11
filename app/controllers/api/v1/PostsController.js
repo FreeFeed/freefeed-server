@@ -3,7 +3,7 @@ import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
 import { dbAdapter, Post, AppTokenV1 } from '../../../models'
-import { ForbiddenException, NotAuthorizedException, NotFoundException, BadRequestException } from '../../../support/exceptions'
+import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions'
 import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
 
@@ -199,35 +199,27 @@ export default class PostsController {
     },
   ]);
 
-  static async hide(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
+  static hide = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
 
-    const post = await dbAdapter.getPostById(ctx.params.postId)
+      await post.hide(user.id)
+      ctx.body = {};
+    },
+  ]);
 
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
+  static unhide = compose([
+    authRequired(),
+    postAccessRequired(),
+    async (ctx) => {
+      const { user, post } = ctx.state;
 
-    await post.hide(ctx.state.user.id)
-    ctx.body = {};
-  }
-
-  static async unhide(ctx) {
-    if (!ctx.state.user) {
-      throw new NotAuthorizedException();
-    }
-
-    const post = await dbAdapter.getPostById(ctx.params.postId)
-
-    if (null === post) {
-      throw new NotFoundException("Can't find post");
-    }
-
-    await post.unhide(ctx.state.user.id)
-    ctx.body = {};
-  }
+      await post.unhide(user.id)
+      ctx.body = {};
+    },
+  ]);
 
   static save = compose([
     authRequired(),

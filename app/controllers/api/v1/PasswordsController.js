@@ -15,7 +15,7 @@ export default class PasswordsController {
 
     const user = await dbAdapter.getUserByEmail(email)
 
-    if (null === user) {
+    if (!user?.isActive) {
       throw new NotFoundException(`Invalid email address or user not found`)
     }
 
@@ -36,7 +36,7 @@ export default class PasswordsController {
 
     const user = await dbAdapter.getUserByResetToken(token)
 
-    if (null === user) {
+    if (!user?.isActive) {
       throw new NotFoundException(`Password reset token not found or has expired`)
     }
 

@@ -3,7 +3,7 @@ import _ from 'lodash'
 import monitor from 'monitor-dog'
 
 import { dbAdapter, PubSub as pubSub } from '../../../models'
-import { serializeSelfUser, serializeUser, serializeUsersByIds } from '../../../serializers/v2/user'
+import { serializeSelfUser, serializeUsersByIds, userSerializerFunction } from '../../../serializers/v2/user'
 import { monitored, authRequired } from '../../middlewares';
 
 
@@ -127,19 +127,19 @@ export default class UsersController {
       ]);
       const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'), user.id);
 
-      const fillUser = getUserFiller(allUsers, allStats, allGroupAdmins);
+      const serializeUser = userSerializerFunction(allUsers, allStats, allGroupAdmins);
 
       users.pendingGroupRequests = groupRequestersUIDs.length > 0;
       users.pendingSubscriptionRequests = pendingSubscriptionRequestsUIDs;
       users.subscriptionRequests = subscriptionRequestsUIDs;
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
-      users.subscribers = subscribersUIDs.map(fillUser);
-      const subscribers = subscriptionsUIDs.map(fillUser);
-      const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map(fillUser);
+      users.subscribers = subscribersUIDs.map(serializeUser);
+      const subscribers = subscriptionsUIDs.map(serializeUser);
+      const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map(serializeUser);
       const managedGroups = managedGroupUIDs
-        .map(fillUser)
+        .map(serializeUser)
         .map((group) => {
-          group.requests = (pendingGroupRequests[group.id] || []).map(fillUser);
+          group.requests = (pendingGroupRequests[group.id] || []).map(serializeUser);
           return group;
         });
 
@@ -151,25 +151,4 @@ export default class UsersController {
       ctx.body = { users, subscribers, subscriptions, requests, managedGroups };
     },
   ]);
-}
-
-const defaultStats = {
-  posts:         '0',
-  likes:         '0',
-  comments:      '0',
-  subscribers:   '0',
-  subscriptions: '0',
-};
-
-function getUserFiller(allUsers, allStats, allGroupAdmins = {}) {
-  return (id) => {
-    const obj = serializeUser(allUsers[id]);
-    obj.statistics = allStats[id] || defaultStats;
-
-    if (obj.type === 'group') {
-      obj.administrators = allGroupAdmins[obj.id] || [];
-    }
-
-    return obj;
-  };
 }

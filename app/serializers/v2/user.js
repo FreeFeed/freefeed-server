@@ -48,12 +48,19 @@ export async function serializeSelfUser(user) {
   return result;
 }
 
-export function serializeUser(user) {
-  if (user.type === 'user') {
-    return pick(user, commonUserFields);
+// This function just selects some props from User/Group object and it is not
+// enough to API output.
+function pickAccountProps(user) {
+  const s = pick(
+    user,
+    user.type === 'user' ? commonUserFields : commonGroupFields
+  );
+
+  if (!user.isActive) {
+    s.isGone = true;
   }
 
-  return pick(user, commonGroupFields);
+  return s;
 }
 
 const defaultStats = {
@@ -69,11 +76,16 @@ const defaultStats = {
  */
 export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) {
   return (id) => {
-    const obj = serializeUser(allUsers[id]);
-    obj.statistics = allStats[id] || defaultStats;
+    const obj = pickAccountProps(allUsers[id]);
+    obj.statistics = (!obj.isGone && allStats[id]) || defaultStats;
 
     if (obj.type === 'group') {
       obj.administrators = allGroupAdmins[obj.id] || [];
+
+      // Groups that have no active admins are restricted
+      if (!obj.administrators.some((a) => allUsers[a]?.isActive)) {
+        obj.isRestricted = '1';
+      }
     }
 
     return obj;

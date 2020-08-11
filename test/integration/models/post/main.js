@@ -4,6 +4,7 @@ import expect from 'unexpected'
 
 import cleanDB from '../../../dbCleaner';
 import { dbAdapter, Post, User } from '../../../../app/models'
+import { GONE_SUSPENDED } from '../../../../app/models/user';
 
 
 describe('Post', () => {
@@ -698,6 +699,35 @@ describe('Post', () => {
 
         it('should allow Mars to view post', async () => {
           await expect(post.isVisibleFor(mars), 'to be fulfilled with', true);
+        });
+      });
+    });
+
+    describe('Luna becomes gone', () => {
+      beforeEach(async () => {
+        await luna.setGoneStatus(GONE_SUSPENDED);
+        post = await dbAdapter.getPostById(post.id);
+      });
+
+      it('should not allow anonymous to view post', async () => {
+        await expect(post.isVisibleFor(null), 'to be fulfilled with', false);
+      });
+
+      it('should not allow Mars to view post', async () => {
+        await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
+      });
+
+      it('should not allow Luna to view post', async () => {
+        await expect(post.isVisibleFor(luna), 'to be fulfilled with', false);
+      });
+
+      describe('Mars subscribes to Luna', () => {
+        beforeEach(async () => {
+          await mars.subscribeTo(luna);
+        });
+
+        it('should not allow Mars to view post', async () => {
+          await expect(post.isVisibleFor(mars), 'to be fulfilled with', false);
         });
       });
     });

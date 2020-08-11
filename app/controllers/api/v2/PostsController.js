@@ -30,6 +30,13 @@ export const opengraph = compose([
       return;
     }
 
+    const author = await dbAdapter.getUserById(post.userId);
+
+    if (!author.isActive) {
+      ctx.body = '';
+      return;
+    }
+
     let image = null;
     let image_h, image_w;
 
@@ -63,7 +70,6 @@ export const opengraph = compose([
       }
     }
 
-    const author = await dbAdapter.getUserById(post.userId);
     const body = _.escape(post.body);
 
     let og = `<meta property="og:title" content="FreeFeed.net/${author.username}" />

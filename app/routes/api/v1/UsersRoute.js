@@ -13,6 +13,8 @@ export default function addRoutes(app) {
   app.post('/v1/users/:username/sendRequest',       UsersController.sendRequest);
   app.get('/v1/users/whoami',                       deprecated('Please use /v2/users/whoami'));
   app.get('/v1/users/me',                           UsersController.showMe);
+  app.post('/v1/users/suspend-me',                  UsersController.suspendMe);
+  app.post('/v1/users/resume-me',                   UsersController.resumeMe);
   app.get('/v1/users/:username',                    UsersController.show);
   app.put('/v1/users/updatePassword',               UsersController.updatePassword);
   app.post('/v1/users/updateProfilePicture',        UsersController.updateProfilePicture);

@@ -27,6 +27,7 @@ import {
   authHeaders,
 } from '../functional/functional_test_helper'
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
+import { GONE_SUSPENDED } from '../../app/models/user';
 
 import * as schema from './schemaV2-helper';
 
@@ -480,5 +481,25 @@ describe('UsersControllerV2', () => {
       expect(resp.usersInHomeFeeds, 'to satisfy', others.map((u) => ({ id: u.user.id })));
     });
   });
+
+  describe('gone users', () => {
+    let luna, mars;
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(['luna', 'mars']);
+      await mutualSubscriptions([luna, mars]);
+
+      // Mars is gone
+      await setGoneStatus(mars, GONE_SUSPENDED);
+    });
+
+    it(`should return Mars with isGone field in Luna's friends`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/users/${luna.username}/subscribers`);
+      expect(resp, 'to satisfy', { subscribers: [{ id: mars.user.id, isGone: true }] });
+    });
+  });
 });
 
+async function setGoneStatus(userCtx, status) {
+  const user = await dbAdapter.getUserById(userCtx.user.id);
+  await user.setGoneStatus(status);
+}

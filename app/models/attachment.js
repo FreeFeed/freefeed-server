@@ -466,6 +466,60 @@ export function addModel(dbAdapter) {
       // Inline version of 'attfnboth' method (http://greenbytes.de/tech/tc2231/#attfnboth)
       return `inline; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`;
     }
+
+    async destroy() {
+      await this.deleteFiles();
+      await dbAdapter.deleteAttachment(this.id);
+    }
+
+    /**
+     * Delete all attachment's files
+     */
+    async deleteFiles() {
+      const thumbIds = Object.keys(this.imageSizes).filter((s) => s !== 'o');
+
+      if (config.attachments.storage.type === 's3') {
+        const s3 = getS3(config.attachments.storage);
+        const keys = [
+          config.attachments.path + this.getFilename(),
+          ...thumbIds.map((s) => config.attachments.imageSizes[s].path + this.getFilename()),
+        ];
+
+        await Promise.all(
+          keys.map(async (Key) => {
+            try {
+              await s3.deleteObject({
+                Key,
+                Bucket: config.attachments.storage.bucket,
+              }).promise();
+            } catch (err) {
+              // It is ok if file isn't found
+              if (err.code !== 'NotFound') {
+                throw err;
+              }
+            }
+          })
+        );
+      } else {
+        const filePaths = [
+          this.getPath(),
+          ...thumbIds.map((s) => this.getResizedImagePath(s)),
+        ];
+
+        await Promise.all(
+          filePaths.map(async (filePath) => {
+            try {
+              await fs.unlink(filePath);
+            } catch (err) {
+              // It is ok if file isn't found
+              if (err.code !== 'ENOENT') {
+                throw err;
+              }
+            }
+          })
+        );
+      }
+    }
   };
 }
 

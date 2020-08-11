@@ -1,11 +1,11 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fs from 'fs'
+import { promises as fsPromises } from 'fs';
 import path from 'path'
 
 import mkdirp from 'mkdirp'
 import gm from 'gm'
-import { promisify, promisifyAll } from 'bluebird'
+import { promisifyAll } from 'bluebird'
 import chai from 'chai'
 import chaiFS from 'chai-fs'
 import _ from 'lodash';
@@ -13,14 +13,13 @@ import config from 'config';
 
 import cleanDB from '../../dbCleaner'
 import { dbAdapter, User, Attachment } from '../../../app/models'
+import { filesMustExist } from '../helpers/attachments'
 
 
 chai.use(chaiFS)
 
 const { expect } = chai;
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
-const stat = promisify(fs.stat);
+const { readFile, writeFile, stat } = fsPromises;
 
 describe('Attachment', () => {
   before(() => cleanDB($pg_database))
@@ -87,7 +86,13 @@ describe('Attachment', () => {
       }
     }
 
+    const createdAttachments = new Map();
+
     const createAndCheckAttachment = async (file, thePost, theUser) => {
+      if (createdAttachments.has(file.name)) {
+        return createdAttachments.get(file.name);
+      }
+
       const attachment = new Attachment({
         file,
         postId: thePost.id,
@@ -95,6 +100,7 @@ describe('Attachment', () => {
       });
 
       await attachment.create()
+      createdAttachments.set(file.name, attachment)
 
       attachment.should.be.an.instanceOf(Attachment)
       attachment.should.not.be.empty
@@ -372,5 +378,28 @@ describe('Attachment', () => {
       newAttachment.should.have.a.property('mediaType');
       newAttachment.mediaType.should.be.equal('audio')
     })
+
+    it('should remove files of image attachment', async () => {
+      const attachment = await createAndCheckAttachment(files.large, post, user);
+      await filesMustExist(attachment);
+      await attachment.deleteFiles();
+      await filesMustExist(attachment, false);
+    });
+
+    it('should remove files of audio attachment', async () => {
+      const attachment = await createAndCheckAttachment(files.audio, post, user);
+      await filesMustExist(attachment);
+      await attachment.deleteFiles();
+      await filesMustExist(attachment, false);
+    });
+
+    it('should destroy attachment object', async () => {
+      const attachment = await createAndCheckAttachment(files.audio, post, user);
+      await attachment.destroy();
+
+      await filesMustExist(attachment, false);
+      const deleted = await dbAdapter.getAttachmentById(attachment.id);
+      expect(deleted).to.be.null;
+    });
   })
 })

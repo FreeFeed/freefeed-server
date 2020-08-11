@@ -38,7 +38,8 @@ import {
   whoami,
   updateCommentAsync,
   updatePostAsync,
-  getUnreadDirectsNumber
+  getUnreadDirectsNumber,
+  createAndReturnPost
 } from '../functional/functional_test_helper'
 
 import * as schema from './schemaV2-helper'
@@ -1211,6 +1212,53 @@ describe('EventService', () => {
           target_user_id:     marsUserModel.intId,
           post_author_id:     lunaUserModel.intId,
         }]);
+      });
+
+      describe('when post updates', () => {
+        const postAndUpdate = async (context, initialBody, nextBody) => {
+          context.post = await createAndReturnPost(context, initialBody);
+          await updatePostAsync(context, { body: nextBody });
+        };
+
+        it('should create mention_in_post when post without mention updates with mention', async () => {
+          await postAndUpdate(luna, 'Post without mentions', 'Post that mentions @mars');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_post',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
+
+        it('should not removce mention_in_post when mention disappears from the post', async () => {
+          await postAndUpdate(luna, 'Post that mentions @mars', 'Post that not mentions anybody');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_post',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
+
+        it('should create additional mention_in_post when a new mention appears in the post', async () => {
+          await postAndUpdate(luna, 'Post that mentions @mars', 'Post that mentions @pluto');
+          await expectMentionEvents(marsUserModel, [{
+            user_id:            marsUserModel.intId,
+            event_type:         'mention_in_post',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     marsUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+          await expectMentionEvents(plutoUserModel, [{
+            user_id:            plutoUserModel.intId,
+            event_type:         'mention_in_post',
+            created_by_user_id: lunaUserModel.intId,
+            target_user_id:     plutoUserModel.intId,
+            post_author_id:     lunaUserModel.intId,
+          }]);
+        });
       });
     });
 
