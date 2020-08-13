@@ -16,7 +16,7 @@ export const up = (knex) => knex.schema.raw(`do $$begin
 
   -- Update gone status for already gone users
   update users set gone_status = ${GONE_DELETED}, gone_at = updated_at
-    where hashed_password is null or hashed_password = '';
+    where type='user' and (hashed_password is null or hashed_password = '');
   
   -- Restore previously deleted feeds of gone users
   insert into feeds (name, user_id)
