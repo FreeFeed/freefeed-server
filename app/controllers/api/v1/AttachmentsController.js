@@ -4,6 +4,7 @@ import createDebug from 'debug';
 import { reportError } from '../../../support/exceptions';
 import { serializeAttachment } from '../../../serializers/v2/post';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
+import { UnsupportedTypeError } from '../../../models/attachment';
 
 
 export default class AttachmentsController {
@@ -46,6 +47,10 @@ export default class AttachmentsController {
           const errorDetails = { status: 500, message: 'Internal server error' }
           reportError(ctx)(errorDetails);
           return;
+        }
+
+        if (e instanceof UnsupportedTypeError) {
+          e.status = 415;
         }
 
         reportError(ctx)(e);

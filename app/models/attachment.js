@@ -1,5 +1,6 @@
 import { promises as fs, createReadStream } from 'fs';
 import { execFile } from 'child_process';
+import { extname } from 'path';
 
 import config from 'config';
 import { promisify, promisifyAll } from 'bluebird';
@@ -63,6 +64,8 @@ async function mimeTypeDetect(fileName, filePath) {
 }
 
 const execFileAsync = promisify(execFile);
+
+export class UnsupportedTypeError extends Error {}
 
 export function addModel(dbAdapter) {
   return class Attachment {
@@ -136,16 +139,11 @@ export function addModel(dbAdapter) {
       this.mimeType = this.file.type;
 
       // Determine initial file extension
-      // (it might be overridden later when we know MIME type from its contents)
-      // TODO: extract to config
-      const supportedExtensions = /\.(jpe?g|png|gif|mp3|m4a|ogg|wav|txt|pdf|docx?|pptx?|xlsx?)$/i;
+      // (it will be overridden later when we know MIME type from its contents)
+      this.fileExtension = extname(this.fileName || '').toLowerCase();
 
-      if (this.fileName && this.fileName.match(supportedExtensions) !== null) {
-        this.fileExtension = this.fileName
-          .match(supportedExtensions)[1]
-          .toLowerCase();
-      } else {
-        this.fileExtension = '';
+      if (this.fileExtension.startsWith('.')) {
+        this.fileExtension = this.fileExtension.substring(1);
       }
 
       await this.handleMedia();
@@ -251,39 +249,26 @@ export function addModel(dbAdapter) {
       const tmpAttachmentFile = this.file.path;
       const tmpAttachmentFileName = this.file.name;
 
-      const supportedImageTypes = {
-        'image/jpeg':    'jpg',
-        'image/png':     'png',
-        'image/gif':     'gif',
-        'image/svg+xml': 'svg'
-      };
-      const supportedAudioTypes = {
-        'audio/mpeg':  'mp3',
-        'audio/x-m4a': 'm4a',
-        'audio/m4a':   'm4a',
-        'audio/mp4':   'm4a',
-        'audio/ogg':   'ogg',
-        'audio/x-wav': 'wav'
-      };
-
       this.mimeType = await mimeTypeDetect(
         tmpAttachmentFileName,
         tmpAttachmentFile
       );
       debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
 
-      if (supportedImageTypes[this.mimeType]) {
-        // Set media properties for 'image' type
+      if (this.mimeType.startsWith('image/')) {
         this.mediaType = 'image';
-        this.fileExtension = supportedImageTypes[this.mimeType];
-        this.noThumbnail = '1'; // this may be overriden below
-        await this.handleImage(tmpAttachmentFile);
-      } else if (supportedAudioTypes[this.mimeType]) {
-        // Set media properties for 'audio' type
+      } else if (this.mimeType.startsWith('audio/')) {
         this.mediaType = 'audio';
-        this.fileExtension = supportedAudioTypes[this.mimeType];
-        this.noThumbnail = '1';
+      } else {
+        this.mediaType = 'general';
+      }
 
+      this.noThumbnail = '1'; // this may be overriden below
+
+      if (this.mediaType === 'image') {
+        await this.handleImage(tmpAttachmentFile);
+      } else if (this.mediaType === 'audio') {
+        // Set media properties for 'audio' type
         if (this.fileExtension === 'm4a') {
           this.mimeType = 'audio/mp4'; // mime-type compatible with music-metadata
         }
@@ -300,10 +285,12 @@ export function addModel(dbAdapter) {
         } else {
           this.artist = metadata.artist;
         }
-      } else {
-        // Set media properties for 'general' type
-        this.mediaType = 'general';
-        this.noThumbnail = '1';
+      }
+
+      this.fileExtension = config.attachments.supportedTypes[this.mimeType];
+
+      if (!this.fileExtension) {
+        throw new UnsupportedTypeError(`Unsupported MIME type: ${this.mimeType}`);
       }
 
       // Store an original attachment
