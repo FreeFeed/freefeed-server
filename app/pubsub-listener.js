@@ -28,6 +28,7 @@ import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MOD
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
+import { Address } from './support/ipv6';
 
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -734,7 +735,8 @@ async function getAuthUser(jwtToken, socket) {
 
   if (authData.authToken instanceof AppTokenV1) {
     await authData.authToken.registerUsage({
-      ip:        socket.handshake.address,
+      // Beautify address for user: remove ::ffff: prefix from IPv4 addresses
+      ip:        new Address(socket.handshake.address).toString(),
       userAgent: socket.handshake.headers['user-agent'],
     });
   }
