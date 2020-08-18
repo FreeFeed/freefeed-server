@@ -1,12 +1,15 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
+import config from 'config';
 import expect from 'unexpected';
+import { simpleParser } from 'mailparser';
 
 import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner'
 import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { GONE_SUSPENDED, GONE_COOLDOWN, GONE_DELETED } from '../../app/models/user';
+import { addMailListener } from '../../lib/mailer';
 
 import {
   createTestUsers,
@@ -468,6 +471,29 @@ describe('Gone users', () => {
       await setGoneStatus(luna, GONE_DELETED);
       const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
       expect(resp, 'to satisfy', { __httpCode: 403 });
+    });
+  });
+
+  describe('Password reset', () => {
+    const email = 'luna@example.com';
+    beforeEach(async () => {
+      const oUser = await dbAdapter.getUserById(luna.user.id);
+      await oUser.update({ email });
+    });
+
+    let capturedMail = null;
+    let removeMailListener = () => null;
+    before(() => (removeMailListener = addMailListener((r) => (capturedMail = r))));
+    after(removeMailListener);
+    beforeEach(() => (capturedMail = null));
+
+    it(`should send password reset email to gone user`, async () => {
+      const resp = await performJSONRequest('POST', `/v1/passwords`, { email });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+
+      expect(capturedMail, 'to satisfy', { envelope: { to: [email] } });
+      const parsedMail = await simpleParser(capturedMail.response);
+      expect(parsedMail, 'to satisfy', { subject: config.mailer.resetPasswordMailSubject, });
     });
   });
 });
