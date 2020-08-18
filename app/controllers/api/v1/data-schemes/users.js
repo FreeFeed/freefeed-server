@@ -33,6 +33,8 @@ export const userCreateInputSchema = {
       type:    'string',
       pattern: '^https?://',
     },
+    isPrivate:   { type: 'boolean', default: false },
+    isProtected: { type: 'boolean', default: false },
   },
 };
 

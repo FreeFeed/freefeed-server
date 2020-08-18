@@ -44,11 +44,13 @@ export default class UsersController {
       }
 
       const params = {
-        username:   ctx.request.body.username,
-        screenName: ctx.request.body.screenName,
-        email:      ctx.request.body.email,
+        username:    ctx.request.body.username,
+        screenName:  ctx.request.body.screenName,
+        email:       ctx.request.body.email,
         // may be empty if externalProfileKey is present
-        password:   ctx.request.body.password,
+        password:    ctx.request.body.password,
+        isPrivate:   ctx.request.body.isPrivate ? '1' : '0',
+        isProtected: (ctx.request.body.isPrivate || ctx.request.body.isProtected) ? '1' : '0',
       }
 
       if (config.recaptcha.enabled) {

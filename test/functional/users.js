@@ -66,9 +66,47 @@ describe('UsersController', () => {
           res.body.users.username.should.eql(user.username.toLowerCase())
           res.body.users.should.have.property('email')
           res.body.users.email.should.eql(user.email)
+          res.body.users.should.have.property('isPrivate')
+          res.body.users.isPrivate.should.eql('0')
+          res.body.users.should.have.property('isProtected')
+          res.body.users.isProtected.should.eql('0')
           done()
         })
     })
+
+    it('should create private user', async () => {
+      const user = {
+        username:  'Luna',
+        password:  'password',
+        email:     'user@example.com',
+        isPrivate: true,
+      };
+
+      const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users', user);
+      expect(resp, 'to satisfy', {
+        users: {
+          isPrivate:   '1',
+          isProtected: '1',
+        }
+      });
+    });
+
+    it('should create protected user', async () => {
+      const user = {
+        username:    'Luna',
+        password:    'password',
+        email:       'user@example.com',
+        isProtected: true,
+      };
+
+      const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users', user);
+      expect(resp, 'to satisfy', {
+        users: {
+          isPrivate:   '0',
+          isProtected: '1',
+        }
+      });
+    });
 
     describe('onboarding', () => {
       let onboardCtx = {}
