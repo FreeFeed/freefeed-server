@@ -127,6 +127,19 @@ export default class UsersController {
       ]);
       const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'), user.id);
 
+      {
+        // We need to fetch info for group admins too
+        const additionalUIDs = _.uniq(Object.values(allGroupAdmins).flat()).filter((id) => !allUsers[id]);
+
+        if (additionalUIDs.length > 0) {
+          const addUsers = await dbAdapter.getUsersByIdsAssoc(additionalUIDs);
+
+          for (const id of Object.keys(addUsers)) {
+            allUsers[id] = addUsers[id];
+          }
+        }
+      }
+
       const serializeUser = userSerializerFunction(allUsers, allStats, allGroupAdmins);
 
       users.pendingGroupRequests = groupRequestersUIDs.length > 0;
