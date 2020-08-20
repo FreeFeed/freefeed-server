@@ -218,6 +218,28 @@ describe('UsersControllerV2', () => {
         expect(feedOwnerIds, 'to equal', friendsIds);
       });
     });
+
+    describe(`Group admins`, () => {
+      let luna, mars, celestials;
+
+      beforeEach(async () => {
+        [luna, mars] = await createTestUsers(['luna', 'mars']);
+        celestials = await createGroupAsync(mars, 'celestials');
+        await subscribeToAsync(luna, celestials);
+      });
+
+      it(`should return proper group info in whoami`, async () => {
+        const resp = await performJSONRequest('GET', '/v2/users/whoami', null, authHeaders(luna));
+        expect(resp, 'to satisfy', {
+          subscribers: [{
+            id:           celestials.group.id,
+            isPrivate:    '0',
+            isProtected:  '0',
+            isRestricted: '0',
+          }]
+        });
+      });
+    });
   })
 
   describe('Backend preferences', () => {
