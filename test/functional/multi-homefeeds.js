@@ -498,26 +498,28 @@ describe(`Multiple home feeds API`, () => {
   describe(`Home feeds posts`, () => {
     before(() => cleanDB($pg_database));
 
-    let luna, mars, venus, jupiter, saturn, venusGroup,
+    let luna, mars, venus, jupiter, saturn, venusGroup, jupiterGroup,
       mainHomeFeedId, secondaryHomeFeedId, tertiaryHomeFeedId,
-      lunaPost, marsPost, venusPost, jupiterPost, saturnPost;
+      lunaPost, marsPost, venusPost, jupiterPost, saturnPost, jupiterPostToGroup;
 
     before(async () => {
       [luna, mars, venus, jupiter, saturn]
         = await createTestUsers(['luna', 'mars', 'venus', 'jupiter', 'saturn']);
       venusGroup = await createGroupAsync(venus, 'venus-group');
+      jupiterGroup = await createGroupAsync(jupiter, 'jupiter-group');
       ({ timelines: [{ id: mainHomeFeedId }] } = await listHomeFeeds(luna));
       ({ timeline: { id: secondaryHomeFeedId } } = await createHomeFeed(luna, 'The Second One'));
       ({ timeline: { id: tertiaryHomeFeedId } } = await createHomeFeed(luna, 'The Third One'));
       /**
        * Main feed is subscribed to Mars and Jupiter
-       * Secondary feed is subscribed to Venus
+       * Secondary feed is subscribed to Venus and JupiterGroup
        * Tertiary feed is subscribed to Jupiter
        */
       await Promise.all([
         subscribe(luna, mars, [mainHomeFeedId]),
         subscribe(luna, venus, [secondaryHomeFeedId]),
         subscribe(luna, jupiter, [mainHomeFeedId, tertiaryHomeFeedId]),
+        subscribe(luna, jupiterGroup, [secondaryHomeFeedId]),
       ]);
 
       lunaPost = await createAndReturnPost(luna, 'Luna post');
@@ -526,6 +528,7 @@ describe(`Multiple home feeds API`, () => {
       jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
       saturnPost = await createAndReturnPost(saturn, 'Saturn post');
       await createAndReturnPostToFeed(venusGroup, venus, 'Venus post to group');
+      jupiterPostToGroup = await createAndReturnPostToFeed(jupiterGroup, jupiter, 'Jupiter post to group');
     });
 
     it(`should return posts from the main home feed`, async () => {
@@ -536,7 +539,9 @@ describe(`Multiple home feeds API`, () => {
       expect(resp, 'to satisfy', { posts: [jupiterPost, marsPost, lunaPost] });
     });
 
-    it(`should not include Venus post to group from the main home feed in HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY`, async () => {
+    it(`should not include Venus and Jupiter posts to their groups to the main home feed in HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY`, async () => {
+      // Venus is friend of Luna but not in the main home feed
+      // Jupiter is friend of Luna in main home feed but JupiterGroup is not in the main home feed
       const resp = await performJSONRequest(
         'GET', `/v2/timelines/home?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`, null,
         { Authorization: `Bearer ${luna.authToken}` }
@@ -549,7 +554,7 @@ describe(`Multiple home feeds API`, () => {
         'GET', `/v2/timelines/home/${secondaryHomeFeedId}/posts`, null,
         { Authorization: `Bearer ${luna.authToken}` }
       );
-      expect(resp, 'to satisfy', { posts: [venusPost] });
+      expect(resp, 'to satisfy', { posts: [jupiterPostToGroup, venusPost] });
     });
 
     it(`should return posts from the third home feed`, async () => {
@@ -686,6 +691,18 @@ describe(`Multiple home feeds API`, () => {
         await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
         await expect(event, 'to be fulfilled');
       });
+
+      it(`should not deliver 'comment:new' event to main home feed in wide mode when Jupiter comments their post in JupiterGroup`, async () => {
+        // Jupiter is friend of Luna but JupiterGroup isn't in main home feed. So JupiterGroup is in main home feed hide list.
+        await lunaSession.sendAsync('subscribe', { timeline: [`${mainHomeFeedId}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`] });
+        const event = lunaSession.notReceive('comment:new');
+        await Promise.all([
+          createCommentAsync(jupiter, jupiterPostToGroup.id, 'Comment'),
+          event,
+        ]);
+        await lunaSession.sendAsync('unsubscribe', { timeline: [mainHomeFeedId] });
+        await expect(event, 'to be fulfilled');
+      });
     });
   });
 });
@@ -706,7 +723,7 @@ function listHomeFeeds(userCtx) {
 
 async function subscribe(subscriber, target, homeFeeds = []) {
   const resp = await performJSONRequest(
-    'POST', `/v1/users/${target.user.username}/subscribe`, { homeFeeds },
+    'POST', `/v1/users/${(target.user || target.group).username}/subscribe`, { homeFeeds },
     { Authorization: `Bearer ${subscriber.authToken}` }
   );
   expect(resp, 'to satisfy', { __httpCode: 200 });
