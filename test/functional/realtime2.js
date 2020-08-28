@@ -288,7 +288,11 @@ describe('Realtime #2', () => {
   });
 
   describe(`'global:users' realtime channel`, () => {
-    beforeEach(() => anonSession.sendAsync('subscribe', { 'global': ['users'] }));
+    beforeEach(() => Promise.all([
+      anonSession.sendAsync('subscribe', { 'global': ['users'] }),
+      lunaSession.sendAsync('subscribe', { 'global': ['users'] }),
+      marsSession.sendAsync('subscribe', { 'global': ['users'] }),
+    ]));
 
     describe(`Updates of user`, () => {
       it(`should deliver 'global:user:update' event when Luna changes screenName`, async () => {
@@ -356,49 +360,59 @@ describe('Realtime #2', () => {
         ({ group: selenites } = await funcTestHelper.createGroupAsync(luna, 'selenites'));
       });
 
-      it(`should deliver 'global:user:update' event when group changes screenName`, async () => {
-        const screenName = 'The First Men in the Moon';
-        const test = anonSession.receiveWhile(
-          'global:user:update',
-          funcTestHelper.updateGroupAsync(selenites, luna, { screenName })
+      const shouldMatchActualInfo = async (action, session, userCtx = null) => {
+        const event = await session.receiveWhile('global:user:update', action);
+        const infoResp = await funcTestHelper.performJSONRequest(
+          'GET', `/v1/users/${selenites.username}`, null, funcTestHelper.authHeaders(userCtx)
         );
-        await expect(test, 'when fulfilled', 'to satisfy', {
-          user: {
-            ...schema.groupBasic,
-            id: selenites.id,
-            screenName,
-          }
-        });
+        return expect(event, 'to satisfy', { user: infoResp.users });
+      };
+
+      const watchers = [
+        { session: null, userCtx: null, name: 'Anonymous' },
+        { session: null, userCtx: null, name: 'Luna' },
+        { session: null, userCtx: null, name: 'Mars' },
+      ];
+
+      beforeEach(() => {
+        watchers[0].session = anonSession;
+        watchers[1].session = lunaSession;
+        watchers[1].userCtx = luna;
+        watchers[2].session = marsSession;
+        watchers[2].userCtx = mars;
       });
 
-      it(`should deliver 'global:user:update' event when group becomes restricted`, async () => {
-        const test = anonSession.receiveWhile(
-          'global:user:update',
-          funcTestHelper.updateGroupAsync(selenites, luna, { isRestricted: '1' })
-        );
-        await expect(test, 'when fulfilled', 'to satisfy', {
-          user: {
-            ...schema.groupBasic,
-            id:           selenites.id,
-            isRestricted: '1',
-          }
-        });
-      });
+      for (const watcher of watchers) {
+        describe(`${watcher.name} is watching`, () => {
+          it(`should deliver 'global:user:update' event when group changes screenName`,
+            () => shouldMatchActualInfo(
+              funcTestHelper.updateGroupAsync(selenites, luna, { screenName: 'The First Men in the Moon' }),
+              watcher.session, watcher.userCtx,
+            )
+          );
 
-      it(`should deliver 'global:user:update' event when group updates profile picture`, async () => {
-        const test = anonSession.receiveWhile(
-          'global:user:update',
-          funcTestHelper.updateGroupProfilePicture(luna, selenites.username, 'test/fixtures/default-userpic-75.gif')
-        );
-        await expect(test, 'when fulfilled', 'to satisfy', {
-          user: {
-            ...schema.groupBasic,
-            id:                      selenites.id,
-            profilePictureLargeUrl:  expect.it('not to be empty'),
-            profilePictureMediumUrl: expect.it('not to be empty'),
-          }
+          it(`should deliver 'global:user:update' event when group becomes restricted`,
+            () => shouldMatchActualInfo(
+              funcTestHelper.updateGroupAsync(selenites, luna, { isRestricted: '1' }),
+              watcher.session, watcher.userCtx,
+            )
+          );
+
+          it(`should deliver 'global:user:update' event when group becomes private`,
+            () => shouldMatchActualInfo(
+              funcTestHelper.updateGroupAsync(selenites, luna, { isPrivate: '1' }),
+              watcher.session, watcher.userCtx,
+            )
+          );
+
+          it(`should deliver 'global:user:update' event when group updates profile picture`,
+            () => shouldMatchActualInfo(
+              funcTestHelper.updateGroupProfilePicture(luna, selenites.username, 'test/fixtures/default-userpic-75.gif'),
+              watcher.session, watcher.userCtx,
+            )
+          );
         });
-      });
+      }
     });
   });
 

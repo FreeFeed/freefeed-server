@@ -479,9 +479,13 @@ export default class PubsubListener {
     await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_REMOVED);
   };
 
-  onGlobalUserUpdate = async (user) => {
-    await this.broadcastMessage(['global:users'], eventNames.GLOBAL_USER_UPDATED, { user });
-  };
+  onGlobalUserUpdate = (userId) => this.broadcastMessage(
+    ['global:users'], eventNames.GLOBAL_USER_UPDATED, null, null,
+    async (socket, type, json) => {
+      const [user] = await serializeUsersByIds([userId], true, socket.user.id);
+      await socket.emit(type, { ...json, user });
+    }
+  );
 
   onGroupTimesUpdate = async ({ groupIds }) => {
     const groups = (await dbAdapter.getFeedOwnersByIds(groupIds))
@@ -497,14 +501,22 @@ export default class PubsubListener {
 
     const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds))
       .map((id) => `user:${id}`);
-    const updatedGroups = await serializeUsersByIds(groupIds, false);
 
     await this.broadcastMessage(
-      rooms,
-      'user:update',
-      { updatedGroups },
-      null,
-      this._withUserIdEmitter,
+      rooms, 'user:update', null, null,
+      async (socket, type, json) => {
+        if (!socket.user.id) {
+          return;
+        }
+
+        const updatedGroups = await serializeUsersByIds(groupIds, true, socket.user.id);
+
+        await socket.emit(type, {
+          ...json,
+          updatedGroups: updatedGroups.slice(0, groupIds.length),
+          id:            socket.user.id,
+        });
+      }
     );
   };
 
@@ -554,9 +566,6 @@ export default class PubsubListener {
       defaultEmitter(socket, type, json);
     }
   };
-
-  _withUserIdEmitter = (socket, type, json) =>
-    socket.user.id && defaultEmitter(socket, type, { ...json, id: socket.user.id });
 
   async _insertCommentLikesInfo(postPayload, viewerUUID) {
     postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
