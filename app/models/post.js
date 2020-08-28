@@ -381,11 +381,11 @@ export function addModel(dbAdapter) {
      *  - Timelines subscribed to A if mode is HOMEFEED_MODE_CLASSIC and post is
      *    propagable or mode is HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY
      *
-     * The latest timelines (A-subscribed) are additionally filtered by its hide
-     * lists: if timeline's hide list intersects with D, then this timeline
-     * excludes from the result set.
+     * The latest two timelines groups (U- and A-subscribed) are additionally
+     * filtered by its hide lists: if timeline's hide list intersects with D,
+     * then this timeline excludes from the result set.
      *
-     * @param {string} [mode] one of HOMEFEED_MODE_constants
+     * @param {string} [mode] one of HOMEFEED_MODE_* constants
      * @return {Timeline[]}
      */
     async getRiverOfNewsTimelines(mode = HOMEFEED_MODE_CLASSIC) {
@@ -397,32 +397,31 @@ export function addModel(dbAdapter) {
         .filter((f) => f.isLikes() || f.isComments())
         .map((f) => f.userId);
 
-      // This post can propagate via activity feeds
-      const withActivities = (mode === HOMEFEED_MODE_CLASSIC && this.isPropagable === '1')
-        || mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY;
+      let feedIds = await dbAdapter.getHomeFeedSubscribedToUsers(destinationsFeedsOwners);
 
-      const users = [
-        ...destinationsFeedsOwners,
-        mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY && this.userId,
-      ].filter(Boolean);
+      const addWithHideList = async (feedOwners) => {
+        let addFeedIds = await dbAdapter.getHomeFeedSubscribedToUsers(feedOwners);
+        addFeedIds = _.difference(addFeedIds, feedIds);
 
-      let [
-        feedIds,
-        activityFeedIds,
-      ] = await Promise.all([
-        dbAdapter.getHomeFeedSubscribedToUsers(users),
-        withActivities ? dbAdapter.getHomeFeedSubscribedToUsers(activityFeedsOwners) : [],
-      ]);
-
-      if (activityFeedIds.length > 0) {
-        activityFeedIds = _.difference(activityFeedIds, feedIds);
-
-        if (activityFeedIds.length > 0) {
-          const hideLists  = await dbAdapter.getHomeFeedsHideLists(activityFeedIds);
-          activityFeedIds = Object.keys(hideLists)
+        if (addFeedIds.length > 0) {
+          const hideLists  = await dbAdapter.getHomeFeedsHideLists(addFeedIds);
+          addFeedIds = Object.keys(hideLists)
             .filter((k) => _.intersection(hideLists[k], destinationsFeedsOwners).length === 0);
-          feedIds = _.union(feedIds, activityFeedIds);
+          feedIds = _.union(feedIds, addFeedIds);
         }
+      };
+
+      // This post can propagate via activity feeds
+      if (
+        mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY ||
+        (mode === HOMEFEED_MODE_CLASSIC && this.isPropagable === '1')
+      ) {
+        await addWithHideList(activityFeedsOwners);
+      }
+
+      // This post can propagate via post author
+      if (mode === HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY) {
+        await addWithHideList([this.userId]);
       }
 
       return await dbAdapter.getTimelinesByIds(feedIds);
