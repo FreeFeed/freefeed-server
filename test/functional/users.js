@@ -82,13 +82,25 @@ describe('UsersController', () => {
         isPrivate: true,
       };
 
-      const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users', user);
-      expect(resp, 'to satisfy', {
-        users: {
-          isPrivate:   '1',
-          isProtected: '1',
-        }
-      });
+      {
+        const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users', user);
+        expect(resp, 'to satisfy', {
+          users: {
+            isPrivate:   '1',
+            isProtected: '1',
+          }
+        });
+      }
+
+      {
+        const resp = await funcTestHelper.performJSONRequest('GET', '/v1/users/luna');
+        expect(resp, 'to satisfy', {
+          users: {
+            isPrivate:   '1',
+            isProtected: '1',
+          }
+        });
+      }
     });
 
     it('should create protected user', async () => {
@@ -99,13 +111,25 @@ describe('UsersController', () => {
         isProtected: true,
       };
 
-      const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users', user);
-      expect(resp, 'to satisfy', {
-        users: {
-          isPrivate:   '0',
-          isProtected: '1',
-        }
-      });
+      {
+        const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users', user);
+        expect(resp, 'to satisfy', {
+          users: {
+            isPrivate:   '0',
+            isProtected: '1',
+          }
+        });
+      }
+
+      {
+        const resp = await funcTestHelper.performJSONRequest('GET', '/v1/users/luna');
+        expect(resp, 'to satisfy', {
+          users: {
+            isPrivate:   '0',
+            isProtected: '1',
+          }
+        });
+      }
     });
 
     describe('onboarding', () => {

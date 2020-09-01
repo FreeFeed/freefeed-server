@@ -232,18 +232,23 @@ const timelinesPostsTrait = (superClass) => class extends superClass {
 
     const sourceConditionSQL = timelineIntIds
       ? orJoin([
-      // Show posts from destination feeds
+        // Show posts from destination feeds
         sqlIntarrayIn('p.feed_ids', timelineIntIds),
+        // Extra sources with hide list applied
         andJoin([
-        // Show posts from activities
-          sqlIntarrayIn('p.feed_ids', params.activityFeedIds),
+          orJoin([
+            andJoin([
+              // Show posts from activities
+              sqlIntarrayIn('p.feed_ids', params.activityFeedIds),
+              // Probably only propagable posts (classic mode)
+              params.activityOnPropagable && 'p.is_propagable',
+            ]),
+            // Also show posts from these authors (wide mode)
+            sqlIn('p.user_id', params.authorsIds),
+          ]),
           // Except of hide list
           sqlIntarrayIn('p.feed_ids', List.inverse(params.activityHideIds)),
-          // Probably only propagable posts (classic mode)
-          params.activityOnPropagable && 'p.is_propagable',
         ]),
-        // Also show posts from these authors (wide mode)
-        sqlIn('p.user_id', params.authorsIds),
       ])
       : 'true'; /* Just select everything */
 
