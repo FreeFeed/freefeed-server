@@ -317,6 +317,16 @@ describe('Search', () => {
             filter:     (p) => p.userId === luna.id
           },
           {
+            query:      'from:luna from:luna',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
+            query:      'from:me from:luna',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
             query:  'from:unknown',
             filter: () => false
           },
@@ -566,8 +576,23 @@ describe('Search', () => {
         filter: (p) => /@celestials/.test(p.body)
       },
       {
-        query:  '"mention @celestials"',
-        filter: (p) => /@celestials/.test(p.body)
+        query:   '"mention @celestials"',
+        filter:  () => false,
+        comment: 'no post with exact wordforms'
+      },
+      {
+        query:   '"mentions @celestials"',
+        filter:  (p) => /@celestials/.test(p.body),
+        comment: 'one post with exact exact wordforms'
+      },
+      {
+        query:   'posts "mentions @celestials"',
+        filter:  (p) => /@celestials/.test(p.body),
+        comment: 'word + exact exact wordforms'
+      },
+      {
+        query:  '"celestials"',
+        filter: (p) => /@celestials/.test(p.body),
       },
       {
         query:   '"@celestials mention"',
@@ -664,7 +689,37 @@ describe('Search', () => {
       {
         query:  'words',
         filter: (p) => /time/.test(p.body)
-      }
+      },
+      {
+        query:   'ment*',
+        filter:  (p) => /ment/.test(p.body),
+        comment: 'wildcard'
+      },
+      {
+        query:   '#ment*',
+        filter:  (p) => /#ment/.test(p.body),
+        comment: 'wildcard in hashtag'
+      },
+      {
+        query:   'com*',
+        filter:  (p) => /com/.test(p.body),
+        comment: 'wildcard that contains full word'
+      },
+      {
+        query:   'co*',
+        filter:  (p) => /\bco/.test(p.body),
+        comment: 'short wildcard'
+      },
+      {
+        query:   '*',
+        filter:  () => false,
+        comment: '"*" wildcard is not supported'
+      },
+      {
+        query:   'mention + luna',
+        filter:  (p) => /first/.test(p.body),
+        comment: 'plus operator'
+      },
     ]);
   });
 

@@ -10,8 +10,8 @@ import {
   Condition,
   IN_ALL,
   ScopeStart,
-  AnyText,
-  InScope
+  InScope,
+  SeqTexts
 } from '../search/query-tokens';
 import { List } from '../open-lists';
 import { Comment } from '../../models';
@@ -267,31 +267,26 @@ const searchTrait = (superClass) =>
         'author'
       ];
 
-      const accounts = {}; // Map from username to User/Group object (or null)
+      // Map from username to User/Group object (or null)
+      const accounts = { me: viewerId && await this.getFeedOwnerById(viewerId) };
 
       let accountNames = [];
-      viewerId && accountNames.push('me');
 
       for (const token of parsedQuery) {
         if (
           token instanceof Condition &&
           conditionsWithAccNames.includes(token.condition)
         ) {
+          if (!viewerId && token.args.includes('me')) {
+            throw new Error(`Please sign in to use 'me' as username`);
+          }
+
+          token.args = token.args.map((n) => n === 'me' ? accounts.me.username : n);
           accountNames.push(...token.args);
         }
       }
 
       accountNames = uniq(accountNames);
-
-      let meUser = null;
-
-      if (accountNames.includes('me')) {
-        if (!viewerId) {
-          throw new Error(`Please sign in to use 'me' as username`);
-        }
-
-        meUser = await this.getFeedOwnerById(viewerId);
-      }
 
       const accountObjects = await this.getFeedOwnersByUsernames(accountNames);
 
@@ -300,9 +295,7 @@ const searchTrait = (superClass) =>
       }
 
       for (const name of accountNames) {
-        if (name === 'me') {
-          accounts[name] = meUser;
-        } else if (!accounts[name]) {
+        if (!accounts[name]) {
           accounts[name] = null;
         }
       }
@@ -408,12 +401,12 @@ function getTSQuery(tokens, targetScope) {
   const result = [];
 
   walkWithScope(tokens, (token, currentScope) => {
-    if (token instanceof AnyText && currentScope === targetScope) {
+    if (token instanceof SeqTexts && currentScope === targetScope) {
       result.push(token.toTSQuery());
     }
 
     if (token instanceof InScope && token.scope === targetScope) {
-      result.push(...token.anyTexts.map((t) => t.toTSQuery()));
+      result.push(token.text.toTSQuery());
     }
   });
 
