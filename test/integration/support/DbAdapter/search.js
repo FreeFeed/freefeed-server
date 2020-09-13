@@ -711,11 +711,6 @@ describe('Search', () => {
         comment: 'short wildcard'
       },
       {
-        query:   '*',
-        filter:  () => false,
-        comment: '"*" wildcard is not supported'
-      },
-      {
         query:   'mention + luna',
         filter:  (p) => /first/.test(p.body),
         comment: 'plus operator'
@@ -730,6 +725,18 @@ describe('Search', () => {
         { maxQueryComplexity: 5 }
       );
       await expect(test, 'to be rejected with', /too complex/);
+    });
+  });
+
+  describe('Short prefix search', () => {
+    it('should throw error if prefix is empty', async () => {
+      const test = dbAdapter.search('*', { minPrefixLength: 2 });
+      await expect(test, 'to be rejected with', 'Minimum prefix length is 2');
+    });
+
+    it('should throw error if prefix is too short', async () => {
+      const test = dbAdapter.search('x*', { minPrefixLength: 2 });
+      await expect(test, 'to be rejected with', 'Minimum prefix length is 2');
     });
   });
 });

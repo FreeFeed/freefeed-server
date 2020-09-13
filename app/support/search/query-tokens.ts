@@ -218,14 +218,22 @@ export type TrimTextOptions = {
 
 export function trimText(text: string, { minPrefixLength }: TrimTextOptions) {
   if (/^[#@]/.test(text)) {
-    if (text.endsWith('*') && text.length > minPrefixLength + 1) {
+    if (text.endsWith('*')) {
+      if (text.length <= minPrefixLength + 1) {
+        throw new Error(`Minimum prefix length is ${minPrefixLength}`);
+      }
+
       return `${text.replace(trimTextRightRe, '$1')}*`;
     }
 
     return text.replace(trimTextRightRe, '$1');
   }
 
-  if (text.endsWith('*') && text.length > minPrefixLength) {
+  if (text.endsWith('*')) {
+    if (text.length <= minPrefixLength) {
+      throw new Error(`Minimum prefix length is ${minPrefixLength}`);
+    }
+
     return `${text.replace(trimTextRe, '$1')}*`;
   }
 
