@@ -317,6 +317,16 @@ describe('Search', () => {
             filter:     (p) => p.userId === luna.id
           },
           {
+            query:      'from:luna from:luna',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
+            query:      'from:me from:luna',
+            viewerName: 'luna',
+            filter:     (p) => p.userId === luna.id
+          },
+          {
             query:  'from:unknown',
             filter: () => false
           },
@@ -566,8 +576,23 @@ describe('Search', () => {
         filter: (p) => /@celestials/.test(p.body)
       },
       {
-        query:  '"mention @celestials"',
-        filter: (p) => /@celestials/.test(p.body)
+        query:   '"mention @celestials"',
+        filter:  () => false,
+        comment: 'no post with exact wordforms'
+      },
+      {
+        query:   '"mentions @celestials"',
+        filter:  (p) => /@celestials/.test(p.body),
+        comment: 'one post with exact exact wordforms'
+      },
+      {
+        query:   'posts "mentions @celestials"',
+        filter:  (p) => /@celestials/.test(p.body),
+        comment: 'word + exact exact wordforms'
+      },
+      {
+        query:  '"celestials"',
+        filter: (p) => /@celestials/.test(p.body),
       },
       {
         query:   '"@celestials mention"',
@@ -664,7 +689,32 @@ describe('Search', () => {
       {
         query:  'words',
         filter: (p) => /time/.test(p.body)
-      }
+      },
+      {
+        query:   'ment*',
+        filter:  (p) => /ment/.test(p.body),
+        comment: 'wildcard'
+      },
+      {
+        query:   '#ment*',
+        filter:  (p) => /#ment/.test(p.body),
+        comment: 'wildcard in hashtag'
+      },
+      {
+        query:   'com*',
+        filter:  (p) => /com/.test(p.body),
+        comment: 'wildcard that contains full word'
+      },
+      {
+        query:   'co*',
+        filter:  (p) => /\bco/.test(p.body),
+        comment: 'short wildcard'
+      },
+      {
+        query:   'mention + luna',
+        filter:  (p) => /first/.test(p.body),
+        comment: 'plus operator'
+      },
     ]);
   });
 
@@ -675,6 +725,18 @@ describe('Search', () => {
         { maxQueryComplexity: 5 }
       );
       await expect(test, 'to be rejected with', /too complex/);
+    });
+  });
+
+  describe('Short prefix search', () => {
+    it('should throw error if prefix is empty', async () => {
+      const test = dbAdapter.search('*', { minPrefixLength: 2 });
+      await expect(test, 'to be rejected with', 'Minimum prefix length is 2');
+    });
+
+    it('should throw error if prefix is too short', async () => {
+      const test = dbAdapter.search('x*', { minPrefixLength: 2 });
+      await expect(test, 'to be rejected with', 'Minimum prefix length is 2');
     });
   });
 });

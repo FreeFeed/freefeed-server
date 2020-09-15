@@ -214,7 +214,10 @@ config.registrationsLimit = {
   maxCount: 100
 };
 
-config.search = { maxQueryComplexity: 30 };
+config.search = {
+  maxQueryComplexity: 30,
+  minPrefixLength:    2,
+};
 
 config.maintenance = { messageFile: 'tmp/MAINTENANCE.txt' };
 

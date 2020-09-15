@@ -20,12 +20,29 @@ export interface Token {
   getComplexity(): number;
 }
 
+/**
+ * Pipe represents the pipe symbol (`|`). This token is used only on initial
+ * parsing phase, the Pipe-joined Text tokens are converting to AnyText later.
+ */
 export class Pipe implements Token {
   getComplexity() {
     return 0;
   }
 }
 
+/**
+ * Plus represents the plus symbol (`+`). This token is used only on initial
+ * parsing phase, the Plus-joined tokens are converting to SeqTexts later.
+ */
+export class Plus implements Token {
+  getComplexity() {
+    return 0;
+  }
+}
+
+/**
+ * ScopeStart marks the start of global query scope.
+ */
 export class ScopeStart implements Token {
   constructor(
     public scope: Scope,
@@ -36,6 +53,9 @@ export class ScopeStart implements Token {
   }
 }
 
+/**
+ * Condition is the some post/comment non-textual filter.
+ */
 export class Condition implements Token {
   constructor(
     public exclude: boolean,
@@ -48,6 +68,10 @@ export class Condition implements Token {
   }
 }
 
+/**
+ * Text is a textual term: it may be a single word, mention, hashtag, double
+ * quoted phrase. It is an atomic piece of query and have no internal elements.
+ */
 export class Text implements Token {
   constructor(
     public exclude: boolean,
@@ -71,10 +95,10 @@ export class Text implements Token {
               : token.text;
           return pgFormat(`%L::tsquery`, exactText);
         } else if (token instanceof Link) {
-          return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(token));
+          return exactPhraseToTSQuery(linkToText(token));
         }
 
-        return pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, token.text);
+        return exactPhraseToTSQuery(token.text);
       }).filter(Boolean);
 
       if (queries.length === 0) {
@@ -85,8 +109,13 @@ export class Text implements Token {
 
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
-      const exactText =
+      let exactText =
         this.text.charAt(0) === '#' ? this.text.replace(/[_-]/g, '') : this.text;
+
+      if (/\*$/.test(this.text)) {
+        exactText = `${exactText.substring(0, exactText.length - 1)}:*`;
+      }
+
       return prefix + pgFormat(`%L::tsquery`, exactText);
     }
 
@@ -96,33 +125,65 @@ export class Text implements Token {
       return prefix + pgFormat('phraseto_tsquery(%L, %L)', ftsCfg, linkToText(firstToken));
     }
 
+    // Prefix search
+    if (/\*$/.test(this.text)) {
+      return prefix + pgFormat(`%L::tsquery`, `=${this.text.substring(0, this.text.length - 1)}:*`);
+    }
+
     return prefix + pgFormat(`plainto_tsquery(%L, %L)`, ftsCfg, this.text);
   }
 }
 
+/**
+ * AnyText contains one or more Text tokens. If there are more than one token,
+ * the query will find any of them. But even a single Text must be wrapped in
+ * AnyText.
+ */
 export class AnyText implements Token {
   constructor(
-    public texts: Text[],
+    public children: Text[],
   ) { }
 
   getComplexity() {
-    return this.texts.reduce((acc, t) => acc + t.getComplexity(), 0);
+    return this.children.reduce((acc, t) => acc + t.getComplexity(), 0);
   }
 
   toTSQuery() {
-    const parts = this.texts.map((t) => t.toTSQuery());
-    return parts.length > 1 ? `(${parts.join(' || ')})` : parts.join(' || ');
+    const parts = this.children.map((t) => t.toTSQuery());
+    return parts.length > 1 ? `(${parts.join(' || ')})` : parts[0];
   }
 }
 
-export class InScope implements Token {
+/**
+ * SeqTexts contains one or more AnyText tokens. The query will find them in the
+ * specific order. Even a single AnyText must be wrapped in SeqTexts.
+ */
+export class SeqTexts implements Token {
   constructor(
-    public scope: Scope,
-    public anyTexts: AnyText[],
+    public children: AnyText[],
   ) { }
 
   getComplexity() {
-    return this.anyTexts.reduce((acc, t) => acc + t.getComplexity(), 0);
+    return this.children.reduce((acc, t) => acc + t.getComplexity(), 0);
+  }
+
+  toTSQuery() {
+    const parts = this.children.map((t) => t.toTSQuery());
+    return parts.length > 1 ? `(${parts.join(' <-> ')})` : parts[0];
+  }
+}
+
+/**
+ * InScope contains the subquery that have a specific local scope.
+ */
+export class InScope implements Token {
+  constructor(
+    public scope: Scope,
+    public text: AnyText,
+  ) { }
+
+  getComplexity() {
+    return this.text.getComplexity();
   }
 }
 
@@ -151,10 +212,34 @@ const trimTextRe = XRegExp(
 );
 const trimTextRightRe = XRegExp(`^(.*?)[\\pP\\pZ\\pC\\pS]*$`, 'u');
 
-export function trimText(text: string) {
+export type TrimTextOptions = {
+  minPrefixLength: number;
+}
+
+export function trimText(text: string, { minPrefixLength }: TrimTextOptions) {
   if (/^[#@]/.test(text)) {
+    if (text.endsWith('*')) {
+      if (text.length <= minPrefixLength + 1) {
+        throw new Error(`Minimum prefix length is ${minPrefixLength}`);
+      }
+
+      return `${text.replace(trimTextRightRe, '$1')}*`;
+    }
+
     return text.replace(trimTextRightRe, '$1');
   }
 
+  if (text.endsWith('*')) {
+    if (text.length <= minPrefixLength) {
+      throw new Error(`Minimum prefix length is ${minPrefixLength}`);
+    }
+
+    return `${text.replace(trimTextRe, '$1')}*`;
+  }
+
   return text.replace(trimTextRe, '$1');
+}
+
+function exactPhraseToTSQuery(text: string): string {
+  return pgFormat(`regexp_replace(phraseto_tsquery('simple', %L)::text, '''([^ ])', '''=\\1', 'g')::tsquery`, text);
 }
