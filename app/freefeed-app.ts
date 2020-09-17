@@ -11,6 +11,7 @@ import passport from 'koa-passport';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
+import serverTiming from 'koa-server-timing';
 
 import { version as serverVersion } from '../package.json';
 
@@ -76,6 +77,7 @@ class FreefeedApp extends Application {
     }
 
     this.use(responseTime());
+    this.use(serverTiming({ total: true }));
 
     this.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 

@@ -29,6 +29,11 @@ describe('Common API routing', () => {
     expect(resp.headers.get('Access-Control-Expose-Headers'), 'to contain', 'Date');
   });
 
+  it(`should publish the Server-Timing response header`, async () => {
+    const resp = await fetch(`${app.context.config.host}/v2/server-info`);
+    expect(resp.headers.get('Server-Timing'), 'to satisfy', /total=\d/);
+  });
+
   it(`should return error if API method is not exists`, async () => {
     const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`);
     expect(resp.status, 'to be', 404);

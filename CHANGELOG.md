@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- The Server-Timing response header (for now, it contains a single metric, 'total' - the total request processing time)
 - Improve search: search by exact word form, by prefix and with word order operator
 
 ## [1.85.0] - 2020-09-01
