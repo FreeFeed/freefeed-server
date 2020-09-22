@@ -28,11 +28,20 @@ export function monitored(monitorName, monitor = monitorDog) {
 
     const timer = monitor.timer(timerName);
 
+    if (ctx.serverTiming) {
+      ctx.serverTiming.start('controller', timerName);
+    }
+
     try {
       await next();
       monitor.increment(requestsName);
     } finally {
       timer.stop();
+
+      if (ctx.serverTiming) {
+        ctx.serverTiming.stop('controller');
+      }
+
       Reflect.deleteProperty(ctx.state, 'isMonitored');
     }
   };
