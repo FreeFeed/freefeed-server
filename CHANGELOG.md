@@ -7,18 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- - The Server-Timing response header (for now, it contains a single metric, 'total' - the total request processing time)
+ - The Server-Timing response header (for now, it contains a single metric,
+   'total' - the total request processing time)
+
+### Fixed
+ - In the real-time message about the groups' update, the listener's
+   subscription to the groups additionally checked. Without this check, the user
+   could see groups he isn't subscribed to in the recent groups' list.
 
 ## [1.86.0] - 2020-09-15
 
 ### Added
-- Improve search: search by exact word form, by prefix and with word order operator
+- Improve search: search by exact word form, by prefix and with word order
+  operator
 
 ## [1.85.0] - 2020-09-01
 
 ### Fixed
 
-- Groups in realtime events (such as `user:update` or `global:user:update`) now serializes according to the current user. This affects the visibility of the group's administrators list.
+- Groups in realtime events (such as `user:update` or `global:user:update`) now
+  serializes according to the current user. This affects the visibility of the
+  group's administrators list.
 - Respect privacy-settings given during account creation
 
 ### Changed
