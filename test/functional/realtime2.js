@@ -845,8 +845,8 @@ describe('Realtime: Homefeed modes', () => {
 });
 
 describe('Realtime: Group time updates', () => {
-  let luna, mars, venus, celestials, selenites;
-  let lunaSession, marsSession, venusSession;
+  let luna, mars, venus, jupiter, celestials, selenites;
+  let lunaSession, marsSession, venusSession, jupiterSession;
 
   before(async () => {
     await cleanDB($pg_database);
@@ -856,21 +856,23 @@ describe('Realtime: Group time updates', () => {
     const pubsubAdapter = new PubSubAdapter($database)
     PubSub.setPublisher(pubsubAdapter);
 
-    // luna, mars, venus are users
-    [luna, mars, venus] = await funcTestHelper.createTestUsers(['luna', 'mars', 'venus']);
+    // luna, mars, venus, jupiter are users
+    [luna, mars, venus, jupiter] = await funcTestHelper.createTestUsers(['luna', 'mars', 'venus', 'jupiter']);
     // selenites, celestials are groups owned by luna and mars
     [selenites, celestials] = await Promise.all([
       funcTestHelper.createGroupAsync(luna, 'selenites'),
       funcTestHelper.createGroupAsync(mars, 'celestials'),
     ]);
-    // luna and mars subscribed to both groups, venus isn't subscribed to any
+    // luna and mars subscribed to both groups, venus isn't subscribed to any,
+    // jupiter subscribed to selenites only
     await Promise.all([
       funcTestHelper.subscribeToAsync(mars, selenites),
       funcTestHelper.subscribeToAsync(luna, celestials),
+      funcTestHelper.subscribeToAsync(jupiter, selenites),
     ]);
 
-    // luna, mars, venus are listen to their own 'user:' RT channel
-    [lunaSession, marsSession, venusSession] = await Promise.all([luna, mars, venus]
+    // all users listening to their own 'user:' RT channel
+    [lunaSession, marsSession, venusSession, jupiterSession] = await Promise.all([luna, mars, venus, jupiter]
       .map(async (ctx) => {
         const session = await Session.create(port, `${ctx.username} session`);
         await session.sendAsync('auth', { authToken: ctx.authToken });
@@ -879,7 +881,7 @@ describe('Realtime: Group time updates', () => {
       }));
   });
 
-  after(() => Promise.all([lunaSession, marsSession, venusSession].map((s) => s.disconnect())));
+  after(() => Promise.all([lunaSession, marsSession, venusSession, jupiterSession].map((s) => s.disconnect())));
 
   it(`should deliver 'user:update' to Luna when Luna writes a post to Selenites`, async () => {
     const test = lunaSession.receiveWhile(
@@ -938,5 +940,13 @@ describe('Realtime: Group time updates', () => {
       funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
+  });
+
+  it(`should deliver 'user:update' with Selenites only group to Jupiter when Luna writes a post to Selenites and Celestials`, async () => {
+    const test = jupiterSession.receiveWhile(
+      'user:update',
+      funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
+    );
+    await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
   });
 });
