@@ -77,12 +77,12 @@ describe('ExtAuthController authorization flow', () => {
 
       // Ubtaining auth URL
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'connect',
+        provider:     'test',
+        redirectURL:  'http://localhost/callback',
+        mode:         'connect',
         // Test values
-        externalId:       '111',
-        externalFullName: 'Luna Lovegood',
+        externalId:   '111',
+        externalName: 'Luna Lovegood',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
@@ -90,12 +90,7 @@ describe('ExtAuthController authorization flow', () => {
       expect(resp.redirectTo, 'to start with', testProvider.authorizeURL);
 
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
-      expect(redirectParams, 'to satisfy', {
-        response_type: 'code',
-        client_id:     testProvider.clientId,
-        redirect_uri:  'http://localhost/callback',
-        state:         expect.it('to be a string'),
-      });
+      expect(redirectParams, 'to satisfy', { state: expect.it('to be a string') });
 
       // Finalizing flow
       resp = await performJSONRequest(
@@ -114,12 +109,12 @@ describe('ExtAuthController authorization flow', () => {
     it('should not allow to other users to connect to the same profile', async () => {
       // Ubtaining auth URL
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'connect',
+        provider:     'test',
+        redirectURL:  'http://localhost/callback',
+        mode:         'connect',
         // Test values
-        externalId:       '111',
-        externalFullName: 'Luna Lovegood',
+        externalId:   '111',
+        externalName: 'Luna Lovegood',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
@@ -144,12 +139,12 @@ describe('ExtAuthController authorization flow', () => {
 
       // Ubtaining auth URL
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'sign-in',
+        provider:     'test',
+        redirectURL:  'http://localhost/callback',
+        mode:         'sign-in',
         // Test values
-        externalId:       '111',
-        externalFullName: 'Luna Lovegood',
+        externalId:   '111',
+        externalName: 'Luna Lovegood',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
@@ -157,12 +152,7 @@ describe('ExtAuthController authorization flow', () => {
       expect(resp.redirectTo, 'to start with', testProvider.authorizeURL);
 
       const redirectParams = qsParse(new URL(resp.redirectTo).search.substr(1));
-      expect(redirectParams, 'to satisfy', {
-        response_type: 'code',
-        client_id:     testProvider.clientId,
-        redirect_uri:  'http://localhost/callback',
-        state:         expect.it('to be a string'),
-      });
+      expect(redirectParams, 'to satisfy', { state: expect.it('to be a string') });
 
       // Finalizing flow
       resp = await performJSONRequest(
@@ -187,13 +177,13 @@ describe('ExtAuthController authorization flow', () => {
     it('should return SIGN_IN_USER_EXISTS status if user with the given email exists', async () => {
       // Ubtaining auth URL
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'sign-in',
+        provider:      'test',
+        redirectURL:   'http://localhost/callback',
+        mode:          'sign-in',
         // Test values
-        externalId:       '112',
-        externalFullName: 'Marcus Antonius',
-        externalEmail:    'mars@example.com',
+        externalId:    '112',
+        externalName:  'Marcus Antonius',
+        externalEmail: 'mars@example.com',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
@@ -215,8 +205,7 @@ describe('ExtAuthController authorization flow', () => {
         mode:               'sign-in',
         // Test values
         externalId:         '112',
-        externalNickName:   'mars',
-        externalFullName:   'Marcus Antonius',
+        externalName:       'Marcus Antonius',
         externalEmail:      'marcus@example.com',
         externalPictureURL: 'http://localhost/marcus.jpg'
       };
@@ -237,7 +226,7 @@ describe('ExtAuthController authorization flow', () => {
           email:      'marcus@example.com',
           pictureURL: 'http://localhost/marcus.jpg',
         },
-        suggestedUsername:  'mars1',
+        suggestedUsername:  'marcus',
         externalProfileKey: expect.it('to be a string'),
       });
     });
@@ -245,12 +234,12 @@ describe('ExtAuthController authorization flow', () => {
     it('should register user with attached external profile', async () => {
       // Ubtaining auth URL
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'sign-in',
+        provider:     'test',
+        redirectURL:  'http://localhost/callback',
+        mode:         'sign-in',
         // Test values
-        externalId:       '112',
-        externalFullName: 'Marcus Antonius',
+        externalId:   '112',
+        externalName: 'Marcus Antonius',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
@@ -297,12 +286,12 @@ describe('ExtAuthController authorization flow', () => {
 
     it('should throw error if no "code" parameter', async () => {
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'connect',
+        provider:     'test',
+        redirectURL:  'http://localhost/callback',
+        mode:         'connect',
         // Test values
-        externalId:       '111',
-        externalFullName: 'Luna Lovegood',
+        externalId:   '111',
+        externalName: 'Luna Lovegood',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
@@ -317,12 +306,12 @@ describe('ExtAuthController authorization flow', () => {
 
     it('should throw error with "error_description" parameter', async () => {
       const authParams = {
-        provider:         'test',
-        redirectURL:      'http://localhost/callback',
-        mode:             'connect',
+        provider:     'test',
+        redirectURL:  'http://localhost/callback',
+        mode:         'connect',
         // Test values
-        externalId:       '111',
-        externalFullName: 'Luna Lovegood',
+        externalId:   '111',
+        externalName: 'Luna Lovegood',
       };
 
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);

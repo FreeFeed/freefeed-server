@@ -20,6 +20,7 @@ import {
 import { Attachment, Comment, Post, PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
+import { allExternalProviders } from '../support/ExtAuth';
 
 import { valiate as validateUserPrefs } from './user-prefs';
 
@@ -1379,14 +1380,16 @@ export function addModel(dbAdapter) {
 
     async getExtProfiles() {
       const profilesFromDb = await dbAdapter.getExtProfiles(this.id);
-      return profilesFromDb.filter((p) => config.externalAuthProviders[p.provider]);
+      return profilesFromDb.filter(
+        (p) => allExternalProviders.some((xp) => xp.id === p.provider)
+      );
     }
 
     /**
      * Returns created/updated profile or null if this profile is already belongs to another user
      */
     async addOrUpdateExtProfile({ provider, externalId, title }) {
-      if (!config.externalAuthProviders[provider]) {
+      if (!allExternalProviders.some((p) => p.id === provider)) {
         throw new Error(`The '${provider}' provider is not supported`);
       }
 

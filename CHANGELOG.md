@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### BREAKING CHANGES
+ - The output of `GET /v2/server-info` is changed: the _externalAuthProviders_
+   field now has a type of `{ id: string, title: string }[]` (before it was a
+   `string[]`). It enumerates all available external identity providers with
+   their ids and titles, so the client can show the proper buttons even if it
+   doesn't know about these providers.
+ - The format of _externalAuthProviders_ configuration key was also changed, see
+   the [separate document](config/external-auth-providers.md) for the details.
+   The site administrator can now configure almost any OAuth2 external identity
+   provider. There are three [predefined templates](app/support/ExtAuth/templates.ts)
+   for Google, Facebook, and GitHub.
+
 ## [1.87.0] - 2020-10-13
 ### Added
  - The Server-Timing response header (for now, it contains a single metric,

@@ -199,15 +199,21 @@ config.postgres = {
 };
 
 /**
- * Fill this object with provider-specific credentials like:
- * facebook: {
- *   clientId:     '####',
- *   clientSecret: '####',
- * }
+ * Fill this array with provider-specific credentials like:
  *
- * Only 'facebook' and 'google' providers are supported for now.
+ * [
+ *   {
+ *     template: 'google',
+ *     params: {
+ *       clientId:     '####',
+ *       clientSecret: '####',
+ *     },
+ *   },
+ * ]
+ *
+ * See the **external-auth-providers.md** file in this dir for more information.
  */
-config.externalAuthProviders = {};
+config.externalAuthProviders = [];
 
 config.registrationsLimit = {
   interval: '1 day', // PostgreSQL 'interval' type syntax

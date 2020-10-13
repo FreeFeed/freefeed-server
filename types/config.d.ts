@@ -20,6 +20,12 @@ declare module 'config' {
       maxQueryComplexity: number;
       minPrefixLength:    number;
     }
+
+    database: number;
+    redis: {
+      host: string;
+      port: number;
+    }
   }
 
   const c: Config;

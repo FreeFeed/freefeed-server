@@ -1,9 +1,10 @@
 import config from 'config';
+import { merge } from 'lodash';
 
 import { Cache } from './Cache';
-import { TestProvider } from './TestProvider';
-import { FacebookProvider } from './FacebookProvider';
-import { GoogleProvider } from './GoogleProvider';
+import { TestAdapter } from './TestAdapter';
+import { OAuth2Adapter } from './OAuth2Adapter';
+import { templates } from './templates';
 
 
 export {
@@ -21,19 +22,38 @@ export { Cache } from './Cache';
 // A separate cache that holds profile data to auto-connect after the user creation
 export const profileCache = new Cache('extauthprofile:', 30 * 60); // 30 minutes
 
-export function getAuthProvider(name) {
-  const ProvClass = providerByName[name];
-  const conf = config.externalAuthProviders[name];
+export const allExternalProviders = config.externalAuthProviders.map(({ template, ...cfg }) => {
+  if (template) {
+    const tpl = templates[template];
 
-  if (!conf || !ProvClass) {
+    if (!tpl) {
+      throw new Error(`Invalid server configuration: template '${template}' is not exists`);
+    }
+
+    return merge({}, cfg, tpl);
+  }
+
+  return cfg;
+});
+
+
+export function getAuthProvider(provId) {
+  const conf = allExternalProviders.find((p) => p.id === provId);
+
+  if (!conf) {
     return null;
   }
 
-  return new ProvClass(conf);
+  const AdapterClass = adapterByName[conf.adapter];
+
+  if (!AdapterClass) {
+    return null;
+  }
+
+  return new AdapterClass(conf.params);
 }
 
-const providerByName = {
-  'test':     TestProvider,
-  'facebook': FacebookProvider,
-  'google':   GoogleProvider,
+const adapterByName = {
+  test:   TestAdapter,
+  oauth2: OAuth2Adapter,
 };
