@@ -14,6 +14,7 @@ import koaStatic from 'koa-static';
 
 import { version as serverVersion } from '../package.json';
 
+import { koaServerTiming } from './support/koa-server-timing';
 import { originMiddleware } from './setup/initializers/origin';
 import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
@@ -76,6 +77,7 @@ class FreefeedApp extends Application {
     }
 
     this.use(responseTime());
+    this.use(koaServerTiming());
 
     this.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 

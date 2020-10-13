@@ -509,11 +509,24 @@ export default class PubsubListener {
           return;
         }
 
-        const updatedGroups = await serializeUsersByIds(groupIds, true, socket.user.id);
+        let isSubscribed = [true];
+
+        if (groupIds.length > 1) {
+          // User probably not subscribed to all of these groups
+          isSubscribed = await Promise.all(feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.user.id, id)));
+        }
+
+        const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
+
+        const updatedGroups = await serializeUsersByIds(
+          subscribedGroupIds,
+          true,
+          socket.user.id,
+        );
 
         await socket.emit(type, {
           ...json,
-          updatedGroups: updatedGroups.slice(0, groupIds.length),
+          updatedGroups: updatedGroups.slice(0, subscribedGroupIds.length),
           id:            socket.user.id,
         });
       }
