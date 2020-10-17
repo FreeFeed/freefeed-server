@@ -48,13 +48,18 @@ Provider configuration object contains the following fields:
 
 ```js
 {
-  // Provider identifier. It is saves to database with the provider-generated
-  // user ID, so it should not be changed after the first use. Also the client
-  // can use it to show the icon/logo of the provider.
+  // Provider identifier. Must be unique among all configured providers. It is
+  // saves to database with the provider-generated user ID, so it should not be
+  // changed after the first use.
   id: "provider",
   
   // Public title of the provider. This title will be shown to users.
   title: "Provider",
+
+  // (optional) Brand or 'type' of provider. If not present, the id used instead.
+  // This field is for the client convenience, for example to show the icon/logo 
+  // of the provider.
+  brand: "provider",
   
   // Name of the adapter that works with this provider (see below).
   adapter: "oauth2",

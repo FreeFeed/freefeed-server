@@ -219,6 +219,7 @@ const FBVersion = 'v8.0';
 config.externalAuthTemplates = {
   google: {
     id:      'google',
+    brand:   'google',
     title:   'Google',
     adapter: 'oauth2',
     params:  { discoveryRoot: 'https://accounts.google.com' },
@@ -226,6 +227,7 @@ config.externalAuthTemplates = {
 
   facebook: {
     id:      'facebook',
+    brand:   'facebook',
     title:   'Facebook',
     adapter: 'oauth2',
     params:  {
@@ -244,6 +246,7 @@ config.externalAuthTemplates = {
 
   github: {
     id:      'github',
+    brand:   'github',
     title:   'GitHub',
     adapter: 'oauth2',
     params:  {

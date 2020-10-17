@@ -31,8 +31,9 @@ describe('/v2/server-info', () => {
 
   it(`should return the externalAuthProviders`, async () => {
     const resp = await fetch(`${host}/v2/server-info`).then((r) => r.json());
-    const externalAuthProviders = allExternalProviders
-      .map(({ id, title }) => ({ id, title }));
-    expect(resp.externalAuthProviders, 'to equal', externalAuthProviders);
+    const externalAuthProvidersInfo = allExternalProviders
+      .map(({ id, title, brand = id }) => ({ id, title, brand }));
+    expect(resp.externalAuthProvidersInfo, 'to equal', externalAuthProvidersInfo);
+    expect(resp.externalAuthProviders, 'to equal', externalAuthProvidersInfo.map((p) => p.id));
   });
 });
