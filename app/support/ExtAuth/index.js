@@ -4,7 +4,6 @@ import { merge } from 'lodash';
 import { Cache } from './Cache';
 import { TestAdapter } from './TestAdapter';
 import { OAuth2Adapter } from './OAuth2Adapter';
-import { templates } from './templates';
 
 
 export {
@@ -21,6 +20,8 @@ export { Cache } from './Cache';
 
 // A separate cache that holds profile data to auto-connect after the user creation
 export const profileCache = new Cache('extauthprofile:', 30 * 60); // 30 minutes
+
+const templates = config.externalAuthTemplates;
 
 export const allExternalProviders = config.externalAuthProviders.map(({ template, ...cfg }) => {
   if (template) {

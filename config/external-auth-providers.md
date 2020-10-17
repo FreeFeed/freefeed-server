@@ -22,8 +22,9 @@ like this:
 ```
 
 There are three template currently available: `google`, `facebook`, and `github`
-(defined in [templates.ts](../app/support/ExtAuth/templates.ts)). All templates
-requires the  _clientId_ and _clientSecret_ parameters.
+(defined in _externalAuthTemplates_ config key). All of these templates requires
+the _clientId_ and _clientSecret_ parameters. You can define your own templates
+in custom configs.
 
 You can override any of the template fields right in the configuration. The rest
 of template will be deeply merged with the provided config. For example you can
