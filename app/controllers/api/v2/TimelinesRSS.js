@@ -1,9 +1,9 @@
 import { escape as urlEscape } from 'querystring';
 
+import config from 'config';
 import { escape as htmlEscape } from 'lodash';
 import compose from 'koa-compose';
 import builder from 'xmlbuilder';
-import config from 'config'
 
 import { dbAdapter } from '../../../models';
 import { extractTitle, textToHTML } from '../../../support/rss-text-parser';
@@ -13,7 +13,6 @@ import { serializeComment } from '../../../serializers/v2/post';
 import { userTimeline, ORD_CREATED } from './TimelinesController';
 
 
-const SERVICE_NAME = 'FreeFeed.net';
 const TITILE_MAX_LEN = 60;
 const ommitBubblesThreshold = 600 * 1000; // 10 min in ms
 
@@ -41,14 +40,14 @@ async function timelineToRSS(data, ctx) {
     .att('version', '2.0')
   const channel = rss
     .ele('channel')
-    .ele('title', {}, `${feedTitle} @ ${SERVICE_NAME}`).up()
+    .ele('title', {}, `${feedTitle} @ ${config.siteTitle}`).up()
     .ele('link', {}, `${config.host}/${urlEscape(owner.username)}`).up()
     .ele('description', {}, owner.description).up();
 
   const userpic = owner.profilePictureLargeUrl || config.profilePictures.defaultProfilePictureMediumUrl;
   channel.ele('image')
     .ele('url', {}, userpic).up()
-    .ele('title', {}, `${feedTitle} @ ${SERVICE_NAME}`).up()
+    .ele('title', {}, `${feedTitle} @ ${config.siteTitle}`).up()
     .ele('link', {}, `${config.host}/${urlEscape(owner.username)}`).up();
 
   const postMakers = await Promise.all(data.timelines.posts.map((postId) => postItemMaker(postId, data, ctx)));

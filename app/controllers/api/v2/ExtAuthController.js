@@ -1,3 +1,4 @@
+import config from 'config';
 import { pick } from 'lodash';
 import compose from 'koa-compose';
 
@@ -94,7 +95,7 @@ export const authFinish = compose([
         if (profileUser && profileUser.id !== currentUser.id) {
           throw new ForbiddenException(
             `The '${state.profile.fullName}' profile on ${authProvider.title} is already ` +
-          `associated with another FreeFeed account: @${profileUser.username}`
+          `associated with another ${config.siteTitle} account: @${profileUser.username}`
           );
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Your FreeFeed notifications for <%= digest.interval %></title>
+    <title>Your <% =config.siteTitle %> notifications for <%= digest.interval %></title>
 
 
     <style type="text/css">
@@ -80,12 +80,12 @@
                             <td class="content-wrap" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 20px;" valign="top">
                                 <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                     <tr style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                                        <td class="content-block" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top"><a href="<%= baseUrl %>" style="font-weight: bold;color:#333;text-decoration: none; font-size:21px;">FreeFeed</a> <span style="color:#333;text-decoration: none; font-size:21px;">| Notifications</span>
+                                        <td class="content-block" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top"><a href="<%= baseUrl %>" style="font-weight: bold;color:#333;text-decoration: none; font-size:21px;"><% =config.siteTitle %></a> <span style="color:#333;text-decoration: none; font-size:21px;">| Notifications</span>
                                         </td>
                                     </tr>
                                     <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                         <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                                            Hello <%= recipient.username %>, here are the notifications for <strong><%= digest.interval %></strong> that you might have missed since your last visit to FreeFeed:
+                                            Hello <%= recipient.username %>, here are the notifications for <strong><%= digest.interval %></strong> that you might have missed since your last visit to <% =config.siteTitle %>:
                                         </td>
                                     </tr>
                                     <%- digest.body %>
@@ -96,9 +96,9 @@
                     <div class="footer" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;">
                         <table width="100%" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                             <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                                <td class="aligncenter content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 12px; line-height: 1.5em; vertical-align: top; color: #999; text-align: center; margin: 0; padding: 0 0 20px;" align="center" valign="top">FreeFeed MTÜ<br />Muti 30-25<br />13424 Tallinn, Estonia<br /><br />
+                                <td class="aligncenter content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 12px; line-height: 1.5em; vertical-align: top; color: #999; text-align: center; margin: 0; padding: 0 0 20px;" align="center" valign="top"><%= config.company.title %><br /><%= config.company.address %><br /><br />
 
-                                If you don't want to receive FreeFeed notification emails, you can <a href="<%= baseUrl %>/settings#notifications" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 12px; color: #999; text-decoration: underline; margin: 0;">unsubscribe</a></td>
+                                If you don't want to receive <% =config.siteTitle %> notification emails, you can <a href="<%= baseUrl %>/settings#notifications" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 12px; color: #999; text-decoration: underline; margin: 0;">unsubscribe</a></td>
                             </tr>
                         </table>
                     </div>
