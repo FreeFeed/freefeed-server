@@ -199,15 +199,68 @@ config.postgres = {
 };
 
 /**
- * Fill this object with provider-specific credentials like:
- * facebook: {
- *   clientId:     '####',
- *   clientSecret: '####',
- * }
+ * Fill this array with provider-specific credentials like:
  *
- * Only 'facebook' and 'google' providers are supported for now.
+ * [
+ *   {
+ *     template: 'google',
+ *     params: {
+ *       clientId:     '####',
+ *       clientSecret: '####',
+ *     },
+ *   },
+ * ]
+ *
+ * See the **external-auth-providers.md** file in this dir for more information.
  */
-config.externalAuthProviders = {};
+config.externalAuthProviders = [];
+
+const FBVersion = 'v8.0';
+config.externalAuthTemplates = {
+  google: {
+    id:      'google',
+    brand:   'google',
+    title:   'Google',
+    adapter: 'oauth2',
+    params:  { discoveryRoot: 'https://accounts.google.com' },
+  },
+
+  facebook: {
+    id:      'facebook',
+    brand:   'facebook',
+    title:   'Facebook',
+    adapter: 'oauth2',
+    params:  {
+      authorizationEndpoint: `https://www.facebook.com/${FBVersion}/dialog/oauth`,
+      tokenEndpoint:         `https://graph.facebook.com/${FBVersion}/oauth/access_token`,
+      userinfoEndpoint:      `https://graph.facebook.com/${FBVersion}/me?fields=name,email,picture`,
+      scope:                 'email',
+      userInfoFields:        {
+        id:         'id',
+        name:       'name',
+        email:      'email',
+        pictureURL: 'picture.data.url',
+      },
+    },
+  },
+
+  github: {
+    id:      'github',
+    brand:   'github',
+    title:   'GitHub',
+    adapter: 'oauth2',
+    params:  {
+      authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+      tokenEndpoint:         'https://github.com/login/oauth/access_token',
+      userinfoEndpoint:      'https://api.github.com/user',
+      scope:                 'user:email',
+      userInfoFields:        {
+        id:         'id',
+        pictureURL: 'avatar_url',
+      },
+    },
+  },
+};
 
 config.registrationsLimit = {
   interval: '1 day', // PostgreSQL 'interval' type syntax

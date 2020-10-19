@@ -253,9 +253,14 @@ export const appTokenInfo = {
 };
 
 export const serverInfoResponse = {
-  version:               expect.it('to be a string'),
-  externalAuthProviders: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
-  registrationOpen:      expect.it('to be a boolean'),
+  version:                   expect.it('to be a string'),
+  externalAuthProviders:     expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
+  externalAuthProvidersInfo: expect.it('to be an array').and('to be empty').or('to have items satisfying', {
+    id:    expect.it('to be a string'),
+    brand: expect.it('to be a string'),
+    title: expect.it('to be a string'),
+  }),
+  registrationOpen: expect.it('to be a boolean'),
 };
 
 export const externalProfile = {

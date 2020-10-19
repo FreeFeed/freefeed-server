@@ -26,16 +26,24 @@ module.exports = {
   },
   mailer:                { transport: stubTransport },
   postgres:              { connection: { database: 'freefeed_test' } },
-  externalAuthProviders: {
-    facebook: {
-      clientId:     'test',
-      clientSecret: 'test'
+  externalAuthProviders: [
+    {
+      template: 'facebook',
+      params:   {
+        clientId:     'test',
+        clientSecret: 'test'
+      }
     },
-    test: {
-      clientId:     'test',
-      clientSecret: 'test'
+    {
+      id:      'test',
+      title:   'Test',
+      adapter: 'test',
+      params:  {
+        clientId:     'test',
+        clientSecret: 'test'
+      }
     }
-  },
+  ],
 
   registrationsLimit: { maxCount: 10 }
 };
