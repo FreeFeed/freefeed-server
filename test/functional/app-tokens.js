@@ -406,7 +406,7 @@ describe('Realtime', () => {
   it('sould not deliver post event to anonymous session', async () => {
     const test = session.notReceiveWhile(
       'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
+      () => createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });
@@ -415,7 +415,7 @@ describe('Realtime', () => {
     await session.sendAsync('auth', { authToken: luna.authToken });
     const test = session.receiveWhile(
       'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
+      () => createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });
@@ -424,7 +424,7 @@ describe('Realtime', () => {
     await session.sendAsync('auth', { authToken: token.tokenString() });
     const test = session.receiveWhile(
       'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
+      () => createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });

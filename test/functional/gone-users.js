@@ -192,12 +192,12 @@ describe('Gone users', () => {
         await rtSession.sendAsync('subscribe', { global: ['users'] });
 
         {
-          const test = rtSession.receiveWhile('global:user:update', setGoneStatus(luna, null));
+          const test = rtSession.receiveWhile('global:user:update', () => setGoneStatus(luna, null));
           await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: undefined } });
         }
 
         {
-          const test = rtSession.receiveWhile('global:user:update', setGoneStatus(luna, GONE_SUSPENDED));
+          const test = rtSession.receiveWhile('global:user:update', () => setGoneStatus(luna, GONE_SUSPENDED));
           await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: true } });
         }
       });
@@ -214,7 +214,7 @@ describe('Gone users', () => {
 
           const test = rtSession.receiveWhileSeq(
             ['global:user:update', 'global:user:update'],
-            setGoneStatus(luna, GONE_SUSPENDED)
+            () => setGoneStatus(luna, GONE_SUSPENDED)
           );
           await expect(
             test, 'when fulfilled', 'to satisfy',

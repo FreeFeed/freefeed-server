@@ -26,7 +26,7 @@ jobs:
 
     steps:
     - name: Start Redis v${{ matrix.redis-version }}
-      uses: superchargejs/redis-github-action@1.1.0
+      uses: supercharge/redis-github-action@1.1.0
       with:
         redis-version: ${{ matrix.redis-version }}
 
