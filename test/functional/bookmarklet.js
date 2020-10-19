@@ -81,7 +81,7 @@ describe('BookmarkletController', () => {
       it(`should deliver 'post:new' event when post created`, async () => {
         const test = lunaSession.receiveWhile(
           'post:new',
-          callBookmarklet(luna, { title: 'Post' }),
+          () => callBookmarklet(luna, { title: 'Post' }),
         );
         await expect(test, 'to be fulfilled');
       });
@@ -89,7 +89,7 @@ describe('BookmarkletController', () => {
       it(`should deliver 'post:new' and 'comment:new' events when post created with comment`, async () => {
         const test = lunaSession.receiveWhileSeq(
           ['post:new', 'comment:new'],
-          callBookmarklet(luna, { title: 'Post', comment: 'Comment' }),
+          () => callBookmarklet(luna, { title: 'Post', comment: 'Comment' }),
         );
         await expect(test, 'to be fulfilled');
       });

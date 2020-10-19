@@ -451,7 +451,7 @@ describe('Group Moderation', () => {
               it(`should deliver 'post:update' event when Mars removes post`, async () => {
                 const test = rtSession.receiveWhile(
                   'post:update',
-                  deletePostAsync(mars, post.id),
+                  () => deletePostAsync(mars, post.id),
                 );
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
               });
@@ -466,7 +466,7 @@ describe('Group Moderation', () => {
               it(`should deliver 'post:update' event when Mars removes post`, async () => {
                 const test = rtSession.receiveWhile(
                   'post:update',
-                  deletePostAsync(mars, post.id),
+                  () => deletePostAsync(mars, post.id),
                 );
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
               });
@@ -481,7 +481,7 @@ describe('Group Moderation', () => {
               it(`should deliver 'post:update' event when Mars removes post`, async () => {
                 const test = rtSession.receiveWhile(
                   'post:update',
-                  deletePostAsync(mars, post.id),
+                  () => deletePostAsync(mars, post.id),
                 );
                 await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
               });
@@ -520,7 +520,7 @@ describe('Group Moderation', () => {
                 it(`should deliver 'post:destroy' event to anonymous when Mars removes post`, async () => {
                   const test = rtSession.receiveWhile(
                     'post:destroy',
-                    deletePostAsync(mars, post.id),
+                    () =>  deletePostAsync(mars, post.id),
                   );
                   await expect(test, 'when fulfilled', 'to satisfy', { meta: { postId: post.id } });
                 });
@@ -528,7 +528,7 @@ describe('Group Moderation', () => {
                 it(`should deliver 'post:destroy' event to Jupiter when Mars removes post`, async () => {
                   const test = jupiterSession.receiveWhile(
                     'post:destroy',
-                    deletePostAsync(mars, post.id),
+                    () => deletePostAsync(mars, post.id),
                   );
                   await expect(test, 'when fulfilled', 'to satisfy', { meta: { postId: post.id } });
                 });
@@ -536,7 +536,7 @@ describe('Group Moderation', () => {
                 it(`should deliver 'post:update' event to Luna when Mars removes post`, async () => {
                   const test = lunaSession.receiveWhile(
                     'post:update',
-                    deletePostAsync(mars, post.id),
+                    () => deletePostAsync(mars, post.id),
                   );
                   await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
                 });
@@ -544,7 +544,7 @@ describe('Group Moderation', () => {
                 it(`should deliver 'post:update' event to Mars when Mars removes post`, async () => {
                   const test = marsSession.receiveWhile(
                     'post:update',
-                    deletePostAsync(mars, post.id),
+                    () => deletePostAsync(mars, post.id),
                   );
                   await expect(test, 'when fulfilled', 'to satisfy', { posts: { id: post.id } });
                 });

@@ -74,16 +74,18 @@ export default class Session {
     });
   }
 
-  async receiveWhile(event, ...promises) {
-    const [result] = await Promise.all([this.receive(event), ...promises]);
+  async receiveWhile(event, ...tasks) {
+    const listen = this.receive(event);
+    const [result] = await Promise.all([listen, ...tasks.map((t) => t())]);
     return result;
   }
 
-  async notReceiveWhile(event, ...promises) {
-    await Promise.all([this.notReceive(event), ...promises]);
+  async notReceiveWhile(event, ...tasks) {
+    const listen = this.notReceive(event);
+    await Promise.all([listen, ...tasks.map((t) => t())]);
   }
 
-  async receiveSeq(events) {
+  async receiveSeq1(events) {
     return await events.reduce(async (acc, event) => {
       const arr = await acc;
       const resp = await this.receive(event);
@@ -91,8 +93,9 @@ export default class Session {
     }, []);
   }
 
-  async receiveWhileSeq(events, ...promises) {
-    const [result] = await Promise.all([this.receiveSeq(events), ...promises]);
+  async receiveWhileSeq(events, ...tasks) {
+    const listen = this.receiveSeq(events);
+    const [result] = await Promise.all([listen, ...tasks.map((t) => t())]);
     return result;
   }
 }
