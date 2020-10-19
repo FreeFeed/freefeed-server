@@ -1,5 +1,7 @@
 import React from 'react';
+
 import Post from './Post.jsx';
+
 
 export default (props) => {
   const getEntryComponent = () => (post) => {

@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    provider. There are three predefined templates for Google, Facebook, and
    GitHub.
 
+ - The new fields in the config: _siteTitle_, _company.title_ and
+   _company.address_. These fields can be used to customize site (FreeFeed
+   instance) branding in emails, RSS feeds and service messages.
+
 ## [1.87.0] - 2020-10-13
 ### Added
  - The Server-Timing response header (for now, it contains a single metric,

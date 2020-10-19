@@ -4,6 +4,7 @@
  */
 declare module 'config' {
   type Config = {
+    siteTitle: string,
     host: string;
     attachments: {
       fileSizeLimit: number;
@@ -18,7 +19,12 @@ declare module 'config' {
 
     search: {
       maxQueryComplexity: number;
-      minPrefixLength:    number;
+      minPrefixLength: number;
+    }
+
+    company: {
+      title: string;
+      address: string;
     }
 
     database: number;

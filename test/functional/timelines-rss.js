@@ -44,14 +44,14 @@ describe('TimelinesAsRSS', () => {
       });
       const channel = findNode(resp.root, 'channel');
       expect(channel.children, 'to satisfy', [
-        { name: 'title', content: `Posts of ${luna.username} @ FreeFeed.net` },
+        { name: 'title', content: `Posts of ${luna.username} @ ${config.siteTitle}` },
         { name: 'link', content: `${config.host}/${luna.username}` },
         { name: 'description' },
         {
           name:     'image',
           children: [
             { name: 'url', content: config.profilePictures.defaultProfilePictureMediumUrl },
-            { name: 'title', content: `Posts of ${luna.username} @ FreeFeed.net` },
+            { name: 'title', content: `Posts of ${luna.username} @ ${config.siteTitle}` },
             { name: 'link', content: `${config.host}/${luna.username}` },
           ],
         },
@@ -223,14 +223,14 @@ describe('TimelinesAsRSS', () => {
       });
       const channel = findNode(resp.root, 'channel');
       expect(channel.children, 'to satisfy', [
-        { name: 'title', content: `Posts in group ${celestials.username} @ FreeFeed.net` },
+        { name: 'title', content: `Posts in group ${celestials.username} @ ${config.siteTitle}` },
         { name: 'link', content: `${config.host}/${celestials.username}` },
         { name: 'description' },
         {
           name:     'image',
           children: [
             { name: 'url', content: config.profilePictures.defaultProfilePictureMediumUrl },
-            { name: 'title', content: `Posts in group ${celestials.username} @ FreeFeed.net` },
+            { name: 'title', content: `Posts in group ${celestials.username} @ ${config.siteTitle}` },
             { name: 'link', content: `${config.host}/${celestials.username}` },
           ],
         },

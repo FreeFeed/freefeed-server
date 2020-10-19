@@ -1,6 +1,5 @@
 import React from 'react';
 import classnames from 'classnames';
-import _ from 'lodash';
 import config from 'config';
 
 import PostAttachments from './post-attachments.jsx';
@@ -100,7 +99,7 @@ export default class Post extends React.Component {
     }
 
     // "Like" / "Un-like"
-    const didILikePost = _.find(props.usersLikedPost, { id: props.user.id });
+    const didILikePost = props.usersLikedPost.some((u) => u.id === props.user.id);
     const likeLink = (
       <span>
         {' - '}
@@ -140,11 +139,15 @@ export default class Post extends React.Component {
           />
 
           <div className="post-footer">
-            {isPrivate ? (
-              <img src="cid:falock@2x" className="post-lock-icon fa fa-lock" width="16px" height="16px" title="This entry is private"/>
-            ) : isProtected ? (
-              <img src="cid:postprotected@2x" className="post-lock-icon post-protected-icon fa fa-lock" width="16px" height="16px" title="This entry is only visible to FreeFeed users"/>
-            ) : false}
+            {isPrivate && (
+              isProtected ? (
+                <img src="cid:postprotected@2x" className="post-lock-icon post-protected-icon fa fa-lock"
+                  width="16px" height="16px" title={`This entry is only visible to ${config.siteTitle} users`}/>
+              ) : (
+                <img src="cid:falock@2x" className="post-lock-icon fa fa-lock"
+                  width="16px" height="16px" title="This entry is private"/>
+              )
+            )}
             <Link to={canonicalPostURI} className="post-timestamp">
               <TimeDisplay timeStamp={+props.createdAt} />
             </Link>

@@ -19,6 +19,8 @@ const stubTransport = function () {
 };
 
 const config = {
+  siteTitle: 'FreeFeed',
+
   port:     3000,
   database: 2,
 
@@ -42,6 +44,12 @@ const config = {
   frontendPreferencesLimit: 65536,
 
   monitorPrefix: 'development',
+};
+
+// Site instance owner's requisites for use in the digest email footers
+config.company = {
+  title:   'Our Company',
+  address: 'Our Company Address, City, Country',
 };
 
 config.host = defer((cfg) => `http://localhost:${cfg.port}`);
