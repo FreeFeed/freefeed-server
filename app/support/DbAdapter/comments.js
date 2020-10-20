@@ -30,6 +30,11 @@ const commentsTrait = (superClass) => class extends superClass {
     return initCommentObject(attrs);
   }
 
+  async getCommentsByIds(ids) {
+    const responses = await this.database('comments').orderBy('created_at', 'desc').whereIn('uid', ids);
+    return responses.map((attrs) => initCommentObject(attrs));
+  }
+
   getCommentsIdsByIntIds(intIds) {
     return this.database('comments').select('id', 'uid').whereIn('id', intIds);
   }

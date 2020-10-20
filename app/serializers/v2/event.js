@@ -64,6 +64,15 @@ async function getIntIdsMappings(events) {
     dbAdapter.getPostsIdsByIntIds(postsIntIds),
     dbAdapter.getCommentsIdsByIntIds(commentsIntIds)
   ]);
+
+  const [posts, comments] = await Promise.all([
+    dbAdapter.getPostsByIds(postIds.map((p) => p.uid)),
+    dbAdapter.getCommentsByIds(commentIds.map((c) => c.uid)),
+  ]);
+  const postsAssoc = posts.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+  const commentsAssoc = comments.reduce((acc, c) => ({ ...acc, [c.id]: c }), {});
+  const postsAuthorsAssoc = await dbAdapter.getUsersByIdsAssoc(posts.map((p) => p.userId));
+
   const userIdsMapping = {};
   const postIdsMapping = {};
   const commentIdsMapping = {};
@@ -73,11 +82,20 @@ async function getIntIdsMappings(events) {
   }
 
   for (const el of postIds) {
-    postIdsMapping[el.id] = el.uid;
+    const postAuthorId = postsAssoc[el.uid]?.userId;
+
+    if (postsAuthorsAssoc[postAuthorId]?.isActive) {
+      postIdsMapping[el.id] = el.uid;
+    }
   }
 
   for (const el of commentIds) {
-    commentIdsMapping[el.id] = el.uid;
+    const postId = commentsAssoc[el.uid]?.postId;
+    const postAuthorId = postsAssoc[postId]?.userId;
+
+    if (postsAuthorsAssoc[postAuthorId]?.isActive) {
+      commentIdsMapping[el.id] = el.uid;
+    }
   }
 
   return [userIdsMapping, postIdsMapping, commentIdsMapping];
