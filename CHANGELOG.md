@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+ - Application tokens now have an `expiresAt` field. The expiration time can be
+   specified during token creation. Tokens are automatically invalidates after
+   the expiration time.
+
+ - The new `activationCode` field is returned when app token creted or reissued.
+   This code can be used to obtain the full token value. Activation codes are
+   short (6 alphanumeric characters) and have narrow lifetime (5 min), they are
+   useful for transfer via the non-secure communication channel.
+
  - The output of `GET /v2/server-info` has a new field
    _externalAuthProvidersInfo_ that contains an id, brand and title of each
    available external identity provider, so the client can show the proper
@@ -16,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    clients and contains only id's of these providers.
 
 ### Changed
+ - The realtime socket authorizations is now re-validates every 5 minutes to
+   handle the expired app tokens.
+ 
  - The format of _externalAuthProviders_ configuration key was changed, see the
    [separate document](config/external-auth-providers.md) for the details. The
    site administrator can now configure almost any OAuth2 external identity
