@@ -404,12 +404,13 @@ describe('App tokens controller', () => {
 });
 
 describe('Realtime', () => {
+  let app;
   let port;
   let luna, post, session, token, token2;
 
   before(async () => {
     await cleanDB($pg_database);
-    const app = await getSingleton();
+    app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
     PubSub.setPublisher(pubsubAdapter);
@@ -467,6 +468,44 @@ describe('Realtime', () => {
   it('sould not allow to authorize with incorrect app token', async () => {
     const promise = session.sendAsync('auth', { authToken: token2.tokenString() });
     await expect(promise, 'to be rejected');
+  });
+
+  describe('Token inactivation', () => {
+    it('should deliver post event to session with active app token', async () => {
+      await session.sendAsync('auth', { authToken: token.tokenString() });
+
+      const test = session.receiveWhile(
+        'comment:new',
+        () => createCommentAsync(luna, post.id, 'Hello'),
+      );
+      await expect(test, 'to be fulfilled');
+    });
+
+    it('should stop sending events after token deactivation and sockets re-authorization', async () => {
+      await session.sendAsync('auth', { authToken: token.tokenString() });
+
+      // Inactivate token
+      await token.inactivate();
+
+      {
+        const test = session.receiveWhile(
+          'comment:new',
+          () => createCommentAsync(luna, post.id, 'Hello'),
+        );
+        await expect(test, 'to be fulfilled');
+      }
+
+      // Update sockets authorization
+      await app.context.pubsub.reAuthorizeSockets();
+
+      {
+        const test = session.notReceiveWhile(
+          'comment:new',
+          () => createCommentAsync(luna, post.id, 'Hello'),
+        );
+        await expect(test, 'to be fulfilled');
+      }
+    });
   });
 });
 

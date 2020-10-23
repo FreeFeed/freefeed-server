@@ -63,6 +63,7 @@ export default class PubsubListener {
     this.io.use(async (socket, next) => {
       try {
         socket.userId = await getAuthUserId(socket.handshake.query.token, socket);
+        socket.authToken = socket.handshake.query.token;
         debug(`[socket.id=${socket.id}] auth user`, socket.userId);
       } catch (e) {
         // Can not properly return error to client so just treat user as anonymous
@@ -106,6 +107,7 @@ export default class PubsubListener {
       }
 
       socket.userId = await getAuthUserId(data.authToken, socket);
+      socket.authToken = data.authToken;
       debug(`[socket.id=${socket.id}] auth user`, socket.userId);
     });
 
@@ -615,6 +617,25 @@ export default class PubsubListener {
     }
 
     return postPayload;
+  }
+
+  reAuthorizeSockets() {
+    return Promise.all(Object.values(this.io.sockets.connected)
+      .filter((socket) => !!socket.authToken)
+      .map(async (socket) => {
+        let userId = null;
+
+        try {
+          userId = await getAuthUserId(socket.authToken, socket);
+        } catch (e) {
+          // pass
+        }
+
+        if (!userId) {
+          socket.authTokenData = null;
+          socket.userId = null;
+        }
+      }));
   }
 }
 
