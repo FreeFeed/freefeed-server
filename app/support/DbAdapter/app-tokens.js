@@ -6,6 +6,11 @@ import { prepareModelPayload, initObject } from './utils';
 const appTokensTrait = (superClass) => class extends superClass {
   async createAppToken(payload) {
     const preparedPayload = prepareModelPayload(payload, APP_TOKEN_COLUMNS, APP_TOKEN_COLUMNS_MAPPING);
+
+    if (Number.isFinite(payload.expiresAtSeconds)) {
+      preparedPayload.expires_at = this.database.raw(`now() + ? * '1 second'::interval`, payload.expiresAtSeconds);
+    }
+
     const [id] = await this.database('app_tokens').returning('uid').insert(preparedPayload);
     return id;
   }
@@ -16,7 +21,26 @@ const appTokensTrait = (superClass) => class extends superClass {
   }
 
   async getActiveAppTokenByIdAndIssue(uid, issue) {
-    const row = await this.database('app_tokens').first().where({ uid, issue, is_active: true })
+    const row = await this.database.getRow(
+      `select * from app_tokens where 
+          uid = :uid 
+          and issue = :issue
+          and is_active
+          and (expires_at is null or expires_at > now())`,
+      { uid, issue });
+    return initAppTokenObject(row);
+  }
+
+  async getAppTokenByActivationCode(code, codeTTL) {
+    const row = await this.database.getRow(
+      `select * from app_tokens where 
+          activation_code = :code 
+          and updated_at > now() - :codeTTL * '1 second'::interval
+          and is_active
+          and (expires_at is null or expires_at > now())
+        order by updated_at
+        limit 1`,
+      { code, codeTTL });
     return initAppTokenObject(row);
   }
 
@@ -40,21 +64,31 @@ const appTokensTrait = (superClass) => class extends superClass {
     await this.database('app_tokens_log').insert(payload);
   }
 
-  async reissueAppToken(id) {
-    const { rows } = await this.database.raw(
-      `update app_tokens set issue = issue + 1, updated_at = default where uid = :id returning issue`,
-      { id },
+  async reissueAppToken(id, activationCode) {
+    const row = await this.database.getRow(
+      `update app_tokens set 
+        issue = issue + 1,
+        updated_at = default,
+        activation_code = :activationCode
+        where uid = :id returning *`,
+      { id, activationCode },
     );
 
-    if (rows.length === 0) {
+    if (!row) {
       throw new Error(`cannot find app token ${id}`);
     }
 
-    return rows[0].issue;
+    return initAppTokenObject(row);
   }
 
   async listActiveAppTokens(userId) {
-    const { rows } = await this.database.raw(`select * from app_tokens where user_id = :userId and is_active order by created_at desc`, { userId });
+    const rows = await this.database.getAll(
+      `select * from app_tokens where 
+         user_id = :userId 
+         and is_active 
+         and (expires_at is null or expires_at > now())
+         order by created_at desc`,
+      { userId });
     return rows.map((r) => initAppTokenObject(r));
   }
 
@@ -84,36 +118,32 @@ const APP_TOKEN_FIELDS = {
   issue:           'issue',
   created_at:      'createdAt',
   updated_at:      'updatedAt',
+  expires_at:      'expiresAt',
   scopes:          'scopes',
   restrictions:    'restrictions',
   last_used_at:    'lastUsedAt',
   last_ip:         'lastIP',
   last_user_agent: 'lastUserAgent',
+  activation_code: 'activationCode',
 };
 
-const APP_TOKEN_FIELDS_MAPPING = {
-  created_at:   (time) =>  time ? time.toISOString() : undefined,
-  updated_at:   (time) =>  time ? time.toISOString() : undefined,
-  last_used_at: (time) =>  time ? time.toISOString() : null,
-};
+const APP_TOKEN_FIELDS_MAPPING = {};
 
 const APP_TOKEN_COLUMNS = {
-  id:            'uid',
-  userId:        'user_id',
-  title:         'title',
-  isActive:      'is_active',
-  issue:         'issue',
-  createdAt:     'created_at',
-  updatedAt:     'updated_at',
-  scopes:        'scopes',
-  restrictions:  'restrictions',
-  lastUsedAt:    'last_used_at',
-  lastIP:        'last_ip',
-  lastUserAgent: 'last_user_agent',
+  id:             'uid',
+  userId:         'user_id',
+  title:          'title',
+  isActive:       'is_active',
+  issue:          'issue',
+  createdAt:      'created_at',
+  updatedAt:      'updated_at',
+  expiresAt:      'expires_at',
+  scopes:         'scopes',
+  restrictions:   'restrictions',
+  lastUsedAt:     'last_used_at',
+  lastIP:         'last_ip',
+  lastUserAgent:  'last_user_agent',
+  activationCode: 'activation_code',
 };
 
-const APP_TOKEN_COLUMNS_MAPPING = {
-  createdAt:  (ts) => ts ? new Date(ts) : undefined,
-  updatedAt:  (ts) => ts ? new Date(ts) : undefined,
-  lastUsedAt: (ts) => ts ? new Date(ts) : null,
-};
+const APP_TOKEN_COLUMNS_MAPPING = {};

@@ -25,6 +25,20 @@ export const appTokenCreateInputSchema = {
       uniqueItems: true,
       minItems:    0,
     },
+    expiresAt: {
+      oneOf: [
+        {
+          type:        'number',
+          description: 'Token lifetime in seconds since creation',
+          minimum:     0,
+        },
+        {
+          type:        'string',
+          description: 'Token expiration date in ISO 8601 format',
+          format:      'date-time',
+        }
+      ]
+    },
     restrictions: {
       type:     'object',
       required: [
@@ -69,3 +83,14 @@ export const appTokenUpdateInputSchema = {
     },
   }
 };
+
+export const appTokenActivateInputSchema = {
+  '$schema': 'http://json-schema.org/schema#',
+
+  type:     'object',
+  required: [
+    'activationCode',
+  ],
+
+  properties: { activationCode: { type: 'string' } }
+}

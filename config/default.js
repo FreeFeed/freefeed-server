@@ -302,4 +302,9 @@ config.userDeletion = {
 
 config.ianaTimeZone = 'Europe/Tallinn';
 
+config.appTokens = {
+  //
+  activationCodeTTL: 300, // in seconds
+};
+
 module.exports = config;

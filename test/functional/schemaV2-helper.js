@@ -232,6 +232,7 @@ export const appTokenInfoRestricted = {
   issue:        expect.it('to be a number'),
   createdAt:    expect.it('to satisfy', iso8601TimeString),
   updatedAt:    expect.it('to satisfy', iso8601TimeString),
+  expiresAt:    expect.it('to be null').or('to satisfy', iso8601TimeString),
   scopes:       expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),
   restrictions: expect.it('to exhaustively satisfy', {
     netmasks: expect.it('to be an array').and('to be empty').or('to have items satisfying', 'to be a string'),

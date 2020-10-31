@@ -41,6 +41,7 @@ export const alwaysDisallowedRoutes = [
   'GET /v2/app-tokens/scopes',
   'GET /v2/app-tokens',
   'POST /v2/app-tokens',
+  'POST /v2/app-tokens/activate',
   'POST /v2/app-tokens/:tokenId/reissue',
   'PUT /v2/app-tokens/:tokenId',
   'DELETE /v2/app-tokens/:tokenId',

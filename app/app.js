@@ -29,7 +29,7 @@ export async function getSingleton() {
 
     const _app = new FreefeedApp();
     routesInit(_app);
-    initJobProcessing();
+    initJobProcessing(_app);
 
     const server = http.createServer(_app.callback());
     _app.context.pubsub = new PubsubListener(server, _app);
