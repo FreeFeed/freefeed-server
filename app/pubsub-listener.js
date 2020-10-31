@@ -20,7 +20,7 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { dbAdapter, AppTokenV1 } from './models';
+import { dbAdapter, AppTokenV1, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
@@ -311,12 +311,27 @@ export default class PubsubListener {
         const banIds = bansMap.get(user.id) || [];
 
         if (
-          ((type === eventNames.COMMENT_CREATED || type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
+          ((type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
           || ((type === eventNames.LIKE_ADDED) && banIds.includes(json.users.id))
           || ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
             (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
         ) {
           return;
+        }
+
+        // A very special case: comment author is banned, but the viewer chooses
+        // to see such comments as placeholders.
+        if (type === eventNames.COMMENT_CREATED && banIds.includes(json.comments.createdBy)) {
+          if (user.getHiddenCommentTypes().includes(Comment.HIDDEN_BANNED)) {
+            return;
+          }
+
+          const { createdBy } = json.comments;
+          json.comments.hideType = Comment.HIDDEN_BANNED;
+          json.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+          json.comments.createdBy = null;
+          json.users = json.users.filter((u) => u.id !== createdBy);
+          json.admins = json.admins.filter((u) => u.id !== createdBy);
         }
       }
 
@@ -558,7 +573,9 @@ export default class PubsubListener {
   async _commentLikeEventEmitter(socket, type, json) {
     const commentUUID = json.comments.id;
     const viewer = socket.user;
-    const [commentLikesData] = await dbAdapter.getLikesInfoForComments([commentUUID], viewer.id);
+    const [
+      commentLikesData = { c_likes: 0, has_own_like: false }
+    ] = await dbAdapter.getLikesInfoForComments([commentUUID], viewer.id);
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 

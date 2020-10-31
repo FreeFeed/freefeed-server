@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+ - Send 'comment:new' realtime event for comments from banned users (to display
+   them as placeholders, if viewer chooses to see them)
+
 ### Added
  - The output of `GET /v2/server-info` has a new field
    _externalAuthProvidersInfo_ that contains an id, brand and title of each
