@@ -35,7 +35,7 @@ export async function definePeriodicJob(jobManager, { name, payload = {}, handle
       }
     }
 
-    await Job.clone(nextTime());
+    await job.clone(nextTime());
   });
   // Create a first job
   await Job.create(name, payload, { uniqKey: 'periodic', unlockAt: nextTime() });
