@@ -108,7 +108,7 @@ export function initHandlers(jobManager) {
     }
 
     // Repeat this job if we are not done
-    await Job.clone();
+    await job.clone();
   });
 }
 
