@@ -1,7 +1,7 @@
 import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
-import { UUID } from './DbAdapter/adv-locks';
+import { UUID } from './types';
 
 
 // Objects to delete:

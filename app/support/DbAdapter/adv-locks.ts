@@ -1,10 +1,8 @@
 import Knex from 'knex';
 
+import { Branded, UUID } from '../types';
 
-type Branded<T, B extends string> = T & { __brand?: B;}
 
-// Some useful type aliases
-export type UUID = Branded<string, 'uuid'>
 export type LockType = Branded<number, 'advisoryLockType'>
 
 export const USER_SUBSCRIPTIONS: LockType = 10001;
