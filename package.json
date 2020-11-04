@@ -7,9 +7,10 @@
   "private": true,
   "scripts": {
     "start": "babel-node --extensions \".js,.jsx,.ts\" index.js",
-    "travis": "run-s -c test lint",
-    "test": "run-s reset-test-db test-rollback mocha",
+    "travis": "run-s -c typecheck test lint",
+    "test": "run-s typecheck reset-test-db test-rollback mocha",
     "lint": "eslint app bin config test",
+    "typecheck": "tsc",
     "reset-test-db": "babel-node bin/clean_test_db.js && knex --env test migrate:latest",
     "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
     "test-just": "cross-env NODE_ENV=test FRFS_SECRET=test-secret mocha",
