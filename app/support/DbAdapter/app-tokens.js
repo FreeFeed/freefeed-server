@@ -95,6 +95,15 @@ const appTokensTrait = (superClass) => class extends superClass {
   async deleteAppToken(id) {
     await this.database.raw(`delete from app_tokens where uid = :id`, { id });
   }
+
+  async periodicInvalidateAppTokens() {
+    await this.database.raw(
+      `update app_tokens set
+        is_active = false, updated_at = now()
+        where
+        is_active and expires_at <= now()`
+    );
+  }
 };
 
 export default appTokensTrait;

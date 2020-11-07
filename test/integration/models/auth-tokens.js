@@ -9,8 +9,8 @@ import config from 'config';
 
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job } from '../../../app/models';
-import { APP_TOKEN_INACTIVATE } from '../../../app/jobs/app-tokens';
 import { initJobProcessing } from '../../../app/jobs';
+import { PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/app-tokens';
 
 
 const expect = unexpected.clone();
@@ -348,16 +348,16 @@ describe('Auth Tokens', () => {
         token = new AppTokenV1({
           userId:           luna.id,
           title:            'My app',
-          expiresAtSeconds: 100,
+          expiresAtSeconds: 0,
         });
         await token.create();
 
-        jobManager = initJobProcessing();
+        jobManager = await initJobProcessing();
       });
 
-      it(`should create job that should inactivate token`, async () => {
-        const jobs = await dbAdapter.getAllJobs([APP_TOKEN_INACTIVATE]);
-        expect(jobs, 'to satisfy', [{ name: APP_TOKEN_INACTIVATE, payload: { tokenId: token.id } }]);
+      it(`should create periodic job that inactivates tokens`, async () => {
+        const jobs = await dbAdapter.getAllJobs([PERIODIC_INACTIVATE_APP_TOKENS]);
+        expect(jobs, 'to satisfy', [{ name: PERIODIC_INACTIVATE_APP_TOKENS }]);
         jobId = jobs[0].id;
       });
 
