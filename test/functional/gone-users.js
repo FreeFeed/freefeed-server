@@ -10,6 +10,7 @@ import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { GONE_SUSPENDED, GONE_COOLDOWN, GONE_DELETED } from '../../app/models/user';
 import { addMailListener } from '../../lib/mailer';
+import { EVENT_TYPES } from '../../app/support/EventTypes';
 
 import {
   createTestUsers,
@@ -29,7 +30,8 @@ import {
   unsubscribeFromAsync,
   subscribeToAsync,
   promoteToAdmin,
-  demoteFromAdmin
+  demoteFromAdmin,
+  getUserEvents,
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -50,8 +52,9 @@ describe('Gone users', () => {
   beforeEach(async () => {
     [luna, mars] = await createTestUsers(['luna', 'mars']);
     await mutualSubscriptions([luna, mars]);
-    // Luna writes a post
-    post = await createAndReturnPost(luna, 'Luna post');
+    // Luna writes a post and comment
+    post = await createAndReturnPost(luna, 'Luna post mentions @mars');
+    await createCommentAsync(luna, post.id, 'Comment mentions @mars');
     // Luna is gone
     await setGoneStatus(luna, GONE_COOLDOWN);
   });
@@ -192,12 +195,12 @@ describe('Gone users', () => {
         await rtSession.sendAsync('subscribe', { global: ['users'] });
 
         {
-          const test = rtSession.receiveWhile('global:user:update', setGoneStatus(luna, null));
+          const test = rtSession.receiveWhile('global:user:update', () => setGoneStatus(luna, null));
           await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: undefined } });
         }
 
         {
-          const test = rtSession.receiveWhile('global:user:update', setGoneStatus(luna, GONE_SUSPENDED));
+          const test = rtSession.receiveWhile('global:user:update', () => setGoneStatus(luna, GONE_SUSPENDED));
           await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: true } });
         }
       });
@@ -214,7 +217,7 @@ describe('Gone users', () => {
 
           const test = rtSession.receiveWhileSeq(
             ['global:user:update', 'global:user:update'],
-            setGoneStatus(luna, GONE_SUSPENDED)
+            () => setGoneStatus(luna, GONE_SUSPENDED)
           );
           await expect(
             test, 'when fulfilled', 'to satisfy',
@@ -278,6 +281,18 @@ describe('Gone users', () => {
     it(`should not show Luna's post in search results`, async () => {
       const resp = await performJSONRequest('GET', `/v2/search?qs=from:${luna.username}`);
       expect(resp, 'to satisfy', { posts: [] });
+    });
+
+    describe('Notifications', () => {
+      it(`should show Luna's post in Marses notifications but without the post ID`, async () => {
+        const events = await getUserEvents(mars, ['mentions']);
+        expect(events, 'to satisfy', {
+          Notifications: [
+            { event_type: EVENT_TYPES.MENTION_IN_COMMENT, post_id: null, comment_id: null },
+            { event_type: EVENT_TYPES.MENTION_IN_POST, post_id: null },
+          ]
+        });
+      });
     });
   });
 

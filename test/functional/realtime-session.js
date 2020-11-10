@@ -11,6 +11,7 @@ const silenceTimeout = 500;
 export default class Session {
   socket = null;
   name = '';
+  listeners = new Set();
 
   static create(port, name = '') {
     const options = {
@@ -28,6 +29,16 @@ export default class Session {
   constructor(socket, name = '') {
     this.socket = socket;
     this.name = name;
+
+    // To catch all events (https://stackoverflow.com/a/33960032)
+    const { onevent } = socket;
+    socket.onevent = function (packet) {
+      const args = packet.data || [];
+      onevent.call(this, packet); // original call
+      packet.data = ['*'].concat(args);
+      onevent.call(this, packet); // additional call to catch-all
+    };
+    socket.on('*', (event, data) => [...this.listeners].forEach((l) => l({ event, data })));
   }
 
   send(event, data) {
@@ -48,51 +59,76 @@ export default class Session {
 
   disconnect() {
     this.socket.disconnect();
+    this.listeners.clear();
   }
 
   receive(event) {
     return new Promise((resolve, reject) => {
-      const success = (data) => {
-        this.socket.off(event, success);
-        clearTimeout(timer);
-        resolve(data);
+      const timer = setTimeout(
+        () => reject(new Error(`${this.name ? `${this.name}: ` : ''}Expecting '${event}' event, got timeout`)),
+        eventTimeout,
+      );
+      const handler = ({ event: receivedEvent, data }) => {
+        if (receivedEvent === event) {
+          this.listeners.delete(handler);
+          clearTimeout(timer);
+          resolve(data);
+        }
       };
-      this.socket.on(event, success);
-      const timer = setTimeout(() => reject(new Error(`${this.name ? `${this.name}: ` : ''}Expecting '${event}' event, got timeout`)), eventTimeout);
+      this.listeners.add(handler);
     });
   }
 
   notReceive(event) {
     return new Promise((resolve, reject) => {
-      const fail = () => {
-        this.socket.off(event, fail);
-        clearTimeout(timer);
-        reject(new Error(`${this.name ? `${this.name}: ` : ''}Expecting silence, got '${event}' event`));
-      };
-      this.socket.on(event, fail);
       const timer = setTimeout(() => resolve(null), silenceTimeout);
+      const handler = ({ event: receivedEvent }) => {
+        if (receivedEvent === event) {
+          this.listeners.delete(handler);
+          clearTimeout(timer);
+          reject(new Error(`${this.name ? `${this.name}: ` : ''}Got unexpected '${event}' event`));
+        }
+      };
+      this.listeners.add(handler);
     });
   }
 
-  async receiveWhile(event, ...promises) {
-    const [result] = await Promise.all([this.receive(event), ...promises]);
+  receiveSeq(events) {
+    return new Promise((resolve, reject) => {
+      const collectedData = [];
+      const timer = setTimeout(
+        () => reject(new Error(`${this.name ? `${this.name}: ` : ''}Expecting ${JSON.stringify(events)} events, got ${JSON.stringify(events.slice(0, collectedData.length))}`)),
+        eventTimeout,
+      );
+      const handler = ({ event: receivedEvent, data }) => {
+        if (receivedEvent === events[collectedData.length]) {
+          collectedData.push(data);
+
+          if (collectedData.length === events.length) {
+            this.listeners.delete(handler);
+            clearTimeout(timer);
+            resolve(collectedData);
+          }
+        }
+      };
+      this.listeners.add(handler);
+    });
+  }
+
+  async receiveWhile(event, ...tasks) {
+    const listen = this.receive(event);
+    const [result] = await Promise.all([listen, ...tasks.map((t) => t())]);
     return result;
   }
 
-  async notReceiveWhile(event, ...promises) {
-    await Promise.all([this.notReceive(event), ...promises]);
+  async notReceiveWhile(event, ...tasks) {
+    const listen = this.notReceive(event);
+    await Promise.all([listen, ...tasks.map((t) => t())]);
   }
 
-  async receiveSeq(events) {
-    return await events.reduce(async (acc, event) => {
-      const arr = await acc;
-      const resp = await this.receive(event);
-      return [...arr, resp];
-    }, []);
-  }
-
-  async receiveWhileSeq(events, ...promises) {
-    const [result] = await Promise.all([this.receiveSeq(events), ...promises]);
+  async receiveWhileSeq(events, ...tasks) {
+    const listen = this.receiveSeq(events);
+    const [result] = await Promise.all([listen, ...tasks.map((t) => t())]);
     return result;
   }
 }

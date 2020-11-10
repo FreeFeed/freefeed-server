@@ -22,7 +22,7 @@ export async function sendDailyBestOfEmail(user, data, digestDate) {
 
   const attachments = [fa['fa-heart'], fa['fa-lock'], fa['fa-comment-o'], fa['post-protected'], fa['fa-chevron-right']];
 
-  return Mailer.sendMail(user, `The best of your FreeFeed for ${digestDate}`, {
+  return Mailer.sendMail(user, `The best of your ${config.siteTitle} for ${digestDate}`, {
     digest: {
       body: emailBodyWithInlineStyles,
       date: digestDate
@@ -44,7 +44,7 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
 
   const attachments = [fa['fa-heart'], fa['fa-lock'], fa['fa-comment-o'], fa['post-protected'], fa['fa-chevron-right']];
 
-  return Mailer.sendMail(user, `The best of your FreeFeed for the week of ${digestDate}`, {
+  return Mailer.sendMail(user, `The best of your ${config.siteTitle} for the week of ${digestDate}`, {
     digest: {
       body: emailBodyWithInlineStyles,
       date: digestDate

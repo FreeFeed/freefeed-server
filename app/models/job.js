@@ -15,6 +15,7 @@ export function addJobModel(dbAdapter) {
     name;
     payload;
     attempts;
+    uniqKey;
 
     constructor(params) {
       for (const f of Object.keys(this)) {
@@ -32,9 +33,9 @@ export function addJobModel(dbAdapter) {
      * @param {object} params
      * @returns {Promise<Job>}
      */
-    static create(name, payload = {}, { unlockAt = 0 } = {}) {
+    static create(name, payload = {}, { unlockAt = 0, uniqKey = null } = {}) {
       _checkUnlockAtType(unlockAt);
-      return dbAdapter.createJob(name, payload, { unlockAt });
+      return dbAdapter.createJob(name, payload, { unlockAt, uniqKey });
     }
 
     static getById(id) {
@@ -57,6 +58,16 @@ export function addJobModel(dbAdapter) {
      */
     delete() {
       return dbAdapter.deleteJob(this.id);
+    }
+
+    /**
+     * Create a new job with the same properties as this but with a new unlockAt
+     * time.
+     *
+     * @returns {Promise<Job>}
+     */
+    clone(unlockAt = 0) {
+      return Job.create(this.name, this.payload, { uniqKey: this.uniqKey, unlockAt });
     }
   }
 }

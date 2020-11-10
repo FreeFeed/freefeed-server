@@ -1,5 +1,7 @@
 import { pick, difference } from 'lodash';
 import compose from 'koa-compose';
+import { DateTime } from 'luxon';
+import config from 'config';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
@@ -7,7 +9,11 @@ import { ValidationException, NotFoundException, BadRequestException } from '../
 import { appTokensScopes } from '../../../models/app-tokens-scopes';
 import { Address } from '../../../support/ipv6';
 
-import { appTokenCreateInputSchema, appTokenUpdateInputSchema } from './data-schemes/app-tokens';
+import {
+  appTokenCreateInputSchema,
+  appTokenUpdateInputSchema,
+  appTokenActivateInputSchema,
+} from './data-schemes/app-tokens';
 
 
 export const create = compose([
@@ -43,18 +49,35 @@ export const create = compose([
       throw new ValidationException(`Invalid origins: ${invalidOrigins.join(', ')}`);
     }
 
+    let expiresAt = undefined;
+    let expiresAtSeconds = undefined;
+
+    if (typeof body.expiresAt === 'number') {
+      expiresAtSeconds = body.expiresAt;
+    } else if (typeof body.expiresAt === 'string') {
+      expiresAt = DateTime.fromISO(body.expiresAt, { zone: config.ianaTimeZone }).toJSDate();
+
+      if (!expiresAt || isNaN(expiresAt)) {
+        throw new ValidationException(`Invalid ISO 8601 date string: ${body.expiresAt}`);
+      }
+    }
+
     const token = new AppTokenV1({
       userId:       user.id,
       title:        body.title,
       scopes:       body.scopes,
       restrictions: body.restrictions,
+      expiresAt,
+      expiresAtSeconds,
     });
 
     await token.create();
 
     ctx.body = {
-      token:       serializeAppToken(token),
-      tokenString: token.tokenString(),
+      token:             serializeAppToken(token),
+      tokenString:       token.tokenString(),
+      activationCode:    token.activationCode,
+      activationCodeTTL: config.appTokens.activationCodeTTL,
     };
   },
 ]);
@@ -90,8 +113,10 @@ export const reissue = compose([
     await token.reissue();
 
     ctx.body = {
-      token:       serializeAppToken(token),
-      tokenString: token.tokenString(),
+      token:             serializeAppToken(token),
+      tokenString:       token.tokenString(),
+      activationCode:    token.activationCode,
+      activationCodeTTL: config.appTokens.activationCodeTTL,
     };
   },
 ]);
@@ -162,6 +187,38 @@ export const current = compose([
   },
 ]);
 
+export const activate = compose([
+  inputSchemaRequired(appTokenActivateInputSchema),
+  monitored('app-tokens.activate'),
+  async (ctx) => {
+    const { activationCode: rawActivationCode } = ctx.request.body;
+    const activationCode = AppTokenV1.normalizeActivationCode(rawActivationCode);
+
+    if (activationCode === null) {
+      throw new ValidationException(`Invalid activation code, check that you entered it correctly`);
+    }
+
+    const token = await dbAdapter.getAppTokenByActivationCode(activationCode, config.appTokens.activationCodeTTL);
+
+    if (!token) {
+      throw new NotFoundException('Unknown or expired activation code');
+    }
+
+    try {
+      token.checkRestrictions(ctx);
+    } catch (err) {
+      throw new NotFoundException('Unknown or expired activation code');
+    }
+
+    await token.reissue();
+
+    ctx.body = {
+      token:       serializeAppToken(token, true),
+      tokenString: token.tokenString(),
+    };
+  },
+]);
+
 function serializeAppToken(token, restricted = false) {
   return pick(token, [
     'id',
@@ -169,6 +226,7 @@ function serializeAppToken(token, restricted = false) {
     'issue',
     'createdAt',
     'updatedAt',
+    'expiresAt',
     'scopes',
     'restrictions',
     restricted || 'lastUsedAt',

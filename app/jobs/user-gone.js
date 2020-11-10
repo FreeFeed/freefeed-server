@@ -17,13 +17,14 @@ export function userCooldownStart(user) {
   return Job.create(USER_COOLDOWN_START, {
     id:     user.id,
     goneAt: user.goneAt.getTime(),
-  });
+  }, { uniqKey: user.id });
 }
 
 export function userDataDeletionStart(user) {
   return Job.create(
     USER_DELETE_DATA,
-    { id: user.id, email: user.hiddenEmail }
+    { id: user.id, email: user.hiddenEmail },
+    { uniqKey: user.id }
   );
 }
 
@@ -50,12 +51,12 @@ export function initHandlers(jobManager) {
         Job.create(
           USER_COOLDOWN_REMINDER,
           { id: user.id, goneAt: user.goneAt.getTime() },
-          { unlockAt: reminderDate(user) }
+          { unlockAt: reminderDate(user), uniqKey: user.id }
         ),
         Job.create(
           USER_DELETION_START,
           { id: user.id, goneAt: user.goneAt.getTime() },
-          { unlockAt: deletionDate(user) }
+          { unlockAt: deletionDate(user), uniqKey: user.id }
         ),
       ]);
     })
@@ -107,7 +108,7 @@ export function initHandlers(jobManager) {
     }
 
     // Repeat this job if we are not done
-    await Job.create(job.name, job.payload);
+    await job.clone();
   });
 }
 

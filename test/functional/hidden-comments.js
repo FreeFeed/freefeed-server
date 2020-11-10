@@ -1,11 +1,11 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { DummyPublisher } from '../../app/pubsub';
 import { PubSub, Comment } from '../../app/models';
+import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
   fetchPost,
@@ -17,12 +17,15 @@ import {
   updateUserAsync,
   removeCommentAsync,
 } from './functional_test_helper';
+import Session from './realtime-session';
 
 
 describe('Hidden comments', () => {
+  let app;
   before(async () => {
-    await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    app = await getSingleton();
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter)
   });
 
   beforeEach(() => cleanDB($pg_database));
@@ -67,6 +70,31 @@ describe('Hidden comments', () => {
         const lunaComment =  reply.comments.find((c) => c.id === postInReply.comments[1]);
         expect(venusComment, 'to satisfy', { hideType: Comment.HIDDEN_BANNED });
         expect(lunaComment,  'to satisfy', { hideType: Comment.VISIBLE });
+      });
+
+      describe('Luna is listening for the post events', () => {
+        let lunaSession;
+        beforeEach(async () => {
+          const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+          lunaSession = await Session.create(port, 'Luna session')
+          await lunaSession.sendAsync('auth', { authToken: luna.authToken });
+          await lunaSession.sendAsync('subscribe', { 'post': [post.id] });
+        });
+        afterEach(() => lunaSession.disconnect());
+
+        it(`should deliver 'comment:new' event about hidden comment to Luna`, async () => {
+          const test = lunaSession.receiveWhile(
+            eventNames.COMMENT_CREATED,
+            () => createCommentAsync(venus, post.id, 'Another comment from Venus')
+          );
+          await expect(test, 'when fulfilled', 'to satisfy', {
+            comments: {
+              createdBy: null,
+              hideType:  Comment.HIDDEN_BANNED,
+              body:      Comment.hiddenBody(Comment.HIDDEN_BANNED),
+            }
+          });
+        });
       });
     });
 

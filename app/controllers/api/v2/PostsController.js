@@ -1,3 +1,4 @@
+import config from 'config';
 import _ from 'lodash';
 import compose from 'koa-compose';
 
@@ -72,7 +73,7 @@ export const opengraph = compose([
 
     const body = _.escape(post.body);
 
-    let og = `<meta property="og:title" content="FreeFeed.net/${author.username}" />
+    let og = `<meta property="og:title" content="${author.username} at ${config.siteTitle}" />
       <meta property="og:description" content="${body}" />
       <meta property="og:type" content="article" />`;
 

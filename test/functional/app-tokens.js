@@ -2,6 +2,8 @@
 /* global $database, $pg_database */
 import expect from 'unexpected';
 import { uniq, difference } from 'lodash';
+import { DateTime } from 'luxon';
+import config from 'config';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
@@ -19,6 +21,7 @@ import {
   createCommentAsync,
   updateUserAsync,
   whoami,
+  authHeaders,
 } from './functional_test_helper';
 import { UUID, appTokenInfo, appTokenInfoRestricted } from './schemaV2-helper';
 import Session from './realtime-session';
@@ -95,12 +98,44 @@ describe('App tokens controller', () => {
           title:         'App1',
           issue:         1,
           scopes:        ['read-my-info', 'manage-posts'],
+          expiresAt:     null,
           lastUsedAt:    null,
           lastIP:        null,
           lastUserAgent: null,
         },
         tokenString: expect.it('to be a string'),
       });
+    });
+
+    it('should create token with expiration time in seconds', async () => {
+      const resp = await performJSONRequest(
+        'POST', '/v2/app-tokens',
+        {
+          title:     'App1',
+          scopes:    [],
+          expiresAt: 100,
+        },
+        authHeaders(luna),
+      );
+
+      const createdAt = new Date(resp.token.createdAt);
+      const expiresAt = new Date(resp.token.expiresAt);
+      expect(expiresAt - createdAt, 'to be', 100 * 1000);
+    });
+
+    it('should create token with expiration time in ISO 8601 format', async () => {
+      const expiresAt = DateTime.local().plus({ seconds: 100 }).toJSDate();
+      const resp = await performJSONRequest(
+        'POST', '/v2/app-tokens',
+        {
+          title:     'App1',
+          scopes:    [],
+          expiresAt: expiresAt.toISOString(),
+        },
+        authHeaders(luna),
+      );
+
+      expect(resp.token.expiresAt, 'to be', expiresAt.toISOString());
     });
 
     it('should return "whoami" data with token', async () => {
@@ -369,12 +404,13 @@ describe('App tokens controller', () => {
 });
 
 describe('Realtime', () => {
+  let app;
   let port;
   let luna, post, session, token, token2;
 
   before(async () => {
     await cleanDB($pg_database);
-    const app = await getSingleton();
+    app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
     PubSub.setPublisher(pubsubAdapter);
@@ -406,7 +442,7 @@ describe('Realtime', () => {
   it('sould not deliver post event to anonymous session', async () => {
     const test = session.notReceiveWhile(
       'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
+      () => createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });
@@ -415,7 +451,7 @@ describe('Realtime', () => {
     await session.sendAsync('auth', { authToken: luna.authToken });
     const test = session.receiveWhile(
       'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
+      () => createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });
@@ -424,7 +460,7 @@ describe('Realtime', () => {
     await session.sendAsync('auth', { authToken: token.tokenString() });
     const test = session.receiveWhile(
       'comment:new',
-      createCommentAsync(luna, post.id, 'Hello'),
+      () => createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });
@@ -432,6 +468,44 @@ describe('Realtime', () => {
   it('sould not allow to authorize with incorrect app token', async () => {
     const promise = session.sendAsync('auth', { authToken: token2.tokenString() });
     await expect(promise, 'to be rejected');
+  });
+
+  describe('Token inactivation', () => {
+    it('should deliver post event to session with active app token', async () => {
+      await session.sendAsync('auth', { authToken: token.tokenString() });
+
+      const test = session.receiveWhile(
+        'comment:new',
+        () => createCommentAsync(luna, post.id, 'Hello'),
+      );
+      await expect(test, 'to be fulfilled');
+    });
+
+    it('should stop sending events after token deactivation and sockets re-authorization', async () => {
+      await session.sendAsync('auth', { authToken: token.tokenString() });
+
+      // Inactivate token
+      await token.inactivate();
+
+      {
+        const test = session.receiveWhile(
+          'comment:new',
+          () => createCommentAsync(luna, post.id, 'Hello'),
+        );
+        await expect(test, 'to be fulfilled');
+      }
+
+      // Update sockets authorization
+      await app.context.pubsub.reAuthorizeSockets();
+
+      {
+        const test = session.notReceiveWhile(
+          'comment:new',
+          () => createCommentAsync(luna, post.id, 'Hello'),
+        );
+        await expect(test, 'to be fulfilled');
+      }
+    });
   });
 });
 
@@ -486,5 +560,101 @@ describe('Full access', () => {
   it('should not return privateMeta in whoami with app token', async () => {
     const resp = await whoami(token.tokenString()).then((r) => r.json());
     expect(resp.users.privateMeta, 'to equal', {});
+  });
+});
+
+describe('Activation codes', () => {
+  let luna, tokenId, actCode;
+
+  before(async () => {
+    await cleanDB($pg_database);
+    luna = await createTestUser();
+  });
+
+  it(`should return activation code on token creation`, async () => {
+    const resp = await performJSONRequest(
+      'POST', '/v2/app-tokens',
+      {
+        title:  'App1',
+        scopes: [],
+      },
+      authHeaders(luna),
+    );
+
+    expect(resp, 'to satisfy', {
+      token: {
+        id:            expect.it('to satisfy', UUID),
+        title:         'App1',
+        issue:         1,
+        scopes:        [],
+        expiresAt:     null,
+        lastUsedAt:    null,
+        lastIP:        null,
+        lastUserAgent: null,
+      },
+      tokenString:       expect.it('to be a string'),
+      activationCode:    expect.it('to satisfy', /^[A-Z0-9]{6}$/),
+      activationCodeTTL: config.appTokens.activationCodeTTL,
+    });
+
+    tokenId = resp.token.id;
+    actCode = resp.activationCode;
+  });
+
+  it(`should return new activation code after the token reissue`, async () => {
+    const resp = await performJSONRequest(
+      'POST', `/v2/app-tokens/${tokenId}/reissue`,
+      {},
+      authHeaders(luna),
+    );
+
+    expect(resp, 'to satisfy', {
+      token: {
+        id:    tokenId,
+        issue: 2,
+      },
+      tokenString:       expect.it('to be a string'),
+      activationCode:    expect.it('to satisfy', /^[A-Z0-9]{6}$/).and('not to be', actCode),
+      activationCodeTTL: config.appTokens.activationCodeTTL,
+    });
+
+    actCode = resp.activationCode;
+  });
+
+  let tokenString;
+
+  it(`should return reissued token by activation code`, async () => {
+    const resp = await performJSONRequest(
+      'POST', `/v2/app-tokens/activate`,
+      { activationCode: actCode }
+    );
+
+    expect(resp, 'to satisfy', {
+      token: {
+        id:    tokenId,
+        issue: 3,
+      },
+      tokenString: expect.it('to be a string'),
+    });
+
+    ({ tokenString } = resp);
+  });
+
+  it(`should use the token string`, async () => {
+    const resp = await performJSONRequest(
+      'GET', `/v1/users/me`,
+      null, { Authorization: `Bearer ${tokenString}` }
+    );
+
+    expect(resp, 'to satisfy', { users: { id: luna.user.id } });
+  });
+
+  it(`should not allow to use activation code twice`, async () => {
+    const resp = await performJSONRequest(
+      'POST', `/v2/app-tokens/activate`,
+      { activationCode: actCode }
+    );
+
+    expect(resp, 'to satisfy', { __httpCode: 404 });
   });
 });

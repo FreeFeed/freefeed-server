@@ -299,7 +299,7 @@ describe('Realtime #2', () => {
         const screenName = 'Sailor Moon';
         const test = anonSession.receiveWhile(
           'global:user:update',
-          funcTestHelper.updateUserAsync(luna, { screenName })
+          () => funcTestHelper.updateUserAsync(luna, { screenName })
         );
         await expect(test, 'when fulfilled', 'to satisfy', {
           user: {
@@ -313,7 +313,7 @@ describe('Realtime #2', () => {
       it(`should deliver 'global:user:update' event when Luna goes private`, async () => {
         const test = anonSession.receiveWhile(
           'global:user:update',
-          funcTestHelper.goPrivate(luna)
+          () => funcTestHelper.goPrivate(luna)
         );
         await expect(test, 'when fulfilled', 'to satisfy', {
           user: {
@@ -327,7 +327,7 @@ describe('Realtime #2', () => {
       it(`should deliver 'global:user:update' event when Luna updates profile picture`, async () => {
         const test = anonSession.receiveWhile(
           'global:user:update',
-          funcTestHelper.updateProfilePicture(luna, 'test/fixtures/default-userpic-75.gif')
+          () => funcTestHelper.updateProfilePicture(luna, 'test/fixtures/default-userpic-75.gif')
         );
         await expect(test, 'when fulfilled', 'to satisfy', {
           user: {
@@ -343,7 +343,7 @@ describe('Realtime #2', () => {
         const lunaUser = await dbAdapter.getUserById(luna.user.id);
         const test = anonSession.receiveWhile(
           'global:user:update',
-          lunaUser.updateUsername('jupiter')
+          () => lunaUser.updateUsername('jupiter')
         );
         await expect(test, 'when fulfilled', 'to satisfy', {
           user: {
@@ -386,28 +386,28 @@ describe('Realtime #2', () => {
         describe(`${watcher.name} is watching`, () => {
           it(`should deliver 'global:user:update' event when group changes screenName`,
             () => shouldMatchActualInfo(
-              funcTestHelper.updateGroupAsync(selenites, luna, { screenName: 'The First Men in the Moon' }),
+              () => funcTestHelper.updateGroupAsync(selenites, luna, { screenName: 'The First Men in the Moon' }),
               watcher.session, watcher.userCtx,
             )
           );
 
           it(`should deliver 'global:user:update' event when group becomes restricted`,
             () => shouldMatchActualInfo(
-              funcTestHelper.updateGroupAsync(selenites, luna, { isRestricted: '1' }),
+              () => funcTestHelper.updateGroupAsync(selenites, luna, { isRestricted: '1' }),
               watcher.session, watcher.userCtx,
             )
           );
 
           it(`should deliver 'global:user:update' event when group becomes private`,
             () => shouldMatchActualInfo(
-              funcTestHelper.updateGroupAsync(selenites, luna, { isPrivate: '1' }),
+              () => funcTestHelper.updateGroupAsync(selenites, luna, { isPrivate: '1' }),
               watcher.session, watcher.userCtx,
             )
           );
 
           it(`should deliver 'global:user:update' event when group updates profile picture`,
             () => shouldMatchActualInfo(
-              funcTestHelper.updateGroupProfilePicture(luna, selenites.username, 'test/fixtures/default-userpic-75.gif'),
+              () => funcTestHelper.updateGroupProfilePicture(luna, selenites.username, 'test/fixtures/default-userpic-75.gif'),
               watcher.session, watcher.userCtx,
             )
           );
@@ -436,7 +436,7 @@ describe('Realtime #2', () => {
     it(`should deliver 'post:new' to Luna when Luna writes direct post to Mars`, async () => {
       const test = lunaSession.receiveWhile(
         'post:new',
-        funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
+        () => funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
       );
       await expect(test, 'to be fulfilled');
     });
@@ -444,7 +444,7 @@ describe('Realtime #2', () => {
     it(`should deliver 'post:new' to Mars when Luna writes direct post to Mars`, async () => {
       const test = marsSession.receiveWhile(
         'post:new',
-        funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
+        () => funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
       );
       await expect(test, 'to be fulfilled');
     });
@@ -458,7 +458,7 @@ describe('Realtime #2', () => {
       it(`should deliver 'comment:new' to Luna when Luna comments direct post`, async () => {
         const test = lunaSession.receiveWhile(
           'comment:new',
-          funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
+          () => funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
         );
         await expect(test, 'to be fulfilled');
       });
@@ -466,7 +466,7 @@ describe('Realtime #2', () => {
       it(`should deliver 'comment:new' to Mars when Luna comments direct post`, async () => {
         const test = marsSession.receiveWhile(
           'comment:new',
-          funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
+          () => funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
         );
         await expect(test, 'to be fulfilled');
       });
@@ -474,7 +474,7 @@ describe('Realtime #2', () => {
       it(`should deliver 'post:destroy' to Luna when Luna deletes direct post`, async () => {
         const test = lunaSession.receiveWhile(
           'post:destroy',
-          funcTestHelper.deletePostAsync(luna, post.id),
+          () => funcTestHelper.deletePostAsync(luna, post.id),
         );
         await expect(test, 'to be fulfilled');
       });
@@ -482,7 +482,7 @@ describe('Realtime #2', () => {
       it(`should deliver 'post:destroy' to Mars when Luna deletes direct post`, async () => {
         const test = marsSession.receiveWhile(
           'post:destroy',
-          funcTestHelper.deletePostAsync(luna, post.id),
+          () => funcTestHelper.deletePostAsync(luna, post.id),
         );
         await expect(test, 'to be fulfilled');
       });
@@ -567,7 +567,7 @@ describe('Realtime #2', () => {
           luna.post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post');
           const test = marsSession.receiveWhile(
             'post:new',
-            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
+            () => funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
           );
           await expect(test, 'to be fulfilled');
         });
@@ -576,7 +576,7 @@ describe('Realtime #2', () => {
           luna.post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post');
           const test = anonSession.receiveWhile(
             'post:new',
-            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
+            () => funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
           );
           await expect(test, 'to be fulfilled');
         });
@@ -585,7 +585,7 @@ describe('Realtime #2', () => {
           luna.post = await funcTestHelper.createAndReturnPostToFeed([luna, celestials], luna, 'Post');
           const test = marsSession.receiveWhile(
             'post:destroy',
-            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username] }),
+            () => funcTestHelper.updatePostAsync(luna, { feeds: [luna.username] }),
           );
           await expect(test, 'to be fulfilled');
         });
@@ -594,7 +594,7 @@ describe('Realtime #2', () => {
           luna.post = await funcTestHelper.createAndReturnPostToFeed([luna, celestials], luna, 'Post');
           const test = anonSession.receiveWhile(
             'post:destroy',
-            funcTestHelper.updatePostAsync(luna, { feeds: [luna.username] }),
+            () => funcTestHelper.updatePostAsync(luna, { feeds: [luna.username] }),
           );
           await expect(test, 'to be fulfilled');
         });
@@ -617,7 +617,7 @@ describe('Realtime #2', () => {
             luna.post = await funcTestHelper.createAndReturnPostToFeed([luna], luna, 'Post');
             const test = secondMarsSession.notReceiveWhile(
               'post:new',
-              funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
+              () => funcTestHelper.updatePostAsync(luna, { feeds: [luna.username, celestials.username] }),
             );
             await expect(test, 'to be fulfilled');
           });
@@ -633,7 +633,7 @@ describe('Realtime #2', () => {
           luna.post = await funcTestHelper.createAndReturnPostToFeed([mars], luna, 'Direct');
           const test = jupiterSession.receiveWhile(
             'post:new',
-            funcTestHelper.updatePostAsync(luna, { feeds: [mars.username, jupiter.username] }),
+            () => funcTestHelper.updatePostAsync(luna, { feeds: [mars.username, jupiter.username] }),
           );
           await expect(test, 'to be fulfilled');
         });
@@ -710,7 +710,7 @@ describe('Realtime: Homefeed modes', () => {
   const testPostActivity = async (commenter, post, should = true) => {
     const test = lunaSession[should ? 'receiveWhile' : 'notReceiveWhile'](
       'comment:new',
-      funcTestHelper.createCommentAsync(commenter, post.id, 'Hello'),
+      () => funcTestHelper.createCommentAsync(commenter, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   };
@@ -886,7 +886,7 @@ describe('Realtime: Group time updates', () => {
   it(`should deliver 'user:update' to Luna when Luna writes a post to Selenites`, async () => {
     const test = lunaSession.receiveWhile(
       'user:update',
-      funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
+      () => funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
   });
@@ -895,7 +895,7 @@ describe('Realtime: Group time updates', () => {
     const post = await funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello');
     const test = lunaSession.receiveWhile(
       'user:update',
-      funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
+      () => funcTestHelper.createCommentAsync(luna, post.id, 'Hello'),
     );
     await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
   });
@@ -903,7 +903,7 @@ describe('Realtime: Group time updates', () => {
   it(`should deliver 'user:update' to Mars when Luna writes a post to Selenites`, async () => {
     const test = marsSession.receiveWhile(
       'user:update',
-      funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
+      () => funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
   });
@@ -911,7 +911,7 @@ describe('Realtime: Group time updates', () => {
   it(`should deliver 'user:update' with two groups to Luna when Luna writes a post to Selenites and Celestials`, async () => {
     const test = lunaSession.receiveWhile(
       'user:update',
-      funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
+      () => funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled with', {
       updatedGroups: expect
@@ -924,7 +924,7 @@ describe('Realtime: Group time updates', () => {
   it(`should deliver 'user:update' with two groups to Mars when Luna writes a post to Selenites and Celestials`, async () => {
     const test = marsSession.receiveWhile(
       'user:update',
-      funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
+      () => funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled with', {
       updatedGroups: expect
@@ -937,7 +937,7 @@ describe('Realtime: Group time updates', () => {
   it(`should not deliver 'user:update' to Venus when Luna writes a post to Selenites`, async () => {
     const test = venusSession.notReceiveWhile(
       'user:update',
-      funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
+      () => funcTestHelper.createAndReturnPostToFeed([selenites], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled');
   });
@@ -945,7 +945,7 @@ describe('Realtime: Group time updates', () => {
   it(`should deliver 'user:update' with Selenites only group to Jupiter when Luna writes a post to Selenites and Celestials`, async () => {
     const test = jupiterSession.receiveWhile(
       'user:update',
-      funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
+      () => funcTestHelper.createAndReturnPostToFeed([selenites, celestials], luna, 'Hello'),
     );
     await expect(test, 'to be fulfilled with', { updatedGroups: [{ id: selenites.group.id }] });
   });

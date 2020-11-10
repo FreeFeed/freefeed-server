@@ -1,3 +1,4 @@
+import config from 'config';
 import { pick } from 'lodash';
 import compose from 'koa-compose';
 
@@ -78,7 +79,7 @@ export const authFinish = compose([
       const profileData = {
         provider:   provName,
         externalId: state.profile.id,
-        title:      state.profile.fullName,
+        title:      state.profile.name,
       };
 
       // Connect external profile to FreeFeed account
@@ -93,8 +94,8 @@ export const authFinish = compose([
 
         if (profileUser && profileUser.id !== currentUser.id) {
           throw new ForbiddenException(
-            `The '${state.profile.fullName}' profile on ${authProvider.title} is already ` +
-          `associated with another FreeFeed account: @${profileUser.username}`
+            `The '${state.profile.name}' profile on ${authProvider.title} is already ` +
+            `associated with another ${config.siteTitle} account: @${profileUser.username}`
           );
         }
 
@@ -106,7 +107,7 @@ export const authFinish = compose([
       if (state.params.mode === MODE_SIGN_IN) {
         const profile = {
           provider:   provName,
-          name:       state.profile.fullName,
+          name:       state.profile.name,
           email:      state.profile.email,
           pictureURL: state.profile.pictureURL,
         }
@@ -163,8 +164,6 @@ export const authFinish = compose([
       }
 
       throw err;
-    } finally {
-      await authProvider.done(ctx.request.body);
     }
   },
 ]);

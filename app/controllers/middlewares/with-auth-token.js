@@ -124,22 +124,11 @@ export async function tokenFromJWT(
     }
 
     // Restrictions (IPs and origins)
-    {
-      const { netmasks = [], origins = [] } = token.restrictions;
-
-      if (netmasks.length > 0) {
-        const remoteAddr = new Address(remoteIP);
-
-        if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
-          authDebug(`app token is not allowed from IP ${remoteIP}`)
-          throw new NotAuthorizedException(`token is not allowed from this IP`);
-        }
-      }
-
-      if (origins.length > 0 && !origins.includes(headers.origin)) {
-        authDebug(`app token is not allowed from origin ${headers.origin}`)
-        throw new NotAuthorizedException(`token is not allowed from this origin`);
-      }
+    try {
+      token.checkRestrictions({ remoteIP, headers });
+    } catch (e) {
+      authDebug(e.message)
+      throw new NotAuthorizedException(e.message);
     }
 
     // Route access

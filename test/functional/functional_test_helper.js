@@ -1150,20 +1150,9 @@ export async function getInvitation(secureId, viewerContext) {
 
 export class MockHTTPServer {
   port;
-  portRange;
-  startAttempts;
   _server;
 
-  constructor(handler, params = {}) {
-    const {
-      portRange = [5000, 6000],
-      startAttempts = 5,
-      timeout = 500,
-    } = params;
-
-    this.portRange = portRange;
-    this.startAttempts = startAttempts;
-
+  constructor(handler, { timeout = 500 } = {}) {
     const app = new Application();
     app.use(handler);
 
@@ -1177,22 +1166,8 @@ export class MockHTTPServer {
   }
 
   async start() {
-    const [low, high] = this.portRange;
-
-    for (let i = 0; i < this.startAttempts;i++) {
-      const port = Math.floor((Math.random() * (high - low)) + low);
-
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await this._server.listenAsync(port);
-        this.port = port;
-        return;
-      } catch (e) {
-        // pass
-      }
-    }
-
-    throw new Error('Can not start MockHTTPServer');
+    await this._server.listenAsync(0);
+    this.port = this._server.address().port;
   }
 
   async stop() {

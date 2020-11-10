@@ -20,7 +20,7 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { dbAdapter, AppTokenV1 } from './models';
+import { dbAdapter, AppTokenV1, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
 import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
@@ -62,11 +62,13 @@ export default class PubsubListener {
     // authentication
     this.io.use(async (socket, next) => {
       try {
-        socket.user = await getAuthUser(socket.handshake.query.token, socket);
-        debug(`[socket.id=${socket.id}] auth user`, socket.user.id);
+        socket.userId = await getAuthUserId(socket.handshake.query.token, socket);
+        socket.authToken = socket.handshake.query.token;
+        debug(`[socket.id=${socket.id}] auth user`, socket.userId);
       } catch (e) {
         // Can not properly return error to client so just treat user as anonymous
-        socket.user = { id: null };
+        socket.userId = null;
+        socket.authToken = null;
         debug(`[socket.id=${socket.id}] auth error`, e.message);
       }
 
@@ -104,8 +106,9 @@ export default class PubsubListener {
         throw new EventHandlingError('request without data');
       }
 
-      socket.user = await getAuthUser(data.authToken, socket);
-      debug(`[socket.id=${socket.id}] auth user`, socket.user.id);
+      socket.userId = await getAuthUserId(data.authToken, socket);
+      socket.authToken = data.authToken;
+      debug(`[socket.id=${socket.id}] auth user`, socket.userId);
     });
 
     onSocketEvent(socket, 'subscribe', async (data, debugPrefix) => {
@@ -127,21 +130,21 @@ export default class PubsubListener {
             if (!t) {
               throw new EventHandlingError(
                 `attempt to subscribe to nonexistent timeline`,
-                `User ${socket.user.id} attempted to subscribe to nonexistent timeline (ID=${objId})`
+                `User ${socket.userId} attempted to subscribe to nonexistent timeline (ID=${objId})`
               );
             }
 
-            if (t.isPersonal() && t.userId !== socket.user.id) {
+            if (t.isPersonal() && t.userId !== socket.userId) {
               throw new EventHandlingError(
                 `attempt to subscribe to someone else's '${t.name}' timeline`,
-                `User ${socket.user.id} attempted to subscribe to '${t.name}' timeline (ID=${objId}) belonging to user ${t.userId}`
+                `User ${socket.userId} attempted to subscribe to '${t.name}' timeline (ID=${objId}) belonging to user ${t.userId}`
               );
             }
           } else if (channelType === 'user') {
-            if (objId !== socket.user.id) {
+            if (objId !== socket.userId) {
               throw new EventHandlingError(
                 `attempt to subscribe to someone else's '${channelType}' channel`,
-                `User ${socket.user.id} attempted to subscribe to someone else's '${channelType}' channel (ID=${objId})`
+                `User ${socket.userId} attempted to subscribe to someone else's '${channelType}' channel (ID=${objId})`
               );
             }
           }
@@ -237,12 +240,10 @@ export default class PubsubListener {
       return;
     }
 
-    let users = destSockets.map((s) => s.user);
+    let userIds = destSockets.map((s) => s.userId);
 
     if (post) {
       if (type === eventNames.POST_UPDATED) {
-        let userIds = users.map((u) => u.id);
-
         if (json.newUserIds && !json.newUserIds.isEmpty()) {
           // Users who listen to post rooms but
           // could not see post before. They should
@@ -251,7 +252,7 @@ export default class PubsubListener {
           const newUserIds = List.intersection(json.newUserIds, userIds).items;
           const newUserRooms = flatten(
             destSockets
-              .filter((s) => newUserIds.includes((s.user.id)))
+              .filter((s) => newUserIds.includes((s.userId)))
               .map((s) => Object.keys(s.rooms))
           );
 
@@ -274,7 +275,7 @@ export default class PubsubListener {
           const removedUserIds = List.intersection(json.removedUserIds, userIds).items;
           const removedUserRooms = flatten(
             destSockets
-              .filter((s) => removedUserIds.includes((s.user.id)))
+              .filter((s) => removedUserIds.includes((s.userId)))
               .map((s) => Object.keys(s.rooms))
           );
 
@@ -286,37 +287,47 @@ export default class PubsubListener {
 
           userIds = List.difference(userIds, removedUserIds).items;
         }
-
-        users = users.filter((u) => userIds.includes(u.id));
       } else {
-        users = await post.onlyUsersCanSeePost(users);
+        const allPostReaders = await post.usersCanSeePostIds();
+        userIds = List.intersection(allPostReaders, userIds).items;
       }
 
-      destSockets = destSockets.filter((s) => users.includes(s.user));
+      destSockets = destSockets.filter((s) => userIds.includes(s.userId));
     }
 
-    const bansMap = await dbAdapter.getUsersBansIdsMap(users.map((u) => u.id).filter((id) => !!id));
+    const bansMap = await dbAdapter.getUsersBansIdsMap(userIds);
 
     await Promise.all(destSockets.map(async (socket) => {
-      const { user } = socket;
-
-      if (!user) {
-        // is it actually possible now?
-        debug(`broadcastMessage: socket ${socket.id} doesn't have user associated with it`);
-        return;
-      }
+      const { userId } = socket;
 
       // Bans
-      if (post && user.id) {
-        const banIds = bansMap.get(user.id) || [];
+      if (post && userId) {
+        const banIds = bansMap.get(userId) || [];
 
         if (
-          ((type === eventNames.COMMENT_CREATED || type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
+          ((type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
           || ((type === eventNames.LIKE_ADDED) && banIds.includes(json.users.id))
           || ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
             (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
         ) {
           return;
+        }
+
+        // A very special case: comment author is banned, but the viewer chooses
+        // to see such comments as placeholders.
+        if (type === eventNames.COMMENT_CREATED && banIds.includes(json.comments.createdBy)) {
+          const user = await dbAdapter.getUserById(userId);
+
+          if (user.getHiddenCommentTypes().includes(Comment.HIDDEN_BANNED)) {
+            return;
+          }
+
+          const { createdBy } = json.comments;
+          json.comments.hideType = Comment.HIDDEN_BANNED;
+          json.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+          json.comments.createdBy = null;
+          json.users = json.users.filter((u) => u.id !== createdBy);
+          json.admins = json.admins.filter((u) => u.id !== createdBy);
         }
       }
 
@@ -482,7 +493,7 @@ export default class PubsubListener {
   onGlobalUserUpdate = (userId) => this.broadcastMessage(
     ['global:users'], eventNames.GLOBAL_USER_UPDATED, null, null,
     async (socket, type, json) => {
-      const [user] = await serializeUsersByIds([userId], true, socket.user.id);
+      const [user] = await serializeUsersByIds([userId], true, socket.userId);
       await socket.emit(type, { ...json, user });
     }
   );
@@ -505,7 +516,7 @@ export default class PubsubListener {
     await this.broadcastMessage(
       rooms, 'user:update', null, null,
       async (socket, type, json) => {
-        if (!socket.user.id) {
+        if (!socket.userId) {
           return;
         }
 
@@ -513,7 +524,7 @@ export default class PubsubListener {
 
         if (groupIds.length > 1) {
           // User probably not subscribed to all of these groups
-          isSubscribed = await Promise.all(feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.user.id, id)));
+          isSubscribed = await Promise.all(feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.userId, id)));
         }
 
         const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
@@ -521,13 +532,13 @@ export default class PubsubListener {
         const updatedGroups = await serializeUsersByIds(
           subscribedGroupIds,
           true,
-          socket.user.id,
+          socket.userId,
         );
 
         await socket.emit(type, {
           ...json,
           updatedGroups: updatedGroups.slice(0, subscribedGroupIds.length),
-          id:            socket.user.id,
+          id:            socket.userId,
         });
       }
     );
@@ -557,8 +568,10 @@ export default class PubsubListener {
 
   async _commentLikeEventEmitter(socket, type, json) {
     const commentUUID = json.comments.id;
-    const viewer = socket.user;
-    const [commentLikesData] = await dbAdapter.getLikesInfoForComments([commentUUID], viewer.id);
+    const viewerId = socket.userId;
+    const [
+      commentLikesData = { c_likes: 0, has_own_like: false }
+    ] = await dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 
@@ -566,7 +579,7 @@ export default class PubsubListener {
   }
 
   _postEventEmitter = async (socket, type, { postId }) => {
-    const json = await serializeSinglePost(postId, socket.user.id);
+    const json = await serializeSinglePost(postId, socket.userId);
     defaultEmitter(socket, type, json);
   };
 
@@ -574,11 +587,11 @@ export default class PubsubListener {
   /**
    * Emits message only to the specified user
    */
-  _singleUserEmitter = (userId) => (socket, type, json) => {
-    if (socket.user.id === userId) {
-      defaultEmitter(socket, type, json);
-    }
-  };
+  _singleUserEmitter = (userId) => (socket, type, json) =>
+    (socket.userId === userId) && defaultEmitter(socket, type, json);
+
+  _withUserIdEmitter = (socket, type, json) =>
+    socket.userId && defaultEmitter(socket, type, { ...json, id: socket.userId });
 
   async _insertCommentLikesInfo(postPayload, viewerUUID) {
     postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
@@ -623,6 +636,25 @@ export default class PubsubListener {
     }
 
     return postPayload;
+  }
+
+  reAuthorizeSockets() {
+    return Promise.all(Object.values(this.io.sockets.connected)
+      .filter((socket) => !!socket.authToken)
+      .map(async (socket) => {
+        let userId = null;
+
+        try {
+          userId = await getAuthUserId(socket.authToken, socket);
+        } catch (e) {
+          // pass
+        }
+
+        if (!userId) {
+          socket.authTokenData = null;
+          socket.userId = null;
+        }
+      }));
   }
 }
 
@@ -741,9 +773,9 @@ const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, 
   }
 });
 
-async function getAuthUser(jwtToken, socket) {
+async function getAuthUserId(jwtToken, socket) {
   if (!jwtToken) {
-    return { id: null };
+    return null;
   }
 
   const authData = await tokenFromJWT(
@@ -763,5 +795,5 @@ async function getAuthUser(jwtToken, socket) {
     });
   }
 
-  return authData.user;
+  return authData.user.id;
 }

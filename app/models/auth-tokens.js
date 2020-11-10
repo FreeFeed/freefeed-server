@@ -1,6 +1,11 @@
+import crypto from 'crypto';
+
 import _ from 'lodash';
 import jwt from 'jsonwebtoken'
 import config from 'config';
+
+import { scheduleTokenInactivation } from '../jobs/app-tokens';
+import { Address } from '../support/ipv6';
 
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
@@ -36,6 +41,8 @@ export class SessionTokenV0 extends AuthToken {
 
 
 export function addAppTokenV1Model(dbAdapter) {
+  const activationCodeChars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
   /**
    * Application token v1
    */
@@ -48,31 +55,21 @@ export function addAppTokenV1Model(dbAdapter) {
     issue = 1;
     createdAt;
     updatedAt;
+    expiresAt;
+    // This field of type number is for token creation only. Use it to set the
+    // expiration time in seconds from the token's creation time.
+    expiresAtSeconds;
     scopes = [];
     restrictions = {};
     lastUsedAt = null;
     lastIP = null;
     lastUserAgent = null;
+    activationCode = null;
 
     constructor(params) {
       super(params.userId);
 
-      const fields = [
-        'id',
-        'userId',
-        'title',
-        'isActive',
-        'issue',
-        'createdAt',
-        'updatedAt',
-        'scopes',
-        'restrictions',
-        'lastUsedAt',
-        'lastIP',
-        'lastUserAgent',
-      ];
-
-      for (const f of fields) {
+      for (const f of Object.keys(this)) {
         if (f in params) {
           this[f] = params[f];
         }
@@ -92,17 +89,22 @@ export function addAppTokenV1Model(dbAdapter) {
     }
 
     async create() {
+      this.activationCode = AppTokenV1.newActivationCode();
       this.id = await dbAdapter.createAppToken(this);
 
       const newToken = await dbAdapter.getAppTokenById(this.id);
       const fieldsToUpdate = [
         'createdAt',
         'updatedAt',
+        'expiresAt',
+        'expiresAtSeconds', // for clean up
       ];
 
       for (const f of fieldsToUpdate) {
         this[f] = newToken[f];
       }
+
+      await scheduleTokenInactivation(this);
     }
 
     async registerUsage({ ip, userAgent = '' }) {
@@ -156,7 +158,16 @@ export function addAppTokenV1Model(dbAdapter) {
     }
 
     async reissue() {
-      this.issue = await dbAdapter.reissueAppToken(this.id);
+      const updatedToken = await dbAdapter.reissueAppToken(this.id, AppTokenV1.newActivationCode());
+      const fieldsToUpdate = [
+        'issue',
+        'updatedAt',
+        'activationCode',
+      ];
+
+      for (const f of fieldsToUpdate) {
+        this[f] = updatedToken[f];
+      }
     }
 
     /**
@@ -165,6 +176,36 @@ export function addAppTokenV1Model(dbAdapter) {
      */
     async destroy() {
       await dbAdapter.deleteAppToken(this.id);
+    }
+
+    static newActivationCode() {
+      const bytes = crypto.randomBytes(6);
+      return [...bytes].map((b) => activationCodeChars.charAt(b & 0x1f)).join('');
+    }
+
+    static normalizeActivationCode(input) {
+      const code = input.toUpperCase()
+        .replace(/[IL]/g, '1')
+        .replace(/O/g, '0')
+        .replace(/U/g, 'V')
+        .replace(new RegExp(`[^${activationCodeChars}]`, 'g'), '');
+      return code.length === 6 ? code : null;
+    }
+
+    checkRestrictions({ headers, remoteIP } /** koa's ctx */) {
+      const { netmasks = [], origins = [] } = this.restrictions;
+
+      if (netmasks.length > 0) {
+        const remoteAddr = new Address(remoteIP);
+
+        if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
+          throw new Error(`app token is not allowed from IP ${remoteIP}`)
+        }
+      }
+
+      if (origins.length > 0 && !origins.includes(headers.origin)) {
+        throw new Error(`app token is not allowed from origin ${headers.origin}`)
+      }
     }
   }
 }
