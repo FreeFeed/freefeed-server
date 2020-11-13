@@ -2,6 +2,7 @@
 import { promisifyAll } from 'bluebird';
 import Redis from 'ioredis';
 import {
+  cloneDeep,
   compact,
   flatten,
   intersection,
@@ -299,41 +300,44 @@ export default class PubsubListener {
 
     await Promise.all(destSockets.map(async (socket) => {
       const { userId } = socket;
+      // We may need to change the json data, so we create a deep copy for this
+      // socket.
+      const data = cloneDeep(json);
 
       // Bans
       if (post && userId) {
         const banIds = bansMap.get(userId) || [];
 
         if (
-          ((type === eventNames.COMMENT_UPDATED) && banIds.includes(json.comments.createdBy))
-          || ((type === eventNames.LIKE_ADDED) && banIds.includes(json.users.id))
+          ((type === eventNames.COMMENT_UPDATED) && banIds.includes(data.comments.createdBy))
+          || ((type === eventNames.LIKE_ADDED) && banIds.includes(data.users.id))
           || ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
-            (banIds.includes(json.comments.createdBy) || banIds.includes(json.comments.userId)))
+            (banIds.includes(data.comments.createdBy) || banIds.includes(data.comments.userId)))
         ) {
           return;
         }
 
         // A very special case: comment author is banned, but the viewer chooses
         // to see such comments as placeholders.
-        if (type === eventNames.COMMENT_CREATED && banIds.includes(json.comments.createdBy)) {
+        if (type === eventNames.COMMENT_CREATED && banIds.includes(data.comments.createdBy)) {
           const user = await dbAdapter.getUserById(userId);
 
           if (user.getHiddenCommentTypes().includes(Comment.HIDDEN_BANNED)) {
             return;
           }
 
-          const { createdBy } = json.comments;
-          json.comments.hideType = Comment.HIDDEN_BANNED;
-          json.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
-          json.comments.createdBy = null;
-          json.users = json.users.filter((u) => u.id !== createdBy);
-          json.admins = json.admins.filter((u) => u.id !== createdBy);
+          const { createdBy } = data.comments;
+          data.comments.hideType = Comment.HIDDEN_BANNED;
+          data.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+          data.comments.createdBy = null;
+          data.users = data.users.filter((u) => u.id !== createdBy);
+          data.admins = data.admins.filter((u) => u.id !== createdBy);
         }
       }
 
       const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
 
-      await emitter(socket, type, { ...json, realtimeChannels });
+      await emitter(socket, type, { ...data, realtimeChannels });
     }));
   }
 
