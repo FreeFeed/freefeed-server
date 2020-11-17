@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.88.1] - 2020-11-17
+### Fixed
+- Isolate data-changes to specific realtime-users. Previously, comments which
+  were marked as hidden for one of the users could be delivered as hidden to
+  other users too.
+
 ## [1.88.0] - 2020-11-10
 ### Fixed
  - Send 'comment:new' realtime event for comments from banned users (to display
