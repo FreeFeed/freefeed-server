@@ -18,6 +18,10 @@ promisifyAll(http);
 const lock = new AwaitLock();
 
 export async function getSingleton() {
+  if (app !== null) {
+    return app;
+  }
+
   await lock.acquireAsync();
 
   try {
