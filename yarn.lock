@@ -546,6 +546,13 @@
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.5.tgz#b14efa8852b7768d898906613c23f688713e02cd"
   integrity sha512-Q1y515GcOdTHgagaVFhHnIFQ38ygs/kmxdNpvpou+raI9UO3YZcHDngBSYKQklcKlvA7iuQlmIKbzvmxcOE9CQ==
 
+"@types/etag@*":
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@types/etag/-/etag-1.8.0.tgz#37f0b1f3ea46da7ae319bbedb607e375b4c99f7e"
+  integrity sha512-EdSN0x+Y0/lBv7YAb8IU4Jgm6DWM+Bqtz7o5qozl96fzaqdqbdfHS5qjdpFeIv7xQ8jSLyjMMNShgYtMajEHyQ==
+  dependencies:
+    "@types/node" "*"
+
 "@types/events@*":
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@types/events/-/events-3.0.0.tgz#2862f3f58a9a7f7c3e78d79f130dd4d71c25c2a7"
@@ -617,7 +624,74 @@
   dependencies:
     "@types/koa" "*"
 
-"@types/koa@*", "@types/koa@~2.11.6":
+"@types/koa-conditional-get@~2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@types/koa-conditional-get/-/koa-conditional-get-2.0.0.tgz#ef1daa5960b10509fc3a1cc5e56f9914b326b3bc"
+  integrity sha512-kzEIakwXkkgiJhQPR/IudINqX+xB2gVS+lJWDSEUP3cMYflcX470OOWrUEqOXlc2cCAOyznMo7fFmwfnvd9wyw==
+  dependencies:
+    "@types/koa" "*"
+
+"@types/koa-etag@~3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@types/koa-etag/-/koa-etag-3.0.0.tgz#d14d3dab45d5577b94bc72960631de96751341d3"
+  integrity sha512-gXQUtKGEnCy0sZLG+uE3wL4mvY1CBPcb6ECjpAoD8RGYy/8ACY1B084k8LTFPIdVcmy7GD6Y4n3up3jnupofcQ==
+  dependencies:
+    "@types/etag" "*"
+    "@types/koa" "*"
+
+"@types/koa-morgan@~1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@types/koa-morgan/-/koa-morgan-1.0.4.tgz#69d67084521425859ae275370b8584076cf44aec"
+  integrity sha512-XtZu6La4TopP6ZlCGNqg0hTsBAwbTP2tMb93cuDdE285WofP/Ould/tFwSvSHEr0Dxger2P+ovI1uvF3XZev8Q==
+  dependencies:
+    "@types/koa" "*"
+    "@types/morgan" "*"
+
+"@types/koa-passport@~4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@types/koa-passport/-/koa-passport-4.0.2.tgz#a0277352538f12e7bef2b9991475861eb6938ae9"
+  integrity sha512-WDQhhOW+coTCe//wTaPViim9oodEuAscXiwDUSRlcNH2j7MYa4bqlLq3UdkUp5rY/b0wE4blkBxI90jpwEc1Mg==
+  dependencies:
+    "@types/koa" "*"
+    "@types/passport" "*"
+
+"@types/koa-response-time@~2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@types/koa-response-time/-/koa-response-time-2.1.0.tgz#b92b8404d79daee24372ffb8977968cf657fe592"
+  integrity sha512-yUfASs1vAXq0sctRO1jc3el4iyKaW0jf+sMtlkbVkhtQN2DnmvyOG+nEWHMc8wmzFTl+qacHWIA+jjoojWClhQ==
+  dependencies:
+    "@types/koa" "*"
+
+"@types/koa-send@*":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@types/koa-send/-/koa-send-4.1.2.tgz#978f8267ad116d12ac6a18fecd8f34c5657e09ad"
+  integrity sha512-rfqKIv9bFds39Jxvsp8o3YJLnEQVPVriYA14AuO2OY65IHh/4UX4U/iMs5L0wATpcRmm1bbe0BNk23TRwx3VQQ==
+  dependencies:
+    "@types/koa" "*"
+
+"@types/koa-static@~4.0.1":
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/@types/koa-static/-/koa-static-4.0.1.tgz#b740d80a549b0a0a7a3b38918daecde88a7a50ec"
+  integrity sha512-SSpct5fEcAeRkBHa3RiwCIRfDHcD1cZRhwRF///ZfvRt8KhoqRrhK6wpDlYPk/vWHVFE9hPGqh68bhzsHkir4w==
+  dependencies:
+    "@types/koa" "*"
+    "@types/koa-send" "*"
+
+"@types/koa@*":
+  version "2.11.5"
+  resolved "https://registry.yarnpkg.com/@types/koa/-/koa-2.11.5.tgz#a2b81382bf65d72bdc3bd906abdee259fefdebc2"
+  integrity sha512-egP+ceD3+v9PnFW+DLTFO8mt6wa5sDqfGOBIwOAZ61Wzsq4bGZc5kMpJgcCwq7ARGIBfHBY+KkK/1RsMftV/qQ==
+  dependencies:
+    "@types/accepts" "*"
+    "@types/content-disposition" "*"
+    "@types/cookies" "*"
+    "@types/http-assert" "*"
+    "@types/http-errors" "*"
+    "@types/keygrip" "*"
+    "@types/koa-compose" "*"
+    "@types/node" "*"
+
+"@types/koa@~2.11.6":
   version "2.11.6"
   resolved "https://registry.yarnpkg.com/@types/koa/-/koa-2.11.6.tgz#b7030caa6b44af801c2aea13ba77d74aff7484d5"
   integrity sha512-BhyrMj06eQkk04C97fovEDQMpLpd2IxCB4ecitaXwOKGq78Wi2tooaDOWOFGajPk8IkQOAtMppApgSVkYe1F/A==
@@ -646,6 +720,13 @@
   resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-8.0.4.tgz#b840c2dce46bacf286e237bfb59a29e843399148"
   integrity sha512-M4BwiTJjHmLq6kjON7ZoI2JMlBvpY3BYSdiP6s/qCT3jb1s9/DeJF0JELpAxiVSIxXDzfNKe+r7yedMIoLbknQ==
 
+"@types/morgan@*":
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/@types/morgan/-/morgan-1.9.2.tgz#450f958a4d3fb0694a3ba012b09c8106f9a2885e"
+  integrity sha512-edtGMEdit146JwwIeyQeHHg9yID4WSolQPxpEorHmN3KuytuCHyn2ELNr5Uxy8SerniFbbkmgKMrGM933am5BQ==
+  dependencies:
+    "@types/node" "*"
+
 "@types/node-fetch@~2.5.7":
   version "2.5.7"
   resolved "https://registry.yarnpkg.com/@types/node-fetch/-/node-fetch-2.5.7.tgz#20a2afffa882ab04d44ca786449a276f9f6bbf3c"
@@ -658,6 +739,13 @@
   version "14.14.7"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.7.tgz#8ea1e8f8eae2430cf440564b98c6dfce1ec5945d"
   integrity sha512-Zw1vhUSQZYw+7u5dAwNbIA9TuTotpzY/OF7sJM9FqPOF3SPjKnxrjoTktXDZgUjybf4cWVBP7O8wvKdSaGHweg==
+
+"@types/passport@*":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@types/passport/-/passport-1.0.4.tgz#1b35c4e197560d3974fa5f71711b6e9cce0711f0"
+  integrity sha512-h5OfAbfBBYSzjeU0GTuuqYEk9McTgWeGQql9g3gUw2/NNCfD7VgExVRYJVVeU13Twn202Mvk9BT0bUrl30sEgA==
+  dependencies:
+    "@types/express" "*"
 
 "@types/pg-format@~1.0.1":
   version "1.0.1"

@@ -6,8 +6,14 @@ declare module 'config' {
   type Config = {
     siteTitle: string,
     host: string;
+    port: number;
+    trustProxyHeaders: boolean;
+    logResponseTime: boolean;
     attachments: {
       fileSizeLimit: number;
+      storage: {
+        rootDir: string;
+      }
     },
     maintenance: {
       messageFile: string;

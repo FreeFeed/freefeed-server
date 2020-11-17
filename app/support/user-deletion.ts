@@ -1,7 +1,7 @@
 import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
-import { UUID } from './DbAdapter/adv-locks';
+import { UUID } from './types';
 
 
 // Objects to delete:
@@ -52,7 +52,7 @@ export const deleteAllUserData = combineTasks(
 
 async function setDeletedStatus(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
-  await user.setGoneStatus(GONE_DELETED);
+  await user?.setGoneStatus(GONE_DELETED);
 }
 
 export async function deletePersonalInfo(userId: UUID) {
@@ -92,9 +92,9 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
 
   do {
     // eslint-disable-next-line no-await-in-loop
-    const postIds = await dbAdapter.database.getCol(
+    const postIds = await dbAdapter.database.getCol<UUID>(
       `select uid from posts where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize }) as UUID[];
+      { userId, batchSize });
 
     if (postIds.length === 0) {
       break;
@@ -103,7 +103,7 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(postIds, async (postId: UUID) => {
       const post = await dbAdapter.getPostById(postId);
-      await post.destroy();
+      await post?.destroy();
     });
   } while (new Date() < runUntil);
 }
@@ -112,11 +112,15 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
   const batchSize = 50;
   const user = await dbAdapter.getUserById(userId);
 
+  if (!user) {
+    return;
+  }
+
   do {
     // eslint-disable-next-line no-await-in-loop
-    const postIds = await dbAdapter.database.getCol(
+    const postIds = await dbAdapter.database.getCol<UUID>(
       `select post_id from likes where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize }) as UUID[];
+      { userId, batchSize });
 
     if (postIds.length === 0) {
       break;
@@ -125,7 +129,7 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(postIds, async (postId: UUID) => {
       const post = await dbAdapter.getPostById(postId);
-      await post.removeLike(user);
+      await post?.removeLike(user);
     });
   } while (new Date() < runUntil);
 }
@@ -134,15 +138,19 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
   const batchSize = 50;
   const user = await dbAdapter.getUserById(userId);
 
+  if (!user) {
+    return;
+  }
+
   do {
     // eslint-disable-next-line no-await-in-loop
-    const commentIds = await dbAdapter.database.getCol(
+    const commentIds = await dbAdapter.database.getCol<UUID>(
       `select c.uid from
         comment_likes l
         join comments c on c.id = l.comment_id
         where l.user_id = :userIntId 
         order by l.created_at limit :batchSize`,
-      { userIntId: user.intId, batchSize }) as UUID[];
+      { userIntId: user.intId, batchSize });
 
     if (commentIds.length === 0) {
       break;
@@ -151,7 +159,7 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(commentIds, async (commentId: UUID) => {
       const comment = await dbAdapter.getCommentById(commentId);
-      await comment.removeLike(user);
+      await comment?.removeLike(user);
     });
   } while (new Date() < runUntil);
 }
@@ -160,8 +168,13 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
 export async function unbanAll(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
 
+  if (!user) {
+    return;
+  }
+
+
   // Suppose that bans count isn't a great number and we can process all bans at once
-  const usernames = await dbAdapter.database.getCol(
+  const usernames = await dbAdapter.database.getCol<string>(
     `select u.username
       from
         bans b
@@ -170,19 +183,23 @@ export async function unbanAll(userId: UUID) {
       order by b.created_at`,
     { userId });
 
-  await forEachAsync(usernames, (username: string) => user.unban(username));
+  await forEachAsync(usernames, (username: string) => user?.unban(username));
 }
 
 export async function deleteSubscriptions(userId: UUID, runUntil: Date) {
   const user = await dbAdapter.getUserById(userId);
 
-  const subscriptions: { user_id: UUID }[] = await user.getSubscriptionsWithHomeFeeds();
+  if (!user) {
+    return;
+  }
+
+  const subscriptions = await user.getSubscriptionsWithHomeFeeds();
   const userIds = subscriptions.map((s) => s.user_id);
 
   await forEachAsync(userIds, async (id: UUID) => {
     if (new Date() < runUntil) {
       const friend = await dbAdapter.getUserById(id);
-      await user.unsubscribeFrom(friend);
+      friend && await user.unsubscribeFrom(friend);
     }
   });
 }
@@ -194,14 +211,12 @@ export async function deleteSubscriptionRequests(userId: UUID) {
 }
 
 export async function deleteAuxHomeFeeds(userId: UUID) {
-  interface Timeline {
-    destroy(): Promise<void>;
-  }
-
   const user = await dbAdapter.getUserById(userId);
-  const homeFeeds: Timeline[] = await user.getHomeFeeds();
 
-  await forEachAsync(homeFeeds, (homeFeed) => homeFeed.destroy());
+  if (user) {
+    const homeFeeds = await user.getHomeFeeds();
+    await forEachAsync(homeFeeds, (homeFeed) => homeFeed.destroy());
+  }
 }
 
 
@@ -209,7 +224,7 @@ export async function deleteNotifications(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
 
   // Remove user's notifications caused by the user themself
-  await dbAdapter.database.raw(
+  user && await dbAdapter.database.raw(
     `delete from events where user_id = ? and created_by_user_id = user_id`,
     user.intId);
 }
@@ -219,9 +234,9 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
 
   do {
     // eslint-disable-next-line no-await-in-loop
-    const tokenIds = await dbAdapter.database.getCol(
+    const tokenIds = await dbAdapter.database.getCol<UUID>(
       `select uid from app_tokens where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize }) as UUID[];
+      { userId, batchSize });
 
     if (tokenIds.length === 0) {
       break;
@@ -230,7 +245,7 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(tokenIds, async (tokenId) => {
       const token = await dbAdapter.getAppTokenById(tokenId);
-      await token.destroy();
+      await token?.destroy();
     });
   } while (new Date() < runUntil);
 }
@@ -248,7 +263,7 @@ export async function deleteArchives(userId: UUID) {
 
 export async function deleteInvitations(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
-  await dbAdapter.database.raw(`delete from invitations where author = ?`, user.intId);
+  user && await dbAdapter.database.raw(`delete from invitations where author = ?`, user.intId);
 }
 
 export async function deleteLocalBumps(userId: UUID) {
@@ -257,13 +272,13 @@ export async function deleteLocalBumps(userId: UUID) {
 
 export async function deleteSentEmailsLog(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
-  await dbAdapter.database.raw(`delete from sent_emails_log where user_id = ?`, user.intId);
+  user && await dbAdapter.database.raw(`delete from sent_emails_log where user_id = ?`, user.intId);
 }
 
 export async function resetUserStatistics(userId: UUID) {
   // We still have an unattached comments problem so we need to count only
   // comments of the real posts.
-  const commentsCount = await dbAdapter.database.getOne(
+  const commentsCount = await dbAdapter.database.getOne<number>(
     `select count(*)::int from 
       comments c join posts p on c.post_id = p.uid
       where c.user_id = :userId`,
@@ -284,9 +299,9 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
 
   do {
     // eslint-disable-next-line no-await-in-loop
-    const attIds = await dbAdapter.database.getCol(
+    const attIds = await dbAdapter.database.getCol<UUID>(
       `select uid from attachments where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize }) as UUID[];
+      { userId, batchSize });
 
     if (attIds.length === 0) {
       break;
@@ -295,7 +310,7 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(attIds, async (attId: UUID) => {
       const att = await dbAdapter.getAttachmentById(attId);
-      await att.destroy();
+      await att?.destroy();
     });
   } while (new Date() < runUntil);
 }
@@ -309,7 +324,7 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
  * @param values
  * @param processor
  */
-async function forEachAsync<T>(values: T[], processor: (v: T)=>Promise<void>) {
+async function forEachAsync<T>(values: T[], processor: (v: T)=>Promise<any>) {
   await values.reduce(async (prev: Promise<void>, v: T) => {
     await prev;
     await processor(v);
