@@ -22,7 +22,7 @@ describe('tokenFromJWT', () => {
     luna = new User({ username: 'luna', password: 'pw' });
     await luna.create();
     sessToken = new SessionTokenV0(luna.id);
-    appToken = new AppTokenV1({
+    appToken = await dbAdapter.createAppToken({
       userId:       luna.id,
       title:        'My app',
       scopes:       ['read-my-info'],
@@ -31,7 +31,6 @@ describe('tokenFromJWT', () => {
         origins:  ['https://localhost']
       }
     });
-    await appToken.create();
   });
 
   const defaultContext = () => ({
@@ -182,7 +181,7 @@ describe('withAuthToken middleware', () => {
 
 
     before(async () => {
-      token = new AppTokenV1({
+      token = await dbAdapter.createAppToken({
         userId:       luna.id,
         title:        'My app',
         scopes:       ['read-my-info', 'manage-posts'],
@@ -191,11 +190,10 @@ describe('withAuthToken middleware', () => {
           origins:  ['https://localhost']
         }
       });
-      await token.create();
     });
 
     it('should set last* fields of token', async () => {
-      const t1 = new AppTokenV1({
+      const t1 = await dbAdapter.createAppToken({
         userId:       luna.id,
         title:        'My app',
         scopes:       ['read-my-info', 'manage-posts'],
@@ -204,7 +202,6 @@ describe('withAuthToken middleware', () => {
           origins:  ['https://localhost']
         }
       });
-      await t1.create();
 
       const ctx = context();
       ctx.headers['x-authentication-token'] = t1.tokenString();

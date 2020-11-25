@@ -581,7 +581,7 @@ export default class UsersController {
       ];
 
       // Only full access tokens can change email
-      if (authToken.hasFullAccess()) {
+      if (authToken.hasFullAccess) {
         attrNames.push('email');
       }
 

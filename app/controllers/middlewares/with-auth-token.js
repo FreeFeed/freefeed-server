@@ -6,7 +6,7 @@ import config from 'config'
 
 import { dbAdapter, SessionTokenV0, AppTokenV1 } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
-import { alwaysAllowedRoutes, appTokensScopes, alwaysDisallowedRoutes } from '../../models/app-tokens-scopes';
+import { alwaysAllowedRoutes, appTokensScopes, alwaysDisallowedRoutes } from '../../models/auth-tokens/app-tokens-scopes';
 import { Address } from '../../support/ipv6';
 
 

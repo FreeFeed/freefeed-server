@@ -13,7 +13,6 @@ import { addModel as groupModel } from './models/group';
 import { addModel as postModel } from './models/post';
 import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
-import { addAppTokenV1Model } from './models/auth-tokens';
 import { addServerInfoModel } from './models/server-info';
 import { addJobModel, addJobManagerModel } from './models/job';
 
@@ -41,11 +40,11 @@ export const Post          = postModel(dbAdapter);
 export const Timeline      = timelineModel(dbAdapter);
 export const Attachment    = attachmentModel(dbAdapter);
 export const Comment       = commentModel(dbAdapter);
-export { AuthToken, SessionTokenV0 } from './models/auth-tokens';
-export const AppTokenV1    = addAppTokenV1Model(dbAdapter);
 export const ServerInfo    = addServerInfoModel(dbAdapter);
 export const Job           = addJobModel(dbAdapter);
 export const JobManager    = addJobManagerModel(dbAdapter);
+
+export { AuthToken, SessionTokenV0, AppTokenV1 } from './models/auth-tokens';
 
 export {
   HOMEFEED_MODE_CLASSIC,

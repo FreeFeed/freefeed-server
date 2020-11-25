@@ -117,6 +117,7 @@
     "@types/bytes": "~3.1.0",
     "@types/cache-manager": "~2.10.3",
     "@types/cache-manager-ioredis": "~2.0.1",
+    "@types/jsonwebtoken": "~8.5.0",
     "@types/koa": "~2.11.6",
     "@types/koa-conditional-get": "~2.0.0",
     "@types/koa-etag": "~3.0.0",

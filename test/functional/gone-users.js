@@ -6,7 +6,7 @@ import { simpleParser } from 'mailparser';
 
 import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner'
-import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
+import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { GONE_SUSPENDED, GONE_COOLDOWN, GONE_DELETED } from '../../app/models/user';
 import { addMailListener } from '../../lib/mailer';
@@ -163,12 +163,11 @@ describe('Gone users', () => {
     });
 
     it(`should not authorize Luna by app token`, async () => {
-      const token = new AppTokenV1({
+      const token = await dbAdapter.createAppToken({
         userId: luna.user.id,
         title:  `My token`,
         scopes: [],
       });
-      await token.create();
 
       const resp = await performJSONRequest(
         'GET', `/v1/users/me`, null,

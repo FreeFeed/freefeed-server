@@ -157,7 +157,7 @@ export default class UsersController {
         });
 
       // Only full access tokens can see privateMeta
-      if (!authToken.hasFullAccess()) {
+      if (!authToken.hasFullAccess) {
         users.privateMeta = {};
       }
 

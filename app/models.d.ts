@@ -10,8 +10,6 @@ export const postgres: Knex;
 export const dbAdapter: DbAdapter;
 export const PubSub: PubSubAdapter;
 
-export { SessionTokenV0 } from './models/auth-tokens';
-
 export class User {
   intId: number;
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
@@ -40,11 +38,7 @@ export class Comment {
   removeLike(user: User): Promise<boolean>;
 }
 
-export class AuthToken { }
-
-export class AppTokenV1 {
-  destroy(): Promise<void>;
-}
+export { AuthToken, SessionTokenV0, AppTokenV1 } from './models/auth-tokens';
 
 export class ServerInfo { }
 

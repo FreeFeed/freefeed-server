@@ -6,7 +6,7 @@ import { promises as fs } from 'fs'
 import expect from 'unexpected';
 
 import cleanDB from '../../dbCleaner';
-import { User, dbAdapter, Post, Comment, Group, AppTokenV1, Attachment } from '../../../app/models';
+import { User, dbAdapter, Post, Comment, Group, Attachment } from '../../../app/models';
 import {
   deletePersonalInfo,
   deletePosts,
@@ -213,8 +213,8 @@ describe('User data deletion', () => {
   });
 
   it(`should delete app tokens`, async () => {
-    await new AppTokenV1({ userId: luna.id, title: 'Token 1' }).create();
-    await new AppTokenV1({ userId: luna.id, title: 'Token 2' }).create();
+    await dbAdapter.createAppToken({ userId: luna.id, title: 'Token 1' });
+    await dbAdapter.createAppToken({ userId: luna.id, title: 'Token 2' });
 
     {
       const tokenIds = await dbAdapter.database.getAll(`select uid from app_tokens where user_id = ?`, luna.id);

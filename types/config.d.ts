@@ -7,6 +7,7 @@ declare module 'config' {
     siteTitle: string,
     host: string;
     port: number;
+    secret: string;
     trustProxyHeaders: boolean;
     logResponseTime: boolean;
     attachments: {

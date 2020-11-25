@@ -1,7 +1,8 @@
 import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
 
-import { UUID } from '../types';
+import { IPAddr, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Post, User } from '../../models';
+import { AppTokenCreateParams, AppTokenLogPayload, AppTokenRecord } from '../../models/auth-tokens/types';
 
 
 type QueryBindings = readonly RawBinding[] | ValueDict | RawBinding;
@@ -53,5 +54,15 @@ export class DbAdapter {
   getAttachmentById(id: UUID): Promise<Attachment | null>;
 
   // App tokens
-  getAppTokenById(id: UUID): Promise<AppTokenV1 | null>;
+  createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;
+  getAppTokenById(id: UUID): Promise<Nullable<AppTokenV1>>;
+  getActiveAppTokenByIdAndIssue(id: UUID, issue: number): Promise<Nullable<AppTokenV1>>;
+  getAppTokenByActivationCode(code: string, codeTTL: number): Promise<Nullable<AppTokenV1>>;
+  listActiveAppTokens(userId: UUID): Promise<AppTokenV1[]>;
+  updateAppToken(id: UUID, toUpdate: Partial<AppTokenRecord>): Promise<AppTokenV1>;
+  reissueAppToken(id: UUID): Promise<AppTokenV1>;
+  deleteAppToken(id: UUID): Promise<void>;
+  registerAppTokenUsage(id: UUID, params: { ip: IPAddr, userAgent: string, debounce: string }): Promise<void>;
+  logAppTokenRequest(payload: AppTokenLogPayload): Promise<void>;
+  periodicInvalidateAppTokens(): Promise<void>;
 }
