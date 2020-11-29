@@ -3,15 +3,21 @@ import crypto from 'crypto';
 import _ from 'lodash';
 import jwt from 'jsonwebtoken'
 import config from 'config';
-import { Context } from 'koa';
+import Raven from 'raven';
+import { Context, Next } from 'koa';
+import { isConst, isNumber, isObject, isString } from 'ts-json-check';
 
 import { DbAdapter } from '../../support/DbAdapter';
 import { IPAddr, Nullable, UUID } from '../../support/types';
 import { Address } from '../../support/ipv6';
 import { database } from '../common';
+import { NotAuthorizedException } from '../../support/exceptions';
 
 import { AuthToken } from './AuthToken';
 import { AppTokenRecord } from './types';
+import { alwaysAllowedRoutes, alwaysDisallowedRoutes, appTokensScopes } from './app-tokens-scopes';
+
+import { authDebug } from '.';
 
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
@@ -23,11 +29,19 @@ type Restrictions = {
   origins: string[];
 }
 
+const tokenType = 'app.v1';
+
+const isAppTokenJWTPayload = isObject({
+  type:   isConst(tokenType),
+  userId: isString,
+  issue:  isNumber,
+});
+
 /**
  * Application token v1
  */
 export class AppTokenV1 extends AuthToken {
-  static TYPE = 'app.v1';
+  static TYPE = tokenType;
 
   public title: string;
   public id: UUID;
@@ -74,8 +88,70 @@ export class AppTokenV1 extends AuthToken {
     return `${super.toString()}#${this.id}#${this.issue}`;
   }
 
-  async registerUsage({ ip, userAgent = '' }: { ip: IPAddr, userAgent: string }) {
-    await this.dbAdapter.registerAppTokenUsage(this.id, { ip, userAgent, debounce: appTokenUsageDebounce });
+  async middleware(ctx: Context, next: Next) {
+    // Validate jwtPayload
+    {
+      const { authJWTPayload } = ctx.state;
+
+      if (!isAppTokenJWTPayload(authJWTPayload)) {
+        throw new NotAuthorizedException(`invalid JWT payload format`);
+      }
+
+      if (
+        !this.isActive
+      || this.issue !== authJWTPayload.issue
+      || (this.expiresAt && this.expiresAt < new Date())
+      ) {
+        throw new NotAuthorizedException(`inactive or expired token`);
+      }
+    }
+
+    // Restrictions (IPs and origins)
+    try {
+      this.checkRestrictions({ remoteIP: ctx.ip, headers: ctx.headers });
+    } catch (e) {
+      authDebug(e.message)
+      throw new NotAuthorizedException(e.message);
+    }
+
+    // Route access
+    {
+      const route = `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${ctx.state.matchedRoute}`;
+      const routeAllowed =
+        !alwaysDisallowedRoutes.includes(route) && (
+          alwaysAllowedRoutes.includes(route)
+          || appTokensScopes.some(({ name, routes }) => this.scopes.includes(name) && routes.includes(route))
+        );
+
+      if (!routeAllowed) {
+        authDebug(`app token has no access to '${route}'`);
+        throw new NotAuthorizedException(`token has no access to this API method`);
+      }
+    }
+
+    await this.registerUsage({ ip: ctx.ip, userAgent: ctx.headers['user-agent'] });
+
+    await super.middleware(ctx, next);
+
+    try {
+      await this.logRequest(ctx);
+    } catch (e) {
+      // We should not break request at this step
+      // but we must log error
+      authDebug(`cannot log app token usage: ${e.message}`);
+
+      if (config.sentryDsn) {
+        Raven.captureException(e, { extra: { err: `cannot log app token usage: ${e.message}` } });
+      }
+    }
+  }
+
+  async registerUsage({ ip, userAgent }: { ip: IPAddr, userAgent?: string }) {
+    await this[database].registerAppTokenUsage(this.id, {
+      ip:        new Address(ip).toString(),
+      userAgent: userAgent || '',
+      debounce:  appTokenUsageDebounce,
+    });
   }
 
   static addLogPayload(ctx: Context, payload: any) {
@@ -139,7 +215,7 @@ export class AppTokenV1 extends AuthToken {
     return this[database].deleteAppToken(this.id);
   }
 
-  checkRestrictions({ headers, remoteIP }: { headers: any, remoteIP: string } /** koa's ctx */) {
+  checkRestrictions({ headers, remoteIP }: { headers: any, remoteIP: string }) {
     const { netmasks, origins } = this.restrictions;
 
     if (netmasks.length > 0) {

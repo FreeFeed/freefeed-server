@@ -39,6 +39,8 @@ declare module 'config' {
       host: string;
       port: number;
     }
+
+    sentryDsn?: string;
   }
 
   const c: Config;

@@ -1,4 +1,11 @@
+import { Context, Next } from 'koa';
+
+
+import { dbAdapter } from '../../models';
+import { NotAuthorizedException } from '../../support/exceptions';
 import { UUID } from '../../support/types';
+
+import { authDebug } from '.';
 
 /**
  * AuthToken
@@ -10,4 +17,23 @@ export abstract class AuthToken {
   constructor(public readonly userId: UUID) { }
 
   abstract tokenString(): string;
+
+  getUser() {
+    return dbAdapter.getUserById(this.userId);
+  }
+
+  async middleware(ctx: Context, next: Next) {
+    const user = await this.getUser();
+
+    if (!user || !user.isActive) {
+      authDebug(`user ${this.userId} is not exists or is not active`);
+      throw new NotAuthorizedException(`user is not exists or is not active`);
+    }
+
+    authDebug(`authenticated as ${user.username} with ${this.constructor.name} token`);
+
+    ctx.state.user = user;
+
+    await next();
+  }
 }

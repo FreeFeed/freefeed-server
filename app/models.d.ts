@@ -12,6 +12,8 @@ export const PubSub: PubSubAdapter;
 
 export class User {
   intId: number;
+  username: string;
+  readonly isActive: boolean;
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
   unban(usernames: string): Promise<1>;
   unsubscribeFrom(targetUser: User): Promise<boolean>;

@@ -435,7 +435,7 @@ describe('Realtime', () => {
   });
   afterEach(() => session.disconnect());
 
-  it('sould not deliver post event to anonymous session', async () => {
+  it('should not deliver post event to anonymous session', async () => {
     const test = session.notReceiveWhile(
       'comment:new',
       () => createCommentAsync(luna, post.id, 'Hello'),
@@ -443,7 +443,7 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould deliver post event to session with Luna session token', async () => {
+  it('should deliver post event to session with Luna session token', async () => {
     await session.sendAsync('auth', { authToken: luna.authToken });
     const test = session.receiveWhile(
       'comment:new',
@@ -452,7 +452,7 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould deliver post event to session with correct app token', async () => {
+  it('should deliver post event to session with correct app token', async () => {
     await session.sendAsync('auth', { authToken: token.tokenString() });
     const test = session.receiveWhile(
       'comment:new',
@@ -461,7 +461,7 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould not allow to authorize with incorrect app token', async () => {
+  it('should not allow to authorize with incorrect app token', async () => {
     const promise = session.sendAsync('auth', { authToken: token2.tokenString() });
     await expect(promise, 'to be rejected');
   });
