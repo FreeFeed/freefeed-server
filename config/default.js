@@ -309,7 +309,8 @@ config.appTokens = {
 
 config.authSessions = {
   //
-  usageDebounceSec: 30,
+  usageDebounceSec:        30,
+  reissueGraceIntervalSec: 300,
 };
 
 module.exports = config;

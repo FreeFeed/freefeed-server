@@ -4,10 +4,12 @@ import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
 import unexpectedSinon from 'unexpected-sinon';
 import sinon from 'sinon';
+import config from 'config';
 
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, dbAdapter } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
+import { ACTIVE, BLOCKED } from '../../../app/models/auth-tokens/SessionTokenV1';
 
 
 const expect = unexpected.clone();
@@ -182,8 +184,6 @@ describe('withAuthToken middleware', () => {
   });
 
   describe('SessionTokenV1', () => {
-    let session;
-
     const context = (tokenString = null) => ({
       ip:      '127.0.0.127',
       headers: {
@@ -193,28 +193,104 @@ describe('withAuthToken middleware', () => {
       state: {},
     });
 
-    before(async () => {
-      session = await dbAdapter.createAuthSession(luna.id);
-    });
+    describe('Last* fields', () => {
+      let session;
 
-    it('should set last* fields of token', async () => {
-      expect(session, 'to satisfy', {
-        lastUsedAt:    null,
-        lastIP:        null,
-        lastUserAgent: null,
+      before(async () => {
+        session = await dbAdapter.createAuthSession(luna.id);
       });
 
-      const ctx = context(session.tokenString());
-      const handler = sinon.spy()
-      await withAuthToken(ctx, handler);
+      it('should set last* fields of token', async () => {
+        expect(session, 'to satisfy', {
+          lastUsedAt:    null,
+          lastIP:        null,
+          lastUserAgent: null,
+        });
 
-      expect(handler, 'was called');
+        const ctx = context(session.tokenString());
+        const handler = sinon.spy()
+        await withAuthToken(ctx, handler);
 
-      session = await dbAdapter.getAuthSessionById(session.id);
-      expect(session, 'to satisfy', {
-        lastUsedAt:    expect.it('to be close to', session.databaseTime),
-        lastIP:        ctx.ip,
-        lastUserAgent: ctx.headers['user-agent'],
+        expect(handler, 'was called');
+
+        session = await dbAdapter.getAuthSessionById(session.id);
+        expect(session, 'to satisfy', {
+          lastUsedAt:    expect.it('to be close to', session.databaseTime),
+          lastIP:        ctx.ip,
+          lastUserAgent: ctx.headers['user-agent'],
+        });
+      });
+    });
+
+    describe('Issue mismatch', () => {
+      let session;
+
+      before(async () => {
+        session = await dbAdapter.createAuthSession(luna.id);
+      });
+
+      it('should allow token with recently changed issue', async () => {
+        const tokenString = session.tokenString();
+        await session.reissue();
+
+        const ctx = context(tokenString);
+        const handler = sinon.spy()
+
+        await expect(withAuthToken(ctx, handler), 'to be fulfilled');
+        expect(handler, 'was called');
+      });
+
+      it('should block token when issue is changed more than by one', async () => {
+        const tokenString = session.tokenString();
+        await session.reissue();
+        await session.reissue();
+
+        const ctx = context(tokenString);
+        const handler = sinon.spy()
+
+        await expect(withAuthToken(ctx, handler), 'to be rejected');
+        expect(handler, 'was not called');
+
+        const s = await dbAdapter.getAuthSessionById(session.id);
+        expect(s.status, 'to be', BLOCKED);
+      });
+
+      it('should not allow inactive token', async () => {
+        const ctx = context(session.tokenString());
+        const handler = sinon.spy()
+
+        await expect(withAuthToken(ctx, handler), 'to be rejected');
+        expect(handler, 'was not called');
+      });
+    });
+
+    describe('Token with previous issue', () => {
+      let session, tokenString;
+
+      before(async () => {
+        session = await dbAdapter.createAuthSession(luna.id);
+        tokenString = session.tokenString();
+        await session.reissue();
+      });
+
+      it('should return token when issue is changed not long ago', async () => {
+        const updatedAt = new Date(Date.now() - (1000 * (config.authSessions.reissueGraceIntervalSec - 10)));
+
+        await dbAdapter.updateAuthSession(session.id, { updatedAt });
+        await expect(withAuthToken(context(tokenString), () => null), 'to be fulfilled');
+
+        const s = await dbAdapter.getAuthSessionById(session.id);
+        expect(s.status, 'to be', ACTIVE);
+      });
+
+      it('should not return token when issue is changed long ago', async () => {
+        const updatedAt = new Date(Date.now() - (1000 * (config.authSessions.reissueGraceIntervalSec + 10)));
+
+        await dbAdapter.updateAuthSession(session.id, { updatedAt });
+        await expect(withAuthToken(context(tokenString), () => null), 'to be rejected');
+
+        const s = await dbAdapter.getAuthSessionById(session.id);
+        expect(s.status, 'to be', BLOCKED);
       });
     });
   });

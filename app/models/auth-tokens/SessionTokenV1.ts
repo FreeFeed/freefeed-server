@@ -94,16 +94,29 @@ export class SessionTokenV1 extends AuthToken {
   async middleware(ctx: Context, next: Next) {
     // Validate jwtPayload
     {
-      const { authJWTPayload } = ctx.state;
+      const { authJWTPayload: payload } = ctx.state;
 
-      if (!isSessionTokenJWTPayload(authJWTPayload)) {
+      if (!isSessionTokenJWTPayload(payload)) {
         throw new NotAuthorizedException(`invalid JWT payload format`);
       }
 
       if (
         !this.isActive
-      || this.issue !== authJWTPayload.issue // TODO inactivate it
+        || !(
+          this.issue === payload.issue
+          || (
+            // If the session was reissued less than reissueGraceIntervalSec ago
+            this.issue === payload.issue + 1
+            && this.updatedAt.getTime() > this.databaseTime.getTime()
+              - (config.authSessions.reissueGraceIntervalSec * 1000)
+          )
+        )
       ) {
+        if (this.isActive) {
+          await this.setStatus(BLOCKED);
+          // TODO send email
+        }
+
         throw new NotAuthorizedException(`inactive or expired token`);
       }
     }

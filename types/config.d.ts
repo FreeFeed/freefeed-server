@@ -44,6 +44,7 @@ declare module 'config' {
 
     authSessions: {
       usageDebounceSec: number;
+      reissueGraceIntervalSec: number;
     }
   }
 
