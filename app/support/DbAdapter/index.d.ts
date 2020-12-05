@@ -2,7 +2,8 @@ import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
 
 import { IPAddr, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Post, User } from '../../models';
-import { AppTokenCreateParams, AppTokenLogPayload, AppTokenRecord } from '../../models/auth-tokens/types';
+import { AppTokenCreateParams, AppTokenLogPayload, AppTokenRecord, SessionMutableRecord } from '../../models/auth-tokens/types';
+import { SessionTokenV1 } from '../../models/auth-tokens';
 
 
 type QueryBindings = readonly RawBinding[] | ValueDict | RawBinding;
@@ -65,4 +66,12 @@ export class DbAdapter {
   registerAppTokenUsage(id: UUID, params: { ip: IPAddr, userAgent: string, debounce: string }): Promise<void>;
   logAppTokenRequest(payload: AppTokenLogPayload): Promise<void>;
   periodicInvalidateAppTokens(): Promise<void>;
+
+  // Session tokens
+  createAuthSession(userId: UUID): Promise<SessionTokenV1>;
+  getAuthSessionById(id: UUID): Promise<Nullable<SessionTokenV1>>;
+  reissueActiveAuthSession(id: UUID): Promise<Nullable<SessionTokenV1>>;
+  updateAuthSession(id: UUID, toUpdate: SessionMutableRecord): Promise<Nullable<SessionTokenV1>>;
+  registerAuthSessionUsage(uid: UUID, params: { ip: IPAddr, userAgent: string, debounceSec: number }): Promise<Nullable<SessionTokenV1>>;
+  deleteAuthSession(id: UUID): Promise<boolean>;
 }

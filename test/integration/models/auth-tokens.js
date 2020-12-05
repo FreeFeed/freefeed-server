@@ -8,9 +8,10 @@ import { DateTime } from 'luxon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job } from '../../../app/models';
+import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job, SessionTokenV1 } from '../../../app/models';
 import { initJobProcessing } from '../../../app/jobs';
 import { PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/app-tokens';
+import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 
 
 const expect = unexpected.clone();
@@ -407,6 +408,66 @@ describe('Auth Tokens', () => {
         const t = await dbAdapter.getAppTokenByActivationCode(token.activationCode, 0);
         expect(t, 'to be null');
       });
+    });
+  });
+
+  describe('SessionTokenV1', () => {
+    let session;
+
+    it('should create a session', async () => {
+      session = await dbAdapter.createAuthSession(luna.id);
+      const now = await dbAdapter.now();
+      expect(session instanceof SessionTokenV1, 'to be true');
+      expect(session, 'to satisfy', {
+        userId:       luna.id,
+        issue:        1,
+        status:       ACTIVE,
+        createdAt:    expect.it('to be close to', now),
+        updatedAt:    expect.it('to be close to', now),
+        databaseTime: expect.it('to be close to', now),
+      });
+    });
+
+    it('should load session by id', async () => {
+      const s2 = await dbAdapter.getAuthSessionById(session.id);
+      expect(s2 instanceof SessionTokenV1, 'to be true');
+      expect(s2, 'to satisfy', _.pick(session, ['id', 'userId', 'issue', 'status']));
+    });
+
+    it('should reissue session', async () => {
+      const { issue } = session;
+      const ok = await session.reissue();
+      expect(ok, 'to be true');
+      expect(session.issue, 'to be', issue + 1);
+
+      const s2 = await dbAdapter.getAuthSessionById(session.id);
+      expect(s2 instanceof SessionTokenV1, 'to be true');
+      expect(s2, 'to satisfy', _.pick(session, ['id', 'userId', 'issue']));
+    });
+
+    it('should set session status', async () => {
+      const ok = await session.setStatus(CLOSED);
+      expect(ok, 'to be true');
+      expect(session.status, 'to be', CLOSED);
+
+      const s2 = await dbAdapter.getAuthSessionById(session.id);
+      expect(s2 instanceof SessionTokenV1, 'to be true');
+      expect(s2.status, 'to be', CLOSED);
+
+      await session.setStatus(ACTIVE);
+    });
+
+    it('should delete session', async () => {
+      const { id } = await dbAdapter.createAuthSession(luna.id);
+
+      const s = await dbAdapter.getAuthSessionById(id);
+      expect(s, 'not to be null');
+
+      const deleted = await s.destroy();
+      expect(deleted, 'to be true');
+
+      const s1 = await dbAdapter.getAuthSessionById(id);
+      expect(s1, 'to be null');
     });
   });
 });

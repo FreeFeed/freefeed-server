@@ -40,7 +40,12 @@ export class Comment {
   removeLike(user: User): Promise<boolean>;
 }
 
-export { AuthToken, SessionTokenV0, AppTokenV1 } from './models/auth-tokens';
+export {
+  AuthToken,
+  SessionTokenV0,
+  AppTokenV1,
+  SessionTokenV1,
+} from './models/auth-tokens';
 
 export class ServerInfo { }
 

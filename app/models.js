@@ -44,7 +44,12 @@ export const ServerInfo    = addServerInfoModel(dbAdapter);
 export const Job           = addJobModel(dbAdapter);
 export const JobManager    = addJobManagerModel(dbAdapter);
 
-export { AuthToken, SessionTokenV0, AppTokenV1 } from './models/auth-tokens';
+export {
+  AuthToken,
+  SessionTokenV0,
+  AppTokenV1,
+  SessionTokenV1,
+} from './models/auth-tokens';
 
 export {
   HOMEFEED_MODE_CLASSIC,

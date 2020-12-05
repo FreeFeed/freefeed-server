@@ -2,6 +2,8 @@
 /* global $pg_database */
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
+import unexpectedSinon from 'unexpected-sinon';
+import sinon from 'sinon';
 
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, dbAdapter } from '../../../app/models';
@@ -10,6 +12,7 @@ import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-to
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
+expect.use(unexpectedSinon);
 
 describe('withAuthToken middleware', () => {
   before(() => cleanDB($pg_database));
@@ -175,6 +178,44 @@ describe('withAuthToken middleware', () => {
       ctx.method = 'GET';
       ctx.state.matchedRoute = '/v1/users/me';
       await expect(withAuthToken(ctx, () => null), 'to be fulfilled');
+    });
+  });
+
+  describe('SessionTokenV1', () => {
+    let session;
+
+    const context = (tokenString = null) => ({
+      ip:      '127.0.0.127',
+      headers: {
+        'user-agent': 'Lynx browser, Linux',
+        ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
+      },
+      state: {},
+    });
+
+    before(async () => {
+      session = await dbAdapter.createAuthSession(luna.id);
+    });
+
+    it('should set last* fields of token', async () => {
+      expect(session, 'to satisfy', {
+        lastUsedAt:    null,
+        lastIP:        null,
+        lastUserAgent: null,
+      });
+
+      const ctx = context(session.tokenString());
+      const handler = sinon.spy()
+      await withAuthToken(ctx, handler);
+
+      expect(handler, 'was called');
+
+      session = await dbAdapter.getAuthSessionById(session.id);
+      expect(session, 'to satisfy', {
+        lastUsedAt:    expect.it('to be close to', session.databaseTime),
+        lastIP:        ctx.ip,
+        lastUserAgent: ctx.headers['user-agent'],
+      });
     });
   });
 });

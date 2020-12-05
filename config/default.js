@@ -307,4 +307,9 @@ config.appTokens = {
   activationCodeTTL: 300, // in seconds
 };
 
+config.authSessions = {
+  //
+  usageDebounceSec: 30,
+};
+
 module.exports = config;

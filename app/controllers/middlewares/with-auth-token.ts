@@ -4,7 +4,7 @@ import config from 'config'
 import { Context, Next } from 'koa';
 
 import { NotAuthorizedException } from '../../support/exceptions';
-import {  authDebug, AuthToken } from '../../models/auth-tokens';
+import {  authDebug, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
 import { AppTokenV1, SessionTokenV0, dbAdapter } from '../../models';
 import { Nullable } from '../../support/types';
 
@@ -55,6 +55,9 @@ export async function withAuthToken(ctx: Context, next: Next) {
   } else if (payload.type === AppTokenV1.TYPE) {
     // Application token v1
     authToken = await dbAdapter.getAppTokenById(payload.id!);
+  } else if (payload.type === SessionTokenV1.TYPE) {
+    // Session token v1
+    authToken = await dbAdapter.getAuthSessionById(payload.id!);
   } else {
     authToken = null;
   }

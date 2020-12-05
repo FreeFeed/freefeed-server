@@ -33,3 +33,24 @@ export type AppTokenLogPayload = {
   user_agent: string,
   extra: any,
 }
+
+export type SessionRecord = {
+  id: UUID;
+  userId: UUID;
+  status: number;
+  issue: number;
+  createdAt: Date;
+  updatedAt: Date;
+  lastUsedAt: Nullable<Date>;
+  lastIP: Nullable<IPAddr>;
+  lastUserAgent: Nullable<string>;
+  databaseTime: Date;
+};
+
+export type SessionMutableRecord = Partial<Omit<SessionRecord,
+  // Immutable fields of SessionRecord
+  | 'id'
+  | 'userId'
+  | 'createdAt'
+  | 'databaseTime'
+>>

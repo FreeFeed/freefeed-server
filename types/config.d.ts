@@ -41,6 +41,10 @@ declare module 'config' {
     }
 
     sentryDsn?: string;
+
+    authSessions: {
+      usageDebounceSec: number;
+    }
   }
 
   const c: Config;
