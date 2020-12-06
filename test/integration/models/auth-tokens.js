@@ -10,7 +10,7 @@ import config from 'config';
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job, SessionTokenV1 } from '../../../app/models';
 import { initJobProcessing } from '../../../app/jobs';
-import { PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/app-tokens';
+import { PERIODIC_CLEAN_AUTH_SESSIONS, PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/auth-tokens';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 
 
@@ -468,6 +468,49 @@ describe('Auth Tokens', () => {
 
       const s1 = await dbAdapter.getAuthSessionById(id);
       expect(s1, 'to be null');
+    });
+
+    describe(`Old sessions cleanup`, () => {
+      before(() => cleanDB($pg_database));
+
+      let session1, session2, jobId, jobManager;
+
+      before(async () => {
+        luna = new User({ username: 'luna', password: 'pw' });
+        await luna.create();
+
+        session1 = await dbAdapter.createAuthSession(luna.id);
+        session2 = await dbAdapter.createAuthSession(luna.id);
+
+        await dbAdapter.database.raw(
+          `update auth_sessions set updated_at = now() - :time * '1 day'::interval where uid = :uid`,
+          { uid: session2.id, time: config.authSessions.inactiveSessionTTLDays + 1 });
+
+        jobManager = await initJobProcessing();
+      });
+
+      it(`should create periodic job that cleaned up sessions`, async () => {
+        const jobs = await dbAdapter.getAllJobs([PERIODIC_CLEAN_AUTH_SESSIONS]);
+        expect(jobs, 'to satisfy', [{ name: PERIODIC_CLEAN_AUTH_SESSIONS }]);
+        jobId = jobs[0].id;
+      });
+
+      it(`should remove session when job completed`, async () => {
+        const job = await Job.getById(jobId);
+        await job.setUnlockAt(0);
+
+        {
+          const sessions = await dbAdapter.listAuthSessions(luna.id);
+          expect(sessions, 'to satisfy', [{ id: session2.id }, { id: session1.id }]);
+        }
+
+        await jobManager.fetchAndProcess();
+
+        {
+          const sessions = await dbAdapter.listAuthSessions(luna.id);
+          expect(sessions, 'to satisfy', [{ id: session1.id }]);
+        }
+      });
     });
   });
 });

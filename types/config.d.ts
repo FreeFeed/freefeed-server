@@ -46,6 +46,9 @@ declare module 'config' {
     authSessions: {
       usageDebounceSec: number;
       reissueGraceIntervalSec: number;
+      activeSessionTTLDays: number;
+      inactiveSessionTTLDays: number;
+      cleanupIntervalSec: number;
     }
   }
 

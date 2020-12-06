@@ -74,4 +74,6 @@ export class DbAdapter {
   updateAuthSession(id: UUID, toUpdate: SessionMutableRecord): Promise<Nullable<SessionTokenV1>>;
   registerAuthSessionUsage(uid: UUID, params: { ip: IPAddr, userAgent: string, debounceSec: number }): Promise<Nullable<SessionTokenV1>>;
   deleteAuthSession(id: UUID): Promise<boolean>;
+  listAuthSessions(userId: UUID): Promise<SessionTokenV1[]>;
+  cleanOldAuthSessions(activeTTLDays: number, inactiveTTLDays: number): Promise<void>;
 }

@@ -73,6 +73,24 @@ const authSessionsTrait = (superClass) => class extends superClass {
       `delete from auth_sessions where uid = :id returning true`,
       { id });
   }
+
+  async listAuthSessions(userId) {
+    const rows = await this.database.getAll(
+      `select *, now() as database_time from auth_sessions
+          where user_id = :userId 
+          order by created_at desc`,
+      { userId });
+
+    return rows.map((r) => initObject(r, this));
+  }
+
+  async cleanOldAuthSessions(activeTTLDays, inactiveTTLDays) {
+    await this.database.raw(
+      `delete from auth_sessions where
+        status = :activeStatus and last_used_at is not null and updated_at < now() - :activeTTLDays * '1 day'::interval
+        or (status <> :activeStatus or last_used_at is null) and updated_at < now() - :inactiveTTLDays * '1 day'::interval`,
+      { activeTTLDays, inactiveTTLDays, activeStatus: ACTIVE });
+  }
 }
 
 export default authSessionsTrait;

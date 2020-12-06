@@ -4,16 +4,14 @@ import config from 'config';
 
 import { Job } from '../../models';
 
-import { initHandlers as initReauthRealtimeHandlers } from './reauth-realtime';
-import { initHandlers as initAppTokensHandlers } from './app-tokens';
+import { initHandlers as initAuthTokensHandlers } from './auth-tokens';
 
 
 const debugError = createDebug('freefeed:jobs:errors');
 
 export async function initHandlers(jobManager, app) {
   await Promise.all([
-    initReauthRealtimeHandlers(jobManager, app),
-    initAppTokensHandlers(jobManager, app),
+    initAuthTokensHandlers(jobManager, app),
   ]);
 }
 

@@ -308,9 +308,12 @@ config.appTokens = {
 };
 
 config.authSessions = {
-  //
   usageDebounceSec:        30,
   reissueGraceIntervalSec: 300,
+  // Cleanup
+  activeSessionTTLDays:    60,
+  inactiveSessionTTLDays:  7,
+  cleanupIntervalSec:      3600, // one hour
 };
 
 module.exports = config;
