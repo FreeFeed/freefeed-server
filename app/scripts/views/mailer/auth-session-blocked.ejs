@@ -1,0 +1,21 @@
+Your session has been blocked due to suspicious activity
+--------------------------------------------------------
+
+One of your authorization sessions has been blocked due to suspicious
+activity. The session was accessed from:
+
+  IP: <%= access.ip %>
+  Time: <%= access.date.toDateString() %>
+  Browser: <%= access.userAgent %>
+
+The last usage of this session was from:
+
+  IP: <%= session.lastIP || 'undefined' %>
+  Time: <%= session.lastUsedAt?.toDateString() || 'undefined' %>
+  Browser: <%= session.lastUserAgent || 'undefined' %>
+
+If you don't recognize any of these IP addresses or browsers, we recommend you
+to review your authorization sessions list and change the <%= config.siteTitle %>
+password (see <%= config.mailer.host %>/settings/sign-in).
+
+<%= config.siteTitle %> Team

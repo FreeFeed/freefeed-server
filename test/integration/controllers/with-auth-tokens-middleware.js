@@ -5,11 +5,13 @@ import unexpectedDate from 'unexpected-date';
 import unexpectedSinon from 'unexpected-sinon';
 import sinon from 'sinon';
 import config from 'config';
+import { simpleParser } from 'mailparser';
 
 import cleanDB from '../../dbCleaner';
 import { User, SessionTokenV0, dbAdapter } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
 import { ACTIVE, BLOCKED } from '../../../app/models/auth-tokens/SessionTokenV1';
+import { addMailListener } from '../../../lib/mailer';
 
 
 const expect = unexpected.clone();
@@ -224,10 +226,18 @@ describe('withAuthToken middleware', () => {
 
     describe('Issue mismatch', () => {
       let session;
+      const email = 'luna@example.com';
 
       before(async () => {
         session = await dbAdapter.createAuthSession(luna.id);
+        await luna.update({ email });
       });
+
+      let capturedMail = null;
+      let removeMailListener = () => null;
+      before(() => (removeMailListener = addMailListener((r) => (capturedMail = r))));
+      after(removeMailListener);
+      beforeEach(() => (capturedMail = null));
 
       it('should allow token with recently changed issue', async () => {
         const tokenString = session.tokenString();
@@ -251,6 +261,12 @@ describe('withAuthToken middleware', () => {
         await expect(withAuthToken(ctx, handler), 'to be rejected');
         expect(handler, 'was not called');
 
+        // Email was sent
+        expect(capturedMail, 'to satisfy', { envelope: { to: [email] } });
+        const parsedMail = await simpleParser(capturedMail.response);
+        expect(parsedMail, 'to satisfy', { subject: 'Your session has been blocked', });
+
+        // The session is blocked now
         const s = await dbAdapter.getAuthSessionById(session.id);
         expect(s.status, 'to be', BLOCKED);
       });

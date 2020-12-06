@@ -8,6 +8,7 @@ declare module 'config' {
     host: string;
     port: number;
     secret: string;
+    appRoot: string;
     trustProxyHeaders: boolean;
     logResponseTime: boolean;
     attachments: {
