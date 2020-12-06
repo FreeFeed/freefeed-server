@@ -7,3 +7,4 @@ export { AppTokenV1 } from './AppTokenV1';
 export { SessionTokenV1 } from './SessionTokenV1';
 
 export const authDebug = createDebug('freefeed:authentication');
+export const authDebugError = createDebug('freefeed:authentication:error');

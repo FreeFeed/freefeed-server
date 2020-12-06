@@ -4,7 +4,7 @@ import config from 'config'
 import { Context, Next } from 'koa';
 
 import { NotAuthorizedException } from '../../support/exceptions';
-import {  authDebug, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
+import { authDebugError, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
 import { AppTokenV1, SessionTokenV0, dbAdapter } from '../../models';
 import { Nullable } from '../../support/types';
 
@@ -43,7 +43,7 @@ export async function withAuthToken(ctx: Context, next: Next) {
   try {
     payload = await jwt.verifyAsync(jwtToken, config.secret);
   } catch (e) {
-    authDebug(`invalid JWT: ${e.message}`);
+    authDebugError(`invalid JWT: ${e.message}`);
     throw new NotAuthorizedException(`invalid auth token: bad JWT`);
   }
 
@@ -64,7 +64,7 @@ export async function withAuthToken(ctx: Context, next: Next) {
 
 
   if (!authToken) {
-    authDebug(`auth token is not found`)
+    authDebugError(`auth token is not found`)
     throw new NotAuthorizedException(`auth token is not found`);
   }
 

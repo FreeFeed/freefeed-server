@@ -5,7 +5,7 @@ import { dbAdapter } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
 import { UUID } from '../../support/types';
 
-import { authDebug } from '.';
+import { authDebug, authDebugError } from '.';
 
 /**
  * AuthToken
@@ -26,7 +26,7 @@ export abstract class AuthToken {
     const user = await this.getUser();
 
     if (!user || !user.isActive) {
-      authDebug(`user ${this.userId} is not exists or is not active`);
+      authDebugError(`user ${this.userId} is not exists or is not active`);
       throw new NotAuthorizedException(`user is not exists or is not active`);
     }
 

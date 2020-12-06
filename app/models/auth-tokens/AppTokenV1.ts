@@ -17,7 +17,7 @@ import { AuthToken } from './AuthToken';
 import { AppTokenRecord } from './types';
 import { alwaysAllowedRoutes, alwaysDisallowedRoutes, appTokensScopes } from './app-tokens-scopes';
 
-import { authDebug } from '.';
+import { authDebugError } from '.';
 
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
@@ -110,7 +110,7 @@ export class AppTokenV1 extends AuthToken {
     try {
       this.checkRestrictions({ remoteIP: ctx.ip, headers: ctx.headers });
     } catch (e) {
-      authDebug(e.message)
+      authDebugError(e.message)
       throw new NotAuthorizedException(e.message);
     }
 
@@ -124,7 +124,7 @@ export class AppTokenV1 extends AuthToken {
         );
 
       if (!routeAllowed) {
-        authDebug(`app token has no access to '${route}'`);
+        authDebugError(`app token has no access to '${route}'`);
         throw new NotAuthorizedException(`token has no access to this API method`);
       }
     }
@@ -138,7 +138,7 @@ export class AppTokenV1 extends AuthToken {
     } catch (e) {
       // We should not break request at this step
       // but we must log error
-      authDebug(`cannot log app token usage: ${e.message}`);
+      authDebugError(`cannot log app token usage: ${e.message}`);
 
       if (config.sentryDsn) {
         Raven.captureException(e, { extra: { err: `cannot log app token usage: ${e.message}` } });
