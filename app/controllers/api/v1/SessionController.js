@@ -6,7 +6,8 @@ import compose from 'koa-compose';
 import { SessionTokenV0, SessionTokenV1 } from '../../../models/auth-tokens'
 import { authRequired } from '../../middlewares';
 import { BadRequestException } from '../../../support/exceptions';
-import { CLOSED } from '../../../models/auth-tokens/SessionTokenV1';
+import { CLOSED, statusTitles } from '../../../models/auth-tokens/SessionTokenV1';
+import { dbAdapter } from '../../../models';
 
 import UsersController from './UsersController';
 
@@ -92,6 +93,22 @@ export default class SessionController {
       };
     },
   ]);
+
+  // Get list of sessions
+  static list = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user, authToken: currentSession } = ctx.state;
+
+      const sessions = await dbAdapter.listAuthSessions(user.id);
+      const current = ((currentSession instanceof SessionTokenV1) && sessions.find((s) => s.id === currentSession.id)?.id) || null;
+
+      ctx.body = {
+        current,
+        sessions: sessions.map(serializeSession),
+      };
+    },
+  ]);
 }
 
 function sessionTypeRequired(types = [SessionTokenV1]) {
@@ -103,5 +120,16 @@ function sessionTypeRequired(types = [SessionTokenV1]) {
     }
 
     await next();
+  };
+}
+
+function serializeSession(session) {
+  return {
+    id:            session.id,
+    status:        statusTitles[session.status],
+    createdAt:     session.createdAt,
+    lastUsedAt:    session.lastUsedAt,
+    lastIP:        session.lastIP,
+    lastUserAgent: session.lastUserAgent,
   };
 }

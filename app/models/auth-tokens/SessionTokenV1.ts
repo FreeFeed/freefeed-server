@@ -23,6 +23,12 @@ export const CLOSED = 10;
 // Session was blocked by system
 export const BLOCKED = 20;
 
+export const statusTitles = {
+  [ACTIVE]:  'ACTIVE',
+  [CLOSED]:  'CLOSED',
+  [BLOCKED]: 'BLOCKED',
+};
+
 const tokenType = 'sess.v1';
 
 const isSessionTokenJWTPayload = isObject({

@@ -254,6 +254,57 @@ describe('SessionController', () => {
       await expect(rtSession.notReceiveWhile('post:new', createPost), 'to be fulfilled');
     });
   });
+
+  describe('#list', () => {
+    let user, sessionA, sessionB;
+
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' });
+      await user.create();
+      sessionA = await dbAdapter.createAuthSession(user.id);
+      sessionB = await dbAdapter.createAuthSession(user.id);
+    });
+
+    it('should return list of sessions', async () => {
+      await expect(
+        performJSONRequest('GET', '/v1/session/list', null, authHeaders(sessionA)),
+        'to be fulfilled with', {
+          __httpCode: 200,
+          current:    sessionA.id,
+          sessions:   [
+            { id: sessionB.id, status: 'ACTIVE' },
+            { id: sessionA.id, status: 'ACTIVE' },
+          ]
+        });
+    });
+
+    it(`should return empty 'current' field when use V0 token`, async () => {
+      await expect(
+        performJSONRequest('GET', '/v1/session/list', null, authHeaders(new SessionTokenV0(user.id))),
+        'to be fulfilled with', {
+          __httpCode: 200,
+          current:    null,
+          sessions:   [
+            { id: sessionB.id, status: 'ACTIVE' },
+            { id: sessionA.id, status: 'ACTIVE' },
+          ]
+        });
+    });
+
+    it(`should return closed sessions in list`, async () => {
+      await performJSONRequest('DELETE', '/v1/session', null, authHeaders(sessionB));
+      await expect(
+        performJSONRequest('GET', '/v1/session/list', null, authHeaders(sessionA)),
+        'to be fulfilled with', {
+          __httpCode: 200,
+          current:    sessionA.id,
+          sessions:   [
+            { id: sessionB.id, status: 'CLOSED' },
+            { id: sessionA.id, status: 'ACTIVE' },
+          ]
+        });
+    });
+  });
 });
 
 function authHeaders(session) {
