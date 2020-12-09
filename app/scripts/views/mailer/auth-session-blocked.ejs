@@ -11,7 +11,7 @@ activity. The session was accessed from:
 The last usage of this session was from:
 
   IP: <%= session.lastIP || 'undefined' %>
-  Time: <%= session.lastUsedAt?.toDateString() || 'undefined' %>
+  Time: <%= session.lastUsedAt ? session.lastUsedAt.toDateString() : 'undefined' %>
   Browser: <%= session.lastUserAgent || 'undefined' %>
 
 If you don't recognize any of these IP addresses or browsers, we recommend you
