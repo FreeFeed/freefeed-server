@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import expect from 'unexpected'
 import config from 'config'
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
@@ -300,6 +301,72 @@ describe('SessionController', () => {
           current:    sessionA.id,
           sessions:   [
             { id: sessionB.id, status: 'CLOSED' },
+            { id: sessionA.id, status: 'ACTIVE' },
+          ]
+        });
+    });
+  });
+
+  describe('#updateList', () => {
+    let user, sessionA, sessionB, sessionC;
+
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' });
+      await user.create();
+      sessionA = await dbAdapter.createAuthSession(user.id);
+      sessionB = await dbAdapter.createAuthSession(user.id);
+      sessionC = await dbAdapter.createAuthSession(user.id);
+    });
+
+    it('should close sessions by IDs', async () => {
+      await expect(
+        performJSONRequest(
+          'PATCH', '/v1/session/list',
+          { close: [sessionB.id, sessionC.id] },
+          authHeaders(sessionA)
+        ),
+        'to be fulfilled with', {
+          __httpCode: 200,
+          current:    sessionA.id,
+          sessions:   [
+            { id: sessionC.id, status: 'CLOSED' },
+            { id: sessionB.id, status: 'CLOSED' },
+            { id: sessionA.id, status: 'ACTIVE' },
+          ]
+        });
+    });
+
+    it('should close the current session by ID', async () => {
+      await expect(
+        performJSONRequest(
+          'PATCH', '/v1/session/list',
+          { close: [sessionA.id, sessionB.id] },
+          authHeaders(sessionA)
+        ),
+        'to be fulfilled with', {
+          __httpCode: 200,
+          current:    sessionA.id,
+          sessions:   [
+            { id: sessionC.id, status: 'ACTIVE' },
+            { id: sessionB.id, status: 'CLOSED' },
+            { id: sessionA.id, status: 'CLOSED' },
+          ]
+        });
+    });
+
+    it('should not close sessions by invalid IDs', async () => {
+      await expect(
+        performJSONRequest(
+          'PATCH', '/v1/session/list',
+          { close: [uuidv4(), uuidv4()] },
+          authHeaders(sessionA)
+        ),
+        'to be fulfilled with', {
+          __httpCode: 200,
+          current:    sessionA.id,
+          sessions:   [
+            { id: sessionC.id, status: 'ACTIVE' },
+            { id: sessionB.id, status: 'ACTIVE' },
             { id: sessionA.id, status: 'ACTIVE' },
           ]
         });

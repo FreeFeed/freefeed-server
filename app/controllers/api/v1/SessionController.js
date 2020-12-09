@@ -4,12 +4,13 @@ import config from 'config';
 import compose from 'koa-compose';
 
 import { SessionTokenV0, SessionTokenV1 } from '../../../models/auth-tokens'
-import { authRequired } from '../../middlewares';
+import { authRequired, inputSchemaRequired } from '../../middlewares';
 import { BadRequestException } from '../../../support/exceptions';
 import { CLOSED, statusTitles } from '../../../models/auth-tokens/SessionTokenV1';
 import { dbAdapter } from '../../../models';
 
 import UsersController from './UsersController';
+import { updateListInputSchema } from './data-schemes/sessions';
 
 
 export default class SessionController {
@@ -107,6 +108,27 @@ export default class SessionController {
         current,
         sessions: sessions.map(serializeSession),
       };
+    },
+  ]);
+
+  // Update sessions
+  static updateList = compose([
+    authRequired(),
+    inputSchemaRequired(updateListInputSchema),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const { close: idsToClose } = ctx.request.body;
+
+      const allSessions = await dbAdapter.listAuthSessions(user.id);
+
+      // Close sessions
+      await Promise.all(
+        allSessions
+          .filter((s) => s.isActive && idsToClose.includes(s.id))
+          .map((s) => s.setStatus(CLOSED))
+      );
+
+      await SessionController.list(ctx);
     },
   ]);
 }
