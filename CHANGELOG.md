@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Not released
 ### Added
 - Initial Typescript definitions for DbAdapter and models
+- The new type of authorization sessions (SessionTokenV1). Sessions can be
+  created, reissued, closed (at sign out); user can view list of their session
+  with the information of last usage and close one or more of them. The old
+  session tokens (SessionTokenV0) are still supported but deprecated.
 
 ### Removed
 - Old serializers (they were not used already)
