@@ -1,22 +1,28 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import fetch from 'node-fetch'
 import expect from 'unexpected'
+import config from 'config'
+import jwt from 'jsonwebtoken';
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, User } from '../../app/models'
+import { AuthToken, dbAdapter, PubSub, SessionTokenV0, SessionTokenV1, User } from '../../app/models'
+import { PubSubAdapter } from '../../app/support/PubSubAdapter'
 
-import { sessionRequest } from './functional_test_helper';
+import { sessionRequest, performJSONRequest } from './functional_test_helper';
+import Session from './realtime-session'
 
 
 describe('SessionController', () => {
   let app;
+  let port;
 
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database)
+    PubSub.setPublisher(pubsubAdapter)
   })
 
   beforeEach(() => cleanDB($pg_database));
@@ -110,5 +116,146 @@ describe('SessionController', () => {
       const respBody = await resp.json();
       expect(respBody, 'to satisfy', { users: { id: user.id } });
     });
+
+    it('should create a SessionTokenV1 type session', async () => {
+      const resp = await sessionRequest(` ${userData.email} `, userData.password);
+      const { authToken } = await resp.json();
+      const payload = jwt.decode(authToken);
+      expect(payload, 'to satisfy', {
+        type:   SessionTokenV1.TYPE,
+        id:     expect.it('to be a string'),
+        issue:  1,
+        userId: user.id,
+      });
+    });
+  });
+
+  describe('#close', () => {
+    let user, session;
+
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' });
+      await user.create();
+      session = await dbAdapter.createAuthSession(user.id);
+    });
+
+    it(`should not allow to close session without authentication`, async () => {
+      const resp = await performJSONRequest('DELETE', '/v1/session');
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+
+    it(`should close the V1 session`, async () => {
+      const resp = await performJSONRequest('DELETE', '/v1/session', null, authHeaders(session));
+
+      expect(resp, 'to satisfy', { __httpCode: 200, closed: true });
+    });
+
+    it(`should not close the V0 session, but also should not throw an error`, async () => {
+      const resp = await performJSONRequest('DELETE', '/v1/session', null, authHeaders(new SessionTokenV0(user.id)));
+
+      expect(resp, 'to satisfy', { __httpCode: 200, closed: false });
+    });
+
+    it(`should not allow to use session after close`, async () => {
+      await performJSONRequest('DELETE', '/v1/session', null, authHeaders(session));
+
+      const resp = await performJSONRequest('GET', '/v1/users/me', null, authHeaders(session));
+
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+  });
+
+  describe('#reissue', () => {
+    let user, session;
+
+    beforeEach(async () => {
+      user = new User({ username: 'Luna', password: 'password' });
+      await user.create();
+      session = await dbAdapter.createAuthSession(user.id);
+    });
+
+    it(`should allow to reissue session`, async () => {
+      const oldToken = session.tokenString();
+      const resp = await performJSONRequest('POST', '/v1/session/reissue', null, authHeaders(oldToken));
+
+      expect(resp, 'to satisfy', { __httpCode: 200, authToken: expect.it('to be a string'), reissued: true });
+      const newToken = resp.authToken;
+
+      // Both tokens should works
+      await expect(
+        performJSONRequest('GET', '/v1/users/me', null, authHeaders(oldToken)),
+        'to be fulfilled with', { __httpCode: 200 });
+
+      await expect(
+        performJSONRequest('GET', '/v1/users/me', null, authHeaders(newToken)),
+        'to be fulfilled with', { __httpCode: 200 });
+    });
+
+    it(`should not reissue the V0 session, but also should not throw an error`, async () => {
+      const resp = await performJSONRequest('POST', '/v1/session/reissue', null, authHeaders(new SessionTokenV0(user.id)));
+
+      expect(resp, 'to satisfy', { __httpCode: 200, authToken: expect.it('to be a string'), reissued: false });
+    });
+
+    it(`should block access with the stale token`, async () => {
+      const oldToken = session.tokenString();
+      const { authToken: newToken } = await performJSONRequest('POST', '/v1/session/reissue', null, authHeaders(oldToken));
+
+      // Make the old token stale
+      const updatedAt = new Date(Date.now() - (1000 * (config.authSessions.reissueGraceIntervalSec + 10)));
+      await dbAdapter.updateAuthSession(session.id, { updatedAt });
+
+      // New token should work
+      await expect(
+        performJSONRequest('GET', '/v1/users/me', null, authHeaders(newToken)),
+        'to be fulfilled with', { __httpCode: 200 });
+
+      // Old token should not work...
+      await expect(
+        performJSONRequest('GET', '/v1/users/me', null, authHeaders(oldToken)),
+        'to be fulfilled with', { __httpCode: 401 });
+
+      // ...and the entire session is now blocked
+      await expect(
+        performJSONRequest('GET', '/v1/users/me', null, authHeaders(newToken)),
+        'to be fulfilled with', { __httpCode: 401 });
+    });
+
+    it(`should allow to reauthorize realtime session`, async () => {
+      const oldToken = session.tokenString();
+      const { authToken: newToken } = await performJSONRequest('POST', '/v1/session/reissue', null, authHeaders(oldToken));
+
+      const createPost = () => performJSONRequest(
+        'POST', '/v1/posts',
+        { post: { body: 'body' }, meta: { feeds: 'luna' } },
+        authHeaders(oldToken),
+      );
+
+      // Luna is private user
+      await user.update({ isPrivate: '1' });
+
+      const rtSession = await Session.create(port, 'Luna session');
+      await rtSession.sendAsync('auth', { authToken: oldToken });
+
+      // Subscribe to Luna's feed
+      const feed = await dbAdapter.getUserNamedFeed(user.id, 'Posts');
+      await rtSession.sendAsync('subscribe', { timeline: [feed.id] });
+
+      await expect(rtSession.receiveWhile('post:new', createPost), 'to be fulfilled');
+
+      // Re-auth the RT session
+      await rtSession.sendAsync('auth', { authToken: newToken });
+
+      await expect(rtSession.receiveWhile('post:new', createPost), 'to be fulfilled');
+
+      // Log out from the RT session
+      await rtSession.sendAsync('auth', { authToken: '' });
+
+      await expect(rtSession.notReceiveWhile('post:new', createPost), 'to be fulfilled');
+    });
   });
 });
+
+function authHeaders(session) {
+  return { 'Authorization': `Bearer ${session instanceof AuthToken ? session.tokenString() : session}` };
+}

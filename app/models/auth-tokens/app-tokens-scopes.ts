@@ -12,6 +12,8 @@ export const alwaysDisallowedRoutes = [
   'PUT /v1/users/updatePassword',
   // Session
   'POST /v1/session',
+  'DELETE /v1/session',
+  'POST /v1/session/reissue',
   // SUDO methods
   'POST /v1/groups/sudo',
   'POST /v1/users/sudo',

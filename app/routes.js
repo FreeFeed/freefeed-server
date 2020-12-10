@@ -56,7 +56,6 @@ export function createRouter() {
 
   // unauthenticated routes
   PasswordsRoute(router);
-  SessionRoute(router);
 
   // Fix for ctx._matchedRoute
   // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
@@ -68,6 +67,8 @@ export function createRouter() {
 
   // [at least optionally] authenticated routes
   router.use(withAuthToken);
+
+  SessionRoute(router);
 
   AttachmentsRoute(router);
   BookmarkletRoute(router);
