@@ -5,7 +5,7 @@ import compose from 'koa-compose';
 import config from 'config'
 import jwt from 'jsonwebtoken';
 
-import { dbAdapter, User, Group, AppTokenV1, SessionTokenV0, ServerInfo } from '../../../models'
+import { dbAdapter, User, Group, AppTokenV1, ServerInfo } from '../../../models'
 import {
   NotFoundException,
   ForbiddenException,
@@ -123,7 +123,7 @@ export default class UsersController {
       ]);
 
       ctx.state.user = user;
-      ctx.state.authToken = new SessionTokenV0(user.id);
+      ctx.state.authToken = await dbAdapter.createAuthSession(user.id);
       await UsersControllerV2.whoAmI(ctx);
       ctx.body.authToken = ctx.state.authToken.tokenString();
 
@@ -159,7 +159,7 @@ export default class UsersController {
     }
 
     ctx.state.user = user;
-    ctx.state.authToken = new SessionTokenV0(user.id);
+    ctx.state.authToken = await dbAdapter.createAuthSession(user.id);
     await UsersControllerV2.whoAmI(ctx);
     ctx.body.authToken = ctx.state.authToken.tokenString();
   }

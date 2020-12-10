@@ -1,6 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
 import fetch from 'node-fetch'
+import jwt from 'jsonwebtoken';
 import _ from 'lodash'
 import mkdirp from 'mkdirp'
 import request from 'superagent'
@@ -10,7 +11,7 @@ import config from 'config';
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
 import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
+import { PubSub, SessionTokenV1 } from '../../app/models'
 
 import * as funcTestHelper from './functional_test_helper'
 import * as schema from './schemaV2-helper';
@@ -27,25 +28,31 @@ describe('UsersController', () => {
   beforeEach(() => cleanDB($pg_database))
 
   describe('#create()', () => {
-    it('should create a valid user', (done) => {
+    it('should create a valid user', async () => {
       const user = {
         username: 'Luna',
         password: 'password'
-      }
+      };
 
-      request
-        .post(`${app.context.config.host}/v1/users`)
-        .send({ username: user.username, password: user.password })
-        .end((err, res) => {
-          res.should.not.be.empty
-          res.body.should.not.be.empty
-          res.body.should.have.property('users')
-          res.body.users.should.have.property('id')
-          res.body.users.should.have.property('username')
-          res.body.users.username.should.eql(user.username.toLowerCase())
-          done()
-        })
-    })
+      const resp = await funcTestHelper.performJSONRequest('POST', '/v1/users',
+        { username: user.username, password: user.password });
+
+      expect(resp, 'to satisfy', {
+        __httpCode: 200,
+        users:      {
+          id:       expect.it('to be a string'),
+          username: user.username.toLowerCase(),
+        },
+        authToken: expect.it('to be a string'),
+      });
+
+      expect(jwt.decode(resp.authToken), 'to satisfy', {
+        type:   SessionTokenV1.TYPE,
+        id:     expect.it('to be a string'),
+        issue:  1,
+        userId: resp.users.id,
+      });
+    });
 
     it('should create a valid user with email', (done) => {
       const user = {

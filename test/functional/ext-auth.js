@@ -3,10 +3,11 @@
 import { URL } from 'url';
 import { parse as qsParse } from 'querystring';
 
+import jwt from 'jsonwebtoken';
 import expect from 'unexpected'
 
 import cleanDB from '../dbCleaner';
-import { dbAdapter } from '../../app/models';
+import { dbAdapter, SessionTokenV1 } from '../../app/models';
 import { getAuthProvider, SIGN_IN_SUCCESS, SIGN_IN_USER_EXISTS, SIGN_IN_CONTINUE } from '../../app/support/ExtAuth';
 
 import { createTestUsers, performJSONRequest, createUserAsync } from './functional_test_helper';
@@ -167,6 +168,13 @@ describe('ExtAuthController authorization flow', () => {
       });
 
       // Checking the authToken
+      expect(jwt.decode(resp.authToken), 'to satisfy', {
+        type:   SessionTokenV1.TYPE,
+        id:     expect.it('to be a string'),
+        issue:  1,
+        userId: luna.user.id,
+      });
+
       resp = await performJSONRequest('GET', '/v1/users/me', null, { Authorization: `Bearer ${resp.authToken}` });
       expect(resp, 'to satisfy', {
         users:      { id: luna.user.id },
