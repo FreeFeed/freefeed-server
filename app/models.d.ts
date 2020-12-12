@@ -4,6 +4,7 @@ import { DbAdapter } from './support/DbAdapter';
 import { PubSubAdapter } from './support/PubSubAdapter';
 import { GONE_NAMES } from './models/user';
 import { UUID } from './support/types';
+import { SessionTokenV1Store } from './models/auth-tokens';
 
 
 export const postgres: Knex;
@@ -39,6 +40,8 @@ export class Attachment {
 export class Comment {
   removeLike(user: User): Promise<boolean>;
 }
+
+export const sessionTokenV1Store: SessionTokenV1Store;
 
 export {
   AuthToken,

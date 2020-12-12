@@ -8,10 +8,11 @@ import config from 'config';
 import { simpleParser } from 'mailparser';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, dbAdapter } from '../../../app/models';
+import { User, SessionTokenV0, dbAdapter, sessionTokenV1Store } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
 import { ACTIVE, BLOCKED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { addMailListener } from '../../../lib/mailer';
+import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
 
 
 const expect = unexpected.clone();
@@ -199,14 +200,14 @@ describe('withAuthToken middleware', () => {
       let session;
 
       before(async () => {
-        session = await dbAdapter.createAuthSession(luna.id);
+        session = await sessionTokenV1Store.create(luna.id);
       });
 
       it('should set last* fields of token', async () => {
         expect(session, 'to satisfy', {
-          lastUsedAt:    null,
-          lastIP:        null,
-          lastUserAgent: null,
+          lastUsedAt:    session.databaseTime,
+          lastIP:        fallbackIP,
+          lastUserAgent: fallbackUserAgent,
         });
 
         const ctx = context(session.tokenString());
@@ -215,7 +216,7 @@ describe('withAuthToken middleware', () => {
 
         expect(handler, 'was called');
 
-        session = await dbAdapter.getAuthSessionById(session.id);
+        session = await sessionTokenV1Store.getById(session.id);
         expect(session, 'to satisfy', {
           lastUsedAt:    expect.it('to be close to', session.databaseTime),
           lastIP:        ctx.ip,
@@ -229,7 +230,7 @@ describe('withAuthToken middleware', () => {
       const email = 'luna@example.com';
 
       before(async () => {
-        session = await dbAdapter.createAuthSession(luna.id);
+        session = await sessionTokenV1Store.create(luna.id);
         await luna.update({ email });
       });
 
@@ -267,7 +268,7 @@ describe('withAuthToken middleware', () => {
         expect(parsedMail, 'to satisfy', { subject: 'Your session has been blocked', });
 
         // The session is blocked now
-        const s = await dbAdapter.getAuthSessionById(session.id);
+        const s = await sessionTokenV1Store.getById(session.id);
         expect(s.status, 'to be', BLOCKED);
       });
 
@@ -284,7 +285,7 @@ describe('withAuthToken middleware', () => {
       let session, tokenString;
 
       before(async () => {
-        session = await dbAdapter.createAuthSession(luna.id);
+        session = await sessionTokenV1Store.create(luna.id);
         tokenString = session.tokenString();
         await session.reissue();
       });
@@ -295,7 +296,7 @@ describe('withAuthToken middleware', () => {
         await dbAdapter.updateAuthSession(session.id, { updatedAt });
         await expect(withAuthToken(context(tokenString), () => null), 'to be fulfilled');
 
-        const s = await dbAdapter.getAuthSessionById(session.id);
+        const s = await sessionTokenV1Store.getById(session.id);
         expect(s.status, 'to be', ACTIVE);
       });
 
@@ -305,7 +306,7 @@ describe('withAuthToken middleware', () => {
         await dbAdapter.updateAuthSession(session.id, { updatedAt });
         await expect(withAuthToken(context(tokenString), () => null), 'to be rejected');
 
-        const s = await dbAdapter.getAuthSessionById(session.id);
+        const s = await sessionTokenV1Store.getById(session.id);
         expect(s.status, 'to be', BLOCKED);
       });
     });

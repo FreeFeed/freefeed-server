@@ -5,9 +5,9 @@ import { prepareModelPayload } from './utils';
 
 
 const authSessionsTrait = (superClass) => class extends superClass {
-  async createAuthSession(userId) {
+  async createAuthSession(params) {
     const preparedPayload = prepareModelPayload(
-      { userId },
+      params,
       AUTH_SESSION_COLUMNS,
       AUTH_SESSION_COLUMNS_MAPPING,
     );
@@ -60,7 +60,6 @@ const authSessionsTrait = (superClass) => class extends superClass {
          and (
            last_ip is distinct from :ip 
            or last_user_agent is distinct from :userAgent 
-           or last_used_at is null
            or last_used_at < now() - :debounceSec * '1 second'::interval
          )
        returning *, now() as database_time`,
@@ -87,8 +86,8 @@ const authSessionsTrait = (superClass) => class extends superClass {
   async cleanOldAuthSessions(activeTTLDays, inactiveTTLDays) {
     await this.database.raw(
       `delete from auth_sessions where
-        status = :activeStatus and last_used_at is not null and updated_at < now() - :activeTTLDays * '1 day'::interval
-        or (status <> :activeStatus or last_used_at is null) and updated_at < now() - :inactiveTTLDays * '1 day'::interval`,
+        status = :activeStatus and updated_at < now() - :activeTTLDays * '1 day'::interval
+        or status <> :activeStatus and updated_at < now() - :inactiveTTLDays * '1 day'::interval`,
       { activeTTLDays, inactiveTTLDays, activeStatus: ACTIVE });
   }
 }

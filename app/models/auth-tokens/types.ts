@@ -41,9 +41,9 @@ export type SessionRecord = {
   issue: number;
   createdAt: Date;
   updatedAt: Date;
-  lastUsedAt: Nullable<Date>;
-  lastIP: Nullable<IPAddr>;
-  lastUserAgent: Nullable<string>;
+  lastUsedAt: Date;
+  lastIP: IPAddr;
+  lastUserAgent: string;
   databaseTime: Date;
 };
 
@@ -53,4 +53,10 @@ export type SessionMutableRecord = Partial<Omit<SessionRecord,
   | 'userId'
   | 'createdAt'
   | 'databaseTime'
->>
+>>;
+
+export type SessionCreateRecord = Pick<SessionRecord,
+  | 'userId'
+  | 'lastIP'
+  | 'lastUserAgent'
+>;

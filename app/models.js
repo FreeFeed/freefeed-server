@@ -15,6 +15,7 @@ import { addModel as timelineModel } from './models/timeline';
 import { addModel as userModel } from './models/user';
 import { addServerInfoModel } from './models/server-info';
 import { addJobModel, addJobManagerModel } from './models/job';
+import { SessionTokenV1Store } from './models/auth-tokens';
 
 
 // Be careful: order of exports is important.
@@ -43,6 +44,8 @@ export const Comment       = commentModel(dbAdapter);
 export const ServerInfo    = addServerInfoModel(dbAdapter);
 export const Job           = addJobModel(dbAdapter);
 export const JobManager    = addJobManagerModel(dbAdapter);
+
+export const sessionTokenV1Store = new SessionTokenV1Store(dbAdapter);
 
 export {
   AuthToken,

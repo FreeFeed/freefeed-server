@@ -8,7 +8,7 @@ import { DateTime } from 'luxon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job, SessionTokenV1 } from '../../../app/models';
+import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job, SessionTokenV1, sessionTokenV1Store } from '../../../app/models';
 import { initJobProcessing } from '../../../app/jobs';
 import { PERIODIC_CLEAN_AUTH_SESSIONS, PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/auth-tokens';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
@@ -415,7 +415,7 @@ describe('Auth Tokens', () => {
     let session;
 
     it('should create a session', async () => {
-      session = await dbAdapter.createAuthSession(luna.id);
+      session = await sessionTokenV1Store.create(luna.id);
       const now = await dbAdapter.now();
       expect(session instanceof SessionTokenV1, 'to be true');
       expect(session, 'to satisfy', {
@@ -424,12 +424,13 @@ describe('Auth Tokens', () => {
         status:       ACTIVE,
         createdAt:    expect.it('to be close to', now),
         updatedAt:    expect.it('to be close to', now),
+        lastUsedAt:   expect.it('to be close to', now),
         databaseTime: expect.it('to be close to', now),
       });
     });
 
     it('should load session by id', async () => {
-      const s2 = await dbAdapter.getAuthSessionById(session.id);
+      const s2 = await sessionTokenV1Store.getById(session.id);
       expect(s2 instanceof SessionTokenV1, 'to be true');
       expect(s2, 'to satisfy', _.pick(session, ['id', 'userId', 'issue', 'status']));
     });
@@ -440,7 +441,7 @@ describe('Auth Tokens', () => {
       expect(ok, 'to be true');
       expect(session.issue, 'to be', issue + 1);
 
-      const s2 = await dbAdapter.getAuthSessionById(session.id);
+      const s2 = await sessionTokenV1Store.getById(session.id);
       expect(s2 instanceof SessionTokenV1, 'to be true');
       expect(s2, 'to satisfy', _.pick(session, ['id', 'userId', 'issue']));
     });
@@ -450,7 +451,7 @@ describe('Auth Tokens', () => {
       expect(ok, 'to be true');
       expect(session.status, 'to be', CLOSED);
 
-      const s2 = await dbAdapter.getAuthSessionById(session.id);
+      const s2 = await sessionTokenV1Store.getById(session.id);
       expect(s2 instanceof SessionTokenV1, 'to be true');
       expect(s2.status, 'to be', CLOSED);
 
@@ -458,15 +459,15 @@ describe('Auth Tokens', () => {
     });
 
     it('should delete session', async () => {
-      const { id } = await dbAdapter.createAuthSession(luna.id);
+      const { id } = await sessionTokenV1Store.create(luna.id);
 
-      const s = await dbAdapter.getAuthSessionById(id);
+      const s = await sessionTokenV1Store.getById(id);
       expect(s, 'not to be null');
 
       const deleted = await s.destroy();
       expect(deleted, 'to be true');
 
-      const s1 = await dbAdapter.getAuthSessionById(id);
+      const s1 = await sessionTokenV1Store.getById(id);
       expect(s1, 'to be null');
     });
 
@@ -479,12 +480,12 @@ describe('Auth Tokens', () => {
         luna = new User({ username: 'luna', password: 'pw' });
         await luna.create();
 
-        session1 = await dbAdapter.createAuthSession(luna.id);
-        session2 = await dbAdapter.createAuthSession(luna.id);
+        session1 = await sessionTokenV1Store.create(luna.id);
+        session2 = await sessionTokenV1Store.create(luna.id);
 
         await dbAdapter.database.raw(
           `update auth_sessions set updated_at = now() - :time * '1 day'::interval where uid = :uid`,
-          { uid: session2.id, time: config.authSessions.inactiveSessionTTLDays + 1 });
+          { uid: session2.id, time: config.authSessions.activeSessionTTLDays + 1 });
 
         jobManager = await initJobProcessing();
       });
@@ -500,14 +501,14 @@ describe('Auth Tokens', () => {
         await job.setUnlockAt(0);
 
         {
-          const sessions = await dbAdapter.listAuthSessions(luna.id);
+          const sessions = await sessionTokenV1Store.list(luna.id);
           expect(sessions, 'to satisfy', [{ id: session2.id }, { id: session1.id }]);
         }
 
         await jobManager.fetchAndProcess();
 
         {
-          const sessions = await dbAdapter.listAuthSessions(luna.id);
+          const sessions = await sessionTokenV1Store.list(luna.id);
           expect(sessions, 'to satisfy', [{ id: session1.id }]);
         }
       });

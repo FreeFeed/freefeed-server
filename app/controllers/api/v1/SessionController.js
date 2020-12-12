@@ -7,7 +7,7 @@ import { SessionTokenV0, SessionTokenV1 } from '../../../models/auth-tokens'
 import { authRequired, inputSchemaRequired } from '../../middlewares';
 import { BadRequestException } from '../../../support/exceptions';
 import { CLOSED, statusTitles } from '../../../models/auth-tokens/SessionTokenV1';
-import { dbAdapter } from '../../../models';
+import { sessionTokenV1Store } from '../../../models';
 
 import UsersController from './UsersController';
 import { updateListInputSchema } from './data-schemes/sessions';
@@ -43,7 +43,7 @@ export default class SessionController {
         return
       }
 
-      const authToken = (await dbAdapter.createAuthSession(user.id)).tokenString();
+      const authToken = (await sessionTokenV1Store.create(user.id, ctx)).tokenString();
 
       // The same output as of the UsersController.show with 'authToken'
       ctx.params['username'] = user.username;
@@ -101,7 +101,7 @@ export default class SessionController {
     async (ctx) => {
       const { user, authToken: currentSession } = ctx.state;
 
-      const sessions = await dbAdapter.listAuthSessions(user.id);
+      const sessions = await sessionTokenV1Store.list(user.id);
       const current = ((currentSession instanceof SessionTokenV1) && sessions.find((s) => s.id === currentSession.id)?.id) || null;
 
       ctx.body = {
@@ -119,7 +119,7 @@ export default class SessionController {
       const { user } = ctx.state;
       const { close: idsToClose } = ctx.request.body;
 
-      const allSessions = await dbAdapter.listAuthSessions(user.id);
+      const allSessions = await sessionTokenV1Store.list(user.id);
 
       // Close sessions
       await Promise.all(

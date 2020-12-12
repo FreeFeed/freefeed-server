@@ -2,7 +2,7 @@ import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
 
 import { IPAddr, Nullable, UUID } from '../types';
 import { AppTokenV1, Attachment, Comment, Post, User } from '../../models';
-import { AppTokenCreateParams, AppTokenLogPayload, AppTokenRecord, SessionMutableRecord } from '../../models/auth-tokens/types';
+import { AppTokenCreateParams, AppTokenLogPayload, AppTokenRecord, SessionCreateRecord, SessionMutableRecord } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
 
 
@@ -68,7 +68,7 @@ export class DbAdapter {
   periodicInvalidateAppTokens(): Promise<void>;
 
   // Session tokens
-  createAuthSession(userId: UUID): Promise<SessionTokenV1>;
+  createAuthSession(params: SessionCreateRecord): Promise<SessionTokenV1>;
   getAuthSessionById(id: UUID): Promise<Nullable<SessionTokenV1>>;
   reissueActiveAuthSession(id: UUID): Promise<Nullable<SessionTokenV1>>;
   updateAuthSession(id: UUID, toUpdate: SessionMutableRecord): Promise<Nullable<SessionTokenV1>>;

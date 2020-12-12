@@ -8,9 +8,9 @@ export const up = (knex) => knex.schema.raw(`do $$begin
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     -- Last usage of session
-    last_used_at timestamptz,
-    last_ip inet,
-    last_user_agent text
+    last_used_at timestamptz not null default now(),
+    last_ip inet not null,
+    last_user_agent text not null
   );
 end$$`);
 

@@ -6,7 +6,7 @@ import { Context, Next } from 'koa';
 import { DbAdapter } from '../../support/DbAdapter';
 import { IPAddr, Nullable, UUID } from '../../support/types';
 import { Address } from '../../support/ipv6';
-import { database } from '../common';
+import { database, fallbackUserAgent } from '../common';
 import { NotAuthorizedException } from '../../support/exceptions';
 import Mailer from '../../../lib/mailer';
 
@@ -47,9 +47,9 @@ export class SessionTokenV1 extends AuthToken {
   public updatedAt!: Date;
   public status!: number;
   public issue!: number;
-  public lastUsedAt!: Nullable<Date>;
-  public lastIP!: Nullable<IPAddr>;
-  public lastUserAgent!: Nullable<string>;
+  public lastUsedAt!: Date;
+  public lastIP!: IPAddr;
+  public lastUserAgent!: string;
   public databaseTime!: Date;
 
   private readonly [database]: DbAdapter;
@@ -136,7 +136,7 @@ export class SessionTokenV1 extends AuthToken {
                 {
                   access: {
                     ip:        new Address(ctx.ip).toString(),
-                    userAgent: ctx.headers['user-agent'] || '',
+                    userAgent: ctx.headers['user-agent'] || fallbackUserAgent,
                     date:      this.databaseTime,
                   },
                   session: this,
@@ -160,7 +160,7 @@ export class SessionTokenV1 extends AuthToken {
   async registerUsage({ ip, userAgent }: { ip: IPAddr, userAgent?: string }) {
     const updated = await this[database].registerAuthSessionUsage(this.id, {
       ip:          new Address(ip).toString(),
-      userAgent:   userAgent || '',
+      userAgent:   userAgent || fallbackUserAgent,
       debounceSec: config.authSessions.usageDebounceSec,
     });
     return this.copyFieldsFrom(updated);

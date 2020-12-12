@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import cleanDB from '../dbCleaner'
 import { getSingleton } from '../../app/app'
-import { AuthToken, dbAdapter, PubSub, SessionTokenV0, SessionTokenV1, User } from '../../app/models'
+import { AuthToken, dbAdapter, PubSub, SessionTokenV0, SessionTokenV1, sessionTokenV1Store, User } from '../../app/models'
 import { PubSubAdapter } from '../../app/support/PubSubAdapter'
 
 import { sessionRequest, performJSONRequest } from './functional_test_helper';
@@ -137,7 +137,7 @@ describe('SessionController', () => {
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' });
       await user.create();
-      session = await dbAdapter.createAuthSession(user.id);
+      session = await sessionTokenV1Store.create(user.id);
     });
 
     it(`should not allow to close session without authentication`, async () => {
@@ -172,7 +172,7 @@ describe('SessionController', () => {
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' });
       await user.create();
-      session = await dbAdapter.createAuthSession(user.id);
+      session = await sessionTokenV1Store.create(user.id);
     });
 
     it(`should allow to reissue session`, async () => {
@@ -262,8 +262,8 @@ describe('SessionController', () => {
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' });
       await user.create();
-      sessionA = await dbAdapter.createAuthSession(user.id);
-      sessionB = await dbAdapter.createAuthSession(user.id);
+      sessionA = await sessionTokenV1Store.create(user.id);
+      sessionB = await sessionTokenV1Store.create(user.id);
     });
 
     it('should return list of sessions', async () => {
@@ -313,9 +313,9 @@ describe('SessionController', () => {
     beforeEach(async () => {
       user = new User({ username: 'Luna', password: 'password' });
       await user.create();
-      sessionA = await dbAdapter.createAuthSession(user.id);
-      sessionB = await dbAdapter.createAuthSession(user.id);
-      sessionC = await dbAdapter.createAuthSession(user.id);
+      sessionA = await sessionTokenV1Store.create(user.id);
+      sessionB = await sessionTokenV1Store.create(user.id);
+      sessionC = await sessionTokenV1Store.create(user.id);
     });
 
     it('should close sessions by IDs', async () => {
