@@ -22,9 +22,6 @@ import { addJobModel, addJobManagerModel } from './models/job';
 export const postgres = postgresConnection();
 export const dbAdapter = new DbAdapter(postgres);
 
-export { AbstractSerializer } from './serializers/abstract_serializer';
-export { Serializer }         from './serializers/serializer';
-
 let _PubSub;
 
 if (config.disableRealtime) {

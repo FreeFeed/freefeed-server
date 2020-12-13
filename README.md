@@ -17,33 +17,36 @@ FreeFeed is based on [Pepyatka](https://github.com/pepyatka/pepyatka-server/) pr
 ```
 brew install redis
 redis-server /usr/local/etc/redis.conf
-brew install graphicsmagick --with-jasper --with-little-cms2 --with-webp
+brew install graphicsmagick
 brew install postgres
-postgres.server start
+brew services start postgresql
 createuser -P -s freefeed (enter freefeed as password)
 createdb -O freefeed freefeed
 ```
 
 ### Dependencies via Docker
 
-1. [Install Docker](https://www.docker.com/get-started)
-1. [Install docker-compose](https://docs.docker.com/compose/install/)
+1. [Install and run Docker](https://www.docker.com/get-started)
 1. docker-compose up -d
 
 ### NodeJS environment and the app
 
 ```
 brew install nvm
+brew install yarn
 nvm install
 yarn install
-yarn knex migrate:latest
+yarn knex --env production migrate:latest
 mkdir ./public/files/attachments/thumbnails/ && mkdir ./public/files/attachments/thumbnails2/
+```
+Now create config `config/local.json` with some random secret string: `{   "secret": "myverysecretstring"  }`
+```
 yarn start
 ```
 
 ### Custom configuration
 
-If you have other PostgreSQL (or any other) settings than default, you shold configure FreeFeed server in a proper way.
+If you have other PostgreSQL (or any other) settings than default, you should configure FreeFeed server in a proper way.
 
 The FreeFeed server uses [node-config](https://github.com/lorenwest/node-config) for configuration. You can create your own local configuration file to override any of default values. See the [Configuration Files](https://github.com/lorenwest/node-config/wiki/Configuration-Files) page of node-config documentation for details.
 
