@@ -438,7 +438,7 @@ describe('Realtime #2', () => {
         'post:new',
         () => funcTestHelper.createAndReturnPostToFeed([mars.user], luna, 'Hello'),
       );
-      await expect(test, 'to be fulfilled');
+      await expect(test, 'to be fulfilled with', { realtimeChannels: expect.it('to be an array') });
     });
 
     it(`should deliver 'post:new' to Mars when Luna writes direct post to Mars`, async () => {

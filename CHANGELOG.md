@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.89.0] - Not Released
+### Fixed
+- The 'post:new' realtime event was emitted without the `realtimeChannels`
+  field. As a result, the client had no information on which channels the
+  message was sent to. This led to new posts appearing in unrelated feeds.
+
 ### Added
 - Initial Typescript definitions for DbAdapter and models
 
