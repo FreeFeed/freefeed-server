@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import config from 'config';
 import compose from 'koa-compose';
 
-import { SessionTokenV0, SessionTokenV1 } from '../../../models/auth-tokens'
+import { SessionTokenV1 } from '../../../models/auth-tokens'
 import { authRequired, inputSchemaRequired } from '../../middlewares';
 import { BadRequestException } from '../../../support/exceptions';
 import { CLOSED, statusTitles } from '../../../models/auth-tokens/SessionTokenV1';
@@ -55,18 +55,11 @@ export default class SessionController {
   // Close current session
   static close = compose([
     authRequired(),
-    sessionTypeRequired([SessionTokenV1, SessionTokenV0]),
+    sessionTypeRequired(),
     async (ctx) => {
       const { authToken } = ctx.state;
 
-      let closed;
-
-      if (authToken instanceof SessionTokenV1) {
-        closed = await authToken.setStatus(CLOSED);
-      } else {
-        // Do nothing with SessionTokenV0
-        closed = false;
-      }
+      const closed = await authToken.setStatus(CLOSED);
 
       ctx.body = { closed };
     },
@@ -75,18 +68,11 @@ export default class SessionController {
   // Reissue current session
   static reissue = compose([
     authRequired(),
-    sessionTypeRequired([SessionTokenV1, SessionTokenV0]),
+    sessionTypeRequired(),
     async (ctx) => {
       const { authToken } = ctx.state;
 
-      let reissued;
-
-      if (authToken instanceof SessionTokenV1) {
-        reissued = await authToken.reissue();
-      } else {
-        // Do nothing with SessionTokenV0
-        reissued = false;
-      }
+      const reissued = await authToken.reissue();
 
       ctx.body = {
         authToken: authToken.tokenString(),
@@ -102,7 +88,7 @@ export default class SessionController {
       const { user, authToken: currentSession } = ctx.state;
 
       const sessions = await sessionTokenV1Store.list(user.id);
-      const current = ((currentSession instanceof SessionTokenV1) && sessions.find((s) => s.id === currentSession.id)?.id) || null;
+      const current = sessions.find((s) => s.id === currentSession.id)?.id;
 
       ctx.body = {
         current,

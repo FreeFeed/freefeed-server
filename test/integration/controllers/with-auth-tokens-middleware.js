@@ -8,9 +8,9 @@ import config from 'config';
 import { simpleParser } from 'mailparser';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, dbAdapter, sessionTokenV1Store } from '../../../app/models';
+import { User, SessionTokenV0, SessionTokenV1, dbAdapter, sessionTokenV1Store } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
-import { ACTIVE, BLOCKED } from '../../../app/models/auth-tokens/SessionTokenV1';
+import { ACTIVE, CLOSED, BLOCKED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { addMailListener } from '../../../lib/mailer';
 import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
 
@@ -32,32 +32,34 @@ describe('withAuthToken middleware', () => {
     let authToken;
     before(() => authToken = new SessionTokenV0(luna.id).tokenString());
 
+    const ctxBase = { query: {}, request: { body: {} }, headers: {}, state: {}, ip: '127.0.0.127' };
+
     it('should accept token in ctx.query.authToken', async () => {
-      const ctx = { query: { authToken }, request: { body: {} }, headers: {}, state: {} };
+      const ctx = { ...ctxBase, query: { authToken } };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it('should accept token in ctx.request.body.authToken', async () => {
-      const ctx = { query: { }, request: { body: { authToken } }, headers: {}, state: {} };
+      const ctx = { ...ctxBase, request: { body: { authToken } } };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it(`should accept token in 'x-authentication-token' header`, async () => {
-      const ctx = { query: { }, request: { body: { } }, headers: { 'x-authentication-token': authToken }, state: {} };
+      const ctx = { ...ctxBase, headers: { 'x-authentication-token': authToken } };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it(`should accept token in 'authorization' header`, async () => {
-      const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `Bearer ${authToken}` }, state: {} };
+      const ctx = { ...ctxBase,  headers: { 'authorization': `Bearer ${authToken}` } };
       await withAuthToken(ctx, () => null);
       expect(ctx.state, 'to satisfy', { user: { id: luna.id } });
     });
 
     it(`should not accept invalid in 'authorization' header`, async () => {
-      const ctx = { query: { }, request: { body: { } }, headers: { 'authorization': `BeaRER ${authToken}` }, state: {} };
+      const ctx = { ...ctxBase, headers: { 'authorization': `BeaRER ${authToken}` } };
       await expect(withAuthToken(ctx, () => null), 'to be rejected with', { status: 401 });
     });
   });
@@ -309,6 +311,34 @@ describe('withAuthToken middleware', () => {
         const s = await sessionTokenV1Store.getById(session.id);
         expect(s.status, 'to be', BLOCKED);
       });
+    });
+  });
+
+  describe('SessionTokenV0', () => {
+    const context = (tokenString = null) => ({
+      ip:      '127.0.0.127',
+      headers: {
+        'user-agent': 'Lynx browser, Linux',
+        ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
+      },
+      state: {},
+    });
+
+    let v0TokenString;
+    before(() => (v0TokenString = new SessionTokenV0(luna.id).tokenString()));
+
+    it(`should convert V0 token to V1`, async () => {
+      const ctx = context(v0TokenString);
+      await withAuthToken(ctx, () => null);
+      expect(ctx.state.authToken instanceof SessionTokenV1, 'to be true');
+    });
+
+    it(`should allow to close V0 session`, async () => {
+      const t0 = new SessionTokenV0(luna.id).tokenString();
+      const ctx = context(t0);
+      await expect(withAuthToken(ctx, () => null), 'to be fulfilled');
+      await ctx.state.authToken.setStatus(CLOSED);
+      await expect(withAuthToken(context(t0), () => null), 'to be rejected');
     });
   });
 });

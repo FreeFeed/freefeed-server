@@ -312,7 +312,8 @@ config.authSessions = {
   reissueGraceIntervalSec: 300,
   // Cleanup
   activeSessionTTLDays:    60,
-  inactiveSessionTTLDays:  7,
+  // TODO The inactiveSessionTTLDays should be reduced to a few days when the V0 sessions become deprecated
+  inactiveSessionTTLDays:  60,
   cleanupIntervalSec:      3600, // one hour
 };
 

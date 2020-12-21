@@ -59,4 +59,4 @@ export type SessionCreateRecord = Pick<SessionRecord,
   | 'userId'
   | 'lastIP'
   | 'lastUserAgent'
->;
+> & Partial<Pick<SessionRecord, 'id'>>;

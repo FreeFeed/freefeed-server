@@ -5,6 +5,10 @@ import { prepareModelPayload } from './utils';
 
 
 const authSessionsTrait = (superClass) => class extends superClass {
+  /**
+   * Creates new session. If the params.id is defined, creates new session only
+   * if this id is not exists, otherwise returns the existing session.
+   */
   async createAuthSession(params) {
     const preparedPayload = prepareModelPayload(
       params,
@@ -12,9 +16,12 @@ const authSessionsTrait = (superClass) => class extends superClass {
       AUTH_SESSION_COLUMNS_MAPPING,
     );
 
-    const [row] = await this.database('auth_sessions')
-      .insert(preparedPayload)
-      .returning(['*', this.database.raw('now() as database_time')]);
+    const insertSQL = this.database('auth_sessions').insert(preparedPayload).toString();
+    const row = await this.database.getRow(
+      `${insertSQL} on conflict (uid) do update set uid = excluded.uid
+        returning *, now() as database_time`
+    );
+
     return initObject(row, this);
   }
 

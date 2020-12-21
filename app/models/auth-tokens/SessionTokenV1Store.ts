@@ -13,9 +13,10 @@ export class SessionTokenV1Store {
     this[database] = dbAdapter;
   }
 
-  create(userId: UUID, ctx?: Context) {
+  create(userId: UUID, ctx?: Context, sessionId?: UUID) {
     return this[database].createAuthSession({
       userId,
+      id:            sessionId,
       lastIP:        new Address(ctx?.ip || fallbackIP).toString(),
       lastUserAgent: ctx?.headers['user-agent'] || fallbackUserAgent,
     });

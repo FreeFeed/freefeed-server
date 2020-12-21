@@ -151,10 +151,10 @@ describe('SessionController', () => {
       expect(resp, 'to satisfy', { __httpCode: 200, closed: true });
     });
 
-    it(`should not close the V0 session, but also should not throw an error`, async () => {
+    it(`should close the V0 session`, async () => {
       const resp = await performJSONRequest('DELETE', '/v1/session', null, authHeaders(new SessionTokenV0(user.id)));
 
-      expect(resp, 'to satisfy', { __httpCode: 200, closed: false });
+      expect(resp, 'to satisfy', { __httpCode: 200, closed: true });
     });
 
     it(`should not allow to use session after close`, async () => {
@@ -192,10 +192,19 @@ describe('SessionController', () => {
         'to be fulfilled with', { __httpCode: 200 });
     });
 
-    it(`should not reissue the V0 session, but also should not throw an error`, async () => {
+    it(`should reissue V0 session`, async () => {
       const resp = await performJSONRequest('POST', '/v1/session/reissue', null, authHeaders(new SessionTokenV0(user.id)));
 
-      expect(resp, 'to satisfy', { __httpCode: 200, authToken: expect.it('to be a string'), reissued: false });
+      expect(resp, 'to satisfy', { __httpCode: 200, authToken: expect.it('to be a string'), reissued: true });
+
+      // The returned token should be V1
+      const payload = jwt.decode(resp.authToken);
+      expect(payload, 'to satisfy', {
+        type:   SessionTokenV1.TYPE,
+        id:     expect.it('to be a string'),
+        issue:  2,
+        userId: user.id,
+      });
     });
 
     it(`should block access with the stale token`, async () => {
@@ -279,13 +288,14 @@ describe('SessionController', () => {
         });
     });
 
-    it(`should return empty 'current' field when use V0 token`, async () => {
+    it(`should return 'current' field when use V0 token`, async () => {
       await expect(
         performJSONRequest('GET', '/v1/session/list', null, authHeaders(new SessionTokenV0(user.id))),
         'to be fulfilled with', {
           __httpCode: 200,
-          current:    null,
+          current:    expect.it('to be a string'),
           sessions:   [
+            { id: expect.it('to be a string'), status: 'ACTIVE' },
             { id: sessionB.id, status: 'ACTIVE' },
             { id: sessionA.id, status: 'ACTIVE' },
           ]
