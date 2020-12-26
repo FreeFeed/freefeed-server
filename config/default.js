@@ -136,7 +136,21 @@ config.attachments = {
       path:   'attachments/thumbnails2/', // must have trailing slash
       bounds: { width: 1050, height: 350 }
     }
-  }
+  },
+  // MIME type to file extension map
+  supportedTypes: {
+    'image/jpeg':      'jpg',
+    'image/png':       'png',
+    'image/gif':       'gif',
+    'image/webp':      'webp',
+    'audio/mpeg':      'mp3',
+    'audio/mp4':       'm4a',
+    'video/mp4':       'mp4',
+    'video/quicktime': 'mov',
+    'application/pdf': 'pdf',
+    'application/zip': 'zip',
+    'text/plain':      'txt',
+  },
 };
 config.profilePictures = {
   defaultProfilePictureMediumUrl: 'http://placekitten.com/50/50',
