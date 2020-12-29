@@ -28,7 +28,6 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
-
 export default function (app) {
   const router = createRouter();
   app.use(router.routes());

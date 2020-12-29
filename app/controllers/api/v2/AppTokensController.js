@@ -5,7 +5,11 @@ import config from 'config';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
-import { ValidationException, NotFoundException, BadRequestException } from '../../../support/exceptions';
+import {
+  ValidationException,
+  NotFoundException,
+  BadRequestException,
+} from '../../../support/exceptions';
 import { appTokensScopes } from '../../../models/auth-tokens/app-tokens-scopes';
 import { Address } from '../../../support/ipv6';
 
@@ -15,13 +19,15 @@ import {
   appTokenActivateInputSchema,
 } from './data-schemes/app-tokens';
 
-
 export const create = compose([
   authRequired(),
   inputSchemaRequired(appTokenCreateInputSchema),
   monitored('app-tokens.create'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const {
+      state: { user },
+      request: { body },
+    } = ctx;
 
     const validScopes = appTokensScopes.map(({ name }) => name);
     const unknownScopes = difference(body.scopes, validScopes);
@@ -63,18 +69,18 @@ export const create = compose([
     }
 
     const token = await dbAdapter.createAppToken({
-      userId:       user.id,
-      title:        body.title,
-      scopes:       body.scopes,
+      userId: user.id,
+      title: body.title,
+      scopes: body.scopes,
       restrictions: body.restrictions,
       expiresAt,
       expiresAtSeconds,
     });
 
     ctx.body = {
-      token:             serializeAppToken(token),
-      tokenString:       token.tokenString(),
-      activationCode:    token.activationCode,
+      token: serializeAppToken(token),
+      tokenString: token.tokenString(),
+      activationCode: token.activationCode,
       activationCodeTTL: config.appTokens.activationCodeTTL,
     };
   },
@@ -111,9 +117,9 @@ export const reissue = compose([
     await token.reissue();
 
     ctx.body = {
-      token:             serializeAppToken(token),
-      tokenString:       token.tokenString(),
-      activationCode:    token.activationCode,
+      token: serializeAppToken(token),
+      tokenString: token.tokenString(),
+      activationCode: token.activationCode,
       activationCodeTTL: config.appTokens.activationCodeTTL,
     };
   },
@@ -132,19 +138,23 @@ export const reissueCurrent = compose([
     await token.reissue();
 
     ctx.body = {
-      token:       serializeAppToken(token, true),
+      token: serializeAppToken(token, true),
       tokenString: token.tokenString(),
     };
   },
 ]);
-
 
 export const update = compose([
   authRequired(),
   inputSchemaRequired(appTokenUpdateInputSchema),
   monitored('app-tokens.update'),
   async (ctx) => {
-    const { state: { user }, request: { body: { title } } } = ctx;
+    const {
+      state: { user },
+      request: {
+        body: { title },
+      },
+    } = ctx;
     const token = await dbAdapter.getAppTokenById(ctx.params.tokenId);
 
     if (!token || token.userId !== user.id || !token.isActive) {
@@ -161,7 +171,9 @@ export const list = compose([
   authRequired(),
   monitored('app-tokens.update'),
   async (ctx) => {
-    const { state: { user } } = ctx;
+    const {
+      state: { user },
+    } = ctx;
 
     const tokens = await dbAdapter.listActiveAppTokens(user.id);
 
@@ -196,7 +208,10 @@ export const activate = compose([
       throw new ValidationException(`Invalid activation code, check that you entered it correctly`);
     }
 
-    const token = await dbAdapter.getAppTokenByActivationCode(activationCode, config.appTokens.activationCodeTTL);
+    const token = await dbAdapter.getAppTokenByActivationCode(
+      activationCode,
+      config.appTokens.activationCodeTTL,
+    );
 
     if (!token) {
       throw new NotFoundException('Unknown or expired activation code');
@@ -211,7 +226,7 @@ export const activate = compose([
     await token.reissue();
 
     ctx.body = {
-      token:       serializeAppToken(token, true),
+      token: serializeAppToken(token, true),
       tokenString: token.tokenString(),
     };
   },

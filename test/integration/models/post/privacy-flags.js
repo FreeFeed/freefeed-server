@@ -1,38 +1,28 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import expect from 'unexpected'
+import expect from 'unexpected';
 
-import cleanDB from '../../../dbCleaner'
-import { dbAdapter, User, Group } from '../../../../app/models'
-
+import cleanDB from '../../../dbCleaner';
+import { dbAdapter, User, Group } from '../../../../app/models';
 
 describe('Post Privacy Flags', () => {
-  beforeEach(() => cleanDB($pg_database))
+  beforeEach(() => cleanDB($pg_database));
 
   describe('User Luna is a member of public group Selenites and private group Celestials', () => {
-    let luna,
-      selenites, celestials,
-      lunaTimeline, selenitesTimeline, celestialsTimeline;
+    let luna, selenites, celestials, lunaTimeline, selenitesTimeline, celestialsTimeline;
     beforeEach(async () => {
       luna = new User({ username: 'luna', password: 'pw' });
       selenites = new Group({ username: 'selenites' });
       celestials = new Group({ username: 'celestials' });
       await luna.create();
-      await Promise.all([
-        selenites.create(luna.id),
-        celestials.create(luna.id),
-      ]);
-      [
-        lunaTimeline,
-        selenitesTimeline,
-        celestialsTimeline,
-      ] = await Promise.all([
+      await Promise.all([selenites.create(luna.id), celestials.create(luna.id)]);
+      [lunaTimeline, selenitesTimeline, celestialsTimeline] = await Promise.all([
         luna.getPostsTimeline(),
         selenites.getPostsTimeline(),
         celestials.getPostsTimeline(),
       ]);
       await celestials.update({ isPrivate: '1', isProtected: '1' });
-    })
+    });
 
     it('should create a public post in own feed', async () => {
       const post = await createPost(luna, { body: 'Post body' });
@@ -41,19 +31,28 @@ describe('Post Privacy Flags', () => {
     });
 
     it('should create a public post in Selenites', async () => {
-      const post = await createPost(luna, { body: 'Post body', timelineIds: [selenitesTimeline.id] });
+      const post = await createPost(luna, {
+        body: 'Post body',
+        timelineIds: [selenitesTimeline.id],
+      });
       expect(post.isPrivate, 'to equal', '0');
       expect(post.isProtected, 'to equal', '0');
     });
 
     it('should create a private post in Celestials', async () => {
-      const post = await createPost(luna, { body: 'Post body', timelineIds: [celestialsTimeline.id] });
+      const post = await createPost(luna, {
+        body: 'Post body',
+        timelineIds: [celestialsTimeline.id],
+      });
       expect(post.isPrivate, 'to equal', '1');
       expect(post.isProtected, 'to equal', '1');
     });
 
     it('should create a public post in Celestials and Selenites', async () => {
-      const post = await createPost(luna, { body: 'Post body', timelineIds: [celestialsTimeline.id, selenitesTimeline.id] });
+      const post = await createPost(luna, {
+        body: 'Post body',
+        timelineIds: [celestialsTimeline.id, selenitesTimeline.id],
+      });
       expect(post.isPrivate, 'to equal', '0');
       expect(post.isProtected, 'to equal', '0');
     });
@@ -61,14 +60,16 @@ describe('Post Privacy Flags', () => {
     describe('Posts in Luna feed, Luna+Selenites and Luna+Celestials', () => {
       let postToLuna, postToSelenitesAndLuna, postToCelestialsAndLuna;
       beforeEach(async () => {
-        [
-          postToLuna,
-          postToSelenitesAndLuna,
-          postToCelestialsAndLuna,
-        ] = await Promise.all([
+        [postToLuna, postToSelenitesAndLuna, postToCelestialsAndLuna] = await Promise.all([
           createPost(luna, { body: 'Post body', timelineIds: [lunaTimeline.id] }),
-          createPost(luna, { body: 'Post body', timelineIds: [lunaTimeline.id, selenitesTimeline.id] }),
-          createPost(luna, { body: 'Post body', timelineIds: [lunaTimeline.id, celestialsTimeline.id] }),
+          createPost(luna, {
+            body: 'Post body',
+            timelineIds: [lunaTimeline.id, selenitesTimeline.id],
+          }),
+          createPost(luna, {
+            body: 'Post body',
+            timelineIds: [lunaTimeline.id, celestialsTimeline.id],
+          }),
         ]);
       });
 
@@ -84,11 +85,7 @@ describe('Post Privacy Flags', () => {
       describe('when Luna goes protected', () => {
         beforeEach(async () => {
           await luna.update({ isPrivate: '0', isProtected: '1' });
-          [
-            postToLuna,
-            postToSelenitesAndLuna,
-            postToCelestialsAndLuna,
-          ] = await Promise.all([
+          [postToLuna, postToSelenitesAndLuna, postToCelestialsAndLuna] = await Promise.all([
             dbAdapter.getPostById(postToLuna.id),
             dbAdapter.getPostById(postToSelenitesAndLuna.id),
             dbAdapter.getPostById(postToCelestialsAndLuna.id),
@@ -108,11 +105,7 @@ describe('Post Privacy Flags', () => {
       describe('when Luna goes private', () => {
         beforeEach(async () => {
           await luna.update({ isPrivate: '1', isProtected: '1' });
-          [
-            postToLuna,
-            postToSelenitesAndLuna,
-            postToCelestialsAndLuna,
-          ] = await Promise.all([
+          [postToLuna, postToSelenitesAndLuna, postToCelestialsAndLuna] = await Promise.all([
             dbAdapter.getPostById(postToLuna.id),
             dbAdapter.getPostById(postToSelenitesAndLuna.id),
             dbAdapter.getPostById(postToCelestialsAndLuna.id),
@@ -133,11 +126,7 @@ describe('Post Privacy Flags', () => {
         beforeEach(async () => {
           await luna.update({ isPrivate: '1', isProtected: '1' });
           await luna.update({ isPrivate: '0', isProtected: '0' });
-          [
-            postToLuna,
-            postToSelenitesAndLuna,
-            postToCelestialsAndLuna,
-          ] = await Promise.all([
+          [postToLuna, postToSelenitesAndLuna, postToCelestialsAndLuna] = await Promise.all([
             dbAdapter.getPostById(postToLuna.id),
             dbAdapter.getPostById(postToSelenitesAndLuna.id),
             dbAdapter.getPostById(postToCelestialsAndLuna.id),

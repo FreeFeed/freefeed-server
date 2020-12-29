@@ -5,7 +5,6 @@ import expect from 'unexpected';
 import { User, ServerInfo } from '../../../app/models';
 import cleanDB from '../../dbCleaner';
 
-
 describe('ServerInfo model', () => {
   before(() => cleanDB($pg_database));
 
@@ -14,7 +13,9 @@ describe('ServerInfo model', () => {
     let i = 0;
 
     it('should return true when number of registered users is less than maxCount', async () => {
-      const users = new Array(maxCount - 1).fill(0).map(() => new User({ username: `user${i++}`, password: 'pw' }));
+      const users = new Array(maxCount - 1)
+        .fill(0)
+        .map(() => new User({ username: `user${i++}`, password: 'pw' }));
       await Promise.all(users.map((u) => u.create()));
 
       const flag = await ServerInfo.isRegistrationOpen({ interval: '1 day', maxCount });

@@ -6,7 +6,6 @@ import { dbAdapter } from '../../../models';
 import { serializeSinglePost } from '../../../serializers/v2/post';
 import { monitored, postAccessRequired } from '../../middlewares';
 
-
 export const show = compose([
   postAccessRequired(),
   monitored('posts.show-v2'),
@@ -55,7 +54,7 @@ export const opengraph = compose([
             image_size = `t2`; // Use high-res thumbnail
             image = item.imageSizes[image_size].url;
           } else if (`t` in item.imageSizes) {
-            image_size = `t`;  // Use thumbnail
+            image_size = `t`; // Use thumbnail
             image = item.thumbnailUrl;
           } else if (`o` in item.imageSizes) {
             image_size = `o`; // Use original image if there are no thumbnails present

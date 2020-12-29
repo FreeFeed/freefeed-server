@@ -1,4 +1,4 @@
-import validator from 'validator'
+import validator from 'validator';
 
 import { Comment } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
@@ -9,111 +9,122 @@ import { initObject, prepareModelPayload } from './utils';
 // Comments
 ///////////////////////////////////////////////////
 
-const commentsTrait = (superClass) => class extends superClass {
-  async createComment(payload) {
-    const preparedPayload = prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
-    preparedPayload.body_tsvector = this.database.raw(
-      // raw() interprets '?' chars as positional placeholders so we must escape them
-      // https://github.com/knex/knex/issues/2622
-      toTSVector(preparedPayload.body).replace(/\?/g, '\\?')
-    );
-    const res = await this.database('comments').returning('uid').insert(preparedPayload)
-    return res[0]
-  }
-
-  async getCommentById(id) {
-    if (!validator.isUUID(id)) {
-      return null
-    }
-
-    const attrs = await this.database('comments').first().where('uid', id)
-    return initCommentObject(attrs);
-  }
-
-  async getCommentsByIds(ids) {
-    const responses = await this.database('comments').orderBy('created_at', 'desc').whereIn('uid', ids);
-    return responses.map((attrs) => initCommentObject(attrs));
-  }
-
-  getCommentsIdsByIntIds(intIds) {
-    return this.database('comments').select('id', 'uid').whereIn('id', intIds);
-  }
-
-  async _getCommentIntIdByUUID(commentUUID) {
-    if (!validator.isUUID(commentUUID)) {
-      return null;
-    }
-
-    const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
-
-    if (!res) {
-      return null;
-    }
-
-    return res.id;
-  }
-
-  async updateComment(commentId, payload) {
-    const preparedPayload = prepareModelPayload(payload, COMMENT_COLUMNS, COMMENT_COLUMNS_MAPPING)
-
-    if ('body' in preparedPayload) {
+const commentsTrait = (superClass) =>
+  class extends superClass {
+    async createComment(payload) {
+      const preparedPayload = prepareModelPayload(
+        payload,
+        COMMENT_COLUMNS,
+        COMMENT_COLUMNS_MAPPING,
+      );
       preparedPayload.body_tsvector = this.database.raw(
         // raw() interprets '?' chars as positional placeholders so we must escape them
         // https://github.com/knex/knex/issues/2622
-        toTSVector(preparedPayload.body).replace(/\?/g, '\\?')
+        toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
       );
+      const res = await this.database('comments').returning('uid').insert(preparedPayload);
+      return res[0];
     }
 
-    return await this.database('comments').where('uid', commentId).update(preparedPayload)
-  }
+    async getCommentById(id) {
+      if (!validator.isUUID(id)) {
+        return null;
+      }
 
-  deleteComment(commentId, postId) {
-    return this.database('comments').where({
-      uid:     commentId,
-      post_id: postId
-    }).delete()
-  }
+      const attrs = await this.database('comments').first().where('uid', id);
+      return initCommentObject(attrs);
+    }
 
-  async getPostCommentsCount(postId) {
-    const res = await this.database('comments').where({ post_id: postId }).count()
-    return parseInt(res[0].count)
-  }
+    async getCommentsByIds(ids) {
+      const responses = await this.database('comments')
+        .orderBy('created_at', 'desc')
+        .whereIn('uid', ids);
+      return responses.map((attrs) => initCommentObject(attrs));
+    }
 
-  async getUserCommentsCount(userId) {
-    const res = await this.database('comments').where({ user_id: userId }).count()
-    return parseInt(res[0].count)
-  }
+    getCommentsIdsByIntIds(intIds) {
+      return this.database('comments').select('id', 'uid').whereIn('id', intIds);
+    }
 
-  async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
-    let query = this.database('comments').orderBy('created_at', 'asc').where('post_id', postId);
+    async _getCommentIntIdByUUID(commentUUID) {
+      if (!validator.isUUID(commentUUID)) {
+        return null;
+      }
 
-    const [
-      viewer,
-      bannedUsersIds,
-    ] = await Promise.all([
-      viewerUserId ? this.getUserById(viewerUserId) : null,
-      viewerUserId ? this.getUserBansIds(viewerUserId) : [],
-    ]);
+      const res = await this.database('comments').returning('id').first().where('uid', commentUUID);
 
-    if (viewerUserId) {
-      const hiddenCommentTypes = viewer.getHiddenCommentTypes();
+      if (!res) {
+        return null;
+      }
 
-      if (hiddenCommentTypes.length > 0) {
-        if (hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && bannedUsersIds.length > 0) {
-          query = query.where('user_id', 'not in', bannedUsersIds);
-        }
+      return res.id;
+    }
 
-        const ht = hiddenCommentTypes.filter((t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE);
+    async updateComment(commentId, payload) {
+      const preparedPayload = prepareModelPayload(
+        payload,
+        COMMENT_COLUMNS,
+        COMMENT_COLUMNS_MAPPING,
+      );
 
-        if (ht.length > 0) {
-          query = query.where('hide_type', 'not in', ht);
+      if ('body' in preparedPayload) {
+        preparedPayload.body_tsvector = this.database.raw(
+          // raw() interprets '?' chars as positional placeholders so we must escape them
+          // https://github.com/knex/knex/issues/2622
+          toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
+        );
+      }
+
+      return await this.database('comments').where('uid', commentId).update(preparedPayload);
+    }
+
+    deleteComment(commentId, postId) {
+      return this.database('comments')
+        .where({
+          uid: commentId,
+          post_id: postId,
+        })
+        .delete();
+    }
+
+    async getPostCommentsCount(postId) {
+      const res = await this.database('comments').where({ post_id: postId }).count();
+      return parseInt(res[0].count);
+    }
+
+    async getUserCommentsCount(userId) {
+      const res = await this.database('comments').where({ user_id: userId }).count();
+      return parseInt(res[0].count);
+    }
+
+    async getAllPostCommentsWithoutBannedUsers(postId, viewerUserId) {
+      let query = this.database('comments').orderBy('created_at', 'asc').where('post_id', postId);
+
+      const [viewer, bannedUsersIds] = await Promise.all([
+        viewerUserId ? this.getUserById(viewerUserId) : null,
+        viewerUserId ? this.getUserBansIds(viewerUserId) : [],
+      ]);
+
+      if (viewerUserId) {
+        const hiddenCommentTypes = viewer.getHiddenCommentTypes();
+
+        if (hiddenCommentTypes.length > 0) {
+          if (hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && bannedUsersIds.length > 0) {
+            query = query.where('user_id', 'not in', bannedUsersIds);
+          }
+
+          const ht = hiddenCommentTypes.filter(
+            (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
+          );
+
+          if (ht.length > 0) {
+            query = query.where('hide_type', 'not in', ht);
+          }
         }
       }
-    }
 
-    const responses = await query;
-    const comments = responses
-      .map((comm) => {
+      const responses = await query;
+      const comments = responses.map((comm) => {
         if (bannedUsersIds.includes(comm.user_id)) {
           comm.user_id = null;
           comm.hide_type = Comment.HIDDEN_BANNED;
@@ -122,58 +133,64 @@ const commentsTrait = (superClass) => class extends superClass {
 
         return comm;
       });
-    return comments.map(initCommentObject);
-  }
-
-  _deletePostComments(postId) {
-    return this.database('comments').where({ post_id: postId }).delete()
-  }
-
-  // Create hidden comment for tests
-  async createHiddenComment(params) {
-    params = {
-      body:        null,
-      postId:      null,
-      userId:      null,
-      oldUsername: null,
-      hideType:    Comment.DELETED,
-      ...params,
-    };
-
-    if (params.postId === null) {
-      throw new Error(`Undefined postId of comment`);
+      return comments.map(initCommentObject);
     }
 
-    if (params.hideType !== Comment.DELETED && params.hideType !== Comment.HIDDEN_ARCHIVED) {
-      throw new Error(`Invalid hideType of comment: ${params.hideType}`);
+    _deletePostComments(postId) {
+      return this.database('comments').where({ post_id: postId }).delete();
     }
 
-    if (params.hideType === Comment.HIDDEN_ARCHIVED && !params.userId === null && params.oldUsername === null) {
-      throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
+    // Create hidden comment for tests
+    async createHiddenComment(params) {
+      params = {
+        body: null,
+        postId: null,
+        userId: null,
+        oldUsername: null,
+        hideType: Comment.DELETED,
+        ...params,
+      };
+
+      if (params.postId === null) {
+        throw new Error(`Undefined postId of comment`);
+      }
+
+      if (params.hideType !== Comment.DELETED && params.hideType !== Comment.HIDDEN_ARCHIVED) {
+        throw new Error(`Invalid hideType of comment: ${params.hideType}`);
+      }
+
+      if (
+        params.hideType === Comment.HIDDEN_ARCHIVED &&
+        !params.userId === null &&
+        params.oldUsername === null
+      ) {
+        throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
+      }
+
+      if (params.hideType === Comment.HIDDEN_ARCHIVED && params.body === null) {
+        throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
+      }
+
+      const [uid] = await this.database('comments')
+        .returning('uid')
+        .insert({
+          post_id: params.postId,
+          hide_type: params.hideType,
+          body: Comment.hiddenBody(params.hideType),
+        });
+
+      if (params.hideType === Comment.HIDDEN_ARCHIVED) {
+        await this.database('hidden_comments').insert({
+          comment_id: uid,
+          body: params.body,
+          user_id: params.userId,
+          old_username: params.oldUsername,
+        });
+      }
+
+      return uid;
     }
-
-    if (params.hideType === Comment.HIDDEN_ARCHIVED && params.body === null) {
-      throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
-    }
-
-    const [uid] = (await this.database('comments').returning('uid').insert({
-      post_id:   params.postId,
-      hide_type: params.hideType,
-      body:      Comment.hiddenBody(params.hideType),
-    }));
-
-    if (params.hideType === Comment.HIDDEN_ARCHIVED) {
-      await this.database('hidden_comments').insert({
-        comment_id:   uid,
-        body:         params.body,
-        user_id:      params.userId,
-        old_username: params.oldUsername,
-      });
-    }
-
-    return uid;
-  }
-};
+  };
 
 export default commentsTrait;
 
@@ -191,38 +208,38 @@ export function initCommentObject(attrs) {
 const COMMENT_COLUMNS = {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
-  body:      'body',
-  postId:    'post_id',
-  userId:    'user_id',
-  hideType:  'hide_type',
-}
+  body: 'body',
+  postId: 'post_id',
+  userId: 'user_id',
+  hideType: 'hide_type',
+};
 
 const COMMENT_COLUMNS_MAPPING = {
   createdAt: (timestamp) => {
-    const d = new Date()
-    d.setTime(timestamp)
-    return d.toISOString()
+    const d = new Date();
+    d.setTime(timestamp);
+    return d.toISOString();
   },
   updatedAt: (timestamp) => {
-    const d = new Date()
-    d.setTime(timestamp)
-    return d.toISOString()
-  }
-}
+    const d = new Date();
+    d.setTime(timestamp);
+    return d.toISOString();
+  },
+};
 
 export const COMMENT_FIELDS = {
-  uid:        'id',
+  uid: 'id',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
-  body:       'body',
-  user_id:    'userId',
-  post_id:    'postId',
-  hide_type:  'hideType',
-}
+  body: 'body',
+  user_id: 'userId',
+  post_id: 'postId',
+  hide_type: 'hideType',
+};
 
 const COMMENT_FIELDS_MAPPING = {
   updated_at: (time) => time.getTime().toString(),
   created_at: (time) => time.getTime().toString(),
-  post_id:    (post_id) => post_id ? post_id : null,
-  user_id:    (user_id) => user_id ? user_id : null,
-}
+  post_id: (post_id) => (post_id ? post_id : null),
+  user_id: (user_id) => (user_id ? user_id : null),
+};

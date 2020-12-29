@@ -4,7 +4,6 @@
  */
 import assert from 'assert';
 
-
 /**
  * Converts tuple of [seconds, nanoseconds] to floating
  * point number of milliseconds with 2 fractional digits

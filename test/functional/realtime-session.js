@@ -1,6 +1,5 @@
 import SocketIO from 'socket.io-client';
 
-
 const eventTimeout = 2000;
 const silenceTimeout = 500;
 
@@ -15,7 +14,7 @@ export default class Session {
 
   static create(port, name = '') {
     const options = {
-      transports:             ['websocket'],
+      transports: ['websocket'],
       'force new connection': true,
     };
     return new Promise((resolve, reject) => {
@@ -65,7 +64,12 @@ export default class Session {
   receive(event) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
-        () => reject(new Error(`${this.name ? `${this.name}: ` : ''}Expecting '${event}' event, got timeout`)),
+        () =>
+          reject(
+            new Error(
+              `${this.name ? `${this.name}: ` : ''}Expecting '${event}' event, got timeout`,
+            ),
+          ),
         eventTimeout,
       );
       const handler = ({ event: receivedEvent, data }) => {
@@ -97,7 +101,14 @@ export default class Session {
     return new Promise((resolve, reject) => {
       const collectedData = [];
       const timer = setTimeout(
-        () => reject(new Error(`${this.name ? `${this.name}: ` : ''}Expecting ${JSON.stringify(events)} events, got ${JSON.stringify(events.slice(0, collectedData.length))}`)),
+        () =>
+          reject(
+            new Error(
+              `${this.name ? `${this.name}: ` : ''}Expecting ${JSON.stringify(
+                events,
+              )} events, got ${JSON.stringify(events.slice(0, collectedData.length))}`,
+            ),
+          ),
         eventTimeout,
       );
       const handler = ({ event: receivedEvent, data }) => {

@@ -3,11 +3,13 @@ import unexpected from 'unexpected';
 import unexpectedMoment from 'unexpected-moment';
 import moment from 'moment';
 
-import { shouldSendDailyBestOfDigest, shouldSendWeeklyBestOfDigest, canMakeBestOfEmail } from '../../../app/support/BestOfDigest';
+import {
+  shouldSendDailyBestOfDigest,
+  shouldSendWeeklyBestOfDigest,
+  canMakeBestOfEmail,
+} from '../../../app/support/BestOfDigest';
 
-
-const expect = unexpected.clone()
-  .use(unexpectedMoment);
+const expect = unexpected.clone().use(unexpectedMoment);
 
 describe('BestOfDigest', () => {
   describe('shouldSendDailyBestOfDigest()', () => {
@@ -51,8 +53,16 @@ describe('BestOfDigest', () => {
       describe('if daily digest has never been sent previously or sent before 23 hours 30 minutes ago', () => {
         it('should send daily summary email', async () => {
           await expect(shouldSendDailyBestOfDigest(null, weeklyDigestSentAt, now), 'to be', true);
-          await expect(shouldSendDailyBestOfDigest(undefined, weeklyDigestSentAt, now), 'to be', true);
-          await expect(shouldSendDailyBestOfDigest(someTimeAgo, weeklyDigestSentAt, now), 'to be', true);
+          await expect(
+            shouldSendDailyBestOfDigest(undefined, weeklyDigestSentAt, now),
+            'to be',
+            true,
+          );
+          await expect(
+            shouldSendDailyBestOfDigest(someTimeAgo, weeklyDigestSentAt, now),
+            'to be',
+            true,
+          );
         });
       });
 
@@ -60,7 +70,11 @@ describe('BestOfDigest', () => {
         const sentAt = moment(now).subtract(23, 'hours').subtract(30, 'minutes').toISOString();
 
         it('should not send daily summary email', async () => {
-          await expect(shouldSendDailyBestOfDigest(sentAt, weeklyDigestSentAt, now), 'to be', false);
+          await expect(
+            shouldSendDailyBestOfDigest(sentAt, weeklyDigestSentAt, now),
+            'to be',
+            false,
+          );
         });
       });
     });
@@ -71,8 +85,16 @@ describe('BestOfDigest', () => {
       describe('if never sent previously or sent before 23 hours 30 minutes ago', () => {
         it('should not send daily summary email', async () => {
           await expect(shouldSendDailyBestOfDigest(null, weeklyDigestSentAt, now), 'to be', false);
-          await expect(shouldSendDailyBestOfDigest(undefined, weeklyDigestSentAt, now), 'to be', false);
-          await expect(shouldSendDailyBestOfDigest(someTimeAgo, weeklyDigestSentAt, now), 'to be', false);
+          await expect(
+            shouldSendDailyBestOfDigest(undefined, weeklyDigestSentAt, now),
+            'to be',
+            false,
+          );
+          await expect(
+            shouldSendDailyBestOfDigest(someTimeAgo, weeklyDigestSentAt, now),
+            'to be',
+            false,
+          );
         });
       });
 
@@ -80,7 +102,11 @@ describe('BestOfDigest', () => {
         const sentAt = moment(now).subtract(23, 'hours').subtract(30, 'minutes').toISOString();
 
         it('should not send daily summary email', async () => {
-          await expect(shouldSendDailyBestOfDigest(sentAt, weeklyDigestSentAt, now), 'to be', false);
+          await expect(
+            shouldSendDailyBestOfDigest(sentAt, weeklyDigestSentAt, now),
+            'to be',
+            false,
+          );
         });
       });
     });
@@ -105,7 +131,11 @@ describe('BestOfDigest', () => {
       });
 
       describe('if sent 6 days 23 hours 31 minutes ago', () => {
-        const sentAt = moment(now).subtract(6, 'days').subtract(23, 'hours').subtract(31, 'minutes').toISOString();
+        const sentAt = moment(now)
+          .subtract(6, 'days')
+          .subtract(23, 'hours')
+          .subtract(31, 'minutes')
+          .toISOString();
 
         it('should send weekly summary email', async () => {
           await expect(shouldSendWeeklyBestOfDigest(sentAt, now), 'to be', true);
@@ -113,7 +143,11 @@ describe('BestOfDigest', () => {
       });
 
       describe('if sent less than (or eql to) 6 days 23 hours 30 minutes ago', () => {
-        const sentAt = moment(now).subtract(6, 'days').subtract(23, 'hours').subtract(30, 'minutes').toISOString();
+        const sentAt = moment(now)
+          .subtract(6, 'days')
+          .subtract(23, 'hours')
+          .subtract(30, 'minutes')
+          .toISOString();
 
         it('should not send weekly summary email', async () => {
           await expect(shouldSendWeeklyBestOfDigest(sentAt, now), 'to be', false);
@@ -139,7 +173,11 @@ describe('BestOfDigest', () => {
       });
 
       describe('if sent 6 days 23 hours 31 minutes ago', () => {
-        const sentAt = moment(now).subtract(6, 'days').subtract(23, 'hours').subtract(31, 'minutes').toISOString();
+        const sentAt = moment(now)
+          .subtract(6, 'days')
+          .subtract(23, 'hours')
+          .subtract(31, 'minutes')
+          .toISOString();
 
         it('should not send weekly summary email', async () => {
           await expect(shouldSendWeeklyBestOfDigest(sentAt, now), 'to be', false);
@@ -147,7 +185,11 @@ describe('BestOfDigest', () => {
       });
 
       describe('if sent less than (or eql to) 6 days 23 hours 30 minutes ago', () => {
-        const sentAt = moment(now).subtract(6, 'days').subtract(23, 'hours').subtract(30, 'minutes').toISOString();
+        const sentAt = moment(now)
+          .subtract(6, 'days')
+          .subtract(23, 'hours')
+          .subtract(30, 'minutes')
+          .toISOString();
 
         it('should not send weekly summary email', async () => {
           await expect(shouldSendWeeklyBestOfDigest(sentAt, now), 'to be', false);

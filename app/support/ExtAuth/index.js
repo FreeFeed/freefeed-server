@@ -5,7 +5,6 @@ import { Cache } from './Cache';
 import { TestAdapter } from './TestAdapter';
 import { OAuth2Adapter } from './OAuth2Adapter';
 
-
 export {
   MODE_CONNECT,
   MODE_SIGN_IN,
@@ -37,7 +36,6 @@ export const allExternalProviders = config.externalAuthProviders.map(({ template
   return cfg;
 });
 
-
 export function getAuthProvider(provId) {
   const conf = allExternalProviders.find((p) => p.id === provId);
 
@@ -55,6 +53,6 @@ export function getAuthProvider(provId) {
 }
 
 const adapterByName = {
-  test:   TestAdapter,
+  test: TestAdapter,
   oauth2: OAuth2Adapter,
 };

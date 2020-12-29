@@ -1,7 +1,6 @@
 import createDebug from 'debug';
 import Raven from 'raven';
-import config from 'config'
-
+import config from 'config';
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:jobs:debug');
@@ -69,7 +68,7 @@ export function addJobModel(dbAdapter) {
     clone(unlockAt = 0) {
       return Job.create(this.name, this.payload, { uniqKey: this.uniqKey, unlockAt });
     }
-  }
+  };
 }
 
 export function addJobManagerModel(dbAdapter) {
@@ -116,14 +115,15 @@ export function addJobManagerModel(dbAdapter) {
     startPolling() {
       debug('starting polling');
       this._pollTimer = setInterval(
-        () => this.fetchAndProcess().catch((err) => {
-          debugError('cannot fetch jobs', err);
+        () =>
+          this.fetchAndProcess().catch((err) => {
+            debugError('cannot fetch jobs', err);
 
-          if (sentryIsEnabled) {
-            Raven.captureException(err, { extra: { err: `cannot fetch jobs: ${err.message}` } });
-          }
-        }),
-        this.pollInterval * 1000
+            if (sentryIsEnabled) {
+              Raven.captureException(err, { extra: { err: `cannot fetch jobs: ${err.message}` } });
+            }
+          }),
+        this.pollInterval * 1000,
       );
     }
 
@@ -187,10 +187,10 @@ export function addJobManagerModel(dbAdapter) {
           Raven.captureException(err, { extra: { err: `error processing job '${job.name}'` } });
         }
 
-        await job.setUnlockAt(this.jobLockTime * (job.attempts ** 1.5));
+        await job.setUnlockAt(this.jobLockTime * job.attempts ** 1.5);
       }
     };
-  }
+  };
 }
 
 /**

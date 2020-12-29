@@ -10,7 +10,6 @@ import { PubSub } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
 
-
 describe('SearchController', () => {
   before(async () => {
     await getSingleton();
@@ -26,15 +25,23 @@ describe('SearchController', () => {
     before(async () => {
       [lunaContext, marsContext] = await Promise.all([
         funcTestHelper.createUserAsync('luna', 'pw'),
-        funcTestHelper.createUserAsync('mars', 'pw')
+        funcTestHelper.createUserAsync('mars', 'pw'),
       ]);
       await Promise.all([
         funcTestHelper.createPostWithCommentsDisabled(lunaContext, 'hello from luna', false),
         funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashTagA from luna', false),
-        funcTestHelper.createPostWithCommentsDisabled(marsContext, 'hello from mars', false)
+        funcTestHelper.createPostWithCommentsDisabled(marsContext, 'hello from mars', false),
       ]);
-      await funcTestHelper.createPostWithCommentsDisabled(lunaContext, '#hashtaga from luna again', false);
-      await funcTestHelper.createPostWithCommentsDisabled(marsContext, 'É apenas uma publicação de testes'.normalize('NFD'), false);
+      await funcTestHelper.createPostWithCommentsDisabled(
+        lunaContext,
+        '#hashtaga from luna again',
+        false,
+      );
+      await funcTestHelper.createPostWithCommentsDisabled(
+        marsContext,
+        'É apenas uma publicação de testes'.normalize('NFD'),
+        false,
+      );
     });
 
     it('should search posts', async () => {
@@ -48,11 +55,14 @@ describe('SearchController', () => {
     });
 
     it('should search posts by non-normalized unicode query', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, '"publicação"'.normalize('NFD'));
+      const response = await funcTestHelper.performSearch(
+        anonContext,
+        '"publicação"'.normalize('NFD'),
+      );
       expect(response, 'to satisfy', { posts: [{}] });
     });
 
-    it('should search user\'s posts', async () => {
+    it("should search user's posts", async () => {
       const response = await funcTestHelper.performSearch(anonContext, 'from:luna hello');
       expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
     });
@@ -73,12 +83,18 @@ describe('SearchController', () => {
     });
 
     it('should return first page with isLastPage = false', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 0 });
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna', {
+        limit: 2,
+        offset: 0,
+      });
       expect(response, 'to satisfy', { isLastPage: false });
     });
 
     it('should return last page with isLastPage = true', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna', { limit: 2, offset: 2 });
+      const response = await funcTestHelper.performSearch(anonContext, 'from luna', {
+        limit: 2,
+        offset: 2,
+      });
       expect(response, 'to satisfy', { isLastPage: true });
     });
 
@@ -109,14 +125,32 @@ describe('SearchController', () => {
         group = await funcTestHelper.createGroupAsync(lunaContext, 'lunagroup');
         await funcTestHelper.subscribeToAsync(marsContext, group);
         await Promise.all([
-          funcTestHelper.createAndReturnPostToFeed(group, lunaContext, 'hello from luna to lunagroup'),
-          funcTestHelper.createAndReturnPostToFeed(group, marsContext, 'hello from mars to lunagroup'),
+          funcTestHelper.createAndReturnPostToFeed(
+            group,
+            lunaContext,
+            'hello from luna to lunagroup',
+          ),
+          funcTestHelper.createAndReturnPostToFeed(
+            group,
+            marsContext,
+            'hello from mars to lunagroup',
+          ),
         ]);
       });
 
       it('should find only post to group', async () => {
-        await expect(funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna to lunagroup' }] });
-        await expect(funcTestHelper.performSearch(lunaContext, 'from:me group:lunagroup hello'), 'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna to lunagroup' }] });
+        await expect(
+          funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'),
+          'when fulfilled',
+          'to satisfy',
+          { posts: [{ body: 'hello from luna to lunagroup' }] },
+        );
+        await expect(
+          funcTestHelper.performSearch(lunaContext, 'from:me group:lunagroup hello'),
+          'when fulfilled',
+          'to satisfy',
+          { posts: [{ body: 'hello from luna to lunagroup' }] },
+        );
       });
 
       describe('Group is protected, Luna is public', () => {
@@ -128,13 +162,19 @@ describe('SearchController', () => {
         it('should not search for group posts as anonymous', async () => {
           await expect(
             funcTestHelper.performSearch(anonContext, 'group:lunagroup hello'),
-            'when fulfilled', 'to satisfy', { posts: [] });
+            'when fulfilled',
+            'to satisfy',
+            { posts: [] },
+          );
         });
 
         it('should not search for user posts in group as anonymous', async () => {
           await expect(
             funcTestHelper.performSearch(anonContext, 'from:luna hello'),
-            'when fulfilled', 'to satisfy', { posts: [{ body: 'hello from luna' }] });
+            'when fulfilled',
+            'to satisfy',
+            { posts: [{ body: 'hello from luna' }] },
+          );
         });
       });
     });

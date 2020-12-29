@@ -24,7 +24,6 @@ import {
 import { initJobProcessing } from '../../../app/jobs';
 import { addMailListener } from '../../../lib/mailer';
 
-
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
 
@@ -43,10 +42,10 @@ describe(`User's 'gone' status`, () => {
       await cleanDB($pg_database);
 
       luna = new User({
-        username:   'luna',
+        username: 'luna',
         screenName: 'Luna Lovegood',
-        email:      'luna@lovegood.good',
-        password:   'pw',
+        email: 'luna@lovegood.good',
+        password: 'pw',
       });
       await luna.create();
     });
@@ -56,24 +55,21 @@ describe(`User's 'gone' status`, () => {
       expect(
         pick(luna1, ['username', 'screenName', 'email']),
         'to equal',
-        pick(luna, ['username', 'screenName', 'email'])
+        pick(luna, ['username', 'screenName', 'email']),
       );
     });
 
     it(`should return cleaned Lunas's props when Luna is gone`, async () => {
-      const [, now] = await Promise.all([
-        luna.setGoneStatus(GONE_SUSPENDED),
-        dbAdapter.now(),
-      ]);
+      const [, now] = await Promise.all([luna.setGoneStatus(GONE_SUSPENDED), dbAdapter.now()]);
       const luna1 = await dbAdapter.getUserById(luna.id);
       expect(luna1, 'to satisfy', {
-        username:    'luna',
-        screenName:  'luna',
-        email:       '',
-        isPrivate:   '1',
+        username: 'luna',
+        screenName: 'luna',
+        email: '',
+        isPrivate: '1',
         isProtected: '1',
-        goneStatus:  GONE_SUSPENDED,
-        goneAt:      expect.it('to be close to', now),
+        goneStatus: GONE_SUSPENDED,
+        goneAt: expect.it('to be close to', now),
       });
     });
 
@@ -83,23 +79,25 @@ describe(`User's 'gone' status`, () => {
       expect(
         pick(luna1, ['username', 'screenName', 'email']),
         'to equal',
-        pick(luna, ['username', 'screenName', 'email'])
+        pick(luna, ['username', 'screenName', 'email']),
       );
     });
   });
 
   describe(`Gone user's deferred jobs`, () => {
-    let luna, jobManager, capturedMail = null;
+    let luna,
+      jobManager,
+      capturedMail = null;
     let removeMailListener = () => null;
 
     before(async () => {
       await cleanDB($pg_database);
 
       luna = new User({
-        username:   'luna',
+        username: 'luna',
         screenName: 'Luna Lovegood',
-        email:      'luna@lovegood.good',
-        password:   'pw',
+        email: 'luna@lovegood.good',
+        password: 'pw',
       });
       await luna.create();
 
@@ -112,17 +110,16 @@ describe(`User's 'gone' status`, () => {
     beforeEach(() => (capturedMail = null));
 
     it(`should create start job when user changes status to GONE_COOLDOWN`, async () => {
-      const [, now] = await Promise.all([
-        luna.setGoneStatus(GONE_COOLDOWN),
-        dbAdapter.now(),
-      ]);
+      const [, now] = await Promise.all([luna.setGoneStatus(GONE_COOLDOWN), dbAdapter.now()]);
 
       const jobs = await dbAdapter.getAllJobs(jobTypes);
-      expect(jobs, 'to satisfy', [{
-        name:     USER_COOLDOWN_START,
-        payload:  { id: luna.id, goneAt: luna.goneAt.getTime() },
-        unlockAt: expect.it('to be close to', now),
-      }]);
+      expect(jobs, 'to satisfy', [
+        {
+          name: USER_COOLDOWN_START,
+          payload: { id: luna.id, goneAt: luna.goneAt.getTime() },
+          unlockAt: expect.it('to be close to', now),
+        },
+      ]);
     });
 
     it(`should send email to user's real address`, async () => {
@@ -131,7 +128,7 @@ describe(`User's 'gone' status`, () => {
       expect(capturedMail, 'to satisfy', { envelope: { to: ['luna@lovegood.good'] } });
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
-        to:      { text: 'luna <luna@lovegood.good>' },
+        to: { text: 'luna <luna@lovegood.good>' },
         subject: 'Your account has been suspended',
       });
     });
@@ -151,13 +148,13 @@ describe(`User's 'gone' status`, () => {
       const jobs = await dbAdapter.getAllJobs(jobTypes);
       expect(sortBy(jobs, 'unlockAt'), 'to satisfy', [
         {
-          name:     USER_COOLDOWN_REMINDER,
-          payload:  { id: luna.id, goneAt: luna.goneAt.getTime() },
+          name: USER_COOLDOWN_REMINDER,
+          payload: { id: luna.id, goneAt: luna.goneAt.getTime() },
           unlockAt: expect.it('to be close to', reminderTime),
         },
         {
-          name:     USER_DELETION_START,
-          payload:  { id: luna.id, goneAt: luna.goneAt.getTime() },
+          name: USER_DELETION_START,
+          payload: { id: luna.id, goneAt: luna.goneAt.getTime() },
           unlockAt: expect.it('to be close to', deletionTime),
         },
       ]);
@@ -174,7 +171,7 @@ describe(`User's 'gone' status`, () => {
       expect(capturedMail, 'to satisfy', { envelope: { to: ['luna@lovegood.good'] } });
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
-        to:      { text: 'luna <luna@lovegood.good>' },
+        to: { text: 'luna <luna@lovegood.good>' },
         subject: 'Your account data will be deleted in a few days',
       });
     });
@@ -209,7 +206,7 @@ describe(`User's 'gone' status`, () => {
       expect(capturedMail, 'to satisfy', { envelope: { to: ['luna@lovegood.good'] } });
       const parsedMail = await simpleParser(capturedMail.response);
       expect(parsedMail, 'to satisfy', {
-        to:      { text: 'luna <luna@lovegood.good>' },
+        to: { text: 'luna <luna@lovegood.good>' },
         subject: 'Your account has been deleted',
       });
     });

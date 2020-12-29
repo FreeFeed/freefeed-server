@@ -1,9 +1,8 @@
 import moment from 'moment';
 import createDebug from 'debug';
-import config from 'config'
+import config from 'config';
 
 import Mailer from '../../lib/mailer';
-
 
 export function sendEventsDigestEmail(user, events, users, groups, digestInterval) {
   // TODO: const subject = config.mailer.notificationDigestEmailSubject
@@ -15,7 +14,7 @@ export function sendEventsDigestEmail(user, events, users, groups, digestInterva
     const template = notificationTemplates[event.event_type];
 
     if (template) {
-      const eventText   = template(eventData);
+      const eventText = template(eventData);
       const eventMarkup = getEventMarkup(eventText);
       emailBody += `${eventMarkup}\n`;
     } else {
@@ -23,14 +22,20 @@ export function sendEventsDigestEmail(user, events, users, groups, digestInterva
     }
   }
 
-  return Mailer.sendMail(user, 'Notifications digest', {
-    digest: {
-      body:     emailBody,
-      interval: digestInterval,
+  return Mailer.sendMail(
+    user,
+    'Notifications digest',
+    {
+      digest: {
+        body: emailBody,
+        interval: digestInterval,
+      },
+      recipient: user,
+      baseUrl: config.host,
     },
-    recipient: user,
-    baseUrl:   config.host,
-  }, `${config.appRoot}/app/scripts/views/mailer/notificationsDigest.ejs`, true);
+    `${config.appRoot}/app/scripts/views/mailer/notificationsDigest.ejs`,
+    true,
+  );
 }
 
 function getEventPayload(event, users, groups) {
@@ -51,9 +56,9 @@ function getEventPayload(event, users, groups) {
     affectedUser,
     postAuthor,
     commentId: event.comment_id,
-    postId:    event.post_id,
+    postId: event.post_id,
     group,
-    createdAt: moment(event.date)
+    createdAt: moment(event.date),
   };
 }
 
@@ -61,32 +66,48 @@ const notificationTemplates = {
   mention_in_post: (eventData) => {
     const postAuthorLink = makeUserLink(eventData.postAuthor);
     const postLink = makePostLink(eventData.postId, eventData.postAuthor);
-    const groupLink = eventData.group ?  makeUserLink(eventData.group) : null;
+    const groupLink = eventData.group ? makeUserLink(eventData.group) : null;
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
-      ${postAuthorLink} mentioned you in the ${postLink}${groupLink ? ` [in ${groupLink}]` : ''}<br />
+      ${postAuthorLink} mentioned you in the ${postLink}${
+      groupLink ? ` [in ${groupLink}]` : ''
+    }<br />
       ${eventTime}
     `;
   },
   mention_in_comment: (eventData) => {
     const commentAuthorLink = makeUserLink(eventData.creator);
     const postLink = makePostLink(eventData.postId, eventData.postAuthor);
-    const commentLink = makeCommentLink(eventData.postId, eventData.commentId, eventData.postAuthor, 'comment');
-    const groupLink = eventData.group ?  makeUserLink(eventData.group) : null;
+    const commentLink = makeCommentLink(
+      eventData.postId,
+      eventData.commentId,
+      eventData.postAuthor,
+      'comment',
+    );
+    const groupLink = eventData.group ? makeUserLink(eventData.group) : null;
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
-      ${commentAuthorLink} mentioned you in a ${commentLink} to the ${postLink}${groupLink ? ` [in ${groupLink}]` : ''}<br />
+      ${commentAuthorLink} mentioned you in a ${commentLink} to the ${postLink}${
+      groupLink ? ` [in ${groupLink}]` : ''
+    }<br />
       ${eventTime}
     `;
   },
   mention_comment_to: (eventData) => {
     const commentAuthorLink = makeUserLink(eventData.creator);
     const postLink = makePostLink(eventData.postId, eventData.postAuthor);
-    const commentLink = makeCommentLink(eventData.postId, eventData.commentId, eventData.postAuthor, 'replied');
-    const groupLink = eventData.group ?  makeUserLink(eventData.group) : null;
+    const commentLink = makeCommentLink(
+      eventData.postId,
+      eventData.commentId,
+      eventData.postAuthor,
+      'replied',
+    );
+    const groupLink = eventData.group ? makeUserLink(eventData.group) : null;
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
-      ${commentAuthorLink} ${commentLink} to you in the  ${postLink}${groupLink ? ` [in ${groupLink}]` : ''}<br />
+      ${commentAuthorLink} ${commentLink} to you in the  ${postLink}${
+      groupLink ? ` [in ${groupLink}]` : ''
+    }<br />
       ${eventTime}
     `;
   },
@@ -102,7 +123,12 @@ const notificationTemplates = {
   direct_comment: (eventData) => {
     const postAuthorLink = makeUserLink(eventData.postAuthor);
     const postLink = makePostLink(eventData.postId, eventData.postAuthor, true);
-    const commentLink = makeCommentLink(eventData.postId, eventData.commentId, eventData.postAuthor, 'comment');
+    const commentLink = makeCommentLink(
+      eventData.postId,
+      eventData.commentId,
+      eventData.postAuthor,
+      'comment',
+    );
     const eventTime = eventData.createdAt.format('HH:MM');
     return `
       New ${commentLink} was posted to a ${postLink} from ${postAuthorLink}<br />
@@ -242,7 +268,7 @@ const notificationTemplates = {
       ${unsubscriberLink} unsubscribed from ${groupLink}<br />
       ${eventTime}
     `;
-  }
+  },
 };
 
 function makeUserLink(user) {

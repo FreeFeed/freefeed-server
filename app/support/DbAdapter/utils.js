@@ -3,7 +3,6 @@ import pgFormat from 'pg-format';
 
 import { List } from '../open-lists';
 
-
 export function initObject(classDef, attrs, id, params) {
   return new classDef({ ...attrs, id, ...params });
 }
@@ -15,8 +14,8 @@ export function prepareModelPayload(payload, namesMapping, valuesMapping) {
   for (const key of keys) {
     const mappedKey = namesMapping[key];
     const mappedVal = valuesMapping[key]
-      // Passing payload as the second argument for cross-keys dependencies
-      ? valuesMapping[key](payload[key], payload)
+      ? // Passing payload as the second argument for cross-keys dependencies
+        valuesMapping[key](payload[key], payload)
       : payload[key];
     result[mappedKey] = mappedVal;
   }
@@ -85,10 +84,9 @@ const dbHelpers = {
 
   transaction(action) {
     // eslint-disable-next-line prefer-reflect
-    return Object.getPrototypeOf(this)
-      .transaction((trx) => action(withDbHelpers(trx)));
-  }
-}
+    return Object.getPrototypeOf(this).transaction((trx) => action(withDbHelpers(trx)));
+  },
+};
 
 export function withDbHelpers(db) {
   // db is a function with additional properties, so extending is tricky

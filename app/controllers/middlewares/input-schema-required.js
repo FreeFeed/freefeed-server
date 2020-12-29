@@ -2,10 +2,9 @@ import Ajv from 'ajv';
 
 import { ValidationException } from '../../support/exceptions';
 
-
 const ajv = new Ajv({
   // Break on first error (to shorten error message)
-  allErrors:   false,
+  allErrors: false,
   // Fill the absent fields with default values
   useDefaults: true,
 });

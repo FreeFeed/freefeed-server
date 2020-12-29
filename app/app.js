@@ -11,7 +11,6 @@ import PubsubListener from './pubsub-listener';
 import { initJobProcessing } from './jobs';
 import { init as initEnvironment } from './setup/environment';
 
-
 let app = null;
 promisifyAll(http);
 
@@ -38,7 +37,7 @@ export async function getSingleton() {
     const server = http.createServer(_app.callback());
     _app.context.pubsub = new PubsubListener(server, _app);
 
-    const port = (process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port);
+    const port = process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port;
     await server.listenAsync(port);
 
     const log = createDebug('freefeed:init');

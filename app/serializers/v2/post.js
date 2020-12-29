@@ -4,18 +4,9 @@ import { dbAdapter } from '../../models';
 
 import { userSerializerFunction } from './user';
 
-
 export function serializeComment(comment) {
   return {
-    ...pick(comment, [
-      'id',
-      'body',
-      'createdAt',
-      'updatedAt',
-      'hideType',
-      'likes',
-      'hasOwnLike'
-    ]),
+    ...pick(comment, ['id', 'body', 'createdAt', 'updatedAt', 'hideType', 'likes', 'hasOwnLike']),
     createdBy: comment.userId,
   };
 }
@@ -36,7 +27,7 @@ export function serializeAttachment(att) {
       'mediaType',
       'createdAt',
       'updatedAt',
-      ...(att.mediaType === 'audio' ? ['artist', 'title'] : [])
+      ...(att.mediaType === 'audio' ? ['artist', 'title'] : []),
     ]),
     createdBy: att.userId,
   };
@@ -56,18 +47,14 @@ export async function serializeFeed(
   postIds,
   viewerId,
   timeline = null,
-  {
-    isLastPage = false,
-    foldComments = true,
-    foldLikes = true,
-  } = {}
+  { isLastPage = false, foldComments = true, foldLikes = true } = {},
 ) {
   const canViewTimeline = timeline ? await timeline.canShow(viewerId) : true;
 
   let hiddenCommentTypes = [];
 
   if (viewerId) {
-    const viewer = await dbAdapter.getUserById(viewerId)
+    const viewer = await dbAdapter.getUserById(viewerId);
     hiddenCommentTypes = viewer.getHiddenCommentTypes();
   }
 
@@ -78,15 +65,29 @@ export async function serializeFeed(
   const allDestinations = [];
   const allSubscribers = [];
 
-  const [hidesFeedId, savesFeedId] = viewerId ? await dbAdapter.getUserNamedFeedsIntIds(viewerId, ['Hides', 'Saves']) : [0, 0];
+  const [hidesFeedId, savesFeedId] = viewerId
+    ? await dbAdapter.getUserNamedFeedsIntIds(viewerId, ['Hides', 'Saves'])
+    : [0, 0];
 
-  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postIds, viewerId, { hiddenCommentTypes, foldComments, foldLikes });
+  const postsWithStuff = await dbAdapter.getPostsWithStuffByIds(postIds, viewerId, {
+    hiddenCommentTypes,
+    foldComments,
+    foldLikes,
+  });
 
-  for (const { post, destinations, attachments, comments, likes, omittedComments, omittedLikes } of postsWithStuff) {
+  for (const {
+    post,
+    destinations,
+    attachments,
+    comments,
+    likes,
+    omittedComments,
+    omittedLikes,
+  } of postsWithStuff) {
     const sPost = {
       ...serializePostData(post),
-      postedTo:    destinations.map((d) => d.id),
-      comments:    comments.map((c) => c.id),
+      postedTo: destinations.map((d) => d.id),
+      comments: comments.map((c) => c.id),
       attachments: attachments.map((a) => a.id),
       likes,
       omittedComments,
@@ -117,25 +118,26 @@ export async function serializeFeed(
 
   if (timeline) {
     timelines = {
-      id:    timeline.id,
-      name:  timeline.name,
-      user:  timeline.userId,
+      id: timeline.id,
+      name: timeline.name,
+      user: timeline.userId,
       posts: postIds,
     };
-    timelines.subscribers = canViewTimeline ? await dbAdapter.getTimelineSubscribersIds(timeline.id) : [];
+    timelines.subscribers = canViewTimeline
+      ? await dbAdapter.getTimelineSubscribersIds(timeline.id)
+      : [];
     allSubscribers.push(timeline.userId);
     allSubscribers.push(...timelines.subscribers);
   }
 
   allSubscribers.forEach((s) => allUserIds.add(s));
 
-  const allGroupAdmins = canViewTimeline ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId) : {};
+  const allGroupAdmins = canViewTimeline
+    ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId)
+    : {};
   Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
 
-  const [
-    allUsersAssoc,
-    allStatsAssoc,
-  ] = await Promise.all([
+  const [allUsersAssoc, allStatsAssoc] = await Promise.all([
     dbAdapter.getUsersByIdsAssoc([...allUserIds]),
     dbAdapter.getUsersStatsAssoc([...allUserIds]),
   ]);
@@ -144,12 +146,15 @@ export async function serializeFeed(
 
   const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
 
-  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user' || (timeline && u.id === timeline.userId));
+  const users = Object.keys(allUsersAssoc)
+    .map(serializeUser)
+    .filter((u) => u.type === 'user' || (timeline && u.id === timeline.userId));
   const subscribers = canViewTimeline ? uniqSubscribers.map(serializeUser) : [];
 
   const subscriptions = canViewTimeline ? uniqBy(compact(allDestinations), 'id') : [];
 
-  const admins = (timeline && canViewTimeline) ? (allGroupAdmins[timeline.userId] || []).map(serializeUser) : [];
+  const admins =
+    timeline && canViewTimeline ? (allGroupAdmins[timeline.userId] || []).map(serializeUser) : [];
 
   return {
     timelines,
@@ -158,8 +163,8 @@ export async function serializeFeed(
     subscribers,
     admins,
     isLastPage,
-    posts:       allPosts,
-    comments:    compact(allComments),
+    posts: allPosts,
+    comments: compact(allComments),
     attachments: compact(allAttachments),
   };
 }
@@ -174,10 +179,7 @@ export async function serializeFeed(
 export async function serializeSinglePost(
   postId,
   viewerId = null,
-  {
-    foldComments = true,
-    foldLikes = true,
-  } = {}
+  { foldComments = true, foldLikes = true } = {},
 ) {
   const data = await serializeFeed([postId], viewerId, null, { foldComments, foldLikes });
   [data.posts] = data.posts;
@@ -201,7 +203,7 @@ function serializePostData(post) {
       'commentLikes',
       'ownCommentLikes',
       'omittedCommentLikes',
-      'omittedOwnCommentLikes'
+      'omittedOwnCommentLikes',
     ]),
     createdBy: post.userId,
   };

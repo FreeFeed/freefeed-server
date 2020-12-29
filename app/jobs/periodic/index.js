@@ -6,13 +6,10 @@ import { Job } from '../../models';
 
 import { initHandlers as initAuthTokensHandlers } from './auth-tokens';
 
-
 const debugError = createDebug('freefeed:jobs:errors');
 
 export async function initHandlers(jobManager, app) {
-  await Promise.all([
-    initAuthTokensHandlers(jobManager, app),
-  ]);
+  await Promise.all([initAuthTokensHandlers(jobManager, app)]);
 }
 
 ////////////////////////////////////
@@ -26,10 +23,9 @@ export async function definePeriodicJob(jobManager, { name, payload = {}, handle
       debugError(`error processing periodic job '${job.name}'`, err, job);
 
       if ('sentryDsn' in config) {
-        Raven.captureException(
-          err,
-          { extra: { err: `error processing job '${job.name}': ${err.message}` } }
-        );
+        Raven.captureException(err, {
+          extra: { err: `error processing job '${job.name}': ${err.message}` },
+        });
       }
     }
 

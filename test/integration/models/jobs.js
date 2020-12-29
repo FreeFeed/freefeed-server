@@ -9,11 +9,8 @@ import { sortBy } from 'lodash';
 import cleanDB from '../../dbCleaner';
 import { Job, dbAdapter, JobManager } from '../../../app/models';
 
-
 const expect = unexpected.clone();
-expect
-  .use(unexpectedDate)
-  .use(unexpectedSinon);
+expect.use(unexpectedDate).use(unexpectedSinon);
 
 describe('Jobs', () => {
   describe('Single job operations', () => {
@@ -22,10 +19,10 @@ describe('Jobs', () => {
     it(`should create a job`, async () => {
       const [job, now] = await Promise.all([Job.create('job'), dbAdapter.now()]);
       expect(job, 'to satisfy', {
-        name:      'job',
-        payload:   {},
+        name: 'job',
+        payload: {},
         createdAt: expect.it('to be close to', now),
-        unlockAt:  expect.it('to be close to', now),
+        unlockAt: expect.it('to be close to', now),
       });
     });
 
@@ -53,10 +50,10 @@ describe('Jobs', () => {
         dbAdapter.now(),
       ]);
       expect(job, 'to satisfy', {
-        name:      'job',
-        payload:   {},
+        name: 'job',
+        payload: {},
         createdAt: expect.it('to be close to', now),
-        unlockAt:  expect.it('to be close to', new Date(now.getTime() + (100 * 1000))),
+        unlockAt: expect.it('to be close to', new Date(now.getTime() + 100 * 1000)),
       });
     });
 
@@ -66,35 +63,31 @@ describe('Jobs', () => {
         dbAdapter.now(),
       ]);
       expect(job, 'to satisfy', {
-        name:      'job',
-        payload:   {},
+        name: 'job',
+        payload: {},
         createdAt: expect.it('to be close to', now),
-        unlockAt:  expect.it('to be close to', new Date(now.getTime() + (100.45 * 1000))),
+        unlockAt: expect.it('to be close to', new Date(now.getTime() + 100.45 * 1000)),
       });
     });
 
     it(`should create a deferred job with exact Date`, async () => {
       const unlockAt = new Date(Date.now() + 12345000);
-      const [job, now] = await Promise.all([
-        Job.create('job', {}, { unlockAt }),
-        dbAdapter.now(),
-      ]);
+      const [job, now] = await Promise.all([Job.create('job', {}, { unlockAt }), dbAdapter.now()]);
       expect(job, 'to satisfy', {
-        name:      'job',
-        payload:   {},
+        name: 'job',
+        payload: {},
         createdAt: expect.it('to be close to', now),
-        unlockAt:  expect.it('to be close to', unlockAt),
+        unlockAt: expect.it('to be close to', unlockAt),
       });
     });
 
     it(`should update unlock time a job after creation`, async () => {
-      const [job, now] = await Promise.all([
-        Job.create('job'),
-        dbAdapter.now(),
-      ]);
+      const [job, now] = await Promise.all([Job.create('job'), dbAdapter.now()]);
       expect(job, 'to satisfy', { unlockAt: expect.it('to be close to', now) });
       await job.setUnlockAt(100);
-      expect(job, 'to satisfy', { unlockAt: expect.it('to be close to', new Date(now.getTime() + (100 * 1000))) });
+      expect(job, 'to satisfy', {
+        unlockAt: expect.it('to be close to', new Date(now.getTime() + 100 * 1000)),
+      });
     });
   });
 
@@ -118,9 +111,9 @@ describe('Jobs', () => {
         dbAdapter.now(),
       ]);
       expect(job2, 'to satisfy', {
-        id:       job1.id,
-        payload:  43,
-        unlockAt: expect.it('to be close to', new Date(now.getTime() + (200 * 1000))),
+        id: job1.id,
+        payload: 43,
+        unlockAt: expect.it('to be close to', new Date(now.getTime() + 200 * 1000)),
       });
     });
   });
@@ -137,22 +130,19 @@ describe('Jobs', () => {
     });
 
     it('should fetch placed jobs', async () => {
-      const [job1, now] = await Promise.all([
-        Job.create('job'),
-        dbAdapter.now(),
-      ]);
+      const [job1, now] = await Promise.all([Job.create('job'), dbAdapter.now()]);
       const job2 = await Job.create('job');
       const jobs = await jm.fetch();
 
       expect(sortBy(jobs, 'createdAt'), 'to satisfy', [
         {
-          id:       job1.id,
-          unlockAt: expect.it('to be close to', new Date(now.getTime() + (jm.jobLockTime * 1000))),
+          id: job1.id,
+          unlockAt: expect.it('to be close to', new Date(now.getTime() + jm.jobLockTime * 1000)),
         },
         {
-          id:       job2.id,
-          unlockAt: expect.it('to be close to', new Date(now.getTime() + (jm.jobLockTime * 1000))),
-        }
+          id: job2.id,
+          unlockAt: expect.it('to be close to', new Date(now.getTime() + jm.jobLockTime * 1000)),
+        },
       ]);
     });
 
@@ -213,17 +203,14 @@ describe('Jobs', () => {
       });
 
       it(`should re-lock job if it have no handler`, async () => {
-        const [job, now] = await Promise.all([
-          Job.create('job'),
-          dbAdapter.now(),
-        ]);
+        const [job, now] = await Promise.all([Job.create('job'), dbAdapter.now()]);
 
         const [job1] = await jm.fetchAndProcess();
 
         expect(job1, 'to satisfy', {
-          id:       job.id,
+          id: job.id,
           attempts: 1,
-          unlockAt: expect.it('to be close to', new Date(now.getTime() + (jm.jobLockTime * 1000))),
+          unlockAt: expect.it('to be close to', new Date(now.getTime() + jm.jobLockTime * 1000)),
         });
       });
 

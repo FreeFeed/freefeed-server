@@ -2,10 +2,12 @@ import { version } from '../../../../package.json';
 import { ServerInfo } from '../../../models';
 import { allExternalProviders } from '../../../support/ExtAuth';
 
-
 export async function serverInfo(ctx) {
-  const externalAuthProvidersInfo = allExternalProviders
-    .map(({ id, title, brand = id }) => ({ id, title, brand }));
+  const externalAuthProvidersInfo = allExternalProviders.map(({ id, title, brand = id }) => ({
+    id,
+    title,
+    brand,
+  }));
   const registrationOpen = await ServerInfo.isRegistrationOpen();
   ctx.body = {
     version,

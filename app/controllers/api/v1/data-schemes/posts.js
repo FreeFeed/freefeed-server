@@ -1,83 +1,82 @@
-import config from 'config'
+import config from 'config';
 
 import definitions from './definitions';
 
-
 export const postCreateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:       'object',
-  required:   ['post', 'meta'],
+  type: 'object',
+  required: ['post', 'meta'],
   properties: {
     post: {
-      type:       'object',
-      required:   ['body'],
+      type: 'object',
+      required: ['body'],
       properties: {
         body: {
-          type:      'string',
+          type: 'string',
           minLength: 1,
-          pattern:   '\\S'
+          pattern: '\\S',
         },
         attachments: {
-          type:        'array',
-          default:     [],
-          items:       { '$ref': '#/definitions/uuid' },
-          maxItems:    config.attachments.maxCount,
+          type: 'array',
+          default: [],
+          items: { $ref: '#/definitions/uuid' },
+          maxItems: config.attachments.maxCount,
           uniqueItems: true,
-        }
-      }
+        },
+      },
     },
     meta: {
-      type:       'object',
-      required:   ['feeds'],
+      type: 'object',
+      required: ['feeds'],
       properties: {
         commentsDisabled: { type: 'boolean', default: false },
-        feeds:            {
+        feeds: {
           oneOf: [
-            { '$ref': '#/definitions/accountName' },
+            { $ref: '#/definitions/accountName' },
             {
-              type:     'array',
+              type: 'array',
               minItems: 1,
-              items:    { '$ref': '#/definitions/accountName' }
+              items: { $ref: '#/definitions/accountName' },
             },
-          ]
-        }
-      }
-    }
-  }
+          ],
+        },
+      },
+    },
+  },
 };
 
 export const postUpdateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:       'object',
-  required:   ['post'],
+  type: 'object',
+  required: ['post'],
   properties: {
     post: {
-      type:       'object',
-      required:   [],
+      type: 'object',
+      required: [],
       properties: {
         body: {
-          type:      'string',
+          type: 'string',
           minLength: 1,
-          pattern:   '\\S'
+          pattern: '\\S',
         },
         attachments: {
-          type:        'array',
-          items:       { '$ref': '#/definitions/uuid' },
-          maxItems:    config.attachments.maxCount,
+          type: 'array',
+          items: { $ref: '#/definitions/uuid' },
+          maxItems: config.attachments.maxCount,
           uniqueItems: true,
         },
         feeds: {
-          type:     'array',
+          type: 'array',
           minItems: 1,
-          items:    { '$ref': '#/definitions/accountName' }
-        }
-      }
-    }
-  }
+          items: { $ref: '#/definitions/accountName' },
+        },
+      },
+    },
+  },
 };

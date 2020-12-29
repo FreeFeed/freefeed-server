@@ -1,96 +1,84 @@
 import definitions from '../../v1/data-schemes/definitions';
 
-
 export const appTokenCreateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:     'object',
-  required: [
-    'title',
-    'scopes',
-    'restrictions',
-  ],
+  type: 'object',
+  required: ['title', 'scopes', 'restrictions'],
   properties: {
     title: {
-      type:      'string',
-      pattern:   '\\S',
+      type: 'string',
+      pattern: '\\S',
       minLength: 1,
       maxLength: 250,
     },
     scopes: {
-      type:        'array',
-      items:       { '$ref': '#/definitions/nonEmptyString' },
+      type: 'array',
+      items: { $ref: '#/definitions/nonEmptyString' },
       uniqueItems: true,
-      minItems:    0,
+      minItems: 0,
     },
     expiresAt: {
       oneOf: [
         {
-          type:        'number',
+          type: 'number',
           description: 'Token lifetime in seconds since creation',
-          minimum:     0,
+          minimum: 0,
         },
         {
-          type:        'string',
+          type: 'string',
           description: 'Token expiration date in ISO 8601 format',
-          format:      'date-time',
-        }
-      ]
+          format: 'date-time',
+        },
+      ],
     },
     restrictions: {
-      type:     'object',
-      required: [
-        'origins',
-        'netmasks',
-      ],
+      type: 'object',
+      required: ['origins', 'netmasks'],
       additionalProperties: false,
-      default:              { origins: [], netmasks: [] },
+      default: { origins: [], netmasks: [] },
 
       properties: {
         origins: {
-          type:        'array',
-          items:       { '$ref': '#/definitions/nonEmptyString' },
+          type: 'array',
+          items: { $ref: '#/definitions/nonEmptyString' },
           uniqueItems: true,
-          default:     [],
+          default: [],
         },
         netmasks: {
-          type:        'array',
-          items:       { '$ref': '#/definitions/nonEmptyString' },
+          type: 'array',
+          items: { $ref: '#/definitions/nonEmptyString' },
           uniqueItems: true,
-          default:     [],
-        }
-      }
-    }
+          default: [],
+        },
+      },
+    },
   },
-}
+};
 
 export const appTokenUpdateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
-  type:     'object',
-  required: [
-    'title',
-  ],
+  type: 'object',
+  required: ['title'],
 
   properties: {
     title: {
-      type:      'string',
-      pattern:   '\\S',
+      type: 'string',
+      pattern: '\\S',
       minLength: 1,
       maxLength: 250,
     },
-  }
+  },
 };
 
 export const appTokenActivateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
-  type:     'object',
-  required: [
-    'activationCode',
-  ],
+  type: 'object',
+  required: ['activationCode'],
 
-  properties: { activationCode: { type: 'string' } }
-}
+  properties: { activationCode: { type: 'string' } },
+};

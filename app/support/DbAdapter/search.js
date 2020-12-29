@@ -11,7 +11,7 @@ import {
   IN_ALL,
   ScopeStart,
   InScope,
-  SeqTexts
+  SeqTexts,
 } from '../search/query-tokens';
 import { List } from '../open-lists';
 import { Comment } from '../../models';
@@ -33,8 +33,8 @@ const searchTrait = (superClass) =>
         limit = 30,
         offset = 0,
         sort = 'bumped',
-        maxQueryComplexity = config.search.maxQueryComplexity
-      } = {}
+        maxQueryComplexity = config.search.maxQueryComplexity,
+      } = {},
     ) {
       const parsedQuery = parseQuery(query);
 
@@ -42,10 +42,7 @@ const searchTrait = (superClass) =>
         throw new Error(`The search query is too complex, try to simplify it`);
       }
 
-      if (
-        !viewerId &&
-        parsedQuery.some((t) => t instanceof Condition && t.condition === 'in-my')
-      ) {
+      if (!viewerId && parsedQuery.some((t) => t instanceof Condition && t.condition === 'in-my')) {
         throw new Error(`Please sign in to use 'in-my:' filter`);
       }
 
@@ -83,10 +80,7 @@ const searchTrait = (superClass) =>
        */
 
       // Map from username to User/Group object (or null)
-      const accounts = await this._getAccountsUsedInQuery(
-        parsedQuery,
-        viewerId
-      );
+      const accounts = await this._getAccountsUsedInQuery(parsedQuery, viewerId);
 
       // Authorship
       const allContentAuthors = getAuthorNames(parsedQuery, IN_ALL);
@@ -94,16 +88,11 @@ const searchTrait = (superClass) =>
       const commentAuthors = getAuthorNames(parsedQuery, IN_COMMENTS);
 
       for (const list of [allContentAuthors, postAuthors, commentAuthors]) {
-        list.items = list.items
-          .map((name) => accounts[name] && accounts[name].id)
-          .filter(Boolean);
+        list.items = list.items.map((name) => accounts[name] && accounts[name].id).filter(Boolean);
       }
 
       // Posts feeds
-      const postsFeedIdsLists = await this._getFeedIdsLists(
-        parsedQuery,
-        accounts
-      );
+      const postsFeedIdsLists = await this._getFeedIdsLists(parsedQuery, accounts);
 
       // Special case: in-my:discussions
       //
@@ -120,10 +109,7 @@ const searchTrait = (superClass) =>
         ) {
           if (token.exclude) {
             // ! (| posts-from:me) === & (!posts-from:me)
-            postAuthors = List.intersection(
-              postAuthors,
-              new List([viewerId], false)
-            );
+            postAuthors = List.intersection(postAuthors, new List([viewerId], false));
           } else {
             orPostsFromMe = true;
           }
@@ -138,18 +124,16 @@ const searchTrait = (superClass) =>
       // Create partial SQL queries
       const inAllPostsSQL = andJoin([
         inAllTSQuery && `p.body_tsvector @@ ${inAllTSQuery}`,
-        sqlIn('p.user_id', allContentAuthors)
+        sqlIn('p.user_id', allContentAuthors),
       ]);
 
       const inAllCommentsSQL = andJoin([
         inAllTSQuery && `c.body_tsvector @@ ${inAllTSQuery}`,
-        sqlIn('c.user_id', allContentAuthors)
+        sqlIn('c.user_id', allContentAuthors),
       ]);
 
       let postsFeedsSQL = andJoin([
-        ...postsFeedIdsLists.map((list) =>
-          sqlIntarrayIn('p.feed_ids', list)
-        )
+        ...postsFeedIdsLists.map((list) => sqlIntarrayIn('p.feed_ids', list)),
       ]);
 
       // Special hack for in-my:discussions
@@ -160,17 +144,16 @@ const searchTrait = (superClass) =>
       const inPostsSQL = andJoin([
         inPostsTSQuery && `p.body_tsvector @@ ${inPostsTSQuery}`,
         sqlIn('p.user_id', postAuthors),
-        postsFeedsSQL
+        postsFeedsSQL,
       ]);
 
       const inCommentsSQL = andJoin([
         inCommentsTSQuery && `c.body_tsvector @@ ${inCommentsTSQuery}`,
-        sqlIn('c.user_id', commentAuthors)
+        sqlIn('c.user_id', commentAuthors),
       ]);
 
       // Are we using the 'comments' table?
-      const useCommentsTable =
-        inAllCommentsSQL !== 'true' || inCommentsSQL !== 'true';
+      const useCommentsTable = inAllCommentsSQL !== 'true' || inCommentsSQL !== 'true';
 
       const [
         // Private feeds viewer can read
@@ -178,19 +161,19 @@ const searchTrait = (superClass) =>
         // Users who banned viewer or banned by viewer (viewer should not see their posts)
         bannedUsersIds,
         // Users banned by viewer (for comments)
-        bannedByViewer
+        bannedByViewer,
       ] = await Promise.all([
         viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
         viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
-        viewerId && useCommentsTable ? await this.getUserBansIds(viewerId) : []
+        viewerId && useCommentsTable ? await this.getUserBansIds(viewerId) : [],
       ]);
 
       // Additional restrictions for comments
       const commentsRestrictionSQL = useCommentsTable
         ? andJoin([
-          pgFormat('c.hide_type=%L', Comment.VISIBLE),
-          sqlNotIn('c.user_id', bannedByViewer)
-        ])
+            pgFormat('c.hide_type=%L', Comment.VISIBLE),
+            sqlNotIn('c.user_id', bannedByViewer),
+          ])
         : 'true';
 
       // Additional restrictions for posts
@@ -198,9 +181,9 @@ const searchTrait = (superClass) =>
         // Privacy
         viewerId
           ? pgFormat(
-            `(not p.is_private or p.destination_feed_ids && %L)`,
-            `{${visiblePrivateFeedIntIds.join(',')}}`
-          )
+              `(not p.is_private or p.destination_feed_ids && %L)`,
+              `{${visiblePrivateFeedIntIds.join(',')}}`,
+            )
           : 'not p.is_protected',
         // Bans
         sqlNotIn('p.user_id', bannedUsersIds),
@@ -214,7 +197,7 @@ const searchTrait = (superClass) =>
         // inPostsSQL, // Using as CTE (see fullSQL below)
         postsRestrictionsSQL,
         inCommentsSQL,
-        inCommentsSQL !== 'true' && commentsRestrictionSQL
+        inCommentsSQL !== 'true' && commentsRestrictionSQL,
       ]);
       const commentsPart =
         useCommentsTable &&
@@ -223,7 +206,7 @@ const searchTrait = (superClass) =>
           // inPostsSQL, // Using as CTE (see fullSQL below)
           postsRestrictionsSQL,
           inCommentsSQL,
-          commentsRestrictionSQL
+          commentsRestrictionSQL,
         ]);
 
       const fullPostsSQL = [
@@ -231,7 +214,9 @@ const searchTrait = (superClass) =>
         `join users u on p.user_id = u.uid`,
         inCommentsSQL !== 'true' && 'left join comments c on c.post_id = p.uid',
         `where ${postsPart}`,
-      ].filter(Boolean).join(' ');
+      ]
+        .filter(Boolean)
+        .join(' ');
 
       const fullCommentsSQL =
         useCommentsTable &&
@@ -247,11 +232,15 @@ const searchTrait = (superClass) =>
         // and `user_id <>` later. We force this order using the CTE (inPostsSQL
         // is mostly about `feed_ids &&` conditions).
         inPostsSQL !== 'true' &&
-          `with posts as ${pgVersion >= 120000 ? 'materialized' : ''} (select * from posts p where ${inPostsSQL})`,
+          `with posts as ${
+            pgVersion >= 120000 ? 'materialized' : ''
+          } (select * from posts p where ${inPostsSQL})`,
         fullPostsSQL,
         fullCommentsSQL && `union\n${fullCommentsSQL}`,
-        `order by date desc limit ${+limit} offset ${+offset}`
-      ].filter(Boolean).join('\n');
+        `order by date desc limit ${+limit} offset ${+offset}`,
+      ]
+        .filter(Boolean)
+        .join('\n');
 
       debug(fullSQL);
 
@@ -259,29 +248,20 @@ const searchTrait = (superClass) =>
     }
 
     async _getAccountsUsedInQuery(parsedQuery, viewerId) {
-      const conditionsWithAccNames = [
-        'in',
-        'commented-by',
-        'liked-by',
-        'from',
-        'author'
-      ];
+      const conditionsWithAccNames = ['in', 'commented-by', 'liked-by', 'from', 'author'];
 
       // Map from username to User/Group object (or null)
-      const accounts = { me: viewerId && await this.getFeedOwnerById(viewerId) };
+      const accounts = { me: viewerId && (await this.getFeedOwnerById(viewerId)) };
 
       let accountNames = [];
 
       for (const token of parsedQuery) {
-        if (
-          token instanceof Condition &&
-          conditionsWithAccNames.includes(token.condition)
-        ) {
+        if (token instanceof Condition && conditionsWithAccNames.includes(token.condition)) {
           if (!viewerId && token.args.includes('me')) {
             throw new Error(`Please sign in to use 'me' as username`);
           }
 
-          token.args = token.args.map((n) => n === 'me' ? accounts.me.username : n);
+          token.args = token.args.map((n) => (n === 'me' ? accounts.me.username : n));
           accountNames.push(...token.args);
         }
       }
@@ -312,9 +292,9 @@ const searchTrait = (superClass) =>
      */
     async _getFeedIdsLists(tokens, accountsMap) {
       const condToFeedNames = {
-        in:             'Posts',
+        in: 'Posts',
         'commented-by': 'Comments',
-        'liked-by':     'Likes'
+        'liked-by': 'Likes',
       };
       // For gone users only the Comments feed is available (comments aren't
       // deleted when user gone)
@@ -325,8 +305,7 @@ const searchTrait = (superClass) =>
         tokens
           .filter(
             (t) =>
-              t instanceof Condition &&
-              (!!condToFeedNames[t.condition] || t.condition === 'in-my')
+              t instanceof Condition && (!!condToFeedNames[t.condition] || t.condition === 'in-my'),
           )
           .map(async (t) => {
             const feedName = condToFeedNames[t.condition];
@@ -351,19 +330,15 @@ const searchTrait = (superClass) =>
                 .map(async (name) => {
                   switch (name) {
                     case 'saves': {
-                      return [
-                        await currentUser.getGenericTimelineIntId('Saves')
-                      ];
+                      return [await currentUser.getGenericTimelineIntId('Saves')];
                     }
                     case 'directs': {
-                      return [
-                        await currentUser.getGenericTimelineIntId('Directs')
-                      ];
+                      return [await currentUser.getGenericTimelineIntId('Directs')];
                     }
                     case 'discussions': {
                       return await Promise.all([
                         currentUser.getCommentsTimelineIntId(),
-                        currentUser.getLikesTimelineIntId()
+                        currentUser.getLikesTimelineIntId(),
                       ]);
                     }
                     case 'friends': {
@@ -374,10 +349,10 @@ const searchTrait = (superClass) =>
                   }
 
                   return [];
-                })
+                }),
             );
             return new List(feedIntIds, !t.exclude);
-          })
+          }),
       );
     }
   };
@@ -422,10 +397,7 @@ function getAuthorNames(tokens, targetScope) {
       ((token.condition === 'from' && targetScope === IN_POSTS) ||
         (token.condition === 'author' && targetScope === currentScope))
     ) {
-      result = List.intersection(
-        result,
-        token.exclude ? List.inverse(token.args) : token.args
-      );
+      result = List.intersection(result, token.exclude ? List.inverse(token.args) : token.args);
     }
   });
 

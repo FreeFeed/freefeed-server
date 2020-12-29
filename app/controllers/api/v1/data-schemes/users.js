@@ -1,110 +1,101 @@
 import definitions from './definitions';
 
-
 export const userCreateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:     'object',
+  type: 'object',
   required: [
     'username',
     // In the future API versions email should be required.
     // Currently it would break all legacy tests.
     // 'email',
   ],
-  oneOf: [
-    { required: ['password'] },
-    { required: ['externalProfileKey'] },
-  ],
+  oneOf: [{ required: ['password'] }, { required: ['externalProfileKey'] }],
   properties: {
-    username:            { '$ref': '#/definitions/userName' },
-    screenName:          { type: 'string' },
-    email:               { type: 'string' },
-    password:            { type: 'string', minLength: 1 },
-    captcha:             { type: 'string' },
-    invitation:          { type: 'string' },
+    username: { $ref: '#/definitions/userName' },
+    screenName: { type: 'string' },
+    email: { type: 'string' },
+    password: { type: 'string', minLength: 1 },
+    captcha: { type: 'string' },
+    invitation: { type: 'string' },
     cancel_subscription: {
-      type:    'boolean',
+      type: 'boolean',
       default: false,
     },
     externalProfileKey: { type: 'string' },
-    profilePictureURL:  {
-      type:    'string',
+    profilePictureURL: {
+      type: 'string',
       pattern: '^https?://',
     },
-    isPrivate:   { type: 'boolean', default: false },
+    isPrivate: { type: 'boolean', default: false },
     isProtected: { type: 'boolean', default: false },
   },
 };
 
 export const userSubscribeInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:     'object',
-  required: [
-    'homeFeeds',
-  ],
+  type: 'object',
+  required: ['homeFeeds'],
   default: { homeFeeds: [] },
 
   properties: {
     homeFeeds: {
-      type:        'array',
-      items:       { '$ref': '#/definitions/uuid' },
+      type: 'array',
+      items: { $ref: '#/definitions/uuid' },
       uniqueItems: true,
-      default:     [],
-    }
-  }
+      default: [],
+    },
+  },
 };
 
 export const sendRequestInputSchema = userSubscribeInputSchema;
 
 export const updateSubscriptionInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:     'object',
-  required: [
-    'homeFeeds',
-  ],
+  type: 'object',
+  required: ['homeFeeds'],
 
   properties: {
     homeFeeds: {
-      type:        'array',
-      items:       { '$ref': '#/definitions/uuid' },
+      type: 'array',
+      items: { $ref: '#/definitions/uuid' },
       uniqueItems: true,
-    }
-  }
+    },
+  },
 };
 
 export const userSuspendMeInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
-  type:     'object',
+  type: 'object',
   required: ['password'],
 
   properties: {
     password: {
-      type:        'string',
-      description: 'Current user password'
-    }
-  }
+      type: 'string',
+      description: 'Current user password',
+    },
+  },
 };
 
-
 export const userResumeMeInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
-  type:     'object',
+  type: 'object',
   required: ['resumeToken'],
 
   properties: {
     resumeToken: {
-      type:        'string',
-      description: 'JWT-token for resume account'
-    }
-  }
+      type: 'string',
+      description: 'JWT-token for resume account',
+    },
+  },
 };

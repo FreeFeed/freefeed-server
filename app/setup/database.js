@@ -3,13 +3,12 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:database');
 const options = {
   host: config.redis.host,
   port: config.redis.port,
-  db:   config.database,
+  db: config.database,
   ...config.redis.options,
 };
 const database = new Redis(options);
@@ -30,7 +29,9 @@ function log(type) {
 function logAndQuit(type) {
   return function (...args) {
     if (sentryIsEnabled) {
-      Raven.captureException(args, { extra: { err: 'Unknown Redis error. Switching off server.' } });
+      Raven.captureException(args, {
+        extra: { err: 'Unknown Redis error. Switching off server.' },
+      });
     }
 
     debug(type, args);

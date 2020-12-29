@@ -1,9 +1,9 @@
-import passport from 'koa-passport'
+import passport from 'koa-passport';
 import jwt from 'jsonwebtoken';
 import config from 'config';
 import compose from 'koa-compose';
 
-import { SessionTokenV1 } from '../../../models/auth-tokens'
+import { SessionTokenV1 } from '../../../models/auth-tokens';
 import { authRequired, inputSchemaRequired } from '../../middlewares';
 import { BadRequestException } from '../../../support/exceptions';
 import { CLOSED, statusTitles } from '../../../models/auth-tokens/SessionTokenV1';
@@ -11,7 +11,6 @@ import { sessionTokenV1Store } from '../../../models';
 
 import UsersController from './UsersController';
 import { updateListInputSchema } from './data-schemes/sessions';
-
 
 export default class SessionController {
   static create(ctx) {
@@ -24,10 +23,12 @@ export default class SessionController {
           const { secret } = config;
           ctx.body.resumeToken = jwt.sign(
             {
-              type:   'resume-account',
-              userId: err.userId
+              type: 'resume-account',
+              userId: err.userId,
             },
-            secret, { expiresIn: config.goneUsers.resumeTokenTTL });
+            secret,
+            { expiresIn: config.goneUsers.resumeTokenTTL },
+          );
         }
 
         return;
@@ -35,12 +36,12 @@ export default class SessionController {
 
       if (user === false) {
         if (!msg) {
-          msg = { message: 'Internal server error' }
+          msg = { message: 'Internal server error' };
         }
 
         ctx.status = 401;
         ctx.body = { err: msg.message };
-        return
+        return;
       }
 
       const authToken = (await sessionTokenV1Store.create(user.id, ctx)).tokenString();
@@ -111,7 +112,7 @@ export default class SessionController {
       await Promise.all(
         allSessions
           .filter((s) => s.isActive && idsToClose.includes(s.id))
-          .map((s) => s.setStatus(CLOSED))
+          .map((s) => s.setStatus(CLOSED)),
       );
 
       await SessionController.list(ctx);
@@ -133,11 +134,11 @@ function sessionTypeRequired(types = [SessionTokenV1]) {
 
 function serializeSession(session) {
   return {
-    id:            session.id,
-    status:        statusTitles[session.status],
-    createdAt:     session.createdAt,
-    lastUsedAt:    session.lastUsedAt,
-    lastIP:        session.lastIP,
+    id: session.id,
+    status: statusTitles[session.status],
+    createdAt: session.createdAt,
+    lastUsedAt: session.lastUsedAt,
+    lastIP: session.lastIP,
     lastUserAgent: session.lastUserAgent,
   };
 }

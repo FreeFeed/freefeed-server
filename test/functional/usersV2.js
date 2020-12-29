@@ -1,15 +1,15 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fetch from 'node-fetch'
-import request from 'superagent'
-import expect from 'unexpected'
+import fetch from 'node-fetch';
+import request from 'superagent';
+import expect from 'unexpected';
 import config from 'config';
 import { sortBy, uniq } from 'lodash';
 
 import cleanDB from '../dbCleaner';
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub, Comment, dbAdapter } from '../../app/models'
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
+import { PubSub, Comment, dbAdapter } from '../../app/models';
 import {
   createUserAsync,
   mutualSubscriptions,
@@ -25,90 +25,80 @@ import {
   performJSONRequest,
   createUserAsyncPost,
   authHeaders,
-} from '../functional/functional_test_helper'
+} from '../functional/functional_test_helper';
 import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 import { GONE_SUSPENDED } from '../../app/models/user';
 
 import * as schema from './schemaV2-helper';
 
-
 describe('UsersControllerV2', () => {
-  let app
+  let app;
 
   before(async () => {
-    app = await getSingleton()
-    PubSub.setPublisher(new DummyPublisher())
-  })
+    app = await getSingleton();
+    PubSub.setPublisher(new DummyPublisher());
+  });
 
-  beforeEach(() => cleanDB($pg_database))
+  beforeEach(() => cleanDB($pg_database));
 
   describe('#blockedByMe()', () => {
     it('should reject unauthenticated users', (done) => {
-      request
-        .get(`${app.context.config.host}/v2/users/blockedByMe`)
-        .end((err) => {
-          err.should.not.be.empty
-          err.status.should.eql(401)
-          done()
-        })
-    })
+      request.get(`${app.context.config.host}/v2/users/blockedByMe`).end((err) => {
+        err.should.not.be.empty;
+        err.status.should.eql(401);
+        done();
+      });
+    });
 
     it('should return list for authenticated user', async () => {
       const userA = {
         username: 'Luna',
-        password: 'password'
-      }
+        password: 'password',
+      };
 
       const userB = {
         username: 'Mars',
-        password: 'password'
-      }
+        password: 'password',
+      };
 
+      const userAResponse = await createUserAsync(userA.username, userA.password);
 
-      const userAResponse = await createUserAsync(userA.username, userA.password)
-
-      const userBResponse = await createUserAsync(userB.username, userB.password)
+      const userBResponse = await createUserAsync(userB.username, userB.password);
 
       await fetch(`${app.context.config.host}/v1/users/${userB.username}/ban`, {
-        method:  'POST',
-        headers: { 'X-Authentication-Token': userAResponse.authToken }
-      })
+        method: 'POST',
+        headers: { 'X-Authentication-Token': userAResponse.authToken },
+      });
 
-      const blockedByMeResponse = await fetch(`${app.context.config.host}/v2/users/blockedbyme`, { headers: { 'X-Authentication-Token': userAResponse.authToken } })
+      const blockedByMeResponse = await fetch(`${app.context.config.host}/v2/users/blockedbyme`, {
+        headers: { 'X-Authentication-Token': userAResponse.authToken },
+      });
 
-      const blockedByMe = await blockedByMeResponse.json()
+      const blockedByMe = await blockedByMeResponse.json();
 
-      blockedByMe.should.not.be.empty
-      blockedByMe.length.should.eql(1)
-      blockedByMe[0].should.have.property('id')
-      blockedByMe[0].id.should.eql(userBResponse.user.id)
-      blockedByMe[0].should.have.property('username')
-      blockedByMe[0].username.should.eql(userB.username.toLowerCase())
-      blockedByMe[0].should.have.property('screenName')
-      blockedByMe[0].should.have.property('profilePictureLargeUrl')
-      blockedByMe[0].should.have.property('profilePictureMediumUrl')
-    })
-  })
+      blockedByMe.should.not.be.empty;
+      blockedByMe.length.should.eql(1);
+      blockedByMe[0].should.have.property('id');
+      blockedByMe[0].id.should.eql(userBResponse.user.id);
+      blockedByMe[0].should.have.property('username');
+      blockedByMe[0].username.should.eql(userB.username.toLowerCase());
+      blockedByMe[0].should.have.property('screenName');
+      blockedByMe[0].should.have.property('profilePictureLargeUrl');
+      blockedByMe[0].should.have.property('profilePictureMediumUrl');
+    });
+  });
 
   describe('#whoami()', () => {
     it('should reject unauthenticated users', (done) => {
-      request
-        .get(`${app.context.config.host}/v2/users/whoami`)
-        .end((err) => {
-          err.should.not.be.empty
-          err.status.should.eql(401)
-          done()
-        })
-    })
+      request.get(`${app.context.config.host}/v2/users/whoami`).end((err) => {
+        err.should.not.be.empty;
+        err.status.should.eql(401);
+        done();
+      });
+    });
 
     it('should return proper structure for authenticated user', async () => {
-      const [
-        luna,
-        mars,
-        venus,
-        zeus,
-        pluto,
-      ] = await Promise.all([
+      const [luna, mars, venus, zeus, pluto] = await Promise.all([
         createUserAsync('luna', 'pw'),
         createUserAsync('mars', 'pw'),
         createUserAsync('venus', 'pw'),
@@ -116,12 +106,7 @@ describe('UsersControllerV2', () => {
         createUserAsync('pluto', 'pw'),
       ]);
 
-      const [
-        ,
-        ,
-        ,
-        selenitesGroup,
-      ] = await Promise.all([
+      const [, , , selenitesGroup] = await Promise.all([
         mutualSubscriptions([luna, mars]),
         subscribeToAsync(luna, venus),
         subscribeToAsync(zeus, luna),
@@ -131,39 +116,73 @@ describe('UsersControllerV2', () => {
       await sendRequestToJoinGroup(mars, selenitesGroup);
       await sendRequestToJoinGroup(pluto, selenitesGroup); // request from non-friend
 
-      const whoAmI = await fetch(`${app.context.config.host}/v2/users/whoami`, { headers: { 'X-Authentication-Token': luna.authToken } }).then((r) => r.json());
+      const whoAmI = await fetch(`${app.context.config.host}/v2/users/whoami`, {
+        headers: { 'X-Authentication-Token': luna.authToken },
+      }).then((r) => r.json());
 
       const managedGroupSchema = {
         ...schema.group,
-        requests: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
+        requests: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items exhaustively satisfying', schema.user),
       };
 
       const thisUserSchema = {
         ...schema.user,
-        email:                       expect.it('to be a string'),
-        privateMeta:                 expect.it('to be an object'),
-        frontendPreferences:         expect.it('to be an object'),
-        banIds:                      expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
-        pendingGroupRequests:        expect.it('to be a boolean'),
-        pendingSubscriptionRequests: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
-        subscriptionRequests:        expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
-        unreadDirectsNumber:         expect.it('to be a string').and('to match', /^\d+$/),
-        unreadNotificationsNumber:   expect.it('to be a number'),
-        subscribers:                 expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.user),
-        subscriptions:               expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.UUID),
-        preferences:                 expect.it('to satisfy', (data) => expect(validateUserPrefs(data), 'to be an object')),
+        email: expect.it('to be a string'),
+        privateMeta: expect.it('to be an object'),
+        frontendPreferences: expect.it('to be an object'),
+        banIds: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items satisfying', schema.UUID),
+        pendingGroupRequests: expect.it('to be a boolean'),
+        pendingSubscriptionRequests: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items satisfying', schema.UUID),
+        subscriptionRequests: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items satisfying', schema.UUID),
+        unreadDirectsNumber: expect.it('to be a string').and('to match', /^\d+$/),
+        unreadNotificationsNumber: expect.it('to be a number'),
+        subscribers: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items exhaustively satisfying', schema.user),
+        subscriptions: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items satisfying', schema.UUID),
+        preferences: expect.it('to satisfy', (data) =>
+          expect(validateUserPrefs(data), 'to be an object'),
+        ),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {
-        users:         thisUserSchema,
-        subscribers:   expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.userOrGroup),
-        subscriptions: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', {
-          id:   expect.it('to satisfy', schema.UUID),
-          name: expect.it('to be a string'),
-          user: expect.it('to be a string'),
-        }),
-        requests:      expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', schema.userOrGroup),
-        managedGroups: expect.it('to be an array').and('to be empty').or('to have items exhaustively satisfying', managedGroupSchema),
+        users: thisUserSchema,
+        subscribers: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items exhaustively satisfying', schema.userOrGroup),
+        subscriptions: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items exhaustively satisfying', {
+            id: expect.it('to satisfy', schema.UUID),
+            name: expect.it('to be a string'),
+            user: expect.it('to be a string'),
+          }),
+        requests: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items exhaustively satisfying', schema.userOrGroup),
+        managedGroups: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items exhaustively satisfying', managedGroupSchema),
       });
     });
 
@@ -182,10 +201,11 @@ describe('UsersControllerV2', () => {
       });
 
       it('should return subscribers ordered by subscription time (most recent first)', async () => {
-        const { users: { subscribers } } = await fetch(
-          `${app.context.config.host}/v2/users/whoami`,
-          { headers: { 'X-Authentication-Token': user.authToken } }
-        ).then((r) => r.json());
+        const {
+          users: { subscribers },
+        } = await fetch(`${app.context.config.host}/v2/users/whoami`, {
+          headers: { 'X-Authentication-Token': user.authToken },
+        }).then((r) => r.json());
         const subscribersIds = subscribers.map((s) => s.id);
         const readersIds = readers.map((fr) => fr.user.id);
         readersIds.reverse();
@@ -208,10 +228,9 @@ describe('UsersControllerV2', () => {
       });
 
       it('should return subscriptions ordered by subscription time (most recent first)', async () => {
-        const { subscriptions:feeds } = await fetch(
-          `${app.context.config.host}/v2/users/whoami`,
-          { headers: { 'X-Authentication-Token': user.authToken } }
-        ).then((r) => r.json());
+        const { subscriptions: feeds } = await fetch(`${app.context.config.host}/v2/users/whoami`, {
+          headers: { 'X-Authentication-Token': user.authToken },
+        }).then((r) => r.json());
         const feedOwnerIds = feeds.map((f) => f.user);
         const friendsIds = friends.map((fr) => fr.user.id);
         friendsIds.reverse();
@@ -231,16 +250,18 @@ describe('UsersControllerV2', () => {
       it(`should return proper group info in whoami`, async () => {
         const resp = await performJSONRequest('GET', '/v2/users/whoami', null, authHeaders(luna));
         expect(resp, 'to satisfy', {
-          subscribers: [{
-            id:           celestials.group.id,
-            isPrivate:    '0',
-            isProtected:  '0',
-            isRestricted: '0',
-          }]
+          subscribers: [
+            {
+              id: celestials.group.id,
+              isPrivate: '0',
+              isProtected: '0',
+              isRestricted: '0',
+            },
+          ],
         });
       });
     });
-  })
+  });
 
   describe('Backend preferences', () => {
     let luna;
@@ -267,7 +288,7 @@ describe('UsersControllerV2', () => {
       const res = await updateUserAsync(luna, { preferences });
       expect(res, 'to satisfy', { status: 422 });
     });
-  })
+  });
 
   describe('"acceptsDirects" flag', () => {
     let luna, mars;
@@ -363,7 +384,10 @@ describe('UsersControllerV2', () => {
       ctx.status = 200;
       ctx.response.type = 'image/gif';
       // 1x1 transparent gif
-      ctx.body = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+      ctx.body = Buffer.from(
+        'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+        'base64',
+      );
     });
 
     before(() => server.start());
@@ -377,9 +401,10 @@ describe('UsersControllerV2', () => {
 
     it('should set profile picture by URL', async () => {
       const resp = await performJSONRequest(
-        'POST', '/v1/users/updateProfilePicture',
+        'POST',
+        '/v1/users/updateProfilePicture',
         { url: `${server.origin}/image.gif` },
-        { Authorization: `Bearer ${luna.authToken}` }
+        { Authorization: `Bearer ${luna.authToken}` },
       );
 
       expect(resp, 'to satisfy', { __httpCode: 200, message: expect.it('to be a string') });
@@ -387,9 +412,10 @@ describe('UsersControllerV2', () => {
 
     it('should set group profile picture by URL', async () => {
       const resp = await performJSONRequest(
-        'POST', '/v1/groups/selenites/updateProfilePicture',
+        'POST',
+        '/v1/groups/selenites/updateProfilePicture',
         { url: `${server.origin}/image.gif` },
-        { Authorization: `Bearer ${luna.authToken}` }
+        { Authorization: `Bearer ${luna.authToken}` },
       );
 
       expect(resp, 'to satisfy', { __httpCode: 200, message: expect.it('to be a string') });
@@ -399,13 +425,13 @@ describe('UsersControllerV2', () => {
   describe('create user with different parameters', () => {
     it('should create user with custom screenName', async () => {
       const resp = await performJSONRequest('POST', '/v1/users', {
-        username:   'marcus',
-        password:   'password',
+        username: 'marcus',
+        password: 'password',
         screenName: 'Marcus Antonius',
       });
       expect(resp, 'to satisfy', {
         __httpCode: 200,
-        users:      { username: 'marcus', screenName: 'Marcus Antonius' },
+        users: { username: 'marcus', screenName: 'Marcus Antonius' },
       });
     });
 
@@ -414,7 +440,10 @@ describe('UsersControllerV2', () => {
         ctx.status = 200;
         ctx.response.type = 'image/gif';
         // 1x1 transparent gif
-        ctx.body = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+        ctx.body = Buffer.from(
+          'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+          'base64',
+        );
       });
 
       before(() => server.start());
@@ -422,13 +451,13 @@ describe('UsersControllerV2', () => {
 
       it('should create user with profile picture by URL', async () => {
         const resp = await performJSONRequest('POST', '/v1/users', {
-          username:          'luna',
-          password:          'password',
+          username: 'luna',
+          password: 'password',
           profilePictureURL: `${server.origin}/image.gif`,
         });
         expect(resp, 'to satisfy', {
           __httpCode: 200,
-          users:      { username: 'luna', profilePictureLargeUrl: expect.it('to be a string') },
+          users: { username: 'luna', profilePictureLargeUrl: expect.it('to be a string') },
         });
       });
     });
@@ -466,41 +495,78 @@ describe('UsersControllerV2', () => {
     });
 
     it(`should return subscribers to other user in IDs order`, async () => {
-      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscribers`, null, authHeaders(others[0]));
+      const resp = await performJSONRequest(
+        'GET',
+        `/v1/users/${user.username}/subscribers`,
+        null,
+        authHeaders(others[0]),
+      );
       expect(resp, 'to satisfy', { subscribers: othersByIds.map((u) => ({ id: u.user.id })) });
     });
 
     it(`should return subscribers to user themself in reverse time order`, async () => {
-      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscribers`,
-        null, authHeaders(user));
+      const resp = await performJSONRequest(
+        'GET',
+        `/v1/users/${user.username}/subscribers`,
+        null,
+        authHeaders(user),
+      );
       expect(resp, 'to satisfy', { subscribers: others.map((u) => ({ id: u.user.id })) });
     });
 
     it(`should return subscriptions to anonymous in IDs order`, async () => {
       const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscriptions`);
       const subscriptionsUsers = uniq(resp.subscriptions.map((s) => s.user));
-      expect(subscriptionsUsers, 'to satisfy', othersByIds.map((u) => u.user.id));
+      expect(
+        subscriptionsUsers,
+        'to satisfy',
+        othersByIds.map((u) => u.user.id),
+      );
     });
 
     it(`should return subscriptions to other user in IDs order`, async () => {
-      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscriptions`, null, authHeaders(others[0]));
+      const resp = await performJSONRequest(
+        'GET',
+        `/v1/users/${user.username}/subscriptions`,
+        null,
+        authHeaders(others[0]),
+      );
       const subscriptionsUsers = uniq(resp.subscriptions.map((s) => s.user));
-      expect(subscriptionsUsers, 'to satisfy', othersByIds.map((u) => u.user.id));
+      expect(
+        subscriptionsUsers,
+        'to satisfy',
+        othersByIds.map((u) => u.user.id),
+      );
     });
 
     it(`should return subscriptions to user themself in reverse time order`, async () => {
-      const resp = await performJSONRequest('GET', `/v1/users/${user.username}/subscriptions`,
-        null, authHeaders(user));
+      const resp = await performJSONRequest(
+        'GET',
+        `/v1/users/${user.username}/subscriptions`,
+        null,
+        authHeaders(user),
+      );
       const subscriptionsUsers = uniq(resp.subscriptions.map((s) => s.user));
-      expect(subscriptionsUsers, 'to satisfy', others.map((u) => u.user.id));
+      expect(
+        subscriptionsUsers,
+        'to satisfy',
+        others.map((u) => u.user.id),
+      );
     });
 
     it(`should return home/subscriptions to user themself in reverse time order`, async () => {
-      const resp = await performJSONRequest('GET', `/v2/timelines/home/subscriptions`,
-        null, authHeaders(user)
+      const resp = await performJSONRequest(
+        'GET',
+        `/v2/timelines/home/subscriptions`,
+        null,
+        authHeaders(user),
       );
 
-      expect(resp.usersInHomeFeeds, 'to satisfy', others.map((u) => ({ id: u.user.id })));
+      expect(
+        resp.usersInHomeFeeds,
+        'to satisfy',
+        others.map((u) => ({ id: u.user.id })),
+      );
     });
   });
 

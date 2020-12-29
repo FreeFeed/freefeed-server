@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import expect from 'unexpected'
+import expect from 'unexpected';
 
-import cleanDB from '../../../dbCleaner'
+import cleanDB from '../../../dbCleaner';
 import {
   dbAdapter,
   User,
@@ -10,8 +10,7 @@ import {
   HOMEFEED_MODE_FRIENDS_ONLY,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   HOMEFEED_MODE_CLASSIC,
-} from '../../../../app/models'
-
+} from '../../../../app/models';
 
 describe('Post getRiverOfNewsTimelines method', () => {
   describe('Luna subscribed to Mars and Selenites and not subscribed to Venus and Celestials', () => {
@@ -23,15 +22,8 @@ describe('Post getRiverOfNewsTimelines method', () => {
       venus = new User({ username: 'venus', password: 'pw' });
       selenites = new Group({ username: 'selenites' });
       celestials = new Group({ username: 'celestials' });
-      await Promise.all([
-        luna.create(),
-        mars.create(),
-        venus.create(),
-      ]);
-      await Promise.all([
-        selenites.create(luna.id),
-        celestials.create(venus.id),
-      ]);
+      await Promise.all([luna.create(), mars.create(), venus.create()]);
+      await Promise.all([selenites.create(luna.id), celestials.create(venus.id)]);
 
       // Luna subscribed to Mars and Selenites
       await luna.subscribeTo(mars);
@@ -42,15 +34,18 @@ describe('Post getRiverOfNewsTimelines method', () => {
       const post = await createPost(mars);
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ONLY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_CLASSIC),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
     });
 
@@ -58,15 +53,18 @@ describe('Post getRiverOfNewsTimelines method', () => {
       const post = await createPost(venus, [selenites]);
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ONLY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_CLASSIC),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
     });
 
@@ -76,15 +74,18 @@ describe('Post getRiverOfNewsTimelines method', () => {
       post = await reloadPost(post);
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ONLY),
-        'not to have an item satisfying', { userId: luna.id },
+        'not to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_CLASSIC),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
     });
 
@@ -94,15 +95,18 @@ describe('Post getRiverOfNewsTimelines method', () => {
       post = await reloadPost(post);
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ONLY),
-        'not to have an item satisfying', { userId: luna.id },
+        'not to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_CLASSIC),
-        'not to have an item satisfying', { userId: luna.id },
+        'not to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
     });
 
@@ -110,15 +114,18 @@ describe('Post getRiverOfNewsTimelines method', () => {
       const post = await createPost(mars, [celestials]);
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ONLY),
-        'not to have an item satisfying', { userId: luna.id },
+        'not to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_CLASSIC),
-        'not to have an item satisfying', { userId: luna.id },
+        'not to have an item satisfying',
+        { userId: luna.id },
       );
       expect(
         await post.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY),
-        'to have an item satisfying', { userId: luna.id },
+        'to have an item satisfying',
+        { userId: luna.id },
       );
     });
   });

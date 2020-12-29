@@ -13,20 +13,24 @@ import { dbAdapter } from '../../models';
  */
 export function targetUserRequired(mapping = { username: 'targetUser' }) {
   return async (ctx, next) => {
-    await Promise.all(Object.keys(mapping).map(async (key) => {
-      if (!ctx.params[key]) {
-        throw new ServerErrorException(`Server misconfiguration: the required parameter '${key}' is missing`);
-      }
+    await Promise.all(
+      Object.keys(mapping).map(async (key) => {
+        if (!ctx.params[key]) {
+          throw new ServerErrorException(
+            `Server misconfiguration: the required parameter '${key}' is missing`,
+          );
+        }
 
-      const { [key]: username } = ctx.params;
-      const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+        const { [key]: username } = ctx.params;
+        const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
 
-      if (!targetUser) {
-        throw new NotFoundException(`User "${username}" is not found`);
-      }
+        if (!targetUser) {
+          throw new NotFoundException(`User "${username}" is not found`);
+        }
 
-      ctx.state[mapping[key]] = targetUser;
-    }));
+        ctx.state[mapping[key]] = targetUser;
+      }),
+    );
     await next();
   };
 }

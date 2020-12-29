@@ -1,4 +1,8 @@
-import { ServerErrorException, NotFoundException, ForbiddenException } from '../../support/exceptions';
+import {
+  ServerErrorException,
+  NotFoundException,
+  ForbiddenException,
+} from '../../support/exceptions';
 import { dbAdapter, Comment } from '../../models';
 
 import { postAccessRequired } from './post-access-required';
@@ -13,7 +17,9 @@ export function commentAccessRequired() {
     const { user: viewer } = ctx.state;
 
     if (!ctx.params.commentId) {
-      throw new ServerErrorException(`Server misconfiguration: the required parameter 'commentId' is missing`);
+      throw new ServerErrorException(
+        `Server misconfiguration: the required parameter 'commentId' is missing`,
+      );
     }
 
     const { commentId } = ctx.params;
@@ -25,7 +31,9 @@ export function commentAccessRequired() {
 
     // Check post access first and then the comment access
     ctx.params.postId = comment.postId;
-    await new Promise((resolve, reject) => postAccessRequired()(ctx, resolve).then((x) => x, reject));
+    await new Promise((resolve, reject) =>
+      postAccessRequired()(ctx, resolve).then((x) => x, reject),
+    );
 
     const viewerBanIds = viewer ? await viewer.getBanIds() : [];
 
