@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import cacheManager from 'cache-manager'
-import redisStore from 'cache-manager-ioredis'
+import cacheManager from 'cache-manager';
+import redisStore from 'cache-manager-ioredis';
 import { promisifyAll } from 'bluebird';
 import config from 'config';
 
@@ -36,7 +36,6 @@ import nowTrait from './now';
 import jobsTrait from './jobs';
 import authSessionsTrait from './auth-sessions';
 
-
 class DbAdapterBase {
   constructor(database) {
     this.database = withDbHelpers(database);
@@ -47,10 +46,10 @@ class DbAdapterBase {
     this.memoryCache = cacheManager.caching({ store: 'memory', max: 5000, ttl: CACHE_TTL });
     this.cache = cacheManager.caching({
       store: redisStore,
-      host:  config.redis.host,
-      port:  config.redis.port,
-      db:    config.database,
-      ttl:   CACHE_TTL,
+      host: config.redis.host,
+      port: config.redis.port,
+      db: config.database,
+      ttl: CACHE_TTL,
     });
 
     promisifyAll(this.cache);

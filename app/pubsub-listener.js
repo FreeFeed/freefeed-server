@@ -25,11 +25,14 @@ import { dbAdapter, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
-import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
+import {
+  HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
+  HOMEFEED_MODE_CLASSIC,
+  HOMEFEED_MODE_FRIENDS_ONLY,
+} from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
-
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
@@ -44,12 +47,12 @@ export default class PubsubListener {
     const pubClient = new Redis({
       host: config.redis.host,
       port: config.redis.port,
-      db:   config.database,
+      db: config.database,
     });
     const subClient = new Redis({
       host: config.redis.host,
       port: config.redis.port,
-      db:   config.database,
+      db: config.database,
     });
 
     this.io = IoServer(server);
@@ -80,7 +83,7 @@ export default class PubsubListener {
     const redisClient = new Redis({
       host: config.redis.host,
       port: config.redis.port,
-      db:   config.database,
+      db: config.database,
     });
     redisClient.on('error', (err) => {
       if (sentryIsEnabled) {
@@ -130,21 +133,21 @@ export default class PubsubListener {
             if (!t) {
               throw new EventHandlingError(
                 `attempt to subscribe to nonexistent timeline`,
-                `User ${socket.userId} attempted to subscribe to nonexistent timeline (ID=${objId})`
+                `User ${socket.userId} attempted to subscribe to nonexistent timeline (ID=${objId})`,
               );
             }
 
             if (t.isPersonal() && t.userId !== socket.userId) {
               throw new EventHandlingError(
                 `attempt to subscribe to someone else's '${t.name}' timeline`,
-                `User ${socket.userId} attempted to subscribe to '${t.name}' timeline (ID=${objId}) belonging to user ${t.userId}`
+                `User ${socket.userId} attempted to subscribe to '${t.name}' timeline (ID=${objId}) belonging to user ${t.userId}`,
               );
             }
           } else if (channelType === 'user') {
             if (objId !== socket.userId) {
               throw new EventHandlingError(
                 `attempt to subscribe to someone else's '${channelType}' channel`,
-                `User ${socket.userId} attempted to subscribe to someone else's '${channelType}' channel (ID=${objId})`
+                `User ${socket.userId} attempted to subscribe to someone else's '${channelType}' channel (ID=${objId})`,
               );
             }
           }
@@ -176,16 +179,21 @@ export default class PubsubListener {
         const channelIds = data[channelType];
 
         if (!isArray(channelIds)) {
-          throw new EventHandlingError(`List of ${channelType} ids has to be an array`, `got bogus channel list`);
+          throw new EventHandlingError(
+            `List of ${channelType} ids has to be an array`,
+            `got bogus channel list`,
+          );
         }
 
         roomsToLeave.push(...channelIds.filter(Boolean).map((id) => `${channelType}:${id}`));
       }
 
-      await Promise.all(roomsToLeave.map(async (room) => {
-        await socket.leaveAsync(room);
-        debug(`${debugPrefix}: successfully unsubscribed from ${room}`);
-      }));
+      await Promise.all(
+        roomsToLeave.map(async (room) => {
+          await socket.leaveAsync(room);
+          debug(`${debugPrefix}: successfully unsubscribed from ${room}`);
+        }),
+      );
 
       const rooms = buildGroupedListOfSubscriptions(socket);
       return { rooms };
@@ -196,21 +204,21 @@ export default class PubsubListener {
     const messageRoutes = {
       [eventNames.USER_UPDATE]: this.onUserUpdate,
 
-      [eventNames.POST_CREATED]:   this.onPostNew,
-      [eventNames.POST_UPDATED]:   this.onPostUpdate,
+      [eventNames.POST_CREATED]: this.onPostNew,
+      [eventNames.POST_UPDATED]: this.onPostUpdate,
       [eventNames.POST_DESTROYED]: this.onPostDestroy,
-      [eventNames.POST_HIDDEN]:    this.onPostHide,
-      [eventNames.POST_UNHIDDEN]:  this.onPostUnhide,
-      [eventNames.POST_SAVED]:     this.onPostSave,
-      [eventNames.POST_UNSAVED]:   this.onPostUnsave,
+      [eventNames.POST_HIDDEN]: this.onPostHide,
+      [eventNames.POST_UNHIDDEN]: this.onPostUnhide,
+      [eventNames.POST_SAVED]: this.onPostSave,
+      [eventNames.POST_UNSAVED]: this.onPostUnsave,
 
-      [eventNames.COMMENT_CREATED]:   this.onCommentNew,
-      [eventNames.COMMENT_UPDATED]:   this.onCommentUpdate,
+      [eventNames.COMMENT_CREATED]: this.onCommentNew,
+      [eventNames.COMMENT_UPDATED]: this.onCommentUpdate,
       [eventNames.COMMENT_DESTROYED]: this.onCommentDestroy,
 
-      [eventNames.LIKE_ADDED]:           this.onLikeNew,
-      [eventNames.LIKE_REMOVED]:         this.onLikeRemove,
-      [eventNames.COMMENT_LIKE_ADDED]:   this.onCommentLikeNew,
+      [eventNames.LIKE_ADDED]: this.onLikeNew,
+      [eventNames.LIKE_REMOVED]: this.onLikeRemove,
+      [eventNames.COMMENT_LIKE_ADDED]: this.onCommentLikeNew,
       [eventNames.COMMENT_LIKE_REMOVED]: this.onCommentLikeRemove,
 
       [eventNames.GLOBAL_USER_UPDATED]: this.onGlobalUserUpdate,
@@ -233,8 +241,9 @@ export default class PubsubListener {
       return;
     }
 
-    let destSockets = Object.values(this.io.sockets.connected)
-      .filter((socket) => rooms.some((r) => r in socket.rooms));
+    let destSockets = Object.values(this.io.sockets.connected).filter((socket) =>
+      rooms.some((r) => r in socket.rooms),
+    );
 
     if (destSockets.length === 0) {
       return;
@@ -252,8 +261,8 @@ export default class PubsubListener {
           const newUserIds = List.intersection(json.newUserIds, userIds).items;
           const newUserRooms = flatten(
             destSockets
-              .filter((s) => newUserIds.includes((s.userId)))
-              .map((s) => Object.keys(s.rooms))
+              .filter((s) => newUserIds.includes(s.userId))
+              .map((s) => Object.keys(s.rooms)),
           );
 
           await this.broadcastMessage(
@@ -275,8 +284,8 @@ export default class PubsubListener {
           const removedUserIds = List.intersection(json.removedUserIds, userIds).items;
           const removedUserRooms = flatten(
             destSockets
-              .filter((s) => removedUserIds.includes((s.userId)))
-              .map((s) => Object.keys(s.rooms))
+              .filter((s) => removedUserIds.includes(s.userId))
+              .map((s) => Object.keys(s.rooms)),
           );
 
           await this.broadcastMessage(
@@ -297,47 +306,49 @@ export default class PubsubListener {
 
     const bansMap = await dbAdapter.getUsersBansIdsMap(userIds);
 
-    await Promise.all(destSockets.map(async (socket) => {
-      const { userId } = socket;
-      // We may need to change the json data, so we create a deep copy for this
-      // socket.
-      const data = cloneDeep(json);
+    await Promise.all(
+      destSockets.map(async (socket) => {
+        const { userId } = socket;
+        // We may need to change the json data, so we create a deep copy for this
+        // socket.
+        const data = cloneDeep(json);
 
-      // Bans
-      if (post && userId) {
-        const banIds = bansMap.get(userId) || [];
+        // Bans
+        if (post && userId) {
+          const banIds = bansMap.get(userId) || [];
 
-        if (
-          ((type === eventNames.COMMENT_UPDATED) && banIds.includes(data.comments.createdBy))
-          || ((type === eventNames.LIKE_ADDED) && banIds.includes(data.users.id))
-          || ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
-            (banIds.includes(data.comments.createdBy) || banIds.includes(data.comments.userId)))
-        ) {
-          return;
-        }
-
-        // A very special case: comment author is banned, but the viewer chooses
-        // to see such comments as placeholders.
-        if (type === eventNames.COMMENT_CREATED && banIds.includes(data.comments.createdBy)) {
-          const user = await dbAdapter.getUserById(userId);
-
-          if (user.getHiddenCommentTypes().includes(Comment.HIDDEN_BANNED)) {
+          if (
+            (type === eventNames.COMMENT_UPDATED && banIds.includes(data.comments.createdBy)) ||
+            (type === eventNames.LIKE_ADDED && banIds.includes(data.users.id)) ||
+            ((type === eventNames.COMMENT_LIKE_ADDED || type === eventNames.COMMENT_LIKE_REMOVED) &&
+              (banIds.includes(data.comments.createdBy) || banIds.includes(data.comments.userId)))
+          ) {
             return;
           }
 
-          const { createdBy } = data.comments;
-          data.comments.hideType = Comment.HIDDEN_BANNED;
-          data.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
-          data.comments.createdBy = null;
-          data.users = data.users.filter((u) => u.id !== createdBy);
-          data.admins = data.admins.filter((u) => u.id !== createdBy);
+          // A very special case: comment author is banned, but the viewer chooses
+          // to see such comments as placeholders.
+          if (type === eventNames.COMMENT_CREATED && banIds.includes(data.comments.createdBy)) {
+            const user = await dbAdapter.getUserById(userId);
+
+            if (user.getHiddenCommentTypes().includes(Comment.HIDDEN_BANNED)) {
+              return;
+            }
+
+            const { createdBy } = data.comments;
+            data.comments.hideType = Comment.HIDDEN_BANNED;
+            data.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+            data.comments.createdBy = null;
+            data.users = data.users.filter((u) => u.id !== createdBy);
+            data.admins = data.admins.filter((u) => u.id !== createdBy);
+          }
         }
-      }
 
-      const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
+        const realtimeChannels = intersection(rooms, Object.values(socket.rooms));
 
-      await emitter(socket, type, { ...data, realtimeChannels });
-    }));
+        await emitter(socket, type, { ...data, realtimeChannels });
+      }),
+    );
   }
 
   onUserUpdate = async (data) => {
@@ -376,13 +387,7 @@ export default class PubsubListener {
       json.removedUserIds = List.difference(usersBeforeIds, currentUserIds);
     }
 
-    await this.broadcastMessage(
-      rooms,
-      eventNames.POST_UPDATED,
-      json,
-      post,
-      this._postEventEmitter,
-    );
+    await this.broadcastMessage(rooms, eventNames.POST_UPDATED, json, post, this._postEventEmitter);
   };
 
   onCommentNew = async ({ commentId }) => {
@@ -419,10 +424,7 @@ export default class PubsubListener {
   };
 
   onLikeNew = async ({ userId, postId }) => {
-    const [
-      user,
-      post,
-    ] = await Promise.all([
+    const [user, post] = await Promise.all([
       await dbAdapter.getUserById(userId),
       await dbAdapter.getPostById(postId),
     ]);
@@ -493,58 +495,56 @@ export default class PubsubListener {
     await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_REMOVED);
   };
 
-  onGlobalUserUpdate = (userId) => this.broadcastMessage(
-    ['global:users'], eventNames.GLOBAL_USER_UPDATED, null, null,
-    async (socket, type, json) => {
-      const [user] = await serializeUsersByIds([userId], true, socket.userId);
-      await socket.emit(type, { ...json, user });
-    }
-  );
+  onGlobalUserUpdate = (userId) =>
+    this.broadcastMessage(
+      ['global:users'],
+      eventNames.GLOBAL_USER_UPDATED,
+      null,
+      null,
+      async (socket, type, json) => {
+        const [user] = await serializeUsersByIds([userId], true, socket.userId);
+        await socket.emit(type, { ...json, user });
+      },
+    );
 
   onGroupTimesUpdate = async ({ groupIds }) => {
-    const groups = (await dbAdapter.getFeedOwnersByIds(groupIds))
-      .filter((g) => g.isGroup());
+    const groups = (await dbAdapter.getFeedOwnersByIds(groupIds)).filter((g) => g.isGroup());
 
     if (groups.length === 0) {
       return;
     }
 
     groupIds = groups.map((g) => g.id);
-    const feedIds = (await dbAdapter.getUsersNamedTimelines(groupIds, 'Posts'))
-      .map((f) => f.id);
+    const feedIds = (await dbAdapter.getUsersNamedTimelines(groupIds, 'Posts')).map((f) => f.id);
 
-    const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds))
-      .map((id) => `user:${id}`);
-
-    await this.broadcastMessage(
-      rooms, 'user:update', null, null,
-      async (socket, type, json) => {
-        if (!socket.userId) {
-          return;
-        }
-
-        let isSubscribed = [true];
-
-        if (groupIds.length > 1) {
-          // User probably not subscribed to all of these groups
-          isSubscribed = await Promise.all(feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.userId, id)));
-        }
-
-        const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
-
-        const updatedGroups = await serializeUsersByIds(
-          subscribedGroupIds,
-          true,
-          socket.userId,
-        );
-
-        await socket.emit(type, {
-          ...json,
-          updatedGroups: updatedGroups.slice(0, subscribedGroupIds.length),
-          id:            socket.userId,
-        });
-      }
+    const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds)).map(
+      (id) => `user:${id}`,
     );
+
+    await this.broadcastMessage(rooms, 'user:update', null, null, async (socket, type, json) => {
+      if (!socket.userId) {
+        return;
+      }
+
+      let isSubscribed = [true];
+
+      if (groupIds.length > 1) {
+        // User probably not subscribed to all of these groups
+        isSubscribed = await Promise.all(
+          feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.userId, id)),
+        );
+      }
+
+      const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
+
+      const updatedGroups = await serializeUsersByIds(subscribedGroupIds, true, socket.userId);
+
+      await socket.emit(type, {
+        ...json,
+        updatedGroups: updatedGroups.slice(0, subscribedGroupIds.length),
+        id: socket.userId,
+      });
+    });
   };
 
   // Helpers
@@ -573,7 +573,7 @@ export default class PubsubListener {
     const commentUUID = json.comments.id;
     const viewerId = socket.userId;
     const [
-      commentLikesData = { c_likes: 0, has_own_like: false }
+      commentLikesData = { c_likes: 0, has_own_like: false },
     ] = await dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
@@ -586,18 +586,23 @@ export default class PubsubListener {
     defaultEmitter(socket, type, { ...json, realtimeChannels });
   };
 
-
   /**
    * Emits message only to the specified user
    */
   _singleUserEmitter = (userId) => (socket, type, json) =>
-    (socket.userId === userId) && defaultEmitter(socket, type, json);
+    socket.userId === userId && defaultEmitter(socket, type, json);
 
   _withUserIdEmitter = (socket, type, json) =>
     socket.userId && defaultEmitter(socket, type, { ...json, id: socket.userId });
 
   async _insertCommentLikesInfo(postPayload, viewerUUID) {
-    postPayload.posts = { ...postPayload.posts, commentLikes: 0, ownCommentLikes: 0, omittedCommentLikes: 0, omittedOwnCommentLikes: 0 };
+    postPayload.posts = {
+      ...postPayload.posts,
+      commentLikes: 0,
+      ownCommentLikes: 0,
+      omittedCommentLikes: 0,
+      omittedOwnCommentLikes: 0,
+    };
 
     const commentIds = postPayload.posts.comments;
 
@@ -607,57 +612,59 @@ export default class PubsubListener {
 
     const [commentLikesData, [commentLikesForPost]] = await Promise.all([
       dbAdapter.getLikesInfoForComments(commentIds, viewerUUID),
-      dbAdapter.getLikesInfoForPosts([postPayload.posts.id], viewerUUID)
+      dbAdapter.getLikesInfoForPosts([postPayload.posts.id], viewerUUID),
     ]);
 
     const commentLikes = keyBy(commentLikesData, 'uid');
     postPayload.comments = postPayload.comments.map((comment) => {
-      comment.likes      = 0;
+      comment.likes = 0;
       comment.hasOwnLike = false;
 
       if (commentLikes[comment.id]) {
-        comment.likes      = parseInt(commentLikes[comment.id].c_likes);
+        comment.likes = parseInt(commentLikes[comment.id].c_likes);
         comment.hasOwnLike = commentLikes[comment.id].has_own_like;
       }
 
       return comment;
     });
 
-    postPayload.posts.commentLikes    = parseInt(commentLikesForPost.post_c_likes_count);
+    postPayload.posts.commentLikes = parseInt(commentLikesForPost.post_c_likes_count);
     postPayload.posts.ownCommentLikes = parseInt(commentLikesForPost.own_c_likes_count);
 
     if (postPayload.posts.commentLikes == 0) {
       return postPayload;
     }
 
-    postPayload.posts.omittedCommentLikes    = postPayload.posts.commentLikes;
+    postPayload.posts.omittedCommentLikes = postPayload.posts.commentLikes;
     postPayload.posts.omittedOwnCommentLikes = postPayload.posts.ownCommentLikes;
 
     for (const comment of postPayload.comments) {
-      postPayload.posts.omittedCommentLikes     -= comment.likes;
-      postPayload.posts.omittedOwnCommentLikes  -= comment.hasOwnLike * 1;
+      postPayload.posts.omittedCommentLikes -= comment.likes;
+      postPayload.posts.omittedOwnCommentLikes -= comment.hasOwnLike * 1;
     }
 
     return postPayload;
   }
 
   reAuthorizeSockets() {
-    return Promise.all(Object.values(this.io.sockets.connected)
-      .filter((socket) => !!socket.authToken)
-      .map(async (socket) => {
-        let userId = null;
+    return Promise.all(
+      Object.values(this.io.sockets.connected)
+        .filter((socket) => !!socket.authToken)
+        .map(async (socket) => {
+          let userId = null;
 
-        try {
-          userId = await getAuthUserId(socket.authToken, socket);
-        } catch (e) {
-          // pass
-        }
+          try {
+            userId = await getAuthUserId(socket.authToken, socket);
+          } catch (e) {
+            // pass
+          }
 
-        if (!userId) {
-          socket.authTokenData = null;
-          socket.userId = null;
-        }
-      }));
+          if (!userId) {
+            socket.authTokenData = null;
+            socket.userId = null;
+          }
+        }),
+    );
   }
 }
 
@@ -680,11 +687,7 @@ export async function getRoomsOfPost(post) {
     return [];
   }
 
-  const [
-    postFeeds,
-    myDiscussionsFeeds,
-    riverOfNewsFeedsByModes,
-  ] = await Promise.all([
+  const [postFeeds, myDiscussionsFeeds, riverOfNewsFeedsByModes] = await Promise.all([
     post.getTimelines(),
     post.getMyDiscussionsTimelines(),
     post.getRiverOfNewsTimelinesByModes(),
@@ -693,28 +696,41 @@ export async function getRoomsOfPost(post) {
   const materialFeeds = postFeeds.filter((f) => f.isMaterial());
 
   // All feeds related to post
-  const allFeeds = uniqBy([
-    ...materialFeeds,
-    ...riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY],
-    ...myDiscussionsFeeds
-  ], 'id');
+  const allFeeds = uniqBy(
+    [
+      ...materialFeeds,
+      ...riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY],
+      ...myDiscussionsFeeds,
+    ],
+    'id',
+  );
 
-  const rooms = compact(flatten(allFeeds.map((t) => {
-    if (t.isRiverOfNews()) {
-      const inNarrowMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ONLY].some((f) => f.id === t.id);
-      const inClassicMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_CLASSIC].some((f) => f.id === t.id);
-      return t.isInherent ? [
-        `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`,
-        inClassicMode && `timeline:${t.id}`, // Default mode for inherent feed
-        inClassicMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`,
-        inNarrowMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`,
-      ] : [
-        inNarrowMode && `timeline:${t.id}`, // The only available mode for auxiliary feed
-      ];
-    }
+  const rooms = compact(
+    flatten(
+      allFeeds.map((t) => {
+        if (t.isRiverOfNews()) {
+          const inNarrowMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_FRIENDS_ONLY].some(
+            (f) => f.id === t.id,
+          );
+          const inClassicMode = riverOfNewsFeedsByModes[HOMEFEED_MODE_CLASSIC].some(
+            (f) => f.id === t.id,
+          );
+          return t.isInherent
+            ? [
+                `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY}`,
+                inClassicMode && `timeline:${t.id}`, // Default mode for inherent feed
+                inClassicMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_CLASSIC}`,
+                inNarrowMode && `timeline:${t.id}?homefeed-mode=${HOMEFEED_MODE_FRIENDS_ONLY}`,
+              ]
+            : [
+                inNarrowMode && `timeline:${t.id}`, // The only available mode for auxiliary feed
+              ];
+        }
 
-    return `timeline:${t.id}`;
-  })));
+        return `timeline:${t.id}`;
+      }),
+    ),
+  );
   rooms.push(`post:${post.id}`);
   return rooms;
 }
@@ -753,28 +769,29 @@ class EventHandlingError extends Error {
  * @param {string} event
  * @param {function} handler
  */
-const onSocketEvent = (socket, event, handler) => socket.on(event, async (data, ...extra) => {
-  const debugPrefix = `[socket.id=${socket.id}] '${event}' request`;
-  const callback = isFunction(last(extra)) ? last(extra) : noop;
+const onSocketEvent = (socket, event, handler) =>
+  socket.on(event, async (data, ...extra) => {
+    const debugPrefix = `[socket.id=${socket.id}] '${event}' request`;
+    const callback = isFunction(last(extra)) ? last(extra) : noop;
 
-  try {
-    debug(debugPrefix);
-    const result = await handler(data, debugPrefix);
-    callback({ success: true, ...result });
-  } catch (e) {
-    if (e instanceof EventHandlingError) {
-      debug(`${debugPrefix}: ${e.logMessage}`);
-    } else {
-      debug(`${debugPrefix}: ${e.message}`);
+    try {
+      debug(debugPrefix);
+      const result = await handler(data, debugPrefix);
+      callback({ success: true, ...result });
+    } catch (e) {
+      if (e instanceof EventHandlingError) {
+        debug(`${debugPrefix}: ${e.logMessage}`);
+      } else {
+        debug(`${debugPrefix}: ${e.message}`);
+      }
+
+      if (sentryIsEnabled) {
+        Raven.captureException(e, { extra: { err: `PubsubListener ${event} error` } });
+      }
+
+      callback({ success: false, message: e.message });
     }
-
-    if (sentryIsEnabled) {
-      Raven.captureException(e, { extra: { err: `PubsubListener ${event} error` } });
-    }
-
-    callback({ success: false, message: e.message });
-  }
-});
+  });
 
 async function getAuthUserId(jwtToken, socket) {
   if (!jwtToken) {
@@ -783,13 +800,13 @@ async function getAuthUserId(jwtToken, socket) {
 
   // Fake context
   const ctx = {
-    ip:      socket.handshake.address,
+    ip: socket.handshake.address,
     headers: {
       ...socket.handshake.headers,
       authorization: `Bearer ${jwtToken}`,
     },
     method: 'WS',
-    state:  { matchedRoute: '*' },
+    state: { matchedRoute: '*' },
   };
 
   await withAuthToken(ctx, () => null);

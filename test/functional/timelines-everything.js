@@ -1,12 +1,19 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import expect from 'unexpected'
+import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 
 import * as schema from './schemaV2-helper';
-import { performRequest, createTestUsers, createAndReturnPost, goProtected, goPrivate, unbanUser, banUser } from './functional_test_helper';
-
+import {
+  performRequest,
+  createTestUsers,
+  createAndReturnPost,
+  goProtected,
+  goPrivate,
+  unbanUser,
+  banUser,
+} from './functional_test_helper';
 
 describe('TimelinesControllerV2: Everything', () => {
   // Luna is public, Mars is protected, Venus is private
@@ -15,7 +22,7 @@ describe('TimelinesControllerV2: Everything', () => {
   before(async () => {
     await cleanDB($pg_database);
 
-    ([luna, mars, venus] = await createTestUsers(3));
+    [luna, mars, venus] = await createTestUsers(3);
     await goProtected(mars);
     await goPrivate(venus);
 
@@ -38,7 +45,9 @@ describe('TimelinesControllerV2: Everything', () => {
 
   it('should return public and protected posts to Luna', async () => {
     const resp = await fetchEverything(luna);
-    const nonPrivatePosts = posts.filter((p) => p.createdBy === luna.user.id || p.createdBy === mars.user.id);
+    const nonPrivatePosts = posts.filter(
+      (p) => p.createdBy === luna.user.id || p.createdBy === mars.user.id,
+    );
     expect(resp.posts, 'to equal', nonPrivatePosts);
   });
 
@@ -83,7 +92,7 @@ async function fetchEverything(viewerContext = null) {
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
 
-  const response = await performRequest(`/v2/everything`, {  headers });
+  const response = await performRequest(`/v2/everything`, { headers });
   const feed = await response.json();
 
   // console.log(feed);

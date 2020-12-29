@@ -2,9 +2,8 @@
 /* global $pg_database */
 import expect from 'unexpected';
 
-import cleanDB from '../../dbCleaner'
+import cleanDB from '../../dbCleaner';
 import { User } from '../../../app/models';
-
 
 describe('External authentication profiles', () => {
   let luna, mars;
@@ -14,17 +13,14 @@ describe('External authentication profiles', () => {
     await cleanDB($pg_database);
     luna = new User({ username: 'luna', password: 'pw' });
     mars = new User({ username: 'mars', password: 'pw' });
-    await Promise.all([
-      luna.create(),
-      mars.create(),
-    ]);
+    await Promise.all([luna.create(), mars.create()]);
   });
 
   it('should connect external profile to Luna', async () => {
     const params = {
-      provider:   'facebook',
+      provider: 'facebook',
       externalId: '111',
-      title:      'Luna Lovegood',
+      title: 'Luna Lovegood',
     };
     lunaFBProfile = await luna.addOrUpdateExtProfile(params);
     expect(lunaFBProfile, 'to equal', {
@@ -36,9 +32,9 @@ describe('External authentication profiles', () => {
 
   it('should not allow to Mars to connect to the Luna profile', async () => {
     const params = {
-      provider:   'facebook',
+      provider: 'facebook',
       externalId: '111',
-      title:      'Mark Antony',
+      title: 'Mark Antony',
     };
     const profile = await mars.addOrUpdateExtProfile(params);
     expect(profile, 'to be null');
@@ -46,9 +42,9 @@ describe('External authentication profiles', () => {
 
   it('should allow to Luna to update her profile', async () => {
     const params = {
-      provider:   'facebook',
+      provider: 'facebook',
       externalId: '111',
-      title:      'Luna Maximoff',
+      title: 'Luna Maximoff',
     };
     const prevProfile = lunaFBProfile;
     lunaFBProfile = await luna.addOrUpdateExtProfile(params);
@@ -57,9 +53,9 @@ describe('External authentication profiles', () => {
 
   it('should not allow to add profile from unsupported provider', async () => {
     const params = {
-      provider:   'googleplus',
+      provider: 'googleplus',
       externalId: '111',
-      title:      'Luna Lovegood',
+      title: 'Luna Lovegood',
     };
     const test = luna.addOrUpdateExtProfile(params);
     await expect(test, 'to be rejected with', /not supported/);
@@ -74,9 +70,9 @@ describe('External authentication profiles', () => {
   describe('Luna have another FB profile', () => {
     before(async () => {
       lunaFBProfile2 = await luna.addOrUpdateExtProfile({
-        provider:   'facebook',
+        provider: 'facebook',
         externalId: '112',
-        title:      'Luna Lovegood #2',
+        title: 'Luna Lovegood #2',
       });
       expect(lunaFBProfile2, 'not to be null');
     });

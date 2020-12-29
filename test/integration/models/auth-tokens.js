@@ -8,11 +8,21 @@ import { DateTime } from 'luxon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job, SessionTokenV1, sessionTokenV1Store } from '../../../app/models';
+import {
+  User,
+  SessionTokenV0,
+  AppTokenV1,
+  dbAdapter,
+  Job,
+  SessionTokenV1,
+  sessionTokenV1Store,
+} from '../../../app/models';
 import { initJobProcessing } from '../../../app/jobs';
-import { PERIODIC_CLEAN_AUTH_SESSIONS, PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/auth-tokens';
+import {
+  PERIODIC_CLEAN_AUTH_SESSIONS,
+  PERIODIC_INACTIVATE_APP_TOKENS,
+} from '../../../app/jobs/periodic/auth-tokens';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
-
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -27,7 +37,7 @@ describe('Auth Tokens', () => {
   });
 
   describe('SessionTokenV0', () => {
-    let  token;
+    let token;
 
     before(() => {
       token = new SessionTokenV0(luna.id);
@@ -54,12 +64,12 @@ describe('Auth Tokens', () => {
       let token;
       before(async () => {
         token = await dbAdapter.createAppToken({
-          userId:       luna.id,
-          title:        'My app',
-          scopes:       ['read-my-info', 'manage-posts'],
+          userId: luna.id,
+          title: 'My app',
+          scopes: ['read-my-info', 'manage-posts'],
           restrictions: {
             netmasks: ['127.0.0.1/24'],
-            origins:  ['https://localhost'],
+            origins: ['https://localhost'],
           },
         });
       });
@@ -67,13 +77,21 @@ describe('Auth Tokens', () => {
       it('should load token by id', async () => {
         const t2 = await dbAdapter.getAppTokenById(token.id);
         expect(t2 instanceof AppTokenV1, 'to be true');
-        expect(t2, 'to satisfy', _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']));
+        expect(
+          t2,
+          'to satisfy',
+          _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']),
+        );
       });
 
       it('should load token by id and issue', async () => {
         const t2 = await dbAdapter.getActiveAppTokenByIdAndIssue(token.id, token.issue);
         expect(t2 instanceof AppTokenV1, 'to be true');
-        expect(t2, 'to satisfy', _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']));
+        expect(
+          t2,
+          'to satisfy',
+          _.pick(token, ['id', 'title', 'userId', 'issue', 'scopes', 'restrictions']),
+        );
       });
 
       it('should not load token by id and invalid issue', async () => {
@@ -84,7 +102,7 @@ describe('Auth Tokens', () => {
       it('should inactivate token', async () => {
         const t = await dbAdapter.createAppToken({
           userId: luna.id,
-          title:  'My app',
+          title: 'My app',
         });
         expect(t.isActive, 'to be true');
         await t.inactivate();
@@ -94,7 +112,7 @@ describe('Auth Tokens', () => {
       it('should not load inactive token', async () => {
         const t = await dbAdapter.createAppToken({
           userId: luna.id,
-          title:  'My app',
+          title: 'My app',
         });
         await t.inactivate();
         const t2 = await dbAdapter.getActiveAppTokenByIdAndIssue(t.id, t.issue);
@@ -113,7 +131,7 @@ describe('Auth Tokens', () => {
         const jToken = token.tokenString();
         const decoded = await jwt.verifyAsync(jToken, config.secret);
         expect(decoded, 'to satisfy', {
-          type:   AppTokenV1.TYPE,
+          type: AppTokenV1.TYPE,
           userId: luna.id,
         });
         expect(decoded.userId, 'to be', luna.id);
@@ -137,10 +155,7 @@ describe('Auth Tokens', () => {
 
         await token.registerUsage({ ip, userAgent });
 
-        const [t2, now] = await Promise.all([
-          dbAdapter.getAppTokenById(token.id),
-          dbAdapter.now(),
-        ]);
+        const [t2, now] = await Promise.all([dbAdapter.getAppTokenById(token.id), dbAdapter.now()]);
         expect(t2.lastUsedAt, 'to be close to', now);
         expect(t2.lastIP, 'to be', ip);
         expect(t2.lastUserAgent, 'to be', userAgent);
@@ -151,10 +166,7 @@ describe('Auth Tokens', () => {
 
         await token.registerUsage({ ip });
 
-        const [t2, now] = await Promise.all([
-          dbAdapter.getAppTokenById(token.id),
-          dbAdapter.now(),
-        ]);
+        const [t2, now] = await Promise.all([dbAdapter.getAppTokenById(token.id), dbAdapter.now()]);
         expect(t2.lastUsedAt, 'to be close to', now);
         expect(t2.lastIP, 'to be', ip);
         expect(t2.lastUserAgent, 'to be', '');
@@ -165,13 +177,13 @@ describe('Auth Tokens', () => {
 
         it('should write log entry after POST request', async () => {
           const ctx = {
-            ip:      '127.0.0.127',
-            method:  'POST',
-            url:     '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'POST',
+            url: '/v1/posts',
             headers: {
               'user-agent': 'Lynx browser, Linux',
-              'x-real-ip':  '127.0.0.128',
-              'origin':     'https://localhost',
+              'x-real-ip': '127.0.0.128',
+              origin: 'https://localhost',
             },
             state: { matchedRoute: '/v1/posts' },
           };
@@ -179,24 +191,31 @@ describe('Auth Tokens', () => {
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
-          expect(logRows, 'to satisfy', [{
-            token_id:   token.id,
-            request:    'POST /v1/posts',
-            ip:         '127.0.0.127',
-            user_agent: 'Lynx browser, Linux',
-            extra:      { postId: 'post1', 'x-real-ip': '127.0.0.128' },
-          }]);
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            {
+              id: token.id,
+            },
+          );
+          expect(logRows, 'to satisfy', [
+            {
+              token_id: token.id,
+              request: 'POST /v1/posts',
+              ip: '127.0.0.127',
+              user_agent: 'Lynx browser, Linux',
+              extra: { postId: 'post1', 'x-real-ip': '127.0.0.128' },
+            },
+          ]);
         });
 
         it('should write log entry even with empty user agent', async () => {
           const ctx = {
-            ip:      '127.0.0.127',
-            method:  'POST',
-            url:     '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'POST',
+            url: '/v1/posts',
             headers: {
               'x-real-ip': '127.0.0.128',
-              'origin':    'https://localhost',
+              origin: 'https://localhost',
             },
             state: { matchedRoute: '/v1/posts' },
           };
@@ -204,25 +223,32 @@ describe('Auth Tokens', () => {
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
-          expect(logRows, 'to satisfy', [{
-            token_id:   token.id,
-            request:    'POST /v1/posts',
-            ip:         '127.0.0.127',
-            user_agent: '',
-            extra:      { postId: 'post1', 'x-real-ip': '127.0.0.128' },
-          }]);
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            {
+              id: token.id,
+            },
+          );
+          expect(logRows, 'to satisfy', [
+            {
+              token_id: token.id,
+              request: 'POST /v1/posts',
+              ip: '127.0.0.127',
+              user_agent: '',
+              extra: { postId: 'post1', 'x-real-ip': '127.0.0.128' },
+            },
+          ]);
         });
 
         it('should not write log entry after GET request', async () => {
           const ctx = {
-            ip:      '127.0.0.127',
-            method:  'GET', // <-- here
-            url:     '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'GET', // <-- here
+            url: '/v1/posts',
             headers: {
               'user-agent': 'Lynx browser, Linux',
-              'x-real-ip':  '127.0.0.128',
-              'origin':     'https://localhost',
+              'x-real-ip': '127.0.0.128',
+              origin: 'https://localhost',
             },
             state: { matchedRoute: '/v1/posts' },
           };
@@ -230,28 +256,38 @@ describe('Auth Tokens', () => {
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            {
+              id: token.id,
+            },
+          );
           expect(logRows, 'to be empty');
         });
 
         it('should not write log entry after unsuccessful request', async () => {
           const ctx = {
-            ip:      '127.0.0.127',
-            method:  'POST',
-            url:     '/v1/posts',
+            ip: '127.0.0.127',
+            method: 'POST',
+            url: '/v1/posts',
             headers: {
               'user-agent': 'Lynx browser, Linux',
-              'x-real-ip':  '127.0.0.128',
-              'origin':     'https://localhost',
+              'x-real-ip': '127.0.0.128',
+              origin: 'https://localhost',
             },
-            state:  { matchedRoute: '/v1/posts' },
+            state: { matchedRoute: '/v1/posts' },
             status: 422, // <-- here
           };
 
           ctx.state.appTokenLogPayload = { postId: 'post1' };
           await token.logRequest(ctx);
 
-          const { rows: logRows } = await $pg_database.raw('select * from app_tokens_log where token_id = :id limit 1', { id: token.id });
+          const { rows: logRows } = await $pg_database.raw(
+            'select * from app_tokens_log where token_id = :id limit 1',
+            {
+              id: token.id,
+            },
+          );
           expect(logRows, 'to be empty');
         });
       });
@@ -268,7 +304,7 @@ describe('Auth Tokens', () => {
 
         token = await dbAdapter.createAppToken({
           userId: luna.id,
-          title:  'My app',
+          title: 'My app',
         });
       });
 
@@ -281,7 +317,7 @@ describe('Auth Tokens', () => {
 
         const t = await dbAdapter.createAppToken({
           userId: luna.id,
-          title:  'My app',
+          title: 'My app',
           expiresAt,
         });
         expect(t.expiresAt, 'to be close to', expiresAt);
@@ -291,12 +327,17 @@ describe('Auth Tokens', () => {
 
       it(`should create token with expiresAtSeconds field`, async () => {
         const t = await dbAdapter.createAppToken({
-          userId:           luna.id,
-          title:            'My app',
+          userId: luna.id,
+          title: 'My app',
           expiresAtSeconds: 1000,
         });
         const now = await dbAdapter.now();
-        expect(t, 'to satisfy', { expiresAt: expect.it('to be close to', DateTime.fromJSDate(now).plus({ seconds: 1000 }).toJSDate()) });
+        expect(t, 'to satisfy', {
+          expiresAt: expect.it(
+            'to be close to',
+            DateTime.fromJSDate(now).plus({ seconds: 1000 }).toJSDate(),
+          ),
+        });
 
         await dbAdapter.deleteAppToken(t.id);
       });
@@ -308,12 +349,16 @@ describe('Auth Tokens', () => {
 
       describe('token is expired', () => {
         before(async () => {
-          await dbAdapter.updateAppToken(token.id, { expiresAt: DateTime.local().plus({ days: -1 }).toJSDate() });
+          await dbAdapter.updateAppToken(token.id, {
+            expiresAt: DateTime.local().plus({ days: -1 }).toJSDate(),
+          });
           token = await dbAdapter.getAppTokenById(token.id);
         });
 
         after(async () => {
-          await dbAdapter.updateAppToken(token.id, { expiresAt: DateTime.local().plus({ hours: 1 }).toJSDate() });
+          await dbAdapter.updateAppToken(token.id, {
+            expiresAt: DateTime.local().plus({ hours: 1 }).toJSDate(),
+          });
           token = await dbAdapter.getAppTokenById(token.id);
         });
 
@@ -339,8 +384,8 @@ describe('Auth Tokens', () => {
         await luna.create();
 
         token = await dbAdapter.createAppToken({
-          userId:           luna.id,
-          title:            'My app',
+          userId: luna.id,
+          title: 'My app',
           expiresAtSeconds: 0,
         });
 
@@ -381,8 +426,8 @@ describe('Auth Tokens', () => {
         await luna.create();
 
         token = await dbAdapter.createAppToken({
-          userId:           luna.id,
-          title:            'My app',
+          userId: luna.id,
+          title: 'My app',
           expiresAtSeconds: 100,
         });
       });
@@ -419,12 +464,12 @@ describe('Auth Tokens', () => {
       const now = await dbAdapter.now();
       expect(session instanceof SessionTokenV1, 'to be true');
       expect(session, 'to satisfy', {
-        userId:       luna.id,
-        issue:        1,
-        status:       ACTIVE,
-        createdAt:    expect.it('to be close to', now),
-        updatedAt:    expect.it('to be close to', now),
-        lastUsedAt:   expect.it('to be close to', now),
+        userId: luna.id,
+        issue: 1,
+        status: ACTIVE,
+        createdAt: expect.it('to be close to', now),
+        updatedAt: expect.it('to be close to', now),
+        lastUsedAt: expect.it('to be close to', now),
         databaseTime: expect.it('to be close to', now),
       });
     });
@@ -485,7 +530,8 @@ describe('Auth Tokens', () => {
 
         await dbAdapter.database.raw(
           `update auth_sessions set updated_at = now() - :time * '1 day'::interval where uid = :uid`,
-          { uid: session2.id, time: config.authSessions.activeSessionTTLDays + 1 });
+          { uid: session2.id, time: config.authSessions.activeSessionTTLDays + 1 },
+        );
 
         jobManager = await initJobProcessing();
       });

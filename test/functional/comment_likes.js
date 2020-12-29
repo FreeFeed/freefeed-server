@@ -1,15 +1,15 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 
-import fetch from 'node-fetch'
-import expect from 'unexpected'
+import fetch from 'node-fetch';
+import expect from 'unexpected';
 import { v4 as uuidv4 } from 'uuid';
-import validator from 'validator'
+import validator from 'validator';
 
-import cleanDB from '../dbCleaner'
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
+import cleanDB from '../dbCleaner';
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
+import { PubSub } from '../../app/models';
 
 import {
   acceptRequestToJoinGroup,
@@ -26,10 +26,9 @@ import {
   mutualSubscriptions,
   sendRequestToJoinGroup,
   performSearch,
-  updateUserAsync
-} from './functional_test_helper'
-import * as schema from './schemaV2-helper'
-
+  updateUserAsync,
+} from './functional_test_helper';
+import * as schema from './schemaV2-helper';
 
 describe('Comment likes', () => {
   let app;
@@ -65,7 +64,7 @@ describe('Comment likes', () => {
             ]);
             [lunaPost, marsPost] = await Promise.all([
               createAndReturnPost(luna, 'Luna post'),
-              createAndReturnPost(mars, 'Mars post')
+              createAndReturnPost(mars, 'Mars post'),
             ]);
             await mutualSubscriptions([luna, mars]);
           });
@@ -78,13 +77,21 @@ describe('Comment likes', () => {
           it('should not allow to like own comments to own post', async () => {
             const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
             const res = await likeComment(lunaComment.id, luna);
-            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like your own comment"));
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't like your own comment"),
+            );
           });
 
           it('should not allow to like own comments to other user post', async () => {
             const lunaComment = await writeComment(luna, marsPost.id, 'Luna comment');
             const res = await likeComment(lunaComment.id, luna);
-            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like your own comment"));
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't like your own comment"),
+            );
           });
 
           it("should allow Luna to like Mars' comment to Luna's post", async () => {
@@ -111,7 +118,11 @@ describe('Comment likes', () => {
             expect(res1.status, 'to be', 200);
 
             const res2 = await likeComment(marsComment.id, luna);
-            expect(res2, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't like comment that you have already liked"));
+            expect(
+              res2,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't like comment that you have already liked"),
+            );
           });
 
           describe('comment likes sorting', () => {
@@ -133,7 +144,7 @@ describe('Comment likes', () => {
 
               expect(responseJson, 'to satisfy', {
                 likes: expect.it('to be an array').and('to be non-empty').and('to have length', 3),
-                users: expect.it('to be an array').and('to have items satisfying', schema.user)
+                users: expect.it('to be an array').and('to have items satisfying', schema.user),
               });
 
               expect(responseJson.likes[0].userId, 'to be', pluto.user.id);
@@ -149,46 +160,67 @@ describe('Comment likes', () => {
             beforeEach(async () => {
               pluto = await createUserAsync('pluto', 'pw');
               plutoPost = await createAndReturnPost(pluto, 'Pluto post');
-              await Promise.all([
-                banUser(luna, mars),
-                banUser(luna, pluto)
-              ]);
+              await Promise.all([banUser(luna, mars), banUser(luna, pluto)]);
             });
 
             it("should not allow Luna to like Mars' comment to Mars' post", async () => {
               const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Luna to like Pluto's comment to Pluto's post", async () => {
               const plutoComment = await writeComment(pluto, plutoPost.id, 'Pluto comment');
               const res = await likeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Luna to like Pluto's comment to Mars' post", async () => {
               const plutoComment = await writeComment(pluto, marsPost.id, 'Pluto comment');
               const res = await likeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Mars to like Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               const res = await likeComment(lunaComment.id, mars);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Pluto to like Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               const res = await likeComment(lunaComment.id, pluto);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Pluto to like Jupiter's comment to Luna's post", async () => {
               const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
               const res = await likeComment(jupiterComment.id, pluto);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it('should not display Luna comment likes of Pluto and Mars', async () => {
@@ -207,17 +239,17 @@ describe('Comment likes', () => {
             let dubhePost, merakPost, phadPost, alkaidPost;
             beforeEach(async () => {
               [dubhe, merak, phad, alkaid] = await Promise.all([
-                createGroupAsync(luna, 'dubhe',  'Dubhe',  false, false),
-                createGroupAsync(luna, 'merak',  'Merak',  false, true),
-                createGroupAsync(luna, 'phad',   'Phad',   true,  false),
-                createGroupAsync(luna, 'alkaid', 'Alkaid', true,  true),
+                createGroupAsync(luna, 'dubhe', 'Dubhe', false, false),
+                createGroupAsync(luna, 'merak', 'Merak', false, true),
+                createGroupAsync(luna, 'phad', 'Phad', true, false),
+                createGroupAsync(luna, 'alkaid', 'Alkaid', true, true),
               ]);
 
               [dubhePost, merakPost, phadPost, alkaidPost] = await Promise.all([
-                createAndReturnPostToFeed(dubhe,  luna, 'Dubhe post'),
-                createAndReturnPostToFeed(merak,  luna, 'Merak post'),
-                createAndReturnPostToFeed(phad,   luna, 'Phad post'),
-                createAndReturnPostToFeed(alkaid, luna, 'Alkaid post')
+                createAndReturnPostToFeed(dubhe, luna, 'Dubhe post'),
+                createAndReturnPostToFeed(merak, luna, 'Merak post'),
+                createAndReturnPostToFeed(phad, luna, 'Phad post'),
+                createAndReturnPostToFeed(alkaid, luna, 'Alkaid post'),
               ]);
               await sendRequestToJoinGroup(mars, phad);
               await acceptRequestToJoinGroup(luna, mars, phad);
@@ -246,7 +278,11 @@ describe('Comment likes', () => {
             it('should not allow non-members to like comment in a private group', async () => {
               const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it('should allow members to like comment in a private restricted group', async () => {
@@ -258,7 +294,11 @@ describe('Comment likes', () => {
             it('should not allow non-members to like comment in a private restricted group', async () => {
               const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
               const res = await likeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
           });
         });
@@ -284,7 +324,7 @@ describe('Comment likes', () => {
             ]);
             [lunaPost, marsPost] = await Promise.all([
               createAndReturnPost(luna, 'Luna post'),
-              createAndReturnPost(mars, 'Mars post')
+              createAndReturnPost(mars, 'Mars post'),
             ]);
             await mutualSubscriptions([luna, mars]);
           });
@@ -297,13 +337,21 @@ describe('Comment likes', () => {
           it('should not allow to unlike own comments to own post', async () => {
             const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
             const res = await unlikeComment(lunaComment.id, luna);
-            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like your own comment"));
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't un-like your own comment"),
+            );
           });
 
           it('should not allow to unlike own comments to other user post', async () => {
             const lunaComment = await writeComment(luna, marsPost.id, 'Luna comment');
             const res = await unlikeComment(lunaComment.id, luna);
-            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like your own comment"));
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't un-like your own comment"),
+            );
           });
 
           it("should allow Luna to unlike Mars' comment to Luna's post", async () => {
@@ -330,7 +378,11 @@ describe('Comment likes', () => {
           it("should not allow to unlike comment that haven't been liked", async () => {
             const marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
             const res = await unlikeComment(marsComment.id, luna);
-            expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like comment that you haven't yet liked"));
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't un-like comment that you haven't yet liked"),
+            );
           });
 
           it('should not allow to unlike comment more than one time', async () => {
@@ -340,7 +392,11 @@ describe('Comment likes', () => {
             expect(res1, 'to satisfy', commentHavingNoLikesExpectation);
 
             const res2 = await unlikeComment(marsComment.id, luna);
-            expect(res2, 'to exhaustively satisfy', apiErrorExpectation(403, "You can't un-like comment that you haven't yet liked"));
+            expect(
+              res2,
+              'to exhaustively satisfy',
+              apiErrorExpectation(403, "You can't un-like comment that you haven't yet liked"),
+            );
           });
 
           describe('comment likes sorting', () => {
@@ -362,7 +418,7 @@ describe('Comment likes', () => {
 
               expect(responseJson, 'to satisfy', {
                 likes: expect.it('to be an array').and('to be non-empty').and('to have length', 2),
-                users: expect.it('to be an array').and('to have items satisfying', schema.user)
+                users: expect.it('to be an array').and('to have items satisfying', schema.user),
               });
 
               expect(responseJson.likes[0].userId, 'to be', jupiter.user.id);
@@ -377,49 +433,70 @@ describe('Comment likes', () => {
             beforeEach(async () => {
               pluto = await createUserAsync('pluto', 'pw');
               plutoPost = await createAndReturnPost(pluto, 'Pluto post');
-              await Promise.all([
-                banUser(luna, mars),
-                banUser(luna, pluto)
-              ]);
+              await Promise.all([banUser(luna, mars), banUser(luna, pluto)]);
             });
 
             it("should not allow Luna to unlike Mars' comment to Mars' post", async () => {
               const marsComment = await writeComment(mars, marsPost.id, 'Mars comment');
               const res = await unlikeComment(marsComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Luna to unlike Pluto's comment to Pluto's post", async () => {
               const plutoComment = await writeComment(pluto, plutoPost.id, 'Pluto comment');
               const res = await unlikeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Luna to unlike Pluto's comment to Mars' post", async () => {
               const plutoComment = await writeComment(pluto, marsPost.id, 'Pluto comment');
               const res = await unlikeComment(plutoComment.id, luna);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Mars to unlike Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               await likeComment(lunaComment.id, mars);
               const res = await unlikeComment(lunaComment.id, mars);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Pluto to unlike Luna's comment to Luna's post", async () => {
               const lunaComment = await writeComment(luna, lunaPost.id, 'Luna comment');
               await likeComment(lunaComment.id, pluto);
               const res = await unlikeComment(lunaComment.id, pluto);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it("should not allow Pluto to unlike Jupiter's comment to Luna's post", async () => {
               const jupiterComment = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
               await likeComment(jupiterComment.id, pluto);
               const res = await unlikeComment(jupiterComment.id, pluto);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it('should not display Luna comment likes of Pluto and Mars', async () => {
@@ -435,13 +512,21 @@ describe('Comment likes', () => {
             describe('when Luna bans Jupiter after liking his comment', () => {
               it("should not allow Luna to unlike Jupiter's comment to Jupiter's post", async () => {
                 const jupiterPost = await createAndReturnPost(jupiter, 'Jupiter post');
-                const jupiterComment = await writeComment(jupiter, jupiterPost.id, 'Jupiter comment');
+                const jupiterComment = await writeComment(
+                  jupiter,
+                  jupiterPost.id,
+                  'Jupiter comment',
+                );
                 await likeComment(jupiterComment.id, luna);
 
                 await banUser(luna, jupiter);
 
                 const res = await unlikeComment(jupiterComment.id, luna);
-                expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+                expect(
+                  res,
+                  'to exhaustively satisfy',
+                  apiErrorExpectation(403, 'You can not see this post'),
+                );
               });
             });
           });
@@ -451,17 +536,17 @@ describe('Comment likes', () => {
             let dubhePost, merakPost, phadPost, alkaidPost;
             beforeEach(async () => {
               [dubhe, merak, phad, alkaid] = await Promise.all([
-                createGroupAsync(luna, 'dubhe',  'Dubhe',  false, false),
-                createGroupAsync(luna, 'merak',  'Merak',  false, true),
-                createGroupAsync(luna, 'phad',   'Phad',   true,  false),
-                createGroupAsync(luna, 'alkaid', 'Alkaid', true,  true),
+                createGroupAsync(luna, 'dubhe', 'Dubhe', false, false),
+                createGroupAsync(luna, 'merak', 'Merak', false, true),
+                createGroupAsync(luna, 'phad', 'Phad', true, false),
+                createGroupAsync(luna, 'alkaid', 'Alkaid', true, true),
               ]);
 
               [dubhePost, merakPost, phadPost, alkaidPost] = await Promise.all([
-                createAndReturnPostToFeed(dubhe,  luna, 'Dubhe post'),
-                createAndReturnPostToFeed(merak,  luna, 'Merak post'),
-                createAndReturnPostToFeed(phad,   luna, 'Phad post'),
-                createAndReturnPostToFeed(alkaid, luna, 'Alkaid post')
+                createAndReturnPostToFeed(dubhe, luna, 'Dubhe post'),
+                createAndReturnPostToFeed(merak, luna, 'Merak post'),
+                createAndReturnPostToFeed(phad, luna, 'Phad post'),
+                createAndReturnPostToFeed(alkaid, luna, 'Alkaid post'),
               ]);
               await sendRequestToJoinGroup(mars, phad);
               await acceptRequestToJoinGroup(luna, mars, phad);
@@ -493,7 +578,11 @@ describe('Comment likes', () => {
             it('should not allow non-members to unlike comment in a private group', async () => {
               const marsComment = await writeComment(mars, phadPost.id, 'Mars comment');
               const res = await unlikeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
 
             it('should allow members to unlike comment in a private restricted group', async () => {
@@ -506,7 +595,11 @@ describe('Comment likes', () => {
             it('should not allow non-members to unlike comment in a private restricted group', async () => {
               const marsComment = await writeComment(mars, alkaidPost.id, 'Mars comment');
               const res = await unlikeComment(marsComment.id, jupiter);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(403, 'You can not see this post'),
+              );
             });
           });
         });
@@ -526,7 +619,7 @@ describe('Comment likes', () => {
         ]);
         [lunaPost, marsPost] = await Promise.all([
           createAndReturnPost(luna, 'Luna post'),
-          createAndReturnPost(mars, 'Mars post')
+          createAndReturnPost(mars, 'Mars post'),
         ]);
         await mutualSubscriptions([luna, mars]);
         marsComment = await writeComment(mars, lunaPost.id, 'Mars comment');
@@ -553,13 +646,21 @@ describe('Comment likes', () => {
         it('should not display comment likes for protected post', async () => {
           await updateUserAsync(luna, { isProtected: '1' });
           const res = await getCommentLikes(marsComment.id);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Please sign in to view this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'Please sign in to view this post'),
+          );
         });
 
         it('should not display comment likes for private post', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
           const res = await getCommentLikes(marsComment.id);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You can not see this post'),
+          );
         });
       });
 
@@ -595,7 +696,11 @@ describe('Comment likes', () => {
         it('should not display comment likes to non-subscribers of private user', async () => {
           await updateUserAsync(luna, { isProtected: '0', isPrivate: '1' });
           const res = await getCommentLikes(marsComment.id, jupiter);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You can not see this post'),
+          );
         });
       });
 
@@ -615,7 +720,7 @@ describe('Comment likes', () => {
 
           expect(responseJson, 'to satisfy', {
             likes: expect.it('to be an array').and('to be non-empty').and('to have length', 3),
-            users: expect.it('to be an array').and('to have items satisfying', schema.user)
+            users: expect.it('to be an array').and('to have items satisfying', schema.user),
           });
 
           expect(responseJson.likes[0].userId, 'to be', luna.user.id);
@@ -630,7 +735,7 @@ describe('Comment likes', () => {
 
           expect(responseJson, 'to satisfy', {
             likes: expect.it('to be an array').and('to be non-empty').and('to have length', 3),
-            users: expect.it('to be an array').and('to have items satisfying', schema.user)
+            users: expect.it('to be an array').and('to have items satisfying', schema.user),
           });
 
           expect(responseJson.likes[0].userId, 'to be', pluto.user.id);
@@ -645,7 +750,7 @@ describe('Comment likes', () => {
 
           expect(responseJson, 'to satisfy', {
             likes: expect.it('to be an array').and('to be non-empty').and('to have length', 3),
-            users: expect.it('to be an array').and('to have items satisfying', schema.user)
+            users: expect.it('to be an array').and('to have items satisfying', schema.user),
           });
 
           expect(responseJson.likes[0].userId, 'to be', pluto.user.id);
@@ -664,35 +769,52 @@ describe('Comment likes', () => {
           jupiterComment = await writeComment(jupiter, plutoPost.id, 'Jupiter comment');
           await likeComment(plutoComment.id, jupiter);
           await likeComment(jupiterComment.id, pluto);
-          await Promise.all([
-            banUser(luna, mars),
-            banUser(luna, pluto)
-          ]);
+          await Promise.all([banUser(luna, mars), banUser(luna, pluto)]);
         });
 
         it("should not show Luna Mars' comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, luna);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You have banned by the author of this comment'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You have banned by the author of this comment'),
+          );
         });
 
         it("should not show Luna Pluto's comment likes", async () => {
           const res = await getCommentLikes(plutoComment.id, luna);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You can not see this post'),
+          );
         });
 
         it("should not show Luna Pluto's likes to Jupiter's comment", async () => {
           const res = await getCommentLikes(jupiterComment.id, luna);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You can not see this post'),
+          );
         });
 
         it("should show Mars Luna's comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, mars);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You can not see this post'),
+          );
         });
 
         it("should show Pluto Luna's comment likes", async () => {
           const res = await getCommentLikes(marsComment.id, pluto);
-          expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'You can not see this post'));
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(403, 'You can not see this post'),
+          );
         });
 
         it("should show Pluto Jupiter's comment likes", async () => {
@@ -716,7 +838,7 @@ describe('Comment likes', () => {
 
           expect(responseJson, 'to satisfy', {
             likes: expect.it('to be an array').and('to be non-empty').and('to have length', 3),
-            users: expect.it('to be an array').and('to have items satisfying', schema.user)
+            users: expect.it('to be an array').and('to have items satisfying', schema.user),
           });
 
           expect(responseJson.likes[0].userId, 'to be', pluto.user.id);
@@ -732,7 +854,15 @@ describe('Comment likes', () => {
       let luna, mars, jupiter, pluto;
       let lunaPost;
 
-      const expectCommentLikesCountToBe = async (postId, viewer = null, all, own, omitted, omittedOwn, allComments = false) => {
+      const expectCommentLikesCountToBe = async (
+        postId,
+        viewer = null,
+        all,
+        own,
+        omitted,
+        omittedOwn,
+        allComments = false,
+      ) => {
         const res = await getPost(postId, viewer, allComments);
 
         expect(res, 'to satisfy', { status: 200 });
@@ -740,11 +870,11 @@ describe('Comment likes', () => {
 
         expect(responseJson, 'to satisfy', {
           posts: {
-            commentLikes:           all,
-            ownCommentLikes:        own,
-            omittedCommentLikes:    omitted,
-            omittedOwnCommentLikes: omittedOwn
-          }
+            commentLikes: all,
+            ownCommentLikes: own,
+            omittedCommentLikes: omitted,
+            omittedOwnCommentLikes: omittedOwn,
+          },
         });
       };
 
@@ -785,9 +915,12 @@ describe('Comment likes', () => {
             await likeComment(comment.id, luna);
           });
 
-          it('for anonymous user', async () => await expectCommentLikesCountToBe(lunaPost.id, null, 3, 0, 0, 0));
-          it('for comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 3, 1, 0, 0));
-          it('for comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 3, 0, 0, 0));
+          it('for anonymous user', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, null, 3, 0, 0, 0));
+          it('for comment liker', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, luna, 3, 1, 0, 0));
+          it('for comment author', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, jupiter, 3, 0, 0, 0));
         });
 
         describe('2 comments', () => {
@@ -801,10 +934,14 @@ describe('Comment likes', () => {
             await likeComment(comment2.id, mars);
           });
 
-          it('for anonymous user', async () => await expectCommentLikesCountToBe(lunaPost.id, null, 5, 0, 0, 0));
-          it('for comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 5, 1, 0, 0));
-          it('for other comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 5, 2, 0, 0));
-          it('for comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 5, 0, 0, 0));
+          it('for anonymous user', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, null, 5, 0, 0, 0));
+          it('for comment liker', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, luna, 5, 1, 0, 0));
+          it('for other comment liker', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, pluto, 5, 2, 0, 0));
+          it('for comment author', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, jupiter, 5, 0, 0, 0));
         });
 
         describe('3 comments', () => {
@@ -819,11 +956,16 @@ describe('Comment likes', () => {
             await likeComment(comment3.id, luna);
           });
 
-          it('for anonymous user', async () => await expectCommentLikesCountToBe(lunaPost.id, null, 5, 0, 0, 0));
-          it('for comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 5, 2, 0, 0));
-          it('for other comment liker', async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 5, 2, 0, 0));
-          it('for comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 5, 0, 0, 0));
-          it('for other comment author', async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 5, 1, 0, 0));
+          it('for anonymous user', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, null, 5, 0, 0, 0));
+          it('for comment liker', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, luna, 5, 2, 0, 0));
+          it('for other comment liker', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, pluto, 5, 2, 0, 0));
+          it('for comment author', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, jupiter, 5, 0, 0, 0));
+          it('for other comment author', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, mars, 5, 1, 0, 0));
         });
 
         describe('4 comments', () => {
@@ -839,19 +981,29 @@ describe('Comment likes', () => {
           });
 
           describe('with comment folding', () => {
-            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
-            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 2, 0));
-            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
-            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 2, 1));
-            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 2, 0));
+            it('for anonymous user', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
+            it('for Pluto', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 2, 0));
+            it('for Mars', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
+            it('for Jupiter', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 2, 1));
+            it('for Luna', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 2, 0));
           });
 
           describe('without comment folding', () => {
-            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
-            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 0, 0, true));
-            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
-            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 0, 0, true));
-            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 0, 0, true));
+            it('for anonymous user', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
+            it('for Pluto', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 0, 0, true));
+            it('for Mars', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
+            it('for Jupiter', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 0, 0, true));
+            it('for Luna', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 0, 0, true));
           });
         });
 
@@ -869,19 +1021,29 @@ describe('Comment likes', () => {
           });
 
           describe('with comment folding', () => {
-            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
-            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 2, 0));
-            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
-            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 2, 1));
-            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 2, 0));
+            it('for anonymous user', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
+            it('for Pluto', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 2, 0));
+            it('for Mars', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
+            it('for Jupiter', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 2, 1));
+            it('for Luna', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 2, 0));
           });
 
           describe('without comment folding', () => {
-            it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
-            it('for Pluto',           async () => await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 0, 0, true));
-            it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
-            it('for Jupiter',         async () => await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 0, 0, true));
-            it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 0, 0, true));
+            it('for anonymous user', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
+            it('for Pluto', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, pluto, 4, 1, 0, 0, true));
+            it('for Mars', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
+            it('for Jupiter', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, jupiter, 4, 1, 0, 0, true));
+            it('for Luna', async () =>
+              await expectCommentLikesCountToBe(lunaPost.id, luna, 4, 1, 0, 0, true));
           });
         });
       });
@@ -898,22 +1060,25 @@ describe('Comment likes', () => {
           await likeComment(comment3.id, jupiter);
           await likeComment(comment5.id, luna);
 
-          await Promise.all([
-            banUser(luna, jupiter),
-            banUser(luna, pluto)
-          ]);
+          await Promise.all([banUser(luna, jupiter), banUser(luna, pluto)]);
         });
 
         describe('with comment folding', () => {
-          it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
-          it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
-          it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 1, 0, 0, 0));
+          it('for anonymous user', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 2, 0));
+          it('for Mars', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 2, 1));
+          it('for Luna', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, luna, 1, 0, 0, 0));
         });
 
         describe('without comment folding', () => {
-          it('for anonymous user',  async () => await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
-          it('for Mars',            async () => await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
-          it('for Luna',            async () => await expectCommentLikesCountToBe(lunaPost.id, luna, 1, 0, 0, 0, true));
+          it('for anonymous user', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, null, 4, 0, 0, 0, true));
+          it('for Mars', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, mars, 4, 1, 0, 0, true));
+          it('for Luna', async () =>
+            await expectCommentLikesCountToBe(lunaPost.id, luna, 1, 0, 0, 0, true));
         });
       });
 
@@ -937,9 +1102,9 @@ describe('Comment likes', () => {
               .and('to be non-empty')
               .and('to have length', 1)
               .and('to have items satisfying', {
-                likes:      3,
-                hasOwnLike: false
-              })
+                likes: 3,
+                hasOwnLike: false,
+              }),
           });
         });
 
@@ -955,9 +1120,9 @@ describe('Comment likes', () => {
               .and('to be non-empty')
               .and('to have length', 1)
               .and('to have items satisfying', {
-                likes:      3,
-                hasOwnLike: true
-              })
+                likes: 3,
+                hasOwnLike: true,
+              }),
           });
         });
 
@@ -973,9 +1138,9 @@ describe('Comment likes', () => {
               .and('to be non-empty')
               .and('to have length', 1)
               .and('to have items satisfying', {
-                likes:      3,
-                hasOwnLike: true
-              })
+                likes: 3,
+                hasOwnLike: true,
+              }),
           });
         });
 
@@ -991,9 +1156,9 @@ describe('Comment likes', () => {
               .and('to be non-empty')
               .and('to have length', 1)
               .and('to have items satisfying', {
-                likes:      3,
-                hasOwnLike: true
-              })
+                likes: 3,
+                hasOwnLike: true,
+              }),
           });
         });
 
@@ -1009,9 +1174,9 @@ describe('Comment likes', () => {
               .and('to be non-empty')
               .and('to have length', 1)
               .and('to have items satisfying', {
-                likes:      3,
-                hasOwnLike: false
-              })
+                likes: 3,
+                hasOwnLike: false,
+              }),
           });
         });
       });
@@ -1022,16 +1187,25 @@ describe('Comment likes', () => {
     let luna, mars, jupiter, pluto;
     let lunaPost, comment;
 
-    const expectFeedCommentLikesCountsToBe = async (feedName, viewer, all, own, omitted, omittedOwn) => {
+    const expectFeedCommentLikesCountsToBe = async (
+      feedName,
+      viewer,
+      all,
+      own,
+      omitted,
+      omittedOwn,
+    ) => {
       const response = await getFeed(feedName, viewer);
       const responseJson = await response.json();
       expect(responseJson, 'to satisfy', {
-        posts: [{
-          commentLikes:           all,
-          ownCommentLikes:        own,
-          omittedCommentLikes:    omitted,
-          omittedOwnCommentLikes: omittedOwn
-        }]
+        posts: [
+          {
+            commentLikes: all,
+            ownCommentLikes: own,
+            omittedCommentLikes: omitted,
+            omittedOwnCommentLikes: omittedOwn,
+          },
+        ],
       });
     };
 
@@ -1051,18 +1225,37 @@ describe('Comment likes', () => {
     });
 
     describe('comment likes fields should be present', () => {
-      it("at Luna's home feed", async () => await expectFeedCommentLikesCountsToBe('home', luna, 2, 0, 0, 0));
-      it("at Mars's home feed", async () => await expectFeedCommentLikesCountsToBe('home', mars, 2, 1, 0, 0));
-      it("at Luna's discussions feed", async () => await expectFeedCommentLikesCountsToBe('filter/discussions?with-my-posts=yes', luna, 2, 0, 0, 0));
+      it("at Luna's home feed", async () =>
+        await expectFeedCommentLikesCountsToBe('home', luna, 2, 0, 0, 0));
+      it("at Mars's home feed", async () =>
+        await expectFeedCommentLikesCountsToBe('home', mars, 2, 1, 0, 0));
+      it("at Luna's discussions feed", async () =>
+        await expectFeedCommentLikesCountsToBe(
+          'filter/discussions?with-my-posts=yes',
+          luna,
+          2,
+          0,
+          0,
+          0,
+        ));
 
       it("at Mars' directs feed", async () => {
-        const luna2marsDirectPost = await createAndReturnPost({ username: 'mars', authToken: luna.authToken }, 'Luna direct');
-        const directComment = await writeComment(mars, luna2marsDirectPost.id, 'Mars direct comment');
+        const luna2marsDirectPost = await createAndReturnPost(
+          { username: 'mars', authToken: luna.authToken },
+          'Luna direct',
+        );
+        const directComment = await writeComment(
+          mars,
+          luna2marsDirectPost.id,
+          'Mars direct comment',
+        );
         await likeComment(directComment.id, luna);
         await expectFeedCommentLikesCountsToBe('filter/directs', mars, 1, 0, 0, 0);
       });
-      it("at Luna's posts feed", async () => await expectFeedCommentLikesCountsToBe('luna', luna, 2, 0, 0, 0));
-      it("at Jupiter's comments feed", async () => await expectFeedCommentLikesCountsToBe('jupiter/comments', jupiter, 2, 0, 0, 0));
+      it("at Luna's posts feed", async () =>
+        await expectFeedCommentLikesCountsToBe('luna', luna, 2, 0, 0, 0));
+      it("at Jupiter's comments feed", async () =>
+        await expectFeedCommentLikesCountsToBe('jupiter/comments', jupiter, 2, 0, 0, 0));
     });
 
     describe('for post with folded comments', () => {
@@ -1074,7 +1267,8 @@ describe('Comment likes', () => {
           comment4 = await writeComment(luna, lunaPost.id, 'Luna comment');
           comment5 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
         });
-        it('when only first comment is liked', async () => await expectFeedCommentLikesCountsToBe('home', luna, 2, 0, 0, 0));
+        it('when only first comment is liked', async () =>
+          await expectFeedCommentLikesCountsToBe('home', luna, 2, 0, 0, 0));
 
         it('when one of folded comments is liked', async () => {
           await likeComment(comment2.id, pluto);
@@ -1193,12 +1387,14 @@ describe('Comment likes', () => {
         const response = await fetch(`${app.context.config.host}/v2/bestof`, { headers });
         const responseJson = await response.json();
         expect(responseJson, 'to satisfy', {
-          posts: [{
-            commentLikes:           2,
-            ownCommentLikes:        0,
-            omittedCommentLikes:    0,
-            omittedOwnCommentLikes: 0
-          }]
+          posts: [
+            {
+              commentLikes: 2,
+              ownCommentLikes: 0,
+              omittedCommentLikes: 0,
+              omittedOwnCommentLikes: 0,
+            },
+          ],
         });
       });
     });
@@ -1208,15 +1404,24 @@ describe('Comment likes', () => {
     let luna, mars, jupiter, pluto;
     let lunaPost, comment;
 
-    const expectSearchResultsCommentLikesCountsToBe = async (query, viewer, all, own, omitted, omittedOwn) => {
+    const expectSearchResultsCommentLikesCountsToBe = async (
+      query,
+      viewer,
+      all,
+      own,
+      omitted,
+      omittedOwn,
+    ) => {
       const responseJson = await performSearch(viewer, query);
       expect(responseJson, 'to satisfy', {
-        posts: [{
-          commentLikes:           all,
-          ownCommentLikes:        own,
-          omittedCommentLikes:    omitted,
-          omittedOwnCommentLikes: omittedOwn
-        }]
+        posts: [
+          {
+            commentLikes: all,
+            ownCommentLikes: own,
+            omittedCommentLikes: omitted,
+            omittedOwnCommentLikes: omittedOwn,
+          },
+        ],
       });
     };
 
@@ -1236,9 +1441,12 @@ describe('Comment likes', () => {
     });
 
     describe('comment likes fields should be present', () => {
-      it('at search results for Luna', async () => await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 2, 0, 0, 0));
-      it('at search results for Mars', async () => await expectSearchResultsCommentLikesCountsToBe('cliked', mars, 2, 1, 0, 0));
-      it('at search results for Jupiter', async () => await expectSearchResultsCommentLikesCountsToBe('cliked', jupiter, 2, 0, 0, 0));
+      it('at search results for Luna', async () =>
+        await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 2, 0, 0, 0));
+      it('at search results for Mars', async () =>
+        await expectSearchResultsCommentLikesCountsToBe('cliked', mars, 2, 1, 0, 0));
+      it('at search results for Jupiter', async () =>
+        await expectSearchResultsCommentLikesCountsToBe('cliked', jupiter, 2, 0, 0, 0));
     });
 
     describe('at search results containing post with folded comments', () => {
@@ -1250,7 +1458,8 @@ describe('Comment likes', () => {
           comment4 = await writeComment(luna, lunaPost.id, 'Luna comment');
           comment5 = await writeComment(jupiter, lunaPost.id, 'Jupiter comment');
         });
-        it('when only first comment is liked', async () => await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 2, 0, 0, 0));
+        it('when only first comment is liked', async () =>
+          await expectSearchResultsCommentLikesCountsToBe('cliked', luna, 2, 0, 0, 0));
 
         it('when one of folded comments is liked', async () => {
           await likeComment(comment2.id, pluto);
@@ -1347,7 +1556,10 @@ const fetchPost = (app) => async (postId, viewerContext = null, allComments = fa
     headers['X-Authentication-Token'] = viewerContext.authToken;
   }
 
-  const response = await fetch(`${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`, { method: 'GET', headers });
+  const response = await fetch(
+    `${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`,
+    { method: 'GET', headers },
+  );
   return response;
 };
 
@@ -1372,10 +1584,10 @@ const commentHavingOneLikeExpectation = (liker) => async (obj) => {
       .and('to be non-empty')
       .and('to have length', 1)
       .and('to have items satisfying', {
-        userId:    expect.it('to satisfy', schema.UUID).and('to be', liker.user.id),
-        createdAt: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true)
+        userId: expect.it('to satisfy', schema.UUID).and('to be', liker.user.id),
+        createdAt: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true),
       }),
-    users: expect.it('to be an array').and('to have items satisfying', schema.user)
+    users: expect.it('to be an array').and('to have items satisfying', schema.user),
   });
 };
 
@@ -1385,7 +1597,7 @@ const commentHavingNoLikesExpectation = async (obj) => {
 
   expect(responseJson, 'to satisfy', {
     likes: expect.it('to be an array').and('to be empty'),
-    users: expect.it('to be an array').and('to be empty')
+    users: expect.it('to be an array').and('to be empty'),
   });
 };
 

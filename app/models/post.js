@@ -14,7 +14,6 @@ import {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
 } from './timeline';
 
-
 export function addModel(dbAdapter) {
   class Post {
     id;
@@ -32,20 +31,20 @@ export function addModel(dbAdapter) {
     isPropagable;
 
     constructor(params) {
-      this.id               = params.id;
-      this.body             = params.body;
-      this.attachments      = params.attachments;
-      this.userId           = params.userId;
-      this.timelineIds      = params.timelineIds;
-      this.currentUser      = params.currentUser;
+      this.id = params.id;
+      this.body = params.body;
+      this.attachments = params.attachments;
+      this.userId = params.userId;
+      this.timelineIds = params.timelineIds;
+      this.currentUser = params.currentUser;
       this.commentsDisabled = params.commentsDisabled;
-      this.feedIntIds       = params.feedIntIds || [];
+      this.feedIntIds = params.feedIntIds || [];
       this.destinationFeedIds = params.destinationFeedIds || [];
-      this.commentsCount    = params.commentsCount;
-      this.likesCount       = params.likesCount;
-      this.isPrivate        = params.isPrivate || '0';
-      this.isProtected      = params.isProtected || '0';
-      this.isPropagable     = params.isPropagable || '0';
+      this.commentsCount = params.commentsCount;
+      this.likesCount = params.likesCount;
+      this.isPrivate = params.isPrivate || '0';
+      this.isProtected = params.isProtected || '0';
+      this.isPropagable = params.isPropagable || '0';
 
       if (params.friendfeedUrl) {
         this.friendfeedUrl = params.friendfeedUrl;
@@ -90,10 +89,7 @@ export function addModel(dbAdapter) {
     }
 
     validate() {
-      const valid = this.body
-                 && this.body.length > 0
-                 && this.userId
-                 && this.userId.length > 0;
+      const valid = this.body && this.body.length > 0 && this.userId && this.userId.length > 0;
 
       if (!valid) {
         throw new Error('Post text must not be empty');
@@ -110,14 +106,11 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       const payload = {
-        'body':             this.body,
-        'userId':           this.userId,
-        'commentsDisabled': this.commentsDisabled,
+        body: this.body,
+        userId: this.userId,
+        commentsDisabled: this.commentsDisabled,
       };
-      const [
-        destFeeds,
-        author,
-      ] = await Promise.all([
+      const [destFeeds, author] = await Promise.all([
         dbAdapter.getTimelinesByIds(this.timelineIds),
         dbAdapter.getUserById(this.userId),
       ]);
@@ -141,17 +134,18 @@ export function addModel(dbAdapter) {
         this[f] = newPost[f];
       }
 
-      await Promise.all([
-        this.linkAttachments(),
-        this.processHashtagsOnCreate(),
-      ]);
+      await Promise.all([this.linkAttachments(), this.processHashtagsOnCreate()]);
 
       const rtUpdates = destFeeds
         .filter((f) => f.isDirects())
         .map((f) => pubSub.updateUnreadDirects(f.userId));
       rtUpdates.push(pubSub.newPost(this.id));
 
-      await EventService.onPostCreated(newPost, destFeeds.map((f) => f.id), author);
+      await EventService.onPostCreated(
+        newPost,
+        destFeeds.map((f) => f.id),
+        author,
+      );
 
       await Promise.all([
         ...rtUpdates,
@@ -172,11 +166,7 @@ export function addModel(dbAdapter) {
      * @returns {Post}
      */
     async update(params) {
-      const editableProperties = [
-        'body',
-        'attachments',
-        'destinationFeedIds',
-      ];
+      const editableProperties = ['body', 'attachments', 'destinationFeedIds'];
 
       // It is important to use "!= null" here and below because
       // params[p] can exists but have a null or undefined value.
@@ -202,7 +192,7 @@ export function addModel(dbAdapter) {
 
       if (params.attachments != null) {
         // Calculate changes in attachments
-        const oldAttachments = await this.getAttachmentIds() || [];
+        const oldAttachments = (await this.getAttachmentIds()) || [];
         const newAttachments = params.attachments || [];
         const removedAttachments = _.difference(oldAttachments, newAttachments);
 
@@ -224,16 +214,17 @@ export function addModel(dbAdapter) {
           payload.feedIntIds = this.feedIntIds;
 
           {
-            const [
-              postAuthor,
-              removedFeeds,
-              addedFeeds,
-            ] = await Promise.all([
+            const [postAuthor, removedFeeds, addedFeeds] = await Promise.all([
               this.getCreatedBy(),
               dbAdapter.getTimelinesByIntIds(removedFeedIds),
               dbAdapter.getTimelinesByIntIds(addedFeedIds),
             ]);
-            afterUpdate.push(() => EventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, { addedFeeds, removedFeeds }));
+            afterUpdate.push(() =>
+              EventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, {
+                addedFeeds,
+                removedFeeds,
+              }),
+            );
           }
 
           // Publishing changes to the old AND new realtime rooms
@@ -248,7 +239,7 @@ export function addModel(dbAdapter) {
         await EventService.onPostCreated(
           this,
           await dbAdapter.getTimelinesUUIDsByIntIds(this.destinationFeedIds),
-          await this.getCreatedBy()
+          await this.getCreatedBy(),
         );
       });
 
@@ -271,7 +262,7 @@ export function addModel(dbAdapter) {
       this.commentsDisabled = newValue;
 
       // Update post body in DB
-      const payload = { 'commentsDisabled': this.commentsDisabled };
+      const payload = { commentsDisabled: this.commentsDisabled };
       await dbAdapter.updatePost(this.id, payload);
 
       // Finally, publish changes
@@ -281,15 +272,11 @@ export function addModel(dbAdapter) {
     }
 
     async destroy(destroyedBy = null) {
-      const [
-        realtimeRooms,
-        comments,
-        groups,
-      ] = await Promise.all([
+      const [realtimeRooms, comments, groups] = await Promise.all([
         getRoomsOfPost(this),
         this.getComments(),
         this.getGroupsPostedTo(),
-        dbAdapter.statsPostDeleted(this.userId, this.id),  // needs data in DB
+        dbAdapter.statsPostDeleted(this.userId, this.id), // needs data in DB
       ]);
 
       // remove all comments
@@ -404,9 +391,10 @@ export function addModel(dbAdapter) {
         addFeedIds = _.difference(addFeedIds, feedIds);
 
         if (addFeedIds.length > 0) {
-          const hideLists  = await dbAdapter.getHomeFeedsHideLists(addFeedIds);
-          addFeedIds = Object.keys(hideLists)
-            .filter((k) => _.intersection(hideLists[k], destinationsFeedsOwners).length === 0);
+          const hideLists = await dbAdapter.getHomeFeedsHideLists(addFeedIds);
+          addFeedIds = Object.keys(hideLists).filter(
+            (k) => _.intersection(hideLists[k], destinationsFeedsOwners).length === 0,
+          );
           feedIds = _.union(feedIds, addFeedIds);
         }
       };
@@ -480,7 +468,10 @@ export function addModel(dbAdapter) {
 
         const timeline = await dbAdapter.getTimelineByIntId(userTimelineIntId);
         const subscribersIds = await timeline.getSubscriberIds();
-        const subscribersRiversOfNewsIntIds = await dbAdapter.getUsersNamedFeedsIntIds(subscribersIds, ['RiverOfNews']);
+        const subscribersRiversOfNewsIntIds = await dbAdapter.getUsersNamedFeedsIntIds(
+          subscribersIds,
+          ['RiverOfNews'],
+        );
         timelineIntIds.push(subscribersRiversOfNewsIntIds);
       }
 
@@ -547,7 +538,7 @@ export function addModel(dbAdapter) {
       let timelineIntIds = this.destinationFeedIds.slice();
 
       // only subscribers are allowed to read direct posts
-      if (!await this.isStrictlyDirect()) {
+      if (!(await this.isStrictlyDirect())) {
         const moreTimelineIntIds = await this.getCommentsFriendOfFriendTimelineIntIds(user);
         timelineIntIds.push(...moreTimelineIntIds);
 
@@ -582,7 +573,7 @@ export function addModel(dbAdapter) {
 
       const promises = [
         dbAdapter.setPostBumpedAt(this.id, now.getTime()),
-        dbAdapter.setUpdatedAtInGroupsByIds(timelineOwnersIds, now.getTime())
+        dbAdapter.setUpdatedAtInGroupsByIds(timelineOwnersIds, now.getTime()),
       ];
 
       await Promise.all(promises);
@@ -606,7 +597,10 @@ export function addModel(dbAdapter) {
     }
 
     async getPostComments() {
-      const comments = await dbAdapter.getAllPostCommentsWithoutBannedUsers(this.id, this.currentUser);
+      const comments = await dbAdapter.getAllPostCommentsWithoutBannedUsers(
+        this.id,
+        this.currentUser,
+      );
       const commentsIds = comments.map((cmt) => {
         return cmt.id;
       });
@@ -617,9 +611,9 @@ export function addModel(dbAdapter) {
 
       if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
         const firstNCommentIds = commentsIds.slice(0, this.maxComments - 1);
-        const firstNComments   = comments.slice(0, this.maxComments - 1);
+        const firstNComments = comments.slice(0, this.maxComments - 1);
         const lastCommentId = _.last(commentsIds);
-        const lastComment   = _.last(comments);
+        const lastComment = _.last(comments);
 
         this.omittedComments = length - this.maxComments;
         visibleCommentsIds = firstNCommentIds.concat(lastCommentId);
@@ -640,24 +634,26 @@ export function addModel(dbAdapter) {
       const attachmentIds = attachmentList || this.attachments || [];
       const attachments = await dbAdapter.getAttachmentsByIds(attachmentIds);
 
-      const attachmentPromises = attachments.filter((attachment) => {
-        // Filter out invalid attachments
-        return attachment.fileSize !== undefined;
-      }).map((attachment, ord) => {
-        if (this.attachments) {
-          const pos = this.attachments.indexOf(attachment.id);
+      const attachmentPromises = attachments
+        .filter((attachment) => {
+          // Filter out invalid attachments
+          return attachment.fileSize !== undefined;
+        })
+        .map((attachment, ord) => {
+          if (this.attachments) {
+            const pos = this.attachments.indexOf(attachment.id);
 
-          if (pos === -1) {
-            this.attachments.push(attachment);
-          } else {
-            this.attachments[pos] = attachment;
+            if (pos === -1) {
+              this.attachments.push(attachment);
+            } else {
+              this.attachments[pos] = attachment;
+            }
           }
-        }
 
-        // Update connections in DB
+          // Update connections in DB
 
-        return dbAdapter.linkAttachmentToPost(attachment.id, this.id, ord);
-      });
+          return dbAdapter.linkAttachmentToPost(attachment.id, this.id, ord);
+        });
 
       await Promise.all(attachmentPromises);
     }
@@ -689,7 +685,10 @@ export function addModel(dbAdapter) {
 
     async getLikeIds() {
       const omittedLikesCount = await this.getOmittedLikes();
-      let likedUsersIds = await dbAdapter.getPostLikersIdsWithoutBannedUsers(this.id, this.currentUser);
+      let likedUsersIds = await dbAdapter.getPostLikersIdsWithoutBannedUsers(
+        this.id,
+        this.currentUser,
+      );
 
       likedUsersIds = likedUsersIds.sort((a, b) => {
         if (a == this.currentUser) {
@@ -758,10 +757,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      const [
-        likesTimeline,
-        ,
-      ] = await Promise.all([
+      const [likesTimeline, ,] = await Promise.all([
         user.getLikesTimeline(),
         dbAdapter.statsLikeCreated(user.id),
       ]);
@@ -771,7 +767,9 @@ export function addModel(dbAdapter) {
       {
         const prevRONs = await this.getRiverOfNewsTimelines(HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY);
         const prevRONsOwners = _.map(prevRONs, 'userId');
-        const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([likesTimeline.id]);
+        const usersSubscribedToLikeFeed = await dbAdapter.getUsersSubscribedToTimelines([
+          likesTimeline.id,
+        ]);
         usersSubscribedToLikeFeed.push(user.id); // user always implicitly subscribed to their feeds
         const newRONsOwners = _.difference(usersSubscribedToLikeFeed, prevRONsOwners);
         await dbAdapter.setLocalBumpForUsers(this.id, newRONsOwners);
@@ -800,11 +798,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      const [
-        realtimeRooms,
-        timelineId,
-        ,
-      ] = await Promise.all([
+      const [realtimeRooms, timelineId, ,] = await Promise.all([
         getRoomsOfPost(this),
         user.getLikesTimelineIntId(),
         dbAdapter.statsLikeDeleted(user.id),
@@ -932,11 +926,11 @@ export function addModel(dbAdapter) {
     async processHashtagsOnUpdate() {
       const linkedPostHashtags = await dbAdapter.getPostHashtags(this.id);
 
-      const presentTags    = _.sortBy(linkedPostHashtags.map((t) => t.name));
-      const newTags        = _.sortBy(_.uniq(extractHashtags(this.body.toLowerCase())));
+      const presentTags = _.sortBy(linkedPostHashtags.map((t) => t.name));
+      const newTags = _.sortBy(_.uniq(extractHashtags(this.body.toLowerCase())));
       const notChangedTags = _.intersection(presentTags, newTags);
-      const tagsToUnlink   = _.difference(presentTags, notChangedTags);
-      const tagsToLink     = _.difference(newTags, notChangedTags);
+      const tagsToUnlink = _.difference(presentTags, notChangedTags);
+      const tagsToLink = _.difference(newTags, notChangedTags);
 
       if (presentTags != newTags) {
         if (tagsToUnlink.length > 0) {

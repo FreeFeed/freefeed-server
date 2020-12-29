@@ -1,7 +1,6 @@
-import { dbAdapter } from '../../../models'
-import { UsersController, GroupsController } from '../../../controllers'
-import { NotFoundException } from '../../../support/exceptions'
-
+import { dbAdapter } from '../../../models';
+import { UsersController, GroupsController } from '../../../controllers';
+import { NotFoundException } from '../../../support/exceptions';
 
 export default class FeedFactoriesController {
   static async update(ctx) {

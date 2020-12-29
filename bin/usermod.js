@@ -3,13 +3,9 @@ import { program } from 'commander';
 import { dbAdapter } from '../app/models';
 import { GONE_NAMES, GONE_COOLDOWN, GONE_SUSPENDED, GONE_DELETION } from '../app/models/user';
 
-
 (async () => {
   try {
-    program
-      .command('show <username>')
-      .description('Show the account status')
-      .action(loadAccount);
+    program.command('show <username>').description('Show the account status').action(loadAccount);
     program
       .command('rename <username> <new-username>')
       .description('Change the account username')
@@ -79,7 +75,9 @@ function setGoneStatus(newStatus) {
 
     if (newStatus === null) {
       if (!account.isResumable && !cmd.force) {
-        throw new Error(`The account in ${goneStatusName(account.goneStatus)} status cannot be resumed`);
+        throw new Error(
+          `The account in ${goneStatusName(account.goneStatus)} status cannot be resumed`,
+        );
       }
     } else if (newStatus === GONE_SUSPENDED) {
       if (!account.isActive) {
@@ -95,10 +93,14 @@ function setGoneStatus(newStatus) {
       }
     }
 
-    process.stdout.write(`Changing user's gone status: ${goneStatusName(account.goneStatus)} → ${goneStatusName(newStatus)}\n`);
+    process.stdout.write(
+      `Changing user's gone status: ${goneStatusName(account.goneStatus)} → ${goneStatusName(
+        newStatus,
+      )}\n`,
+    );
     await account.setGoneStatus(newStatus);
     process.stdout.write(`Done!\n\n`);
-  }
+  };
 }
 
 async function loadAccount(username) {
@@ -109,7 +111,9 @@ async function loadAccount(username) {
   }
 
   if (account.username !== username) {
-    process.stdout.write(`⚠ WARNING: '${username}' is the old username of @${account.username}. Continue? (y/n)\n`);
+    process.stdout.write(
+      `⚠ WARNING: '${username}' is the old username of @${account.username}. Continue? (y/n)\n`,
+    );
     const input = await keypress();
 
     if (input.toLowerCase() !== 'y') {
@@ -121,7 +125,11 @@ async function loadAccount(username) {
   // Print the current status
   process.stdout.write(`Account: ${account.username}\n`);
   process.stdout.write(`Type:    ${account.type}\n`);
-  process.stdout.write(`Status:  ${goneStatusName(account.goneStatus)}${account.goneAt ? ` since ${account.goneAt.toISOString()}` : ''}\n`);
+  process.stdout.write(
+    `Status:  ${goneStatusName(account.goneStatus)}${
+      account.goneAt ? ` since ${account.goneAt.toISOString()}` : ''
+    }\n`,
+  );
   const pastUsernames = await account.getPastUsernames();
 
   if (pastUsernames.length > 0) {
@@ -139,14 +147,14 @@ async function loadAccount(username) {
 
 function keypress() {
   process.stdin.setRawMode(true);
-  return new Promise((resolve) => process.stdin.once('data', (data) => {
-    process.stdin.setRawMode(false);
-    resolve(data.toString());
-  }));
+  return new Promise((resolve) =>
+    process.stdin.once('data', (data) => {
+      process.stdin.setRawMode(false);
+      resolve(data.toString());
+    }),
+  );
 }
 
 function goneStatusName(status) {
-  return (status === null && 'ACTIVE')
-    || GONE_NAMES[status]
-    || 'UNKNOWN';
+  return (status === null && 'ACTIVE') || GONE_NAMES[status] || 'UNKNOWN';
 }

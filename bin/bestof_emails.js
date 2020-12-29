@@ -1,7 +1,6 @@
 #!/usr/bin/env babel-node
 import { sendBestOfEmails } from '../app/support/BestOfDigest';
 
-
 sendBestOfEmails()
   .then(() => {
     process.stdout.write('Finished\n');

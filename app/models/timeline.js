@@ -25,7 +25,6 @@ export const HOMEFEED_MODE_CLASSIC = 'classic';
  */
 export const HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY = 'friends-all-activity';
 
-
 export function addModel(dbAdapter) {
   class Timeline {
     id;
@@ -86,10 +85,7 @@ export function addModel(dbAdapter) {
     }
 
     validate() {
-      const valid = this.name
-        && this.name.length > 0
-        && this.userId
-        && this.userId.length > 0;
+      const valid = this.name && this.name.length > 0 && this.userId && this.userId.length > 0;
 
       if (!valid) {
         throw new Error('Invalid');
@@ -106,8 +102,8 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       const payload = {
-        'name':   this.name,
-        'userId': this.userId,
+        name: this.name,
+        userId: this.userId,
       };
 
       const ids = await dbAdapter.createTimeline(payload);
@@ -178,9 +174,9 @@ export function addModel(dbAdapter) {
         limit = 0;
       }
 
-      const reader = this.currentUser ? (await dbAdapter.getUserById(this.currentUser)) : null;
-      const banIds = reader ? (await reader.getBanIds()) : [];
-      const readerOwnFeeds = reader ? (await reader.getPublicTimelinesIntIds()) : [];
+      const reader = this.currentUser ? await dbAdapter.getUserById(this.currentUser) : null;
+      const banIds = reader ? await reader.getBanIds() : [];
+      const readerOwnFeeds = reader ? await reader.getPublicTimelinesIntIds() : [];
       const feedOwner = await this.getUser();
 
       let posts;
@@ -188,8 +184,16 @@ export function addModel(dbAdapter) {
       if (this.name !== 'MyDiscussions') {
         posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser });
       } else {
-        const myDiscussionsFeedSourcesIds = await Promise.all([feedOwner.getCommentsTimelineIntId(), feedOwner.getLikesTimelineIntId()]);
-        posts = await this.getFeedPosts(0, offset + limit, { currentUser: this.currentUser }, myDiscussionsFeedSourcesIds);
+        const myDiscussionsFeedSourcesIds = await Promise.all([
+          feedOwner.getCommentsTimelineIntId(),
+          feedOwner.getLikesTimelineIntId(),
+        ]);
+        posts = await this.getFeedPosts(
+          0,
+          offset + limit,
+          { currentUser: this.currentUser },
+          myDiscussionsFeedSourcesIds,
+        );
       }
 
       const postIds = posts.map((p) => {
@@ -209,7 +213,9 @@ export function addModel(dbAdapter) {
         const absentPostIds = _.difference(localBumpedPostIds, postIds);
 
         if (absentPostIds.length > 0) {
-          let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, { currentUser: this.currentUser });
+          let localBumpedPosts = await dbAdapter.getPostsByIds(absentPostIds, {
+            currentUser: this.currentUser,
+          });
           localBumpedPosts = _.sortBy(localBumpedPosts, (post) => {
             return absentPostIds.indexOf(post.id);
           });
@@ -261,46 +267,53 @@ export function addModel(dbAdapter) {
         return usersCache[id];
       }
 
-      posts = await Promise.all(posts.map(async (post) => {
-        if (post.userId === this.currentUser) {
-          // shortcut for the author
-          return post;
-        }
-
-        let author, authorBannedReader;
-
-        try {
-          [author, authorBannedReader] = await userById(post.userId);
-        } catch (e) {
-          throw new Error(`did not find user-object of author of post with id=${post.id}\nPREVIOUS: ${e.message}`);
-        }
-
-        const readerBannedAuthor = banIds.includes(post.userId);
-
-        if (readerBannedAuthor || authorBannedReader) {
-          return null;
-        }
-
-        if (author.isPrivate) {
-          if ((feedOwner.isPrivate !== '1' && this.isPosts()) || this.isDirects()) {
+      posts = await Promise.all(
+        posts.map(async (post) => {
+          if (post.userId === this.currentUser) {
+            // shortcut for the author
             return post;
           }
 
-          if (_.intersection(post.destinationFeedIds, readerOwnFeeds).length > 0) {
-            return post;
+          let author, authorBannedReader;
+
+          try {
+            [author, authorBannedReader] = await userById(post.userId);
+          } catch (e) {
+            throw new Error(
+              `did not find user-object of author of post with id=${post.id}\nPREVIOUS: ${e.message}`,
+            );
           }
 
-          if (reader && _.intersection(post.destinationFeedIds, reader.subscribedFeedIds).length > 0) {
-            return post;
-          }
+          const readerBannedAuthor = banIds.includes(post.userId);
 
-          if (!await post.isVisibleFor(reader)) {
+          if (readerBannedAuthor || authorBannedReader) {
             return null;
           }
-        }
 
-        return post;
-      }));
+          if (author.isPrivate) {
+            if ((feedOwner.isPrivate !== '1' && this.isPosts()) || this.isDirects()) {
+              return post;
+            }
+
+            if (_.intersection(post.destinationFeedIds, readerOwnFeeds).length > 0) {
+              return post;
+            }
+
+            if (
+              reader &&
+              _.intersection(post.destinationFeedIds, reader.subscribedFeedIds).length > 0
+            ) {
+              return post;
+            }
+
+            if (!(await post.isVisibleFor(reader))) {
+              return null;
+            }
+          }
+
+          return post;
+        }),
+      );
 
       this.posts = posts.filter(Boolean);
 
@@ -310,9 +323,9 @@ export function addModel(dbAdapter) {
     async unmerge(feedIntId) {
       const postIds = await dbAdapter.getTimelinesIntersectionPostIds(this.intId, feedIntId);
 
-      await Promise.all(_.flatten(postIds.map((postId) =>
-        dbAdapter.withdrawPostFromFeeds([feedIntId], postId)
-      )));
+      await Promise.all(
+        _.flatten(postIds.map((postId) => dbAdapter.withdrawPostFromFeeds([feedIntId], postId))),
+      );
 
       return;
     }
@@ -380,12 +393,16 @@ export function addModel(dbAdapter) {
      */
     async getSubscribedTimelineIds() {
       const subscribers = await this.getSubscribers(true);
-      return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()));
+      return await Promise.all(
+        subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineId()),
+      );
     }
 
     async getSubscribersRiversOfNewsIntIds() {
       const subscribers = await this.getSubscribers(true);
-      return await Promise.all(subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()));
+      return await Promise.all(
+        subscribers.map((subscriber) => subscriber.getRiverOfNewsTimelineIntId()),
+      );
     }
 
     isRiverOfNews() {
@@ -421,13 +438,7 @@ export function addModel(dbAdapter) {
      * @return {boolean}
      */
     isPersonal() {
-      return [
-        'RiverOfNews',
-        'Hides',
-        'Directs',
-        'MyDiscussions',
-        'Saves',
-      ].includes(this.name);
+      return ['RiverOfNews', 'Hides', 'Directs', 'MyDiscussions', 'Saves'].includes(this.name);
     }
 
     /**
@@ -435,10 +446,7 @@ export function addModel(dbAdapter) {
      * @return {boolean}
      */
     isVirtual() {
-      return [
-        'RiverOfNews',
-        'MyDiscussions',
-      ].includes(this.name);
+      return ['RiverOfNews', 'MyDiscussions'].includes(this.name);
     }
 
     /**
@@ -451,11 +459,11 @@ export function addModel(dbAdapter) {
 
     async canShow(readerId) {
       if (this.userId === readerId) {
-        return true;  // owner can read her posts
+        return true; // owner can read her posts
       }
 
       if (this.isPersonal()) {
-        return false;  // this is someone else's personal feed
+        return false; // this is someone else's personal feed
       }
 
       const user = await this.getUser();
@@ -469,7 +477,7 @@ export function addModel(dbAdapter) {
       }
 
       if (!readerId) {
-        return (user.isProtected === '0');
+        return user.isProtected === '0';
       }
 
       if (user.isPrivate === '1') {

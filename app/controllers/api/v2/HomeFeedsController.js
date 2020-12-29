@@ -3,7 +3,11 @@ import compose from 'koa-compose';
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { serializeTimeline } from '../../../serializers/v2/timeline';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
-import { ValidationException, NotFoundException, ForbiddenException } from '../../../support/exceptions'
+import {
+  ValidationException,
+  NotFoundException,
+  ForbiddenException,
+} from '../../../support/exceptions';
 import { dbAdapter, PubSub as pubSub } from '../../../models';
 
 import {
@@ -13,11 +17,12 @@ import {
   reorderHomeFeedsInputSchema,
 } from './data-schemes/homefeeds';
 
-
 export const listHomeFeeds = compose([
   authRequired(),
   async (ctx) => {
-    const { state: { user } } = ctx;
+    const {
+      state: { user },
+    } = ctx;
 
     const homeFeeds = await user.getHomeFeeds();
     const timelines = homeFeeds.map((t) => serializeTimeline(t));
@@ -32,7 +37,10 @@ export const createHomeFeed = compose([
   inputSchemaRequired(createHomeFeedInputSchema),
   monitored('homefeeds.create'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const {
+      state: { user },
+      request: { body },
+    } = ctx;
 
     const title = body.title.trim();
 
@@ -58,7 +66,10 @@ export const updateHomeFeed = compose([
   inputSchemaRequired(updateHomeFeedInputSchema),
   monitored('homefeeds.update'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const {
+      state: { user },
+      request: { body },
+    } = ctx;
 
     const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
 
@@ -93,7 +104,10 @@ export const deleteHomeFeed = compose([
   inputSchemaRequired(deleteHomeFeedInputSchema),
   monitored('homefeeds.delete'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const {
+      state: { user },
+      request: { body },
+    } = ctx;
 
     const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
 
@@ -123,14 +137,14 @@ export const reorderHomeFeeds = compose([
   inputSchemaRequired(reorderHomeFeedsInputSchema),
   monitored('homefeeds.reorder'),
   async (ctx) => {
-    const { state: { user }, request: { body } } = ctx;
+    const {
+      state: { user },
+      request: { body },
+    } = ctx;
 
     const feeds = await dbAdapter.getTimelinesByIds(body.reorder);
 
-    if (
-      feeds.length === 0 ||
-      feeds.some((f) => f.userId !== user.id || f.name !== 'RiverOfNews')
-    ) {
+    if (feeds.length === 0 || feeds.some((f) => f.userId !== user.id || f.name !== 'RiverOfNews')) {
       throw new ForbiddenException(`These feeds cannot be reordered`);
     }
 
@@ -146,7 +160,9 @@ export const listSubscriptions = compose([
   authRequired(),
   monitored('homefeeds.list-subscriptions'),
   async (ctx) => {
-    const { state: { user } } = ctx;
+    const {
+      state: { user },
+    } = ctx;
 
     const [subs, homeFeeds] = await Promise.all([
       user.getSubscriptionsWithHomeFeeds(),
@@ -155,8 +171,11 @@ export const listSubscriptions = compose([
 
     const timelines = homeFeeds.map((t) => serializeTimeline(t));
     const usersInHomeFeeds = subs.map((s) => ({ id: s.user_id, homeFeeds: s.homefeed_ids }));
-    const users = await serializeUsersByIds([user.id, ...usersInHomeFeeds.map((s) => s.id)],
-      true, user.id);
+    const users = await serializeUsersByIds(
+      [user.id, ...usersInHomeFeeds.map((s) => s.id)],
+      true,
+      user.id,
+    );
 
     ctx.body = {
       usersInHomeFeeds,
@@ -169,7 +188,9 @@ export const listSubscriptions = compose([
 export const getHomeFeedInfo = compose([
   authRequired(),
   async (ctx) => {
-    const { state: { user } } = ctx;
+    const {
+      state: { user },
+    } = ctx;
 
     const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
 

@@ -2,7 +2,6 @@ import { Job } from '../../models';
 
 import { prepareModelPayload, initObject } from './utils';
 
-
 export default function jobsTrait(superClass) {
   return class extends superClass {
     async createJob(name, payload = {}, { unlockAt, uniqKey } = {}) {
@@ -13,7 +12,7 @@ export default function jobsTrait(superClass) {
           on conflict (name, uniq_key) do 
             update set (payload, unlock_at) = (:payload, :unlockAt)
           returning *`,
-        { name, payload, uniqKey, unlockAt: this._jobUnlockAt(unlockAt) }
+        { name, payload, uniqKey, unlockAt: this._jobUnlockAt(unlockAt) },
       );
 
       return initJobObject(row);
@@ -49,7 +48,8 @@ export default function jobsTrait(superClass) {
             limit :count
           )
           returning *`,
-        { count, lockTime });
+        { count, lockTime },
+      );
       return rows.map(initJobObject);
     }
 
@@ -60,7 +60,7 @@ export default function jobsTrait(superClass) {
       if (names) {
         rows = await this.database.getAll(
           `select * from jobs where name = any(:names) order by created_at`,
-          { names }
+          { names },
         );
       } else {
         rows = await this.database.getAll(`select * from jobs order by created_at`);
@@ -78,7 +78,7 @@ export default function jobsTrait(superClass) {
 
       return this.database.raw('default');
     }
-  }
+  };
 }
 
 function initJobObject(row) {
@@ -91,13 +91,13 @@ function initJobObject(row) {
 }
 
 const JOB_FIELDS = {
-  id:         'id',
+  id: 'id',
   created_at: 'createdAt',
-  unlock_at:  'unlockAt',
-  name:       'name',
-  payload:    'payload',
-  attempts:   'attempts',
-  uniq_key:   'uniqKey',
+  unlock_at: 'unlockAt',
+  name: 'name',
+  payload: 'payload',
+  attempts: 'attempts',
+  uniq_key: 'uniqKey',
 };
 
 const JOB_FIELDS_MAPPING = {};

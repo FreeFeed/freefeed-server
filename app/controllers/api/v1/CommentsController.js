@@ -2,12 +2,20 @@ import compose from 'koa-compose';
 import monitor from 'monitor-dog';
 
 import { dbAdapter, Comment, AppTokenV1 } from '../../../models';
-import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions';
+import {
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '../../../support/exceptions';
 import { serializeComment } from '../../../serializers/v2/comment';
-import { authRequired, inputSchemaRequired, postAccessRequired, monitored } from '../../middlewares';
+import {
+  authRequired,
+  inputSchemaRequired,
+  postAccessRequired,
+  monitored,
+} from '../../middlewares';
 
 import { commentCreateInputSchema, commentUpdateInputSchema } from './data-schemes';
-
 
 export const create = compose([
   authRequired(),
@@ -21,9 +29,11 @@ export const create = compose([
   monitored('comments.create'),
   async (ctx) => {
     const { user: author, post } = ctx.state;
-    const { comment: { body, postId } } = ctx.request.body;
+    const {
+      comment: { body, postId },
+    } = ctx.request.body;
 
-    if (post.commentsDisabled === '1' && !await post.isAuthorOrGroupAdmin(author)) {
+    if (post.commentsDisabled === '1' && !(await post.isAuthorOrGroupAdmin(author))) {
       throw new ForbiddenException('Comments disabled');
     }
 
@@ -111,7 +121,7 @@ export const destroy = compose([
       throw new ForbiddenException('You can not destroy a deleted comment');
     }
 
-    if (comment.userId !== user.id && !await post.isAuthorOrGroupAdmin(user)) {
+    if (comment.userId !== user.id && !(await post.isAuthorOrGroupAdmin(user))) {
       throw new ForbiddenException("You don't have permission to delete this comment");
     }
 

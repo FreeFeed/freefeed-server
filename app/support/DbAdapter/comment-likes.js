@@ -7,96 +7,103 @@ import { sqlIn, sqlNotIn } from './utils';
 // Comment likes
 ///////////////////////////////////////////////////
 
-const commentLikesTrait = (superClass) => class extends superClass {
-  /**
-   * Returns true if like is created or false if like is already exists
-   *
-   * @param {string} commentUUID
-   * @param {string} likerUUID
-   * @returns {Promise<boolean>}
-   */
-  async createCommentLike(commentUUID, likerUUID) {
-    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
-    const ok = await this.database.getOne(
-      `insert into comment_likes 
+const commentLikesTrait = (superClass) =>
+  class extends superClass {
+    /**
+     * Returns true if like is created or false if like is already exists
+     *
+     * @param {string} commentUUID
+     * @param {string} likerUUID
+     * @returns {Promise<boolean>}
+     */
+    async createCommentLike(commentUUID, likerUUID) {
+      const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
+      const ok = await this.database.getOne(
+        `insert into comment_likes 
         (comment_id, user_id) values (:commentId, :userId)
         on conflict do nothing
         returning true`,
-      { commentId, userId });
-    return !!ok;
-  }
-
-  async _getCommentAndUserIntId(commentUUID, likerUUID) {
-    const [commentId, userId] = await Promise.all([
-      this._getCommentIntIdByUUID(commentUUID),
-      this._getUserIntIdByUUID(likerUUID),
-    ]);
-
-    return [commentId, userId];
-  }
-
-  async getCommentLikesWithoutBannedUsers(commentIntId, viewerUserUUID = null) {
-    let query = this.database
-      .select('users.uid as userId', 'comment_likes.created_at as createdAt')
-      .from('comment_likes')
-      .innerJoin('users', 'users.id', 'comment_likes.user_id')
-      .orderBy('comment_likes.created_at', 'desc')
-      .where('comment_likes.comment_id', commentIntId)
-      .whereNull('users.gone_status');
-
-    if (viewerUserUUID) {
-      const subquery = this.database('bans').select('banned_user_id').where('user_id', viewerUserUUID);
-      query = query.where('users.uid', 'not in', subquery);
+        { commentId, userId },
+      );
+      return !!ok;
     }
 
-    let commentLikesData = await query;
+    async _getCommentAndUserIntId(commentUUID, likerUUID) {
+      const [commentId, userId] = await Promise.all([
+        this._getCommentIntIdByUUID(commentUUID),
+        this._getUserIntIdByUUID(likerUUID),
+      ]);
 
-    if (viewerUserUUID) {
-      commentLikesData = commentLikesData.sort((a, b) => {
-        if (a.userId == viewerUserUUID) {
-          return -1;
-        }
-
-        if (b.userId == viewerUserUUID) {
-          return 1;
-        }
-
-        return 0;
-      });
+      return [commentId, userId];
     }
 
-    return commentLikesData;
-  }
+    async getCommentLikesWithoutBannedUsers(commentIntId, viewerUserUUID = null) {
+      let query = this.database
+        .select('users.uid as userId', 'comment_likes.created_at as createdAt')
+        .from('comment_likes')
+        .innerJoin('users', 'users.id', 'comment_likes.user_id')
+        .orderBy('comment_likes.created_at', 'desc')
+        .where('comment_likes.comment_id', commentIntId)
+        .whereNull('users.gone_status');
 
-  async hasUserLikedComment(commentUUID, userUUID) {
-    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, userUUID);
-    const [{ 'count': res }] = await this.database('comment_likes').where({
-      comment_id: commentId,
-      user_id:    userId
-    }).count();
-    return parseInt(res) != 0;
-  }
+      if (viewerUserUUID) {
+        const subquery = this.database('bans')
+          .select('banned_user_id')
+          .where('user_id', viewerUserUUID);
+        query = query.where('users.uid', 'not in', subquery);
+      }
 
-  async deleteCommentLike(commentUUID, likerUUID) {
-    const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
-    const ok = await this.database.getOne(
-      `delete from comment_likes
+      let commentLikesData = await query;
+
+      if (viewerUserUUID) {
+        commentLikesData = commentLikesData.sort((a, b) => {
+          if (a.userId == viewerUserUUID) {
+            return -1;
+          }
+
+          if (b.userId == viewerUserUUID) {
+            return 1;
+          }
+
+          return 0;
+        });
+      }
+
+      return commentLikesData;
+    }
+
+    async hasUserLikedComment(commentUUID, userUUID) {
+      const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, userUUID);
+      const [{ count: res }] = await this.database('comment_likes')
+        .where({
+          comment_id: commentId,
+          user_id: userId,
+        })
+        .count();
+      return parseInt(res) != 0;
+    }
+
+    async deleteCommentLike(commentUUID, likerUUID) {
+      const [commentId, userId] = await this._getCommentAndUserIntId(commentUUID, likerUUID);
+      const ok = await this.database.getOne(
+        `delete from comment_likes
         where (comment_id, user_id) = (:commentId, :userId)
         returning true`,
-      { commentId, userId });
-    return !!ok;
-  }
-
-  async getLikesInfoForComments(commentsUUIDs, viewerUUID) {
-    if (_.isEmpty(commentsUUIDs)) {
-      return [];
+        { commentId, userId },
+      );
+      return !!ok;
     }
 
-    const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
-    const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+    async getLikesInfoForComments(commentsUUIDs, viewerUUID) {
+      if (_.isEmpty(commentsUUIDs)) {
+        return [];
+      }
 
-    const commentLikesSQL = pgFormat(
-      `
+      const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
+      const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+
+      const commentLikesSQL = pgFormat(
+        `
         select uid,
             (select coalesce(count(*), '0') from comment_likes cl
               where cl.comment_id = comments.id
@@ -108,22 +115,23 @@ const commentLikesTrait = (superClass) => class extends superClass {
             ) as has_own_like
         from comments
         where ${sqlIn('uid', commentsUUIDs)} and ${sqlNotIn('user_id', bannedUsersIds)}`,
-      viewerIntId);
+        viewerIntId,
+      );
 
-    const { 'rows': commentLikes } = await this.database.raw(commentLikesSQL);
-    return commentLikes;
-  }
-
-  async getLikesInfoForPosts(postsUUIDs, viewerUUID) {
-    if (_.isEmpty(postsUUIDs)) {
-      return [];
+      const { rows: commentLikes } = await this.database.raw(commentLikesSQL);
+      return commentLikes;
     }
 
-    const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
-    const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+    async getLikesInfoForPosts(postsUUIDs, viewerUUID) {
+      if (_.isEmpty(postsUUIDs)) {
+        return [];
+      }
 
-    const commentLikesSQL = pgFormat(
-      `
+      const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
+      const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+
+      const commentLikesSQL = pgFormat(
+        `
         select  p.uid,
               (select count(cl.*)
                 from comment_likes cl join comments c
@@ -142,11 +150,12 @@ const commentLikesTrait = (superClass) => class extends superClass {
         from
           posts p
         where ${sqlIn('p.uid', postsUUIDs)}`,
-      viewerIntId);
+        viewerIntId,
+      );
 
-    const { 'rows': postsCommentLikes } = await this.database.raw(commentLikesSQL);
-    return postsCommentLikes;
-  }
-};
+      const { rows: postsCommentLikes } = await this.database.raw(commentLikesSQL);
+      return postsCommentLikes;
+    }
+  };
 
 export default commentLikesTrait;

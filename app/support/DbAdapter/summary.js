@@ -12,35 +12,50 @@ import pgFormat from 'pg-format';
  * - C is number of comments
  * - L is number of likes
  */
-const summaryTrait = (superClass) => class extends superClass {
-  async getSummaryPostsIds(currentUserId, days, timelineIntIds, activityIntIds = [], limit = null) {
-    const DEFAULT_LIMIT = 30;
-    limit = limit || DEFAULT_LIMIT;
-    let privacyFilter = 'AND NOT posts.is_protected';
-    let banFilter = '';
+const summaryTrait = (superClass) =>
+  class extends superClass {
+    async getSummaryPostsIds(
+      currentUserId,
+      days,
+      timelineIntIds,
+      activityIntIds = [],
+      limit = null,
+    ) {
+      const DEFAULT_LIMIT = 30;
+      limit = limit || DEFAULT_LIMIT;
+      let privacyFilter = 'AND NOT posts.is_protected';
+      let banFilter = '';
 
-    if (currentUserId) {
-      const [visiblePrivateFeedIntIds, bannedUserIds] = await Promise.all([
-        this.getVisiblePrivateFeedIntIds(currentUserId),
-        this.getUsersBansOrWasBannedBy(currentUserId),
-      ]);
+      if (currentUserId) {
+        const [visiblePrivateFeedIntIds, bannedUserIds] = await Promise.all([
+          this.getVisiblePrivateFeedIntIds(currentUserId),
+          this.getUsersBansOrWasBannedBy(currentUserId),
+        ]);
 
-      // Exclude private feeds viewer cannot read
-      privacyFilter = pgFormat('AND (NOT posts.is_private OR posts.destination_feed_ids && %L)', `{${visiblePrivateFeedIntIds.join(',')}}`);
+        // Exclude private feeds viewer cannot read
+        privacyFilter = pgFormat(
+          'AND (NOT posts.is_private OR posts.destination_feed_ids && %L)',
+          `{${visiblePrivateFeedIntIds.join(',')}}`,
+        );
 
-      // Exclude authors who banned viewer or were banned by viewer
-      banFilter = (bannedUserIds.length > 0) ? pgFormat('AND (posts.user_id NOT IN (%L))', bannedUserIds) : '';
-    }
+        // Exclude authors who banned viewer or were banned by viewer
+        banFilter =
+          bannedUserIds.length > 0
+            ? pgFormat('AND (posts.user_id NOT IN (%L))', bannedUserIds)
+            : '';
+      }
 
-    privacyFilter += ' AND u.gone_status is null';
+      privacyFilter += ' AND u.gone_status is null';
 
-    let postSourceCondition = `posts.feed_ids && '{${timelineIntIds.join(',')}}'`;
+      let postSourceCondition = `posts.feed_ids && '{${timelineIntIds.join(',')}}'`;
 
-    if (activityIntIds.length > 0) {
-      postSourceCondition = `(${postSourceCondition} or posts.is_propagable and posts.feed_ids && '{${activityIntIds.join(',')}}')`;
-    }
+      if (activityIntIds.length > 0) {
+        postSourceCondition = `(${postSourceCondition} or posts.is_propagable and posts.feed_ids && '{${activityIntIds.join(
+          ',',
+        )}}')`;
+      }
 
-    const sql = `
+      const sql = `
         SELECT
           posts.uid,
           (
@@ -88,9 +103,9 @@ const summaryTrait = (superClass) => class extends superClass {
           ${limit}
       `;
 
-    const { rows } = await this.database.raw(sql);
-    return rows.map((r) => r.uid);
-  }
-};
+      const { rows } = await this.database.raw(sql);
+      return rows.map((r) => r.uid);
+    }
+  };
 
 export default summaryTrait;

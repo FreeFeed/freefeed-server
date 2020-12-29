@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import path from 'path'
-import { promises as fs } from 'fs'
+import path from 'path';
+import { promises as fs } from 'fs';
 
 import expect from 'unexpected';
 
@@ -27,7 +27,6 @@ import {
 import { GONE_DELETION } from '../../../app/models/user';
 import { filesMustExist } from '../helpers/attachments';
 
-
 describe('User data deletion', () => {
   beforeEach(() => cleanDB($pg_database));
 
@@ -35,18 +34,19 @@ describe('User data deletion', () => {
 
   beforeEach(async () => {
     luna = new User({
-      username:    `luna`,
-      screenName:  'Luna Lovegood',
+      username: `luna`,
+      screenName: 'Luna Lovegood',
       description: 'Luna Love Good',
-      email:       'luna.lovegood@example.com',
-      password:    'password',
-      preferences: { acceptDirectsFrom: User.ACCEPT_DIRECTS_FROM_ALL }
+      email: 'luna.lovegood@example.com',
+      password: 'password',
+      preferences: { acceptDirectsFrom: User.ACCEPT_DIRECTS_FROM_ALL },
     });
-    mars = new User({ username: `mars`, password: 'password' })
+    mars = new User({ username: `mars`, password: 'password' });
     await Promise.all([luna, mars].map((user) => user.create()));
   });
 
-  it(`should pass smoke test`, () => expect(deleteAllUserData(luna.id, afterHour()), 'to be fulfilled'));
+  it(`should pass smoke test`, () =>
+    expect(deleteAllUserData(luna.id, afterHour()), 'to be fulfilled'));
 
   it(`should delete user personal data`, async () => {
     await luna.setGoneStatus(GONE_DELETION);
@@ -55,22 +55,22 @@ describe('User data deletion', () => {
     const newData = await dbAdapter.database.getRow(`select * from users where uid = ?`, luna.id);
 
     expect(newData, 'to satisfy', {
-      uid:             luna.id,
-      username:        'luna',
-      screen_name:     'luna',
-      description:     '',
+      uid: luna.id,
+      username: 'luna',
+      screen_name: 'luna',
+      description: '',
       hashed_password: '',
-      gone_status:     GONE_DELETION,
+      gone_status: GONE_DELETION,
     });
   });
 
   it(`should delete user posts`, async () => {
-    const timelineId = await luna.getPostsTimelineId()
+    const timelineId = await luna.getPostsTimelineId();
 
     for (let i = 0; i < 3; i++) {
       const post = new Post({
-        userId:      luna.id,
-        body:        `Post #${i + 1}`,
+        userId: luna.id,
+        body: `Post #${i + 1}`,
         timelineIds: [timelineId],
       });
       // eslint-disable-next-line no-await-in-loop
@@ -78,14 +78,17 @@ describe('User data deletion', () => {
     }
 
     await deletePosts(luna.id, afterHour());
-    const postIds = await dbAdapter.database.getCol(`select uid from posts where user_id = ?`, luna.id);
+    const postIds = await dbAdapter.database.getCol(
+      `select uid from posts where user_id = ?`,
+      luna.id,
+    );
     expect(postIds, 'to be empty');
   });
 
   it(`should delete user likes`, async () => {
     const marsPost = new Post({
-      userId:      mars.id,
-      body:        `Post`,
+      userId: mars.id,
+      body: `Post`,
       timelineIds: [await mars.getPostsTimelineId()],
     });
     await marsPost.create();
@@ -93,22 +96,28 @@ describe('User data deletion', () => {
     await marsPost.addLike(luna);
 
     {
-      const likes = await dbAdapter.database.getAll(`select * from likes where user_id = ?`, luna.id);
+      const likes = await dbAdapter.database.getAll(
+        `select * from likes where user_id = ?`,
+        luna.id,
+      );
       expect(likes, 'to satisfy', [{ user_id: luna.id, post_id: marsPost.id }]);
     }
 
     await deleteLikes(luna.id, afterHour());
 
     {
-      const likes = await dbAdapter.database.getAll(`select * from likes where user_id = ?`, luna.id);
+      const likes = await dbAdapter.database.getAll(
+        `select * from likes where user_id = ?`,
+        luna.id,
+      );
       expect(likes, 'to be empty');
     }
   });
 
   it(`should delete user comment likes`, async () => {
     const marsPost = new Post({
-      userId:      mars.id,
-      body:        `Post`,
+      userId: mars.id,
+      body: `Post`,
       timelineIds: [await mars.getPostsTimelineId()],
     });
     await marsPost.create();
@@ -116,21 +125,27 @@ describe('User data deletion', () => {
     const marsComment = new Comment({
       userId: mars.id,
       postId: marsPost.id,
-      body:   'Comment',
+      body: 'Comment',
     });
     await marsComment.create();
 
     await marsComment.addLike(luna);
 
     {
-      const likes = await dbAdapter.database.getAll(`select * from comment_likes where user_id = ?`, luna.intId);
+      const likes = await dbAdapter.database.getAll(
+        `select * from comment_likes where user_id = ?`,
+        luna.intId,
+      );
       expect(likes, 'to have length', 1);
     }
 
     await deleteCommentLikes(luna.id, afterHour());
 
     {
-      const likes = await dbAdapter.database.getAll(`select * from comment_likes where user_id = ?`, luna.intId);
+      const likes = await dbAdapter.database.getAll(
+        `select * from comment_likes where user_id = ?`,
+        luna.intId,
+      );
       expect(likes, 'to be empty');
     }
   });
@@ -217,28 +232,34 @@ describe('User data deletion', () => {
     await dbAdapter.createAppToken({ userId: luna.id, title: 'Token 2' });
 
     {
-      const tokenIds = await dbAdapter.database.getAll(`select uid from app_tokens where user_id = ?`, luna.id);
+      const tokenIds = await dbAdapter.database.getAll(
+        `select uid from app_tokens where user_id = ?`,
+        luna.id,
+      );
       expect(tokenIds, 'to have length', 2);
     }
 
     await deleteAppTokens(luna.id, afterHour());
 
     {
-      const tokenIds = await dbAdapter.database.getAll(`select uid from app_tokens where user_id = ?`, luna.id);
+      const tokenIds = await dbAdapter.database.getAll(
+        `select uid from app_tokens where user_id = ?`,
+        luna.id,
+      );
       expect(tokenIds, 'to be empty');
     }
   });
 
   it(`should delete ext auth profiles`, async () => {
     await luna.addOrUpdateExtProfile({
-      provider:   'facebook',
+      provider: 'facebook',
       externalId: '111',
-      title:      'Luna Lovegood',
+      title: 'Luna Lovegood',
     });
     await luna.addOrUpdateExtProfile({
-      provider:   'facebook',
+      provider: 'facebook',
       externalId: '222',
-      title:      'Luna Maximoff',
+      title: 'Luna Maximoff',
     });
 
     {
@@ -268,7 +289,14 @@ describe('User data deletion', () => {
   });
 
   it(`should delete invitations`, async () => {
-    await dbAdapter.createInvitation(luna.intId, 'Welcome to Freefeed!', 'en', true, ['luna', 'mars', 'jupiter'], []);
+    await dbAdapter.createInvitation(
+      luna.intId,
+      'Welcome to Freefeed!',
+      'en',
+      true,
+      ['luna', 'mars', 'jupiter'],
+      [],
+    );
 
     expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 1);
 
@@ -286,11 +314,11 @@ describe('User data deletion', () => {
     const stat = await fs.stat(localFile);
     const att = new Attachment({
       userId: luna.id,
-      file:   {
+      file: {
         name: path.basename(localFile),
         size: stat.size,
         path: uploadedFile,
-        type: 'image/png'
+        type: 'image/png',
       },
     });
     await att.create();
@@ -304,5 +332,5 @@ describe('User data deletion', () => {
 });
 
 function afterHour() {
-  return new Date(Date.now() + (60 * 60 * 1000));
+  return new Date(Date.now() + 60 * 60 * 1000);
 }

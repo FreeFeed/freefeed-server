@@ -4,22 +4,21 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import config from 'config';
-import fetch from 'node-fetch'
-import expect from 'unexpected'
+import fetch from 'node-fetch';
+import expect from 'unexpected';
 
-import { getSingleton } from '../../app/app'
+import { getSingleton } from '../../app/app';
 import { version as serverVersion } from '../../package.json';
 import cleanDB from '../dbCleaner';
 
 import { createTestUser, updateUserAsync } from './functional_test_helper';
 
-
 describe('Common API routing', () => {
-  let app
+  let app;
 
   before(async () => {
-    app = await getSingleton()
-  })
+    app = await getSingleton();
+  });
 
   it(`should publish the X-Freefeed-Server (server version) and Date response header`, async () => {
     const resp = await fetch(`${app.context.config.host}/v2/users/whoami`);
@@ -38,7 +37,7 @@ describe('Common API routing', () => {
     const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`);
     expect(resp.status, 'to be', 404);
     const respData = await resp.json();
-    expect(respData, 'to satisfy', { err: 'API method not found: \'/v1/unexisting/method\'' });
+    expect(respData, 'to satisfy', { err: "API method not found: '/v1/unexisting/method'" });
   });
 
   it(`should response '200 OK' to OPTIONS request`, async () => {
@@ -47,7 +46,9 @@ describe('Common API routing', () => {
   });
 
   it(`should response '200 OK' to OPTIONS request if API method is not exists`, async () => {
-    const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, { method: 'OPTIONS' });
+    const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, {
+      method: 'OPTIONS',
+    });
     expect(resp.status, 'to be', 200);
   });
 
@@ -55,7 +56,9 @@ describe('Common API routing', () => {
     await cleanDB($pg_database);
     const newName = 'François I. de Clèves';
     const user = await createTestUser();
-    const result = await updateUserAsync(user, { screenName: newName.normalize('NFD') }).then((r) => r.json());
+    const result = await updateUserAsync(user, { screenName: newName.normalize('NFD') }).then((r) =>
+      r.json(),
+    );
     expect(result.users.screenName, 'to be', newName.normalize('NFC'));
   });
 
@@ -69,7 +72,10 @@ describe('Common API routing', () => {
       const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`);
       expect(resp.status, 'to be', 503);
       const respData = await resp.json();
-      expect(respData, 'to satisfy', { err: 'Maintenance message', errType: 'ServiceUnavailable.Maintenance' });
+      expect(respData, 'to satisfy', {
+        err: 'Maintenance message',
+        errType: 'ServiceUnavailable.Maintenance',
+      });
     } finally {
       await fs.unlink(messageFile);
     }
@@ -82,7 +88,9 @@ describe('Common API routing', () => {
     await fs.writeFile(messageFile, 'Maintenance message', { flag: 'w' });
 
     try {
-      const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, { method: 'OPTIONS' });
+      const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, {
+        method: 'OPTIONS',
+      });
       expect(resp.status, 'to be', 200);
     } finally {
       await fs.unlink(messageFile);

@@ -1,47 +1,46 @@
 import definitions from './definitions';
 
-
 export const commentCreateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:       'object',
-  required:   ['comment'],
+  type: 'object',
+  required: ['comment'],
   properties: {
     comment: {
-      type:       'object',
-      required:   ['body', 'postId'],
+      type: 'object',
+      required: ['body', 'postId'],
       properties: {
         body: {
-          type:      'string',
+          type: 'string',
           minLength: 1,
-          pattern:   '\\S'
+          pattern: '\\S',
         },
-        postId: { '$ref': '#/definitions/uuid' }
-      }
-    }
-  }
+        postId: { $ref: '#/definitions/uuid' },
+      },
+    },
+  },
 };
 
 export const commentUpdateInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:       'object',
-  required:   ['comment'],
+  type: 'object',
+  required: ['comment'],
   properties: {
     comment: {
-      type:       'object',
-      required:   ['body'],
+      type: 'object',
+      required: ['body'],
       properties: {
         body: {
-          type:      'string',
+          type: 'string',
           minLength: 1,
-          pattern:   '\\S'
+          pattern: '\\S',
         },
-      }
-    }
-  }
+      },
+    },
+  },
 };

@@ -7,9 +7,7 @@ process.env.NODE_ENV = 'test';
 
 const config = require('../knexfile');
 
-
 process.env.NODE_ENV = prevEnv;
-
 
 if (!('test' in config)) {
   process.stderr.write(`Error: no "test" section in knexfile`);

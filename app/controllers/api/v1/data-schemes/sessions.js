@@ -1,18 +1,17 @@
 import definitions from './definitions';
 
-
 export const updateListInputSchema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
   definitions,
 
-  type:       'object',
+  type: 'object',
   properties: {
     close: {
-      type:        'array',
-      default:     [],
-      items:       { '$ref': '#/definitions/uuid' },
+      type: 'array',
+      default: [],
+      items: { $ref: '#/definitions/uuid' },
       uniqueItems: true,
-    }
-  }
+    },
+  },
 };

@@ -1,7 +1,6 @@
 #!/usr/bin/env babel-node
 import { sendEmails } from '../app/support/NotificationsDigest';
 
-
 sendEmails()
   .then(() => {
     process.stdout.write('Finished\n');

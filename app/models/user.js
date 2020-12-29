@@ -12,18 +12,13 @@ import { v4 as uuidv4 } from 'uuid';
 import config from 'config';
 
 import { getS3 } from '../support/s3';
-import {
-  BadRequestException,
-  NotFoundException,
-  ValidationException
-} from '../support/exceptions';
+import { BadRequestException, NotFoundException, ValidationException } from '../support/exceptions';
 import { Attachment, Comment, Post, PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
 import { allExternalProviders } from '../support/ExtAuth';
 
 import { valiate as validateUserPrefs } from './user-prefs';
-
 
 promisifyAll(crypto);
 promisifyAll(gm);
@@ -39,9 +34,9 @@ export const GONE_DELETED = 40;
 
 export const GONE_NAMES = {
   [GONE_SUSPENDED]: 'SUSPENDED',
-  [GONE_COOLDOWN]:  'COOLDOWN',
-  [GONE_DELETION]:  'DELETION',
-  [GONE_DELETED]:   'DELETED',
+  [GONE_COOLDOWN]: 'COOLDOWN',
+  [GONE_DELETION]: 'DELETION',
+  [GONE_DELETED]: 'DELETED',
 };
 
 export function addModel(dbAdapter) {
@@ -121,8 +116,8 @@ export function addModel(dbAdapter) {
         this.isPrivate = '1';
         this.isProtected = '1';
         this.updatedAt = this.createdAt;
-        this.profilePictureUuid =  '';
-        this.subscribedFeedIds =  [];
+        this.profilePictureUuid = '';
+        this.subscribedFeedIds = [];
         this.privateMeta = {};
         this.notificationsReadAt = this.createdAt;
         this.resetPasswordToken = null;
@@ -210,9 +205,7 @@ export function addModel(dbAdapter) {
         return config.application.USERNAME_STOP_LIST;
       }
 
-      return config.application.USERNAME_STOP_LIST.concat(
-        config.application.EXTRA_STOP_LIST
-      );
+      return config.application.USERNAME_STOP_LIST.concat(config.application.EXTRA_STOP_LIST);
     }
 
     static getObjectsByIds(objectIds) {
@@ -242,8 +235,8 @@ export function addModel(dbAdapter) {
       const token = await this.generateResetPasswordToken();
 
       const payload = {
-        resetPasswordToken:  token,
-        resetPasswordSentAt: now
+        resetPasswordToken: token,
+        resetPasswordSentAt: now,
       };
 
       await dbAdapter.updateUser(this.id, payload);
@@ -339,10 +332,7 @@ export function addModel(dbAdapter) {
       }
 
       for (const prop in frontendPreferences) {
-        if (
-          !frontendPreferences[prop] ||
-          typeof frontendPreferences[prop] !== 'object'
-        ) {
+        if (!frontendPreferences[prop] || typeof frontendPreferences[prop] !== 'object') {
           return false;
         }
       }
@@ -357,9 +347,7 @@ export function addModel(dbAdapter) {
 
       if (!this.isValidScreenName()) {
         throw new Error(
-          `"${
-            this.screenName
-          }" is not a valid display name. Names must be between 3 and 25 characters long.`
+          `"${this.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
         );
       }
 
@@ -381,10 +369,7 @@ export function addModel(dbAdapter) {
     }
 
     async validateOnCreate(skip_stoplist) {
-      const promises = [
-        this.validate(skip_stoplist),
-        this.validateUsernameUniqueness()
-      ];
+      const promises = [this.validate(skip_stoplist), this.validateUsernameUniqueness()];
 
       await Promise.all(promises);
     }
@@ -408,18 +393,18 @@ export function addModel(dbAdapter) {
       }
 
       const payload = {
-        username:            this.username,
-        screenName:          this.screenName,
-        email:               this.email ? this.email : null,
-        type:                this.type,
-        isPrivate:           this.isPrivate,
-        isProtected:         this.isProtected,
-        description:         '',
-        createdAt:           this.createdAt.toString(),
-        updatedAt:           this.updatedAt.toString(),
-        hashedPassword:      this.hashedPassword,
+        username: this.username,
+        screenName: this.screenName,
+        email: this.email ? this.email : null,
+        type: this.type,
+        isPrivate: this.isPrivate,
+        isProtected: this.isProtected,
+        description: '',
+        createdAt: this.createdAt.toString(),
+        updatedAt: this.updatedAt.toString(),
+        hashedPassword: this.hashedPassword,
         frontendPreferences: JSON.stringify({}),
-        preferences:         this.preferences
+        preferences: this.preferences,
       };
 
       [this.id, this.intId] = await dbAdapter.createUser(payload);
@@ -440,18 +425,13 @@ export function addModel(dbAdapter) {
         'isProtected',
         'description',
         'frontendPreferences',
-        'preferences'
+        'preferences',
       ];
 
-      if (
-        params.hasOwnProperty('screenName') &&
-        params.screenName != this.screenName
-      ) {
+      if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
         if (!this.screenNameIsValid(params.screenName)) {
           throw new Error(
-            `"${
-              params.screenName
-            }" is not a valid display name. Names must be between 3 and 25 characters long.`
+            `"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
           );
         }
 
@@ -466,10 +446,7 @@ export function addModel(dbAdapter) {
         payload.email = params.email;
       }
 
-      if (
-        params.hasOwnProperty('isPrivate') &&
-        params.isPrivate != this.isPrivate
-      ) {
+      if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
         if (params.isPrivate != '0' && params.isPrivate != '1') {
           // ???
           throw new Error('bad input');
@@ -487,17 +464,11 @@ export function addModel(dbAdapter) {
         params.isProtected = params.isPrivate;
       }
 
-      if (
-        params.hasOwnProperty('isProtected') &&
-        params.isProtected != this.isProtected
-      ) {
+      if (params.hasOwnProperty('isProtected') && params.isProtected != this.isProtected) {
         payload.isProtected = params.isProtected;
       }
 
-      if (
-        params.hasOwnProperty('description') &&
-        params.description != this.description
-      ) {
+      if (params.hasOwnProperty('description') && params.description != this.description) {
         if (!User.descriptionIsValid(params.description)) {
           throw new Error('Description is too long');
         }
@@ -513,7 +484,7 @@ export function addModel(dbAdapter) {
 
         const preferences = {
           ...this.frontendPreferences,
-          ...params.frontendPreferences
+          ...params.frontendPreferences,
         };
 
         // Validate the merged object
@@ -526,15 +497,13 @@ export function addModel(dbAdapter) {
 
       if (params.hasOwnProperty('preferences')) {
         if (!_.isPlainObject(params.preferences)) {
-          throw new ValidationException(
-            `Invalid 'preferences': must be a plain object`
-          );
+          throw new ValidationException(`Invalid 'preferences': must be a plain object`);
         }
 
         try {
           payload.preferences = validateUserPrefs({
             ...this.preferences,
-            ...params.preferences
+            ...params.preferences,
           });
         } catch (e) {
           throw new ValidationException(`Invalid 'preferences': ${e}`);
@@ -548,9 +517,7 @@ export function addModel(dbAdapter) {
         preparedPayload.updatedAt = payload.updatedAt.toString();
 
         if (_.has(payload, 'frontendPreferences')) {
-          preparedPayload.frontendPreferences = JSON.stringify(
-            payload.frontendPreferences
-          );
+          preparedPayload.frontendPreferences = JSON.stringify(payload.frontendPreferences);
         }
 
         await dbAdapter.updateUser(this.id, preparedPayload);
@@ -610,8 +577,8 @@ export function addModel(dbAdapter) {
 
       const updatedAt = new Date().getTime();
       const payload = {
-        updatedAt:      updatedAt.toString(),
-        hashedPassword: await bcrypt.hash(password, 10)
+        updatedAt: updatedAt.toString(),
+        hashedPassword: await bcrypt.hash(password, 10),
       };
 
       await dbAdapter.updateUser(this.id, payload);
@@ -646,17 +613,13 @@ export function addModel(dbAdapter) {
     }
 
     async getUnreadDirectsNumber() {
-      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(
-        this.id
-      );
+      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(this.id);
       return unreadDirectsNumber;
     }
 
     async getGenericTimelineIntId(name) {
       const timelineIds = await this.getTimelineIds();
-      const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([
-        timelineIds[name]
-      ]);
+      const intIds = await dbAdapter.getTimelinesIntIdsByUUIDs([timelineIds[name]]);
 
       if (intIds.length === 0) {
         return null;
@@ -752,10 +715,7 @@ export function addModel(dbAdapter) {
 
     async getTimelines(params) {
       const timelineIds = await this.getTimelineIds();
-      const timelines = await dbAdapter.getTimelinesByIds(
-        Object.values(timelineIds),
-        params
-      );
+      const timelines = await dbAdapter.getTimelinesByIds(Object.values(timelineIds), params);
       return _.sortBy(timelines, (tl) => User.feedNames.indexOf(tl.name));
     }
 
@@ -763,16 +723,12 @@ export function addModel(dbAdapter) {
       return Promise.all([
         this.getCommentsTimelineId(),
         this.getLikesTimelineId(),
-        this.getPostsTimelineId()
+        this.getPostsTimelineId(),
       ]);
     }
 
     getPublicTimelinesIntIds() {
-      return dbAdapter.getUserNamedFeedsIntIds(this.id, [
-        'Posts',
-        'Likes',
-        'Comments'
-      ]);
+      return dbAdapter.getUserNamedFeedsIntIds(this.id, ['Posts', 'Likes', 'Comments']);
     }
 
     /**
@@ -780,7 +736,7 @@ export function addModel(dbAdapter) {
      * @returns {Promise<Timeline>}
      */
     createHomeFeed(title) {
-      return dbAdapter.addNamedFeed(this.id, 'RiverOfNews', title)
+      return dbAdapter.addNamedFeed(this.id, 'RiverOfNews', title);
     }
 
     /**
@@ -798,9 +754,7 @@ export function addModel(dbAdapter) {
      * @return {Timeline[]}
      */
     async getSubscriptions() {
-      this.subscriptions = await dbAdapter.getTimelinesByIntIds(
-        this.subscribedFeedIds
-      );
+      this.subscriptions = await dbAdapter.getTimelinesByIntIds(this.subscribedFeedIds);
       return this.subscriptions;
     }
 
@@ -855,11 +809,7 @@ export function addModel(dbAdapter) {
       await Promise.all(promises);
       monitor.increment('users.bans');
 
-      await EventService.onUserBanned(
-        this.intId,
-        user.intId,
-        bannedUserHasRequestedSubscription
-      );
+      await EventService.onUserBanned(this.intId, user.intId, bannedUserHasRequestedSubscription);
       return 1;
     }
 
@@ -888,10 +838,7 @@ export function addModel(dbAdapter) {
      * @returns {boolean}
      */
     async subscribeTo(targetUser, { noEvents = false, homeFeedIds = [] } = {}) {
-      const {
-        wasSubscribed,
-        subscribedFeedIds,
-      } = await dbAdapter.subscribeUserToUser(
+      const { wasSubscribed, subscribedFeedIds } = await dbAdapter.subscribeUserToUser(
         this.id,
         targetUser.id,
         homeFeedIds,
@@ -927,12 +874,9 @@ export function addModel(dbAdapter) {
      * @returns {boolean}
      */
     async unsubscribeFrom(targetUser) {
-      const {
-        wasUnsubscribed,
-        subscribedFeedIds,
-      } = await dbAdapter.unsubscribeUserFromUser(
+      const { wasUnsubscribed, subscribedFeedIds } = await dbAdapter.unsubscribeUserFromUser(
         this.id,
-        targetUser.id
+        targetUser.id,
       );
 
       this.subscribedFeedIds = subscribedFeedIds;
@@ -982,11 +926,11 @@ export function addModel(dbAdapter) {
         res = await dbAdapter.getUserStats(this.id);
       } catch (e) {
         res = {
-          posts:         0,
-          likes:         0,
-          comments:      0,
-          subscribers:   0,
-          subscriptions: 0
+          posts: 0,
+          likes: 0,
+          comments: 0,
+          subscribers: 0,
+          subscriptions: 0,
         };
       }
 
@@ -1026,18 +970,10 @@ export function addModel(dbAdapter) {
 
       this.profilePictureUuid = uuidv4();
 
-      const sizes = [
-        User.PROFILE_PICTURE_SIZE_LARGE,
-        User.PROFILE_PICTURE_SIZE_MEDIUM
-      ];
+      const sizes = [User.PROFILE_PICTURE_SIZE_LARGE, User.PROFILE_PICTURE_SIZE_MEDIUM];
 
       const promises = sizes.map((size) =>
-        this.saveProfilePictureWithSize(
-          filePath,
-          this.profilePictureUuid,
-          originalSize,
-          size
-        )
+        this.saveProfilePictureWithSize(filePath, this.profilePictureUuid, originalSize, size),
       );
       await Promise.all(promises);
 
@@ -1045,7 +981,7 @@ export function addModel(dbAdapter) {
 
       const payload = {
         profilePictureUuid: this.profilePictureUuid,
-        updatedAt:          this.updatedAt.toString()
+        updatedAt: this.updatedAt.toString(),
       };
 
       await dbAdapter.updateUser(this.id, payload);
@@ -1078,11 +1014,7 @@ export function addModel(dbAdapter) {
         const destPictureFile = this.getProfilePictureFilename(uuid, size);
 
         await image.writeAsync(tmpPictureFile);
-        await this.uploadToS3(
-          tmpPictureFile,
-          destPictureFile,
-          config.profilePictures
-        );
+        await this.uploadToS3(tmpPictureFile, destPictureFile, config.profilePictures);
 
         return fs.unlink(tmpPictureFile);
       }
@@ -1096,12 +1028,12 @@ export function addModel(dbAdapter) {
       const s3 = getS3(subConfig.storage);
       await s3
         .upload({
-          ACL:                'public-read',
-          Bucket:             subConfig.storage.bucket,
-          Key:                subConfig.path + destFile,
-          Body:               createReadStream(sourceFile),
-          ContentType:        'image/jpeg',
-          ContentDisposition: 'inline'
+          ACL: 'public-read',
+          Bucket: subConfig.storage.bucket,
+          Key: subConfig.path + destFile,
+          Body: createReadStream(sourceFile),
+          ContentType: 'image/jpeg',
+          ContentDisposition: 'inline',
         })
         .promise();
     }
@@ -1127,10 +1059,7 @@ export function addModel(dbAdapter) {
       return (
         config.profilePictures.url +
         config.profilePictures.path +
-        this.getProfilePictureFilename(
-          this.profilePictureUuid,
-          User.PROFILE_PICTURE_SIZE_LARGE
-        )
+        this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE)
       );
     }
 
@@ -1143,10 +1072,7 @@ export function addModel(dbAdapter) {
       return (
         config.profilePictures.url +
         config.profilePictures.path +
-        this.getProfilePictureFilename(
-          this.profilePictureUuid,
-          User.PROFILE_PICTURE_SIZE_MEDIUM
-        )
+        this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
       );
     }
 
@@ -1158,10 +1084,7 @@ export function addModel(dbAdapter) {
       return (
         config.profilePictures.url +
         config.profilePictures.path +
-        this.getProfilePictureFilename(
-          this.profilePictureUuid,
-          User.PROFILE_PICTURE_SIZE_LARGE
-        )
+        this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_LARGE)
       );
     }
 
@@ -1173,10 +1096,7 @@ export function addModel(dbAdapter) {
       return (
         config.profilePictures.url +
         config.profilePictures.path +
-        this.getProfilePictureFilename(
-          this.profilePictureUuid,
-          User.PROFILE_PICTURE_SIZE_MEDIUM
-        )
+        this.getProfilePictureFilename(this.profilePictureUuid, User.PROFILE_PICTURE_SIZE_MEDIUM)
       );
     }
 
@@ -1196,17 +1116,13 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      if (
-        this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS
-      ) {
+      if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_FRIENDS) {
         const friendIds = await this.getFriendIds();
 
         if (friendIds.includes(postingUser.id)) {
           return true;
         }
-      } else if (
-        this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL
-      ) {
+      } else if (this.preferences.acceptDirectsFrom === User.ACCEPT_DIRECTS_FROM_ALL) {
         const banIds = await this.getBanIds();
 
         if (!banIds.includes(postingUser.id)) {
@@ -1237,7 +1153,7 @@ export function addModel(dbAdapter) {
 
       return await Promise.all([
         dbAdapter.getUserNamedFeed(this.id, 'Directs'),
-        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs')
+        dbAdapter.getUserNamedFeed(postingUser.id, 'Directs'),
       ]);
     }
 
@@ -1278,7 +1194,11 @@ export function addModel(dbAdapter) {
       await fromUser.subscribeTo(this, { homeFeedIds: request.homefeed_ids });
 
       if (this.isGroup()) {
-        await EventService.onGroupSubscriptionRequestApproved(acceptedBy.intId, this, fromUser.intId);
+        await EventService.onGroupSubscriptionRequestApproved(
+          acceptedBy.intId,
+          this,
+          fromUser.intId,
+        );
       } else {
         await EventService.onSubscriptionRequestApproved(fromUser.intId, this.intId);
       }
@@ -1292,7 +1212,7 @@ export function addModel(dbAdapter) {
 
     async getPendingSubscriptionRequestIds() {
       this.pendingSubscriptionRequestIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(
-        this.id
+        this.id,
       );
       return this.pendingSubscriptionRequestIds;
     }
@@ -1324,18 +1244,13 @@ export function addModel(dbAdapter) {
         return [];
       }
 
-      const timelineOwnerIds = _(timelines)
-        .map('userId')
-        .uniq()
-        .value();
+      const timelineOwnerIds = _(timelines).map('userId').uniq().value();
 
       if (timelineOwnerIds.length === 0) {
         return [];
       }
 
-      const timelineOwners = await dbAdapter.getFeedOwnersByIds(
-        timelineOwnerIds
-      );
+      const timelineOwners = await dbAdapter.getFeedOwnersByIds(timelineOwnerIds);
 
       if (timelineOwners.length === 0) {
         return [];
@@ -1380,9 +1295,7 @@ export function addModel(dbAdapter) {
 
     async getExtProfiles() {
       const profilesFromDb = await dbAdapter.getExtProfiles(this.id);
-      return profilesFromDb.filter(
-        (p) => allExternalProviders.some((xp) => xp.id === p.provider)
-      );
+      return profilesFromDb.filter((p) => allExternalProviders.some((xp) => xp.id === p.provider));
     }
 
     /**
@@ -1393,7 +1306,12 @@ export function addModel(dbAdapter) {
         throw new Error(`The '${provider}' provider is not supported`);
       }
 
-      return await dbAdapter.addOrUpdateExtProfile({ userId: this.id, provider, externalId, title });
+      return await dbAdapter.addOrUpdateExtProfile({
+        userId: this.id,
+        provider,
+        externalId,
+        title,
+      });
     }
 
     /**

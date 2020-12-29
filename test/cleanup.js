@@ -4,7 +4,6 @@ import { join } from 'path';
 
 import config from 'config';
 
-
 after(() => cleanDir(config.attachments.storage.rootDir));
 
 /**

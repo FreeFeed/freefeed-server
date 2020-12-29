@@ -5,7 +5,6 @@ import config from 'config';
 
 import { stylize } from '../support/debugLogger';
 
-
 const knex = knexjs(config.postgres);
 const log = createDebug('freefeed:sql');
 const errLog = createDebug('freefeed:sql:error');

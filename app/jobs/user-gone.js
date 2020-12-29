@@ -14,17 +14,21 @@ export const USER_DELETE_DATA = 'USER_DELETE_DATA';
 
 // Job creators
 export function userCooldownStart(user) {
-  return Job.create(USER_COOLDOWN_START, {
-    id:     user.id,
-    goneAt: user.goneAt.getTime(),
-  }, { uniqKey: user.id });
+  return Job.create(
+    USER_COOLDOWN_START,
+    {
+      id: user.id,
+      goneAt: user.goneAt.getTime(),
+    },
+    { uniqKey: user.id },
+  );
 }
 
 export function userDataDeletionStart(user) {
   return Job.create(
     USER_DELETE_DATA,
     { id: user.id, email: user.hiddenEmail },
-    { uniqKey: user.id }
+    { uniqKey: user.id },
   );
 }
 
@@ -43,7 +47,7 @@ export function initHandlers(jobManager) {
         { screenName: user.screenName, email: user.hiddenEmail },
         'Your account has been suspended',
         { user, deletionDate: deletionDate(user) },
-        `${config.appRoot}/app/scripts/views/mailer/user-cooldown-start.ejs`
+        `${config.appRoot}/app/scripts/views/mailer/user-cooldown-start.ejs`,
       );
 
       // Schedule the next steps
@@ -51,15 +55,15 @@ export function initHandlers(jobManager) {
         Job.create(
           USER_COOLDOWN_REMINDER,
           { id: user.id, goneAt: user.goneAt.getTime() },
-          { unlockAt: reminderDate(user), uniqKey: user.id }
+          { unlockAt: reminderDate(user), uniqKey: user.id },
         ),
         Job.create(
           USER_DELETION_START,
           { id: user.id, goneAt: user.goneAt.getTime() },
-          { unlockAt: deletionDate(user), uniqKey: user.id }
+          { unlockAt: deletionDate(user), uniqKey: user.id },
         ),
       ]);
-    })
+    }),
   );
 
   jobManager.on(
@@ -71,14 +75,14 @@ export function initHandlers(jobManager) {
         { screenName: user.screenName, email: user.hiddenEmail },
         'Your account data will be deleted in a few days',
         { user, deletionDate: deletionDate(user) },
-        `${config.appRoot}/app/scripts/views/mailer/user-cooldown-reminder.ejs`
+        `${config.appRoot}/app/scripts/views/mailer/user-cooldown-reminder.ejs`,
       );
-    })
+    }),
   );
 
   jobManager.on(
     USER_DELETION_START,
-    checkUserStatus(GONE_COOLDOWN, (user) => user.setGoneStatus(GONE_DELETION))
+    checkUserStatus(GONE_COOLDOWN, (user) => user.setGoneStatus(GONE_DELETION)),
   );
 
   jobManager.on(USER_DELETE_DATA, async (job) => {
@@ -87,10 +91,7 @@ export function initHandlers(jobManager) {
 
     const { id, email } = job.payload;
 
-    await deleteAllUserData(
-      id,
-      DateTime.local().plus({ seconds: maxTTL }).toJSDate()
-    );
+    await deleteAllUserData(id, DateTime.local().plus({ seconds: maxTTL }).toJSDate());
 
     const user = await dbAdapter.getUserById(id);
 
@@ -101,7 +102,7 @@ export function initHandlers(jobManager) {
         { screenName: user.screenName, email },
         'Your account has been deleted',
         { user },
-        `${config.appRoot}/app/scripts/views/mailer/user-cooldown-finish.ejs`
+        `${config.appRoot}/app/scripts/views/mailer/user-cooldown-finish.ejs`,
       );
       // We are done
       return;
