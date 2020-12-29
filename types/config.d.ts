@@ -7,6 +7,8 @@ declare module 'config' {
     siteTitle: string,
     host: string;
     port: number;
+    secret: string;
+    appRoot: string;
     trustProxyHeaders: boolean;
     logResponseTime: boolean;
     attachments: {
@@ -37,6 +39,16 @@ declare module 'config' {
     redis: {
       host: string;
       port: number;
+    }
+
+    sentryDsn?: string;
+
+    authSessions: {
+      usageDebounceSec: number;
+      reissueGraceIntervalSec: number;
+      activeSessionTTLDays: number;
+      inactiveSessionTTLDays: number;
+      cleanupIntervalSec: number;
     }
   }
 

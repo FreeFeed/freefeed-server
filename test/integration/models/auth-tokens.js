@@ -8,9 +8,10 @@ import { DateTime } from 'luxon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job } from '../../../app/models';
-import { APP_TOKEN_INACTIVATE } from '../../../app/jobs/app-tokens';
+import { User, SessionTokenV0, AppTokenV1, dbAdapter, Job, SessionTokenV1, sessionTokenV1Store } from '../../../app/models';
 import { initJobProcessing } from '../../../app/jobs';
+import { PERIODIC_CLEAN_AUTH_SESSIONS, PERIODIC_INACTIVATE_APP_TOKENS } from '../../../app/jobs/periodic/auth-tokens';
+import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 
 
 const expect = unexpected.clone();
@@ -33,7 +34,7 @@ describe('Auth Tokens', () => {
     });
 
     it('should have a full access', () => {
-      expect(token.hasFullAccess(), 'to be true');
+      expect(token.hasFullAccess, 'to be true');
     });
 
     it('should hold Luna user ID', () => {
@@ -52,7 +53,7 @@ describe('Auth Tokens', () => {
     describe('Luna creates a token with "read-my-info" and "manage-posts" rights', () => {
       let token;
       before(async () => {
-        token = new AppTokenV1({
+        token = await dbAdapter.createAppToken({
           userId:       luna.id,
           title:        'My app',
           scopes:       ['read-my-info', 'manage-posts'],
@@ -61,7 +62,6 @@ describe('Auth Tokens', () => {
             origins:  ['https://localhost'],
           },
         });
-        await token.create();
       });
 
       it('should load token by id', async () => {
@@ -82,29 +82,27 @@ describe('Auth Tokens', () => {
       });
 
       it('should inactivate token', async () => {
-        const t = new AppTokenV1({
+        const t = await dbAdapter.createAppToken({
           userId: luna.id,
           title:  'My app',
         });
-        await t.create();
         expect(t.isActive, 'to be true');
         await t.inactivate();
         expect(t.isActive, 'to be false');
       });
 
       it('should not load inactive token', async () => {
-        const t = new AppTokenV1({
+        const t = await dbAdapter.createAppToken({
           userId: luna.id,
           title:  'My app',
         });
-        await t.create();
         await t.inactivate();
         const t2 = await dbAdapter.getActiveAppTokenByIdAndIssue(t.id, t.issue);
         expect(t2, 'to be null');
       });
 
       it('should not have full access', () => {
-        expect(token.hasFullAccess(), 'to be false');
+        expect(token.hasFullAccess, 'to be false');
       });
 
       it('should hold a Luna user ID', () => {
@@ -268,11 +266,10 @@ describe('Auth Tokens', () => {
         luna = new User({ username: 'luna', password: 'pw' });
         await luna.create();
 
-        token = new AppTokenV1({
+        token = await dbAdapter.createAppToken({
           userId: luna.id,
           title:  'My app',
         });
-        await token.create();
       });
 
       it(`should have nullish expiresAt field on regular token`, () => {
@@ -282,28 +279,24 @@ describe('Auth Tokens', () => {
       it(`should create token with expiresAt field`, async () => {
         const expiresAt = DateTime.local().plus({ hours: 1 }).toJSDate();
 
-        const t = new AppTokenV1({
+        const t = await dbAdapter.createAppToken({
           userId: luna.id,
           title:  'My app',
           expiresAt,
         });
-        await t.create();
         expect(t.expiresAt, 'to be close to', expiresAt);
 
         await dbAdapter.deleteAppToken(t.id);
       });
 
       it(`should create token with expiresAtSeconds field`, async () => {
-        const t = new AppTokenV1({
+        const t = await dbAdapter.createAppToken({
           userId:           luna.id,
           title:            'My app',
           expiresAtSeconds: 1000,
         });
-        const [, now] = await Promise.all([t.create(), dbAdapter.now()]);
-        expect(t, 'to satisfy', {
-          expiresAt:        expect.it('to be close to', DateTime.fromJSDate(now).plus({ seconds: 1000 }).toJSDate()),
-          expiresAtSeconds: undefined,
-        });
+        const now = await dbAdapter.now();
+        expect(t, 'to satisfy', { expiresAt: expect.it('to be close to', DateTime.fromJSDate(now).plus({ seconds: 1000 }).toJSDate()) });
 
         await dbAdapter.deleteAppToken(t.id);
       });
@@ -345,19 +338,18 @@ describe('Auth Tokens', () => {
         luna = new User({ username: 'luna', password: 'pw' });
         await luna.create();
 
-        token = new AppTokenV1({
+        token = await dbAdapter.createAppToken({
           userId:           luna.id,
           title:            'My app',
-          expiresAtSeconds: 100,
+          expiresAtSeconds: 0,
         });
-        await token.create();
 
-        jobManager = initJobProcessing();
+        jobManager = await initJobProcessing();
       });
 
-      it(`should create job that should inactivate token`, async () => {
-        const jobs = await dbAdapter.getAllJobs([APP_TOKEN_INACTIVATE]);
-        expect(jobs, 'to satisfy', [{ name: APP_TOKEN_INACTIVATE, payload: { tokenId: token.id } }]);
+      it(`should create periodic job that inactivates tokens`, async () => {
+        const jobs = await dbAdapter.getAllJobs([PERIODIC_INACTIVATE_APP_TOKENS]);
+        expect(jobs, 'to satisfy', [{ name: PERIODIC_INACTIVATE_APP_TOKENS }]);
         jobId = jobs[0].id;
       });
 
@@ -388,12 +380,11 @@ describe('Auth Tokens', () => {
         luna = new User({ username: 'luna', password: 'pw' });
         await luna.create();
 
-        token = new AppTokenV1({
+        token = await dbAdapter.createAppToken({
           userId:           luna.id,
           title:            'My app',
           expiresAtSeconds: 100,
         });
-        await token.create();
       });
 
       it(`should generate activation code for new token`, () => {
@@ -416,6 +407,110 @@ describe('Auth Tokens', () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         const t = await dbAdapter.getAppTokenByActivationCode(token.activationCode, 0);
         expect(t, 'to be null');
+      });
+    });
+  });
+
+  describe('SessionTokenV1', () => {
+    let session;
+
+    it('should create a session', async () => {
+      session = await sessionTokenV1Store.create(luna.id);
+      const now = await dbAdapter.now();
+      expect(session instanceof SessionTokenV1, 'to be true');
+      expect(session, 'to satisfy', {
+        userId:       luna.id,
+        issue:        1,
+        status:       ACTIVE,
+        createdAt:    expect.it('to be close to', now),
+        updatedAt:    expect.it('to be close to', now),
+        lastUsedAt:   expect.it('to be close to', now),
+        databaseTime: expect.it('to be close to', now),
+      });
+    });
+
+    it('should load session by id', async () => {
+      const s2 = await sessionTokenV1Store.getById(session.id);
+      expect(s2 instanceof SessionTokenV1, 'to be true');
+      expect(s2, 'to satisfy', _.pick(session, ['id', 'userId', 'issue', 'status']));
+    });
+
+    it('should reissue session', async () => {
+      const { issue } = session;
+      const ok = await session.reissue();
+      expect(ok, 'to be true');
+      expect(session.issue, 'to be', issue + 1);
+
+      const s2 = await sessionTokenV1Store.getById(session.id);
+      expect(s2 instanceof SessionTokenV1, 'to be true');
+      expect(s2, 'to satisfy', _.pick(session, ['id', 'userId', 'issue']));
+    });
+
+    it('should set session status', async () => {
+      const ok = await session.setStatus(CLOSED);
+      expect(ok, 'to be true');
+      expect(session.status, 'to be', CLOSED);
+
+      const s2 = await sessionTokenV1Store.getById(session.id);
+      expect(s2 instanceof SessionTokenV1, 'to be true');
+      expect(s2.status, 'to be', CLOSED);
+
+      await session.setStatus(ACTIVE);
+    });
+
+    it('should delete session', async () => {
+      const { id } = await sessionTokenV1Store.create(luna.id);
+
+      const s = await sessionTokenV1Store.getById(id);
+      expect(s, 'not to be null');
+
+      const deleted = await s.destroy();
+      expect(deleted, 'to be true');
+
+      const s1 = await sessionTokenV1Store.getById(id);
+      expect(s1, 'to be null');
+    });
+
+    describe(`Old sessions cleanup`, () => {
+      before(() => cleanDB($pg_database));
+
+      let session1, session2, jobId, jobManager;
+
+      before(async () => {
+        luna = new User({ username: 'luna', password: 'pw' });
+        await luna.create();
+
+        session1 = await sessionTokenV1Store.create(luna.id);
+        session2 = await sessionTokenV1Store.create(luna.id);
+
+        await dbAdapter.database.raw(
+          `update auth_sessions set updated_at = now() - :time * '1 day'::interval where uid = :uid`,
+          { uid: session2.id, time: config.authSessions.activeSessionTTLDays + 1 });
+
+        jobManager = await initJobProcessing();
+      });
+
+      it(`should create periodic job that cleaned up sessions`, async () => {
+        const jobs = await dbAdapter.getAllJobs([PERIODIC_CLEAN_AUTH_SESSIONS]);
+        expect(jobs, 'to satisfy', [{ name: PERIODIC_CLEAN_AUTH_SESSIONS }]);
+        jobId = jobs[0].id;
+      });
+
+      it(`should remove session when job completed`, async () => {
+        const job = await Job.getById(jobId);
+        await job.setUnlockAt(0);
+
+        {
+          const sessions = await sessionTokenV1Store.list(luna.id);
+          expect(sessions, 'to satisfy', [{ id: session2.id }, { id: session1.id }]);
+        }
+
+        await jobManager.fetchAndProcess();
+
+        {
+          const sessions = await sessionTokenV1Store.list(luna.id);
+          expect(sessions, 'to satisfy', [{ id: session1.id }]);
+        }
       });
     });
   });

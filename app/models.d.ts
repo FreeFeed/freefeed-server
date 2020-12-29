@@ -4,16 +4,17 @@ import { DbAdapter } from './support/DbAdapter';
 import { PubSubAdapter } from './support/PubSubAdapter';
 import { GONE_NAMES } from './models/user';
 import { UUID } from './support/types';
+import { SessionTokenV1Store } from './models/auth-tokens';
 
 
 export const postgres: Knex;
 export const dbAdapter: DbAdapter;
 export const PubSub: PubSubAdapter;
 
-export { SessionTokenV0 } from './models/auth-tokens';
-
 export class User {
   intId: number;
+  username: string;
+  readonly isActive: boolean;
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
   unban(usernames: string): Promise<1>;
   unsubscribeFrom(targetUser: User): Promise<boolean>;
@@ -40,11 +41,14 @@ export class Comment {
   removeLike(user: User): Promise<boolean>;
 }
 
-export class AuthToken { }
+export const sessionTokenV1Store: SessionTokenV1Store;
 
-export class AppTokenV1 {
-  destroy(): Promise<void>;
-}
+export {
+  AuthToken,
+  SessionTokenV0,
+  AppTokenV1,
+  SessionTokenV1,
+} from './models/auth-tokens';
 
 export class ServerInfo { }
 

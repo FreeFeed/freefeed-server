@@ -19,8 +19,7 @@ import {
   SIGN_IN_CONTINUE,
   profileCache,
 } from '../../../support/ExtAuth';
-import { User, dbAdapter } from '../../../models';
-import { SessionTokenV0 } from '../../../models/auth-tokens';
+import { User, dbAdapter, sessionTokenV1Store } from '../../../models';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 
 import { authStartInputSchema, authFinishInputSchema } from './data-schemes/ext-auth';
@@ -120,7 +119,7 @@ export const authFinish = compose([
           }
 
           // User found, signing in
-          const authToken =  new SessionTokenV0(profileUser.id).tokenString()
+          const authToken = (await sessionTokenV1Store.create(profileUser.id, ctx)).tokenString();
           const [user] = await serializeUsersByIds([profileUser.id]);
           ctx.body = {
             status:  SIGN_IN_SUCCESS,

@@ -7,8 +7,8 @@ import config from 'config';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { AppTokenV1, dbAdapter, PubSub } from '../../app/models';
-import { appTokensScopes, alwaysAllowedRoutes, alwaysDisallowedRoutes } from '../../app/models/app-tokens-scopes';
+import { dbAdapter, PubSub } from '../../app/models';
+import { appTokensScopes, alwaysAllowedRoutes, alwaysDisallowedRoutes } from '../../app/models/auth-tokens/app-tokens-scopes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { createRouter } from '../../app/routes';
 
@@ -69,17 +69,16 @@ describe('App tokens controller', () => {
     let mars, marsToken;
     before(async () => {
       [luna, mars] = await createTestUsers(2);
-      lunaToken = new AppTokenV1({
+      lunaToken = await dbAdapter.createAppToken({
         userId: luna.user.id,
         title:  'My app',
         scopes: ['read-my-info', 'manage-posts'],
       });
-      marsToken = new AppTokenV1({
+      marsToken = await dbAdapter.createAppToken({
         userId: mars.user.id,
         title:  'My app',
         scopes: ['read-my-info', 'manage-posts'],
       });
-      await Promise.all([lunaToken, marsToken].map((t) => t.create()));
     });
 
     it('should create token', async () => {
@@ -317,12 +316,12 @@ describe('App tokens controller', () => {
         await $pg_database.raw(`delete from app_tokens where user_id = :userId`, { userId: mars.user.id });
 
         for (let i = 0; i < 3; i++) {
-          const token = new AppTokenV1({
+          // eslint-disable-next-line no-await-in-loop
+          await dbAdapter.createAppToken({
             userId: mars.user.id,
             title:  `My token #${i + 1}`,
             scopes: ['read-my-info', 'manage-posts'],
           });
-          await token.create(); // eslint-disable-line no-await-in-loop
         }
       });
 
@@ -345,13 +344,12 @@ describe('App tokens controller', () => {
     describe('Token with IP restrictions', () => {
       let token;
       before(async () => {
-        token = new AppTokenV1({
+        token = await dbAdapter.createAppToken({
           userId:       luna.user.id,
           title:        'My app',
           scopes:       ['read-my-info'],
           restrictions: { netmasks: ['127.0.0.1/24'] },
         });
-        await token.create();
       });
 
       it('should allow "/v1/users/me" request with token', async () => {
@@ -367,11 +365,10 @@ describe('App tokens controller', () => {
     describe('Token without scopes', () => {
       let token;
       before(async () => {
-        token = new AppTokenV1({
+        token = await dbAdapter.createAppToken({
           userId: luna.user.id,
           title:  'My app',
         });
-        await token.create();
       });
 
       it('should allow "/v1/users/me" request with token', async () => {
@@ -418,17 +415,16 @@ describe('Realtime', () => {
     luna = await createTestUser();
     await goPrivate(luna);
 
-    token = new AppTokenV1({
+    token = await dbAdapter.createAppToken({
       userId: luna.user.id,
       title:  'App with realtime',
       scopes: ['read-realtime'],
     });
-    token2 = new AppTokenV1({
+    token2 = await dbAdapter.createAppToken({
       userId: luna.user.id,
       title:  'App without realtime',
       scopes: ['read-my-info'],
     });
-    await Promise.all([token, token2].map((t) => t.create()));
 
     post = await createAndReturnPost(luna, 'Luna post');
   });
@@ -439,7 +435,7 @@ describe('Realtime', () => {
   });
   afterEach(() => session.disconnect());
 
-  it('sould not deliver post event to anonymous session', async () => {
+  it('should not deliver post event to anonymous session', async () => {
     const test = session.notReceiveWhile(
       'comment:new',
       () => createCommentAsync(luna, post.id, 'Hello'),
@@ -447,7 +443,7 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould deliver post event to session with Luna session token', async () => {
+  it('should deliver post event to session with Luna session token', async () => {
     await session.sendAsync('auth', { authToken: luna.authToken });
     const test = session.receiveWhile(
       'comment:new',
@@ -456,7 +452,7 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould deliver post event to session with correct app token', async () => {
+  it('should deliver post event to session with correct app token', async () => {
     await session.sendAsync('auth', { authToken: token.tokenString() });
     const test = session.receiveWhile(
       'comment:new',
@@ -465,7 +461,7 @@ describe('Realtime', () => {
     await expect(test, 'to be fulfilled');
   });
 
-  it('sould not allow to authorize with incorrect app token', async () => {
+  it('should not allow to authorize with incorrect app token', async () => {
     const promise = session.sendAsync('auth', { authToken: token2.tokenString() });
     await expect(promise, 'to be rejected');
   });
@@ -521,12 +517,11 @@ describe('Full access', () => {
       { userId: luna.user.id },
     );
 
-    token = new AppTokenV1({
+    token = await dbAdapter.createAppToken({
       userId: luna.user.id,
       title:  'App',
       scopes: ['read-my-info', 'manage-profile'],
     });
-    await token.create();
   });
 
   it('should update users email with session token', async () => {

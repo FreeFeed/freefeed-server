@@ -6,7 +6,7 @@ import config from 'config';
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { AppTokenV1, dbAdapter } from '../../../models';
 import { ValidationException, NotFoundException, BadRequestException } from '../../../support/exceptions';
-import { appTokensScopes } from '../../../models/app-tokens-scopes';
+import { appTokensScopes } from '../../../models/auth-tokens/app-tokens-scopes';
 import { Address } from '../../../support/ipv6';
 
 import {
@@ -62,7 +62,7 @@ export const create = compose([
       }
     }
 
-    const token = new AppTokenV1({
+    const token = await dbAdapter.createAppToken({
       userId:       user.id,
       title:        body.title,
       scopes:       body.scopes,
@@ -70,8 +70,6 @@ export const create = compose([
       expiresAt,
       expiresAtSeconds,
     });
-
-    await token.create();
 
     ctx.body = {
       token:             serializeAppToken(token),

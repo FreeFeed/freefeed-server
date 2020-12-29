@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.91.0] - Not released
+### Added
+- The new type of authorization sessions (SessionTokenV1). Sessions can be
+  created, reissued, closed (at sign out); user can view list of their session
+  with the information of last usage and close one or more of them. The old
+  session tokens (SessionTokenV0) are still supported but deprecated.
+
 ## [1.90.0] - 2020-12-29
 ### Fixed
 - The 'post:new' realtime event was emitted without the `realtimeChannels`

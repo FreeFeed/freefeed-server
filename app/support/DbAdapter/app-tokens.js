@@ -1,23 +1,34 @@
-import { AppTokenV1 } from '../../models';
+import { AppTokenV1 } from '../../models/auth-tokens';
 
-import { prepareModelPayload, initObject } from './utils';
+import { prepareModelPayload } from './utils';
 
 
 const appTokensTrait = (superClass) => class extends superClass {
   async createAppToken(payload) {
-    const preparedPayload = prepareModelPayload(payload, APP_TOKEN_COLUMNS, APP_TOKEN_COLUMNS_MAPPING);
+    const preparedPayload = prepareModelPayload(
+      {
+        isActive: true, // override app_tokens table default
+        ...payload
+      },
+      APP_TOKEN_COLUMNS,
+      APP_TOKEN_COLUMNS_MAPPING,
+    );
+
+    preparedPayload.activation_code = AppTokenV1.createActivationCode();
 
     if (Number.isFinite(payload.expiresAtSeconds)) {
       preparedPayload.expires_at = this.database.raw(`now() + ? * '1 second'::interval`, payload.expiresAtSeconds);
     }
 
-    const [id] = await this.database('app_tokens').returning('uid').insert(preparedPayload);
-    return id;
+    const [row] = await this.database('app_tokens').insert(preparedPayload).returning('*');
+    const token = initAppTokenObject(row, this);
+
+    return token;
   }
 
   async getAppTokenById(uid) {
-    const row = await this.database('app_tokens').first().where({ uid })
-    return initAppTokenObject(row);
+    const row = await this.database('app_tokens').first().where({ uid });
+    return initAppTokenObject(row, this);
   }
 
   async getActiveAppTokenByIdAndIssue(uid, issue) {
@@ -28,7 +39,7 @@ const appTokensTrait = (superClass) => class extends superClass {
           and is_active
           and (expires_at is null or expires_at > now())`,
       { uid, issue });
-    return initAppTokenObject(row);
+    return initAppTokenObject(row, this);
   }
 
   async getAppTokenByActivationCode(code, codeTTL) {
@@ -41,7 +52,7 @@ const appTokensTrait = (superClass) => class extends superClass {
         order by updated_at
         limit 1`,
       { code, codeTTL });
-    return initAppTokenObject(row);
+    return initAppTokenObject(row, this);
   }
 
   async registerAppTokenUsage(id, { ip, userAgent, debounce }) {
@@ -54,17 +65,24 @@ const appTokensTrait = (superClass) => class extends superClass {
     await this.database.raw(sql, { id, ip, userAgent, debounce });
   }
 
-  updateAppToken(id, payload) {
+  async updateAppToken(id, payload) {
     const preparedPayload = prepareModelPayload(payload, APP_TOKEN_COLUMNS, APP_TOKEN_COLUMNS_MAPPING);
     preparedPayload['updated_at'] = 'now';
-    return this.database('app_tokens').where('uid', id).update(preparedPayload);
+    const [row] = await this.database('app_tokens').where('uid', id).update(preparedPayload).returning('*');
+
+    if (!row) {
+      throw new Error(`cannot find app token ${id}`);
+    }
+
+    return initAppTokenObject(row, this);
   }
 
   async logAppTokenRequest(payload) {
     await this.database('app_tokens_log').insert(payload);
   }
 
-  async reissueAppToken(id, activationCode) {
+  async reissueAppToken(id) {
+    const activationCode = AppTokenV1.createActivationCode();
     const row = await this.database.getRow(
       `update app_tokens set 
         issue = issue + 1,
@@ -78,7 +96,7 @@ const appTokensTrait = (superClass) => class extends superClass {
       throw new Error(`cannot find app token ${id}`);
     }
 
-    return initAppTokenObject(row);
+    return initAppTokenObject(row, this);
   }
 
   async listActiveAppTokens(userId) {
@@ -89,11 +107,20 @@ const appTokensTrait = (superClass) => class extends superClass {
          and (expires_at is null or expires_at > now())
          order by created_at desc`,
       { userId });
-    return rows.map((r) => initAppTokenObject(r));
+    return rows.map((r) => initAppTokenObject(r, this));
   }
 
   async deleteAppToken(id) {
     await this.database.raw(`delete from app_tokens where uid = :id`, { id });
+  }
+
+  async periodicInvalidateAppTokens() {
+    await this.database.raw(
+      `update app_tokens set
+        is_active = false, updated_at = now()
+        where
+        is_active and expires_at <= now()`
+    );
   }
 };
 
@@ -101,13 +128,13 @@ export default appTokensTrait;
 
 /////////////////////////////
 
-function initAppTokenObject(row) {
+function initAppTokenObject(row, db) {
   if (!row) {
     return null;
   }
 
   row = prepareModelPayload(row, APP_TOKEN_FIELDS, APP_TOKEN_FIELDS_MAPPING);
-  return initObject(AppTokenV1, row, row.id);
+  return new AppTokenV1(row, db);
 }
 
 const APP_TOKEN_FIELDS = {

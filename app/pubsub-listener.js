@@ -21,15 +21,14 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { dbAdapter, AppTokenV1, Comment } from './models';
+import { dbAdapter, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
-import { tokenFromJWT } from './controllers/middlewares/with-auth-token';
+import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY, HOMEFEED_MODE_CLASSIC, HOMEFEED_MODE_FRIENDS_ONLY } from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
-import { Address } from './support/ipv6';
 
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -782,22 +781,18 @@ async function getAuthUserId(jwtToken, socket) {
     return null;
   }
 
-  const authData = await tokenFromJWT(
-    jwtToken,
-    {
-      headers:  socket.handshake.headers,
-      remoteIP: socket.handshake.address,
-      route:    `WS *`,
+  // Fake context
+  const ctx = {
+    ip:      socket.handshake.address,
+    headers: {
+      ...socket.handshake.headers,
+      authorization: `Bearer ${jwtToken}`,
     },
-  );
+    method: 'WS',
+    state:  { matchedRoute: '*' },
+  };
 
-  if (authData.authToken instanceof AppTokenV1) {
-    await authData.authToken.registerUsage({
-      // Beautify address for user: remove ::ffff: prefix from IPv4 addresses
-      ip:        new Address(socket.handshake.address).toString(),
-      userAgent: socket.handshake.headers['user-agent'],
-    });
-  }
+  await withAuthToken(ctx, () => null);
 
-  return authData.user.id;
+  return ctx.state.authToken.userId;
 }

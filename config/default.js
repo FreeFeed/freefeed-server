@@ -307,4 +307,14 @@ config.appTokens = {
   activationCodeTTL: 300, // in seconds
 };
 
+config.authSessions = {
+  usageDebounceSec:        30,
+  reissueGraceIntervalSec: 300,
+  // Cleanup
+  activeSessionTTLDays:    60,
+  // TODO The inactiveSessionTTLDays should be reduced to a few days when the V0 sessions become deprecated
+  inactiveSessionTTLDays:  60,
+  cleanupIntervalSec:      3600, // one hour
+};
+
 module.exports = config;

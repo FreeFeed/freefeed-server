@@ -103,7 +103,7 @@ describe(`User's 'gone' status`, () => {
       });
       await luna.create();
 
-      jobManager = initJobProcessing();
+      jobManager = await initJobProcessing();
       removeMailListener = addMailListener((r) => (capturedMail = r));
     });
 

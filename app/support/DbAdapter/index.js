@@ -34,6 +34,7 @@ import searchTrait from './search';
 import { withDbHelpers } from './utils';
 import nowTrait from './now';
 import jobsTrait from './jobs';
+import authSessionsTrait from './auth-sessions';
 
 
 class DbAdapterBase {
@@ -101,4 +102,5 @@ export const DbAdapter = _.flow([
   searchTrait,
   nowTrait,
   jobsTrait,
+  authSessionsTrait,
 ])(DbAdapterBase);
