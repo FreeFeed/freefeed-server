@@ -1,8 +1,7 @@
 /* eslint-env node, mocha */
-import expect from 'unexpected'
+import expect from 'unexpected';
 
 import { List } from '../../../app/support/open-lists';
-
 
 describe('Open lists', () => {
   it('should create empty list', () => {
@@ -68,8 +67,8 @@ describe('Open lists', () => {
       runTests('-', List.difference, [
         [new List([1, 2]), new List([2, 3, 4]), new List([1])],
         [new List([1, 2]), new List([2, 3, 4], false), new List([2])],
-        [new List([1, 2], false), new List([2, 3, 4]),  new List([1, 2, 3, 4], false)],
-        [new List([1, 2], false), new List([2, 3, 4], false),  new List([3, 4])],
+        [new List([1, 2], false), new List([2, 3, 4]), new List([1, 2, 3, 4], false)],
+        [new List([1, 2], false), new List([2, 3, 4], false), new List([3, 4])],
       ]);
     });
 
@@ -77,8 +76,8 @@ describe('Open lists', () => {
       runTests('+', List.union, [
         [new List([1, 2]), new List([2, 3, 4]), new List([1, 2, 3, 4])],
         [new List([1, 2]), new List([2, 3, 4], false), new List([3, 4], false)],
-        [new List([1, 2], false), new List([2, 3, 4]),  new List([1], false)],
-        [new List([1, 2], false), new List([2, 3, 4], false),  new List([2], false)],
+        [new List([1, 2], false), new List([2, 3, 4]), new List([1], false)],
+        [new List([1, 2], false), new List([2, 3, 4], false), new List([2], false)],
       ]);
     });
 
@@ -86,8 +85,8 @@ describe('Open lists', () => {
       runTests('&', List.intersection, [
         [new List([1, 2]), new List([2, 3, 4]), new List([2])],
         [new List([1, 2]), new List([2, 3, 4], false), new List([1])],
-        [new List([1, 2], false), new List([2, 3, 4]),  new List([3, 4])],
-        [new List([1, 2], false), new List([2, 3, 4], false),  new List([1, 2, 3, 4], false)],
+        [new List([1, 2], false), new List([2, 3, 4]), new List([3, 4])],
+        [new List([1, 2], false), new List([2, 3, 4], false), new List([1, 2, 3, 4], false)],
       ]);
     });
   });

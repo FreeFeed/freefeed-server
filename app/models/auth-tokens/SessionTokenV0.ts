@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 import config from 'config';
 
 import { AuthToken } from './AuthToken';

@@ -3,7 +3,6 @@ import expect from 'unexpected';
 
 import { extractHashtags } from '../../../app/support/hashtags';
 
-
 describe('Hashtags parser', () => {
   const cases = [
     { text: 'abc #def #ee gh', result: ['def', 'ee'] },
@@ -18,5 +17,3 @@ describe('Hashtags parser', () => {
     });
   });
 });
-
-

@@ -10,19 +10,20 @@ import PostComments from './post-comments.jsx';
 import TimeDisplay from './time-display.jsx';
 import Link from './link.jsx';
 
-
 export default class Post extends React.Component {
   render() {
     const { props } = this;
 
-    const profilePicture = props.createdBy.profilePictureMediumUrl || config.profilePictures.defaultProfilePictureMediumUrl;
+    const profilePicture =
+      props.createdBy.profilePictureMediumUrl ||
+      config.profilePictures.defaultProfilePictureMediumUrl;
     const profilePictureSize = 50;
 
     const postClass = classnames({
-      'post':          true,
-      'single-post':   false,
+      post: true,
+      'single-post': false,
       'timeline-post': true,
-      'direct-post':   false
+      'direct-post': false,
     });
 
     const recipientCustomDisplay = function (recipient) {
@@ -93,7 +94,9 @@ export default class Post extends React.Component {
       commentLink = (
         <span>
           {' - '}
-          <Link to={canonicalPostURI} className="post-action">Comment</Link>
+          <Link to={canonicalPostURI} className="post-action">
+            Comment
+          </Link>
         </span>
       );
     }
@@ -114,19 +117,23 @@ export default class Post extends React.Component {
         <div>
           <div className="post-userpic">
             <Link to={`/${props.createdBy.username}`}>
-              <img className="post-userpic-img" src={profilePicture} width={profilePictureSize} height={profilePictureSize} data-inline-ignore />
+              <img
+                className="post-userpic-img"
+                src={profilePicture}
+                width={profilePictureSize}
+                height={profilePictureSize}
+                data-inline-ignore
+              />
             </Link>
           </div>
           <div className="post-body">
             <div className="post-header">
-              <UserName className="post-author" user={props.createdBy} me={props.user}/>
+              <UserName className="post-author" user={props.createdBy} me={props.user} />
               {recipients.length > 0 ? ' to ' : false}
               {recipients}
             </div>
             <div className="post-text">
-              <PieceOfText
-                text={props.body}
-              />
+              <PieceOfText text={props.body} />
             </div>
           </div>
         </div>
@@ -139,15 +146,24 @@ export default class Post extends React.Component {
           />
 
           <div className="post-footer">
-            {isPrivate && (
-              isProtected ? (
-                <img src="cid:postprotected@2x" className="post-lock-icon post-protected-icon fa fa-lock"
-                  width="16px" height="16px" title={`This entry is only visible to ${config.siteTitle} users`}/>
+            {isPrivate &&
+              (isProtected ? (
+                <img
+                  src="cid:postprotected@2x"
+                  className="post-lock-icon post-protected-icon fa fa-lock"
+                  width="16px"
+                  height="16px"
+                  title={`This entry is only visible to ${config.siteTitle} users`}
+                />
               ) : (
-                <img src="cid:falock@2x" className="post-lock-icon fa fa-lock"
-                  width="16px" height="16px" title="This entry is private"/>
-              )
-            )}
+                <img
+                  src="cid:falock@2x"
+                  className="post-lock-icon fa fa-lock"
+                  width="16px"
+                  height="16px"
+                  title="This entry is private"
+                />
+              ))}
             <Link to={canonicalPostURI} className="post-timestamp">
               <TimeDisplay timeStamp={+props.createdAt} />
             </Link>
@@ -155,11 +171,7 @@ export default class Post extends React.Component {
             {likeLink}
           </div>
 
-          <PostLikes
-            post={props}
-            likes={props.usersLikedPost}
-            me={props.user}
-          />
+          <PostLikes post={props} likes={props.usersLikedPost} me={props.user} />
 
           <PostComments
             post={props}
@@ -167,7 +179,6 @@ export default class Post extends React.Component {
             entryUrl={canonicalPostURI}
             me={props.user}
           />
-
         </div>
       </div>
     );

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import _ from 'lodash';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 import config from 'config';
 import Raven from 'raven';
 import { Context, Next } from 'koa';
@@ -19,7 +19,6 @@ import { alwaysAllowedRoutes, alwaysDisallowedRoutes, appTokensScopes } from './
 
 import { authDebugError } from '.';
 
-
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
 
 const activationCodeChars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -27,14 +26,14 @@ const activationCodeChars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 type Restrictions = {
   netmasks: string[];
   origins: string[];
-}
+};
 
 const tokenType = 'app.v1';
 
 const isAppTokenJWTPayload = isObject({
-  type:   isConst(tokenType),
+  type: isConst(tokenType),
   userId: isString,
-  issue:  isNumber,
+  issue: isNumber,
 });
 
 /**
@@ -76,7 +75,7 @@ export class AppTokenV1 extends AuthToken {
     this.scopes = params.scopes;
     this.restrictions = {
       netmasks: params.restrictions.netmasks ?? [],
-      origins:  params.restrictions.origins ?? [],
+      origins: params.restrictions.origins ?? [],
     };
     this.lastUsedAt = params.lastUsedAt;
     this.lastIP = params.lastIP;
@@ -98,9 +97,9 @@ export class AppTokenV1 extends AuthToken {
       }
 
       if (
-        !this.isActive
-      || this.issue !== authJWTPayload.issue
-      || (this.expiresAt && this.expiresAt < new Date())
+        !this.isActive ||
+        this.issue !== authJWTPayload.issue ||
+        (this.expiresAt && this.expiresAt < new Date())
       ) {
         throw new NotAuthorizedException(`inactive or expired token`);
       }
@@ -110,7 +109,7 @@ export class AppTokenV1 extends AuthToken {
     try {
       this.checkRestrictions({ remoteIP: ctx.ip, headers: ctx.headers });
     } catch (e) {
-      authDebugError(e.message)
+      authDebugError(e.message);
       throw new NotAuthorizedException(e.message);
     }
 
@@ -118,10 +117,11 @@ export class AppTokenV1 extends AuthToken {
     {
       const route = `${ctx.method === 'HEAD' ? 'GET' : ctx.method} ${ctx.state.matchedRoute}`;
       const routeAllowed =
-        !alwaysDisallowedRoutes.includes(route) && (
-          alwaysAllowedRoutes.includes(route)
-          || appTokensScopes.some(({ name, routes }) => this.scopes.includes(name) && routes.includes(route))
-        );
+        !alwaysDisallowedRoutes.includes(route) &&
+        (alwaysAllowedRoutes.includes(route) ||
+          appTokensScopes.some(
+            ({ name, routes }) => this.scopes.includes(name) && routes.includes(route),
+          ));
 
       if (!routeAllowed) {
         authDebugError(`app token has no access to '${route}'`);
@@ -146,11 +146,11 @@ export class AppTokenV1 extends AuthToken {
     }
   }
 
-  async registerUsage({ ip, userAgent }: { ip: IPAddr, userAgent?: string }) {
+  async registerUsage({ ip, userAgent }: { ip: IPAddr; userAgent?: string }) {
     await this[database].registerAppTokenUsage(this.id, {
-      ip:        new Address(ip).toString(),
+      ip: new Address(ip).toString(),
       userAgent: userAgent || '',
-      debounce:  appTokenUsageDebounce,
+      debounce: appTokenUsageDebounce,
     });
   }
 
@@ -167,11 +167,11 @@ export class AppTokenV1 extends AuthToken {
     }
 
     const payload = {
-      token_id:   this.id,
-      request:    `${ctx.method} ${ctx.url}`,
-      ip:         ctx.ip,
+      token_id: this.id,
+      request: `${ctx.method} ${ctx.url}`,
+      ip: ctx.ip,
       user_agent: ctx.headers['user-agent'] || '',
-      extra:      {
+      extra: {
         ..._.pick(ctx.headers, ['x-real-ip', 'x-forwarded-for']),
         ...(ctx.state.appTokenLogPayload || {}),
       },
@@ -182,12 +182,15 @@ export class AppTokenV1 extends AuthToken {
 
   tokenString() {
     const { secret } = config;
-    return jwt.sign({
-      type:   AppTokenV1.TYPE,
-      id:     this.id,
-      issue:  this.issue,
-      userId: this.userId,
-    }, secret)
+    return jwt.sign(
+      {
+        type: AppTokenV1.TYPE,
+        id: this.id,
+        issue: this.issue,
+        userId: this.userId,
+      },
+      secret,
+    );
   }
 
   async setTitle(title: string) {
@@ -215,19 +218,19 @@ export class AppTokenV1 extends AuthToken {
     return this[database].deleteAppToken(this.id);
   }
 
-  checkRestrictions({ headers, remoteIP }: { headers: any, remoteIP: string }) {
+  checkRestrictions({ headers, remoteIP }: { headers: any; remoteIP: string }) {
     const { netmasks, origins } = this.restrictions;
 
     if (netmasks.length > 0) {
       const remoteAddr = new Address(remoteIP);
 
       if (!netmasks.some((mask) => new Address(mask).contains(remoteAddr))) {
-        throw new Error(`app token is not allowed from IP ${remoteIP}`)
+        throw new Error(`app token is not allowed from IP ${remoteIP}`);
       }
     }
 
     if (origins.length > 0 && !origins.includes(headers.origin)) {
-      throw new Error(`app token is not allowed from origin ${headers.origin}`)
+      throw new Error(`app token is not allowed from origin ${headers.origin}`);
     }
   }
 
@@ -237,7 +240,8 @@ export class AppTokenV1 extends AuthToken {
   }
 
   static normalizeActivationCode(input: string) {
-    const code = input.toUpperCase()
+    const code = input
+      .toUpperCase()
       .replace(/[IL]/g, '1')
       .replace(/O/g, '0')
       .replace(/U/g, 'V')

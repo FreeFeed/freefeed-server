@@ -1,4 +1,3 @@
-import createDebug from 'debug';
 import React from 'react';
 import { default as URLFinder, shorten } from 'ff-url-finder';
 
@@ -10,10 +9,7 @@ const MAX_URL_LENGTH = 50;
 
 const finder = new URLFinder(
   ['ru', 'com', 'net', 'org', 'info', 'gov', 'edu', 'рф', 'ua'],
-  [
-    'freefeed.net',
-    'gamma.freefeed.net'
-  ]
+  ['freefeed.net', 'gamma.freefeed.net'],
 );
 finder.withHashTags = true;
 finder.withArrows = true;
@@ -25,47 +21,28 @@ class Linkify extends React.Component {
     if (type == AT_LINK || type == LOCAL_LINK) {
       props['to'] = href;
 
-      return React.createElement(
-        Link,
-        props,
-        displayedLink
-      );
+      return React.createElement(Link, props, displayedLink);
     } else if (type == HASHTAG) {
       props['to'] = href;
 
-      return React.createElement(
-        Link,
-        props,
-        displayedLink
-      );
+      return React.createElement(Link, props, displayedLink);
     } else if (type == ARROW) {
       props['className'] = 'arrow-span';
 
-      return React.createElement(
-        'span',
-        props,
-        displayedLink
-      );
-    } else {  // eslint-disable-line no-else-return
-      if (href.match(FRIENDFEED_POST)) {
-        props['className'] = 'archive-post';
-        props['href'] = '#';
-        return React.createElement(
-          'a',
-          props,
-          displayedLink
-        );
-      }
-
-      props['href'] = href;
-      props['target'] = '_blank';
-
-      return React.createElement(
-        'a',
-        props,
-        displayedLink
-      );
+      return React.createElement('span', props, displayedLink);
     }
+
+    // eslint-disable-line no-else-return
+    if (href.match(FRIENDFEED_POST)) {
+      props['className'] = 'archive-post';
+      props['href'] = '#';
+      return React.createElement('a', props, displayedLink);
+    }
+
+    props['href'] = href;
+    props['target'] = '_blank';
+
+    return React.createElement('a', props, displayedLink);
   }
 
   parseCounter = 0;
@@ -73,6 +50,7 @@ class Linkify extends React.Component {
 
   parseString(string) {
     const elements = [];
+
     if (string === '') {
       return elements;
     }
@@ -94,7 +72,7 @@ class Linkify extends React.Component {
               display={it.text}
               me={new Object()}
               key={`match${++this.idx}`}
-            />
+            />,
           );
           return;
         } else if (it.type === LOCAL_LINK) {
@@ -117,10 +95,11 @@ class Linkify extends React.Component {
         elements.push(linkElement);
       });
 
-      return (elements.length === 1) ? elements[0] : elements;
+      return elements.length === 1 ? elements[0] : elements;
     } catch (err) {
-
+      // Do nothing
     }
+
     return [string];
   }
 
@@ -129,11 +108,15 @@ class Linkify extends React.Component {
 
     if (typeof children === 'string') {
       parsed = this.parseString(children);
-    } else if (React.isValidElement(children) && (children.type !== 'a') && (children.type !== 'button')) {
+    } else if (
+      React.isValidElement(children) &&
+      children.type !== 'a' &&
+      children.type !== 'button'
+    ) {
       parsed = React.cloneElement(
         children,
         { key: `parse${++this.parseCounter}` },
-        this.parse(children.props.children)
+        this.parse(children.props.children),
       );
     } else if (children instanceof Array) {
       parsed = children.map((child) => {
@@ -148,7 +131,11 @@ class Linkify extends React.Component {
     this.parseCounter = 0;
     const parsedChildren = this.parse(this.props.children);
 
-    return <span className="Linkify" dir="auto">{parsedChildren}</span>;
+    return (
+      <span className="Linkify" dir="auto">
+        {parsedChildren}
+      </span>
+    );
   }
 }
 

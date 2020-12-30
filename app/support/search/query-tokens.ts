@@ -7,7 +7,6 @@ import { tokenize } from '../tokenize-text';
 
 import { linkToText } from './norm';
 
-
 const ftsCfg = config.postgres.textSearchConfigName;
 
 export type Scope = 1 | 2 | 3;
@@ -44,9 +43,7 @@ export class Plus implements Token {
  * ScopeStart marks the start of global query scope.
  */
 export class ScopeStart implements Token {
-  constructor(
-    public scope: Scope,
-  ) { }
+  constructor(public scope: Scope) {}
 
   getComplexity() {
     return 0;
@@ -57,11 +54,7 @@ export class ScopeStart implements Token {
  * Condition is the some post/comment non-textual filter.
  */
 export class Condition implements Token {
-  constructor(
-    public exclude: boolean,
-    public condition: string,
-    public args: string[],
-  ) { }
+  constructor(public exclude: boolean, public condition: string, public args: string[]) {}
 
   getComplexity() {
     return 0.5 * this.args.length;
@@ -73,11 +66,7 @@ export class Condition implements Token {
  * quoted phrase. It is an atomic piece of query and have no internal elements.
  */
 export class Text implements Token {
-  constructor(
-    public exclude: boolean,
-    public phrase: boolean,
-    public text: string,
-  ) { }
+  constructor(public exclude: boolean, public phrase: boolean, public text: string) {}
 
   getComplexity() {
     return this.phrase ? this.text.split(/\s+/).length : 1;
@@ -87,19 +76,19 @@ export class Text implements Token {
     const prefix = this.exclude ? '!!' : '';
 
     if (this.phrase) {
-      const queries = tokenize(this.text).map((token) => {
-        if (token instanceof HashTag || token instanceof Mention) {
-          const exactText =
-            token instanceof HashTag
-              ? token.text.replace(/[_-]/g, '')
-              : token.text;
-          return pgFormat(`%L::tsquery`, exactText);
-        } else if (token instanceof Link) {
-          return exactPhraseToTSQuery(linkToText(token));
-        }
+      const queries = tokenize(this.text)
+        .map((token) => {
+          if (token instanceof HashTag || token instanceof Mention) {
+            const exactText =
+              token instanceof HashTag ? token.text.replace(/[_-]/g, '') : token.text;
+            return pgFormat(`%L::tsquery`, exactText);
+          } else if (token instanceof Link) {
+            return exactPhraseToTSQuery(linkToText(token));
+          }
 
-        return exactPhraseToTSQuery(token.text);
-      }).filter(Boolean);
+          return exactPhraseToTSQuery(token.text);
+        })
+        .filter(Boolean);
 
       if (queries.length === 0) {
         return "''";
@@ -109,8 +98,7 @@ export class Text implements Token {
 
       return `${prefix}(${queries.join('<->')})`;
     } else if (/^[#@]/.test(this.text)) {
-      let exactText =
-        this.text.charAt(0) === '#' ? this.text.replace(/[_-]/g, '') : this.text;
+      let exactText = this.text.charAt(0) === '#' ? this.text.replace(/[_-]/g, '') : this.text;
 
       if (/\*$/.test(this.text)) {
         exactText = `${exactText.substring(0, exactText.length - 1)}:*`;
@@ -140,9 +128,7 @@ export class Text implements Token {
  * AnyText.
  */
 export class AnyText implements Token {
-  constructor(
-    public children: Text[],
-  ) { }
+  constructor(public children: Text[]) {}
 
   getComplexity() {
     return this.children.reduce((acc, t) => acc + t.getComplexity(), 0);
@@ -159,9 +145,7 @@ export class AnyText implements Token {
  * specific order. Even a single AnyText must be wrapped in SeqTexts.
  */
 export class SeqTexts implements Token {
-  constructor(
-    public children: AnyText[],
-  ) { }
+  constructor(public children: AnyText[]) {}
 
   getComplexity() {
     return this.children.reduce((acc, t) => acc + t.getComplexity(), 0);
@@ -177,10 +161,7 @@ export class SeqTexts implements Token {
  * InScope contains the subquery that have a specific local scope.
  */
 export class InScope implements Token {
-  constructor(
-    public scope: Scope,
-    public text: AnyText,
-  ) { }
+  constructor(public scope: Scope, public text: AnyText) {}
 
   getComplexity() {
     return this.text.getComplexity();
@@ -189,7 +170,7 @@ export class InScope implements Token {
 
 export const scopeStarts: [RegExp, Scope][] = [
   [/^in-?body$/, IN_POSTS],
-  [/^in-?comments?$/, IN_COMMENTS]
+  [/^in-?comments?$/, IN_COMMENTS],
 ];
 
 export const listConditions: [RegExp, string][] = [
@@ -202,19 +183,16 @@ export const listConditions: [RegExp, string][] = [
   // [/^cliked-?by$/, 'cliked-by'],
   // Authorship
   [/^from$/, 'from'],
-  [/^authors?$/, 'author']
+  [/^authors?$/, 'author'],
 ];
 
 // A simple trimmer, trims punctuation, separators and some symbols.
-const trimTextRe = XRegExp(
-  `^[\\pP\\pZ\\pC\\pS]*(.*?)[\\pP\\pZ\\pC\\pS]*$`,
-  'u'
-);
+const trimTextRe = XRegExp(`^[\\pP\\pZ\\pC\\pS]*(.*?)[\\pP\\pZ\\pC\\pS]*$`, 'u');
 const trimTextRightRe = XRegExp(`^(.*?)[\\pP\\pZ\\pC\\pS]*$`, 'u');
 
 export type TrimTextOptions = {
   minPrefixLength: number;
-}
+};
 
 export function trimText(text: string, { minPrefixLength }: TrimTextOptions) {
   if (/^[#@]/.test(text)) {
@@ -241,5 +219,8 @@ export function trimText(text: string, { minPrefixLength }: TrimTextOptions) {
 }
 
 function exactPhraseToTSQuery(text: string): string {
-  return pgFormat(`regexp_replace(phraseto_tsquery('simple', %L)::text, '''([^ ])', '''=\\1', 'g')::tsquery`, text);
+  return pgFormat(
+    `regexp_replace(phraseto_tsquery('simple', %L)::text, '''([^ ])', '''=\\1', 'g')::tsquery`,
+    text,
+  );
 }

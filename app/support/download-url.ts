@@ -10,9 +10,7 @@ import mediaType from 'media-type';
 import { parse as bytesParse } from 'bytes';
 import config from 'config';
 
-
 const fileSizeLimit = bytesParse(config.attachments.fileSizeLimit);
-
 
 export async function downloadURL(url: string) {
   const parsedURL = new URL(url);
@@ -22,8 +20,7 @@ export async function downloadURL(url: string) {
   }
 
   const parsedPath = path.parse(parsedURL.pathname);
-  const originalFileName =
-    parsedPath.base !== '' ? decodeURIComponent(parsedPath.base) : 'file';
+  const originalFileName = parsedPath.base !== '' ? decodeURIComponent(parsedPath.base) : 'file';
 
   const bytes = crypto.randomBytes(4).readUInt32LE(0);
   const filePath = `/tmp/pepyatka${bytes}tmp${parsedPath.ext}`;
@@ -44,20 +41,14 @@ export async function downloadURL(url: string) {
     const contentLength = parseInt(response.headers.get('content-length')!);
 
     if (!isNaN(contentLength) && contentLength > fileSizeLimit) {
-      throw new Error(
-        `File is too large (${contentLength} bytes, max. ${fileSizeLimit})`
-      );
+      throw new Error(`File is too large (${contentLength} bytes, max. ${fileSizeLimit})`);
     }
   }
 
   try {
     const stream = createWriteStream(filePath, { flags: 'w' });
     const fileWasWritten = waitStream(stream);
-    await pipeline(
-      response.body,
-      meter(fileSizeLimit),
-      stream,
-    );
+    await pipeline(response.body, meter(fileSizeLimit), stream);
     await fileWasWritten; // waiting for the file to be written and closed
 
     const stats = await fs.stat(filePath);
@@ -67,8 +58,10 @@ export async function downloadURL(url: string) {
       size: stats.size,
       type: mType.asString() || 'application/octet-stream',
       path: filePath,
-      unlink() { return fs.unlink(this.path); },
-    }
+      unlink() {
+        return fs.unlink(this.path);
+      },
+    };
   } catch (e) {
     await fs.unlink(filePath);
     throw e;

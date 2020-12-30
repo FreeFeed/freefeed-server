@@ -8,19 +8,18 @@ import { Adapter, AuthStartParams, AuthFinishParams, Profile } from './Adapter';
 import { MODE_CONNECT } from './constants';
 import { AuthError } from './AuthError';
 
-
 type DiscoveryResponse = {
   authorization_endpoint: string;
   token_endpoint: string;
   userinfo_endpoint: string;
-}
+};
 
 type UserInfoFields = {
   id?: string;
   name?: string;
   email?: string;
   pictureURL?: string;
-}
+};
 
 export type OAuth2Params = {
   clientId: string;
@@ -28,30 +27,30 @@ export type OAuth2Params = {
   scope?: string;
   userInfoFields?: UserInfoFields;
 } & (
-    {
+  | {
       discoveryRoot: string;
     }
-    | {
+  | {
       authorizationEndpoint: string;
       tokenEndpoint: string;
       userinfoEndpoint: string;
     }
-  );
+);
 
 export type Query = {
   state: string;
 } & (
-    | { code: string }
-    | {
+  | { code: string }
+  | {
       error_description?: string;
       error: string;
     }
-  );
+);
 
 type StateData = {
   params: AuthStartParams;
   profile?: Profile;
-}
+};
 
 export class OAuth2Adapter extends Adapter<Query> {
   private readonly discoveryURL?: string;
@@ -72,7 +71,10 @@ export class OAuth2Adapter extends Adapter<Query> {
     this.clientSecret = params.clientSecret;
 
     if ('discoveryRoot' in params) {
-      this.discoveryURL = `${params.discoveryRoot.replace(/\/$/, '')}/.well-known/openid-configuration`;
+      this.discoveryURL = `${params.discoveryRoot.replace(
+        /\/$/,
+        '',
+      )}/.well-known/openid-configuration`;
     } else {
       this.authorizationEndpoint = params.authorizationEndpoint;
       this.tokenEndpoint = params.tokenEndpoint;
@@ -99,20 +101,22 @@ export class OAuth2Adapter extends Adapter<Query> {
     const stateKey = await this.cache.put<StateData>({ params: startParams });
     const urlParams = {
       response_type: 'code',
-      client_id:     this.clientId,
-      redirect_uri:  startParams.redirectURL,
-      state:         stateKey,
-      scope:         this.scope,
-      display:       startParams.display || 'popup',
-      prompt:        startParams.mode === MODE_CONNECT ? 'consent' : ''
+      client_id: this.clientId,
+      redirect_uri: startParams.redirectURL,
+      state: stateKey,
+      scope: this.scope,
+      display: startParams.display || 'popup',
+      prompt: startParams.mode === MODE_CONNECT ? 'consent' : '',
     };
     const join = authUrl.indexOf('?') !== -1 ? '&' : '?';
     return authUrl + join + qsEncode(urlParams);
   }
 
-  async acceptResponse({ query }: AuthFinishParams<Query>): Promise<{
-    params: AuthStartParams,
-    profile: Profile,
+  async acceptResponse({
+    query,
+  }: AuthFinishParams<Query>): Promise<{
+    params: AuthStartParams;
+    profile: Profile;
   }> {
     const stateKey = query.state;
     const state = await this.cache.get<StateData>(stateKey);
@@ -138,7 +142,9 @@ export class OAuth2Adapter extends Adapter<Query> {
     let token_endpoint: string, userinfo_endpoint: string;
 
     if (this.discoveryURL) {
-      ({ token_endpoint, userinfo_endpoint } = await fetchJSON<DiscoveryResponse>(this.discoveryURL));
+      ({ token_endpoint, userinfo_endpoint } = await fetchJSON<DiscoveryResponse>(
+        this.discoveryURL,
+      ));
     } else {
       token_endpoint = this.tokenEndpoint!;
       userinfo_endpoint = this.userinfoEndpoint!;
@@ -147,23 +153,20 @@ export class OAuth2Adapter extends Adapter<Query> {
     const access_token = await this.fetchAccessToken(code, redirectURL, token_endpoint);
 
     try {
-      const resp = await fetchJSON<any>(
-        userinfo_endpoint,
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            Accept:        'application/json',
-          }
-        }
-      );
+      const resp = await fetchJSON<any>(userinfo_endpoint, {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          Accept: 'application/json',
+        },
+      });
 
       const userInfoFields = {
-        id:         'sub',
-        name:       'name',
-        email:      'email',
+        id: 'sub',
+        name: 'name',
+        email: 'email',
         pictureURL: 'picture',
         ...this.userInfoFields,
-      }
+      };
 
       const result: Partial<Profile> = {};
 
@@ -191,23 +194,20 @@ export class OAuth2Adapter extends Adapter<Query> {
     try {
       const body = {
         code,
-        client_id:     this.clientId,
+        client_id: this.clientId,
         client_secret: this.clientSecret,
-        redirect_uri:  redirectURL,
-        grant_type:    'authorization_code',
+        redirect_uri: redirectURL,
+        grant_type: 'authorization_code',
       };
 
-      const { access_token } = await fetchJSON<{ access_token: string }>(
-        token_endpoint,
-        {
-          method:  'POST',
-          body:    qsEncode(body),
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Accept:         'application/json',
-          },
-        }
-      );
+      const { access_token } = await fetchJSON<{ access_token: string }>(token_endpoint, {
+        method: 'POST',
+        body: qsEncode(body),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+      });
       return access_token;
     } catch (err) {
       throw new AuthError(`Cannot obtain access token: ${err.message}`);
@@ -217,11 +217,13 @@ export class OAuth2Adapter extends Adapter<Query> {
 
 type GeneralErrorResponse = {
   error: string | { message: string };
-}
+};
 
 async function fetchJSON<R>(url: string, params?: RequestInit) {
   const response = await fetch(url, params);
-  let respBody: R | GeneralErrorResponse = { error: response.ok ? 'Unknown error' : `HTTP error ${response.status}` };
+  let respBody: R | GeneralErrorResponse = {
+    error: response.ok ? 'Unknown error' : `HTTP error ${response.status}`,
+  };
 
   try {
     respBody = await response.json();

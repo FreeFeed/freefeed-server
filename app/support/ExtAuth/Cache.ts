@@ -5,7 +5,6 @@ import redisStore from 'cache-manager-ioredis';
 import { promisifyAll } from 'bluebird';
 import config from 'config';
 
-
 const KEY_LENGTH = 16; // bytes
 
 promisifyAll(crypto);
@@ -16,15 +15,12 @@ promisifyAll(crypto);
 export class Cache {
   private readonly cache: MCache;
 
-  constructor(
-    private readonly keyPrefix: string,
-    private readonly ttl: number,
-  ) {
+  constructor(private readonly keyPrefix: string, private readonly ttl: number) {
     this.cache = cacheManager.caching({
       store: redisStore,
-      host:  config.redis.host,
-      port:  config.redis.port,
-      db:    config.database,
+      host: config.redis.host,
+      port: config.redis.port,
+      db: config.database,
       ttl,
     });
   }
@@ -47,5 +43,3 @@ export class Cache {
     await this.cache.del(this.keyPrefix + key);
   }
 }
-
-

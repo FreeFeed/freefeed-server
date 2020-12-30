@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
-import config from 'config'
+import config from 'config';
 import { Context, Next } from 'koa';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,7 +10,6 @@ import { NotAuthorizedException } from '../../support/exceptions';
 import { authDebugError, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
 import { AppTokenV1, dbAdapter, sessionTokenV1Store } from '../../models';
 import { Nullable } from '../../support/types';
-
 
 promisifyAll(jwt);
 
@@ -30,9 +29,8 @@ export async function withAuthToken(ctx: Context, next: Next) {
     jwtToken = ctx.headers['authorization'].replace(/^Bearer\s+/, '');
   } else {
     // The legacy X-Authentication-Token header
-    jwtToken = ctx.headers['x-authentication-token']
-      || ctx.request.body.authToken
-      || ctx.query.authToken;
+    jwtToken =
+      ctx.headers['x-authentication-token'] || ctx.request.body.authToken || ctx.query.authToken;
   }
 
   if (!jwtToken) {
@@ -71,9 +69,8 @@ export async function withAuthToken(ctx: Context, next: Next) {
     authToken = null;
   }
 
-
   if (!authToken) {
-    authDebugError(`auth token is not found`)
+    authDebugError(`auth token is not found`);
     throw new NotAuthorizedException(`auth token is not found`);
   }
 

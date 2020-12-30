@@ -2,15 +2,12 @@ import Knex from 'knex';
 
 import { Branded, UUID } from '../types';
 
-
-export type LockType = Branded<number, 'advisoryLockType'>
+export type LockType = Branded<number, 'advisoryLockType'>;
 
 export const USER_SUBSCRIPTIONS: LockType = 10001;
 
-
 export async function lockByUUID(trx: Knex.Transaction, lockType: LockType, uuid: UUID) {
-  await trx.raw(`select pg_advisory_xact_lock(:lockType, :id)`,
-    { lockType, id: uuidToInt(uuid) });
+  await trx.raw(`select pg_advisory_xact_lock(:lockType, :id)`, { lockType, id: uuidToInt(uuid) });
 }
 
 /**
