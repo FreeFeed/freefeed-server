@@ -5,13 +5,13 @@ One of your authorization sessions has been blocked due to suspicious
 activity. The session was accessed from:
 
   IP: <%= access.ip %>
-  Time: <%= access.date.toDateString() %>
+  Time: <%= access.date.toUTCString() %>
   Browser: <%= access.userAgent %>
 
 The last usage of this session was from:
 
   IP: <%= session.lastIP || 'undefined' %>
-  Time: <%= session.lastUsedAt ? session.lastUsedAt.toDateString() : 'undefined' %>
+  Time: <%= session.lastUsedAt ? session.lastUsedAt.toUTCString() : 'undefined' %>
   Browser: <%= session.lastUserAgent || 'undefined' %>
 
 If you don't recognize any of these IP addresses or browsers, we recommend you
