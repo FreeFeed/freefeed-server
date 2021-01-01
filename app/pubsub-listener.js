@@ -798,9 +798,13 @@ async function getAuthUserId(jwtToken, socket) {
     return null;
   }
 
+  // Parse the 'X-Forwarded-For' header ("client, proxy1, proxy2")
+  const proxyHeader = socket.handshake.headers[config.proxyIpHeader.toLowerCase()];
+  const ips = config.trustProxyHeaders && proxyHeader ? proxyHeader.split(/\s*,\s*/) : [];
+
   // Fake context
   const ctx = {
-    ip: socket.handshake.address,
+    ip: ips[0] || socket.handshake.address,
     headers: {
       ...socket.handshake.headers,
       authorization: `Bearer ${jwtToken}`,
