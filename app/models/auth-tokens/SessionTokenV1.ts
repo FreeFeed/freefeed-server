@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 import config from 'config';
 import { isConst, isNumber, isObject, isString } from 'ts-json-check';
 import { Context, Next } from 'koa';
@@ -24,17 +24,17 @@ export const CLOSED = 10;
 export const BLOCKED = 20;
 
 export const statusTitles = {
-  [ACTIVE]:  'ACTIVE',
-  [CLOSED]:  'CLOSED',
+  [ACTIVE]: 'ACTIVE',
+  [CLOSED]: 'CLOSED',
   [BLOCKED]: 'BLOCKED',
 };
 
 const tokenType = 'sess.v1';
 
 const isSessionTokenJWTPayload = isObject({
-  type:   isConst(tokenType),
+  type: isConst(tokenType),
   userId: isString,
-  issue:  isNumber,
+  issue: isNumber,
 });
 
 export class SessionTokenV1 extends AuthToken {
@@ -78,12 +78,15 @@ export class SessionTokenV1 extends AuthToken {
 
   tokenString() {
     const { secret } = config;
-    return jwt.sign({
-      type:   tokenType,
-      id:     this.id,
-      issue:  this.issue,
-      userId: this.userId,
-    }, secret)
+    return jwt.sign(
+      {
+        type: tokenType,
+        id: this.id,
+        issue: this.issue,
+        userId: this.userId,
+      },
+      secret,
+    );
   }
 
   get isActive() {
@@ -110,15 +113,13 @@ export class SessionTokenV1 extends AuthToken {
       }
 
       if (
-        !this.isActive
-        || !(
-          this.issue === payload.issue
-          || (
-            // If the session was reissued less than reissueGraceIntervalSec ago
-            this.issue === payload.issue + 1
-            && this.updatedAt.getTime() > this.databaseTime.getTime()
-              - (config.authSessions.reissueGraceIntervalSec * 1000)
-          )
+        !this.isActive ||
+        !(
+          this.issue === payload.issue ||
+          // If the session was reissued less than reissueGraceIntervalSec ago
+          (this.issue === payload.issue + 1 &&
+            this.updatedAt.getTime() >
+              this.databaseTime.getTime() - config.authSessions.reissueGraceIntervalSec * 1000)
         )
       ) {
         // Block session if it is active and has invalid issue
@@ -135,13 +136,13 @@ export class SessionTokenV1 extends AuthToken {
                 'Your session has been blocked',
                 {
                   access: {
-                    ip:        new Address(ctx.ip).toString(),
+                    ip: new Address(ctx.ip).toString(),
                     userAgent: ctx.headers['user-agent'] || fallbackUserAgent,
-                    date:      this.databaseTime,
+                    date: this.databaseTime,
                   },
                   session: this,
                 },
-                `${config.appRoot}/app/scripts/views/mailer/auth-session-blocked.ejs`
+                `${config.appRoot}/app/scripts/views/mailer/auth-session-blocked.ejs`,
               );
             } catch (e) {
               authDebugError(`cannot send email to ${user.username}: ${e.message}`);
@@ -157,10 +158,10 @@ export class SessionTokenV1 extends AuthToken {
     await super.middleware(ctx, next);
   }
 
-  async registerUsage({ ip, userAgent }: { ip: IPAddr, userAgent?: string }) {
+  async registerUsage({ ip, userAgent }: { ip: IPAddr; userAgent?: string }) {
     const updated = await this[database].registerAuthSessionUsage(this.id, {
-      ip:          new Address(ip).toString(),
-      userAgent:   userAgent || fallbackUserAgent,
+      ip: new Address(ip).toString(),
+      userAgent: userAgent || fallbackUserAgent,
       debounceSec: config.authSessions.usageDebounceSec,
     });
     return this.copyFieldsFrom(updated);

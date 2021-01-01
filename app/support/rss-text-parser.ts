@@ -2,16 +2,10 @@ import { escape as urlEscape } from 'querystring';
 
 import { escape as htmlEscape } from 'lodash';
 import { sentences } from 'sbd';
-import {
-  HashTag,
-  Email,
-  Mention,
-  Link,
-} from 'social-text-tokenizer';
+import { HashTag, Email, Mention, Link } from 'social-text-tokenizer';
 import config from 'config';
 
 import { tokenize } from './tokenize-text';
-
 
 export function extractTitle(text: string, maxLen: number): string {
   // see https://unicode.org/cldr/utility/list-unicodeset.jsp?a=%5B%3AWord_Break%3DNewline%3A%5D&g=&i=
@@ -33,7 +27,7 @@ export function extractTitle(text: string, maxLen: number): string {
     return `${joinStrings(words, maxLen - 1)}\u2026`;
   }
 
-  return `${words[0].substr(0, maxLen - 1)}\u2026`
+  return `${words[0].substr(0, maxLen - 1)}\u2026`;
 }
 
 function joinStrings(parts: string[], maxLen: number) {
@@ -71,25 +65,30 @@ export function textToHTML(text: string) {
   return paragraphs.map((ls) => `<p>${ls.join('<br />\n')}</p>`).join('\n');
 }
 
-
 function linkify(text: string) {
-  return tokenize(text).map((token) => {
-    if (token instanceof HashTag) {
-      return `<a href="${config.host}/search?qs=${urlEscape(token.text)}">${htmlEscape(token.text)}</a>`
-    }
+  return tokenize(text)
+    .map((token) => {
+      if (token instanceof HashTag) {
+        return `<a href="${config.host}/search?qs=${urlEscape(token.text)}">${htmlEscape(
+          token.text,
+        )}</a>`;
+      }
 
-    if (token instanceof Email) {
-      return `<a href="mailto:${urlEscape(token.text)}">${htmlEscape(token.pretty)}</a>`
-    }
+      if (token instanceof Email) {
+        return `<a href="mailto:${urlEscape(token.text)}">${htmlEscape(token.pretty)}</a>`;
+      }
 
-    if (token instanceof Mention) {
-      return `<a href="${config.host}/${urlEscape(token.text.substr(1).toLowerCase())}">${htmlEscape(token.text)}</a>`
-    }
+      if (token instanceof Mention) {
+        return `<a href="${config.host}/${urlEscape(
+          token.text.substr(1).toLowerCase(),
+        )}">${htmlEscape(token.text)}</a>`;
+      }
 
-    if (token instanceof Link) {
-      return `<a href="${htmlEscape(token.href)}">${htmlEscape(token.pretty)}</a>`
-    }
+      if (token instanceof Link) {
+        return `<a href="${htmlEscape(token.href)}">${htmlEscape(token.pretty)}</a>`;
+      }
 
-    return htmlEscape(token.text);
-  }).join('');
+      return htmlEscape(token.text);
+    })
+    .join('');
 }

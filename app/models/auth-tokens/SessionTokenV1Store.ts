@@ -5,7 +5,6 @@ import { UUID } from '../../support/types';
 import { Address } from '../../support/ipv6';
 import { database, fallbackIP, fallbackUserAgent } from '../common';
 
-
 export class SessionTokenV1Store {
   private readonly [database]: DbAdapter;
 
@@ -16,8 +15,8 @@ export class SessionTokenV1Store {
   create(userId: UUID, ctx?: Context, sessionId?: UUID) {
     return this[database].createAuthSession({
       userId,
-      id:            sessionId,
-      lastIP:        new Address(ctx?.ip || fallbackIP).toString(),
+      id: sessionId,
+      lastIP: new Address(ctx?.ip || fallbackIP).toString(),
       lastUserAgent: ctx?.headers['user-agent'] || fallbackUserAgent,
     });
   }

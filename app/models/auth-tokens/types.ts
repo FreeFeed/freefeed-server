@@ -1,6 +1,5 @@
 import { IPAddr, Nullable, UUID } from '../../support/types';
 
-
 export type AppTokenCreateParams = {
   userId: UUID;
   title: string;
@@ -8,7 +7,7 @@ export type AppTokenCreateParams = {
   restrictions?: {
     netmasks?: string[];
     origins?: string[];
-  },
+  };
   expiresAtSeconds?: number;
 };
 
@@ -27,12 +26,12 @@ export type AppTokenRecord = Required<AppTokenCreateParams> & {
 };
 
 export type AppTokenLogPayload = {
-  token_id: UUID,
-  request: string,
-  ip: IPAddr,
-  user_agent: string,
-  extra: any,
-}
+  token_id: UUID;
+  request: string;
+  ip: IPAddr;
+  user_agent: string;
+  extra: any;
+};
 
 export type SessionRecord = {
   id: UUID;
@@ -47,16 +46,13 @@ export type SessionRecord = {
   databaseTime: Date;
 };
 
-export type SessionMutableRecord = Partial<Omit<SessionRecord,
-  // Immutable fields of SessionRecord
-  | 'id'
-  | 'userId'
-  | 'createdAt'
-  | 'databaseTime'
->>;
+export type SessionMutableRecord = Partial<
+  Omit<
+    SessionRecord,
+    // Immutable fields of SessionRecord
+    'id' | 'userId' | 'createdAt' | 'databaseTime'
+  >
+>;
 
-export type SessionCreateRecord = Pick<SessionRecord,
-  | 'userId'
-  | 'lastIP'
-  | 'lastUserAgent'
-> & Partial<Pick<SessionRecord, 'id'>>;
+export type SessionCreateRecord = Pick<SessionRecord, 'userId' | 'lastIP' | 'lastUserAgent'> &
+  Partial<Pick<SessionRecord, 'id'>>;

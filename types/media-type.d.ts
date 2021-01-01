@@ -11,7 +11,7 @@ declare module 'media-type' {
     isPersonal(): boolean;
     isExperimental(): boolean;
     asString(): string;
-  }
+  };
 
   export function fromString(mediaTypeString: string): MediaType;
 }

@@ -15,7 +15,7 @@ import {
   trimText,
   Token,
   SeqTexts,
-  AnyText
+  AnyText,
 } from './query-tokens';
 
 // -?(scope:)?(double-quoted-string|string)
@@ -34,12 +34,12 @@ const tokenRe = XRegExp(
     )
   )
 `,
-  'gx'
+  'gx',
 );
 
 export type ParseQueryOptions = {
-  minPrefixLength: number
-}
+  minPrefixLength: number;
+};
 
 export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions = config.search) {
   // 1-st run: Split the query string into tokens
@@ -77,11 +77,8 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
             new Condition(
               !!match.exclude,
               condition,
-              match.word
-                .split(',')
-                .map(trimText)
-                .filter(Boolean)
-            )
+              match.word.split(',').map(trimText).filter(Boolean),
+            ),
           );
           return;
         }
@@ -92,14 +89,11 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
         if (re.test(match.cond)) {
           if (match.qstring) {
             // in-body:"cat mouse" => "cat mouse"
-            tokens.push(new InScope(scope,
-              new AnyText([
-                new Text(
-                  !!match.exclude,
-                  true,
-                  JSON.parse(match.qstring)
-                )
-              ]))
+            tokens.push(
+              new InScope(
+                scope,
+                new AnyText([new Text(!!match.exclude, true, JSON.parse(match.qstring))]),
+              ),
             );
           } else {
             const words = (match.word as string)
@@ -124,7 +118,7 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
 
       // Scope not found, treat as raw text
       tokens.push(
-        new AnyText([new Text(!!match.exclude, false, trimText(raw, { minPrefixLength }))])
+        new AnyText([new Text(!!match.exclude, false, trimText(raw, { minPrefixLength }))]),
       );
       return;
     }
@@ -135,16 +129,13 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
         new Text(
           !!match.exclude,
           !!match.qstring,
-          match.qstring ? JSON.parse(match.qstring) : trimText(match.word, { minPrefixLength })
-        )
-      ])
+          match.qstring ? JSON.parse(match.qstring) : trimText(match.word, { minPrefixLength }),
+        ),
+      ]),
     );
   });
 
-  return flow([
-    joinByPipes,
-    joinByPluses,
-  ])(tokens) as Token[];
+  return flow([joinByPipes, joinByPluses])(tokens) as Token[];
 }
 
 export function queryComplexity(tokens: Token[]) {

@@ -1,8 +1,13 @@
 import React from 'react';
+
 import Linkify from './linkify.jsx';
 
 // Separator element for "paragraphs"
-const paragraphBreak = <div className="p-break"><br/></div>;
+const paragraphBreak = (
+  <div className="p-break">
+    <br />
+  </div>
+);
 
 // Inject an element between every element in array.
 // It's similar to array.join(separator), but returns an array, not a string.
@@ -29,7 +34,6 @@ const brAndTrim = (text) => {
   return injectSeparator(lines, <br />);
 };
 
-
 const getExpandedText = (text) => {
   const trimmedText = text.trim();
 
@@ -43,10 +47,7 @@ const getExpandedText = (text) => {
 };
 
 export default class PieceOfText extends React.Component {
-
   render() {
-    return (this.props.text ? (
-      <Linkify>{getExpandedText(this.props.text)}</Linkify>
-    ) : <span/>);
+    return this.props.text ? <Linkify>{getExpandedText(this.props.text)}</Linkify> : <span />;
   }
 }

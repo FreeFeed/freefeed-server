@@ -4,7 +4,7 @@
  */
 declare module 'config' {
   type Config = {
-    siteTitle: string,
+    siteTitle: string;
     host: string;
     port: number;
     secret: string;
@@ -15,31 +15,31 @@ declare module 'config' {
       fileSizeLimit: number;
       storage: {
         rootDir: string;
-      }
-    },
+      };
+    };
     maintenance: {
       messageFile: string;
-    }
+    };
 
     postgres: {
       textSearchConfigName: string;
-    }
+    };
 
     search: {
       maxQueryComplexity: number;
       minPrefixLength: number;
-    }
+    };
 
     company: {
       title: string;
       address: string;
-    }
+    };
 
     database: number;
     redis: {
       host: string;
       port: number;
-    }
+    };
 
     sentryDsn?: string;
 
@@ -49,10 +49,9 @@ declare module 'config' {
       activeSessionTTLDays: number;
       inactiveSessionTTLDays: number;
       cleanupIntervalSec: number;
-    }
-  }
+    };
+  };
 
   const c: Config;
   export = c;
 }
-

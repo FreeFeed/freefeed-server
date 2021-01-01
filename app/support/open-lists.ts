@@ -1,7 +1,6 @@
 import _ from 'lodash';
 
-
-type ListLike<T> = List<T> | T[] | { items: T[], inclusive: boolean };
+type ListLike<T> = List<T> | T[] | { items: T[]; inclusive: boolean };
 
 /**
  * List represents a possible open list of items. It can model two situation:
@@ -9,10 +8,7 @@ type ListLike<T> = List<T> | T[] | { items: T[], inclusive: boolean };
  * 2. All items EXCEPT of these (when 'inclusive' is false).
  */
 export class List<T> {
-  constructor(
-    public items: T[] = [],
-    public inclusive: boolean = true,
-  ) { }
+  constructor(public items: T[] = [], public inclusive: boolean = true) {}
 
   isEmpty() {
     return this.inclusive && this.items.length === 0;
@@ -29,7 +25,7 @@ export class List<T> {
   /**
    * Return List made of items if arg is an array, arg themself if it is a List instance,
    * or re-created List if arg has shape of List. The returning object is always a List instance.
-       */
+   */
   static from<X>(list: ListLike<X>): List<X> {
     if (list instanceof List) {
       return list;

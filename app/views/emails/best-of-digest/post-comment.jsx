@@ -5,24 +5,22 @@ import PieceOfText from './piece-of-text';
 import UserName from './user-name';
 import CommentBubble from './comment-bubble';
 
-
 export default class PostComment extends React.Component {
   renderBody() {
     let authorAndButtons = '';
+
     if (!this.props.hideType) {
       authorAndButtons = (
         <span>
           {' -'}&nbsp;
-          <UserName user={this.props.createdBy} me={this.props.me}/>
+          <UserName user={this.props.createdBy} me={this.props.me} />
         </span>
       );
     }
 
     return (
       <div className="comment-body">
-        <PieceOfText
-          text={this.props.body}
-        />
+        <PieceOfText text={this.props.body} />
         {authorAndButtons}
       </div>
     );
@@ -32,24 +30,19 @@ export default class PostComment extends React.Component {
     if (this.props.hideType) {
       return false;
     }
-    return (
-      <CommentBubble
-        commentId={this.props.id}
-        createdAt={this.props.createdAt}
-      />
-    );
+
+    return <CommentBubble commentId={this.props.id} createdAt={this.props.createdAt} />;
   }
 
   render() {
     const className = classnames({
-      'comment': true,
-      'highlighted': false,
+      comment: true,
+      highlighted: false,
       'omit-bubble': false,
       'is-hidden': !!this.props.hideType,
       'highlight-from-url': false,
-      'my-comment': false
+      'my-comment': false,
     });
-
 
     return (
       <div className={className}>

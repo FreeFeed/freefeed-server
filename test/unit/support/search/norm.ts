@@ -4,7 +4,6 @@ import { Link } from 'social-text-tokenizer';
 
 import { linkToText, normalizeText } from '../../../../app/support/search/norm';
 
-
 describe('search:normalizeText', () => {
   const tests = [
     { input: 'abcd', output: 'abcd' },
@@ -19,15 +18,17 @@ describe('search:normalizeText', () => {
   }
 });
 
-
 describe('search:linkToText', () => {
   const tests = [
     { input: 'adobe.com', output: 'adobe com' },
     { input: 'www.adobe.com', output: 'adobe com' },
-    { input: 'https://github.com/FreeFeed/freefeed-server', output: 'github com freefeed freefeed server' },
     {
-      input:  'https://es.wikipedia.org/wiki/Ma%C3%B1ana',
-      output: 'es wikipedia org wiki manana'
+      input: 'https://github.com/FreeFeed/freefeed-server',
+      output: 'github com freefeed freefeed server',
+    },
+    {
+      input: 'https://es.wikipedia.org/wiki/Ma%C3%B1ana',
+      output: 'es wikipedia org wiki manana',
     },
   ];
 

@@ -5,13 +5,12 @@ import { AuthError } from './AuthError';
 import { Cache } from './Cache';
 import { Query } from './OAuth2Adapter';
 
-
 type TestParams = {
   externalId: string;
   externalName?: string;
   externalEmail?: string;
   externalPictureURL?: string;
-}
+};
 
 /**
  * Use this provider for the test purposes only
@@ -25,9 +24,11 @@ export class TestAdapter extends Adapter<Query, TestParams> {
     return `${this.authorizeURL}?${qsEncode({ state: stateKey })}`;
   }
 
-  async acceptResponse({ query }: AuthFinishParams<Query>): Promise<{
-    params: AuthStartParams,
-    profile: Profile,
+  async acceptResponse({
+    query,
+  }: AuthFinishParams<Query>): Promise<{
+    params: AuthStartParams;
+    profile: Profile;
   }> {
     const stateKey = query.state;
     const state = await this.cache.get<AuthStartParams<TestParams>>(stateKey);
@@ -45,11 +46,11 @@ export class TestAdapter extends Adapter<Query, TestParams> {
     }
 
     return {
-      params:  state,
+      params: state,
       profile: {
-        id:         state.externalId,
-        name:       state.externalName || 'Test Test',
-        email:      state.externalEmail || null,
+        id: state.externalId,
+        name: state.externalName || 'Test Test',
+        email: state.externalEmail || null,
         pictureURL: state.externalPictureURL || null,
       },
     };

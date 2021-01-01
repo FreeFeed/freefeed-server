@@ -1,6 +1,5 @@
 import { Context, Next } from 'koa';
 
-
 import { dbAdapter } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
 import { UUID } from '../../support/types';
@@ -14,7 +13,7 @@ import { authDebug, authDebugError } from '.';
 export abstract class AuthToken {
   readonly hasFullAccess: boolean = false;
 
-  constructor(public readonly userId: UUID) { }
+  constructor(public readonly userId: UUID) {}
 
   abstract tokenString(): string;
 
