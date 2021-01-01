@@ -10,6 +10,7 @@ declare module 'config' {
     secret: string;
     appRoot: string;
     trustProxyHeaders: boolean;
+    proxyIpHeader: string;
     logResponseTime: boolean;
     attachments: {
       fileSizeLimit: number;
