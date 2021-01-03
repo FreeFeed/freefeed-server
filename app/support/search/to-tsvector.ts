@@ -2,7 +2,7 @@ import pgFormat from 'pg-format';
 import { HashTag, Mention, Link } from 'social-text-tokenizer';
 import config from 'config';
 
-import { tokenize } from '../tokenize-text';
+import { HTMLTag, tokenize } from '../tokenize-text';
 
 import { normalizeText, linkToText } from './norm';
 
@@ -28,6 +28,10 @@ export function toTSVector(text: string) {
 
       if (token instanceof Link) {
         return pgFormat(`to_tsvector_with_exact(%L, %L)`, ftsCfg, linkToText(token));
+      }
+
+      if (token instanceof HTMLTag) {
+        return token.content && pgFormat('to_tsvector_with_exact(%L, %L)', ftsCfg, token.content);
       }
 
       const trimmedText = token.text.trim();
