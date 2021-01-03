@@ -33,6 +33,18 @@ export default class PostsController {
       const destNames = typeof feeds === 'string' ? [feeds] : feeds;
       const timelineIds = await checkDestNames(destNames, author);
 
+      if (attachments) {
+        const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
+
+        if (attObjects.some((a) => a.userId !== author.id)) {
+          throw new ForbiddenException('You can not use attachments created by other user');
+        }
+
+        if (attObjects.some((a) => !!a.postId)) {
+          throw new ForbiddenException('You can not use attachments from another post');
+        }
+      }
+
       const newPost = new Post({
         userId: author.id,
         body,
