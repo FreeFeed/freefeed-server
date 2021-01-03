@@ -65,8 +65,7 @@ export default class UsersController {
       };
 
       if (config.recaptcha.enabled) {
-        const ip = ctx.request.get('x-forwarded-for') || ctx.request.ip;
-        await recaptchaVerify(ctx.request.body.captcha, ip);
+        await recaptchaVerify(ctx.request.body.captcha, ctx.request.ip);
       }
 
       let extProfileData = null;

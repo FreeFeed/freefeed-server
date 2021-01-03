@@ -33,6 +33,7 @@ const config = {
   // Configure koa app to trust proxy headers:
   // X-Forwarded-Host, X-Forwarded-Proto and X-Forwarded-For
   trustProxyHeaders: false,
+  proxyIpHeader: 'X-Forwarded-For',
 
   logResponseTime: true,
   // disableRealtime: true,

@@ -30,6 +30,7 @@ class FreefeedApp extends Application {
 
     if (config.trustProxyHeaders) {
       this.proxy = true;
+      this.proxyIpHeader = config.proxyIpHeader;
     }
 
     this.context.config = config;

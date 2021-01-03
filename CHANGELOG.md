@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   created, reissued, closed (at sign out); user can view list of their session
   with the information of last usage and close one or more of them. The old
   session tokens (SessionTokenV0) are still supported but deprecated.
+- The 'proxyIpHeader' config option (default value is 'X-Forwarded-For') for the
+  instances behind the proxy. Active when the 'trustProxyHeaders' option is
+  true.
 
 ## [1.90.0] - 2020-12-29
 ### Fixed
