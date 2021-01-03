@@ -50,4 +50,19 @@ describe('toTSVector', () => {
         `)`,
     );
   });
+
+  it('should return vector of text with SPOILERS', () => {
+    const string = 'the quick <spoiler>brown</spoiler> fox';
+    expect(
+      toTSVector(string),
+      'to be',
+      `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'the quick') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'spoiler') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'brown') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'spoiler') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'fox')` +
+        `)`,
+    );
+  });
 });
