@@ -22,7 +22,9 @@ import {
   hidePost,
   savePost,
   unsavePost,
-} from './functional_test_helper'
+  performJSONRequest,
+  authHeaders,
+} from './functional_test_helper';
 
 
 describe('TimelinesControllerV2', () => {
@@ -283,6 +285,19 @@ describe('TimelinesControllerV2', () => {
         await updatePostAsync(luna, postData);
         const { posts } = await fetchPost(luna.post.id);
         expect(posts.attachments, 'to equal', postData.attachments);
+      });
+
+      it('should not allow to rebind attachment from post1 to new post', async () => {
+        await updatePostAsync(luna, { body: luna.post.body, attachments: [attId1] });
+
+        const resp = await performJSONRequest(
+          'POST',
+          '/v1/posts',
+          { post: { body: 'Body', attachments: [attId1] }, meta: { feeds: [luna.username] } },
+          authHeaders(luna),
+        );
+
+        expect(resp, 'to satisfy', { __httpCode: 403 });
       });
 
       describe('Luna wrote another post', () => {
