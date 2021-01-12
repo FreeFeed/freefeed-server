@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.91.0] - Not released
 ### Fixed
 - Properly index texts with HTML-like tags (like spoiler tags)
-- Prevent the theft of attachments from other posts when creating a post.
 
 ### Added
 - The new type of authorization sessions (SessionTokenV1). Sessions can be
@@ -18,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The 'proxyIpHeader' config option (default value is 'X-Forwarded-For') for the
   instances behind the proxy. Active when the 'trustProxyHeaders' option is
   true.
+
+## [1.90.1] - 2021-01-12
+### Fixed
+- Prevent the theft of attachments from other posts when creating a post.
 
 ## [1.90.0] - 2020-12-29
 ### Fixed
