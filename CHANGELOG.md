@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The 'proxyIpHeader' config option (default value is 'X-Forwarded-For') for the
   instances behind the proxy. Active when the 'trustProxyHeaders' option is
   true.
+- Explicit list of the attachments' MIME types that should be served with
+  'Content-Disposition: inline'. All other attachments should be served with
+  'Content-Disposition: attachment' to prevent in-browser execution of active
+  content.
 
 ## [1.90.1] - 2021-01-12
 ### Fixed
