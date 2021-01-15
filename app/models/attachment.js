@@ -444,8 +444,12 @@ export function addModel(dbAdapter) {
       // Modern browsers support UTF-8 filenames
       const fileNameUtf8 = encodeURIComponent(this.fileName);
 
+      const disposition = config.media.inlineMimeTypes.includes(this.mimeType)
+        ? 'inline'
+        : 'attachment';
+
       // Inline version of 'attfnboth' method (http://greenbytes.de/tech/tc2231/#attfnboth)
-      return `inline; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`;
+      return `${disposition}; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`;
     }
 
     async destroy() {

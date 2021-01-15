@@ -407,5 +407,19 @@ describe('Attachment', () => {
       const deleted = await dbAdapter.getAttachmentById(attachment.id);
       expect(deleted).to.be.null;
     });
+
+    it(`should produce 'inline' Content-Disposition for image/jpeg file`, () => {
+      const attachment = new Attachment({ fileName: 'sample', mimeType: 'image/jpeg' });
+      expect(attachment.getContentDisposition()).to.be.equal(
+        `inline; filename="sample"; filename*=utf-8''sample`,
+      );
+    });
+
+    it(`should produce 'attachment' Content-Disposition for application/zip file`, () => {
+      const attachment = new Attachment({ fileName: 'sample', mimeType: 'application/zip' });
+      expect(attachment.getContentDisposition()).to.be.equal(
+        `attachment; filename="sample"; filename*=utf-8''sample`,
+      );
+    });
   });
 });

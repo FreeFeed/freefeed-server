@@ -116,6 +116,21 @@ config.media = {
     bucket: 'bucket-name',
     // endpoint:        'nyc3.digitaloceanspaces.com',
   },
+  // Files of these types are uplodes to S3 with 'Content-Disposition: inline'.
+  // All other types will have 'Content-Disposition: attachment' to prevent
+  // in-browser execution.
+  inlineMimeTypes: [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'audio/mpeg',
+    'audio/mp4',
+    'audio/ogg',
+    'video/mp4',
+    'application/pdf',
+    'text/plain',
+  ],
 };
 config.attachments = {
   url: defer((cfg) => cfg.media.url),
