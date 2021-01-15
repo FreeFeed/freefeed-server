@@ -13,7 +13,7 @@ import { toTSVector } from '../app/support/search/to-tsvector';
 
 const allTables = ['posts', 'comments'];
 const ZERO_UID = '00000000-00000000-00000000-00000000';
-const statusFile =  path.join(__dirname, '../tmp/reindex_search.json');
+const statusFile = path.join(__dirname, '../tmp/reindex_search.json');
 
 program
   .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), '1000')
@@ -64,9 +64,11 @@ process.stdout.write(`\n`);
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const { rows } = await dbAdapter.database.raw(
+        const {
+          rows,
+        } = await dbAdapter.database.raw(
           `select uid, body from ${table} where uid > :lastUID order by uid limit :batchSize`,
-          { lastUID, batchSize }
+          { lastUID, batchSize },
         );
 
         if (rows.length === 0) {
@@ -85,17 +87,24 @@ process.stdout.write(`\n`);
               await trx.raw(`set local statement_timeout to '${timeout.replace(/'/g, `''`)}'`);
               await trx.raw(`create temp table ftsdata (uid uuid, vector tsvector) on commit drop`);
               await trx('ftsdata').insert(
-                rows.map((r) => ({ uid: r.uid, vector: trx.raw(toTSVector(r.body).replace(/\?/g, '\\?')) }))
+                rows.map((r) => ({
+                  uid: r.uid,
+                  vector: trx.raw(toTSVector(r.body).replace(/\?/g, '\\?')),
+                })),
               );
-              await trx.raw(`update ${table} set body_tsvector = vector from ftsdata where ${table}.uid = ftsdata.uid`);
+              await trx.raw(
+                `update ${table} set body_tsvector = vector from ftsdata where ${table}.uid = ftsdata.uid`,
+              );
             });
 
             indexed += rows.length;
             lastUID = rows[rows.length - 1].uid;
 
-            const percent = parseInt(lastUID.substr(0, 2), 16) * 100 >> 8;
-            const speed = Math.round(batchSize * 1000 / (Date.now() - start));
-            process.stdout.write(`\tindexed ${indexed} ${table} at ${speed} upd/sec (${percent}% of total)\n`);
+            const percent = (parseInt(lastUID.substr(0, 2), 16) * 100) >> 8;
+            const speed = Math.round((batchSize * 1000) / (Date.now() - start));
+            process.stdout.write(
+              `\tindexed ${indexed} ${table} at ${speed} upd/sec (${percent}% of total)\n`,
+            );
 
             await saveStatus(lastUID, table);
 
@@ -113,9 +122,7 @@ process.stdout.write(`\n`);
         }
       }
 
-      process.stdout.write(
-        `All ${table} indexed, starting VACUUM ANALYZE...\n`
-      );
+      process.stdout.write(`All ${table} indexed, starting VACUUM ANALYZE...\n`);
       await dbAdapter.database.raw(`vacuum analyze ${table}`);
       process.stdout.write(`Done with ${table}.\n`);
 

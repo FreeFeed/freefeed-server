@@ -19,12 +19,10 @@ import {
   SIGN_IN_CONTINUE,
   profileCache,
 } from '../../../support/ExtAuth';
-import { User, dbAdapter } from '../../../models';
-import { SessionTokenV0 } from '../../../models/auth-tokens';
+import { User, dbAdapter, sessionTokenV1Store } from '../../../models';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 
 import { authStartInputSchema, authFinishInputSchema } from './data-schemes/ext-auth';
-
 
 export const listProfiles = compose([
   authRequired(),
@@ -72,14 +70,13 @@ export const authFinish = compose([
       throw new NotFoundException(`Provider '${provName}' is not supported`);
     }
 
-
     try {
       const state = await authProvider.acceptResponse(ctx.request.body);
 
       const profileData = {
-        provider:   provName,
+        provider: provName,
         externalId: state.profile.id,
-        title:      state.profile.name,
+        title: state.profile.name,
       };
 
       // Connect external profile to FreeFeed account
@@ -95,7 +92,7 @@ export const authFinish = compose([
         if (profileUser && profileUser.id !== currentUser.id) {
           throw new ForbiddenException(
             `The '${state.profile.name}' profile on ${authProvider.title} is already ` +
-            `associated with another ${config.siteTitle} account: @${profileUser.username}`
+              `associated with another ${config.siteTitle} account: @${profileUser.username}`,
           );
         }
 
@@ -106,11 +103,11 @@ export const authFinish = compose([
       // Sign in or start to sign up.
       if (state.params.mode === MODE_SIGN_IN) {
         const profile = {
-          provider:   provName,
-          name:       state.profile.name,
-          email:      state.profile.email,
+          provider: provName,
+          name: state.profile.name,
+          email: state.profile.email,
           pictureURL: state.profile.pictureURL,
-        }
+        };
 
         const profileUser = await User.getByExtProfile(profileData);
 
@@ -120,10 +117,10 @@ export const authFinish = compose([
           }
 
           // User found, signing in
-          const authToken =  new SessionTokenV0(profileUser.id).tokenString()
+          const authToken = (await sessionTokenV1Store.create(profileUser.id, ctx)).tokenString();
           const [user] = await serializeUsersByIds([profileUser.id]);
           ctx.body = {
-            status:  SIGN_IN_SUCCESS,
+            status: SIGN_IN_SUCCESS,
             message: `Successfully signed in`,
             profile,
             user,
@@ -132,15 +129,16 @@ export const authFinish = compose([
           return;
         }
 
-        const emailUser = state.profile.email && (await dbAdapter.getUserByEmail(state.profile.email));
+        const emailUser =
+          state.profile.email && (await dbAdapter.getUserByEmail(state.profile.email));
 
         ctx.body = {
-          status:  emailUser ? SIGN_IN_USER_EXISTS : SIGN_IN_CONTINUE,
-          message: emailUser ?
-            `Another user exists with this email address.` :
-            `No user exists with this profile or email address. You can continue signing up.`,
+          status: emailUser ? SIGN_IN_USER_EXISTS : SIGN_IN_CONTINUE,
+          message: emailUser
+            ? `Another user exists with this email address.`
+            : `No user exists with this profile or email address. You can continue signing up.`,
           profile,
-          suggestedUsername:  '',
+          suggestedUsername: '',
           // Profile data to auto-connect after the user creation is complete.
           externalProfileKey: await profileCache.put(profileData),
         };
@@ -152,7 +150,10 @@ export const authFinish = compose([
           if (state.profile.nickName) {
             username = state.profile.nickName.toLowerCase().replace(/[^a-z0-9]/gi, '');
           } else if (state.profile.email && state.profile.email.indexOf('@') !== -1) {
-            username = state.profile.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/gi, '');
+            username = state.profile.email
+              .split('@')[0]
+              .toLowerCase()
+              .replace(/[^a-z0-9]/gi, '');
           }
 
           ctx.body.suggestedUsername = await adaptUsername(username);
@@ -171,12 +172,7 @@ export const authFinish = compose([
 /////////////////////
 
 function serializeExtProfile(profile) {
-  return pick(profile, [
-    'id',
-    'provider',
-    'title',
-    'createdAt',
-  ]);
+  return pick(profile, ['id', 'provider', 'title', 'createdAt']);
 }
 
 function isValidUsername(username) {
@@ -195,7 +191,8 @@ async function adaptUsername(username) {
     return '';
   }
 
-  while (true) { // eslint-disable-line no-constant-condition
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
     if (isValidUsername(username)) {
       // eslint-disable-next-line no-await-in-loop
       const existingUser = await dbAdapter.getFeedOwnerByUsername(username);

@@ -2,7 +2,6 @@
 import { isatty } from 'tty';
 import { inspect } from 'util';
 
-
 const useColors = isatty(parseInt(process.env.DEBUG_FD, 10) || 2);
 
 /**
@@ -16,7 +15,9 @@ const useColors = isatty(parseInt(process.env.DEBUG_FD, 10) || 2);
 export function stylize(msg, ...colors) {
   if (useColors && colors.length > 0) {
     const color = colors.shift();
-    return `\u001b[${inspect.colors[color][0]}m${stylize(msg, ...colors)}\u001b[${inspect.colors[color][1]}m`;
+    return `\u001b[${inspect.colors[color][0]}m${stylize(msg, ...colors)}\u001b[${
+      inspect.colors[color][1]
+    }m`;
   }
 
   return msg;

@@ -2,19 +2,14 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { Job } from '../models';
+import { Job } from '../../models';
 
+import { initHandlers as initAuthTokensHandlers } from './auth-tokens';
 
 const debugError = createDebug('freefeed:jobs:errors');
 
-const PERIODIC_REAUTH_REALTIME = 'PERIODIC_REAUTH_REALTIME';
-
-export function initHandlers(jobManager, app) {
-  definePeriodicJob(jobManager, {
-    name:     PERIODIC_REAUTH_REALTIME,
-    handler:  () => app.context.pubsub.reAuthorizeSockets(),
-    nextTime: () => new Date(Date.now() + (5 * 60 * 1000)), // every 5 minutes
-  });
+export async function initHandlers(jobManager, app) {
+  await Promise.all([initAuthTokensHandlers(jobManager, app)]);
 }
 
 ////////////////////////////////////
@@ -28,10 +23,9 @@ export async function definePeriodicJob(jobManager, { name, payload = {}, handle
       debugError(`error processing periodic job '${job.name}'`, err, job);
 
       if ('sentryDsn' in config) {
-        Raven.captureException(
-          err,
-          { extra: { err: `error processing job '${job.name}': ${err.message}` } }
-        );
+        Raven.captureException(err, {
+          extra: { err: `error processing job '${job.name}': ${err.message}` },
+        });
       }
     }
 

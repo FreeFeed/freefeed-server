@@ -7,7 +7,6 @@ import { sendEventsDigestEmail } from '../mailers/NotificationDigestMailer';
 
 import { DIGEST_EVENT_TYPES } from './EventTypes';
 
-
 export async function sendEmails() {
   const debug = createDebug('freefeed:sendEmails');
 
@@ -19,14 +18,19 @@ export async function sendEmails() {
   const promises = users.map(async (u) => {
     const notificationsLastSeenAt = u.notificationsReadAt ? u.notificationsReadAt : null;
     const digestSentAt = emailsSentAt[u.intId];
-    const notificationsQueryDate = getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeenAt);
+    const notificationsQueryDate = getUnreadEventsIntervalStart(
+      digestSentAt,
+      notificationsLastSeenAt,
+    );
 
     if (!notificationsQueryDate) {
       debug(`[${u.username}] getUnreadEventsIntervalStart() returned falsy value: SKIP`);
       return;
     }
 
-    let digestInterval = `${notificationsQueryDate.format('MMM Do YYYY')} - ${moment().format('MMM Do YYYY')}`;
+    let digestInterval = `${notificationsQueryDate.format('MMM Do YYYY')} - ${moment().format(
+      'MMM Do YYYY',
+    )}`;
 
     if (notificationsQueryDate.isSameOrAfter(moment().subtract(1, 'days'), 'hours')) {
       digestInterval = notificationsQueryDate.format('MMM Do YYYY');
@@ -34,7 +38,13 @@ export async function sendEmails() {
 
     debug(`[${u.username}] looking for notifications since ${digestInterval}…`);
 
-    const events = await dbAdapter.getUserEvents(u.intId, DIGEST_EVENT_TYPES, null, null, notificationsQueryDate);
+    const events = await dbAdapter.getUserEvents(
+      u.intId,
+      DIGEST_EVENT_TYPES,
+      null,
+      null,
+      notificationsQueryDate,
+    );
 
     if (!events.length) {
       debug(`[${u.username}] no relevant notifications found: SKIP`);
@@ -44,7 +54,13 @@ export async function sendEmails() {
     debug(`[${u.username}] found ${events.length} notifications`);
 
     const serializedEvents = await serializeEvents(events, u.id);
-    await sendEventsDigestEmail(u, serializedEvents.events, serializedEvents.users, serializedEvents.groups, digestInterval);
+    await sendEventsDigestEmail(
+      u,
+      serializedEvents.events,
+      serializedEvents.users,
+      serializedEvents.groups,
+      digestInterval,
+    );
     debug(`[${u.username}] email is queued: OK`);
 
     await dbAdapter.addSentEmailLogEntry(u.intId, u.email, 'notification');
@@ -58,7 +74,9 @@ export async function sendEmails() {
 
 export function getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeenAt, now) {
   const wrappedDigestSentAt = digestSentAt ? moment(digestSentAt) : null;
-  const wrappedNotificationsLastSeenAt = notificationsLastSeenAt ? moment(notificationsLastSeenAt) : null;
+  const wrappedNotificationsLastSeenAt = notificationsLastSeenAt
+    ? moment(notificationsLastSeenAt)
+    : null;
   const wrappedNow = moment(now);
 
   const _90DaysAgo = wrappedNow.clone().subtract(90, 'days');
@@ -75,7 +93,10 @@ export function getUnreadEventsIntervalStart(digestSentAt, notificationsLastSeen
     return _90DaysAgo;
   }
 
-  if (wrappedDigestSentAt && (!wrappedNotificationsLastSeenAt || wrappedDigestSentAt.isAfter(wrappedNotificationsLastSeenAt))) {
+  if (
+    wrappedDigestSentAt &&
+    (!wrappedNotificationsLastSeenAt || wrappedDigestSentAt.isAfter(wrappedNotificationsLastSeenAt))
+  ) {
     return wrappedDigestSentAt;
   }
 

@@ -20,7 +20,6 @@ import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 
-
 const env = process.env.NODE_ENV || 'development';
 
 class FreefeedApp extends Application {
@@ -31,30 +30,35 @@ class FreefeedApp extends Application {
 
     if (config.trustProxyHeaders) {
       this.proxy = true;
+      this.proxyIpHeader = config.proxyIpHeader;
     }
 
     this.context.config = config;
     this.context.port = process.env.PORT || config.port;
 
-    this.use(koaBody({
-      multipart:  true,
-      formLimit:  config.attachments.fileSizeLimit,
-      jsonLimit:  config.attachments.fileSizeLimit,
-      textLimit:  config.attachments.fileSizeLimit,
-      formidable: { maxFileSize: config.attachments.fileSizeLimit, }
-    }));
+    this.use(
+      koaBody({
+        multipart: true,
+        formLimit: config.attachments.fileSizeLimit,
+        jsonLimit: config.attachments.fileSizeLimit,
+        textLimit: config.attachments.fileSizeLimit,
+        formidable: { maxFileSize: config.attachments.fileSizeLimit },
+      }),
+    );
     this.use(passport.initialize());
     this.use(originMiddleware);
-    this.use(methodOverride((req) => {
-      if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-        // look in urlencoded POST bodies and delete it
-        const method = req.body._method;
-        Reflect.deleteProperty(req.body, '_method');
-        return method;
-      }
+    this.use(
+      methodOverride((req) => {
+        if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+          // look in urlencoded POST bodies and delete it
+          const method = req.body._method;
+          Reflect.deleteProperty(req.body, '_method');
+          return method;
+        }
 
-      return undefined;  // otherwise, no need to override
-    }));
+        return undefined; // otherwise, no need to override
+      }),
+    );
 
     this.use(async (ctx, next) => {
       ctx.response.set('X-Freefeed-Server', serverVersion);
@@ -64,7 +68,8 @@ class FreefeedApp extends Application {
     const accessLogStream = fs.createWriteStream(`${__dirname}/../log/${env}.log`, { flags: 'a' });
     this.use(morgan('combined', { stream: accessLogStream }));
 
-    if (config.logResponseTime) {  // should be located BEFORE responseTime
+    if (config.logResponseTime) {
+      // should be located BEFORE responseTime
       const timeLogger = createDebug('freefeed:request');
       this.use(async (ctx, next) => {
         await next();

@@ -10,7 +10,6 @@ import {
   activate,
 } from '../../../controllers/api/v2/AppTokensController';
 
-
 export default function addRoutes(app) {
   app.get('/v2/app-tokens/scopes', scopes);
   app.get('/v2/app-tokens', list);

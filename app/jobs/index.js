@@ -6,16 +6,10 @@ import { JobManager } from '../models';
 
 import { initHandlers as initPeriodicHandlers } from './periodic';
 import { initHandlers as initUserGoneHandlers } from './user-gone';
-import { initHandlers as initAppTokensHandlers } from './app-tokens';
 
-
-export function initJobProcessing(app) {
+export async function initJobProcessing(app) {
   const jobManager = new JobManager(config.jobManager);
-  [
-    initPeriodicHandlers,
-    initUserGoneHandlers,
-    initAppTokensHandlers,
-  ].forEach((h) => h(jobManager, app));
+  await Promise.all([initPeriodicHandlers, initUserGoneHandlers].map((h) => h(jobManager, app)));
 
   // Use monitor and Sentry to collect job statistics and report errors
   jobManager.use((handler) => async (job) => {
@@ -33,10 +27,9 @@ export function initJobProcessing(app) {
       monitor.increment(errorsName);
 
       if ('sentryDsn' in config) {
-        Raven.captureException(
-          err,
-          { extra: { err: `error processing job '${job.name}': ${err.message}` } }
-        );
+        Raven.captureException(err, {
+          extra: { err: `error processing job '${job.name}': ${err.message}` },
+        });
       }
 
       // Job is still failed

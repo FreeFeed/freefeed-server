@@ -1,17 +1,22 @@
 import compose from 'koa-compose';
-import _ from 'lodash'
-import monitor from 'monitor-dog'
+import _ from 'lodash';
+import monitor from 'monitor-dog';
 
-import { dbAdapter, PubSub as pubSub } from '../../../models'
-import { serializeSelfUser, serializeUsersByIds, userSerializerFunction } from '../../../serializers/v2/user'
+import { dbAdapter, PubSub as pubSub } from '../../../models';
+import {
+  serializeSelfUser,
+  serializeUsersByIds,
+  userSerializerFunction,
+} from '../../../serializers/v2/user';
 import { monitored, authRequired } from '../../middlewares';
-
 
 export default class UsersController {
   static blockedByMe = compose([
     authRequired(),
     async (ctx) => {
-      const { state: { user } } = ctx;
+      const {
+        state: { user },
+      } = ctx;
       const banIds = await user.getBanIds();
       const users = await serializeUsersByIds(banIds, false);
       ctx.body = banIds.map((id) => users.find((u) => u.id === id));
@@ -22,17 +27,17 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
-    const timer = monitor.timer('users.unread-directs')
+    const timer = monitor.timer('users.unread-directs');
 
     try {
-      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(ctx.state.user.id)
+      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(ctx.state.user.id);
       ctx.body = { unread: unreadDirectsNumber };
-      monitor.increment('users.unread-directs-requests')
+      monitor.increment('users.unread-directs-requests');
     } finally {
-      timer.stop()
+      timer.stop();
     }
   }
 
@@ -51,10 +56,10 @@ export default class UsersController {
     if (!ctx.state.user) {
       ctx.status = 401;
       ctx.body = { err: 'Not found' };
-      return
+      return;
     }
 
-    await dbAdapter.markAllDirectsAsRead(ctx.state.user.id)
+    await dbAdapter.markAllDirectsAsRead(ctx.state.user.id);
     await pubSub.updateUnreadDirects(ctx.state.user.id);
     ctx.body = { message: `Directs are now marked as read for ${ctx.state.user.id}` };
   }
@@ -74,11 +79,13 @@ export default class UsersController {
   static whoAmI = compose([
     authRequired(),
     monitored({
-      timer:    'users.whoami-v2',
-      requests: 'users.whoami-v2-requests'
+      timer: 'users.whoami-v2',
+      requests: 'users.whoami-v2-requests',
     }),
     async (ctx) => {
-      const { state: { user, authToken } } = ctx;
+      const {
+        state: { user, authToken },
+      } = ctx;
 
       const [
         users,
@@ -104,7 +111,11 @@ export default class UsersController {
         users.privateMeta.archives = archiveParams;
       }
 
-      const subscriptions = timelinesUserSubscribed.map((t) => ({ id: t.id, name: t.name, user: t.userId }));
+      const subscriptions = timelinesUserSubscribed.map((t) => ({
+        id: t.id,
+        name: t.name,
+        user: t.userId,
+      }));
       const subscriptionsUIDs = _.map(subscriptions, 'user'); // UIDs of users our user subscribed to
       const groupRequestersUIDs = [].concat(...Object.values(pendingGroupRequests));
 
@@ -118,18 +129,20 @@ export default class UsersController {
         users.banIds,
       );
 
-      const [
-        allUsers,
-        allStats,
-      ] = await Promise.all([
+      const [allUsers, allStats] = await Promise.all([
         dbAdapter.getUsersByIdsAssoc(allUIDs),
         dbAdapter.getUsersStatsAssoc(allUIDs),
       ]);
-      const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(_.map(_.filter(allUsers, { type: 'group' }), 'id'), user.id);
+      const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(
+        _.map(_.filter(allUsers, { type: 'group' }), 'id'),
+        user.id,
+      );
 
       {
         // We need to fetch info for group admins too
-        const additionalUIDs = _.uniq(Object.values(allGroupAdmins).flat()).filter((id) => !allUsers[id]);
+        const additionalUIDs = _.uniq(Object.values(allGroupAdmins).flat()).filter(
+          (id) => !allUsers[id],
+        );
 
         if (additionalUIDs.length > 0) {
           const addUsers = await dbAdapter.getUsersByIdsAssoc(additionalUIDs);
@@ -148,16 +161,16 @@ export default class UsersController {
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
       users.subscribers = subscribersUIDs.map(serializeUser);
       const subscribers = subscriptionsUIDs.map(serializeUser);
-      const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map(serializeUser);
-      const managedGroups = managedGroupUIDs
-        .map(serializeUser)
-        .map((group) => {
-          group.requests = (pendingGroupRequests[group.id] || []).map(serializeUser);
-          return group;
-        });
+      const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map(
+        serializeUser,
+      );
+      const managedGroups = managedGroupUIDs.map(serializeUser).map((group) => {
+        group.requests = (pendingGroupRequests[group.id] || []).map(serializeUser);
+        return group;
+      });
 
       // Only full access tokens can see privateMeta
-      if (!authToken.hasFullAccess()) {
+      if (!authToken.hasFullAccess) {
         users.privateMeta = {};
       }
 

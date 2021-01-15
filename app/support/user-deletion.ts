@@ -3,7 +3,6 @@ import { GONE_DELETED } from '../models/user';
 
 import { UUID } from './types';
 
-
 // Objects to delete:
 // 1. [x] User personal information
 // 2. [x] Posts created by the user
@@ -61,26 +60,21 @@ export async function deletePersonalInfo(userId: UUID) {
   // Update all 'users' row fields to their default values except for some fields
 
   // This fields will not be modified
-  const keepFields = [
-    'id',
-    'uid',
-    'username',
-    'type',
-    'created_at',
-    'gone_status',
-    'gone_at',
-  ];
+  const keepFields = ['id', 'uid', 'username', 'type', 'created_at', 'gone_status', 'gone_at'];
 
   // These fields will be set to specific values
   const updateFields = {
-    screen_name:     userRow.username,
+    screen_name: userRow.username,
     hashed_password: '',
   } as Record<string, unknown>;
 
   const payload = Object.keys(userRow)
     .filter((f) => !keepFields.includes(f))
     .reduce(
-      (acc, field) => ({ ...acc, [field]: updateFields[field] ?? dbAdapter.database.raw('DEFAULT') }),
+      (acc, field) => ({
+        ...acc,
+        [field]: updateFields[field] ?? dbAdapter.database.raw('DEFAULT'),
+      }),
       {} as typeof updateFields,
     );
 
@@ -94,7 +88,8 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     const postIds = await dbAdapter.database.getCol<UUID>(
       `select uid from posts where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize });
+      { userId, batchSize },
+    );
 
     if (postIds.length === 0) {
       break;
@@ -120,7 +115,8 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     const postIds = await dbAdapter.database.getCol<UUID>(
       `select post_id from likes where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize });
+      { userId, batchSize },
+    );
 
     if (postIds.length === 0) {
       break;
@@ -150,7 +146,8 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
         join comments c on c.id = l.comment_id
         where l.user_id = :userIntId 
         order by l.created_at limit :batchSize`,
-      { userIntId: user.intId, batchSize });
+      { userIntId: user.intId, batchSize },
+    );
 
     if (commentIds.length === 0) {
       break;
@@ -164,14 +161,12 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
   } while (new Date() < runUntil);
 }
 
-
 export async function unbanAll(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
 
   if (!user) {
     return;
   }
-
 
   // Suppose that bans count isn't a great number and we can process all bans at once
   const usernames = await dbAdapter.database.getCol<string>(
@@ -181,7 +176,8 @@ export async function unbanAll(userId: UUID) {
         join users u on b.banned_user_id = u.uid
       where b.user_id = :userId 
       order by b.created_at`,
-    { userId });
+    { userId },
+  );
 
   await forEachAsync(usernames, (username: string) => user?.unban(username));
 }
@@ -199,7 +195,7 @@ export async function deleteSubscriptions(userId: UUID, runUntil: Date) {
   await forEachAsync(userIds, async (id: UUID) => {
     if (new Date() < runUntil) {
       const friend = await dbAdapter.getUserById(id);
-      friend && await user.unsubscribeFrom(friend);
+      friend && (await user.unsubscribeFrom(friend));
     }
   });
 }
@@ -207,7 +203,9 @@ export async function deleteSubscriptions(userId: UUID, runUntil: Date) {
 export async function deleteSubscriptionRequests(userId: UUID) {
   const toUserIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(userId);
 
-  await forEachAsync(toUserIds, (toUserId: UUID) => dbAdapter.deleteSubscriptionRequest(toUserId, userId));
+  await forEachAsync(toUserIds, (toUserId: UUID) =>
+    dbAdapter.deleteSubscriptionRequest(toUserId, userId),
+  );
 }
 
 export async function deleteAuxHomeFeeds(userId: UUID) {
@@ -219,14 +217,15 @@ export async function deleteAuxHomeFeeds(userId: UUID) {
   }
 }
 
-
 export async function deleteNotifications(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
 
   // Remove user's notifications caused by the user themself
-  user && await dbAdapter.database.raw(
-    `delete from events where user_id = ? and created_by_user_id = user_id`,
-    user.intId);
+  user &&
+    (await dbAdapter.database.raw(
+      `delete from events where user_id = ? and created_by_user_id = user_id`,
+      user.intId,
+    ));
 }
 
 export async function deleteAppTokens(userId: UUID, runUntil: Date) {
@@ -236,7 +235,8 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     const tokenIds = await dbAdapter.database.getCol<UUID>(
       `select uid from app_tokens where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize });
+      { userId, batchSize },
+    );
 
     if (tokenIds.length === 0) {
       break;
@@ -252,7 +252,7 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
 
 export async function deleteExtAuthProfiles(userId: UUID) {
   const profiles = await dbAdapter.getExtProfiles(userId);
-  await Promise.all(profiles.map((p: {id: UUID}) => dbAdapter.removeExtProfile(userId, p.id)));
+  await Promise.all(profiles.map((p: { id: UUID }) => dbAdapter.removeExtProfile(userId, p.id)));
 }
 
 export async function deleteArchives(userId: UUID) {
@@ -263,7 +263,7 @@ export async function deleteArchives(userId: UUID) {
 
 export async function deleteInvitations(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
-  user && await dbAdapter.database.raw(`delete from invitations where author = ?`, user.intId);
+  user && (await dbAdapter.database.raw(`delete from invitations where author = ?`, user.intId));
 }
 
 export async function deleteLocalBumps(userId: UUID) {
@@ -272,7 +272,8 @@ export async function deleteLocalBumps(userId: UUID) {
 
 export async function deleteSentEmailsLog(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
-  user && await dbAdapter.database.raw(`delete from sent_emails_log where user_id = ?`, user.intId);
+  user &&
+    (await dbAdapter.database.raw(`delete from sent_emails_log where user_id = ?`, user.intId));
 }
 
 export async function resetUserStatistics(userId: UUID) {
@@ -282,7 +283,8 @@ export async function resetUserStatistics(userId: UUID) {
     `select count(*)::int from 
       comments c join posts p on c.post_id = p.uid
       where c.user_id = :userId`,
-    { userId });
+    { userId },
+  );
 
   await dbAdapter.database.raw(
     `update user_stats set
@@ -291,7 +293,8 @@ export async function resetUserStatistics(userId: UUID) {
       subscriptions_count = 0,
       comments_count = :commentsCount
       where user_id = :userId`,
-    { userId, commentsCount });
+    { userId, commentsCount },
+  );
 }
 
 export async function deleteAttachments(userId: UUID, runUntil: Date) {
@@ -301,7 +304,8 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
     // eslint-disable-next-line no-await-in-loop
     const attIds = await dbAdapter.database.getCol<UUID>(
       `select uid from attachments where user_id = :userId order by created_at limit :batchSize`,
-      { userId, batchSize });
+      { userId, batchSize },
+    );
 
     if (attIds.length === 0) {
       break;
@@ -324,19 +328,20 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
  * @param values
  * @param processor
  */
-async function forEachAsync<T>(values: T[], processor: (v: T)=>Promise<any>) {
+async function forEachAsync<T>(values: T[], processor: (v: T) => Promise<any>) {
   await values.reduce(async (prev: Promise<void>, v: T) => {
     await prev;
     await processor(v);
-  }, Promise.resolve())
+  }, Promise.resolve());
 }
 
-type Task = (userId: UUID, runUntil: Date) => Promise<void>
+type Task = (userId: UUID, runUntil: Date) => Promise<void>;
 
 function combineTasks(...tasks: Task[]): Task {
-  return (userId: UUID, runUntil: Date) =>  forEachAsync(tasks, async (task: Task) => {
-    if (new Date() < runUntil) {
-      await task(userId, runUntil);
-    }
-  });
+  return (userId: UUID, runUntil: Date) =>
+    forEachAsync(tasks, async (task: Task) => {
+      if (new Date() < runUntil) {
+        await task(userId, runUntil);
+      }
+    });
 }

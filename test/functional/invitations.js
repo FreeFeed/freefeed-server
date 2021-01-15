@@ -1,13 +1,13 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 
-import expect from 'unexpected'
-import validator from 'validator'
+import expect from 'unexpected';
+import validator from 'validator';
 
-import cleanDB from '../dbCleaner'
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
+import cleanDB from '../dbCleaner';
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
+import { PubSub } from '../../app/models';
 
 import {
   banUser,
@@ -18,10 +18,9 @@ import {
   whoami,
   createInvitation,
   getInvitation,
-  getUserEvents
+  getUserEvents,
 } from './functional_test_helper';
 import * as schema from './schemaV2-helper';
-
 
 describe('Invitations', () => {
   before(async () => {
@@ -52,11 +51,11 @@ describe('Invitations', () => {
         describe('valid payload', () => {
           it('should create invitation', async () => {
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: false,
-              users:     ['luna', 'mars', 'jupiter'],
-              groups:    []
+              users: ['luna', 'mars', 'jupiter'],
+              groups: [],
             };
             const res = await createInvitation(luna, invitation);
             expect(res, 'to exhaustively satisfy', invitationExpectation);
@@ -64,11 +63,11 @@ describe('Invitations', () => {
 
           it('reg counter should be zero', async () => {
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: false,
-              users:     ['luna', 'mars', 'jupiter'],
-              groups:    []
+              users: ['luna', 'mars', 'jupiter'],
+              groups: [],
             };
             const res = await createInvitation(luna, invitation);
             const resJson = await res.json();
@@ -80,42 +79,66 @@ describe('Invitations', () => {
           describe('missing or empty message', () => {
             it('should not create invitation', async () => {
               const invitation = {
-                lang:      'en',
+                lang: 'en',
                 singleUse: false,
-                users:     ['luna', 'mars', 'jupiter'],
-                groups:    []
+                users: ['luna', 'mars', 'jupiter'],
+                groups: [],
               };
               let res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation message must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation message must not be empty'),
+              );
 
               invitation.message = null;
               res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation message must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation message must not be empty'),
+              );
 
               invitation.message = '';
               res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation message must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation message must not be empty'),
+              );
             });
           });
 
           describe('missing or empty lang', () => {
             it('should not create invitation', async () => {
               const invitation = {
-                message:   'Welcome to Freefeed!',
+                message: 'Welcome to Freefeed!',
                 singleUse: false,
-                users:     ['luna', 'mars', 'jupiter'],
-                groups:    []
+                users: ['luna', 'mars', 'jupiter'],
+                groups: [],
               };
               let res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation lang must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation lang must not be empty'),
+              );
 
               invitation.lang = null;
               res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation lang must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation lang must not be empty'),
+              );
 
               invitation.lang = '';
               res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation lang must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation lang must not be empty'),
+              );
             });
           });
 
@@ -123,48 +146,68 @@ describe('Invitations', () => {
             it('should not create invitation', async () => {
               const invitation = {
                 message: 'Welcome to Freefeed!',
-                lang:    'en',
-                users:   ['luna', 'mars', 'jupiter'],
-                groups:  []
+                lang: 'en',
+                users: ['luna', 'mars', 'jupiter'],
+                groups: [],
               };
               let res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation singleUse must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation singleUse must not be empty'),
+              );
 
               invitation.singleUse = null;
               res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation singleUse must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation singleUse must not be empty'),
+              );
 
               invitation.singleUse = '';
               res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Invitation singleUse must not be empty'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Invitation singleUse must not be empty'),
+              );
             });
           });
 
           describe('non-existent user', () => {
             it('should not create invitation', async () => {
               const invitation = {
-                message:   'Welcome to Freefeed!',
-                lang:      'en',
+                message: 'Welcome to Freefeed!',
+                lang: 'en',
                 singleUse: true,
-                users:     ['luna', 'mars', 'jupi_ter'],
-                groups:    []
+                users: ['luna', 'mars', 'jupi_ter'],
+                groups: [],
               };
               const res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Users not found: jupi_ter'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Users not found: jupi_ter'),
+              );
             });
           });
 
           describe('non-existent group', () => {
             it('should not create invitation', async () => {
               const invitation = {
-                message:   'Welcome to Freefeed!',
-                lang:      'en',
+                message: 'Welcome to Freefeed!',
+                lang: 'en',
                 singleUse: true,
-                users:     ['luna', 'mars', 'jupiter'],
-                groups:    ['abyrvalg']
+                users: ['luna', 'mars', 'jupiter'],
+                groups: ['abyrvalg'],
               };
               const res = await createInvitation(luna, invitation);
-              expect(res, 'to exhaustively satisfy', apiErrorExpectation(422, 'Groups not found: abyrvalg'));
+              expect(
+                res,
+                'to exhaustively satisfy',
+                apiErrorExpectation(422, 'Groups not found: abyrvalg'),
+              );
             });
           });
         });
@@ -173,11 +216,11 @@ describe('Invitations', () => {
           it('should create invitation', async () => {
             await banUser(luna, mars);
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: false,
-              users:     ['luna', 'mars', 'jupiter'],
-              groups:    []
+              users: ['luna', 'mars', 'jupiter'],
+              groups: [],
             };
             const res = await createInvitation(luna, invitation);
             expect(res, 'to exhaustively satisfy', invitationExpectation);
@@ -188,11 +231,11 @@ describe('Invitations', () => {
           it('should create invitation', async () => {
             await banUser(mars, luna);
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: false,
-              users:     ['luna', 'mars', 'jupiter'],
-              groups:    []
+              users: ['luna', 'mars', 'jupiter'],
+              groups: [],
             };
             const res = await createInvitation(luna, invitation);
             expect(res, 'to exhaustively satisfy', invitationExpectation);
@@ -205,8 +248,13 @@ describe('Invitations', () => {
       describe('for non-existent invitation', () => {
         it('should return 404', async () => {
           const res = await getInvitation('918abb80-f0bd-490d-989a-2486032648dd', null);
-          expect(res, 'to exhaustively satisfy',
-            apiErrorExpectation(404, "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'")
+          expect(
+            res,
+            'to exhaustively satisfy',
+            apiErrorExpectation(
+              404,
+              "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'",
+            ),
           );
         });
       });
@@ -215,18 +263,24 @@ describe('Invitations', () => {
         describe('secureId is not UUID', () => {
           it('should return 404', async () => {
             let res = await getInvitation(null, null);
-            expect(res, 'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation 'null'")
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(404, "Can't find invitation 'null'"),
             );
 
             res = await getInvitation(42, null);
-            expect(res, 'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation '42'")
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(404, "Can't find invitation '42'"),
             );
 
             res = await getInvitation('test', null);
-            expect(res, 'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation 'test'")
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(404, "Can't find invitation 'test'"),
             );
           });
         });
@@ -234,8 +288,13 @@ describe('Invitations', () => {
         describe('secureId is UUID', () => {
           it('should return 404', async () => {
             const res = await getInvitation('918abb80-f0bd-490d-989a-2486032648dd', null);
-            expect(res, 'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'")
+            expect(
+              res,
+              'to exhaustively satisfy',
+              apiErrorExpectation(
+                404,
+                "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'",
+              ),
             );
           });
         });
@@ -252,11 +311,11 @@ describe('Invitations', () => {
           ]);
 
           const invitation = {
-            message:   'Welcome to Freefeed!',
-            lang:      'en',
+            message: 'Welcome to Freefeed!',
+            lang: 'en',
             singleUse: true,
-            users:     ['luna', 'mars'],
-            groups:    []
+            users: ['luna', 'mars'],
+            groups: [],
           };
           const newInvitationRes = await createInvitation(luna, invitation);
           const newInvitationResJson = await newInvitationRes.json();
@@ -283,11 +342,11 @@ describe('Invitations', () => {
         describe('for unauthenticated user', () => {
           it('should return invitation', async () => {
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: false,
-              users:     ['luna', 'mars', 'jupiter'],
-              groups:    []
+              users: ['luna', 'mars', 'jupiter'],
+              groups: [],
             };
             const res = await createInvitation(luna, invitation);
             const responseJson = await res.json();
@@ -300,11 +359,11 @@ describe('Invitations', () => {
         describe('for authenticated user', () => {
           it('should return invitation', async () => {
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: false,
-              users:     ['luna', 'mars'],
-              groups:    []
+              users: ['luna', 'mars'],
+              groups: [],
             };
             const res = await createInvitation(luna, invitation);
             const responseJson = await res.json();
@@ -336,18 +395,18 @@ describe('Invitations', () => {
           ]);
 
           await Promise.all([
-            createGroupAsync(mars, 'solarsystem', 'Solar System', false,  false),
-            createGroupAsync(luna, 'celestials', 'Celestials', true,  false)
+            createGroupAsync(mars, 'solarsystem', 'Solar System', false, false),
+            createGroupAsync(luna, 'celestials', 'Celestials', true, false),
           ]);
 
           await updateUserAsync(mars, { isProtected: '0', isPrivate: '1' });
 
           const invitation = {
-            message:   'Welcome to Freefeed!',
-            lang:      'en',
+            message: 'Welcome to Freefeed!',
+            lang: 'en',
             singleUse: false,
-            users:     ['luna', 'mars'],
-            groups:    ['solarsystem', 'celestials']
+            users: ['luna', 'mars'],
+            groups: ['solarsystem', 'celestials'],
           };
           const res = await createInvitation(luna, invitation);
           const responseJson = await res.json();
@@ -360,9 +419,9 @@ describe('Invitations', () => {
 
             beforeEach(async () => {
               const user = {
-                username:   'pluto',
-                password:   'pw',
-                invitation: invitationSecureId
+                username: 'pluto',
+                password: 'pw',
+                invitation: invitationSecureId,
               };
 
               const response = await createUserAsyncPost(user);
@@ -374,9 +433,9 @@ describe('Invitations', () => {
 
               pluto = {
                 authToken: data.authToken,
-                user:      userData,
-                username:  user.username.toLowerCase(),
-                password:  user.password
+                user: userData,
+                username: user.username.toLowerCase(),
+                password: user.password,
               };
             });
 
@@ -384,10 +443,10 @@ describe('Invitations', () => {
               const res = await whoami(pluto.authToken);
               const whoAmIResponseJson = await res.json();
               expect(whoAmIResponseJson, 'to satisfy', {
-                subscribers:
-                  expect.it('to be an', 'array')
-                    .and('to have an item satisfying', { username: 'luna' })
-                    .and('to have an item satisfying', { username: 'solarsystem' })
+                subscribers: expect
+                  .it('to be an', 'array')
+                  .and('to have an item satisfying', { username: 'luna' })
+                  .and('to have an item satisfying', { username: 'solarsystem' }),
               });
             });
 
@@ -395,10 +454,10 @@ describe('Invitations', () => {
               const res = await whoami(pluto.authToken);
               const whoAmIResponseJson = await res.json();
               expect(whoAmIResponseJson, 'to satisfy', {
-                requests:
-                  expect.it('to be an', 'array')
-                    .and('to have an item satisfying', { username: 'mars' })
-                    .and('to have an item satisfying', { username: 'celestials' })
+                requests: expect
+                  .it('to be an', 'array')
+                  .and('to have an item satisfying', { username: 'mars' })
+                  .and('to have an item satisfying', { username: 'celestials' }),
               });
             });
 
@@ -412,7 +471,9 @@ describe('Invitations', () => {
               const events = await getUserEvents(luna);
               expect(events, 'to have key', 'Notifications');
               expect(events.Notifications, 'to be an', 'array');
-              expect(events.Notifications, 'to have an item satisfying', { event_type: 'invitation_used' });
+              expect(events.Notifications, 'to have an item satisfying', {
+                event_type: 'invitation_used',
+              });
             });
           });
         });
@@ -421,11 +482,11 @@ describe('Invitations', () => {
           let singleUseInvitationSecureId;
           beforeEach(async () => {
             const invitation = {
-              message:   'Welcome to Freefeed!',
-              lang:      'en',
+              message: 'Welcome to Freefeed!',
+              lang: 'en',
               singleUse: true,
-              users:     ['luna', 'mars'],
-              groups:    ['solarsystem', 'celestials']
+              users: ['luna', 'mars'],
+              groups: ['solarsystem', 'celestials'],
             };
             const newInvitationRes = await createInvitation(luna, invitation);
             const newInvitationResJson = await newInvitationRes.json();
@@ -435,9 +496,9 @@ describe('Invitations', () => {
           describe('non-existent invitation', () => {
             it('should return 404', async () => {
               const user1 = {
-                username:   'pluto',
-                password:   'pw',
-                invitation: '918abb80-f0bd-490d-989a-2486032648dd'
+                username: 'pluto',
+                password: 'pw',
+                invitation: '918abb80-f0bd-490d-989a-2486032648dd',
               };
 
               const response1 = await createUserAsyncPost(user1);
@@ -448,24 +509,26 @@ describe('Invitations', () => {
           describe('already used invitation', () => {
             it('should not register user and return validation error', async () => {
               const user1 = {
-                username:   'pluto',
-                password:   'pw',
-                invitation: singleUseInvitationSecureId
+                username: 'pluto',
+                password: 'pw',
+                invitation: singleUseInvitationSecureId,
               };
 
               const response1 = await createUserAsyncPost(user1);
               expect(response1.status, 'to be', 200);
 
               const user2 = {
-                username:   'pluto1',
-                password:   'pw',
-                invitation: singleUseInvitationSecureId
+                username: 'pluto1',
+                password: 'pw',
+                invitation: singleUseInvitationSecureId,
               };
 
               const response2 = await createUserAsyncPost(user2);
               expect(response2.status, 'to be', 422);
               const errJson = await response2.json();
-              expect(errJson, 'to satisfy', { err: `Somebody has already used invitation "${singleUseInvitationSecureId}"` });
+              expect(errJson, 'to satisfy', {
+                err: `Somebody has already used invitation "${singleUseInvitationSecureId}"`,
+              });
             });
           });
         });
@@ -482,18 +545,18 @@ describe('Invitations', () => {
           ]);
 
           await Promise.all([
-            createGroupAsync(mars, 'solarsystem', 'Solar System', false,  false),
-            createGroupAsync(luna, 'celestials', 'Celestials', true,  false)
+            createGroupAsync(mars, 'solarsystem', 'Solar System', false, false),
+            createGroupAsync(luna, 'celestials', 'Celestials', true, false),
           ]);
 
           await updateUserAsync(mars, { isProtected: '0', isPrivate: '1' });
 
           const invitation = {
-            message:   'Welcome to Freefeed!',
-            lang:      'en',
+            message: 'Welcome to Freefeed!',
+            lang: 'en',
             singleUse: false,
-            users:     ['luna', 'mars'],
-            groups:    ['solarsystem', 'celestials']
+            users: ['luna', 'mars'],
+            groups: ['solarsystem', 'celestials'],
           };
           const res = await createInvitation(luna, invitation);
           const responseJson = await res.json();
@@ -506,10 +569,10 @@ describe('Invitations', () => {
 
             beforeEach(async () => {
               const user = {
-                username:            'pluto',
-                password:            'pw',
-                invitation:          invitationSecureId,
-                cancel_subscription: true
+                username: 'pluto',
+                password: 'pw',
+                invitation: invitationSecureId,
+                cancel_subscription: true,
               };
 
               const response = await createUserAsyncPost(user);
@@ -521,22 +584,26 @@ describe('Invitations', () => {
 
               pluto = {
                 authToken: data.authToken,
-                user:      userData,
-                username:  user.username.toLowerCase(),
-                password:  user.password
+                user: userData,
+                username: user.username.toLowerCase(),
+                password: user.password,
               };
             });
 
             it('should not subscribe him to recommended users/groups', async () => {
               const res = await whoami(pluto.authToken);
               const whoAmIResponseJson = await res.json();
-              expect(whoAmIResponseJson, 'to satisfy', { subscribers: expect.it('to be an', 'array').and('to be empty') });
+              expect(whoAmIResponseJson, 'to satisfy', {
+                subscribers: expect.it('to be an', 'array').and('to be empty'),
+              });
             });
 
             it('should not create subscription requests to recommended private users/groups', async () => {
               const res = await whoami(pluto.authToken);
               const whoAmIResponseJson = await res.json();
-              expect(whoAmIResponseJson, 'to satisfy', { requests: expect.it('to be an', 'array').and('to be empty') });
+              expect(whoAmIResponseJson, 'to satisfy', {
+                requests: expect.it('to be an', 'array').and('to be empty'),
+              });
             });
 
             it('increment registrations counter', async () => {
@@ -549,7 +616,9 @@ describe('Invitations', () => {
               const events = await getUserEvents(luna);
               expect(events, 'to have key', 'Notifications');
               expect(events.Notifications, 'to be an', 'array');
-              expect(events.Notifications, 'to have an item satisfying', { event_type: 'invitation_used' });
+              expect(events.Notifications, 'to have an item satisfying', {
+                event_type: 'invitation_used',
+              });
             });
           });
         });
@@ -564,25 +633,37 @@ const invitationExpectation = async (obj) => {
 
   expect(responseJson, 'to satisfy', {
     invitation: expect.it('to satisfy', {
-      id:              expect.it('to be a number'),
-      secure_id:       expect.it('to satisfy', schema.UUID),
-      author:          expect.it('to satisfy', schema.UUID),
-      message:         expect.it('to be a string'),
-      lang:            expect.it('to be a string'),
-      single_use:      expect.it('to be a boolean'),
+      id: expect.it('to be a number'),
+      secure_id: expect.it('to satisfy', schema.UUID),
+      author: expect.it('to satisfy', schema.UUID),
+      message: expect.it('to be a string'),
+      lang: expect.it('to be a string'),
+      single_use: expect.it('to be a boolean'),
       recommendations: expect.it('to satisfy', {
-        users: expect.it('to be an array').and('to be empty').or('to have items satisfying', (item) => {
-          expect(item, 'to be a string');
-        }),
-        groups: expect.it('to be an array').and('to be empty').or('to have items satisfying', (item) => {
-          expect(item, 'to be a string');
-        }),
+        users: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items satisfying', (item) => {
+            expect(item, 'to be a string');
+          }),
+        groups: expect
+          .it('to be an array')
+          .and('to be empty')
+          .or('to have items satisfying', (item) => {
+            expect(item, 'to be a string');
+          }),
       }),
       registrations_count: expect.it('to be a number'),
-      created_at:          expect.it('when passed as parameter to', validator.isISO8601, 'to be', true),
+      created_at: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true),
     }),
-    users:  expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.user),
-    groups: expect.it('to be an array').and('to be empty').or('to have items satisfying', schema.group)
+    users: expect
+      .it('to be an array')
+      .and('to be empty')
+      .or('to have items satisfying', schema.user),
+    groups: expect
+      .it('to be an array')
+      .and('to be empty')
+      .or('to have items satisfying', schema.group),
   });
 };
 

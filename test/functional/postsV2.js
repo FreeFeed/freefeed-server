@@ -1,12 +1,12 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import fetch from 'node-fetch'
-import expect from 'unexpected'
+import fetch from 'node-fetch';
+import expect from 'unexpected';
 
-import cleanDB from '../dbCleaner'
-import { getSingleton } from '../../app/app'
-import { DummyPublisher } from '../../app/pubsub'
-import { PubSub } from '../../app/models'
+import cleanDB from '../dbCleaner';
+import { getSingleton } from '../../app/app';
+import { DummyPublisher } from '../../app/pubsub';
+import { PubSub } from '../../app/models';
 
 import {
   createUserAsync,
@@ -25,7 +25,6 @@ import {
   performJSONRequest,
   authHeaders,
 } from './functional_test_helper';
-
 
 describe('TimelinesControllerV2', () => {
   let app;
@@ -55,7 +54,7 @@ describe('TimelinesControllerV2', () => {
       describe('Comments folding test', () => {
         const expectFolding = async (nComments, expComments, expOmitted, allComments = false) => {
           for (let n = 0; n < nComments; n++) {
-            await createCommentAsync(luna, lunaPost.id, `Comment ${n + 1}`);  // eslint-disable-line no-await-in-loop
+            await createCommentAsync(luna, lunaPost.id, `Comment ${n + 1}`); // eslint-disable-line no-await-in-loop
           }
 
           const post = await fetchPost(lunaPost.id, null, { allComments });
@@ -64,19 +63,29 @@ describe('TimelinesControllerV2', () => {
         };
 
         describe('Folded comments', () => {
-          it('should return post whith 1 comment without folding', async () => await expectFolding(1, 1, 0));
-          it('should return post whith 2 comments without folding', async () => await expectFolding(2, 2, 0));
-          it('should return post whith 3 comments without folding', async () => await expectFolding(3, 3, 0));
-          it('should return post whith 4 comments with folding', async () => await expectFolding(4, 2, 2));
-          it('should return post whith 5 comments with folding', async () => await expectFolding(5, 2, 3));
+          it('should return post whith 1 comment without folding', async () =>
+            await expectFolding(1, 1, 0));
+          it('should return post whith 2 comments without folding', async () =>
+            await expectFolding(2, 2, 0));
+          it('should return post whith 3 comments without folding', async () =>
+            await expectFolding(3, 3, 0));
+          it('should return post whith 4 comments with folding', async () =>
+            await expectFolding(4, 2, 2));
+          it('should return post whith 5 comments with folding', async () =>
+            await expectFolding(5, 2, 3));
         });
 
         describe('Unfolded comments', () => {
-          it('should return post whith 1 comment without folding', async () => await expectFolding(1, 1, 0, true));
-          it('should return post whith 2 comments without folding', async () => await expectFolding(2, 2, 0, true));
-          it('should return post whith 3 comments without folding', async () => await expectFolding(3, 3, 0, true));
-          it('should return post whith 4 comments without folding', async () => await expectFolding(4, 4, 0, true));
-          it('should return post whith 5 comments without folding', async () => await expectFolding(5, 5, 0, true));
+          it('should return post whith 1 comment without folding', async () =>
+            await expectFolding(1, 1, 0, true));
+          it('should return post whith 2 comments without folding', async () =>
+            await expectFolding(2, 2, 0, true));
+          it('should return post whith 3 comments without folding', async () =>
+            await expectFolding(3, 3, 0, true));
+          it('should return post whith 4 comments without folding', async () =>
+            await expectFolding(4, 4, 0, true));
+          it('should return post whith 5 comments without folding', async () =>
+            await expectFolding(5, 5, 0, true));
         });
       });
 
@@ -100,27 +109,41 @@ describe('TimelinesControllerV2', () => {
         };
 
         describe('Folded likes', () => {
-          it('should return post whith 1 like without folding', async () => await expectFolding(1, 1, 0));
-          it('should return post whith 2 likes without folding', async () => await expectFolding(2, 2, 0));
-          it('should return post whith 3 likes without folding', async () => await expectFolding(3, 3, 0));
-          it('should return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0));
-          it('should return post whith 5 likes with folding', async () => await expectFolding(5, 3, 2));
+          it('should return post whith 1 like without folding', async () =>
+            await expectFolding(1, 1, 0));
+          it('should return post whith 2 likes without folding', async () =>
+            await expectFolding(2, 2, 0));
+          it('should return post whith 3 likes without folding', async () =>
+            await expectFolding(3, 3, 0));
+          it('should return post whith 4 likes without folding', async () =>
+            await expectFolding(4, 4, 0));
+          it('should return post whith 5 likes with folding', async () =>
+            await expectFolding(5, 3, 2));
         });
 
         describe('Unfolded likes', () => {
-          it('should return post whith 1 like without folding', async () => await expectFolding(1, 1, 0, true));
-          it('should return post whith 2 likes without folding', async () => await expectFolding(2, 2, 0, true));
-          it('should return post whith 3 likes without folding', async () => await expectFolding(3, 3, 0, true));
-          it('should return post whith 4 likes without folding', async () => await expectFolding(4, 4, 0, true));
-          it('should return post whith 5 likes without folding', async () => await expectFolding(5, 5, 0, true));
+          it('should return post whith 1 like without folding', async () =>
+            await expectFolding(1, 1, 0, true));
+          it('should return post whith 2 likes without folding', async () =>
+            await expectFolding(2, 2, 0, true));
+          it('should return post whith 3 likes without folding', async () =>
+            await expectFolding(3, 3, 0, true));
+          it('should return post whith 4 likes without folding', async () =>
+            await expectFolding(4, 4, 0, true));
+          it('should return post whith 5 likes without folding', async () =>
+            await expectFolding(5, 5, 0, true));
         });
 
         describe('Likes order', () => {
           it('should keep likes order after unfolding', async () => {
             // 5 likes
             await Promise.all(users.slice(0, 5).map((u) => like(lunaPost.id, u.authToken)));
-            const { posts:{ likes: foldedLikes } } = await fetchPost(lunaPost.id, null, { allLikes: false });
-            const { posts:{ likes: unfoldedLikes } } = await fetchPost(lunaPost.id, null, { allLikes: true });
+            const {
+              posts: { likes: foldedLikes },
+            } = await fetchPost(lunaPost.id, null, { allLikes: false });
+            const {
+              posts: { likes: unfoldedLikes },
+            } = await fetchPost(lunaPost.id, null, { allLikes: true });
             expect(unfoldedLikes.slice(0, foldedLikes.length), 'to equal', foldedLikes);
           });
         });
@@ -204,7 +227,9 @@ describe('TimelinesControllerV2', () => {
 
           it('should escape special characters', async () => {
             const response = await fetchPostOpenGraph(lunaPostWithSpecialCharacters.id);
-            response.should.include('<meta property="og:description" content="Test with tags &lt;br&gt;" />');
+            response.should.include(
+              '<meta property="og:description" content="Test with tags &lt;br&gt;" />',
+            );
           });
 
           it('should support new lines', async () => {
@@ -245,7 +270,7 @@ describe('TimelinesControllerV2', () => {
 
       it('should return post with [1, 2, 3] attachments in the correct order', async () => {
         const postData = {
-          body:        luna.post.body,
+          body: luna.post.body,
           attachments: [attId1, attId2, attId3],
         };
         await updatePostAsync(luna, postData);
@@ -255,7 +280,7 @@ describe('TimelinesControllerV2', () => {
 
       it('should return post with [3, 1, 2] attachments in the correct order', async () => {
         const postData = {
-          body:        luna.post.body,
+          body: luna.post.body,
           attachments: [attId3, attId1, attId2],
         };
         await updatePostAsync(luna, postData);
@@ -265,7 +290,7 @@ describe('TimelinesControllerV2', () => {
 
       it('should return post after attachment deletion with attachments in the correct order', async () => {
         const postData = {
-          body:        luna.post.body,
+          body: luna.post.body,
           attachments: [attId3, attId1, attId2],
         };
         await updatePostAsync(luna, postData);
@@ -277,7 +302,7 @@ describe('TimelinesControllerV2', () => {
 
       it('should return post after attachment addition with attachments in the correct order', async () => {
         const postData = {
-          body:        luna.post.body,
+          body: luna.post.body,
           attachments: [attId1, attId2],
         };
         await updatePostAsync(luna, postData);
@@ -325,7 +350,7 @@ describe('TimelinesControllerV2', () => {
 
         it('should not allow Mars to steal Luna attachments', async () => {
           const postData = {
-            body:        mars.post.body,
+            body: mars.post.body,
             attachments: [attId1, attId2],
           };
           const resp = await updatePostAsync(mars, postData);

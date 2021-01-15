@@ -8,15 +8,13 @@ import config from 'config';
 import { setSearchConfig as setPostgresSearchConfig } from './postgres';
 import { init as passportInit } from './initializers/passport';
 
-
 // Always print these namespaces to stderr in non-test environment
 if (process.env.NODE_ENV !== 'test') {
-  createDebug.enable([
-    'freefeed:*error*',
-    'freefeed:*critical*',
-    'freefeed:*fail*',
-    process.env.DEBUG,
-  ].filter(Boolean).join(','));
+  createDebug.enable(
+    ['freefeed:*error*', 'freefeed:*critical*', 'freefeed:*fail*', process.env.DEBUG]
+      .filter(Boolean)
+      .join(','),
+  );
 }
 
 const sentryIsEnabled = 'sentryDsn' in config;

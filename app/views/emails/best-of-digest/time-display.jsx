@@ -11,7 +11,9 @@ export default class TimeDisplay extends React.Component {
     const contents = this.props.children ? this.props.children : timeAgo;
 
     return (
-      <time className={this.props.className} dateTime={timeISO} title={title}>{contents}</time>
+      <time className={this.props.className} dateTime={timeISO} title={title}>
+        {contents}
+      </time>
     );
   }
 }

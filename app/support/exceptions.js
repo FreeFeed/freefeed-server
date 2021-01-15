@@ -3,11 +3,9 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-
 const debug = createDebug('freefeed:errors');
 
 const sentryIsEnabled = 'sentryDsn' in config;
-
 
 export function reportError(ctx) {
   return (err) => {

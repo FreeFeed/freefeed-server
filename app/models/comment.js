@@ -8,12 +8,11 @@ import { PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 import { getRoomsOfPost } from '../pubsub-listener';
 
-
 export function addModel(dbAdapter) {
   class Comment {
-    static VISIBLE         = 0;
-    static DELETED         = 1;
-    static HIDDEN_BANNED   = 2;
+    static VISIBLE = 0;
+    static DELETED = 1;
+    static HIDDEN_BANNED = 2;
     static HIDDEN_ARCHIVED = 3;
 
     id;
@@ -26,11 +25,16 @@ export function addModel(dbAdapter) {
 
     static hiddenBody(hideType) {
       switch (hideType) {
-        case this.VISIBLE:         return 'Visible comment';
-        case this.DELETED:         return 'Deleted comment';
-        case this.HIDDEN_BANNED:   return 'Hidden comment';
-        case this.HIDDEN_ARCHIVED: return 'Archived comment';
-        default:                   return 'Hidden comment';
+        case this.VISIBLE:
+          return 'Visible comment';
+        case this.DELETED:
+          return 'Deleted comment';
+        case this.HIDDEN_BANNED:
+          return 'Hidden comment';
+        case this.HIDDEN_ARCHIVED:
+          return 'Archived comment';
+        default:
+          return 'Hidden comment';
       }
     }
 
@@ -64,12 +68,13 @@ export function addModel(dbAdapter) {
     }
 
     validate() {
-      const valid = this.body
-        && this.body.length > 0
-        && this.userId
-        && this.userId.length > 0
-        && this.postId
-        && this.postId.length > 0;
+      const valid =
+        this.body &&
+        this.body.length > 0 &&
+        this.userId &&
+        this.userId.length > 0 &&
+        this.postId &&
+        this.postId.length > 0;
 
       if (!valid) {
         throw new Error('Comment text must not be empty');
@@ -86,18 +91,15 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       const payload = {
-        'body':     this.body,
-        'userId':   this.userId,
-        'postId':   this.postId,
-        'hideType': this.hideType,
+        body: this.body,
+        userId: this.userId,
+        postId: this.postId,
+        hideType: this.hideType,
       };
 
       this.id = await dbAdapter.createComment(payload);
       const newComment = await dbAdapter.getCommentById(this.id);
-      const fieldsToUpdate = [
-        'createdAt',
-        'updatedAt',
-      ];
+      const fieldsToUpdate = ['createdAt', 'updatedAt'];
 
       for (const f of fieldsToUpdate) {
         this[f] = newComment[f];
@@ -105,10 +107,7 @@ export function addModel(dbAdapter) {
 
       const post = await dbAdapter.getPostById(this.postId);
 
-      const [
-        authorCommentsFeed,
-        postDestFeeds,
-      ] = await Promise.all([
+      const [authorCommentsFeed, postDestFeeds] = await Promise.all([
         dbAdapter.getUserNamedFeed(this.userId, 'Comments'),
         post.getPostedTo(),
       ]);
@@ -141,8 +140,8 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       const payload = {
-        'body':      this.body,
-        'updatedAt': this.updatedAt.toString()
+        body: this.body,
+        updatedAt: this.updatedAt.toString(),
       };
       await dbAdapter.updateComment(this.id, payload);
 
@@ -196,16 +195,16 @@ export function addModel(dbAdapter) {
     async processHashtagsOnUpdate() {
       const linkedCommentHashtags = await dbAdapter.getCommentHashtags(this.id);
 
-      const presentTags    = _.sortBy(linkedCommentHashtags.map((t) => t.name));
-      const newTags        = _.sortBy(_.uniq(extractHashtags(this.body.toLowerCase())));
+      const presentTags = _.sortBy(linkedCommentHashtags.map((t) => t.name));
+      const newTags = _.sortBy(_.uniq(extractHashtags(this.body.toLowerCase())));
 
       if (presentTags == newTags) {
         return;
       }
 
       const notChangedTags = _.intersection(presentTags, newTags);
-      const tagsToUnlink   = _.difference(presentTags, notChangedTags);
-      const tagsToLink     = _.difference(newTags, notChangedTags);
+      const tagsToUnlink = _.difference(presentTags, notChangedTags);
+      const tagsToLink = _.difference(newTags, notChangedTags);
 
       if (tagsToUnlink.length > 0) {
         await dbAdapter.unlinkCommentHashtagsByNames(tagsToUnlink, this.id);

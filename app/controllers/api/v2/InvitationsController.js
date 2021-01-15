@@ -4,7 +4,6 @@ import { dbAdapter } from '../../../models';
 import { NotFoundException, ValidationException } from '../../../support/exceptions';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
-
 export default class InvitationsController {
   static async getInvitation(ctx) {
     const invitation = await dbAdapter.getInvitation(ctx.params.secureId);
@@ -16,15 +15,15 @@ export default class InvitationsController {
     const invitationUsers = await serializeInvitationUsers(
       invitation.recommendations.users,
       invitation.recommendations.groups,
-      invitation.author
+      invitation.author,
     );
 
     invitation.author = invitationUsers.authorUUID;
 
     ctx.body = {
       invitation,
-      users:  invitationUsers.users,
-      groups: invitationUsers.groups
+      users: invitationUsers.users,
+      groups: invitationUsers.groups,
     };
   }
 
@@ -43,7 +42,7 @@ export default class InvitationsController {
       ctx.request.body.lang,
       ctx.request.body.singleUse,
       ctx.request.body.users,
-      ctx.request.body.groups
+      ctx.request.body.groups,
     );
 
     ctx.params.secureId = invitationId;
@@ -56,7 +55,9 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
   groupNames = groupNames || [];
 
   const [{ uid: authorUUID }] = await dbAdapter.getUsersIdsByIntIds([authorIntId]);
-  const recommendedUsersAndGroups = await dbAdapter.getFeedOwnersByUsernames(userNames.concat(groupNames));
+  const recommendedUsersAndGroups = await dbAdapter.getFeedOwnersByUsernames(
+    userNames.concat(groupNames),
+  );
   const userIds = recommendedUsersAndGroups.map((u) => u.id);
   userIds.push(authorUUID);
 
@@ -66,13 +67,17 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
   ]);
 
   const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc);
-  const users = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'user');
-  const groups = Object.keys(allUsersAssoc).map(serializeUser).filter((u) => u.type === 'group');
+  const users = Object.keys(allUsersAssoc)
+    .map(serializeUser)
+    .filter((u) => u.type === 'user');
+  const groups = Object.keys(allUsersAssoc)
+    .map(serializeUser)
+    .filter((u) => u.type === 'group');
 
   return {
     users,
     groups,
-    authorUUID
+    authorUUID,
   };
 }
 
@@ -80,13 +85,19 @@ async function validateInvitation(request) {
   const users = await dbAdapter.getFeedOwnersByUsernames(request.body.users || []);
   const groups = await dbAdapter.getFeedOwnersByUsernames(request.body.groups || []);
 
-  const wrongUsers = _.difference(request.body.users, users.filter((u) => u.type === 'user').map((u) => u.username));
+  const wrongUsers = _.difference(
+    request.body.users,
+    users.filter((u) => u.type === 'user').map((u) => u.username),
+  );
 
   if (wrongUsers.length) {
     throw new ValidationException(`Users not found: ${wrongUsers}`);
   }
 
-  const wrongGroups = _.difference(request.body.groups, groups.filter((u) => u.type === 'group').map((u) => u.username));
+  const wrongGroups = _.difference(
+    request.body.groups,
+    groups.filter((u) => u.type === 'group').map((u) => u.username),
+  );
 
   if (wrongGroups.length) {
     throw new ValidationException(`Groups not found: ${wrongGroups}`);

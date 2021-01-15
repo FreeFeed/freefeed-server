@@ -1,13 +1,12 @@
 import _ from 'lodash';
 import expect from 'unexpected';
 import compose from 'koa-compose';
-import config from 'config'
+import config from 'config';
 
-import Mailer from '../../../../lib/mailer'
+import Mailer from '../../../../lib/mailer';
 import { dbAdapter } from '../../../models';
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
 import { authRequired, monitored } from '../../middlewares';
-
 
 export const restoration = compose([
   authRequired(),
@@ -30,18 +29,19 @@ export const restoration = compose([
 
     const params = {
       disable_comments: false,
-      via_restore:      [],
+      via_restore: [],
       ...ctx.request.body,
     };
 
     // There should be only url's that are present in via_sources
-    params.via_restore = _.uniq(params.via_restore)
-      .filter((u) => archParams.via_sources.find((s) => s.url === u));
+    params.via_restore = _.uniq(params.via_restore).filter((u) =>
+      archParams.via_sources.find((s) => s.url === u),
+    );
 
     try {
       await expect(params, 'to exhaustively satisfy', {
         disable_comments: expect.it('to be a boolean'),
-        via_restore:      expect.it('to be an array').and('to have items satisfying', 'to be a string'),
+        via_restore: expect.it('to be an array').and('to have items satisfying', 'to be a string'),
       });
     } catch (e) {
       throw new ForbiddenException('Invalid data format');
@@ -54,7 +54,7 @@ export const restoration = compose([
       'Archive restoration request',
       { user, archParams },
       `${config.appRoot}/app/scripts/views/mailer/restoreArchive.ejs`,
-    )
+    );
 
     ctx.status = 202;
     ctx.body = {};

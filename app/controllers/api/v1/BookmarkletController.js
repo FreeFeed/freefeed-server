@@ -9,7 +9,6 @@ import { downloadURL } from '../../../support/download-url';
 import { bookmarkletCreateInputSchema } from './data-schemes';
 import { checkDestNames } from './PostsController';
 
-
 export const create = compose([
   authRequired(),
   inputSchemaRequired(bookmarkletCreateInputSchema),
@@ -24,7 +23,7 @@ export const create = compose([
       image,
     } = ctx.request.body;
 
-    const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
+    const destNames = typeof feeds === 'string' ? [feeds] : feeds;
 
     if (destNames.length === 0) {
       destNames.push(author.username);
@@ -38,13 +37,15 @@ export const create = compose([
       images.push(image);
     }
 
-    const attachments = await Promise.all(images.map(async (url) => {
-      try {
-        return await createAttachment(author, url);
-      } catch (e) {
-        throw new ForbiddenException(`Unable to load URL '${url}': ${e.message}`);
-      }
-    }));
+    const attachments = await Promise.all(
+      images.map(async (url) => {
+        try {
+          return await createAttachment(author, url);
+        } catch (e) {
+          throw new ForbiddenException(`Unable to load URL '${url}': ${e.message}`);
+        }
+      }),
+    );
 
     const post = new Post({
       userId: author.id,
@@ -56,9 +57,9 @@ export const create = compose([
 
     if (commentBody !== '') {
       const comment = new Comment({
-        body:   commentBody,
+        body: commentBody,
         postId: post.id,
-        userId: author.id
+        userId: author.id,
       });
       await comment.create();
     }

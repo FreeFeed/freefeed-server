@@ -1,4 +1,5 @@
 import React from 'react';
+
 import Link from './link.jsx';
 
 const DISPLAYNAMES_DISPLAYNAME = 1;
@@ -11,7 +12,7 @@ const DisplayOption = ({ user, me, preferences }) => {
   if (!preferences || !preferences.displayOption) {
     preferences = {
       displayOption: DISPLAYNAMES_DISPLAYNAME,
-      useYou: true
+      useYou: true,
     };
   }
 
@@ -28,7 +29,11 @@ const DisplayOption = ({ user, me, preferences }) => {
       return <span dir="auto">{screenName}</span>;
     }
     case DISPLAYNAMES_BOTH: {
-      return <span dir="auto">{screenName} <span dir="ltr">({username})</span></span>;
+      return (
+        <span dir="auto">
+          {screenName} <span dir="ltr">({username})</span>
+        </span>
+      );
     }
     case DISPLAYNAMES_USERNAME: {
       return <span dir="ltr">{username}</span>;
@@ -41,9 +46,11 @@ const DisplayOption = ({ user, me, preferences }) => {
 export default class UserName extends React.Component {
   render() {
     let displayNamesPreferences = this.props.me.frontendPreferences;
+
     if (displayNamesPreferences && displayNamesPreferences['net.freefeed']) {
       displayNamesPreferences = displayNamesPreferences['net.freefeed'].displayNames;
     }
+
     return (
       <span className="user-name-wrapper">
         <Link to={`/${this.props.user.username}`} className={this.props.className}>
@@ -54,7 +61,7 @@ export default class UserName extends React.Component {
               user={this.props.user}
               me={this.props.me}
               preferences={displayNamesPreferences}
-              />
+            />
           )}
         </Link>
       </span>

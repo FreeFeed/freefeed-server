@@ -1,5 +1,4 @@
-import { SearchController } from '../../../controllers'
-
+import { SearchController } from '../../../controllers';
 
 export default function addRoutes(app) {
   const controller = new SearchController(app);

@@ -4,7 +4,6 @@ import config from 'config';
 
 import { toTSVector } from '../../../../app/support/search/to-tsvector';
 
-
 const ftsCfg = config.postgres.textSearchConfigName;
 
 describe('toTSVector', () => {
@@ -24,29 +23,46 @@ describe('toTSVector', () => {
   it('should return vector of text with mentions and hashtags', () => {
     const string = 'the quick brown @fox-jump #lazy-dog';
     expect(
-      toTSVector(string), 'to be',
-      `(`
-      + `to_tsvector_with_exact('${ftsCfg}', 'the quick brown') || `
-      + `(`
-        + `to_tsvector_with_exact('${ftsCfg}', 'fox jump')::text || ' ' || `
-        + `'''@fox-jump'':1'`
-      + `)::tsvector || `
-      + `(`
-        + `to_tsvector_with_exact('${ftsCfg}', 'lazy dog')::text || ' ' || `
-        + `'''#lazydog'':1'`
-      + `)::tsvector`
-      + `)`
+      toTSVector(string),
+      'to be',
+      `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'the quick brown') || ` +
+        `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'fox jump')::text || ' ' || ` +
+        `'''@fox-jump'':1'` +
+        `)::tsvector || ` +
+        `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'lazy dog')::text || ' ' || ` +
+        `'''#lazydog'':1'` +
+        `)::tsvector` +
+        `)`,
     );
   });
 
   it('should return vector of text with links', () => {
     const string = 'the quick brown www.foxnews.com';
     expect(
-      toTSVector(string), 'to be',
-      `(`
-      + `to_tsvector_with_exact('${ftsCfg}', 'the quick brown') || `
-      + `to_tsvector_with_exact('${ftsCfg}', 'foxnews com')`
-      + `)`
+      toTSVector(string),
+      'to be',
+      `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'the quick brown') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'foxnews com')` +
+        `)`,
+    );
+  });
+
+  it('should return vector of text with SPOILERS', () => {
+    const string = 'the quick <spoiler>brown</spoiler> fox';
+    expect(
+      toTSVector(string),
+      'to be',
+      `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'the quick') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'spoiler') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'brown') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'spoiler') || ` +
+        `to_tsvector_with_exact('${ftsCfg}', 'fox')` +
+        `)`,
     );
   });
 });

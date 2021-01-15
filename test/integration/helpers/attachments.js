@@ -1,5 +1,4 @@
-import { promises as fs } from 'fs'
-
+import { promises as fs } from 'fs';
 
 export async function filesMustExist(attachment, mustExist = true) {
   const filePaths = [
@@ -18,12 +17,12 @@ export async function filesMustExist(attachment, mustExist = true) {
           throw new Error(`File should not exist: ${filePath}`);
         }
       } catch (err) {
-        if (mustExist && (err.code === 'ENOENT')) {
+        if (mustExist && err.code === 'ENOENT') {
           throw new Error(`File should exist: ${filePath}`);
-        } else if ((err.code !== 'ENOENT') || mustExist) {
+        } else if (err.code !== 'ENOENT' || mustExist) {
           throw err;
         }
       }
-    })
+    }),
   );
 }

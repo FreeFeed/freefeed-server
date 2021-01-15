@@ -16,7 +16,6 @@ import probe from 'probe-image-size';
 
 import { getS3 } from '../support/s3';
 
-
 const mvAsync = promisify(mv);
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE);
@@ -126,9 +125,9 @@ export function addModel(dbAdapter) {
       await this.validate();
 
       this.id = await dbAdapter.createAttachment({
-        postId:    this.postId,
+        postId: this.postId,
         createdAt: this.createdAt.toString(),
-        updatedAt: this.updatedAt.toString()
+        updatedAt: this.updatedAt.toString(),
       });
 
       this.fileName = this.file.name;
@@ -141,9 +140,7 @@ export function addModel(dbAdapter) {
       const supportedExtensions = /\.(jpe?g|png|gif|mp3|m4a|ogg|wav|txt|pdf|docx?|pptx?|xlsx?)$/i;
 
       if (this.fileName && this.fileName.match(supportedExtensions) !== null) {
-        this.fileExtension = this.fileName
-          .match(supportedExtensions)[1]
-          .toLowerCase();
+        this.fileExtension = this.fileName.match(supportedExtensions)[1].toLowerCase();
       } else {
         this.fileExtension = '';
       }
@@ -152,17 +149,17 @@ export function addModel(dbAdapter) {
 
       // Save record to DB
       const params = {
-        fileName:      this.fileName,
-        fileSize:      this.fileSize,
-        mimeType:      this.mimeType,
-        mediaType:     this.mediaType,
+        fileName: this.fileName,
+        fileSize: this.fileSize,
+        mimeType: this.mimeType,
+        mediaType: this.mediaType,
         fileExtension: this.fileExtension,
-        noThumbnail:   this.noThumbnail,
-        imageSizes:    JSON.stringify(this.imageSizes),
-        userId:        this.userId,
-        postId:        this.postId,
-        createdAt:     this.createdAt.toString(),
-        updatedAt:     this.updatedAt.toString()
+        noThumbnail: this.noThumbnail,
+        imageSizes: JSON.stringify(this.imageSizes),
+        userId: this.userId,
+        postId: this.postId,
+        createdAt: this.createdAt.toString(),
+        updatedAt: this.updatedAt.toString(),
       };
 
       if (this.mediaType === 'audio') {
@@ -176,9 +173,7 @@ export function addModel(dbAdapter) {
     }
 
     get url() {
-      return (
-        config.attachments.url + config.attachments.path + this.getFilename()
-      );
+      return config.attachments.url + config.attachments.path + this.getFilename();
     }
 
     get thumbnailUrl() {
@@ -196,9 +191,7 @@ export function addModel(dbAdapter) {
 
     // Get public URL of attachment (via Promise, for serializer)
     getUrl() {
-      return (
-        config.attachments.url + config.attachments.path + this.getFilename()
-      );
+      return config.attachments.url + config.attachments.path + this.getFilename();
     }
 
     // Get public URL of attachment's thumbnail (via Promise, for serializer)
@@ -213,19 +206,13 @@ export function addModel(dbAdapter) {
     // Get public URL of resized image attachment
     getResizedImageUrl(sizeId) {
       return (
-        config.attachments.url +
-        config.attachments.imageSizes[sizeId].path +
-        this.getFilename()
+        config.attachments.url + config.attachments.imageSizes[sizeId].path + this.getFilename()
       );
     }
 
     // Get local filesystem path for original file
     getPath() {
-      return (
-        config.attachments.storage.rootDir +
-        config.attachments.path +
-        this.getFilename()
-      );
+      return config.attachments.storage.rootDir + config.attachments.path + this.getFilename();
     }
 
     // Get local filesystem path for resized image file
@@ -252,24 +239,21 @@ export function addModel(dbAdapter) {
       const tmpAttachmentFileName = this.file.name;
 
       const supportedImageTypes = {
-        'image/jpeg':    'jpg',
-        'image/png':     'png',
-        'image/gif':     'gif',
-        'image/svg+xml': 'svg'
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/gif': 'gif',
+        'image/svg+xml': 'svg',
       };
       const supportedAudioTypes = {
-        'audio/mpeg':  'mp3',
+        'audio/mpeg': 'mp3',
         'audio/x-m4a': 'm4a',
-        'audio/m4a':   'm4a',
-        'audio/mp4':   'm4a',
-        'audio/ogg':   'ogg',
-        'audio/x-wav': 'wav'
+        'audio/m4a': 'm4a',
+        'audio/mp4': 'm4a',
+        'audio/ogg': 'ogg',
+        'audio/x-wav': 'wav',
       };
 
-      this.mimeType = await mimeTypeDetect(
-        tmpAttachmentFileName,
-        tmpAttachmentFile
-      );
+      this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile);
       debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
 
       if (supportedImageTypes[this.mimeType]) {
@@ -324,9 +308,9 @@ export function addModel(dbAdapter) {
       // Store original image size
       let originalSize = await getImageSize(originalFile);
       this.imageSizes.o = {
-        w:   originalSize.width,
-        h:   originalSize.height,
-        url: await this.getUrl()
+        w: originalSize.width,
+        h: originalSize.height,
+        url: await this.getUrl(),
       };
 
       if (this.mimeType === 'image/svg+xml') {
@@ -362,18 +346,15 @@ export function addModel(dbAdapter) {
       for (const sizeId of Object.keys(config.attachments.imageSizes)) {
         const { bounds } = config.attachments.imageSizes[sizeId];
 
-        if (
-          originalSize.width <= bounds.width &&
-          originalSize.height <= bounds.height
-        ) {
+        if (originalSize.width <= bounds.width && originalSize.height <= bounds.height) {
           continue;
         }
 
         const size = fitIntoBounds(originalSize, bounds);
         this.imageSizes[sizeId] = {
-          w:   size.width,
-          h:   size.height,
-          url: this.getResizedImageUrl(sizeId)
+          w: size.width,
+          h: size.height,
+          url: this.getResizedImageUrl(sizeId),
         };
         thumbIds.push(sizeId);
       }
@@ -398,9 +379,9 @@ export function addModel(dbAdapter) {
               '--no-background',
               '-o',
               tmpResizedFile(sizeId),
-              originalFile
+              originalFile,
             ]);
-          })
+          }),
         );
       } else {
         // Iterate over image sizes old-fashioned (and very synchronous) way
@@ -428,14 +409,14 @@ export function addModel(dbAdapter) {
             const file = tmpResizedFile(sizeId);
             await this.uploadToS3(file, path);
             await fs.unlink(file);
-          })
+          }),
         );
       } else {
         await Promise.all(
           thumbIds.map(async (sizeId) => {
             const file = tmpResizedFile(sizeId);
             await mvAsync(file, this.getResizedImagePath(sizeId), {});
-          })
+          }),
         );
       }
     }
@@ -445,12 +426,12 @@ export function addModel(dbAdapter) {
       const s3 = getS3(config.attachments.storage);
       await s3
         .upload({
-          ACL:                'public-read',
-          Bucket:             config.attachments.storage.bucket,
-          Key:                destPath + this.getFilename(),
-          Body:               createReadStream(sourceFile),
-          ContentType:        this.mimeType,
-          ContentDisposition: this.getContentDisposition()
+          ACL: 'public-read',
+          Bucket: config.attachments.storage.bucket,
+          Key: destPath + this.getFilename(),
+          Body: createReadStream(sourceFile),
+          ContentType: this.mimeType,
+          ContentDisposition: this.getContentDisposition(),
         })
         .promise();
     }
@@ -463,8 +444,12 @@ export function addModel(dbAdapter) {
       // Modern browsers support UTF-8 filenames
       const fileNameUtf8 = encodeURIComponent(this.fileName);
 
+      const disposition = config.media.inlineMimeTypes.includes(this.mimeType)
+        ? 'inline'
+        : 'attachment';
+
       // Inline version of 'attfnboth' method (http://greenbytes.de/tech/tc2231/#attfnboth)
-      return `inline; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`;
+      return `${disposition}; filename="${fileNameAscii}"; filename*=utf-8''${fileNameUtf8}`;
     }
 
     async destroy() {
@@ -488,23 +473,22 @@ export function addModel(dbAdapter) {
         await Promise.all(
           keys.map(async (Key) => {
             try {
-              await s3.deleteObject({
-                Key,
-                Bucket: config.attachments.storage.bucket,
-              }).promise();
+              await s3
+                .deleteObject({
+                  Key,
+                  Bucket: config.attachments.storage.bucket,
+                })
+                .promise();
             } catch (err) {
               // It is ok if file isn't found
               if (err.code !== 'NotFound') {
                 throw err;
               }
             }
-          })
+          }),
         );
       } else {
-        const filePaths = [
-          this.getPath(),
-          ...thumbIds.map((s) => this.getResizedImagePath(s)),
-        ];
+        const filePaths = [this.getPath(), ...thumbIds.map((s) => this.getResizedImagePath(s))];
 
         await Promise.all(
           filePaths.map(async (filePath) => {
@@ -516,7 +500,7 @@ export function addModel(dbAdapter) {
                 throw err;
               }
             }
-          })
+          }),
         );
       }
     }

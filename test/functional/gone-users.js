@@ -5,8 +5,8 @@ import expect from 'unexpected';
 import { simpleParser } from 'mailparser';
 
 import { getSingleton } from '../../app/app';
-import cleanDB from '../dbCleaner'
-import { dbAdapter, AppTokenV1, PubSub } from '../../app/models';
+import cleanDB from '../dbCleaner';
+import { dbAdapter, PubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { GONE_SUSPENDED, GONE_COOLDOWN, GONE_DELETED } from '../../app/models/user';
 import { addMailListener } from '../../lib/mailer';
@@ -35,15 +35,14 @@ import {
 } from './functional_test_helper';
 import Session from './realtime-session';
 
-
 describe('Gone users', () => {
   let port;
 
   before(async () => {
     const app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
-    const pubsubAdapter = new PubSubAdapter($database)
-    PubSub.setPublisher(pubsubAdapter)
+    const pubsubAdapter = new PubSubAdapter($database);
+    PubSub.setPublisher(pubsubAdapter);
   });
 
   beforeEach(() => cleanDB($pg_database));
@@ -63,22 +62,27 @@ describe('Gone users', () => {
     it(`should return Luna's Posts feed to anonymous with 'private' luna and without posts`, async () => {
       const resp = await performJSONRequest('GET', `/v2/timelines/${luna.username}`);
       expect(resp, 'to satisfy', {
-        timelines:     { posts: [], subscribers: [] },
-        users:         [{ id: luna.user.id, isProtected: '1', isPrivate: '1', isGone: true }],
+        timelines: { posts: [], subscribers: [] },
+        users: [{ id: luna.user.id, isProtected: '1', isPrivate: '1', isGone: true }],
         subscriptions: [],
-        subscribers:   [],
-        posts:         [],
+        subscribers: [],
+        posts: [],
       });
     });
 
     it(`should return Luna's Posts feed to Mars with 'private' luna and without posts`, async () => {
-      const resp = await performJSONRequest('GET', `/v2/timelines/${luna.username}`, null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'GET',
+        `/v2/timelines/${luna.username}`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', {
-        timelines:     { posts: [], subscribers: [] },
-        users:         [{ id: luna.user.id, isProtected: '1', isPrivate: '1', isGone: true }],
+        timelines: { posts: [], subscribers: [] },
+        users: [{ id: luna.user.id, isProtected: '1', isPrivate: '1', isGone: true }],
         subscriptions: [],
-        subscribers:   [],
-        posts:         [],
+        subscribers: [],
+        posts: [],
       });
     });
 
@@ -95,30 +99,52 @@ describe('Gone users', () => {
     });
 
     it(`should allow Mars to unsubscribe Luna from themself`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/unsubscribeFromMe`,
-        null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/users/${luna.username}/unsubscribeFromMe`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 200 });
     });
 
     it(`should allow Mars to unsubscribe from Luna`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/unsubscribe`,
-        null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/users/${luna.username}/unsubscribe`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 200 });
     });
 
     describe(`Mars unsubscribed from Luna`, () => {
-      beforeEach(() => performJSONRequest('POST', `/v1/users/${luna.username}/unsubscribe`,
-        null, authHeaders(mars)));
+      beforeEach(() =>
+        performJSONRequest(
+          'POST',
+          `/v1/users/${luna.username}/unsubscribe`,
+          null,
+          authHeaders(mars),
+        ),
+      );
 
       it(`should not allow Mars to subscribe to Luna again`, async () => {
-        const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/subscribe`,
-          null, authHeaders(mars));
+        const resp = await performJSONRequest(
+          'POST',
+          `/v1/users/${luna.username}/subscribe`,
+          null,
+          authHeaders(mars),
+        );
         expect(resp, 'to satisfy', { __httpCode: 403 });
       });
 
       it(`should not allow Mars to send subscription request to Luna`, async () => {
-        const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/sendRequest`,
-          null, authHeaders(mars));
+        const resp = await performJSONRequest(
+          'POST',
+          `/v1/users/${luna.username}/sendRequest`,
+          null,
+          authHeaders(mars),
+        );
         expect(resp, 'to satisfy', { __httpCode: 403 });
       });
     });
@@ -126,32 +152,47 @@ describe('Gone users', () => {
 
   describe(`Bans`, () => {
     it(`should allow Mars to ban Luna`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/ban`,
-        null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/users/${luna.username}/ban`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 200 });
     });
     it(`should allow Mars to unban Luna`, async () => {
-      await performJSONRequest('POST', `/v1/users/${luna.username}/ban`,
-        null, authHeaders(mars));
-      const resp = await performJSONRequest('POST', `/v1/users/${luna.username}/unban`,
-        null, authHeaders(mars));
+      await performJSONRequest('POST', `/v1/users/${luna.username}/ban`, null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/users/${luna.username}/unban`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 200 });
     });
   });
 
   describe(`Directs`, () => {
     it(`should return Luna's info to Mars with acceptsDirects = false`, async () => {
-      const resp = await performJSONRequest('GET', `/v1/users/${luna.username}`,
-        null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'GET',
+        `/v1/users/${luna.username}`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { acceptsDirects: false });
     });
 
     it(`should not allow Mars to send direct message to Luna`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/posts`,
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/posts`,
         {
           post: { body: 'Hello' },
           meta: { feeds: [luna.username] },
-        }, authHeaders(mars));
+        },
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 403 });
     });
   });
@@ -163,17 +204,15 @@ describe('Gone users', () => {
     });
 
     it(`should not authorize Luna by app token`, async () => {
-      const token = new AppTokenV1({
+      const token = await dbAdapter.createAppToken({
         userId: luna.user.id,
-        title:  `My token`,
+        title: `My token`,
         scopes: [],
       });
-      await token.create();
 
-      const resp = await performJSONRequest(
-        'GET', `/v1/users/me`, null,
-        { 'Authorization': `Bearer ${token.tokenString()}` }
-      );
+      const resp = await performJSONRequest('GET', `/v1/users/me`, null, {
+        Authorization: `Bearer ${token.tokenString()}`,
+      });
       expect(resp, 'to satisfy', { __httpCode: 401 });
     });
 
@@ -195,13 +234,21 @@ describe('Gone users', () => {
         await rtSession.sendAsync('subscribe', { global: ['users'] });
 
         {
-          const test = rtSession.receiveWhile('global:user:update', () => setGoneStatus(luna, null));
-          await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: undefined } });
+          const test = rtSession.receiveWhile('global:user:update', () =>
+            setGoneStatus(luna, null),
+          );
+          await expect(test, 'when fulfilled', 'to satisfy', {
+            user: { id: luna.user.id, isGone: undefined },
+          });
         }
 
         {
-          const test = rtSession.receiveWhile('global:user:update', () => setGoneStatus(luna, GONE_SUSPENDED));
-          await expect(test, 'when fulfilled', 'to satisfy', { user: { id: luna.user.id, isGone: true } });
+          const test = rtSession.receiveWhile('global:user:update', () =>
+            setGoneStatus(luna, GONE_SUSPENDED),
+          );
+          await expect(test, 'when fulfilled', 'to satisfy', {
+            user: { id: luna.user.id, isGone: true },
+          });
         }
       });
 
@@ -215,17 +262,13 @@ describe('Gone users', () => {
         it(`should send 'global:user:update' event for group when gone status is changed`, async () => {
           await rtSession.sendAsync('subscribe', { global: ['users'] });
 
-          const test = rtSession.receiveWhileSeq(
-            ['global:user:update', 'global:user:update'],
-            () => setGoneStatus(luna, GONE_SUSPENDED)
+          const test = rtSession.receiveWhileSeq(['global:user:update', 'global:user:update'], () =>
+            setGoneStatus(luna, GONE_SUSPENDED),
           );
-          await expect(
-            test, 'when fulfilled', 'to satisfy',
-            [
-              { user: { id: luna.user.id, isGone: true } },
-              { user: { id: selenites.group.id, isRestricted: '1' } },
-            ]
-          );
+          await expect(test, 'when fulfilled', 'to satisfy', [
+            { user: { id: luna.user.id, isGone: true } },
+            { user: { id: selenites.group.id, isRestricted: '1' } },
+          ]);
         });
       });
     });
@@ -258,18 +301,32 @@ describe('Gone users', () => {
     });
 
     it(`should not allow Mars to comment Luna's post`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/comments`,
-        { comment: { body: 'Hello', postId: post.id } }, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/comments`,
+        { comment: { body: 'Hello', postId: post.id } },
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 404 });
     });
 
     it(`should not allow Mars to like Luna's post`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/posts/${post.id}/like`, null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/posts/${post.id}/like`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 404 });
     });
 
     it(`should not allow Mars to hide Luna's post`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/posts/${post.id}/hide`, null, authHeaders(mars));
+      const resp = await performJSONRequest(
+        'POST',
+        `/v1/posts/${post.id}/hide`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 404 });
     });
 
@@ -290,7 +347,7 @@ describe('Gone users', () => {
           Notifications: [
             { event_type: EVENT_TYPES.MENTION_IN_COMMENT, post_id: null, comment_id: null },
             { event_type: EVENT_TYPES.MENTION_IN_POST, post_id: null },
-          ]
+          ],
         });
       });
     });
@@ -298,7 +355,10 @@ describe('Gone users', () => {
 
   describe(`Session`, () => {
     it(`should not allow Luna to start session`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      const resp = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: luna.password,
+      });
       expect(resp, 'to satisfy', { __httpCode: 401 });
     });
   });
@@ -307,7 +367,8 @@ describe('Gone users', () => {
     let marsPost, marsComment;
     beforeEach(async () => {
       marsPost = await createAndReturnPost(mars, 'Mars post');
-      marsComment = (await createCommentAsync(mars, marsPost.id, 'Comment').then((r) => r.json())).comments;
+      marsComment = (await createCommentAsync(mars, marsPost.id, 'Comment').then((r) => r.json()))
+        .comments;
       await setGoneStatus(luna, null);
       await like(marsPost.id, luna.authToken);
       await likeComment(marsComment.id, luna);
@@ -334,13 +395,13 @@ describe('Gone users', () => {
       expect(resp, 'to satisfy', {
         users: {
           statistics: {
-            posts:         '0',
-            likes:         '0',
-            comments:      '0',
-            subscribers:   '0',
+            posts: '0',
+            likes: '0',
+            comments: '0',
+            subscribers: '0',
             subscriptions: '0',
-          }
-        }
+          },
+        },
       });
     });
 
@@ -379,8 +440,8 @@ describe('Gone users', () => {
       it(`should not show Luna's request in Mars whoami`, async () => {
         const resp = await performJSONRequest('GET', `/v2/users/whoami`, null, authHeaders(mars));
         expect(resp, 'to satisfy', {
-          users:         { pendingGroupRequests: false },
-          managedGroups: [{ requests: [] }]
+          users: { pendingGroupRequests: false },
+          managedGroups: [{ requests: [] }],
         });
       });
     });
@@ -397,8 +458,11 @@ describe('Gone users', () => {
 
     it(`should not allow Mars to promote Luna to admin`, async () => {
       const resp = await performJSONRequest(
-        'POST', `/v1/groups/${selenites.username}/subscribers/${luna.username}/admin`,
-        null, authHeaders(mars));
+        'POST',
+        `/v1/groups/${selenites.username}/subscribers/${luna.username}/admin`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { __httpCode: 403 });
     });
 
@@ -411,8 +475,11 @@ describe('Gone users', () => {
 
       it(`should not allow Mars to unadmin themself`, async () => {
         const resp = await performJSONRequest(
-          'POST', `/v1/groups/${selenites.username}/subscribers/${mars.username}/unadmin`,
-          null, authHeaders(mars));
+          'POST',
+          `/v1/groups/${selenites.username}/subscribers/${mars.username}/unadmin`,
+          null,
+          authHeaders(mars),
+        );
         expect(resp, 'to satisfy', { __httpCode: 403 });
       });
     });
@@ -432,8 +499,11 @@ describe('Gone users', () => {
 
       it(`should not allow Mars to create post in group`, async () => {
         const resp = await performJSONRequest(
-          'POST', `/v1/posts`,
-          { post: { body: 'Hello' }, meta: { feeds: [selenites.username] } }, authHeaders(mars));
+          'POST',
+          `/v1/posts`,
+          { post: { body: 'Hello' }, meta: { feeds: [selenites.username] } },
+          authHeaders(mars),
+        );
         expect(resp, 'to satisfy', { __httpCode: 403 });
       });
     });
@@ -444,8 +514,12 @@ describe('Gone users', () => {
       await setGoneStatus(luna, null);
 
       {
-        const resp = await performJSONRequest('POST', `/v1/users/suspend-me`,
-          { password: luna.password }, authHeaders(luna));
+        const resp = await performJSONRequest(
+          'POST',
+          `/v1/users/suspend-me`,
+          { password: luna.password },
+          authHeaders(luna),
+        );
         expect(resp, 'to satisfy', { __httpCode: 200, message: /suspended/ });
       }
 
@@ -456,12 +530,18 @@ describe('Gone users', () => {
     });
 
     it(`should not allow Luna to start session but return token to resume`, async () => {
-      const resp = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      const resp = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: luna.password,
+      });
       expect(resp, 'to satisfy', { __httpCode: 401, resumeToken: expect.it('to be a string') });
     });
 
     it(`should allow Luna resume themself`, async () => {
-      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: luna.password,
+      });
 
       {
         const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
@@ -475,14 +555,20 @@ describe('Gone users', () => {
     });
 
     it(`should not allow to resume active account`, async () => {
-      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: luna.password,
+      });
       await setGoneStatus(luna, null);
       const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
       expect(resp, 'to satisfy', { __httpCode: 403 });
     });
 
     it(`should not allow to resume deleted account`, async () => {
-      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, { username: luna.username, password: luna.password });
+      const { resumeToken } = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: luna.password,
+      });
       await setGoneStatus(luna, GONE_DELETED);
       const resp = await performJSONRequest('POST', `/v1/users/resume-me`, { resumeToken });
       expect(resp, 'to satisfy', { __httpCode: 403 });
@@ -508,7 +594,7 @@ describe('Gone users', () => {
 
       expect(capturedMail, 'to satisfy', { envelope: { to: [email] } });
       const parsedMail = await simpleParser(capturedMail.response);
-      expect(parsedMail, 'to satisfy', { subject: config.mailer.resetPasswordMailSubject, });
+      expect(parsedMail, 'to satisfy', { subject: config.mailer.resetPasswordMailSubject });
     });
   });
 });

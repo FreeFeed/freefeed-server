@@ -1,4 +1,5 @@
 import React from 'react';
+
 import Link from './link.jsx';
 
 const MoreCommentsWrapper = (props) => (
@@ -14,7 +15,7 @@ function getText({ omittedComments }) {
 }
 
 function plural(count) {
-  return count > 1 ? "s" : "";
+  return count > 1 ? 's' : '';
 }
 
 export default MoreCommentsWrapper;

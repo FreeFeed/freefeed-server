@@ -1,13 +1,12 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
-import { isNull } from 'lodash'
+import { isNull } from 'lodash';
 
-import cleanDB from '../../dbCleaner'
-import { dbAdapter, Comment, Post, User } from '../../../app/models'
-
+import cleanDB from '../../dbCleaner';
+import { dbAdapter, Comment, Post, User } from '../../../app/models';
 
 describe('Comment', () => {
-  before(() => cleanDB($pg_database))
+  before(() => cleanDB($pg_database));
 
   describe('#update()', () => {
     let userA, comment, post;
@@ -15,38 +14,38 @@ describe('Comment', () => {
     beforeEach(async () => {
       userA = new User({
         username: 'Luna',
-        password: 'password'
-      })
+        password: 'password',
+      });
 
       await userA.create();
 
-      const postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' };
       post = await userA.newPost(postAttrs);
       await post.create();
 
       const commentAttrs = {
-        body:   'Comment body',
-        postId: post.id
-      }
-      comment = await userA.newComment(commentAttrs)
-      await comment.create()
-    })
+        body: 'Comment body',
+        postId: post.id,
+      };
+      comment = await userA.newComment(commentAttrs);
+      await comment.create();
+    });
 
     afterEach(async () => {
-      await dbAdapter.deleteUser(userA.id)  // comment will be destroyed recursively
+      await dbAdapter.deleteUser(userA.id); // comment will be destroyed recursively
       userA = comment = post = null;
-    })
+    });
 
     it('should update without error', async () => {
-      const body = 'Body'
-      const attrs = { body }
+      const body = 'Body';
+      const attrs = { body };
 
-      await comment.update(attrs)
+      await comment.update(attrs);
 
-      const newComment = await dbAdapter.getCommentById(comment.id)
-      newComment.body.should.eql(body)
-    })
-  })
+      const newComment = await dbAdapter.getCommentById(comment.id);
+      newComment.body.should.eql(body);
+    });
+  });
 
   describe('#create()', () => {
     let user, post;
@@ -54,31 +53,31 @@ describe('Comment', () => {
     beforeEach(async () => {
       user = new User({
         username: 'Luna',
-        password: 'password'
-      })
+        password: 'password',
+      });
 
-      await user.create()
+      await user.create();
 
-      const postsTimelineId = await user.getPostsTimelineId()
+      const postsTimelineId = await user.getPostsTimelineId();
       post = new Post({
-        body:        'Post body',
-        userId:      user.id,
-        timelineIds: [postsTimelineId]
-      })
+        body: 'Post body',
+        userId: user.id,
+        timelineIds: [postsTimelineId],
+      });
 
-      await post.create()
-    })
+      await post.create();
+    });
 
     afterEach(async () => {
-      await dbAdapter.deleteUser(user.id);  // post will be destroyed recursively
+      await dbAdapter.deleteUser(user.id); // post will be destroyed recursively
       user = post = null;
-    })
+    });
 
     it('should create without error', async () => {
       const comment = new Comment({
-        body:   'Comment body',
+        body: 'Comment body',
         userId: user.id,
-        postId: post.id
+        postId: post.id,
       });
 
       await comment.create();
@@ -94,40 +93,42 @@ describe('Comment', () => {
     });
 
     it('should ignore whitespaces in body', (done) => {
-      const body = '   Comment body    '
+      const body = '   Comment body    ';
       const comment = new Comment({
         body,
         userId: user.id,
-        postId: post.id
-      })
+        postId: post.id,
+      });
 
-      comment.create()
+      comment
+        .create()
         .then(() => dbAdapter.getCommentById(comment.id))
         .then((newComment) => {
-          newComment.should.be.an.instanceOf(Comment)
-          newComment.should.not.be.empty
-          newComment.should.have.property('id')
-          newComment.id.should.eql(comment.id)
-          newComment.body.should.eql(body.trim())
-          done()
+          newComment.should.be.an.instanceOf(Comment);
+          newComment.should.not.be.empty;
+          newComment.should.have.property('id');
+          newComment.id.should.eql(comment.id);
+          newComment.body.should.eql(body.trim());
+          done();
         })
-        .catch((e) => { done(e) })
-    })
+        .catch((e) => {
+          done(e);
+        });
+    });
 
     it('should not create with empty body', (done) => {
       const comment = new Comment({
-        body:   '',
+        body: '',
         userId: user.id,
-        postId: post.id
-      })
+        postId: post.id,
+      });
 
-      comment.create()
-        .catch((e) => {
-          e.message.should.eql('Comment text must not be empty')
-          done()
-        })
-    })
-  })
+      comment.create().catch((e) => {
+        e.message.should.eql('Comment text must not be empty');
+        done();
+      });
+    });
+  });
 
   describe('#findById()', () => {
     let user, post;
@@ -135,56 +136,62 @@ describe('Comment', () => {
     beforeEach(async () => {
       user = new User({
         username: 'Luna',
-        password: 'password'
-      })
+        password: 'password',
+      });
 
-      await user.create()
+      await user.create();
 
-      const postsTimelineId = await user.getPostsTimelineId()
+      const postsTimelineId = await user.getPostsTimelineId();
       post = new Post({
-        body:        'Post body',
-        userId:      user.id,
-        timelineIds: [postsTimelineId]
-      })
+        body: 'Post body',
+        userId: user.id,
+        timelineIds: [postsTimelineId],
+      });
 
-      await post.create()
-    })
+      await post.create();
+    });
 
     afterEach(async () => {
-      await dbAdapter.deleteUser(user.id);  // post will be destroyed recursively
+      await dbAdapter.deleteUser(user.id); // post will be destroyed recursively
       user = post = null;
-    })
+    });
 
     it('should find comment with a valid id', (done) => {
       const comment = new Comment({
-        body:   'Comment body',
+        body: 'Comment body',
         userId: user.id,
-        postId: post.id
-      })
+        postId: post.id,
+      });
 
-      comment.create()
+      comment
+        .create()
         .then(() => dbAdapter.getCommentById(comment.id))
         .then((newComment) => {
-          newComment.should.be.an.instanceOf(Comment)
-          newComment.should.not.be.empty
-          newComment.should.have.property('id')
-          newComment.id.should.eql(comment.id)
-          done()
+          newComment.should.be.an.instanceOf(Comment);
+          newComment.should.not.be.empty;
+          newComment.should.have.property('id');
+          newComment.id.should.eql(comment.id);
+          done();
         })
-        .catch((e) => { done(e) })
-    })
+        .catch((e) => {
+          done(e);
+        });
+    });
 
     it('should not find comment with invalid id', (done) => {
-      const identifier = 'comment:identifier'
+      const identifier = 'comment:identifier';
 
-      dbAdapter.getCommentById(identifier)
+      dbAdapter
+        .getCommentById(identifier)
         .then((comment) => {
-          $should.not.exist(comment)
-          done()
+          $should.not.exist(comment);
+          done();
         })
-        .catch((e) => { done(e) })
-    })
-  })
+        .catch((e) => {
+          done(e);
+        });
+    });
+  });
 
   describe('#destroy()', () => {
     let userA, post;
@@ -192,39 +199,39 @@ describe('Comment', () => {
     beforeEach(async () => {
       userA = new User({
         username: 'Luna',
-        password: 'password'
-      })
+        password: 'password',
+      });
 
       await userA.create();
 
-      const postAttrs = { body: 'Post body' }
+      const postAttrs = { body: 'Post body' };
       post = await userA.newPost(postAttrs);
       await post.create();
 
       const commentAttrs = {
-        body:   'Comment body',
-        postId: post.id
-      }
-      const comment = await userA.newComment(commentAttrs)
+        body: 'Comment body',
+        postId: post.id,
+      };
+      const comment = await userA.newComment(commentAttrs);
       await comment.create();
-    })
+    });
 
     afterEach(async () => {
-      await dbAdapter.deleteUser(userA.id);  // post will be destroyed recursively
+      await dbAdapter.deleteUser(userA.id); // post will be destroyed recursively
       userA = post = null;
-    })
+    });
 
     it('should destroy comment', async () => {
-      let comments = await post.getComments()
+      let comments = await post.getComments();
 
       const [comment] = comments;
-      await comment.destroy()
+      await comment.destroy();
 
-      const oldComment = await dbAdapter.getCommentById(comment.id)
-      isNull(oldComment).should.be.true
+      const oldComment = await dbAdapter.getCommentById(comment.id);
+      isNull(oldComment).should.be.true;
 
-      comments = await post.getComments()
-      comments.should.be.empty
-    })
-  })
-})
+      comments = await post.getComments();
+      comments.should.be.empty;
+    });
+  });
+});

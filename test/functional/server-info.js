@@ -8,7 +8,6 @@ import { allExternalProviders } from '../../app/support/ExtAuth';
 
 import { serverInfoResponse } from './schemaV2-helper';
 
-
 describe('/v2/server-info', () => {
   let host;
 
@@ -31,9 +30,16 @@ describe('/v2/server-info', () => {
 
   it(`should return the externalAuthProviders`, async () => {
     const resp = await fetch(`${host}/v2/server-info`).then((r) => r.json());
-    const externalAuthProvidersInfo = allExternalProviders
-      .map(({ id, title, brand = id }) => ({ id, title, brand }));
+    const externalAuthProvidersInfo = allExternalProviders.map(({ id, title, brand = id }) => ({
+      id,
+      title,
+      brand,
+    }));
     expect(resp.externalAuthProvidersInfo, 'to equal', externalAuthProvidersInfo);
-    expect(resp.externalAuthProviders, 'to equal', externalAuthProvidersInfo.map((p) => p.id));
+    expect(
+      resp.externalAuthProviders,
+      'to equal',
+      externalAuthProvidersInfo.map((p) => p.id),
+    );
   });
 });

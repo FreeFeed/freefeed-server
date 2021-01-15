@@ -4,54 +4,46 @@ import { cloneDeep } from 'lodash';
 import { addModel as commentModelMaker } from './comment';
 import { addModel as userModelMaker } from './user';
 
-
 const commentModel = commentModelMaker(null);
 const userModel = userModelMaker(null);
 
 const schema = {
-  '$schema': 'http://json-schema.org/schema#',
+  $schema: 'http://json-schema.org/schema#',
 
-  type:       'object',
+  type: 'object',
   properties: {
     hideCommentsOfTypes: {
-      title:   `Do not show comments with these hideType's`,
+      title: `Do not show comments with these hideType's`,
       default: [],
 
-      type:        'array',
+      type: 'array',
       uniqueItems: true,
-      items:       {
+      items: {
         type: 'integer',
-        enum: [
-          commentModel.DELETED,
-          commentModel.HIDDEN_BANNED,
-          commentModel.HIDDEN_ARCHIVED,
-        ],
+        enum: [commentModel.DELETED, commentModel.HIDDEN_BANNED, commentModel.HIDDEN_ARCHIVED],
       },
     },
     sendNotificationsDigest: {
-      title:   'Send notifications digest email for current user',
+      title: 'Send notifications digest email for current user',
       default: true,
-      type:    'boolean',
+      type: 'boolean',
     },
     sendDailyBestOfDigest: {
-      title:   'Send daily Best Of digest email for current user',
+      title: 'Send daily Best Of digest email for current user',
       default: false,
-      type:    'boolean',
+      type: 'boolean',
     },
     sendWeeklyBestOfDigest: {
-      title:   'Send weekly Best Of digest email for current user',
+      title: 'Send weekly Best Of digest email for current user',
       default: false,
-      type:    'boolean',
+      type: 'boolean',
     },
     acceptDirectsFrom: {
-      title:   'Accept direct messages from all users',
+      title: 'Accept direct messages from all users',
       default: userModel.ACCEPT_DIRECTS_FROM_FRIENDS,
-      type:    'string',
-      enum:    [
-        userModel.ACCEPT_DIRECTS_FROM_ALL,
-        userModel.ACCEPT_DIRECTS_FROM_FRIENDS,
-      ],
-    }
+      type: 'string',
+      enum: [userModel.ACCEPT_DIRECTS_FROM_ALL, userModel.ACCEPT_DIRECTS_FROM_FRIENDS],
+    },
   },
   additionalProperties: false,
 };

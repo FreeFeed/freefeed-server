@@ -1,13 +1,12 @@
 #!/usr/bin/env babel-node
 import { promises as fs } from 'fs';
 
-import { postgres, dbAdapter } from '../app/models'
-
+import { postgres, dbAdapter } from '../app/models';
 
 async function main() {
   process.stdout.write(`Started\n`);
 
-  const [,, dataFilePath] = process.argv;
+  const [, , dataFilePath] = process.argv;
 
   if (!dataFilePath) {
     return;
@@ -20,7 +19,11 @@ async function main() {
   for (const i in clikesData) {
     const clike = clikesData[i];
     process.stdout.write(`Processing clikes: ${parseInt(i) + 1} of ${clikesCount}\r`);
-    const [commentId, userId] = await dbAdapter._getCommentAndUserIntId(clike.comment_id, clike.user_id);  // eslint-disable-line no-await-in-loop
+    // eslint-disable-next-line no-await-in-loop
+    const [commentId, userId] = await dbAdapter._getCommentAndUserIntId(
+      clike.comment_id,
+      clike.user_id,
+    );
 
     if (!commentId) {
       process.stderr.write(`Can't find comment "${clike.comment_id}": SKIP\n`);
@@ -34,12 +37,12 @@ async function main() {
 
     const payload = {
       comment_id: commentId,
-      user_id:    userId,
-      created_at: clike.date
+      user_id: userId,
+      created_at: clike.date,
     };
 
     try {
-      await postgres('comment_likes').insert(payload);  // eslint-disable-line no-await-in-loop
+      await postgres('comment_likes').insert(payload); // eslint-disable-line no-await-in-loop
     } catch (e) {
       if (e.message.includes('duplicate key value')) {
         continue;

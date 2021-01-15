@@ -4,70 +4,72 @@ import _ from 'lodash';
 // User's attributes caching
 ///////////////////////////////////////////////////
 
-const usersCacheTrait = (superClass) => class extends superClass {
-  async cacheFlushUser(id) {
-    const cacheKey = `user_${id}`
-    await this.cache.delAsync(cacheKey)
-  }
-
-  getCachedUserAttrs = async (id) => {
-    return fixCachedUserAttrs(await this.cache.get(`user_${id}`))
-  };
-
-  async fetchUser(id) {
-    let attrs = await this.getCachedUserAttrs(id);
-
-    if (!attrs) {
-      // Cache miss, read from the database
-      attrs = await this.database('users').first().where('uid', id) || null;
-
-      if (attrs) {
-        await this.cache.set(`user_${id}`, attrs);
-      }
+const usersCacheTrait = (superClass) =>
+  class extends superClass {
+    async cacheFlushUser(id) {
+      const cacheKey = `user_${id}`;
+      await this.cache.delAsync(cacheKey);
     }
 
-    return attrs;
-  }
+    getCachedUserAttrs = async (id) => {
+      return fixCachedUserAttrs(await this.cache.get(`user_${id}`));
+    };
 
-  /**
-   * Returns plain object with ids as keys and user attributes as values
-   */
-  async fetchUsersAssoc(ids) {
-    const idToUser = {};
+    async fetchUser(id) {
+      let attrs = await this.getCachedUserAttrs(id);
 
-    if (_.isEmpty(ids)) {
+      if (!attrs) {
+        // Cache miss, read from the database
+        attrs = (await this.database('users').first().where('uid', id)) || null;
+
+        if (attrs) {
+          await this.cache.set(`user_${id}`, attrs);
+        }
+      }
+
+      return attrs;
+    }
+
+    /**
+     * Returns plain object with ids as keys and user attributes as values
+     */
+    async fetchUsersAssoc(ids) {
+      const idToUser = {};
+
+      if (_.isEmpty(ids)) {
+        return idToUser;
+      }
+
+      const uniqIds = _.uniq(ids);
+      let cachedUsers;
+
+      if (this.cache.store.name === 'redis') {
+        const client = await this.cache.store.getClient();
+
+        const cacheKeys = ids.map((id) => `user_${id}`);
+        const result = await client.mget(cacheKeys);
+
+        cachedUsers = result.map((x) => (x ? JSON.parse(x) : null)).map(fixCachedUserAttrs);
+      } else {
+        cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+      }
+
+      const notFoundIds = _.compact(cachedUsers.map((attrs, i) => (attrs ? null : uniqIds[i])));
+      const dbUsers =
+        notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
+
+      await Promise.all(dbUsers.map((attrs) => this.cache.set(`user_${attrs.uid}`, attrs)));
+
+      _.compact(cachedUsers).forEach((attrs) => (idToUser[attrs.uid] = attrs));
+      dbUsers.forEach((attrs) => (idToUser[attrs.uid] = attrs));
       return idToUser;
     }
 
-    const uniqIds = _.uniq(ids);
-    let cachedUsers;
-
-    if (this.cache.store.name === 'redis') {
-      const client = await this.cache.store.getClient();
-
-      const cacheKeys = ids.map((id) => `user_${id}`);
-      const result = await client.mget(cacheKeys);
-
-      cachedUsers = result.map((x) => x ? JSON.parse(x) : null).map(fixCachedUserAttrs);
-    } else {
-      cachedUsers = await Promise.all(uniqIds.map(this.getCachedUserAttrs));
+    async fetchUsers(ids) {
+      const idToUser = await this.fetchUsersAssoc(ids);
+      return ids.map((id) => idToUser[id] || null);
     }
-
-    const notFoundIds = _.compact(cachedUsers.map((attrs, i) => attrs ? null : uniqIds[i]));
-    const dbUsers = notFoundIds.length === 0 ? [] : await this.database('users').whereIn('uid', notFoundIds);
-
-    await Promise.all(dbUsers.map((attrs) => this.cache.set(`user_${attrs.uid}`, attrs)));
-
-    _.compact(cachedUsers).forEach((attrs) => idToUser[attrs.uid] = attrs);
-    dbUsers.forEach((attrs) => idToUser[attrs.uid] = attrs);
-    return idToUser;
-  }
-
-  async fetchUsers(ids) {
-    const idToUser = await this.fetchUsersAssoc(ids);
-    return ids.map((id) => idToUser[id] || null);
-  }
-};
+  };
 
 export default usersCacheTrait;
 

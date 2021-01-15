@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
-import expect from 'unexpected'
-
+import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 
@@ -16,9 +15,8 @@ import {
   createAndReturnPostToFeed,
 } from './functional_test_helper';
 
-
 describe('Hide information of private/protected groups', () => {
-  before(() => cleanDB($pg_database))
+  before(() => cleanDB($pg_database));
 
   describe('Luna creates a public Selenites group and wrote post to group and her feed, Mars and Venus are not members', () => {
     let luna, mars, venus, selenites, post;
@@ -34,7 +32,7 @@ describe('Hide information of private/protected groups', () => {
       const resp = await getUserInfo(selenites);
       expect(resp, 'to satisfy', {
         users: {
-          id:             selenites.group.id,
+          id: selenites.group.id,
           administrators: [luna.user.id],
         },
         admins: [{ id: luna.user.id }],
@@ -45,7 +43,7 @@ describe('Hide information of private/protected groups', () => {
       const resp = await getUserInfo(selenites, mars);
       expect(resp, 'to satisfy', {
         users: {
-          id:             selenites.group.id,
+          id: selenites.group.id,
           administrators: [luna.user.id],
         },
         admins: [{ id: luna.user.id }],
@@ -57,7 +55,7 @@ describe('Hide information of private/protected groups', () => {
     it('should return Selenites among Luna subscriptions to anonymous', async () => {
       const resp = await getSubscriptionsOf(luna);
       expect(resp, 'to satisfy', {
-        subscribers:   [{ id: selenites.group.id }],
+        subscribers: [{ id: selenites.group.id }],
         subscriptions: expect.it('to have items satisfying', { user: selenites.group.id }),
       });
     });
@@ -65,7 +63,7 @@ describe('Hide information of private/protected groups', () => {
     it('should return Selenites among Luna subscriptions to Mars', async () => {
       const resp = await getSubscriptionsOf(luna, mars);
       expect(resp, 'to satisfy', {
-        subscribers:   [{ id: selenites.group.id }],
+        subscribers: [{ id: selenites.group.id }],
         subscriptions: expect.it('to have items satisfying', { user: selenites.group.id }),
       });
     });
@@ -76,9 +74,9 @@ describe('Hide information of private/protected groups', () => {
       const resp = await getPostInfo(post);
       expect(resp, 'to satisfy', {
         subscribers: expect.it('to have an item satisfying', {
-          id:             selenites.group.id,
+          id: selenites.group.id,
           administrators: [luna.user.id],
-        })
+        }),
       });
     });
 
@@ -91,7 +89,7 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getUserInfo(selenites);
         expect(resp, 'to satisfy', {
           users: {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [],
           },
           admins: [],
@@ -102,7 +100,7 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getUserInfo(selenites, mars);
         expect(resp, 'to satisfy', {
           users: {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [luna.user.id],
           },
           admins: [{ id: luna.user.id }],
@@ -114,7 +112,7 @@ describe('Hide information of private/protected groups', () => {
       it('should not return Selenites among Luna subscriptions to anonymous', async () => {
         const resp = await getSubscriptionsOf(luna);
         expect(resp, 'to satisfy', {
-          subscribers:   [],
+          subscribers: [],
           subscriptions: [],
         });
       });
@@ -122,7 +120,7 @@ describe('Hide information of private/protected groups', () => {
       it('should return Selenites among Luna subscriptions to Mars', async () => {
         const resp = await getSubscriptionsOf(luna, mars);
         expect(resp, 'to satisfy', {
-          subscribers:   [{ id: selenites.group.id }],
+          subscribers: [{ id: selenites.group.id }],
           subscriptions: expect.it('to have items satisfying', { user: selenites.group.id }),
         });
       });
@@ -133,9 +131,9 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getPostInfo(post);
         expect(resp, 'to satisfy', {
           subscribers: expect.it('to have an item satisfying', {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [],
-          })
+          }),
         });
       });
 
@@ -143,9 +141,9 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getPostInfo(post, mars);
         expect(resp, 'to satisfy', {
           subscribers: expect.it('to have an item satisfying', {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [luna.user.id],
-          })
+          }),
         });
       });
     });
@@ -159,7 +157,7 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getUserInfo(selenites);
         expect(resp, 'to satisfy', {
           users: {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [],
           },
           admins: [],
@@ -170,7 +168,7 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getUserInfo(selenites, mars);
         expect(resp, 'to satisfy', {
           users: {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [],
           },
           admins: [],
@@ -181,7 +179,7 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getUserInfo(selenites, luna);
         expect(resp, 'to satisfy', {
           users: {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [luna.user.id],
           },
           admins: [{ id: luna.user.id }],
@@ -193,7 +191,7 @@ describe('Hide information of private/protected groups', () => {
       it('should not return Selenites among Luna subscriptions to anonymous', async () => {
         const resp = await getSubscriptionsOf(luna);
         expect(resp, 'to satisfy', {
-          subscribers:   [],
+          subscribers: [],
           subscriptions: [],
         });
       });
@@ -201,7 +199,7 @@ describe('Hide information of private/protected groups', () => {
       it('should not return Selenites among Luna subscriptions to Mars', async () => {
         const resp = await getSubscriptionsOf(luna, mars);
         expect(resp, 'to satisfy', {
-          subscribers:   [],
+          subscribers: [],
           subscriptions: [],
         });
       });
@@ -209,7 +207,7 @@ describe('Hide information of private/protected groups', () => {
       it('should return Selenites among Luna subscriptions to Luna', async () => {
         const resp = await getSubscriptionsOf(luna, luna);
         expect(resp, 'to satisfy', {
-          subscribers:   [{ id: selenites.group.id }],
+          subscribers: [{ id: selenites.group.id }],
           subscriptions: expect.it('to have items satisfying', { user: selenites.group.id }),
         });
       });
@@ -220,9 +218,9 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getPostInfo(post);
         expect(resp, 'to satisfy', {
           subscribers: expect.it('to have an item satisfying', {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [],
-          })
+          }),
         });
       });
 
@@ -230,9 +228,9 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getPostInfo(post, mars);
         expect(resp, 'to satisfy', {
           subscribers: expect.it('to have an item satisfying', {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [],
-          })
+          }),
         });
       });
 
@@ -240,9 +238,9 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getPostInfo(post, luna);
         expect(resp, 'to satisfy', {
           subscribers: expect.it('to have an item satisfying', {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [luna.user.id],
-          })
+          }),
         });
       });
     });
@@ -259,7 +257,7 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getUserInfo(selenites, mars);
         expect(resp, 'to satisfy', {
           users: {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [luna.user.id],
           },
           admins: [{ id: luna.user.id }],
@@ -281,7 +279,7 @@ describe('Hide information of private/protected groups', () => {
       it('should return Selenites among Mars subscriptions to Luna', async () => {
         const resp = await getSubscriptionsOf(mars, luna);
         expect(resp, 'to satisfy', {
-          subscribers:   [{ id: selenites.group.id }],
+          subscribers: [{ id: selenites.group.id }],
           subscriptions: expect.it('to have items satisfying', { user: selenites.group.id }),
         });
       });
@@ -292,9 +290,9 @@ describe('Hide information of private/protected groups', () => {
         const resp = await getPostInfo(post, mars);
         expect(resp, 'to satisfy', {
           subscribers: expect.it('to have an item satisfying', {
-            id:             selenites.group.id,
+            id: selenites.group.id,
             administrators: [luna.user.id],
-          })
+          }),
         });
       });
     });
@@ -302,13 +300,22 @@ describe('Hide information of private/protected groups', () => {
 });
 
 function getUserInfo(userCtx, viewerCtx = null) {
-  return performJSONRequest('GET', `/v1/users/${userCtx.username}?authToken=${viewerCtx ? viewerCtx.authToken : ''}`);
+  return performJSONRequest(
+    'GET',
+    `/v1/users/${userCtx.username}?authToken=${viewerCtx ? viewerCtx.authToken : ''}`,
+  );
 }
 
 function getSubscriptionsOf(userCtx, viewerCtx = null) {
-  return performJSONRequest('GET', `/v1/users/${userCtx.username}/subscriptions?authToken=${viewerCtx ? viewerCtx.authToken : ''}`);
+  return performJSONRequest(
+    'GET',
+    `/v1/users/${userCtx.username}/subscriptions?authToken=${viewerCtx ? viewerCtx.authToken : ''}`,
+  );
 }
 
 function getPostInfo(post, viewerCtx = null) {
-  return performJSONRequest('GET', `/v2/posts/${post.id}?authToken=${viewerCtx ? viewerCtx.authToken : ''}`);
+  return performJSONRequest(
+    'GET',
+    `/v2/posts/${post.id}?authToken=${viewerCtx ? viewerCtx.authToken : ''}`,
+  );
 }

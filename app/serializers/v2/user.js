@@ -2,7 +2,6 @@ import { pick, uniq } from 'lodash';
 
 import { dbAdapter } from '../../models';
 
-
 const commonUserFields = [
   'id',
   'username',
@@ -17,10 +16,7 @@ const commonUserFields = [
   'profilePictureMediumUrl',
 ];
 
-const commonGroupFields = [
-  ...commonUserFields,
-  'isRestricted',
-];
+const commonGroupFields = [...commonUserFields, 'isRestricted'];
 
 const selfUserFields = [
   ...commonUserFields,
@@ -51,10 +47,7 @@ export async function serializeSelfUser(user) {
 // This function just selects some props from User/Group object and it is not
 // enough to API output.
 function pickAccountProps(user) {
-  const s = pick(
-    user,
-    user.type === 'user' ? commonUserFields : commonGroupFields
-  );
+  const s = pick(user, user.type === 'user' ? commonUserFields : commonGroupFields);
 
   if (!user.isActive) {
     s.isGone = true;
@@ -64,10 +57,10 @@ function pickAccountProps(user) {
 }
 
 const defaultStats = {
-  posts:         '0',
-  likes:         '0',
-  comments:      '0',
-  subscribers:   '0',
+  posts: '0',
+  likes: '0',
+  comments: '0',
+  subscribers: '0',
   subscriptions: '0',
 };
 
@@ -113,10 +106,7 @@ export async function serializeUsersByIds(userIds, withAdmins = true, viewerId =
   }
 
   // Select users and their stats
-  const [
-    usersAssoc,
-    statsAssoc,
-  ] = await Promise.all([
+  const [usersAssoc, statsAssoc] = await Promise.all([
     dbAdapter.getUsersByIdsAssoc(allUserIds),
     dbAdapter.getUsersStatsAssoc(allUserIds),
   ]);

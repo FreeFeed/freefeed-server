@@ -27,20 +27,19 @@ import {
   mutualSubscriptions,
 } from './functional_test_helper';
 
-
 describe('TimelinesAsRSS', () => {
   beforeEach(() => cleanDB($pg_database));
 
   describe('User Luna', () => {
     let luna;
-    beforeEach(async () => luna = await createUserAsync('luna', 'pw'));
+    beforeEach(async () => (luna = await createUserAsync('luna', 'pw')));
 
     it('should return a basic empty RSS for Luna', async () => {
       const resp = parseXML(await fetchUserTimelineAsRSS(luna));
       expect(resp.root, 'to satisfy', {
-        name:       'rss',
+        name: 'rss',
         attributes: { version: '2.0' },
-        children:   [{ name: 'channel' }],
+        children: [{ name: 'channel' }],
       });
       const channel = findNode(resp.root, 'channel');
       expect(channel.children, 'to satisfy', [
@@ -48,7 +47,7 @@ describe('TimelinesAsRSS', () => {
         { name: 'link', content: `${config.host}/${luna.username}` },
         { name: 'description' },
         {
-          name:     'image',
+          name: 'image',
           children: [
             { name: 'url', content: config.profilePictures.defaultProfilePictureMediumUrl },
             { name: 'title', content: `Posts of ${luna.username} @ ${config.siteTitle}` },
@@ -66,10 +65,13 @@ describe('TimelinesAsRSS', () => {
     });
 
     it('should return RSS with a post', async () => {
-      const post = await createAndReturnPost(luna, `Tiger, @tiger, burning bright
+      const post = await createAndReturnPost(
+        luna,
+        `Tiger, @tiger, burning bright
         In the forests of the night,
         What immortal.com hand or eye
-        Dare frame thy fearful #symmetry?`);
+        Dare frame thy fearful #symmetry?`,
+      );
       await updateUserAsync(luna, { description: 'I am Luna!' });
       const resp = parseXML(await fetchUserTimelineAsRSS(luna));
       const channel = findNode(resp.root, 'channel');
@@ -86,15 +88,19 @@ describe('TimelinesAsRSS', () => {
       ]);
 
       const description = htmlUnescape(findNode(items[0], 'description').content);
-      expect(description, 'to be', [
-        `<p class="freefeed-author">`,
-        `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
-        `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
-        `</p>`,
-        `<div class="freefeed-post">`,
-        textToHTML(post.body),
-        `</div>`,
-      ].join('\n'))
+      expect(
+        description,
+        'to be',
+        [
+          `<p class="freefeed-author">`,
+          `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
+          `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
+          `</p>`,
+          `<div class="freefeed-post">`,
+          textToHTML(post.body),
+          `</div>`,
+        ].join('\n'),
+      );
     });
 
     it('should return RSS with a post with attachments', async () => {
@@ -103,45 +109,49 @@ describe('TimelinesAsRSS', () => {
       const post = await createAndReturnPost(luna, `Tiger, tiger, burning bright`);
       luna.post = post;
       await updatePostAsync(luna, {
-        body:        post.body,
+        body: post.body,
         attachments: [att1.id, att2.id],
       });
       const resp = parseXML(await fetchUserTimelineAsRSS(luna));
 
       const item = findNode(resp.root, 'item');
       expect(item.children, 'to have an item satisfying', {
-        name:       'enclosure',
+        name: 'enclosure',
         attributes: {
-          url:    `${config.host}/attachments/${att1.id}`,
+          url: `${config.host}/attachments/${att1.id}`,
           length: `${att1.fileSize}`,
-          type:   'image/jpeg',
+          type: 'image/jpeg',
         },
-      })
+      });
       expect(item.children, 'to have an item satisfying', {
-        name:       'enclosure',
+        name: 'enclosure',
         attributes: {
-          url:    `${config.host}/attachments/${att2.id}`,
+          url: `${config.host}/attachments/${att2.id}`,
           length: `${att2.fileSize}`,
-          type:   'image/jpeg',
+          type: 'image/jpeg',
         },
       });
 
       const description = htmlUnescape(findNode(item, 'description').content);
-      expect(description, 'to be', [
-        `<p class="freefeed-author">`,
-        `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
-        `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
-        `</p>`,
-        `<div class="freefeed-post">`,
-        textToHTML(post.body),
-        `</div>`,
-        `<p class="freefeed-images">` +
-        // Strange src and href here because of incomplete attach implementation in createMockAttachmentAsync
-        `<a href="${config.host}/attachments/${att1.id}"><img src="" width="${att1.imageSizes.t.w}" height="${att1.imageSizes.t.h}"></a>` +
-        ` ` +
-        `<a href="${config.host}/attachments/${att2.id}"><img src="" width="${att2.imageSizes.t.w}" height="${att2.imageSizes.t.h}"></a>` +
-        `</p>`,
-      ].join('\n'))
+      expect(
+        description,
+        'to be',
+        [
+          `<p class="freefeed-author">`,
+          `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
+          `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
+          `</p>`,
+          `<div class="freefeed-post">`,
+          textToHTML(post.body),
+          `</div>`,
+          `<p class="freefeed-images">` +
+            // Strange src and href here because of incomplete attach implementation in createMockAttachmentAsync
+            `<a href="${config.host}/attachments/${att1.id}"><img src="" width="${att1.imageSizes.t.w}" height="${att1.imageSizes.t.h}"></a>` +
+            ` ` +
+            `<a href="${config.host}/attachments/${att2.id}"><img src="" width="${att2.imageSizes.t.w}" height="${att2.imageSizes.t.h}"></a>` +
+            `</p>`,
+        ].join('\n'),
+      );
     });
 
     it('should return RSS with a post with many comments of post author', async () => {
@@ -156,20 +166,27 @@ describe('TimelinesAsRSS', () => {
 
       const resp = parseXML(await fetchUserTimelineAsRSS(luna));
       const description = htmlUnescape(findNode(resp.root, 'item', 'description').content);
-      expect(description, 'to be', [
-        `<p class="freefeed-author">`,
-        `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
-        `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
-        `</p>`,
-        `<div class="freefeed-post">`,
-        textToHTML(post.body),
-        `</div>`,
-        ...comments.map((c) => `<div class="freefeed-comment" style="margin-left: 1em; margin-top: 2em;"><p>${c}</p></div>`),
-      ].join('\n'))
+      expect(
+        description,
+        'to be',
+        [
+          `<p class="freefeed-author">`,
+          `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
+          `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
+          `</p>`,
+          `<div class="freefeed-post">`,
+          textToHTML(post.body),
+          `</div>`,
+          ...comments.map(
+            (c) =>
+              `<div class="freefeed-comment" style="margin-left: 1em; margin-top: 2em;"><p>${c}</p></div>`,
+          ),
+        ].join('\n'),
+      );
     });
 
     it('should return RSS with a post with many comments of post author and the one Mars comment between them', async () => {
-      const mars = await createUserAsync('mars', 'pw')
+      const mars = await createUserAsync('mars', 'pw');
       const post = await createAndReturnPost(luna, `Tiger, tiger, burning bright`);
       const comments = [];
 
@@ -188,16 +205,23 @@ describe('TimelinesAsRSS', () => {
 
       const resp = parseXML(await fetchUserTimelineAsRSS(luna));
       const description = htmlUnescape(findNode(resp.root, 'item', 'description').content);
-      expect(description, 'to be', [
-        `<p class="freefeed-author">`,
-        `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
-        `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
-        `</p>`,
-        `<div class="freefeed-post">`,
-        textToHTML(post.body),
-        `</div>`,
-        ...comments.map((c) => `<div class="freefeed-comment" style="margin-left: 1em; margin-top: 2em;"><p>${c}</p></div>`),
-      ].join('\n'))
+      expect(
+        description,
+        'to be',
+        [
+          `<p class="freefeed-author">`,
+          `<a href="${config.host}/${luna.username}"><img src="${config.profilePictures.defaultProfilePictureMediumUrl}" width="50" height="50"></a>`,
+          `<a href="${config.host}/${luna.username}"><strong>${luna.username}</strong></a>:`,
+          `</p>`,
+          `<div class="freefeed-post">`,
+          textToHTML(post.body),
+          `</div>`,
+          ...comments.map(
+            (c) =>
+              `<div class="freefeed-comment" style="margin-left: 1em; margin-top: 2em;"><p>${c}</p></div>`,
+          ),
+        ].join('\n'),
+      );
     });
   });
 
@@ -217,9 +241,9 @@ describe('TimelinesAsRSS', () => {
     it('should return an RSS for group', async () => {
       const resp = parseXML(await fetchUserTimelineAsRSS(celestials));
       expect(resp.root, 'to satisfy', {
-        name:       'rss',
+        name: 'rss',
         attributes: { version: '2.0' },
-        children:   [{ name: 'channel' }],
+        children: [{ name: 'channel' }],
       });
       const channel = findNode(resp.root, 'channel');
       expect(channel.children, 'to satisfy', [
@@ -227,10 +251,13 @@ describe('TimelinesAsRSS', () => {
         { name: 'link', content: `${config.host}/${celestials.username}` },
         { name: 'description' },
         {
-          name:     'image',
+          name: 'image',
           children: [
             { name: 'url', content: config.profilePictures.defaultProfilePictureMediumUrl },
-            { name: 'title', content: `Posts in group ${celestials.username} @ ${config.siteTitle}` },
+            {
+              name: 'title',
+              content: `Posts in group ${celestials.username} @ ${config.siteTitle}`,
+            },
             { name: 'link', content: `${config.host}/${celestials.username}` },
           ],
         },
@@ -321,8 +348,10 @@ describe('TimelinesAsRSS', () => {
       const meta = await fetchMetatags(luna.username);
 
       const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(luna.username)}`;
-      const rssTitle =  `Posts of ${luna.username}`;
-      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}" data-react-helmet="true">`;
+      const rssTitle = `Posts of ${luna.username}`;
+      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(
+        rssTitle,
+      )}" href="${htmlEscape(rssURL)}" data-react-helmet="true">`;
       expect(meta, 'to contain', tag);
     });
 
@@ -330,8 +359,10 @@ describe('TimelinesAsRSS', () => {
       const meta = await fetchMetatags(celestials.username);
 
       const rssURL = `${config.host}/v2/timelines-rss/${urlEscape(celestials.username)}`;
-      const rssTitle =  `Posts in group ${celestials.username}`;
-      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(rssTitle)}" href="${htmlEscape(rssURL)}" data-react-helmet="true">`;
+      const rssTitle = `Posts in group ${celestials.username}`;
+      const tag = `<link rel="alternate" type="application/rss+xml" title="${htmlEscape(
+        rssTitle,
+      )}" href="${htmlEscape(rssURL)}" data-react-helmet="true">`;
       expect(meta, 'to contain', tag);
     });
 
@@ -370,7 +401,6 @@ async function fetchMetatags(username) {
 
   return await response.text();
 }
-
 
 function findNode(node, ...nodeNames) {
   if (nodeNames.length === 0) {

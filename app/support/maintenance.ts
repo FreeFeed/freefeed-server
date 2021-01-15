@@ -4,7 +4,6 @@ import config from 'config';
 import createDebug from 'debug';
 import Koa from 'koa';
 
-
 const debug = createDebug('freefeed:maintenanceCheck');
 const { messageFile } = config.maintenance;
 

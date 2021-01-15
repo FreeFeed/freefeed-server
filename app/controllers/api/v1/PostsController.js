@@ -1,14 +1,22 @@
-import _ from 'lodash'
+import _ from 'lodash';
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
-import { dbAdapter, Post, AppTokenV1 } from '../../../models'
-import { ForbiddenException, NotFoundException, BadRequestException } from '../../../support/exceptions'
-import { postAccessRequired, authRequired, monitored, inputSchemaRequired } from '../../middlewares';
+import { dbAdapter, Post, AppTokenV1 } from '../../../models';
+import {
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '../../../support/exceptions';
+import {
+  postAccessRequired,
+  authRequired,
+  monitored,
+  inputSchemaRequired,
+} from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
 
 import { postCreateInputSchema, postUpdateInputSchema } from './data-schemes';
-
 
 export default class PostsController {
   static create = compose([
@@ -19,10 +27,10 @@ export default class PostsController {
       const { user: author } = ctx.state;
       const {
         meta: { commentsDisabled, feeds },
-        post: { body, attachments }
+        post: { body, attachments },
       } = ctx.request.body;
 
-      const destNames = (typeof feeds === 'string') ? [feeds] : feeds;
+      const destNames = typeof feeds === 'string' ? [feeds] : feeds;
       const timelineIds = await checkDestNames(destNames, author);
 
       if (attachments) {
@@ -38,7 +46,7 @@ export default class PostsController {
       }
 
       const newPost = new Post({
-        userId:           author.id,
+        userId: author.id,
         body,
         attachments,
         commentsDisabled: commentsDisabled ? '1' : '0',
@@ -67,7 +75,7 @@ export default class PostsController {
       const { user, post } = ctx.state;
 
       if (post.userId != user.id) {
-        throw new ForbiddenException("You can't update another user's post")
+        throw new ForbiddenException("You can't update another user's post");
       }
 
       const { body, attachments, feeds } = ctx.request.body.post;
@@ -109,7 +117,7 @@ export default class PostsController {
       }
 
       try {
-        await post.update({ body, attachments, destinationFeedIds })
+        await post.update({ body, attachments, destinationFeedIds });
       } catch (e) {
         throw new BadRequestException(`Can not create post: ${e.message}`);
       }
@@ -163,37 +171,34 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      if (!await post.isAuthorOrGroupAdmin(user)) {
-        throw new ForbiddenException("You can't delete another user's post")
+      if (!(await post.isAuthorOrGroupAdmin(user))) {
+        throw new ForbiddenException("You can't delete another user's post");
       }
 
       let postStillAvailable = false;
 
       // Post's author deletes post
       if (post.userId === user.id) {
-        await post.destroy()
+        await post.destroy();
         monitor.increment('posts.destroys');
         ctx.body = { postStillAvailable };
         return;
       }
 
       // Group admin deletes post
-      const [
-        postDestinations,
-        userManagedGroups,
-      ] = await Promise.all([
+      const [postDestinations, userManagedGroups] = await Promise.all([
         post.getPostedTo(),
         user.getManagedGroups(),
       ]);
       const groupsPostsFeeds = await Promise.all(
-        userManagedGroups.map((g) => dbAdapter.getUserNamedFeed(g.id, 'Posts'))
+        userManagedGroups.map((g) => dbAdapter.getUserNamedFeed(g.id, 'Posts')),
       );
 
       const feedsToRemain = _.differenceBy(postDestinations, groupsPostsFeeds, 'id');
 
       if (feedsToRemain.length === 0) {
         // No feeds left, deleting post
-        await post.destroy(user)
+        await post.destroy(user);
         monitor.increment('posts.destroys');
         ctx.body = { postStillAvailable };
         return;
@@ -202,7 +207,7 @@ export default class PostsController {
       // Partial removal: remove post only from several feeds
       await post.update({
         destinationFeedIds: _.map(feedsToRemain, 'intId'),
-        updatedBy:          user,
+        updatedBy: user,
       });
 
       postStillAvailable = await (await dbAdapter.getPostById(post.id)).isVisibleFor(user);
@@ -217,7 +222,7 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      await post.hide(user.id)
+      await post.hide(user.id);
       ctx.body = {};
     },
   ]);
@@ -228,7 +233,7 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      await post.unhide(user.id)
+      await post.unhide(user.id);
       ctx.body = {};
     },
   ]);
@@ -261,7 +266,7 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      if (!await post.isAuthorOrGroupAdmin(user)) {
+      if (!(await post.isAuthorOrGroupAdmin(user))) {
         throw new ForbiddenException("You can't disable comments for another user's post");
       }
 
@@ -276,7 +281,7 @@ export default class PostsController {
     async (ctx) => {
       const { user, post } = ctx.state;
 
-      if (!await post.isAuthorOrGroupAdmin(user)) {
+      if (!(await post.isAuthorOrGroupAdmin(user))) {
         throw new ForbiddenException("You can't enable comments for another user's post");
       }
 
@@ -319,7 +324,9 @@ export async function checkDestNames(destNames, author) {
   }
 
   const destFeeds = await Promise.all(destUsers.map((u) => u.getFeedsToPost(author)));
-  const deniedNames = destFeeds.map((x, i) => x.length === 0 ? destUsers[i].username : '').filter(Boolean);
+  const deniedNames = destFeeds
+    .map((x, i) => (x.length === 0 ? destUsers[i].username : ''))
+    .filter(Boolean);
 
   if (deniedNames.length > 0) {
     if (destUsers.length === 1) {
@@ -332,7 +339,9 @@ export async function checkDestNames(destNames, author) {
       throw new ForbiddenException(`You can not post to the '${destUser.username}' group`);
     }
 
-    throw new ForbiddenException(`You can not post to some of destinations: ${deniedNames.join(', ')}`);
+    throw new ForbiddenException(
+      `You can not post to some of destinations: ${deniedNames.join(', ')}`,
+    );
   }
 
   const timelineIds = _.flatten(destFeeds).map((f) => f.id);

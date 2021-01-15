@@ -28,7 +28,6 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 
-
 export default function (app) {
   const router = createRouter();
   app.use(router.routes());
@@ -56,7 +55,6 @@ export function createRouter() {
 
   // unauthenticated routes
   PasswordsRoute(router);
-  SessionRoute(router);
 
   // Fix for ctx._matchedRoute
   // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
@@ -68,6 +66,8 @@ export function createRouter() {
 
   // [at least optionally] authenticated routes
   router.use(withAuthToken);
+
+  SessionRoute(router);
 
   AttachmentsRoute(router);
   BookmarkletRoute(router);

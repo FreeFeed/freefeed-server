@@ -6,15 +6,20 @@ import cleanDB from '../dbCleaner';
 
 import * as helper from './functional_test_helper';
 
-
 describe('Local bumps', () => {
   beforeEach(() => cleanDB($pg_database));
 
   describe('Luna, Mars and stranger Jupiter', () => {
-    let luna, mars, jupiter, celestials,
-      lunaPosts, marsPosts, marsPostsInGroup,
-      lunaDefaultHomefeed, marsDefaultHomefeed, groupDefaultFeed;
-
+    let luna,
+      mars,
+      jupiter,
+      celestials,
+      lunaPosts,
+      marsPosts,
+      marsPostsInGroup,
+      lunaDefaultHomefeed,
+      marsDefaultHomefeed,
+      groupDefaultFeed;
 
     const createPosts = async () => {
       const nPosts = 3;
@@ -23,7 +28,7 @@ describe('Local bumps', () => {
       marsPosts = [];
 
       for (let i = 0; i < nPosts; i++) {
-        const { id } = await helper.createAndReturnPost(mars, 'post');  // eslint-disable-line no-await-in-loop
+        const { id } = await helper.createAndReturnPost(mars, 'post'); // eslint-disable-line no-await-in-loop
         marsPosts.push(id);
       }
 
@@ -33,7 +38,7 @@ describe('Local bumps', () => {
       lunaPosts = [];
 
       for (let i = 0; i < nPosts; i++) {
-        const { id } = await helper.createAndReturnPost(luna, 'post');  // eslint-disable-line no-await-in-loop
+        const { id } = await helper.createAndReturnPost(luna, 'post'); // eslint-disable-line no-await-in-loop
         lunaPosts.push(id);
       }
 
@@ -47,7 +52,7 @@ describe('Local bumps', () => {
       marsPostsInGroup = [];
 
       for (let i = 0; i < nPosts; i++) {
-        const { id } = await helper.createAndReturnPostToFeed(celestials, mars, 'post');  // eslint-disable-line no-await-in-loop
+        const { id } = await helper.createAndReturnPostToFeed(celestials, mars, 'post'); // eslint-disable-line no-await-in-loop
         marsPostsInGroup.push(id);
       }
 
@@ -55,7 +60,7 @@ describe('Local bumps', () => {
     };
 
     beforeEach(async () => {
-      ([luna, mars, jupiter] = await helper.createTestUsers(3));
+      [luna, mars, jupiter] = await helper.createTestUsers(3);
     });
 
     describe('Luna and Mars created posts, then Luna subscribed to Jupiter', () => {
@@ -79,7 +84,10 @@ describe('Local bumps', () => {
           });
 
           it("should keep liked post on the top of the Luna's homefeed", async () => {
-            await expectHomefeed(luna, bump(marsPosts[0], [...lunaDefaultHomefeed, ...marsDefaultHomefeed]));
+            await expectHomefeed(
+              luna,
+              bump(marsPosts[0], [...lunaDefaultHomefeed, ...marsDefaultHomefeed]),
+            );
           });
         });
       });
@@ -99,7 +107,10 @@ describe('Local bumps', () => {
           });
 
           it("should keep liked post on the top of the Luna's homefeed", async () => {
-            await expectHomefeed(luna, bump(marsPosts[0], [...lunaDefaultHomefeed, ...marsDefaultHomefeed]));
+            await expectHomefeed(
+              luna,
+              bump(marsPosts[0], [...lunaDefaultHomefeed, ...marsDefaultHomefeed]),
+            );
           });
         });
       });
@@ -155,7 +166,10 @@ describe('Local bumps', () => {
             });
 
             it("should bump liked post in the Luna's homefeed", async () => {
-              await expectHomefeed(luna, bump(marsPostsInGroup[0], [...groupDefaultFeed, ...lunaDefaultHomefeed]));
+              await expectHomefeed(
+                luna,
+                bump(marsPostsInGroup[0], [...groupDefaultFeed, ...lunaDefaultHomefeed]),
+              );
             });
           });
         });
@@ -165,7 +179,9 @@ describe('Local bumps', () => {
 });
 
 async function expectHomefeed(userContext, postIds) {
-  const { timelines:{ posts } } = await helper.fetchTimeline('home', userContext);
+  const {
+    timelines: { posts },
+  } = await helper.fetchTimeline('home', userContext);
   expect(posts, 'to equal', postIds);
 }
 
