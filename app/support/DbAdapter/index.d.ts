@@ -1,7 +1,7 @@
 import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
 
 import { IPAddr, Nullable, UUID } from '../types';
-import { AppTokenV1, Attachment, Comment, Post, User } from '../../models';
+import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User } from '../../models';
 import {
   AppTokenCreateParams,
   AppTokenLogPayload,
@@ -10,6 +10,7 @@ import {
   SessionMutableRecord,
 } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
+import { T_EVENT_TYPE } from '../EventTypes';
 
 type QueryBindings = readonly RawBinding[] | ValueDict | RawBinding;
 
@@ -34,6 +35,20 @@ type ExtProfileData = {
   createdAt: string;
 };
 
+export type EventRecord = {
+  id: number;
+  uid: UUID;
+  created_at: Date;
+  user_id: number;
+  event_type: T_EVENT_TYPE;
+  created_by_user_id: Nullable<number>;
+  target_user_id: Nullable<number>;
+  group_id: Nullable<number>;
+  post_id: Nullable<number>;
+  comment_id: Nullable<number>;
+  post_author_id: Nullable<number>;
+};
+
 export class DbAdapter {
   constructor(connection: Knex);
 
@@ -49,15 +64,28 @@ export class DbAdapter {
 
   // Users
   getUserById(id: UUID): Promise<User | null>;
+  getUsersByIds(ids: UUID[]): Promise<User[]>;
+  getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
+  getFeedOwnersByUsernames(names: string[]): Promise<(User | Group)[]>;
+  someUsersArePublic(userIds: UUID[], anonymousFriendly: boolean): Promise<boolean>;
+  areUsersSubscribedToOneOfTimelines(
+    userIds: UUID[],
+    timelineIds: UUID[],
+  ): Promise<{ uid: UUID; is_subscribed: boolean }[]>;
+  getGroupAdministratorsIds(id: UUID): Promise<UUID[]>;
 
   // Posts
   getPostById(id: UUID): Promise<Post | null>;
+  getAdminsOfPostGroups(postId: UUID): Promise<User[]>;
 
   // Comments
   getCommentById(id: UUID): Promise<Comment | null>;
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
+
+  // Timelines
+  getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;
@@ -87,4 +115,15 @@ export class DbAdapter {
   deleteAuthSession(id: UUID): Promise<boolean>;
   listAuthSessions(userId: UUID): Promise<SessionTokenV1[]>;
   cleanOldAuthSessions(activeTTLDays: number, inactiveTTLDays: number): Promise<void>;
+
+  createEvent(
+    recipientIntId: number,
+    eventType: T_EVENT_TYPE,
+    createdByUserIntId: Nullable<number>,
+    targetUserIntId?: Nullable<number>,
+    groupIntId?: Nullable<number>,
+    postId?: Nullable<UUID>,
+    commentId?: Nullable<UUID>,
+    postAuthorIntId?: Nullable<number>,
+  ): Promise<EventRecord>;
 }
