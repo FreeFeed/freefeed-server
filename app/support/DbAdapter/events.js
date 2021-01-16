@@ -31,7 +31,7 @@ const eventsTrait = (superClass) =>
       };
 
       const insertSQL = this.database('events').insert(payload).toString();
-      return this.database.raw(`${insertSQL} on conflict do nothing`);
+      return await this.database.getRow(`${insertSQL} on conflict do nothing returning *`);
     }
 
     getUserEvents(
