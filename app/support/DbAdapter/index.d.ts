@@ -67,19 +67,45 @@ export class DbAdapter {
   getUsersByIds(ids: UUID[]): Promise<User[]>;
   getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
   getFeedOwnersByUsernames(names: string[]): Promise<(User | Group)[]>;
+  getFeedOwnersByIds(ids: UUID[]): Promise<Nullable<User | Group>[]>;
   someUsersArePublic(userIds: UUID[], anonymousFriendly: boolean): Promise<boolean>;
   areUsersSubscribedToOneOfTimelines(
     userIds: UUID[],
     timelineIds: UUID[],
   ): Promise<{ uid: UUID; is_subscribed: boolean }[]>;
   getGroupAdministratorsIds(id: UUID): Promise<UUID[]>;
+  getGroupsAdministratorsIds(
+    groupIds: UUID[],
+    viewerId?: Nullable<UUID>,
+  ): Promise<{ [k: string]: UUID[] }>;
+  getUsersByIdsAssoc(ids: UUID[]): Promise<{ [k: string]: User | Group }>;
+  getUsersStatsAssoc(
+    ids: UUID[],
+  ): Promise<{
+    [k: string]: {
+      posts: number;
+      likes: number;
+      comments: number;
+      subscribers: number;
+      subscriptions: number;
+    };
+  }>;
+
+  getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
+  getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
+  getCommentsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
 
   // Posts
   getPostById(id: UUID): Promise<Post | null>;
   getAdminsOfPostGroups(postId: UUID): Promise<User[]>;
+  getPostsByIds(ids: UUID[]): Promise<Post[]>;
+  getPostsByIntIds(ids: number[]): Promise<Post[]>;
+  filterSuspendedPosts(ids: UUID[]): Promise<UUID[]>;
 
   // Comments
   getCommentById(id: UUID): Promise<Comment | null>;
+  getCommentsByIds(ids: UUID[]): Promise<Comment[]>;
+  getCommentsByIntIds(ids: number[]): Promise<Comment[]>;
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
