@@ -1,4 +1,5 @@
-export const up = (knex) => knex.schema.raw(`do $$begin
+export const up = (knex) =>
+  knex.schema.raw(`do $$begin
   -- expires_at is null for persistent tokens. We don't use 'infinity' here
   -- for better JS interoperability.
   alter table app_tokens add column expires_at timestamptz;
@@ -16,7 +17,8 @@ export const up = (knex) => knex.schema.raw(`do $$begin
   alter table jobs add constraint job_uniq_key unique (name, uniq_key);
 end$$`);
 
-export const down = (knex) => knex.schema.raw(`do $$begin
+export const down = (knex) =>
+  knex.schema.raw(`do $$begin
   alter table app_tokens drop column expires_at;
 
   alter table jobs drop constraint job_uniq_key;

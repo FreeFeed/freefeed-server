@@ -7,7 +7,8 @@ import { GONE_DELETED } from '../app/models/user';
  *  The *gone_at* is null if the *gone_status* is null, otherwise it is the last
  *  time the gone_status changed.
  */
-export const up = (knex) => knex.schema.raw(`do $$begin
+export const up = (knex) =>
+  knex.schema.raw(`do $$begin
   alter table users add column gone_status integer;
   alter table users add column gone_at timestamptz;
   alter table users add constraint users_gone_check 
@@ -37,7 +38,8 @@ export const up = (knex) => knex.schema.raw(`do $$begin
 
 end$$`);
 
-export const down = (knex) => knex.schema.raw(`do $$begin
+export const down = (knex) =>
+  knex.schema.raw(`do $$begin
   alter table users drop constraint users_gone_check;
   alter table users drop column gone_status;
   alter table users drop column gone_at;

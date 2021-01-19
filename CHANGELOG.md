@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   'Content-Disposition: attachment' to prevent in-browser execution of active
   content.
 
+### Changed
+- Eslint is applied to all source tree now. The specific exceptions is defined
+  in .eslintignore file.
+
 ## [1.90.1] - 2021-01-12
 ### Fixed
 - Prevent the theft of attachments from other posts when creating a post.

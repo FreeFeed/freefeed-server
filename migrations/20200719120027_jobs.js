@@ -1,4 +1,5 @@
-export const up = (knex) => knex.schema.raw(`do $$begin
+export const up = (knex) =>
+  knex.schema.raw(`do $$begin
   create table jobs (
     id uuid not null default gen_random_uuid() primary key,
     created_at timestamptz not null default now(),
@@ -15,6 +16,7 @@ export const up = (knex) => knex.schema.raw(`do $$begin
   create index idx_job_unlock_at on jobs using btree (unlock_at);
 end$$`);
 
-export const down = (knex) => knex.schema.raw(`do $$begin
+export const down = (knex) =>
+  knex.schema.raw(`do $$begin
     drop table jobs;
 end$$`);

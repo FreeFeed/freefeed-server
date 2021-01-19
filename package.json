@@ -11,7 +11,7 @@
     "test": "run-s typecheck reset-test-db test-rollback mocha",
     "lint": "run-s eslint ejslint",
     "ejslint": "ejslint app",
-    "eslint": "eslint app bin config types test --ext \".js,.jsx,.ts\"",
+    "eslint": "eslint . --ext \".js,.jsx,.ts\"",
     "typecheck": "tsc",
     "reset-test-db": "babel-node bin/clean_test_db.js && knex --env test migrate:latest",
     "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
