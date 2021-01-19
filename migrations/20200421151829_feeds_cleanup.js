@@ -3,7 +3,6 @@
 /* eslint no-await-in-loop: 0 */
 import { difference } from 'lodash';
 
-
 const allFeeds = [
   'RiverOfNews',
   'Hides',
@@ -25,9 +24,9 @@ export async function up(knex) {
   const query = async function (sql, args = {}) {
     const { rows } = await knex.raw(sql, args);
     return rows;
-  }
+  };
 
-  await knex.raw('SET statement_timeout = 0');  // it might take a LONG time
+  await knex.raw('SET statement_timeout = 0'); // it might take a LONG time
 
   // Remove all RiverOfNews feeds from the posts table. We don't need them
   // anymore because of dynamic building of homefeeds.
@@ -38,7 +37,7 @@ export async function up(knex) {
   // keep only one of these feeds.
   const rows = await query(
     `select user_id, name from feeds group by user_id, name 
-    having count(*) > 1 order by user_id, name`
+    having count(*) > 1 order by user_id, name`,
   );
 
   for (const { user_id: userId, name } of rows) {
@@ -47,38 +46,33 @@ export async function up(knex) {
       `select * from feeds 
       where user_id = :userId and name = :name 
       order by created_at`,
-      { userId, name }
+      { userId, name },
     );
 
     let feedUIDToKeep = feeds[0].uid;
 
-    if (
-      feedsWithPosts.includes(name) ||
-      feedsWithSubscribers.includes(name)
-    ) {
+    if (feedsWithPosts.includes(name) || feedsWithSubscribers.includes(name)) {
       const props = await Promise.all(
         feeds.map(async (feed) => {
-          const [
-            [{ exists: hasPosts }],
-            [{ exists: hasSubscribers }],
-          ] = await Promise.all([
-            query(`select exists (select 1 from posts where (feed_ids && :feedIds) or (destination_feed_ids && :feedIds))`,
-              { feedIds: [feed.id] }),
-            query(`select exists (select 1 from subscriptions where feed_id = ?)`,
-              [feed.uid]),
+          const [[{ exists: hasPosts }], [{ exists: hasSubscribers }]] = await Promise.all([
+            query(
+              `select exists (select 1 from posts where (feed_ids && :feedIds) or (destination_feed_ids && :feedIds))`,
+              { feedIds: [feed.id] },
+            ),
+            query(`select exists (select 1 from subscriptions where feed_id = ?)`, [feed.uid]),
           ]);
 
           const inUse =
             (feedsWithPosts.includes(name) && hasPosts) ||
             (feedsWithSubscribers.includes(name) && hasSubscribers);
           return {
-            id:  feed.id,
+            id: feed.id,
             uid: feed.uid,
             hasPosts,
             hasSubscribers,
             inUse,
           };
-        })
+        }),
       );
 
       const inUseCount = props.filter((p) => p.inUse).length;
@@ -96,12 +90,16 @@ export async function up(knex) {
             [uidsToDelete],
           );
 
-          await Promise.all(allSubscriptions.map((s) => query(
-            `insert into subscriptions
+          await Promise.all(
+            allSubscriptions.map((s) =>
+              query(
+                `insert into subscriptions
               (feed_id, user_id, created_at) values (:feed_id, :user_id, :created_at)
               on conflict do nothing`,
-            { ...s, feed_id: first.uid },
-          )));
+                { ...s, feed_id: first.uid },
+              ),
+            ),
+          );
 
           await query(`delete from subscriptions where feed_id = any(?)`, [uidsToDelete]);
         }
@@ -113,16 +111,24 @@ export async function up(knex) {
           const fields = ['feed_ids', 'destination_feed_ids'];
 
           // Add firstId to posts with idsToDelete
-          await Promise.all(fields.map((field) => query(
-            `update posts set ${field} = (${field} | :firstId::int) where ${field} && :idsToDelete`,
-            { firstId, idsToDelete },
-          )));
+          await Promise.all(
+            fields.map((field) =>
+              query(
+                `update posts set ${field} = (${field} | :firstId::int) where ${field} && :idsToDelete`,
+                { firstId, idsToDelete },
+              ),
+            ),
+          );
 
           // Remove idsToDelete
-          await Promise.all(fields.map((field) => query(
-            `update posts set ${field} = (${field} - :idsToDelete) where ${field} && :idsToDelete`,
-            { firstId, idsToDelete },
-          )));
+          await Promise.all(
+            fields.map((field) =>
+              query(
+                `update posts set ${field} = (${field} - :idsToDelete) where ${field} && :idsToDelete`,
+                { firstId, idsToDelete },
+              ),
+            ),
+          );
         }
       } else if (inUseCount === 1) {
         feedUIDToKeep = props.find((p) => p.inUse).uid;
@@ -133,10 +139,9 @@ export async function up(knex) {
       // Can safely remove all feeds except first
     }
 
-    await query(
-      `delete from feeds where uid = any(?)`,
-      [feeds.map((f) => f.uid).filter((uid) => uid !== feedUIDToKeep)],
-    );
+    await query(`delete from feeds where uid = any(?)`, [
+      feeds.map((f) => f.uid).filter((uid) => uid !== feedUIDToKeep),
+    ]);
   }
 
   // Add unique constraint on feeds table for user_id and name

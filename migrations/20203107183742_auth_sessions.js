@@ -1,4 +1,5 @@
-export const up = (knex) => knex.schema.raw(`do $$begin
+export const up = (knex) =>
+  knex.schema.raw(`do $$begin
   create table auth_sessions (
     uid uuid not null default gen_random_uuid() primary key,
     user_id uuid not null references users (uid) on delete cascade on update cascade,
@@ -14,6 +15,7 @@ export const up = (knex) => knex.schema.raw(`do $$begin
   );
 end$$`);
 
-export const down = (knex) => knex.schema.raw(`do $$begin
+export const down = (knex) =>
+  knex.schema.raw(`do $$begin
     drop table auth_sessions;
 end$$`);

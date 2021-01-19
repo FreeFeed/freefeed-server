@@ -8,8 +8,12 @@ export async function up(knex) {
       valid_till timestamptz default now()
     )
   `);
-  await knex.raw('create index user_past_names_user_id_idx on user_past_names using btree (user_id)');
-  await knex.raw('create index user_past_names_username_idx on user_past_names using btree (username)');
+  await knex.raw(
+    'create index user_past_names_user_id_idx on user_past_names using btree (user_id)',
+  );
+  await knex.raw(
+    'create index user_past_names_username_idx on user_past_names using btree (username)',
+  );
 }
 
 export async function down(knex) {

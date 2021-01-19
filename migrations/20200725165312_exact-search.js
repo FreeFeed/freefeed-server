@@ -6,7 +6,8 @@
  * '=fox':1 '=jumps':2 '=over':3 'fox':1 'jump':2
  */
 
-export const up = (knex) => knex.schema.raw(`do $$begin
+export const up = (knex) =>
+  knex.schema.raw(`do $$begin
   create function to_tsvector_with_exact(cfg regconfig, str text)
     returns tsvector
     language 'sql'
@@ -22,6 +23,7 @@ export const up = (knex) => knex.schema.raw(`do $$begin
   $BODY$;
 end$$`);
 
-export const down = (knex) => knex.schema.raw(`do $$begin
+export const down = (knex) =>
+  knex.schema.raw(`do $$begin
   drop function to_tsvector_with_exact(cfg regconfig, str text);
 end$$`);
