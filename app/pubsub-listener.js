@@ -33,6 +33,7 @@ import {
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
+import { serializeEvents } from './serializers/v2/event';
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
@@ -223,6 +224,8 @@ export default class PubsubListener {
 
       [eventNames.GLOBAL_USER_UPDATED]: this.onGlobalUserUpdate,
       [eventNames.GROUP_TIMES_UPDATED]: this.onGroupTimesUpdate,
+
+      [eventNames.EVENT_CREATED]: this.onEventCreated,
     };
 
     try {
@@ -485,6 +488,26 @@ export default class PubsubListener {
     const type = eventNames.POST_UNSAVED;
     const rooms = await getRoomsOfPost(post);
     await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
+  };
+
+  onEventCreated = async (eventId) => {
+    const event = await dbAdapter.getEventById(eventId);
+
+    const [{ uid: userId }] = await dbAdapter.getUsersIdsByIntIds([event.user_id]);
+
+    const { events, users, groups } = await serializeEvents([event], userId);
+
+    await this.broadcastMessage(
+      [`user:${userId}`],
+      eventNames.EVENT_CREATED,
+      {
+        Notifications: events,
+        users,
+        groups,
+      },
+      null,
+      this._singleUserEmitter(userId),
+    );
   };
 
   onCommentLikeNew = async (data) => {

@@ -3,7 +3,12 @@ import _ from 'lodash';
 import { dbAdapter, User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
 
 import { extractMentions, extractMentionsWithOffsets } from './mentions';
-import { COUNTABLE_EVENT_TYPES, EVENT_TYPES, T_EVENT_TYPE } from './EventTypes';
+import {
+  ALLOWED_EVENT_TYPES,
+  COUNTABLE_EVENT_TYPES,
+  EVENT_TYPES,
+  T_EVENT_TYPE,
+} from './EventTypes';
 import { Nullable, UUID } from './types';
 
 type OnPostFeedsChangedParams = {
@@ -641,17 +646,28 @@ async function createEvent(
     postAuthorIntId,
   );
 
+  // It is possible if event is conflicting with existing by unique key
+  if (!event) {
+    return null;
+  }
+
+  const updates = [];
+
+  if (ALLOWED_EVENT_TYPES.includes(eventType)) {
+    updates.push(pubSub.newEvent(event.uid));
+  }
+
   if (COUNTABLE_EVENT_TYPES.includes(eventType)) {
     if (recipientIntId !== createdByUserIntId) {
-      const updates = [pubSub.updateUnreadNotifications(recipientIntId)];
+      updates.push(pubSub.updateUnreadNotifications(recipientIntId));
 
       if (eventType === EVENT_TYPES.SUBSCRIPTION_REQUEST_APPROVED) {
-        updates.push(pubSub.updateUnreadNotifications(recipientIntId));
+        updates.push(pubSub.updateUnreadNotifications(createdByUserIntId!));
       }
-
-      await Promise.all(updates);
     }
   }
+
+  await Promise.all(updates);
 
   return event;
 }

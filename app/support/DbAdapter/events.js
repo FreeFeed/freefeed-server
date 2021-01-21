@@ -34,6 +34,10 @@ const eventsTrait = (superClass) =>
       return await this.database.getRow(`${insertSQL} on conflict do nothing returning *`);
     }
 
+    getEventById(eventId) {
+      return this.database.getRow(`select * from events where uid = :eventId`, { eventId });
+    }
+
     getUserEvents(
       userIntId,
       eventTypes = null,

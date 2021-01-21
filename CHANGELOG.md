@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   'Content-Disposition: inline'. All other attachments should be served with
   'Content-Disposition: attachment' to prevent in-browser execution of active
   content.
+- The notification events are now delivered to the 'user:{userId}' realtime
+  channel with the 'event:new' message type. The message format is the same as
+  in `GET /v2/notifications` response.
 
 ### Changed
 - Eslint is applied to all source tree now. The specific exceptions is defined

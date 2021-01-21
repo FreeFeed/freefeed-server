@@ -153,6 +153,7 @@ export class DbAdapter {
     commentId?: Nullable<UUID>,
     postAuthorIntId?: Nullable<number>,
   ): Promise<EventRecord>;
+  getEventById(eventId: UUID): Promise<Nullable<EventRecord>>;
 
   getUnreadDirectsNumber(userId: UUID): Promise<number>;
   getUnreadEventsNumber(userId: UUID): Promise<number>;
