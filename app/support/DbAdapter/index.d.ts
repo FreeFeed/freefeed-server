@@ -112,6 +112,7 @@ export class DbAdapter {
 
   // Timelines
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;
+  getAllUserNamedFeed(userId: UUID, feedName: string): Promise<Timeline[]>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;
@@ -152,4 +153,7 @@ export class DbAdapter {
     commentId?: Nullable<UUID>,
     postAuthorIntId?: Nullable<number>,
   ): Promise<EventRecord>;
+
+  getUnreadDirectsNumber(userId: UUID): Promise<number>;
+  getUnreadEventsNumber(userId: UUID): Promise<number>;
 }
