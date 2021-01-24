@@ -93,7 +93,7 @@
     "react-dom": "~16.13.1",
     "sbd": "~1.0.17",
     "social-text-tokenizer": "~2.1.1",
-    "socket.io": "~2.3.0",
+    "socket.io": "~2.4.0",
     "socket.io-redis": "~5.4.0",
     "stream-meter": "~1.0.4",
     "ts-json-check": "~2.0.1",
