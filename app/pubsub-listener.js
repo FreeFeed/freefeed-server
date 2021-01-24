@@ -58,6 +58,11 @@ export default class PubsubListener {
     this.io = IoServer(server);
     this.io.adapter(redis_adapter({ pubClient, subClient }));
 
+    // allow any CORS Origin
+    this.io.origins((_, callback) => {
+      callback(null, true);
+    });
+
     this.io.on('error', (err) => {
       debug('socket.io error', err);
     });
