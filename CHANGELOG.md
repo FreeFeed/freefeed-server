@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.93.0] - Not released
+### Added
+- The notification events are now delivered to the 'user:{userId}' realtime
+  channel with the 'event:new' message type. The message format is the same as
+  in `GET /v2/notifications` response.
 
 ## [1.92.0] - 2021-01-24
 ### Changed
@@ -28,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   'Content-Disposition: inline'. All other attachments should be served with
   'Content-Disposition: attachment' to prevent in-browser execution of active
   content.
-
 ## [1.90.1] - 2021-01-12
 ### Fixed
 - Prevent the theft of attachments from other posts when creating a post.

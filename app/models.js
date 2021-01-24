@@ -5,8 +5,7 @@ import { connect as redisConnection } from './setup/database';
 import { connect as postgresConnection } from './setup/postgres';
 import { DbAdapter } from './support/DbAdapter';
 import { PubSubAdapter } from './support/PubSubAdapter';
-import pubSub from './pubsub';
-import pubSubStub from './pubsub-stub';
+import pubSub, { DummyPublisher } from './pubsub';
 import { addModel as attachmentModel } from './models/attachment';
 import { addModel as commentModel } from './models/comment';
 import { addModel as groupModel } from './models/group';
@@ -21,18 +20,15 @@ import { SessionTokenV1Store } from './models/auth-tokens';
 export const postgres = postgresConnection();
 export const dbAdapter = new DbAdapter(postgres);
 
-let _PubSub;
+let pubsubAdapter;
 
 if (config.disableRealtime) {
-  _PubSub = new pubSubStub();
+  pubsubAdapter = new DummyPublisher();
 } else {
-  const database = redisConnection();
-  const pubsubAdapter = new PubSubAdapter(database);
-
-  _PubSub = new pubSub(pubsubAdapter);
+  pubsubAdapter = new PubSubAdapter(redisConnection());
 }
 
-export const PubSub = _PubSub;
+export const PubSub = new pubSub(pubsubAdapter);
 
 export const User = userModel(dbAdapter);
 export const Group = groupModel(dbAdapter);
