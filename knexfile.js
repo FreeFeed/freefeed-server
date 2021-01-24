@@ -6,7 +6,6 @@ try {
 
 const { loadFileConfigs } = require('config').util;
 
-
 let env = process.env.NODE_ENV || 'development';
 
 {
@@ -14,8 +13,8 @@ let env = process.env.NODE_ENV || 'development';
   const args = process.argv.slice(2);
   const p = args.indexOf('--env');
 
-  if (p >= 0 && p  < args.length - 1) {
-    env = args[p + 1]
+  if (p >= 0 && p < args.length - 1) {
+    env = args[p + 1];
   }
 }
 

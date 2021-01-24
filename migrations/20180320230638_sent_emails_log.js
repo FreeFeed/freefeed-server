@@ -4,7 +4,6 @@ export async function up(knex) {
     table.text('email_type').defaultTo('notification').notNullable();
     table.index('email_type', 'sent_emails_log_email_type_idx');
   });
-
 }
 
 export async function down(knex) {

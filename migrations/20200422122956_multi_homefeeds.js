@@ -1,4 +1,5 @@
-export const up = (knex) => knex.schema.raw(`do $$begin
+export const up = (knex) =>
+  knex.schema.raw(`do $$begin
   -- FEEDS TABLE
   alter table feeds add column title text;
   alter table feeds add column ord integer;
@@ -36,7 +37,8 @@ export const up = (knex) => knex.schema.raw(`do $$begin
     
 end$$`);
 
-export const down = (knex) => knex.schema.raw(`do $$begin
+export const down = (knex) =>
+  knex.schema.raw(`do $$begin
   -- SUBSCRIPTION_REQUESTS TABLE
   alter table subscription_requests drop constraint subscription_requests_user_ids_unique;
   alter table subscription_requests drop column homefeed_ids;

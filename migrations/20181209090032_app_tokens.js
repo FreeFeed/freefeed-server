@@ -1,9 +1,13 @@
 export async function up(knex) {
   await knex.schema.createTable('app_tokens', (table) => {
     table.uuid('uid').defaultTo(knex.raw('gen_random_uuid()')).notNullable().primary();
-    table.uuid('user_id').notNullable()
-      .references('uid').inTable('users')
-      .onUpdate('cascade').onDelete('cascade');
+    table
+      .uuid('user_id')
+      .notNullable()
+      .references('uid')
+      .inTable('users')
+      .onUpdate('cascade')
+      .onDelete('cascade');
     table.text('title').notNullable();
     table.boolean('is_active').defaultTo(false).notNullable();
     table.integer('issue').defaultTo(1).notNullable();
@@ -19,9 +23,13 @@ export async function up(knex) {
 
   await knex.schema.createTable('app_tokens_log', (table) => {
     table.bigIncrements('id').notNullable().primary();
-    table.uuid('token_id').notNullable()
-      .references('uid').inTable('app_tokens')
-      .onUpdate('cascade').onDelete('cascade');
+    table
+      .uuid('token_id')
+      .notNullable()
+      .references('uid')
+      .inTable('app_tokens')
+      .onUpdate('cascade')
+      .onDelete('cascade');
     table.text('request').notNullable();
     table.timestamp('date').defaultTo(knex.fn.now()).notNullable();
     table.specificType('ip', 'inet').notNullable();

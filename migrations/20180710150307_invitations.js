@@ -2,9 +2,13 @@ export async function up(knex) {
   await knex.schema.createTable('invitations', (table) => {
     table.increments().notNullable().primary();
     table.uuid('secure_id').defaultTo(knex.raw('gen_random_uuid()')).notNullable().unique();
-    table.integer('author').notNullable()
-      .references('id').inTable('users')
-      .onUpdate('cascade').onDelete('cascade');
+    table
+      .integer('author')
+      .notNullable()
+      .references('id')
+      .inTable('users')
+      .onUpdate('cascade')
+      .onDelete('cascade');
     table.text('message').notNullable();
     table.text('lang').notNullable();
     table.boolean('single_use').defaultTo(false).notNullable();

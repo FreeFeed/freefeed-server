@@ -1,6 +1,6 @@
 export async function up(knex) {
-  // Remove duplicates 
-  // see https://stackoverflow.com/a/26769694 
+  // Remove duplicates
+  // see https://stackoverflow.com/a/26769694
   await knex.raw(` 
   delete from local_bumps t1 
     where exists ( 
@@ -11,16 +11,14 @@ export async function up(knex) {
     ); 
   `);
   await knex.schema.table('local_bumps', (table) => table.unique(['user_id', 'post_id']));
-  await knex.schema
-    .table('local_bumps', (table) => {
-      table.index('user_id', 'local_bumps_user_id_idx');
-    });
+  await knex.schema.table('local_bumps', (table) => {
+    table.index('user_id', 'local_bumps_user_id_idx');
+  });
 }
 
 export async function down(knex) {
-  await knex.schema
-    .table('local_bumps', (table) => {
-      table.dropIndex('', 'local_bumps_user_id_idx');
-    });
+  await knex.schema.table('local_bumps', (table) => {
+    table.dropIndex('', 'local_bumps_user_id_idx');
+  });
   await knex.schema.table('local_bumps', (table) => table.dropUnique(['user_id', 'post_id']));
 }
