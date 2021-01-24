@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   channel with the 'event:new' message type. The message format is the same as
   in `GET /v2/notifications` response.
 
+## [1.92.1] - 2021-01-24
+### Added
+- Count blocked auth sessions in StatsD
+
 ## [1.92.0] - 2021-01-24
 ### Changed
 - Eslint is applied to all source tree now. The specific exceptions is defined

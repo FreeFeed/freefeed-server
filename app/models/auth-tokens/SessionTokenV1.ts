@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import config from 'config';
 import { isConst, isNumber, isObject, isString } from 'ts-json-check';
 import { Context, Next } from 'koa';
+import monitorDog from 'monitor-dog';
 
 import { DbAdapter } from '../../support/DbAdapter';
 import { IPAddr, Nullable, UUID } from '../../support/types';
@@ -13,7 +14,7 @@ import Mailer from '../../../lib/mailer';
 import { SessionRecord } from './types';
 import { AuthToken } from './AuthToken';
 
-import { authDebugError } from '.';
+import { authDebug, authDebugError } from '.';
 
 // Session statuses:
 // Active session
@@ -125,6 +126,8 @@ export class SessionTokenV1 extends AuthToken {
         // Block session if it is active and has invalid issue
         if (this.isActive) {
           await this.setStatus(BLOCKED);
+          authDebug(`blocked session ${this.id} for user ${this.userId}`);
+          monitorDog.increment('auth:session-blocked-count');
 
           const user = await this.getUser();
 
