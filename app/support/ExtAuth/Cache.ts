@@ -35,7 +35,7 @@ export class Cache {
     await this.cache.set(this.keyPrefix + key, data, this.ttl);
   }
 
-  get<T>(key: string): Promise<T> {
+  get<T>(key: string): Promise<T | undefined> {
     return this.cache.get(this.keyPrefix + key);
   }
 
