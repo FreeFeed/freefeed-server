@@ -5,7 +5,6 @@ import unexpectedDate from 'unexpected-date';
 import unexpectedSinon from 'unexpected-sinon';
 import sinon from 'sinon';
 import config from 'config';
-import { simpleParser } from 'mailparser';
 
 import cleanDB from '../../dbCleaner';
 import {
@@ -16,8 +15,7 @@ import {
   sessionTokenV1Store,
 } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
-import { ACTIVE, CLOSED, BLOCKED } from '../../../app/models/auth-tokens/SessionTokenV1';
-import { addMailListener } from '../../../lib/mailer';
+import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
 
 const expect = unexpected.clone();
@@ -283,12 +281,6 @@ describe('withAuthToken middleware', () => {
         await luna.update({ email });
       });
 
-      let capturedMail = null;
-      let removeMailListener = () => null;
-      before(() => (removeMailListener = addMailListener((r) => (capturedMail = r))));
-      after(removeMailListener);
-      beforeEach(() => (capturedMail = null));
-
       it('should allow token with recently changed issue', async () => {
         const tokenString = session.tokenString();
         await session.reissue();
@@ -300,7 +292,7 @@ describe('withAuthToken middleware', () => {
         expect(handler, 'was called');
       });
 
-      it('should block token when issue is changed more than by one', async () => {
+      it('should not allow token when issue is changed more than by one', async () => {
         const tokenString = session.tokenString();
         await session.reissue();
         await session.reissue();
@@ -310,18 +302,10 @@ describe('withAuthToken middleware', () => {
 
         await expect(withAuthToken(ctx, handler), 'to be rejected');
         expect(handler, 'was not called');
-
-        // Email was sent
-        expect(capturedMail, 'to satisfy', { envelope: { to: [email] } });
-        const parsedMail = await simpleParser(capturedMail.response);
-        expect(parsedMail, 'to satisfy', { subject: 'Your session has been blocked' });
-
-        // The session is blocked now
-        const s = await sessionTokenV1Store.getById(session.id);
-        expect(s.status, 'to be', BLOCKED);
       });
 
       it('should not allow inactive token', async () => {
+        await session.setStatus(CLOSED);
         const ctx = context(session.tokenString());
         const handler = sinon.spy();
 
@@ -364,9 +348,6 @@ describe('withAuthToken middleware', () => {
           withAuthToken(context(tokenString), () => null),
           'to be rejected',
         );
-
-        const s = await sessionTokenV1Store.getById(session.id);
-        expect(s.status, 'to be', BLOCKED);
       });
     });
   });
