@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Do not block authorization sessions if token with the invalid issue is comes.
   We probably should add another blocking criteria in the future.
+- Remove old authorization sessions by last use (instead of last update) time.
 
 ## [1.92.1] - 2021-01-24
 ### Added
