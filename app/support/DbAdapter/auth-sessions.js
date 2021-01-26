@@ -97,8 +97,8 @@ const authSessionsTrait = (superClass) =>
     async cleanOldAuthSessions(activeTTLDays, inactiveTTLDays) {
       await this.database.raw(
         `delete from auth_sessions where
-        status = :activeStatus and updated_at < now() - :activeTTLDays * '1 day'::interval
-        or status <> :activeStatus and updated_at < now() - :inactiveTTLDays * '1 day'::interval`,
+        status = :activeStatus and last_used_at < now() - :activeTTLDays * '1 day'::interval
+        or status <> :activeStatus and last_used_at < now() - :inactiveTTLDays * '1 day'::interval`,
         { activeTTLDays, inactiveTTLDays, activeStatus: ACTIVE },
       );
     }

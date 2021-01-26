@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   channel with the 'event:new' message type. The message format is the same as
   in `GET /v2/notifications` response.
 
+### Changed
+- Do not block authorization sessions if token with the invalid issue is comes.
+  We probably should add another blocking criteria in the future.
+- Remove old authorization sessions by last use (instead of last update) time.
+
 ## [1.92.1] - 2021-01-24
 ### Added
 - Count blocked auth sessions in StatsD
