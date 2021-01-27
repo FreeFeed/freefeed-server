@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.93.0] - Not released
+## [1.93.0] - 2021-01-27
 ### Added
 - The notification events are now delivered to the 'user:{userId}' realtime
   channel with the 'event:new' message type. The message format is the same as
