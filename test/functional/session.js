@@ -278,13 +278,6 @@ describe('SessionController', () => {
         'to be fulfilled with',
         { __httpCode: 401 },
       );
-
-      // ...and the entire session is now blocked
-      await expect(
-        performJSONRequest('GET', '/v1/users/me', null, authHeaders(newToken)),
-        'to be fulfilled with',
-        { __httpCode: 401 },
-      );
     });
 
     it(`should allow to reauthorize realtime session`, async () => {

@@ -35,9 +35,15 @@ export const EVENT_TYPES = {
   POST_MODERATED_BY_ANOTHER_ADMIN: 'post_moderated_by_another_admin',
 
   INVITATION_USED: 'invitation_used',
-};
+} as const;
 
-export const INVISIBLE_EVENT_TYPES = ['banned_by_user', 'unbanned_by_user', 'user_unsubscribed'];
+export type T_EVENT_TYPE = typeof EVENT_TYPES[keyof typeof EVENT_TYPES];
+
+export const INVISIBLE_EVENT_TYPES = [
+  'banned_by_user',
+  'unbanned_by_user',
+  'user_unsubscribed',
+] as const;
 export const ALLOWED_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), INVISIBLE_EVENT_TYPES);
 export const NOT_COUNTABLE_EVENT_TYPES = [
   ...INVISIBLE_EVENT_TYPES,
@@ -46,7 +52,7 @@ export const NOT_COUNTABLE_EVENT_TYPES = [
   'group_created',
   'direct',
   'direct_comment',
-];
+] as const;
 export const COUNTABLE_EVENT_TYPES = _.difference(
   Object.values(EVENT_TYPES),
   NOT_COUNTABLE_EVENT_TYPES,
@@ -61,4 +67,4 @@ export const DIGEST_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), [
   'post_moderated',
   'post_moderated_by_another_admin',
   'invitation_used',
-]);
+] as const);

@@ -529,7 +529,7 @@ describe('Auth Tokens', () => {
         session2 = await sessionTokenV1Store.create(luna.id);
 
         await dbAdapter.database.raw(
-          `update auth_sessions set updated_at = now() - :time * '1 day'::interval where uid = :uid`,
+          `update auth_sessions set last_used_at = now() - :time * '1 day'::interval where uid = :uid`,
           { uid: session2.id, time: config.authSessions.activeSessionTTLDays + 1 },
         );
 

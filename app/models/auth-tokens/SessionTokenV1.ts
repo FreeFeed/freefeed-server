@@ -2,19 +2,15 @@ import jwt from 'jsonwebtoken';
 import config from 'config';
 import { isConst, isNumber, isObject, isString } from 'ts-json-check';
 import { Context, Next } from 'koa';
-import monitorDog from 'monitor-dog';
 
 import { DbAdapter } from '../../support/DbAdapter';
 import { IPAddr, Nullable, UUID } from '../../support/types';
 import { Address } from '../../support/ipv6';
 import { database, fallbackUserAgent } from '../common';
 import { NotAuthorizedException } from '../../support/exceptions';
-import Mailer from '../../../lib/mailer';
 
 import { SessionRecord } from './types';
 import { AuthToken } from './AuthToken';
-
-import { authDebug, authDebugError } from '.';
 
 // Session statuses:
 // Active session
@@ -123,36 +119,6 @@ export class SessionTokenV1 extends AuthToken {
               this.databaseTime.getTime() - config.authSessions.reissueGraceIntervalSec * 1000)
         )
       ) {
-        // Block session if it is active and has invalid issue
-        if (this.isActive) {
-          await this.setStatus(BLOCKED);
-          authDebug(`blocked session ${this.id} for user ${this.userId}`);
-          monitorDog.increment('auth:session-blocked-count');
-
-          const user = await this.getUser();
-
-          if (user?.isActive) {
-            // Send email to user
-            try {
-              await Mailer.sendMail(
-                user,
-                'Your session has been blocked',
-                {
-                  access: {
-                    ip: new Address(ctx.ip).toString(),
-                    userAgent: ctx.headers['user-agent'] || fallbackUserAgent,
-                    date: this.databaseTime,
-                  },
-                  session: this,
-                },
-                `${config.appRoot}/app/scripts/views/mailer/auth-session-blocked.ejs`,
-              );
-            } catch (e) {
-              authDebugError(`cannot send email to ${user.username}: ${e.message}`);
-            }
-          }
-        }
-
         throw new NotAuthorizedException(`inactive or expired token`);
       }
     }

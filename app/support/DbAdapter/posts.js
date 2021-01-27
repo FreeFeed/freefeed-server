@@ -56,6 +56,13 @@ const postsTrait = (superClass) =>
       return responses.map((attrs) => initPostObject(attrs, params));
     }
 
+    async getPostsByIntIds(ids) {
+      const responses = await this.database('posts')
+        .orderBy('bumped_at', 'desc')
+        .whereIn('id', ids);
+      return responses.map((attrs) => initPostObject(attrs));
+    }
+
     getPostsIdsByIntIds(intIds) {
       return this.database('posts').select('id', 'uid').whereIn('id', intIds);
     }
@@ -63,6 +70,20 @@ const postsTrait = (superClass) =>
     async getUserPostsCount(userId) {
       const res = await this.database('posts').where({ user_id: userId }).count();
       return parseInt(res[0].count);
+    }
+
+    /**
+     * Filter out all posts from the suspended authors
+     */
+    filterSuspendedPosts(postIds) {
+      return this.database.getCol(
+        `select p.uid from
+          posts p
+          join users u on p.user_id = u.uid
+        where
+          p.uid = any(:postIds) and u.gone_status is null`,
+        { postIds },
+      );
     }
 
     setPostBumpedAt(postId, time = null) {
