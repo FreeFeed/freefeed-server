@@ -328,4 +328,10 @@ config.authSessions = {
   cleanupIntervalSec: 3600, // one hour
 };
 
+config.maxLength = {
+  post: 3000,
+  comment: 3000,
+  description: 1500,
+};
+
 module.exports = config;

@@ -142,7 +142,7 @@ describe('User', () => {
     });
 
     const invalid = [
-      '!'.repeat(1501), // 1501 characters is NOT OK
+      '!'.repeat(3001), // 3001 characters is NOT OK
     ];
 
     invalid.forEach((description) => {
