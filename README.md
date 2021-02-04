@@ -24,8 +24,9 @@ createuser -P -s freefeed (enter freefeed as password)
 createdb -O freefeed freefeed
 ```
 
-### Then setup dependencies via Docker
+### Or setup dependencies via Docker
 
+1. `brew install graphicsmagick`
 1. [Install and run Docker](https://www.docker.com/get-started)
 1. docker-compose up -d
 
