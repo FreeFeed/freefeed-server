@@ -87,7 +87,7 @@ jobs:
       - name: Check licenses
         uses: tangro/actions-license-check@v1.0.7
         with:
-          allowed-licenses: 'MIT; ISC; Apache-2.0; BSD'
+          allowed-licenses: 'MIT; ISC; Apache-2.0; BSD; APACHE-2.0'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ toJson(github) }}
