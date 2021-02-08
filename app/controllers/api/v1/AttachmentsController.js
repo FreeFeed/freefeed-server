@@ -28,7 +28,7 @@ export default class AttachmentsController {
 
         ctx.body = {
           attachments: serializeAttachment(newAttachment),
-          users: serializeUsersByIds([newAttachment.createdBy]),
+          users: serializeUsersByIds([newAttachment.userId]),
         };
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
