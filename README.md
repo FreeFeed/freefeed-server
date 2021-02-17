@@ -12,7 +12,7 @@ FreeFeed is based on [Pepyatka](https://github.com/pepyatka/pepyatka-server/) pr
 
 ## Getting started with FreeFeed on OSX
 
-### Dependencies via Homebrew
+### Setup dependencies via Homebrew
 
 ```
 brew install redis
@@ -24,12 +24,13 @@ createuser -P -s freefeed (enter freefeed as password)
 createdb -O freefeed freefeed
 ```
 
-### Dependencies via Docker
+### Or setup dependencies via Docker
 
+1. `brew install graphicsmagick`
 1. [Install and run Docker](https://www.docker.com/get-started)
 1. docker-compose up -d
 
-### NodeJS environment and the app
+### Then setup NodeJS environment and the app
 
 ```
 brew install nvm
