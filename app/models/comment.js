@@ -2,6 +2,7 @@
 import _ from 'lodash';
 import GraphemeBreaker from 'grapheme-breaker';
 import monitor from 'monitor-dog';
+import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
@@ -82,8 +83,8 @@ export function addModel(dbAdapter) {
 
       const len = GraphemeBreaker.countBreaks(this.body);
 
-      if (len > 1500) {
-        throw new Error('Maximum comment length is 1500 characters');
+      if (len > config.maxLength.comment) {
+        throw new Error(`Maximum comment length is ${config.maxLength.comment} characters`);
       }
     }
 

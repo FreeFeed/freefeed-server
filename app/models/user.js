@@ -313,7 +313,7 @@ export function addModel(dbAdapter) {
 
     static descriptionIsValid(description) {
       const len = GraphemeBreaker.countBreaks(description);
-      return len <= 1500;
+      return len <= config.maxLength.description;
     }
 
     static frontendPreferencesIsValid(frontendPreferences) {
