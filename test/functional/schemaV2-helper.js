@@ -321,6 +321,15 @@ export const serverInfoResponse = {
       title: expect.it('to be a string'),
     }),
   registrationOpen: expect.it('to be a boolean'),
+  attachments: {
+    fileSizeLimit: expect.it('to be a number'),
+    maxCountPerPost: expect.it('to be a number'),
+  },
+  maxTextLength: {
+    post: expect.it('to be a number'),
+    comment: expect.it('to be a number'),
+    description: expect.it('to be a number'),
+  },
 };
 
 export const externalProfile = {
