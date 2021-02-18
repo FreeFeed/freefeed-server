@@ -376,11 +376,13 @@ export async function performRequest(relativePath, params) {
 export async function performJSONRequest(method, relativePath, body = undefined, headers = {}) {
   method = method.toUpperCase();
 
-  if (body != undefined && method !== 'GET' && method !== 'HEAD') {
+  if (method === 'GET' || method === 'HEAD' || body === undefined || body === null) {
+    body = undefined;
+  } else if (body instanceof FormData) {
+    // The Content-Type will be sets up automatically
+  } else {
     body = JSON.stringify(body);
     headers['Content-Type'] = 'application/json';
-  } else {
-    body = undefined;
   }
 
   const response = await performRequest(relativePath, { method, body, headers });

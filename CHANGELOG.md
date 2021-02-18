@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   We probably should add another blocking criteria in the future.
 - Remove old authorization sessions by last use (instead of last update) time.
 
+### Fixed
+- Fixed attachment creation bug that caused backend crash on image upload and
+  empty `users` field of the `POST /v1/attachments` response.
+
 ## [1.92.1] - 2021-01-24
 ### Added
 - Count blocked auth sessions in StatsD
