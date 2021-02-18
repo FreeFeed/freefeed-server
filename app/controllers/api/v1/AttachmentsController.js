@@ -1,9 +1,10 @@
-import _ from 'lodash';
 import createDebug from 'debug';
+import compose from 'koa-compose';
 
-import { reportError } from '../../../support/exceptions';
+import { reportError, BadRequestException } from '../../../support/exceptions';
 import { serializeAttachment } from '../../../serializers/v2/post';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
+import { authRequired } from '../../middlewares';
 
 export default class AttachmentsController {
   app;
@@ -14,21 +15,22 @@ export default class AttachmentsController {
     this.debug = createDebug('freefeed:AttachmentsController');
   }
 
-  create = async (ctx) => {
-    if (!ctx.state.user) {
-      ctx.status = 401;
-      ctx.body = { err: 'Not found' };
-      return;
-    }
+  create = compose([
+    authRequired(),
+    async (ctx) => {
+      const { file } = ctx.request.files;
 
-    const fileHandlerPromises = _.map(ctx.request.files, async (file) => {
+      if (!file) {
+        throw new BadRequestException('No file provided');
+      }
+
       try {
         const newAttachment = await ctx.state.user.newAttachment({ file });
         await newAttachment.create();
 
         ctx.body = {
           attachments: serializeAttachment(newAttachment),
-          users: serializeUsersByIds([newAttachment.createdBy]),
+          users: await serializeUsersByIds([newAttachment.userId]),
         };
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
@@ -49,8 +51,6 @@ export default class AttachmentsController {
 
         reportError(ctx)(e);
       }
-    });
-
-    await Promise.all(fileHandlerPromises);
-  };
+    },
+  ]);
 }

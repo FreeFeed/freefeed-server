@@ -1,6 +1,7 @@
 /* eslint babel/semi: "error" */
 import GraphemeBreaker from 'grapheme-breaker';
 import _ from 'lodash';
+import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
@@ -97,8 +98,8 @@ export function addModel(dbAdapter) {
 
       const len = GraphemeBreaker.countBreaks(this.body);
 
-      if (len > 1500) {
-        throw new Error('Maximum post-length is 1500 graphemes');
+      if (len > config.maxLength.post) {
+        throw new Error(`Maximum post-length is ${config.maxLength.post} graphemes`);
       }
     }
 

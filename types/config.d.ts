@@ -51,6 +51,12 @@ declare module 'config' {
       inactiveSessionTTLDays: number;
       cleanupIntervalSec: number;
     };
+
+    maxLength: {
+      post: number;
+      comment: number;
+      description: number;
+    };
   };
 
   const c: Config;
