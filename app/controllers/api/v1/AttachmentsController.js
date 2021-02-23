@@ -18,7 +18,8 @@ export default class AttachmentsController {
   create = compose([
     authRequired(),
     async (ctx) => {
-      const { file } = ctx.request.files;
+      // Accept one file-type field with any name
+      const [file] = Object.values(ctx.request.files);
 
       if (!file) {
         throw new BadRequestException('No file provided');
