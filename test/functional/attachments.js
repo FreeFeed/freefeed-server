@@ -64,4 +64,22 @@ describe('Attachments', () => {
       users: [{ id: luna.user.id }],
     });
   });
+
+  it(`should create attachment from any binary form field`, async () => {
+    const data = new FormData();
+    data.append('name', 'john');
+    data.append('attachment[a42]', Buffer.from('this is a test'), {
+      filename: 'test.txt',
+      contentType: 'text/plain',
+    });
+    const resp = await performJSONRequest('POST', '/v1/attachments', data, authHeaders(luna));
+    expect(resp, 'to satisfy', {
+      attachments: {
+        fileName: 'test.txt',
+        mediaType: 'general',
+        fileSize: 'this is a test'.length,
+      },
+      users: [{ id: luna.user.id }],
+    });
+  });
 });
