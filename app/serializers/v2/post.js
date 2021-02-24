@@ -6,7 +6,16 @@ import { userSerializerFunction } from './user';
 
 export function serializeComment(comment) {
   return {
-    ...pick(comment, ['id', 'body', 'createdAt', 'updatedAt', 'hideType', 'likes', 'hasOwnLike']),
+    ...pick(comment, [
+      'id',
+      'body',
+      'createdAt',
+      'updatedAt',
+      'hideType',
+      'likes',
+      'hasOwnLike',
+      'seqNumber',
+    ]),
     createdBy: comment.userId,
   };
 }

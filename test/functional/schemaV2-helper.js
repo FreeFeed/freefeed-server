@@ -100,6 +100,7 @@ const commentBasic = {
   hideType: expect.it('to be greater than or equal to', Comment.VISIBLE),
   likes: expect.it('to be a number'),
   hasOwnLike: expect.it('to be a boolean'),
+  seqNumber: expect.it('to be a number'),
 };
 
 export const comment = (obj) => {

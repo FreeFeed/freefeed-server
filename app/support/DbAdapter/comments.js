@@ -242,6 +242,7 @@ export const COMMENT_FIELDS = {
   user_id: 'userId',
   post_id: 'postId',
   hide_type: 'hideType',
+  seq_number: 'seqNumber',
 };
 
 const COMMENT_FIELDS_MAPPING = {

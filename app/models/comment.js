@@ -23,6 +23,7 @@ export function addModel(dbAdapter) {
     hideType;
     createdAt;
     updatedAt;
+    seqNumber;
 
     static hiddenBody(hideType) {
       switch (hideType) {
@@ -45,6 +46,7 @@ export function addModel(dbAdapter) {
       this.userId = params.userId;
       this.postId = params.postId;
       this.hideType = params.hideType || Comment.VISIBLE;
+      this.seqNumber = params.seqNumber;
 
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;
@@ -100,7 +102,7 @@ export function addModel(dbAdapter) {
 
       this.id = await dbAdapter.createComment(payload);
       const newComment = await dbAdapter.getCommentById(this.id);
-      const fieldsToUpdate = ['createdAt', 'updatedAt'];
+      const fieldsToUpdate = ['createdAt', 'updatedAt', 'seqNumber'];
 
       for (const f of fieldsToUpdate) {
         this[f] = newComment[f];
