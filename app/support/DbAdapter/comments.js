@@ -94,6 +94,15 @@ const commentsTrait = (superClass) =>
         .delete();
     }
 
+    async getPostComments(postId) {
+      const rows = await this.database.getAll(
+        `select * from comments where post_id = :postId order by created_at asc`,
+        { postId },
+      );
+
+      return rows.map(initCommentObject);
+    }
+
     async getPostCommentsCount(postId) {
       const res = await this.database('comments').where({ post_id: postId }).count();
       return parseInt(res[0].count);

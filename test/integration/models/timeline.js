@@ -110,33 +110,6 @@ describe('Timeline', () => {
     });
   });
 
-  describe('#getPosts()', () => {
-    it('should return an empty list for an empty timeline', (done) => {
-      const user = new User({
-        username: 'Luna',
-        password: 'password',
-      });
-
-      user
-        .create()
-        .then((_user) => {
-          const timeline = new Timeline({
-            name: 'name',
-            userId: _user.id,
-          });
-          return timeline.create();
-        })
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.be.empty;
-          done();
-        })
-        .catch((e) => {
-          done(e);
-        });
-    });
-  });
-
   describe('#getSubscribers()', () => {
     let userA, userB;
 

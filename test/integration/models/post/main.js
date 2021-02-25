@@ -533,32 +533,6 @@ describe('Post', () => {
 
       await Promise.all([userA.subscribeTo(userB), userC.subscribeTo(userA)]);
     });
-
-    // TODO: open this test when timeline.getPosts() will be ready for dynamic timelines
-    it(
-      'should add comment to friend of friend timelines' /* , (done) => {
-      const commentAttrs = {
-        body:   'Comment body',
-        postId: post.id
-      }
-
-      const comment = userA.newComment(commentAttrs)
-
-      comment.create()
-        .then(() => userC.getRiverOfNewsTimeline())
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.not.be.empty
-          posts.length.should.eql(1)
-
-          const [newPost] = posts;
-          newPost.should.have.property('id')
-          newPost.id.should.eql(post.id)
-          done()
-        })
-        .catch((e) => { done(e) })
-    }*/,
-    );
   });
 
   describe('#getComments()', () => {
@@ -598,19 +572,6 @@ describe('Post', () => {
         fetchedComments[i].should.have.property('id');
         fetchedComments[i].id.should.eql(comments[i].id);
       }
-    });
-
-    it('should get first and last comments', async () => {
-      post.maxComments = 4;
-
-      const fetchedComments = await post.getComments();
-      fetchedComments.should.not.be.empty;
-      fetchedComments.length.should.eql(4);
-
-      fetchedComments[0].id.should.eql(comments[0].id);
-      fetchedComments[1].id.should.eql(comments[1].id);
-      fetchedComments[2].id.should.eql(comments[2].id);
-      fetchedComments[3].id.should.eql(comments[9].id);
     });
   });
 
