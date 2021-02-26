@@ -94,6 +94,7 @@ export const post = (obj) => {
 
 const commentBasic = {
   id: expect.it('to satisfy', UUID),
+  postId: expect.it('to satisfy', UUID),
   body: expect.it('to be a string'),
   createdAt: expect.it('to satisfy', timeStampString),
   updatedAt: expect.it('to satisfy', timeStampString),
@@ -381,4 +382,10 @@ export const homeFeedsSubscriptionsResponse = {
     }),
   timelines: expect.it('to be an array').and('to have items satisfying', homeFeed),
   users: expect.it('to be an array').and('to have items satisfying', user),
+};
+
+export const getCommentResponse = {
+  comments: expect.it('to satisfy', comment),
+  users: expect.it('to be an array').and('to have items satisfying', user),
+  admins: expect.it('to be an array').and('to have items satisfying', user),
 };

@@ -15,6 +15,7 @@ export function serializeComment(comment) {
       'likes',
       'hasOwnLike',
       'seqNumber',
+      'postId',
     ]),
     createdBy: comment.userId,
   };

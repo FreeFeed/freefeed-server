@@ -48,6 +48,13 @@ const commentsTrait = (superClass) =>
       return initCommentObject(attrs);
     }
 
+    async getCommentBySeqNumber(postId, seqNumber) {
+      const attrs = await this.database('comments')
+        .first()
+        .where({ post_id: postId, seq_number: seqNumber });
+      return initCommentObject(attrs);
+    }
+
     async getCommentsByIds(ids) {
       const responses = await this.database('comments')
         .orderBy('created_at', 'desc')

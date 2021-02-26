@@ -95,6 +95,9 @@ export class DbAdapter {
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getCommentsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
 
+  // Bans
+  getUserBansIds(id: UUID): Promise<UUID[]>;
+
   // Posts
   getPostById(id: UUID): Promise<Post | null>;
   getAdminsOfPostGroups(postId: UUID): Promise<User[]>;
@@ -106,6 +109,7 @@ export class DbAdapter {
   getCommentById(id: UUID): Promise<Comment | null>;
   getCommentsByIds(ids: UUID[]): Promise<Comment[]>;
   getCommentsByIntIds(ids: number[]): Promise<Comment[]>;
+  getCommentBySeqNumber(postId: UUID, seqNumber: number): Promise<Comment | null>;
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
