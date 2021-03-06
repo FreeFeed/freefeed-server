@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expose some server settings via /v2/server-info for the client needs. The new fields are:
   - attachments { fileSizeLimit, maxCountPerPost } 
   - maxTextLength { post, comment, description }.
+- The new `yarn babel` helper script in the package.json. This command is a
+  shortcut for the `babel-node --extensions ".js,.jsx,.ts"` (all extensions used
+  in this project), so one can now run CLI scripts as `yarn babel
+  bin/somescript.js`
 
 ## [1.94.0] - 2021-02-18
 ### Fixed
