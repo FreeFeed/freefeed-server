@@ -24,7 +24,12 @@ import {
   unsavePost,
   performJSONRequest,
   authHeaders,
+  createTestUsers,
+  sendRequestToSubscribe,
+  acceptRequestToSubscribe,
+  banUser,
 } from './functional_test_helper';
+import { postsByIdsResponse } from './schemaV2-helper';
 
 describe('TimelinesControllerV2', () => {
   let app;
@@ -394,6 +399,130 @@ describe('TimelinesControllerV2', () => {
         it('should return post to Luna without isSaved property', async () => {
           const { posts } = await fetchPost(luna.post.id, luna);
           expect(posts, 'not to have key', 'isSaved'); // it is true because of schema
+        });
+      });
+    });
+  });
+
+  describe('Posts by ids', () => {
+    const nPosts = 10;
+    let luna, mars, posts;
+    beforeEach(async () => {
+      [luna, mars] = await createTestUsers(['luna', 'mars']);
+      posts = [];
+
+      for (let n = 0; n < nPosts; n++) {
+        // eslint-disable-next-line no-await-in-loop
+        posts.push(await createAndReturnPost(n % 2 == 0 ? luna : mars, 'post'));
+      }
+    });
+
+    it('should return several posts by ids', async () => {
+      const postIds = posts.slice(0, 3).map((p) => p.id);
+      const resp = await performJSONRequest('POST', '/v2/posts/byIds', { postIds });
+      expect(resp, 'to satisfy', postsByIdsResponse);
+      expect(resp, 'to satisfy', {
+        posts: postIds.map((id) => ({ id })),
+      });
+    });
+
+    it('should return all posts by ids', async () => {
+      const postIds = posts.map((p) => p.id);
+      const resp = await performJSONRequest('POST', '/v2/posts/byIds', { postIds });
+      expect(resp, 'to satisfy', postsByIdsResponse);
+      expect(resp, 'to satisfy', {
+        posts: postIds.map((id) => ({ id })),
+      });
+    });
+
+    it('should return only existing posts by ids', async () => {
+      const postIds = posts.map((p) => p.id);
+      postIds.push('00000000-0000-4000-8000-000000000001');
+      postIds.push('00000000-0000-4000-8000-000000000002');
+      postIds.push('00000000-0000-4000-8000-000000000003');
+      const resp = await performJSONRequest('POST', '/v2/posts/byIds', { postIds });
+      expect(resp, 'to satisfy', postsByIdsResponse);
+      expect(resp, 'to satisfy', {
+        posts: postIds.slice(0, -3).map((id) => ({ id })),
+      });
+    });
+
+    describe('Luna bans Mars', () => {
+      beforeEach(() => banUser(luna, mars));
+
+      it(`should return only Marses posts to Mars`, async () => {
+        const postIds = posts.map((p) => p.id);
+        const resp = await performJSONRequest(
+          'POST',
+          '/v2/posts/byIds',
+          { postIds },
+          authHeaders(mars),
+        );
+        expect(resp, 'to satisfy', postsByIdsResponse);
+        expect(resp, 'to satisfy', {
+          posts: postIds.filter((_, i) => i % 2 === 1).map((id) => ({ id })),
+        });
+      });
+    });
+
+    describe('Luna becomes private', () => {
+      beforeEach(() => goPrivate(luna));
+
+      it(`should return only Marses posts to anonymous users`, async () => {
+        const postIds = posts.map((p) => p.id);
+        const resp = await performJSONRequest('POST', '/v2/posts/byIds', { postIds });
+        expect(resp, 'to satisfy', postsByIdsResponse);
+        expect(resp, 'to satisfy', {
+          posts: postIds.filter((_, i) => i % 2 === 1).map((id) => ({ id })),
+        });
+      });
+
+      it(`should return only Marses posts to Mars`, async () => {
+        const postIds = posts.map((p) => p.id);
+        const resp = await performJSONRequest(
+          'POST',
+          '/v2/posts/byIds',
+          { postIds },
+          authHeaders(mars),
+        );
+        expect(resp, 'to satisfy', postsByIdsResponse);
+        expect(resp, 'to satisfy', {
+          posts: postIds.filter((_, i) => i % 2 === 1).map((id) => ({ id })),
+        });
+      });
+
+      it(`should return all posts to Luna`, async () => {
+        const postIds = posts.map((p) => p.id);
+        const resp = await performJSONRequest(
+          'POST',
+          '/v2/posts/byIds',
+          { postIds },
+          authHeaders(luna),
+        );
+        expect(resp, 'to satisfy', postsByIdsResponse);
+        expect(resp, 'to satisfy', {
+          posts: postIds.map((id) => ({ id })),
+        });
+      });
+
+      describe('Mars subscribed to Luna', () => {
+        beforeEach(async () => {
+          await sendRequestToSubscribe(mars, luna);
+          await acceptRequestToSubscribe(mars, luna);
+        });
+
+        it(`should return all posts to Mars`, async () => {
+          const postIds = posts.map((p) => p.id);
+          const resp = await performJSONRequest(
+            'POST',
+            '/v2/posts/byIds',
+            { postIds },
+            authHeaders(mars),
+          );
+          expect(resp, 'to satisfy', postsByIdsResponse);
+          expect(resp, 'to satisfy', {
+            posts: postIds.map((id) => ({ id })),
+          });
         });
       });
     });

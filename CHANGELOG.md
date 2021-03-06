@@ -36,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - When the last comment is deleted, the `max(seqNumber)` is decreased, because
     the last comment always has the maximum number. So next added comment will
     have the same number as the deleted.
+- The new API methods:
+  - `GET /v1/comments/:commentId` returns comment by its ID;
+  - `GET /v2/posts/:postId/comments/:seqNumber` returns comment by its
+    `seqNumber` in the given post;
+  - `POST /v2/posts/byIds` returns posts by their IDs. It uses the POST method
+    because it can accept many post IDs (up to 100 at once). The POST body
+    format is `{ "postIds": [...] }`. The output schema is the same as in other
+    post-collections methods (like `GET /v2/everything`), but it has an
+    additional `postsNotFound` field with those post IDs that were not found.
+    This method accepts `maxComments=all` and `maxLikes=all` get parameters.
 
 ## [1.94.0] - 2021-02-18
 ### Fixed

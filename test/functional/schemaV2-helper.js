@@ -240,6 +240,17 @@ export const everythingResponse = {
   admins: expect.it('to be an array').and('to be empty'),
 };
 
+export const postsByIdsResponse = {
+  ...timelineResponse,
+  admins: expect.it('to be an array').and('to be empty'),
+  postsNotFound: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', UUID),
+  timelines: undefined,
+  isLastPage: undefined,
+};
+
 export const allGroupsResponse = {
   withProtected: expect.it('to be a boolean'),
   groups: expect

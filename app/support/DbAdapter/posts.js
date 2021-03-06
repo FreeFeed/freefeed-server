@@ -5,7 +5,7 @@ import pgFormat from 'pg-format';
 import { Post } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
 
-import { initObject, prepareModelPayload, sqlNotIn } from './utils';
+import { andJoin, initObject, orJoin, prepareModelPayload, sqlIntarrayIn, sqlNotIn } from './utils';
 
 ///////////////////////////////////////////////////
 // Posts
@@ -177,7 +177,7 @@ const postsTrait = (superClass) =>
     /**
      * Returns integer ids of private feeds that user can view
      * @param {String} userId   - UID of user
-     * @return {Array.<Number>} - ids of feeds
+     * @return {Promise<Number[]>} - ids of feeds
      */
     async getVisiblePrivateFeedIntIds(userId) {
       const sql = `
@@ -192,6 +192,43 @@ const postsTrait = (superClass) =>
 
       const { rows } = await this.database.raw(sql, { userId });
       return _.map(rows, 'id');
+    }
+
+    /**
+     * Return post ids (from postIds) visible by the given user. The order of
+     * ids is preserved.
+     * @param {string[]} postIds
+     * @param {string} userId
+     * @return {Promise<string[]>}
+     */
+    async selectPostsVisibleByUser(postIds, viewerId = null) {
+      const bannedUsersIds = viewerId ? await this.getUsersBansOrWasBannedBy(viewerId) : [];
+      const visiblePrivateFeedIntIds = viewerId
+        ? await this.getVisiblePrivateFeedIntIds(viewerId)
+        : [];
+
+      const restrictionsSQL = andJoin([
+        // Privacy
+        viewerId
+          ? orJoin([
+              'not p.is_private',
+              sqlIntarrayIn('p.destination_feed_ids', visiblePrivateFeedIntIds),
+            ])
+          : 'not p.is_protected',
+        // Bans
+        sqlNotIn('p.user_id', bannedUsersIds),
+        // Gone post's authors
+        'u.gone_status is null',
+      ]);
+
+      return this.database.getCol(
+        `select p.uid from
+          unnest(:postIds::uuid[]) with ordinality as src (uid, ord)
+          join posts p on src.uid = p.uid
+          join users u on p.user_id = u.uid
+        where ${restrictionsSQL} order by src.ord`,
+        { postIds },
+      );
     }
 
     async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {

@@ -93,7 +93,7 @@ export async function serializeFeed(
     likes,
     omittedComments,
     omittedLikes,
-  } of postsWithStuff) {
+  } of postsWithStuff.filter(Boolean)) {
     const sPost = {
       ...serializePostData(post),
       postedTo: destinations.map((d) => d.id),
