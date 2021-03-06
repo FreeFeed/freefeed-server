@@ -168,7 +168,11 @@ export function addModel(dbAdapter) {
     async destroy(destroyedBy = null) {
       const post = await this.getPost();
       const realtimeRooms = await getRoomsOfPost(post);
-      await dbAdapter.deleteComment(this.id, this.postId);
+      const deleted = await dbAdapter.deleteComment(this.id, this.postId);
+
+      if (!deleted) {
+        return false;
+      }
 
       if (this.userId) {
         await dbAdapter.withdrawPostFromCommentsFeedIfNoMoreComments(this.postId, this.userId);
@@ -179,6 +183,8 @@ export function addModel(dbAdapter) {
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
         destroyedBy ? EventService.onCommentDestroyed(this, destroyedBy) : null,
       ]);
+
+      return true;
     }
 
     getCreatedBy() {

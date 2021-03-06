@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shortcut for the `babel-node --extensions ".js,.jsx,.ts"` (all extensions used
   in this project), so one can now run CLI scripts as `yarn babel
   bin/somescript.js`
+- The comment numbers in API output. Each comment now has the `seqNumber` field
+  which is a sequence number of the comment in the post. Some rules on numbering:
+  - The first comment has number 1.
+  - Every new comment gets a number of `max(seqNumber) + 1`. 
+  - When a comment is deleted, the numbers of other comments are not changed. It
+    allows to detect the comments deletion by holes in the numeration.
+  - When the last comment is deleted, the `max(seqNumber)` is decreased, because
+    the last comment always has the maximum number. So next added comment will
+    have the same number as the deleted.
 
 ## [1.94.0] - 2021-02-18
 ### Fixed

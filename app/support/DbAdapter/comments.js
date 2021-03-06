@@ -22,8 +22,21 @@ const commentsTrait = (superClass) =>
         // https://github.com/knex/knex/issues/2622
         toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
       );
-      const res = await this.database('comments').returning('uid').insert(preparedPayload);
-      return res[0];
+
+      return await this.database.transaction(async (trx) => {
+        // Lock posts row, it prevents other comments adding/deletion
+        await trx.raw(`select 1 from posts where uid = :postId for no key update`, payload);
+
+        const maxCommentNumber = await trx.getOne(
+          `select seq_number from comments where post_id = :postId order by created_at desc limit 1`,
+          payload,
+        );
+
+        preparedPayload.seq_number = (maxCommentNumber || 0) + 1;
+
+        const [res] = await trx('comments').returning('uid').insert(preparedPayload);
+        return res;
+      });
     }
 
     async getCommentById(id) {
@@ -86,12 +99,17 @@ const commentsTrait = (superClass) =>
     }
 
     deleteComment(commentId, postId) {
-      return this.database('comments')
-        .where({
-          uid: commentId,
-          post_id: postId,
-        })
-        .delete();
+      return this.database.transaction(async (trx) => {
+        // Lock posts row, it prevents other comments adding/deletion
+        await trx.raw(`select 1 from posts where uid = :postId for no key update`, { postId });
+
+        const deleted = await trx.getOne(
+          `delete from comments where uid = :commentId and post_id = :postId returning true`,
+          { commentId, postId },
+        );
+
+        return deleted;
+      });
     }
 
     async getPostComments(postId) {
