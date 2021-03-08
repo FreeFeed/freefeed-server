@@ -272,15 +272,25 @@ const notificationTemplates = {
 };
 
 function makeUserLink(user) {
-  return `<a href="${config.host}/${user.username}" style="color:#555599;">@${user.username}</a>`;
+  return user
+    ? `<a href="${config.host}/${user.username}" style="color:#555599;">@${user.username}</a>`
+    : 'unknown user';
 }
 
 function makePostLink(postId, postAuthor, isDirect = false) {
+  if (!postId || !postAuthor) {
+    return `deleted ${isDirect ? 'direct message' : 'post'}`;
+  }
+
   const postLink = `${config.host}/${postAuthor.username}/${postId}`;
   return `<a href="${postLink}" style="color:#555599;">${isDirect ? 'direct message' : 'post'}</a>`;
 }
 
 function makeCommentLink(postId, commentId, postAuthor, linkText) {
+  if (!postId || !postAuthor || !commentId) {
+    return `${linkText} (deleted)`;
+  }
+
   const postLink = `${config.host}/${postAuthor.username}/${postId}#comment-${commentId}`;
   return `<a href="${postLink}" style="color:#555599;">${linkText}</a>`;
 }
