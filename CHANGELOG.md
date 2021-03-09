@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.95.0] - Not Released
 
+## [1.94.2] - 2021-03-09
+### Fixed
+- Handle deleted posts/comments/users in the notification emails
+
 ## [1.94.1] - 2021-02-24
 ### Fixed
 - The 'create attachment'  method now accepts any name for the file in form
