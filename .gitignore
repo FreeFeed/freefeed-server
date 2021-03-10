@@ -19,6 +19,7 @@ public/files/*
 tmp/*
 /conf/envLocal.js
 coverage
+/.nyc_output
 
 /.idea
 /public/config/envLocal.js
