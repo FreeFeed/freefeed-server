@@ -1767,10 +1767,9 @@ clone@^1.0.2:
   resolved "https://registry.yarnpkg.com/clone/-/clone-1.0.4.tgz#da309cc263df15994c688ca902179ca3c7cd7c7e"
   integrity sha1-2jCcwmPfFZlMaIypAheco8fNfH4=
 
-cluster-key-slot@^1.1.0:
+cluster-key-slot@^1.1.0, cluster-key-slot@invertase/cluster-key-slot#b9e8fb289196e37fab54952a2cc9cc0ec62eb9c7:
   version "1.1.0"
-  resolved "https://registry.yarnpkg.com/cluster-key-slot/-/cluster-key-slot-1.1.0.tgz#30474b2a981fb12172695833052bc0d01336d10d"
-  integrity sha512-2Nii8p3RwAPiFwsnZvukotvow2rIHM+yQ6ZcBXGHdniadkYGZYiGmkHJIbZPIV9nfv7m/U1IPMVVcAhoWFeklw==
+  resolved "https://codeload.github.com/invertase/cluster-key-slot/tar.gz/b9e8fb289196e37fab54952a2cc9cc0ec62eb9c7"
 
 co-body@^5.1.1:
   version "5.2.0"

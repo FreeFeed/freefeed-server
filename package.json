@@ -168,5 +168,8 @@
     "unexpected-moment": "~3.3.0",
     "unexpected-sinon": "~10.11.2",
     "xml-parser": "~1.2.1"
+  },
+  "resolutions": {
+    "cluster-key-slot": "invertase/cluster-key-slot#b9e8fb289196e37fab54952a2cc9cc0ec62eb9c7"
   }
 }
