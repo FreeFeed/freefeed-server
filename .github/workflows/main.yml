@@ -23,4 +23,32 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: freefeed/freefeed-server
         tag_with_ref: true
-        tags: latest
+
+  deploy:
+    needs: build
+    name: Trigger deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Deploy stable
+      if: github.ref == 'refs/heads/stable'
+      uses: satak/webrequest-action@v1.2.3
+      with:
+        url: "https://webhook.freefeed.net/${{ secrets.WEBHOOK_SECRET }}/server/stable?version=stable"
+        method: GET
+
+    - name: Get release version
+      if: startsWith(github.ref, 'refs/tags/freefeed_release')
+      shell: bash
+      run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+      id: version
+      env:
+        GITHUB_REF: ${{ github.ref }}
+
+    - name: Deploy release
+      if: startsWith(github.ref, 'refs/tags/freefeed_release')
+      uses: satak/webrequest-action@v1.2.3
+      with:
+        url: "https://webhook.freefeed.net/${{ secrets.WEBHOOK_SECRET }}/server/release?version=${{ steps.version.outputs.tag }}"
+        method: GET
+
