@@ -489,7 +489,7 @@ export default class UsersController {
       }
 
       const success = await subscriber.subscribeTo(targetUser, {
-        homeFeedIds: ctx.request.body.homeFeeds,
+        homeFeedIds: ctx.request.body.homeFeeds || [],
       });
 
       if (!success) {
