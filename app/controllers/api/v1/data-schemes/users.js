@@ -41,7 +41,6 @@ export const userSubscribeInputSchema = {
 
   type: 'object',
   required: ['homeFeeds'],
-  default: { homeFeeds: [] },
 
   properties: {
     homeFeeds: {
