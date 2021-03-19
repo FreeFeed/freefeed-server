@@ -115,6 +115,7 @@ export const appTokensScopes = [
     title: 'Manage notifications',
     routes: [
       'GET /v2/notifications',
+      'GET /v2/notifications/:notifId',
       'POST /v2/users/markAllNotificationsAsRead',
       'GET /v2/users/getUnreadNotificationsNumber',
     ],

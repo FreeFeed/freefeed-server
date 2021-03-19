@@ -7,6 +7,7 @@ import { getSingleton } from '../../app/app';
 import { PubSub, dbAdapter } from '../../app/models';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import { EVENT_TYPES } from '../../app/support/EventTypes';
 import {
   acceptRequestAsync,
   acceptRequestToJoinGroup,
@@ -40,6 +41,8 @@ import {
   updatePostAsync,
   getUnreadDirectsNumber,
   createAndReturnPost,
+  performJSONRequest,
+  authHeaders,
 } from '../functional/functional_test_helper';
 
 import * as schema from './schemaV2-helper';
@@ -2837,5 +2840,70 @@ describe('Unread events counter realtime updates for ', () => {
         },
       });
     });
+  });
+});
+
+describe('eventById', () => {
+  before(() => {
+    PubSub.setPublisher(new DummyPublisher());
+  });
+
+  let luna, mars;
+
+  beforeEach(async () => {
+    await cleanDB($pg_database);
+    [luna, mars] = await Promise.all([
+      createUserAsync('luna', 'pw'),
+      createUserAsync('mars', 'pw'),
+    ]);
+    // To create some records in events history
+    await mutualSubscriptions([luna, mars]);
+  });
+
+  const getEventIdByType = async (userCtx, eventType) => {
+    // All events
+    const { Notifications: events } = await performJSONRequest(
+      'GET',
+      '/v2/notifications',
+      null,
+      authHeaders(userCtx),
+    );
+
+    const eventId = events.find((e) => e.event_type === eventType)?.eventId;
+    expect(eventId, 'to satisfy', schema.UUID);
+    return eventId;
+  };
+
+  it(`should return Luna's mention of Mars`, async () => {
+    await createAndReturnPost(luna, 'Hello @mars');
+
+    const eventId = await getEventIdByType(mars, EVENT_TYPES.MENTION_IN_POST);
+
+    const resp = await performJSONRequest(
+      'GET',
+      `/v2/notifications/${eventId}`,
+      null,
+      authHeaders(mars),
+    );
+
+    expect(resp, 'to satisfy', {
+      __httpCode: 200,
+      Notifications: [{ eventId }],
+    });
+  });
+
+  it(`should not return Luna's mention of Mars to Luna`, async () => {
+    await createAndReturnPost(luna, 'Hello @mars');
+
+    const eventId = await getEventIdByType(mars, EVENT_TYPES.MENTION_IN_POST);
+
+    const resp = await performJSONRequest(
+      'GET',
+      `/v2/notifications/${eventId}`,
+      null,
+      authHeaders(luna),
+    );
+
+    expect(resp, 'to satisfy', { __httpCode: 404 });
   });
 });
