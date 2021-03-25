@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.95.0] - Not Released
+
+**WARNING:** this version requires you to run manual migration script. It might run
+for tens of minutes (depending on the size of database and your server's hardware
+specs).
+
+`yarn babel bin/migration_comment_numbers.js`
+
 ### Added
 - New API method `GET /v2/notifications/:notifId` allows to fetch single
   notification by its id.
