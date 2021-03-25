@@ -1,13 +1,15 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import request from 'superagent';
+import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { Comment, PubSub } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
+import { getCommentResponse } from './schemaV2-helper';
 
 describe('CommentsController', () => {
   let app;
@@ -320,6 +322,248 @@ describe('CommentsController', () => {
     it('should not remove comment if anonymous', async () => {
       const response = await funcTestHelper.removeCommentAsync({}, lunaPostLunaComment);
       response.status.should.eql(401);
+    });
+  });
+
+  describe('get by id or number', () => {
+    let luna, mars, venus, postId, commentIds;
+    beforeEach(async () => {
+      [luna, mars, venus] = await funcTestHelper.createTestUsers(['luna', 'mars', 'venus']);
+      ({ id: postId } = await funcTestHelper.createAndReturnPost(luna, 'post'));
+      commentIds = [];
+
+      for (let i = 0; i < 3; i++) {
+        // eslint-disable-next-line no-await-in-loop
+        const resp = await funcTestHelper.createCommentAsync(
+          [luna, mars, luna][i],
+          postId,
+          `Comment ${i + 1}`,
+        );
+        // eslint-disable-next-line no-await-in-loop
+        const data = await resp.json();
+        commentIds.push(data.comments.id);
+      }
+    });
+
+    describe('comment by id', () => {
+      it('should not return comment by invalid id', async () => {
+        const resp = await funcTestHelper.performJSONRequest('GET', `/v1/comments/${postId}`);
+        expect(resp.__httpCode, 'to be', 404);
+      });
+
+      it('should return public comment by id to anonymous', async () => {
+        const resp = await funcTestHelper.performJSONRequest(
+          'GET',
+          `/v1/comments/${commentIds[0]}`,
+        );
+        expect(resp, 'to satisfy', getCommentResponse);
+        expect(resp, 'to satisfy', {
+          __httpCode: 200,
+          comments: { id: commentIds[0] },
+        });
+      });
+
+      describe('Luna became private', () => {
+        beforeEach(() => funcTestHelper.goPrivate(luna));
+
+        it('should not return comment by id to anonymous', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[0]}`,
+          );
+          expect(resp.__httpCode, 'to be', 403);
+        });
+
+        it('should not return comment by id to Mars', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[0]}`,
+            undefined,
+            funcTestHelper.authHeaders(mars),
+          );
+          expect(resp.__httpCode, 'to be', 403);
+        });
+
+        it('should return comment by id to Luna', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[0]}`,
+            undefined,
+            funcTestHelper.authHeaders(luna),
+          );
+          expect(resp.__httpCode, 'to be', 200);
+        });
+      });
+
+      describe('Luna bans Mars', () => {
+        beforeEach(() => funcTestHelper.banUser(luna, mars));
+
+        it('should return comment by id to anonymous', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[0]}`,
+          );
+          expect(resp.__httpCode, 'to be', 200);
+        });
+
+        it('should not return comment by id to Mars', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[0]}`,
+            undefined,
+            funcTestHelper.authHeaders(mars),
+          );
+          expect(resp.__httpCode, 'to be', 403);
+        });
+
+        it('should return comment by id to Luna', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[0]}`,
+            undefined,
+            funcTestHelper.authHeaders(luna),
+          );
+          expect(resp.__httpCode, 'to be', 200);
+        });
+      });
+
+      describe('Venus bans Mars', () => {
+        beforeEach(() => funcTestHelper.banUser(venus, mars));
+
+        it('should return hidden Marses comment by id to Venus', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v1/comments/${commentIds[1]}`,
+            undefined,
+            funcTestHelper.authHeaders(venus),
+          );
+          expect(resp, 'to satisfy', {
+            __httpCode: 200,
+            comments: {
+              id: commentIds[1],
+              body: Comment.hiddenBody(Comment.HIDDEN_BANNED),
+              hideType: Comment.HIDDEN_BANNED,
+              createdBy: null,
+            },
+          });
+        });
+      });
+    });
+
+    describe('comment by number', () => {
+      it('should not return comment by invalid post id', async () => {
+        const resp = await funcTestHelper.performJSONRequest(
+          'GET',
+          `/v2/posts/${commentIds[0]}/comments/1`,
+        );
+        expect(resp.__httpCode, 'to be', 404);
+      });
+
+      it('should not return comment by invalid comment number', async () => {
+        const resp = await funcTestHelper.performJSONRequest(
+          'GET',
+          `/v2/posts/${postId}/comments/137`,
+        );
+        expect(resp.__httpCode, 'to be', 404);
+      });
+
+      it('should return public comment by id to anonymous', async () => {
+        const resp = await funcTestHelper.performJSONRequest(
+          'GET',
+          `/v2/posts/${postId}/comments/1`,
+        );
+        expect(resp, 'to satisfy', getCommentResponse);
+        expect(resp, 'to satisfy', {
+          __httpCode: 200,
+          comments: { id: commentIds[0] },
+        });
+      });
+
+      describe('Luna became private', () => {
+        beforeEach(() => funcTestHelper.goPrivate(luna));
+
+        it('should not return comment by id to anonymous', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/1`,
+          );
+          expect(resp.__httpCode, 'to be', 403);
+        });
+
+        it('should not return comment by id to Mars', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/1`,
+            undefined,
+            funcTestHelper.authHeaders(mars),
+          );
+          expect(resp.__httpCode, 'to be', 403);
+        });
+
+        it('should return comment by id to Luna', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/1`,
+            undefined,
+            funcTestHelper.authHeaders(luna),
+          );
+          expect(resp.__httpCode, 'to be', 200);
+        });
+      });
+
+      describe('Luna bans Mars', () => {
+        beforeEach(() => funcTestHelper.banUser(luna, mars));
+
+        it('should return comment by id to anonymous', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/1`,
+          );
+          expect(resp.__httpCode, 'to be', 200);
+        });
+
+        it('should not return comment by id to Mars', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/1`,
+            undefined,
+            funcTestHelper.authHeaders(mars),
+          );
+          expect(resp.__httpCode, 'to be', 403);
+        });
+
+        it('should return comment by id to Luna', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/1`,
+            undefined,
+            funcTestHelper.authHeaders(luna),
+          );
+          expect(resp.__httpCode, 'to be', 200);
+        });
+      });
+
+      describe('Venus bans Mars', () => {
+        beforeEach(() => funcTestHelper.banUser(venus, mars));
+
+        it('should return hidden Marses comment by id to Venus', async () => {
+          const resp = await funcTestHelper.performJSONRequest(
+            'GET',
+            `/v2/posts/${postId}/comments/2`,
+            undefined,
+            funcTestHelper.authHeaders(venus),
+          );
+          expect(resp, 'to satisfy', {
+            __httpCode: 200,
+            comments: {
+              id: commentIds[1],
+              body: Comment.hiddenBody(Comment.HIDDEN_BANNED),
+              hideType: Comment.HIDDEN_BANNED,
+              createdBy: null,
+            },
+          });
+        });
+      });
     });
   });
 });

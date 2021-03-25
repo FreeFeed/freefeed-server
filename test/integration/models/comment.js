@@ -1,5 +1,6 @@
 /* eslint-env node, mocha */
 /* global $pg_database, $should */
+import expect from 'unexpected';
 import { isNull } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
@@ -232,6 +233,93 @@ describe('Comment', () => {
 
       comments = await post.getComments();
       comments.should.be.empty;
+    });
+  });
+
+  describe('Comment numbers', () => {
+    let userA, post;
+
+    before(async () => {
+      userA = new User({
+        username: 'Luna',
+        password: 'password',
+      });
+
+      await userA.create();
+
+      const postAttrs = { body: 'Post body' };
+      post = await userA.newPost(postAttrs);
+      await post.create();
+    });
+
+    after(async () => {
+      await dbAdapter.deleteUser(userA.id); // comment will be destroyed recursively
+      userA = post = null;
+    });
+
+    it(`should create first comment with number 1`, async () => {
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 1);
+      expect(await post.getComments(), 'to have length', 1);
+    });
+
+    it(`should create second comment with number 2`, async () => {
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 2);
+      expect(await post.getComments(), 'to have length', 2);
+    });
+
+    it(`should remove first comment`, async () => {
+      const [firstComment] = await dbAdapter.getPostComments(post.id);
+      const deleted = await firstComment.destroy();
+      expect(deleted, 'to be', true);
+      expect(await post.getComments(), 'to have length', 1);
+    });
+
+    it(`should create next comment with number 3`, async () => {
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 3);
+      expect(await post.getComments(), 'to have length', 2);
+    });
+
+    it(`should create next comment with number 4`, async () => {
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 4);
+      expect(await post.getComments(), 'to have length', 3);
+    });
+
+    it(`should remove last comment`, async () => {
+      const comments = await dbAdapter.getPostComments(post.id);
+      const deleted = await comments.pop().destroy();
+      expect(deleted, 'to be', true);
+      expect(await post.getComments(), 'to have length', 2);
+    });
+
+    it(`should create next comment with number 4 again`, async () => {
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 4);
+      expect(await post.getComments(), 'to have length', 3);
+    });
+
+    it(`should remove all comments and create a new comment with number 1`, async () => {
+      let comments = await dbAdapter.getPostComments(post.id);
+      await Promise.all(comments.map((c) => c.destroy()));
+
+      comments = await dbAdapter.getPostComments(post.id);
+      expect(comments, 'to be empty');
+      expect(await post.getComments(), 'to have length', 0);
+    });
+
+    it(`should create a new comment with number 1`, async () => {
+      const comment = await userA.newComment({ body: 'Comment body', postId: post.id });
+      await comment.create();
+      expect(comment.seqNumber, 'to be', 1);
+      expect(await post.getComments(), 'to have length', 1);
     });
   });
 });

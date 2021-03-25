@@ -582,53 +582,8 @@ export function addModel(dbAdapter) {
       await pubSub.updateGroupTimes(timelineOwnersIds);
     }
 
-    async getOmittedComments() {
-      let length = this.commentsCount;
-
-      if (length == null) {
-        length = await dbAdapter.getPostCommentsCount(this.id);
-      }
-
-      if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
-        this.omittedComments = length - this.maxComments;
-        return this.omittedComments;
-      }
-
-      return 0;
-    }
-
-    async getPostComments() {
-      const comments = await dbAdapter.getAllPostCommentsWithoutBannedUsers(
-        this.id,
-        this.currentUser,
-      );
-      const commentsIds = comments.map((cmt) => {
-        return cmt.id;
-      });
-
-      const { length } = comments;
-      let visibleCommentsIds = commentsIds;
-      let visibleComments = comments;
-
-      if (length > this.maxComments && length > 3 && this.maxComments != 'all') {
-        const firstNCommentIds = commentsIds.slice(0, this.maxComments - 1);
-        const firstNComments = comments.slice(0, this.maxComments - 1);
-        const lastCommentId = _.last(commentsIds);
-        const lastComment = _.last(comments);
-
-        this.omittedComments = length - this.maxComments;
-        visibleCommentsIds = firstNCommentIds.concat(lastCommentId);
-        visibleComments = firstNComments.concat(lastComment);
-      }
-
-      this.commentIds = visibleCommentsIds;
-      return visibleComments;
-    }
-
-    async getComments() {
-      this.comments = await this.getPostComments();
-
-      return this.comments;
+    getComments() {
+      return dbAdapter.getPostComments(this.id);
     }
 
     async linkAttachments(attachmentList) {

@@ -94,12 +94,14 @@ export const post = (obj) => {
 
 const commentBasic = {
   id: expect.it('to satisfy', UUID),
+  postId: expect.it('to satisfy', UUID),
   body: expect.it('to be a string'),
   createdAt: expect.it('to satisfy', timeStampString),
   updatedAt: expect.it('to satisfy', timeStampString),
   hideType: expect.it('to be greater than or equal to', Comment.VISIBLE),
   likes: expect.it('to be a number'),
   hasOwnLike: expect.it('to be a boolean'),
+  seqNumber: expect.it('to be a number'),
 };
 
 export const comment = (obj) => {
@@ -236,6 +238,17 @@ export const everythingResponse = {
   ...timelineResponse,
   timelines: expect.it('to be null'),
   admins: expect.it('to be an array').and('to be empty'),
+};
+
+export const postsByIdsResponse = {
+  ...timelineResponse,
+  admins: expect.it('to be an array').and('to be empty'),
+  postsNotFound: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', UUID),
+  timelines: undefined,
+  isLastPage: undefined,
 };
 
 export const allGroupsResponse = {
@@ -380,4 +393,10 @@ export const homeFeedsSubscriptionsResponse = {
     }),
   timelines: expect.it('to be an array').and('to have items satisfying', homeFeed),
   users: expect.it('to be an array').and('to have items satisfying', user),
+};
+
+export const getCommentResponse = {
+  comments: expect.it('to satisfy', comment),
+  users: expect.it('to be an array').and('to have items satisfying', user),
+  admins: expect.it('to be an array').and('to have items satisfying', user),
 };

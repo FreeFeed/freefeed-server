@@ -7,7 +7,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '../../../support/exceptions';
-import { serializeComment } from '../../../serializers/v2/comment';
+import { serializeComment, serializeCommentForRealtime } from '../../../serializers/v2/comment';
 import {
   authRequired,
   inputSchemaRequired,
@@ -131,3 +131,68 @@ export const destroy = compose([
     ctx.body = {};
   },
 ]);
+
+export async function getById(ctx) {
+  const { user } = ctx.state;
+  const { commentId } = ctx.params;
+
+  const comment = await dbAdapter.getCommentById(commentId);
+
+  if (!comment) {
+    throw new NotFoundException('Comment not found');
+  }
+
+  const post = await dbAdapter.getPostById(comment.postId);
+
+  if (!post) {
+    // Should not be possible
+    throw new NotFoundException('Comment not found');
+  }
+
+  const isPostVisible = await post.isVisibleFor(user);
+
+  if (!isPostVisible) {
+    throw new ForbiddenException('You can not see this comment');
+  }
+
+  const viewerBans = user ? await dbAdapter.getUserBansIds(user.id) : [];
+
+  const sComment = await serializeCommentForRealtime(comment);
+
+  if (viewerBans.includes(comment.userId)) {
+    sComment.comments.likes = 0;
+    sComment.comments.hasOwnLike = false;
+
+    sComment.comments.hideType = Comment.HIDDEN_BANNED;
+    sComment.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+    sComment.comments.createdBy = null;
+    sComment.users = sComment.users.filter((u) => u.id !== comment.userId);
+    sComment.admins = sComment.admins.filter((u) => u.id !== comment.userId);
+  } else {
+    const [
+      commentLikesData = { c_likes: 0, has_own_like: false },
+    ] = await dbAdapter.getLikesInfoForComments([comment.id], user?.id);
+    sComment.comments.likes = parseInt(commentLikesData.c_likes);
+    sComment.comments.hasOwnLike = commentLikesData.has_own_like;
+  }
+
+  ctx.body = sComment;
+}
+
+export async function getBySeqNumber(ctx) {
+  const { postId, seqNumber } = ctx.params;
+
+  const number = Number.parseInt(seqNumber, 10);
+  const comment = await dbAdapter.getCommentBySeqNumber(
+    postId,
+    Number.isFinite(number) ? number : -1,
+  );
+
+  if (!comment) {
+    throw new NotFoundException('Comment not found');
+  }
+
+  ctx.params.commentId = comment.id;
+
+  await getById(ctx);
+}
