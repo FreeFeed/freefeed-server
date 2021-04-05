@@ -39,6 +39,8 @@ specs).
       post-collections methods (like `GET /v2/everything`), but it has an
       additional `postsNotFound` field with those post IDs that were not found.
       This method accepts `maxComments=all` and `maxLikes=all` get parameters.
+- WebP attachments support. The uploaded WebP originals are kept unchanged, but
+  have JPEG thumbnails for better compatibility with older browsers.
 
 ## [1.94.2] - 2021-03-09
 ### Fixed

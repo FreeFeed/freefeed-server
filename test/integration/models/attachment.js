@@ -83,6 +83,12 @@ describe('Attachment', () => {
         name: 'sample',
         type: 'audio/mpeg',
       },
+      webp: {
+        size: 18840,
+        path: '/tmp/upload_12345678901234567890123456789012_10',
+        name: 'test-image-webp.webp',
+        type: 'image/webp',
+      },
     };
 
     const createdAttachments = new Map();
@@ -172,6 +178,7 @@ describe('Attachment', () => {
         'test-image-animated.gif': '7',
         'sample.mp3': '8',
         sample: '9',
+        'test-image-webp.webp': '10',
       };
 
       const srcPrefix = path.resolve(__dirname, '../../fixtures');
@@ -361,6 +368,27 @@ describe('Attachment', () => {
           w: 691,
           h: 350,
           url: `${config.attachments.url}${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+        },
+      });
+    });
+
+    it('should create a webp attachment', async () => {
+      const newAttachment = await createAndCheckAttachment(files.webp, post, user);
+
+      newAttachment.should.have.a.property('noThumbnail');
+      newAttachment.noThumbnail.should.be.equal('0');
+
+      newAttachment.should.have.property('imageSizes');
+      newAttachment.imageSizes.should.be.deep.equal({
+        o: {
+          w: 400,
+          h: 301,
+          url: `${config.attachments.url}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+        },
+        t: {
+          w: 233,
+          h: 175,
+          url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.jpg`,
         },
       });
     });
