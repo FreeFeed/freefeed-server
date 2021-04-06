@@ -206,7 +206,9 @@ export function addModel(dbAdapter) {
     // Get public URL of resized image attachment
     getResizedImageUrl(sizeId) {
       return (
-        config.attachments.url + config.attachments.imageSizes[sizeId].path + this.getFilename()
+        config.attachments.url +
+        config.attachments.imageSizes[sizeId].path +
+        this.getFilename(this.getResizedImageExtension())
       );
     }
 
@@ -215,19 +217,23 @@ export function addModel(dbAdapter) {
       return config.attachments.storage.rootDir + config.attachments.path + this.getFilename();
     }
 
+    getResizedImageExtension() {
+      return this.fileExtension === 'webp' ? 'jpg' : this.fileExtension;
+    }
+
     // Get local filesystem path for resized image file
     getResizedImagePath(sizeId) {
       return (
         config.attachments.storage.rootDir +
         config.attachments.imageSizes[sizeId].path +
-        this.getFilename()
+        this.getFilename(this.getResizedImageExtension())
       );
     }
 
     // Get file name
-    getFilename() {
-      if (this.fileExtension) {
-        return `${this.id}.${this.fileExtension}`;
+    getFilename(ext = null) {
+      if (ext || this.fileExtension) {
+        return `${this.id}.${ext || this.fileExtension}`;
       }
 
       return this.id;
@@ -242,6 +248,7 @@ export function addModel(dbAdapter) {
         'image/jpeg': 'jpg',
         'image/png': 'png',
         'image/gif': 'gif',
+        'image/webp': 'webp',
         'image/svg+xml': 'svg',
       };
       const supportedAudioTypes = {
@@ -396,7 +403,11 @@ export function addModel(dbAdapter) {
             .resizeExact(w, h)
             .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
             .autoOrient()
+            // Use white background for transparent images
+            .background('white')
+            .extent('0x0')
             .quality(95)
+            .setFormat(this.getResizedImageExtension())
             .writeAsync(tmpResizedFile(sizeId));
         }
       }
