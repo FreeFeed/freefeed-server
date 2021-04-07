@@ -91,6 +91,8 @@ export function addModel(dbAdapter) {
       if (parseInt(params.updatedAt, 10)) {
         this.updatedAt = params.updatedAt;
       }
+
+      this.s3 = config.attachments.storage.type === 's3' ? getS3(config.attachments.storage) : null;
     }
 
     get imageSizes() {
@@ -303,7 +305,7 @@ export function addModel(dbAdapter) {
       }
 
       // Store an original attachment
-      if (config.attachments.storage.type === 's3') {
+      if (this.s3) {
         await this.uploadToS3(
           tmpAttachmentFile,
           config.attachments.path + this.getFilename(),
@@ -422,7 +424,7 @@ export function addModel(dbAdapter) {
       }
 
       // Save image (permanently)
-      if (config.attachments.storage.type === 's3') {
+      if (this.s3) {
         await Promise.all(
           thumbIds.map(async (sizeId) => {
             const { path } = config.attachments.imageSizes[sizeId];
@@ -448,8 +450,7 @@ export function addModel(dbAdapter) {
     // Upload original attachment or its thumbnail to the S3 bucket
     async uploadToS3(sourceFile, destPath, mimeType) {
       const dispositionName = parsePath(this.fileName).name + parsePath(destPath).ext;
-      const s3 = getS3(config.attachments.storage);
-      await s3
+      await this.s3
         .upload({
           ACL: 'public-read',
           Bucket: config.attachments.storage.bucket,
@@ -488,8 +489,7 @@ export function addModel(dbAdapter) {
     async deleteFiles() {
       const thumbIds = Object.keys(this.imageSizes).filter((s) => s !== 'o');
 
-      if (config.attachments.storage.type === 's3') {
-        const s3 = getS3(config.attachments.storage);
+      if (this.s3) {
         const keys = [
           config.attachments.path + this.getFilename(),
           ...thumbIds.map((s) => config.attachments.imageSizes[s].path + this.getFilename()),
@@ -498,7 +498,7 @@ export function addModel(dbAdapter) {
         await Promise.all(
           keys.map(async (Key) => {
             try {
-              await s3
+              await this.s3
                 .deleteObject({
                   Key,
                   Bucket: config.attachments.storage.bucket,

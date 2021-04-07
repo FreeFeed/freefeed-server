@@ -15,6 +15,8 @@ import cleanDB from '../../dbCleaner';
 import { dbAdapter, User, Attachment } from '../../../app/models';
 import { filesMustExist } from '../helpers/attachments';
 
+import { fakeS3 } from './fake-s3';
+
 chai.use(chaiFS);
 
 const { expect } = chai;
@@ -91,27 +93,35 @@ describe('Attachment', () => {
       },
     };
 
-    const createdAttachments = new Map();
-
-    const createAndCheckAttachment = async (file, thePost, theUser) => {
-      if (createdAttachments.has(file.name)) {
-        return createdAttachments.get(file.name);
-      }
-
+    const createAndCheckAttachment = async (file, thePost, theUser, useS3 = false) => {
       const attachment = new Attachment({
         file,
         postId: thePost.id,
         userId: theUser.id,
       });
 
+      const s3Uploads = {};
+      const s3Deletes = {};
+
+      if (useS3) {
+        attachment.s3 = fakeS3({
+          onUpload: (params) => {
+            s3Uploads[params.Key] = params;
+          },
+          onDelete: (params) => {
+            s3Deletes[params.Key] = params;
+          },
+        });
+      }
+
       await attachment.create();
-      createdAttachments.set(file.name, attachment);
 
       attachment.should.be.an.instanceOf(Attachment);
       attachment.should.not.be.empty;
       attachment.should.have.property('id');
 
       const newAttachment = await dbAdapter.getAttachmentById(attachment.id);
+      newAttachment.s3 = attachment.s3;
 
       newAttachment.should.be.an.instanceOf(Attachment);
       newAttachment.should.not.be.empty;
@@ -138,13 +148,42 @@ describe('Attachment', () => {
           `${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`,
         );
 
-      const stats = await stat(newAttachment.getPath());
+      newAttachment.s3Uploads = s3Uploads;
+      newAttachment.s3Deletes = s3Deletes;
 
-      if (file.size >= 0) {
-        stats.size.should.be.equal(file.size);
+      if (useS3) {
+        // Should upload original
+        const origKey = config.attachments.path + newAttachment.getFilename();
+        s3Uploads.should.include.key(origKey);
+
+        s3Uploads[origKey].should.have.property('ACL', 'public-read');
+        s3Uploads[origKey].should.have.property('Bucket', config.attachments.storage.bucket);
+        s3Uploads[origKey].should.have.property('Key', origKey);
+        s3Uploads[origKey].should.have.property('ContentType', newAttachment.mimeType);
+
+        for (const key of Object.keys(s3Uploads)) {
+          const dispName = path.parse(newAttachment.fileName).name + path.parse(key).ext;
+          s3Uploads[key].should.have.property(
+            'ContentDisposition',
+            newAttachment.getContentDisposition(dispName),
+          );
+        }
+
+        if (file.size >= 0) {
+          s3Uploads[origKey].Body.length.should.be.equal(file.size);
+        } else {
+          // Just checking for not-zero size
+          s3Uploads[origKey].Body.length.should.be.above(0);
+        }
       } else {
-        // Just checking for not-zero size
-        stats.size.should.be.above(0);
+        const stats = await stat(newAttachment.getPath());
+
+        if (file.size >= 0) {
+          stats.size.should.be.equal(file.size);
+        } else {
+          // Just checking for not-zero size
+          stats.size.should.be.above(0);
+        }
       }
 
       return newAttachment;
@@ -166,7 +205,9 @@ describe('Attachment', () => {
           mkdirp(config.attachments.storage.rootDir + size.path),
         ),
       );
+    });
 
+    beforeEach(async () => {
       // "Upload" files
       const filesToUpload = {
         'test-image.150x150.png': '1',
@@ -218,6 +259,12 @@ describe('Attachment', () => {
       });
     });
 
+    it('should create a small attachment on S3', async () => {
+      const newAttachment = await createAndCheckAttachment(files.small, post, user, true);
+      const origKey = `${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`;
+      newAttachment.s3Uploads.should.have.key(origKey);
+    });
+
     it('should create a medium attachment', async () => {
       const newAttachment = await createAndCheckAttachment(files.medium, post, user);
 
@@ -237,6 +284,14 @@ describe('Attachment', () => {
           url: `${config.attachments.url}${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`,
         },
       });
+    });
+
+    it('should create a medium attachment on S3', async () => {
+      const newAttachment = await createAndCheckAttachment(files.medium, post, user, true);
+      newAttachment.s3Uploads.should.have.keys(
+        `${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+        `${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+      );
     });
 
     it('should create a large attachment', async () => {
@@ -263,6 +318,15 @@ describe('Attachment', () => {
           url: `${config.attachments.url}${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`,
         },
       });
+    });
+
+    it('should create a large attachment on S3', async () => {
+      const newAttachment = await createAndCheckAttachment(files.large, post, user, true);
+      newAttachment.s3Uploads.should.have.keys(
+        `${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+        `${config.attachments.imageSizes.t.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+        `${config.attachments.imageSizes.t2.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+      );
     });
 
     it('should create an x-large attachment', async () => {
@@ -393,6 +457,14 @@ describe('Attachment', () => {
       });
     });
 
+    it('should create a webp attachment on S3', async () => {
+      const newAttachment = await createAndCheckAttachment(files.webp, post, user, true);
+      newAttachment.s3Uploads.should.have.keys(
+        `${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+        `${config.attachments.imageSizes.t.path}${newAttachment.id}.jpg`,
+      );
+    });
+
     it('should create an audio attachment', async () => {
       const newAttachment = await createAndCheckAttachment(files.audio, post, user);
       newAttachment.should.have.a.property('mimeType');
@@ -418,6 +490,12 @@ describe('Attachment', () => {
       await filesMustExist(attachment);
       await attachment.deleteFiles();
       await filesMustExist(attachment, false);
+    });
+
+    it('should remove files of image attachment from S3', async () => {
+      const attachment = await createAndCheckAttachment(files.large, post, user, true);
+      await attachment.deleteFiles();
+      attachment.s3Deletes.should.have.keys(...Object.keys(attachment.s3Uploads));
     });
 
     it('should remove files of audio attachment', async () => {
