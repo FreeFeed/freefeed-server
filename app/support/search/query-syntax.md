@@ -32,6 +32,7 @@ Some operators takes user name as an arguments. In such operators you can use a 
 * in-my:
 * commented-by:
 * liked-by:
+* to:
 
 
 ### Global search scope
@@ -87,6 +88,8 @@ The "in:" operator has the "group:" alias, it left for compatibility.
 **liked-by:user1,user2** limits search to posts liked by user1 or user2.
 
 `cat liked-by:alice` will find all posts liked by Alice with the "cat" word.
+
+**to:user1,group2** limits search to posts published in group2 feed or written _to_ user1 as a direct message. This operator acts like **in:** for the groups but also allows to search in direct messages with the specific addressee.
 
 ### Content authorship
 

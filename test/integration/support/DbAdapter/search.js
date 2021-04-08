@@ -396,7 +396,7 @@ describe('Search', () => {
         });
       });
 
-      describe('in-my:', () => {
+      describe('in-my:, to: (for directs)', () => {
         describe('Luna subscribed to Mars, saves and likes some posts', () => {
           let postsToLike, postsToSave;
           before(async () => {
@@ -467,7 +467,7 @@ describe('Search', () => {
             posts.push(directPost);
           });
           after(async () => {
-            posts.pop(directPost);
+            posts.pop();
             await directPost.destroy();
             await mars.unsubscribeFrom(luna);
             await luna.unsubscribeFrom(mars);
@@ -488,6 +488,16 @@ describe('Search', () => {
               query: 'in-my:directs -from:me',
               viewerName: 'luna',
               filter: () => false,
+            },
+            {
+              query: 'to:mars',
+              viewerName: 'luna',
+              filter: (p) => p.id === directPost.id,
+            },
+            {
+              query: 'to:me',
+              viewerName: 'mars',
+              filter: (p) => p.id === directPost.id,
             },
           ]);
         });
