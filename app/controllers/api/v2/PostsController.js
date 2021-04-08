@@ -1,10 +1,12 @@
 import config from 'config';
-import _ from 'lodash';
+import _, { difference } from 'lodash';
 import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
-import { serializeSinglePost } from '../../../serializers/v2/post';
-import { monitored, postAccessRequired } from '../../middlewares';
+import { serializeSinglePost, serializeFeed } from '../../../serializers/v2/post';
+import { inputSchemaRequired, monitored, postAccessRequired } from '../../middlewares';
+
+import { getPostsByIdsInputSchema } from './data-schemes/posts';
 
 export const show = compose([
   postAccessRequired(),
@@ -84,5 +86,34 @@ export const opengraph = compose([
     }
 
     ctx.body = og;
+  },
+]);
+
+const maxPostsByIds = 100;
+
+export const getByIds = compose([
+  inputSchemaRequired(getPostsByIdsInputSchema),
+  monitored('posts.by-ids'),
+  async (ctx) => {
+    const { user: viewer } = ctx.state;
+    const { postIds } = ctx.request.body;
+
+    const hasMore = postIds.length > maxPostsByIds;
+
+    if (hasMore) {
+      postIds.length = maxPostsByIds;
+    }
+
+    const foldComments = ctx.request.query.maxComments !== 'all';
+    const foldLikes = ctx.request.query.maxLikes !== 'all';
+
+    const visiblePostIds = await dbAdapter.selectPostsVisibleByUser(postIds, viewer?.id);
+
+    ctx.body = await serializeFeed(visiblePostIds, viewer?.id, null, { foldComments, foldLikes });
+    const postsFound = ctx.body.posts.map((p) => p.id);
+    const postsNotFound = difference(postIds, postsFound);
+    ctx.body.postsNotFound = postsNotFound;
+    delete ctx.body.isLastPage;
+    delete ctx.body.timelines;
   },
 ]);

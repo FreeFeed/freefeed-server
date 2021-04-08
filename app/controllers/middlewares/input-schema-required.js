@@ -1,4 +1,5 @@
 import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 import { ValidationException } from '../../support/exceptions';
 
@@ -8,6 +9,7 @@ const ajv = new Ajv({
   // Fill the absent fields with default values
   useDefaults: true,
 });
+addFormats(ajv);
 
 export function inputSchemaRequired(schema) {
   const check = ajv.compile(schema);

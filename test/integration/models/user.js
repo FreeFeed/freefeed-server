@@ -744,40 +744,6 @@ describe('User', () => {
           done(e);
         });
     });
-
-    it('should include post to my discussions timeline', (done) => {
-      let post;
-      const attrs = { body: 'Post body' };
-      user
-        .newPost(attrs)
-        .then((newPost) => {
-          post = newPost;
-          return newPost.create();
-        })
-        .then(() => post.addLike(user))
-        .then(() => user.getMyDiscussionsTimeline())
-        .then((timeline) => {
-          timeline.should.be.an.instanceOf(Timeline);
-          timeline.should.not.be.empty;
-          timeline.should.have.property('name');
-          timeline.name.should.eql('MyDiscussions');
-
-          timeline.currentUser = timeline.userId;
-          return timeline.getPosts();
-        })
-        .then((posts) => {
-          posts.should.not.be.empty;
-          posts.length.should.eql(1);
-
-          const [newPost] = posts;
-          newPost.should.have.property('id');
-          newPost.id.should.eql(post.id);
-          done();
-        })
-        .catch((e) => {
-          done(e);
-        });
-    });
   });
 
   describe('#getTimelines()', () => {
@@ -874,46 +840,6 @@ describe('User', () => {
           newPost.should.not.be.empty;
           newPost.should.have.property('id');
           newPost.id.should.eql(post.id);
-          done();
-        })
-        .catch((e) => {
-          done(e);
-        });
-    });
-
-    it('should create a new post to a timeline', (done) => {
-      let post;
-      const attrs = { body: 'Post body' };
-
-      user
-        .getPostsTimelineId()
-        .then((timelineId) => {
-          attrs.timelineIds = [timelineId];
-          return user.newPost(attrs);
-        })
-        .then((newPost) => {
-          post = newPost;
-          return newPost.create();
-        })
-        .then((newPost) => dbAdapter.getPostById(newPost.id))
-        .then((newPost) => {
-          newPost.should.be.an.instanceOf(Post);
-          newPost.should.not.be.empty;
-          newPost.should.have.property('id');
-          newPost.id.should.eql(post.id);
-
-          return user.getPostsTimeline();
-        })
-        .then((timeline) => timeline.getPosts())
-        .then((posts) => {
-          posts.should.not.be.empty;
-          posts.length.should.eql(1);
-
-          const [newPost] = posts;
-          newPost.should.be.an.instanceOf(Post);
-          newPost.should.not.be.empty;
-          newPost.should.have.property('body');
-          newPost.body.should.eql(post.body);
           done();
         })
         .catch((e) => {

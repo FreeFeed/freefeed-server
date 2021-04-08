@@ -5,7 +5,7 @@ import pgFormat from 'pg-format';
 import { Post } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
 
-import { initObject, prepareModelPayload, sqlNotIn } from './utils';
+import { andJoin, initObject, orJoin, prepareModelPayload, sqlIntarrayIn, sqlNotIn } from './utils';
 
 ///////////////////////////////////////////////////
 // Posts
@@ -174,83 +174,10 @@ const postsTrait = (superClass) =>
       return postData.feed_ids.includes(timelineId);
     }
 
-    async getTimelinePostsRange(timelineId, offset, limit) {
-      const res = await this.database('posts')
-        .select('uid', 'updated_at')
-        .orderBy('bumped_at', 'desc')
-        .offset(offset)
-        .limit(limit)
-        .whereRaw('feed_ids && ?', [[timelineId]]);
-      const postIds = res.map((record) => {
-        return record.uid;
-      });
-      return postIds;
-    }
-
-    async getFeedsPostsRange(timelineIds, offset, limit, params) {
-      const responses = await this.database('posts')
-        .select(
-          'uid',
-          'created_at',
-          'updated_at',
-          'bumped_at',
-          'user_id',
-          'body',
-          'comments_disabled',
-          'feed_ids',
-          'destination_feed_ids',
-        )
-        .orderBy('bumped_at', 'desc')
-        .offset(offset)
-        .limit(limit)
-        .whereRaw('feed_ids && ?', [timelineIds]);
-
-      const postUids = responses.map((p) => p.uid);
-      const commentsCount = {};
-      const likesCount = {};
-
-      const groupedComments = await this.database('comments')
-        .select('post_id', this.database.raw('count(id) as comments_count'))
-        .where('post_id', 'in', postUids)
-        .groupBy('post_id');
-
-      for (const group of groupedComments) {
-        if (!commentsCount[group.post_id]) {
-          commentsCount[group.post_id] = 0;
-        }
-
-        commentsCount[group.post_id] += parseInt(group.comments_count);
-      }
-
-      const groupedLikes = await this.database('likes')
-        .select('post_id', this.database.raw('count(id) as likes_count'))
-        .where('post_id', 'in', postUids)
-        .groupBy('post_id');
-
-      for (const group of groupedLikes) {
-        if (!likesCount[group.post_id]) {
-          likesCount[group.post_id] = 0;
-        }
-
-        likesCount[group.post_id] += parseInt(group.likes_count);
-      }
-
-      const objects = responses.map((attrs) => {
-        if (attrs) {
-          attrs.comments_count = commentsCount[attrs.uid] || 0;
-          attrs.likes_count = likesCount[attrs.uid] || 0;
-          attrs = prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING);
-        }
-
-        return initObject(Post, attrs, attrs.id, params);
-      });
-      return objects;
-    }
-
     /**
      * Returns integer ids of private feeds that user can view
      * @param {String} userId   - UID of user
-     * @return {Array.<Number>} - ids of feeds
+     * @return {Promise<Number[]>} - ids of feeds
      */
     async getVisiblePrivateFeedIntIds(userId) {
       const sql = `
@@ -265,6 +192,43 @@ const postsTrait = (superClass) =>
 
       const { rows } = await this.database.raw(sql, { userId });
       return _.map(rows, 'id');
+    }
+
+    /**
+     * Return post ids (from postIds) visible by the given user. The order of
+     * ids is preserved.
+     * @param {string[]} postIds
+     * @param {string} userId
+     * @return {Promise<string[]>}
+     */
+    async selectPostsVisibleByUser(postIds, viewerId = null) {
+      const bannedUsersIds = viewerId ? await this.getUsersBansOrWasBannedBy(viewerId) : [];
+      const visiblePrivateFeedIntIds = viewerId
+        ? await this.getVisiblePrivateFeedIntIds(viewerId)
+        : [];
+
+      const restrictionsSQL = andJoin([
+        // Privacy
+        viewerId
+          ? orJoin([
+              'not p.is_private',
+              sqlIntarrayIn('p.destination_feed_ids', visiblePrivateFeedIntIds),
+            ])
+          : 'not p.is_protected',
+        // Bans
+        sqlNotIn('p.user_id', bannedUsersIds),
+        // Gone post's authors
+        'u.gone_status is null',
+      ]);
+
+      return this.database.getCol(
+        `select p.uid from
+          unnest(:postIds::uuid[]) with ordinality as src (uid, ord)
+          join posts p on src.uid = p.uid
+          join users u on p.user_id = u.uid
+        where ${restrictionsSQL} order by src.ord`,
+        { postIds },
+      );
     }
 
     async getTimelinesIntersectionPostIds(timelineId1, timelineId2) {

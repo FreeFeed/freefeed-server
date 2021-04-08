@@ -1,8 +1,11 @@
 import _ from 'lodash';
+import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
 import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 import { serializeEvents } from '../../../serializers/v2/event';
+import { authRequired } from '../../middlewares';
+import { NotFoundException } from '../../../support/exceptions';
 
 const EVENT_GROUPS = {
   mentions: ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
@@ -64,6 +67,27 @@ export default class EventsController {
       isLastPage,
     };
   }
+
+  static eventById = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const { notifId: eventId } = ctx.params;
+
+      const event = await dbAdapter.getEventById(eventId);
+
+      if (event?.user_id !== user.intId) {
+        throw new NotFoundException('Notification not found');
+      }
+
+      const { events, users, groups } = await serializeEvents([event], user.id);
+      ctx.body = {
+        Notifications: events,
+        users,
+        groups,
+      };
+    },
+  ]);
 }
 
 function getQueryParams(ctx) {

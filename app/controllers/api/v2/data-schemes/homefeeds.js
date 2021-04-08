@@ -31,7 +31,6 @@ export const deleteHomeFeedInputSchema = {
 
   type: 'object',
   properties: { backupFeed: { $ref: '#/definitions/uuid' } },
-  default: {},
 };
 
 export const updateHomeFeedInputSchema = {

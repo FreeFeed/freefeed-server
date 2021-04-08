@@ -94,6 +94,9 @@ export const appTokensScopes = [
       'GET /v2/allGroups',
       'GET /v2/comments/:commentId/likes',
       'GET /v2/everything',
+      'GET /v1/comments/:commentId',
+      'GET /v2/posts/:postId/comments/:seqNumber',
+      'POST /v2/posts/byIds',
     ],
   },
   {
@@ -115,6 +118,7 @@ export const appTokensScopes = [
     title: 'Manage notifications',
     routes: [
       'GET /v2/notifications',
+      'GET /v2/notifications/:notifId',
       'POST /v2/users/markAllNotificationsAsRead',
       'GET /v2/users/getUnreadNotificationsNumber',
     ],

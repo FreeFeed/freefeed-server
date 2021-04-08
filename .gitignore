@@ -19,6 +19,7 @@ public/files/*
 tmp/*
 /conf/envLocal.js
 coverage
+/.nyc_output
 
 /.idea
 /public/config/envLocal.js
@@ -26,3 +27,11 @@ coverage
 dist
 
 .DS_Store
+
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

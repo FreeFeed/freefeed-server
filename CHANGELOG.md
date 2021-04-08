@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.95.0] - Not Released
+
+**WARNING:** this version requires you to run manual migration script. It might run
+for tens of minutes (depending on the size of database and your server's hardware
+specs).
+
+`yarn babel bin/migration_comment_numbers.js`
+
+### Added
+- New API method `GET /v2/notifications/:notifId` allows to fetch single
+  notification by its id.
+- The new `yarn babel` helper script in the package.json. This command is a
+  shortcut for the `babel-node --extensions ".js,.jsx,.ts"` (all extensions used
+  in this project), so one can now run CLI scripts as `yarn babel
+  bin/somescript.js`
+- The comment numbers in API output. Each comment now has the `seqNumber` field
+  which is a sequence number of the comment in the post. Some rules on numbering:
+    - The first comment has number 1.
+    - Every new comment gets a number of `max(seqNumber) + 1`.
+    - When a comment is deleted, the numbers of other comments are not changed. It
+      allows to detect the comments deletion by holes in the numeration.
+    - When the last comment is deleted, the `max(seqNumber)` is decreased, because
+      the last comment always has the maximum number. So next added comment will
+      have the same number as the deleted.
+- The new API methods:
+    - `GET /v1/comments/:commentId` returns comment by its ID;
+    - `GET /v2/posts/:postId/comments/:seqNumber` returns comment by its
+      `seqNumber` in the given post;
+    - `POST /v2/posts/byIds` returns posts by their IDs. It uses the POST method
+      because it can accept many post IDs (up to 100 at once). The POST body
+      format is `{ "postIds": [...] }`. The output schema is the same as in other
+      post-collections methods (like `GET /v2/everything`), but it has an
+      additional `postsNotFound` field with those post IDs that were not found.
+      This method accepts `maxComments=all` and `maxLikes=all` get parameters.
+- WebP attachments support. The uploaded WebP originals are kept unchanged, but
+  have JPEG thumbnails for better compatibility with older browsers.
+- The "to:" search operator. "to:user1,group2" limits search to posts published
+  in group2 feed or written _to_ user1 as a direct message. This operator acts
+  like "in:" for the groups but also allows to search in direct messages with
+  the specific addressee.
+
 ## [1.94.2] - 2021-03-09
 ### Fixed
 - Handle deleted posts/comments/users in the notification emails

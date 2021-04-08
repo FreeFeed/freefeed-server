@@ -1,5 +1,6 @@
 import { promises as fs, createReadStream } from 'fs';
 import { execFile } from 'child_process';
+import { parse as parsePath } from 'path';
 
 import config from 'config';
 import { promisify, promisifyAll } from 'bluebird';
@@ -90,6 +91,8 @@ export function addModel(dbAdapter) {
       if (parseInt(params.updatedAt, 10)) {
         this.updatedAt = params.updatedAt;
       }
+
+      this.s3 = config.attachments.storage.type === 's3' ? getS3(config.attachments.storage) : null;
     }
 
     get imageSizes() {
@@ -206,7 +209,9 @@ export function addModel(dbAdapter) {
     // Get public URL of resized image attachment
     getResizedImageUrl(sizeId) {
       return (
-        config.attachments.url + config.attachments.imageSizes[sizeId].path + this.getFilename()
+        config.attachments.url +
+        config.attachments.imageSizes[sizeId].path +
+        this.getFilename(this.getResizedImageExtension())
       );
     }
 
@@ -215,19 +220,27 @@ export function addModel(dbAdapter) {
       return config.attachments.storage.rootDir + config.attachments.path + this.getFilename();
     }
 
+    getResizedImageExtension() {
+      return this.fileExtension === 'webp' ? 'jpg' : this.fileExtension;
+    }
+
+    getResizedImageMimeType() {
+      return this.fileExtension === 'webp' ? 'image/jpeg' : this.mimeType;
+    }
+
     // Get local filesystem path for resized image file
     getResizedImagePath(sizeId) {
       return (
         config.attachments.storage.rootDir +
         config.attachments.imageSizes[sizeId].path +
-        this.getFilename()
+        this.getFilename(this.getResizedImageExtension())
       );
     }
 
     // Get file name
-    getFilename() {
-      if (this.fileExtension) {
-        return `${this.id}.${this.fileExtension}`;
+    getFilename(ext = null) {
+      if (ext || this.fileExtension) {
+        return `${this.id}.${ext || this.fileExtension}`;
       }
 
       return this.id;
@@ -242,6 +255,7 @@ export function addModel(dbAdapter) {
         'image/jpeg': 'jpg',
         'image/png': 'png',
         'image/gif': 'gif',
+        'image/webp': 'webp',
         'image/svg+xml': 'svg',
       };
       const supportedAudioTypes = {
@@ -291,8 +305,12 @@ export function addModel(dbAdapter) {
       }
 
       // Store an original attachment
-      if (config.attachments.storage.type === 's3') {
-        await this.uploadToS3(tmpAttachmentFile, config.attachments.path);
+      if (this.s3) {
+        await this.uploadToS3(
+          tmpAttachmentFile,
+          config.attachments.path + this.getFilename(),
+          this.mimeType,
+        );
         await fs.unlink(tmpAttachmentFile);
       } else {
         await mvAsync(tmpAttachmentFile, this.getPath(), {});
@@ -396,18 +414,26 @@ export function addModel(dbAdapter) {
             .resizeExact(w, h)
             .profile(`${__dirname}/../../lib/assets/sRGB.icm`)
             .autoOrient()
+            // Use white background for transparent images
+            .background('white')
+            .extent('0x0')
             .quality(95)
+            .setFormat(this.getResizedImageExtension())
             .writeAsync(tmpResizedFile(sizeId));
         }
       }
 
       // Save image (permanently)
-      if (config.attachments.storage.type === 's3') {
+      if (this.s3) {
         await Promise.all(
           thumbIds.map(async (sizeId) => {
             const { path } = config.attachments.imageSizes[sizeId];
             const file = tmpResizedFile(sizeId);
-            await this.uploadToS3(file, path);
+            await this.uploadToS3(
+              file,
+              path + this.getFilename(this.getResizedImageExtension()),
+              this.getResizedImageMimeType(),
+            );
             await fs.unlink(file);
           }),
         );
@@ -422,27 +448,27 @@ export function addModel(dbAdapter) {
     }
 
     // Upload original attachment or its thumbnail to the S3 bucket
-    async uploadToS3(sourceFile, destPath) {
-      const s3 = getS3(config.attachments.storage);
-      await s3
+    async uploadToS3(sourceFile, destPath, mimeType) {
+      const dispositionName = parsePath(this.fileName).name + parsePath(destPath).ext;
+      await this.s3
         .upload({
           ACL: 'public-read',
           Bucket: config.attachments.storage.bucket,
-          Key: destPath + this.getFilename(),
+          Key: destPath,
           Body: createReadStream(sourceFile),
-          ContentType: this.mimeType,
-          ContentDisposition: this.getContentDisposition(),
+          ContentType: mimeType,
+          ContentDisposition: this.getContentDisposition(dispositionName),
         })
         .promise();
     }
 
     // Get cross-browser Content-Disposition header for attachment
-    getContentDisposition() {
+    getContentDisposition(dispositionName) {
       // Old browsers (IE8) need ASCII-only fallback filenames
-      const fileNameAscii = this.fileName.replace(/[^\x00-\x7F]/g, '_');
+      const fileNameAscii = dispositionName.replace(/[^\x00-\x7F]/g, '_');
 
       // Modern browsers support UTF-8 filenames
-      const fileNameUtf8 = encodeURIComponent(this.fileName);
+      const fileNameUtf8 = encodeURIComponent(dispositionName);
 
       const disposition = config.media.inlineMimeTypes.includes(this.mimeType)
         ? 'inline'
@@ -463,8 +489,7 @@ export function addModel(dbAdapter) {
     async deleteFiles() {
       const thumbIds = Object.keys(this.imageSizes).filter((s) => s !== 'o');
 
-      if (config.attachments.storage.type === 's3') {
-        const s3 = getS3(config.attachments.storage);
+      if (this.s3) {
         const keys = [
           config.attachments.path + this.getFilename(),
           ...thumbIds.map((s) => config.attachments.imageSizes[s].path + this.getFilename()),
@@ -473,7 +498,7 @@ export function addModel(dbAdapter) {
         await Promise.all(
           keys.map(async (Key) => {
             try {
-              await s3
+              await this.s3
                 .deleteObject({
                   Key,
                   Bucket: config.attachments.storage.bucket,

@@ -68,6 +68,7 @@ export class Comment {
   userId: Nullable<UUID>;
   hideType: 0 | 1 | 2 | 3;
   postId: UUID;
+  seqNumber: number;
   getPost(): Promise<Post>;
   removeLike(user: User): Promise<boolean>;
 }

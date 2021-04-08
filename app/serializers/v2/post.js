@@ -6,7 +6,17 @@ import { userSerializerFunction } from './user';
 
 export function serializeComment(comment) {
   return {
-    ...pick(comment, ['id', 'body', 'createdAt', 'updatedAt', 'hideType', 'likes', 'hasOwnLike']),
+    ...pick(comment, [
+      'id',
+      'body',
+      'createdAt',
+      'updatedAt',
+      'hideType',
+      'likes',
+      'hasOwnLike',
+      'seqNumber',
+      'postId',
+    ]),
     createdBy: comment.userId,
   };
 }
@@ -83,7 +93,7 @@ export async function serializeFeed(
     likes,
     omittedComments,
     omittedLikes,
-  } of postsWithStuff) {
+  } of postsWithStuff.filter(Boolean)) {
     const sPost = {
       ...serializePostData(post),
       postedTo: destinations.map((d) => d.id),
