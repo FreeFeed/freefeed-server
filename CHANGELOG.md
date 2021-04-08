@@ -41,6 +41,10 @@ specs).
       This method accepts `maxComments=all` and `maxLikes=all` get parameters.
 - WebP attachments support. The uploaded WebP originals are kept unchanged, but
   have JPEG thumbnails for better compatibility with older browsers.
+- The "to:" search operator. "to:user1,group2" limits search to posts published
+  in group2 feed or written _to_ user1 as a direct message. This operator acts
+  like "in:" for the groups but also allows to search in direct messages with
+  the specific addressee.
 
 ## [1.94.2] - 2021-03-09
 ### Fixed

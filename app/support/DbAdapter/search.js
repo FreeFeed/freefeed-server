@@ -1,4 +1,4 @@
-import { uniq } from 'lodash';
+import { flatten, uniq } from 'lodash';
 import config from 'config';
 import createDebug from 'debug';
 import pgFormat from 'pg-format';
@@ -248,7 +248,7 @@ const searchTrait = (superClass) =>
     }
 
     async _getAccountsUsedInQuery(parsedQuery, viewerId) {
-      const conditionsWithAccNames = ['in', 'commented-by', 'liked-by', 'from', 'author'];
+      const conditionsWithAccNames = ['in', 'commented-by', 'liked-by', 'from', 'author', 'to'];
 
       // Map from username to User/Group object (or null)
       const accounts = { me: viewerId && (await this.getFeedOwnerById(viewerId)) };
@@ -305,7 +305,8 @@ const searchTrait = (superClass) =>
         tokens
           .filter(
             (t) =>
-              t instanceof Condition && (!!condToFeedNames[t.condition] || t.condition === 'in-my'),
+              t instanceof Condition &&
+              (!!condToFeedNames[t.condition] || t.condition === 'in-my' || t.condition === 'to'),
           )
           .map(async (t) => {
             const feedName = condToFeedNames[t.condition];
@@ -318,6 +319,26 @@ const searchTrait = (superClass) =>
                 .map((u) => u.id);
 
               const feedIntIds = await this.getUsersNamedFeedsIntIds(userIds, [feedName]);
+              return new List(feedIntIds, !t.exclude);
+            }
+
+            if (t.condition === 'to') {
+              const userIds = uniq(t.args)
+                .map((n) => accountsMap[n])
+                .filter((u) => u?.isUser())
+                .map((u) => u.id);
+
+              const groupIds = uniq(t.args)
+                .map((n) => accountsMap[n])
+                .filter((u) => u?.isActive && u.isGroup())
+                .map((u) => u.id);
+
+              const feedIntIds = flatten(
+                await Promise.all([
+                  this.getUsersNamedFeedsIntIds(userIds, ['Directs']),
+                  this.getUsersNamedFeedsIntIds(groupIds, ['Posts']),
+                ]),
+              );
               return new List(feedIntIds, !t.exclude);
             }
 
