@@ -46,6 +46,9 @@ specs).
   like "in:" for the groups but also allows to search in direct messages with
   the specific addressee.
 
+### Removed
+- The old session tokens (SessionTokenV0) are no longer supported.
+
 ## [1.94.2] - 2021-03-09
 ### Fixed
 - Handle deleted posts/comments/users in the notification emails

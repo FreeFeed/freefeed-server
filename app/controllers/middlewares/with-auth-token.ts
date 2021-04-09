@@ -1,10 +1,7 @@
-import crypto from 'crypto';
-
 import { promisifyAll } from 'bluebird';
 import jwt from 'jsonwebtoken';
 import config from 'config';
 import { Context, Next } from 'koa';
-import { v4 as uuidv4 } from 'uuid';
 
 import { NotAuthorizedException } from '../../support/exceptions';
 import { authDebugError, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
@@ -50,16 +47,7 @@ export async function withAuthToken(ctx: Context, next: Next) {
 
   let authToken: Nullable<AuthToken>;
 
-  if (!payload.type && payload.userId) {
-    // Session token v0 (legacy)
-    // Emulating V1 payload with synthetic sessionId
-    // TODO This block should be removed when the V0 sessions become deprecated
-    const tokenHash = crypto.createHash('sha256').update(jwtToken).digest();
-    payload.id = uuidv4({ random: tokenHash });
-    payload.type = SessionTokenV1.TYPE;
-    payload.issue = 1;
-    authToken = await sessionTokenV1Store.create(payload.userId, ctx, payload.id);
-  } else if (payload.type === SessionTokenV1.TYPE) {
+  if (payload.type === SessionTokenV1.TYPE) {
     // Session token v1
     authToken = await sessionTokenV1Store.getById(payload.id!);
   } else if (payload.type === AppTokenV1.TYPE) {

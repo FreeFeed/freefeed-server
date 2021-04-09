@@ -42,7 +42,7 @@ export const JobManager = addJobManagerModel(dbAdapter);
 
 export const sessionTokenV1Store = new SessionTokenV1Store(dbAdapter);
 
-export { AuthToken, SessionTokenV0, AppTokenV1, SessionTokenV1 } from './models/auth-tokens';
+export { AuthToken, AppTokenV1, SessionTokenV1 } from './models/auth-tokens';
 
 export {
   HOMEFEED_MODE_CLASSIC,

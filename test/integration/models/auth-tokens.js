@@ -10,7 +10,6 @@ import config from 'config';
 import cleanDB from '../../dbCleaner';
 import {
   User,
-  SessionTokenV0,
   AppTokenV1,
   dbAdapter,
   Job,
@@ -34,29 +33,6 @@ describe('Auth Tokens', () => {
   before(async () => {
     luna = new User({ username: 'luna', password: 'pw' });
     await luna.create();
-  });
-
-  describe('SessionTokenV0', () => {
-    let token;
-
-    before(() => {
-      token = new SessionTokenV0(luna.id);
-    });
-
-    it('should have a full access', () => {
-      expect(token.hasFullAccess, 'to be true');
-    });
-
-    it('should hold Luna user ID', () => {
-      expect(token.userId, 'to be', luna.id);
-    });
-
-    it('should make a valid JWT', async () => {
-      const jToken = token.tokenString();
-      const decoded = await jwt.verifyAsync(jToken, config.secret);
-      expect(decoded, 'to not have key', 'type');
-      expect(decoded.userId, 'to be', luna.id);
-    });
   });
 
   describe('AppTokenV1', () => {
