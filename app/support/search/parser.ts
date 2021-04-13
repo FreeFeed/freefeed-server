@@ -84,7 +84,10 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
             new Condition(
               !!groups.exclude,
               condition,
-              groups.word.split(',').map(trimText).filter(Boolean),
+              groups.word
+                .split(',')
+                .map((w) => trimText(w, { minPrefixLength }))
+                .filter(Boolean),
             ),
           );
           return;
