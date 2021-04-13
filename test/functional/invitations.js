@@ -1,8 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 
-import expect from 'unexpected';
-import validator from 'validator';
+import unexpected from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
@@ -22,6 +21,8 @@ import {
 } from './functional_test_helper';
 import * as schema from './schemaV2-helper';
 
+const expect = unexpected.clone().use(schema.freefeedAssertions);
+
 describe('Invitations', () => {
   before(async () => {
     await getSingleton();
@@ -34,7 +35,7 @@ describe('Invitations', () => {
     describe('#createInvitation', () => {
       it('should reject unauthenticated users', async () => {
         const res = await createInvitation();
-        expect(res, 'to exhaustively satisfy', apiErrorExpectation(403, 'Unauthorized'));
+        expect(res, 'to be an API error', 403, 'Unauthorized');
       });
 
       describe('for authenticated users', () => {
@@ -58,7 +59,7 @@ describe('Invitations', () => {
               groups: [],
             };
             const res = await createInvitation(luna, invitation);
-            expect(res, 'to exhaustively satisfy', invitationExpectation);
+            await expect(res, 'to be an invitation response');
           });
 
           it('reg counter should be zero', async () => {
@@ -85,27 +86,15 @@ describe('Invitations', () => {
                 groups: [],
               };
               let res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation message must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation message must not be empty');
 
               invitation.message = null;
               res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation message must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation message must not be empty');
 
               invitation.message = '';
               res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation message must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation message must not be empty');
             });
           });
 
@@ -118,27 +107,15 @@ describe('Invitations', () => {
                 groups: [],
               };
               let res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation lang must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation lang must not be empty');
 
               invitation.lang = null;
               res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation lang must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation lang must not be empty');
 
               invitation.lang = '';
               res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation lang must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation lang must not be empty');
             });
           });
 
@@ -151,27 +128,15 @@ describe('Invitations', () => {
                 groups: [],
               };
               let res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation singleUse must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation singleUse must not be empty');
 
               invitation.singleUse = null;
               res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation singleUse must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation singleUse must not be empty');
 
               invitation.singleUse = '';
               res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Invitation singleUse must not be empty'),
-              );
+              expect(res, 'to be an API error', 422, 'Invitation singleUse must not be empty');
             });
           });
 
@@ -185,11 +150,7 @@ describe('Invitations', () => {
                 groups: [],
               };
               const res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Users not found: jupi_ter'),
-              );
+              expect(res, 'to be an API error', 422, 'Users not found: jupi_ter');
             });
           });
 
@@ -203,11 +164,7 @@ describe('Invitations', () => {
                 groups: ['abyrvalg'],
               };
               const res = await createInvitation(luna, invitation);
-              expect(
-                res,
-                'to exhaustively satisfy',
-                apiErrorExpectation(422, 'Groups not found: abyrvalg'),
-              );
+              expect(res, 'to be an API error', 422, 'Groups not found: abyrvalg');
             });
           });
         });
@@ -223,7 +180,7 @@ describe('Invitations', () => {
               groups: [],
             };
             const res = await createInvitation(luna, invitation);
-            expect(res, 'to exhaustively satisfy', invitationExpectation);
+            expect(res, 'to be an invitation response');
           });
         });
 
@@ -238,7 +195,7 @@ describe('Invitations', () => {
               groups: [],
             };
             const res = await createInvitation(luna, invitation);
-            expect(res, 'to exhaustively satisfy', invitationExpectation);
+            expect(res, 'to be an invitation response');
           });
         });
       });
@@ -250,11 +207,9 @@ describe('Invitations', () => {
           const res = await getInvitation('918abb80-f0bd-490d-989a-2486032648dd', null);
           expect(
             res,
-            'to exhaustively satisfy',
-            apiErrorExpectation(
-              404,
-              "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'",
-            ),
+            'to be an API error',
+            404,
+            "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'",
           );
         });
       });
@@ -263,25 +218,13 @@ describe('Invitations', () => {
         describe('secureId is not UUID', () => {
           it('should return 404', async () => {
             let res = await getInvitation(null, null);
-            expect(
-              res,
-              'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation 'null'"),
-            );
+            expect(res, 'to be an API error', 404, "Can't find invitation 'null'");
 
             res = await getInvitation(42, null);
-            expect(
-              res,
-              'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation '42'"),
-            );
+            expect(res, 'to be an API error', 404, "Can't find invitation '42'");
 
             res = await getInvitation('test', null);
-            expect(
-              res,
-              'to exhaustively satisfy',
-              apiErrorExpectation(404, "Can't find invitation 'test'"),
-            );
+            expect(res, 'to be an API error', 404, "Can't find invitation 'test'");
           });
         });
 
@@ -290,11 +233,9 @@ describe('Invitations', () => {
             const res = await getInvitation('918abb80-f0bd-490d-989a-2486032648dd', null);
             expect(
               res,
-              'to exhaustively satisfy',
-              apiErrorExpectation(
-                404,
-                "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'",
-              ),
+              'to be an API error',
+              404,
+              "Can't find invitation '918abb80-f0bd-490d-989a-2486032648dd'",
             );
           });
         });
@@ -324,7 +265,7 @@ describe('Invitations', () => {
 
         it('should return invitation', async () => {
           const invitationRes = await getInvitation(singleUseInvitationSecureId, null);
-          expect(invitationRes, 'to exhaustively satisfy', invitationExpectation);
+          expect(invitationRes, 'to be an invitation response');
         });
       });
 
@@ -352,7 +293,7 @@ describe('Invitations', () => {
             const responseJson = await res.json();
             const invitationSecureId = responseJson.invitation.secure_id;
             const invitationRes = await getInvitation(invitationSecureId, null);
-            expect(invitationRes, 'to exhaustively satisfy', invitationExpectation);
+            expect(invitationRes, 'to be an invitation response');
           });
         });
 
@@ -369,13 +310,13 @@ describe('Invitations', () => {
             const responseJson = await res.json();
             const invitationSecureId = responseJson.invitation.secure_id;
             let invitationRes = await getInvitation(invitationSecureId, luna);
-            expect(invitationRes, 'to exhaustively satisfy', invitationExpectation);
+            expect(invitationRes, 'to be an invitation response');
 
             invitationRes = await getInvitation(invitationSecureId, mars);
-            expect(invitationRes, 'to exhaustively satisfy', invitationExpectation);
+            expect(invitationRes, 'to be an invitation response');
 
             invitationRes = await getInvitation(invitationSecureId, jupiter);
-            expect(invitationRes, 'to exhaustively satisfy', invitationExpectation);
+            expect(invitationRes, 'to be an invitation response');
           });
         });
       });
@@ -626,49 +567,3 @@ describe('Invitations', () => {
     });
   });
 });
-
-const invitationExpectation = async (obj) => {
-  expect(obj, 'to satisfy', { status: 200 });
-  const responseJson = await obj.json();
-
-  expect(responseJson, 'to satisfy', {
-    invitation: expect.it('to satisfy', {
-      id: expect.it('to be a number'),
-      secure_id: expect.it('to satisfy', schema.UUID),
-      author: expect.it('to satisfy', schema.UUID),
-      message: expect.it('to be a string'),
-      lang: expect.it('to be a string'),
-      single_use: expect.it('to be a boolean'),
-      recommendations: expect.it('to satisfy', {
-        users: expect
-          .it('to be an array')
-          .and('to be empty')
-          .or('to have items satisfying', (item) => {
-            expect(item, 'to be a string');
-          }),
-        groups: expect
-          .it('to be an array')
-          .and('to be empty')
-          .or('to have items satisfying', (item) => {
-            expect(item, 'to be a string');
-          }),
-      }),
-      registrations_count: expect.it('to be a number'),
-      created_at: expect.it('when passed as parameter to', validator.isISO8601, 'to be', true),
-    }),
-    users: expect
-      .it('to be an array')
-      .and('to be empty')
-      .or('to have items satisfying', schema.user),
-    groups: expect
-      .it('to be an array')
-      .and('to be empty')
-      .or('to have items satisfying', schema.group),
-  });
-};
-
-const apiErrorExpectation = (code, message) => async (obj) => {
-  expect(obj, 'to satisfy', { status: code });
-  const responseJson = await obj.json();
-  expect(responseJson, 'to satisfy', { err: message });
-};

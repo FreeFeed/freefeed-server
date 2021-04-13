@@ -1,6 +1,6 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import expect from 'unexpected';
+import unexpected from 'unexpected';
 import { uniq, difference } from 'lodash';
 import { DateTime } from 'luxon';
 import config from 'config';
@@ -27,8 +27,10 @@ import {
   whoami,
   authHeaders,
 } from './functional_test_helper';
-import { UUID, appTokenInfo, appTokenInfoRestricted } from './schemaV2-helper';
+import { appTokenInfo, appTokenInfoRestricted, freefeedAssertions } from './schemaV2-helper';
 import Session from './realtime-session';
+
+const expect = unexpected.clone().use(freefeedAssertions);
 
 describe('Routes coverage', () => {
   const router = createRouter();
@@ -94,7 +96,7 @@ describe('App tokens controller', () => {
 
       expect(resp, 'to satisfy', {
         token: {
-          id: expect.it('to satisfy', UUID),
+          id: expect.it('to be UUID'),
           title: 'App1',
           issue: 1,
           scopes: ['read-my-info', 'manage-posts'],
@@ -560,7 +562,7 @@ describe('Activation codes', () => {
 
     expect(resp, 'to satisfy', {
       token: {
-        id: expect.it('to satisfy', UUID),
+        id: expect.it('to be UUID'),
         title: 'App1',
         issue: 1,
         scopes: [],

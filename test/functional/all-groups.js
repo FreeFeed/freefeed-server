@@ -2,7 +2,7 @@
 /* global $pg_database */
 import _ from 'lodash';
 import fetch from 'node-fetch';
-import expect from 'unexpected';
+import unexpected from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
@@ -10,7 +10,9 @@ import { DummyPublisher } from '../../app/pubsub';
 import { PubSub } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
 
-import { allGroupsResponse } from './schemaV2-helper';
+import { allGroupsResponse, freefeedAssertions } from './schemaV2-helper';
+
+const expect = unexpected.clone().use(freefeedAssertions);
 
 describe('All groups', () => {
   let app;

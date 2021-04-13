@@ -162,15 +162,13 @@ describe('Realtime (Socket.io)', () => {
     let lunaPost;
     let lunaComment, marsComment, jupiterComment;
 
-    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => (obj) => {
-      return expect(obj, 'to satisfy', {
-        comments: {
-          likes: nLikes,
-          hasOwnLike: hasOwn,
-          userId: likerId,
-        },
-      });
-    };
+    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => ({
+      comments: {
+        likes: nLikes,
+        hasOwnLike: hasOwn,
+        userId: likerId,
+      },
+    });
 
     beforeEach(async () => {
       jupiter = await funcTestHelper.createUserAsync('jupiter', 'pw');
