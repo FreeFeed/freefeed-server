@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.95.0] - Not Released
+## [1.98.0] - 2021-04-08
 
 **WARNING:** this version requires you to run manual migration script. It might run
 for tens of minutes (depending on the size of database and your server's hardware
