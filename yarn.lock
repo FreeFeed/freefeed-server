@@ -1030,6 +1030,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:~12.12.6":
+  version: 12.12.70
+  resolution: "@types/node@npm:12.12.70"
+  checksum: ef0ea535b8301d7d8f89d848bb7d5028bbd702d8d96b812100cba71829b460fc0d00cbbf296909254c49d0efe5a57dd37d40ba3abaca902dc170034e90f651a2
+  languageName: node
+  linkType: hard
+
 "@types/passport@npm:*":
   version: 1.0.6
   resolution: "@types/passport@npm:1.0.6"
@@ -4577,6 +4584,7 @@ __metadata:
     "@types/koa-static": ~4.0.1
     "@types/lodash": ~4.14.170
     "@types/mocha": ~8.2.2
+    "@types/node": ~12.12.6
     "@types/node-fetch": ~2.5.10
     "@types/pg-format": ~1.0.1
     "@types/raven": ~2.5.3

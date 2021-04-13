@@ -133,6 +133,7 @@
     "@types/koa-static": "~4.0.1",
     "@types/lodash": "~4.14.170",
     "@types/mocha": "~8.2.2",
+    "@types/node": "~12.12.6",
     "@types/node-fetch": "~2.5.10",
     "@types/pg-format": "~1.0.1",
     "@types/raven": "~2.5.3",
