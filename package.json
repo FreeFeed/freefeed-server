@@ -35,8 +35,8 @@
   },
   "dependencies": {
     "@koa/router": "~10.0.0",
-    "ajv": "~7.2.4",
-    "ajv-formats": "~1.5.1",
+    "ajv": "~8.1.0",
+    "ajv-formats": "~2.0.2",
     "await-lock": "~2.1.0",
     "aws-sdk": "^2.885.0",
     "bcrypt": "~5.0.1",

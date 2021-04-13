@@ -1326,12 +1326,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv-formats@npm:~1.5.1":
-  version: 1.5.1
-  resolution: "ajv-formats@npm:1.5.1"
+"ajv-formats@npm:~2.0.2":
+  version: 2.0.2
+  resolution: "ajv-formats@npm:2.0.2"
   dependencies:
-    ajv: ^7.0.0
-  checksum: 0c13847af10b5ad2657d77e5e471ff792d94405e119c2b8345eda797c9a20d98510cdb0f4eac7db330240ca47a5fb4dba891463172ee2ab9426044e15fe1e2e4
+    ajv: ^8.0.0
+  peerDependencies:
+    ajv: ^8.0.0
+  peerDependenciesMeta:
+    ajv:
+      optional: true
+  checksum: 75d45f2b3858156ec8f2285470473f786faae24e5934983feb2b20c80f094e490a2f3690c3dedc3d8d83623cb2fa31e665173d538acce8b06450735f38f203fd
   languageName: node
   linkType: hard
 
@@ -1347,19 +1352,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^7.0.0, ajv@npm:~7.2.4":
-  version: 7.2.4
-  resolution: "ajv@npm:7.2.4"
-  dependencies:
-    fast-deep-equal: ^3.1.1
-    json-schema-traverse: ^1.0.0
-    require-from-string: ^2.0.2
-    uri-js: ^4.2.2
-  checksum: 17be02b9a6c72317acc62fb15dde885d3d9e15ac44b025923697a44787cc69cceacf4c7e4ed43769eb313a64a3fd35ba7d308f36ef2eba136f4495d1cf513001
-  languageName: node
-  linkType: hard
-
-"ajv@npm:^8.0.1":
+"ajv@npm:^8.0.0, ajv@npm:^8.0.1, ajv@npm:~8.1.0":
   version: 8.1.0
   resolution: "ajv@npm:8.1.0"
   dependencies:
@@ -4615,8 +4608,8 @@ __metadata:
     "@types/xregexp": ~4.3.0
     "@typescript-eslint/eslint-plugin": ~4.22.0
     "@typescript-eslint/parser": ~4.22.0
-    ajv: ~7.2.4
-    ajv-formats: ~1.5.1
+    ajv: ~8.1.0
+    ajv-formats: ~2.0.2
     await-lock: ~2.1.0
     aws-sdk: ^2.885.0
     bcrypt: ~5.0.1
