@@ -15,9 +15,14 @@ export async function sendDailyBestOfEmail(user, data, digestDate) {
 
   // TODO: const subject = config.mailer.dailyBestOfDigestEmailSubject
   const emailBody = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
-  const emailBodyWithInlineStyles = await juice.juiceResourcesAsync(emailBody, (err, html) => {
-    debug('Error occurred while trying to inline styles', err, html);
-  });
+  let emailBodyWithInlineStyles;
+
+  try {
+    emailBodyWithInlineStyles = await juice.juiceResourcesAsync(emailBody);
+  } catch (err) {
+    debug('Error occurred while trying to inline styles', err);
+    return;
+  }
 
   const attachments = [
     fa['fa-heart'],
@@ -50,9 +55,14 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
 
   // TODO: const subject = config.mailer.weeklyBestOfDigestEmailSubject
   const emailBody = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
-  const emailBodyWithInlineStyles = await juice.juiceResourcesAsync(emailBody, (err, html) => {
-    debug('Error occurred while trying to inline styles', err, html);
-  });
+  let emailBodyWithInlineStyles;
+
+  try {
+    emailBodyWithInlineStyles = await juice.juiceResourcesAsync(emailBody);
+  } catch (err) {
+    debug('Error occurred while trying to inline styles', err);
+    return;
+  }
 
   const attachments = [
     fa['fa-heart'],
