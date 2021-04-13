@@ -1737,9 +1737,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"aws-sdk@npm:^2.882.0":
-  version: 2.882.0
-  resolution: "aws-sdk@npm:2.882.0"
+"aws-sdk@npm:^2.885.0":
+  version: 2.885.0
+  resolution: "aws-sdk@npm:2.885.0"
   dependencies:
     buffer: 4.9.2
     events: 1.1.1
@@ -1750,7 +1750,7 @@ __metadata:
     url: 0.10.3
     uuid: 3.3.2
     xml2js: 0.4.19
-  checksum: 46e54b9c62430a5b8a6cebbe080dc164949b121f9224bd94efa85ee31224dede39a9adc5034e27c60575497c2fd5281be68285b4adf6e86c1a1a50db63054459
+  checksum: cda7e5c415e6ed8d0f0beb72423a5a0a005594337c656e7da06d9619b1c9a18fa32bd40ba0a53e49ca6d629b3375e7d7234ef4b1d6f2c6dbd1f89c3a9195b789
   languageName: node
   linkType: hard
 
@@ -2417,10 +2417,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"classnames@npm:~2.2.6":
-  version: 2.2.6
-  resolution: "classnames@npm:2.2.6"
-  checksum: 490eaeca5931846737ffd33e472a701d268d5b8bc5717dd4cf108a127b06e86e05350e06799abbbe763a0e4c945b4217f6700b7ae00ddc703505682c370e5cf2
+"classnames@npm:~2.3.1":
+  version: 2.3.1
+  resolution: "classnames@npm:2.3.1"
+  checksum: 57d536edede609f81425d24b062d8d720a466565faf1e38d32c881e883920baa71519ac70c7b565e9cd39201fb1c1ff9bdf8aabf8e26544bac481e7924867c83
   languageName: node
   linkType: hard
 
@@ -4567,7 +4567,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"formidable@npm:^1.1.1, formidable@npm:^1.2.1":
+"formidable@npm:^1.1.1, formidable@npm:^1.2.2":
   version: 1.2.2
   resolution: "formidable@npm:1.2.2"
   checksum: 9fe5ef38d5881ac16cc8ca78bd3229fbf32b10e0fd3b718ec20f86ea1de7302aa0ffcfa9a9163cec02fc3f825faf9d0533f24539bb20ae6d73b580b526c25edb
@@ -4626,7 +4626,7 @@ __metadata:
     ajv: ~7.2.4
     ajv-formats: ~1.5.1
     await-lock: ~2.1.0
-    aws-sdk: ^2.882.0
+    aws-sdk: ^2.885.0
     bcrypt: ~5.0.1
     bluebird: ~3.5.5
     bytes: ~3.1.0
@@ -4634,7 +4634,7 @@ __metadata:
     cache-manager-ioredis: ~2.1.0
     chai: 3.5.0
     chai-fs: ~2.0.0
-    classnames: ~2.2.6
+    classnames: ~2.3.1
     commander: ~6.2.1
     config: ~3.3.6
     console-stamp: ~3.0.2
@@ -4696,7 +4696,7 @@ __metadata:
     pg-cursor: ~2.5.2
     pg-format: ~1.0.4
     prettier: ~2.2.1
-    probe-image-size: ~6.0.0
+    probe-image-size: ~7.0.1
     promise-streams: ~2.1.1
     raven: ~2.6.4
     react: ~16.13.1
@@ -4708,7 +4708,7 @@ __metadata:
     socket.io-client: ~2.3.1
     socket.io-redis: ~5.4.0
     stream-meter: ~1.0.4
-    superagent: ~5.2.2
+    superagent: ~6.1.0
     ts-json-check: ~2.0.1
     typescript: ~4.2.4
     unexpected: ~10.40.2
@@ -7209,7 +7209,7 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
-"mime@npm:^2.4.4, mime@npm:^2.4.6":
+"mime@npm:^2.4.6":
   version: 2.5.2
   resolution: "mime@npm:2.5.2"
   bin:
@@ -8790,14 +8790,14 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
-"probe-image-size@npm:~6.0.0":
-  version: 6.0.0
-  resolution: "probe-image-size@npm:6.0.0"
+"probe-image-size@npm:~7.0.1":
+  version: 7.0.1
+  resolution: "probe-image-size@npm:7.0.1"
   dependencies:
     deepmerge: ^4.0.0
     needle: ^2.5.2
     stream-parser: ~0.3.1
-  checksum: 00102300291ca6836f88481bbb9d909912267052eb207c912f21652c2a25442c7e378d7f99096a7f165fd4d70bcc18c9744e44aa7de27654b299fcf57878e6de
+  checksum: d2a220ccbe928a065fed1436832bb147b515a62d7f4b12b2c5eec5ae1aead1d67afbb883c90530891a071e54f0d5d3b156b9995a1c932ff3620e41135eb064f7
   languageName: node
   linkType: hard
 
@@ -8906,7 +8906,7 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.4.0, qs@npm:^6.9.1":
+"qs@npm:^6.4.0, qs@npm:^6.9.4":
   version: 6.10.1
   resolution: "qs@npm:6.10.1"
   dependencies:
@@ -9096,7 +9096,7 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
-"readable-stream@npm:^3.0.0, readable-stream@npm:^3.1.1, readable-stream@npm:^3.4.0, readable-stream@npm:^3.6.0":
+"readable-stream@npm:^3.0.0, readable-stream@npm:^3.1.1, readable-stream@npm:^3.6.0":
   version: 3.6.0
   resolution: "readable-stream@npm:3.6.0"
   dependencies:
@@ -10315,22 +10315,22 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
-"superagent@npm:~5.2.2":
-  version: 5.2.2
-  resolution: "superagent@npm:5.2.2"
+"superagent@npm:~6.1.0":
+  version: 6.1.0
+  resolution: "superagent@npm:6.1.0"
   dependencies:
     component-emitter: ^1.3.0
     cookiejar: ^2.1.2
     debug: ^4.1.1
     fast-safe-stringify: ^2.0.7
     form-data: ^3.0.0
-    formidable: ^1.2.1
+    formidable: ^1.2.2
     methods: ^1.1.2
-    mime: ^2.4.4
-    qs: ^6.9.1
-    readable-stream: ^3.4.0
-    semver: ^6.3.0
-  checksum: 263b3afd40ab7d7639e26a4cb104eaafc66d8bed05b51c6ea238f83480e17540e5d30d7b8c74684ab39e0014fafbf8017fb528a53fb9dac3a674a4fcca387a2f
+    mime: ^2.4.6
+    qs: ^6.9.4
+    readable-stream: ^3.6.0
+    semver: ^7.3.2
+  checksum: bc21d32d9dd1dd0e33df5f5e112e6796b010ae08d4402d61cc232de6204c8fb5aaa04ed717873c217e033fc80e7c2578aa4f1b607feec54627a5f724805c1e5b
   languageName: node
   linkType: hard
 
