@@ -49,12 +49,19 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
   XRegExp.forEach(normalizeText(query), tokenRe, (match) => {
     const [raw] = match;
 
-    if (match.pipe) {
+    const { groups } = match;
+
+    if (!groups) {
+      // typescript-hack. can never happen
+      throw new Error();
+    }
+
+    if (groups.pipe) {
       tokens.push(new Pipe());
       return;
     }
 
-    if (match.plus) {
+    if (groups.plus) {
       tokens.push(new Plus());
       return;
     }
@@ -69,15 +76,15 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
       }
     }
 
-    if (match.cond) {
+    if (groups.cond) {
       // (-)in:saves,friends
       for (const [re, condition] of listConditions) {
-        if (re.test(match.cond)) {
+        if (re.test(groups.cond)) {
           tokens.push(
             new Condition(
-              !!match.exclude,
+              !!groups.exclude,
               condition,
-              match.word.split(',').map(trimText).filter(Boolean),
+              groups.word.split(',').map(trimText).filter(Boolean),
             ),
           );
           return;
@@ -86,22 +93,22 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
 
       // (-)in-body:cat,mouse
       for (const [re, scope] of scopeStarts) {
-        if (re.test(match.cond)) {
-          if (match.qstring) {
+        if (re.test(groups.cond)) {
+          if (groups.qstring) {
             // in-body:"cat mouse" => "cat mouse"
             tokens.push(
               new InScope(
                 scope,
-                new AnyText([new Text(!!match.exclude, true, JSON.parse(match.qstring))]),
+                new AnyText([new Text(!!groups.exclude, true, JSON.parse(groups.qstring))]),
               ),
             );
           } else {
-            const words = (match.word as string)
+            const words = (groups.word as string)
               .split(',')
               .map((w) => trimText(w, { minPrefixLength }))
               .filter(Boolean);
 
-            if (!match.exclude) {
+            if (!groups.exclude) {
               // in-body:cat,mouse => cat || mouse
               const texts = words.map((word) => new Text(false, false, word));
               tokens.push(new InScope(scope, new AnyText(texts)));
@@ -118,7 +125,7 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
 
       // Scope not found, treat as raw text
       tokens.push(
-        new AnyText([new Text(!!match.exclude, false, trimText(raw, { minPrefixLength }))]),
+        new AnyText([new Text(!!groups.exclude, false, trimText(raw, { minPrefixLength }))]),
       );
       return;
     }
@@ -127,9 +134,9 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
     tokens.push(
       new AnyText([
         new Text(
-          !!match.exclude,
-          !!match.qstring,
-          match.qstring ? JSON.parse(match.qstring) : trimText(match.word, { minPrefixLength }),
+          !!groups.exclude,
+          !!groups.qstring,
+          groups.qstring ? JSON.parse(groups.qstring) : trimText(groups.word, { minPrefixLength }),
         ),
       ]),
     );
