@@ -1,8 +1,8 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
+import unexpected from 'unexpected';
 import fetch from 'node-fetch';
 import request from 'superagent';
-import expect from 'unexpected';
 import config from 'config';
 import { sortBy, uniq } from 'lodash';
 
@@ -26,10 +26,11 @@ import {
   createUserAsyncPost,
   authHeaders,
 } from '../functional/functional_test_helper';
-import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 import { GONE_SUSPENDED } from '../../app/models/user';
 
 import * as schema from './schemaV2-helper';
+
+const expect = unexpected.clone().use(schema.freefeedAssertions);
 
 describe('UsersControllerV2', () => {
   let app;
@@ -136,16 +137,16 @@ describe('UsersControllerV2', () => {
         banIds: expect
           .it('to be an array')
           .and('to be empty')
-          .or('to have items satisfying', schema.UUID),
+          .or('to have items satisfying', 'to be UUID'),
         pendingGroupRequests: expect.it('to be a boolean'),
         pendingSubscriptionRequests: expect
           .it('to be an array')
           .and('to be empty')
-          .or('to have items satisfying', schema.UUID),
+          .or('to have items satisfying', 'to be UUID'),
         subscriptionRequests: expect
           .it('to be an array')
           .and('to be empty')
-          .or('to have items satisfying', schema.UUID),
+          .or('to have items satisfying', 'to be UUID'),
         unreadDirectsNumber: expect.it('to be a string').and('to match', /^\d+$/),
         unreadNotificationsNumber: expect.it('to be a number'),
         subscribers: expect
@@ -155,10 +156,8 @@ describe('UsersControllerV2', () => {
         subscriptions: expect
           .it('to be an array')
           .and('to be empty')
-          .or('to have items satisfying', schema.UUID),
-        preferences: expect.it('to satisfy', (data) =>
-          expect(validateUserPrefs(data), 'to be an object'),
-        ),
+          .or('to have items satisfying', 'to be UUID'),
+        preferences: expect.it('to be valid preferences'),
       };
 
       expect(whoAmI, 'to exhaustively satisfy', {
@@ -166,19 +165,19 @@ describe('UsersControllerV2', () => {
         subscribers: expect
           .it('to be an array')
           .and('to be empty')
-          .or('to have items exhaustively satisfying', schema.userOrGroup),
+          .or('to have items exhaustively satisfying', 'to be a serialized user or group'),
         subscriptions: expect
           .it('to be an array')
           .and('to be empty')
           .or('to have items exhaustively satisfying', {
-            id: expect.it('to satisfy', schema.UUID),
+            id: expect.it('to be UUID'),
             name: expect.it('to be a string'),
             user: expect.it('to be a string'),
           }),
         requests: expect
           .it('to be an array')
           .and('to be empty')
-          .or('to have items exhaustively satisfying', schema.userOrGroup),
+          .or('to have items exhaustively satisfying', 'to be a serialized user or group'),
         managedGroups: expect
           .it('to be an array')
           .and('to be empty')

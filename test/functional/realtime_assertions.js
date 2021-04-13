@@ -90,13 +90,6 @@ export function installInto(unexpected) {
       output.text('Session(').append(inspect(sess.context, depth)).text(')'),
   });
 
-  unexpected.addType({
-    name: 'method',
-    base: 'function',
-    identify: (m) => m !== null && typeof m === 'function',
-    inspect: (method, depth, output) => output.text('method'),
-  });
-
   // Pre-conditions
   unexpected.addAssertion(
     '<userContext> when subscribed to timeline <string> <assertion>',
@@ -343,7 +336,7 @@ export function installInto(unexpected) {
   );
 
   unexpected.addAssertion(
-    '<realtimeSession> [not] to get user:update event when called <method>',
+    '<realtimeSession> [not] to get user:update event when called <function>',
     async (expect, session, method) => {
       expect.errorMode = 'nested';
       const noEvents = expect.flags['not'];

@@ -1,6 +1,6 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import origExpect from 'unexpected';
+import unexpected from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
@@ -48,7 +48,7 @@ import {
 import * as schema from './schemaV2-helper';
 import * as realtimeAssertions from './realtime_assertions';
 
-const expect = origExpect.clone().use(realtimeAssertions);
+const expect = unexpected.clone().use(realtimeAssertions).use(schema.freefeedAssertions);
 
 describe('EventService', () => {
   before(() => {
@@ -1858,13 +1858,13 @@ describe('EventsController', () => {
       expect(res, 'to satisfy', {
         Notifications: [
           {
-            eventId: schema.UUID,
+            eventId: expect.it('to be UUID'),
             event_type: 'banned_user',
             created_user_id: luna.user.id,
             affected_user_id: mars.user.id,
           },
           {
-            eventId: schema.UUID,
+            eventId: expect.it('to be UUID'),
             event_type: 'user_subscribed',
             created_user_id: mars.user.id,
             affected_user_id: luna.user.id,
@@ -1878,7 +1878,7 @@ describe('EventsController', () => {
       expect(res, 'to satisfy', {
         Notifications: [
           {
-            eventId: schema.UUID,
+            eventId: expect.it('to be UUID'),
             event_type: 'user_subscribed',
             created_user_id: luna.user.id,
             affected_user_id: mars.user.id,
@@ -2336,14 +2336,12 @@ describe('Unread events counter realtime updates for ', () => {
 
   let luna, mars;
 
-  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => (obj) => {
-    return expect(obj, 'to satisfy', {
-      user: {
-        id: userId,
-        unreadNotificationsNumber: unreadCount,
-      },
-    });
-  };
+  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => ({
+    user: {
+      id: userId,
+      unreadNotificationsNumber: unreadCount,
+    },
+  });
 
   beforeEach(async () => {
     await cleanDB($pg_database);
@@ -2870,7 +2868,7 @@ describe('eventById', () => {
     );
 
     const eventId = events.find((e) => e.event_type === eventType)?.eventId;
-    expect(eventId, 'to satisfy', schema.UUID);
+    expect(eventId, 'to be UUID');
     return eventId;
   };
 

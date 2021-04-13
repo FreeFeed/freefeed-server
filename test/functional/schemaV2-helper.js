@@ -1,27 +1,154 @@
-import expect from 'unexpected';
+import _unexpected from 'unexpected';
+import validator from 'validator';
 
 import { Comment } from '../../app/models';
+import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
 
-export const boolString = (v) => expect(v, 'to be a string').and('to be one of', ['0', '1']);
+export const freefeedAssertions = {
+  name: 'unexpected-freefeed',
+  installInto: (unexpected) => {
+    unexpected.addAssertion('<string> to be UUID', (xpct, subject) => {
+      const uuidRegExp = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-(8|9|a|b)[a-f0-9]{3}-[a-f0-9]{12}$/;
+      xpct(subject, 'to match', uuidRegExp);
+    });
 
-export const timeStampString = (v) => expect(v, 'to be a string').and('to match', /^\d+$/);
+    unexpected.addAssertion('<string> to be boolString', (xpct, subject) => {
+      xpct(subject, 'to be one of', ['0', '1']);
+    });
 
-export const iso8601TimeString = (v) => {
-  const d = new Date(v);
-  return expect(d instanceof Date && !isNaN(d), 'to be true');
+    unexpected.addAssertion('<string> to be timeStampString', (xpct, subject) => {
+      xpct(subject, 'to match', /^\d+$/);
+    });
+
+    unexpected.addAssertion('<string> to be iso8601TimeString', (xpct, subject) => {
+      const d = new Date(subject);
+      xpct(d instanceof Date && !isNaN(d), 'to be true');
+    });
+
+    unexpected.addAssertion('<object> to be a serialized user or group', (xpct, subject) => {
+      const isGroup = subject && typeof subject === 'object' && subject.type === 'group';
+      return xpct(subject, 'to exhaustively satisfy', isGroup ? group : user);
+    });
+
+    unexpected.addAssertion('<object> to be a serialized post', (xpct, subject) => {
+      const tpl = { ...postBasic };
+
+      if (subject && typeof subject === 'object' && 'isHidden' in subject) {
+        tpl.isHidden = xpct.it('to be', true);
+      }
+
+      if (subject && typeof subject === 'object' && 'isSaved' in subject) {
+        tpl.isSaved = xpct.it('to be', true);
+      }
+
+      if (subject && typeof subject === 'object' && subject.friendfeedUrl) {
+        tpl.friendfeedUrl = xpct.it('to be a string');
+      }
+
+      return xpct(subject, 'to exhaustively satisfy', tpl);
+    });
+
+    unexpected.addAssertion('<object> to be a serialized attachment', (xpct, subject) => {
+      switch (subject.mediaType) {
+        case 'image':
+          return xpct(subject, 'to exhaustively satisfy', attachmentImage);
+        case 'audio':
+          return xpct(subject, 'to exhaustively satisfy', attachmentAudio);
+        case 'general':
+          return xpct(subject, 'to exhaustively satisfy', attachmentGeneral);
+      }
+
+      return null;
+    });
+
+    unexpected.addAssertion('<object> to be a serialized comment', (xpct, subject) => {
+      const isHidden =
+        subject && typeof subject === 'object' && subject.hideType !== Comment.VISIBLE;
+      const createdByExpectation = isHidden ? xpct.it('to be null') : xpct.it('to be UUID');
+
+      xpct(subject, 'to exhaustively satisfy', {
+        ...commentBasic,
+        createdBy: createdByExpectation,
+      });
+    });
+
+    unexpected.addAssertion(
+      '<object> to be [an] API error <number> <string>',
+      (xpct, subject, code, message) => {
+        xpct(subject, 'to satisfy', { status: code });
+
+        xpct(subject.json(), 'when fulfilled', 'to satisfy', { err: message });
+      },
+    );
+
+    unexpected.addAssertion('<object> to have 1 like by <object>', async (xpct, subject, liker) => {
+      xpct(subject, 'to satisfy', { status: 200 });
+      await xpct(subject.json(), 'when fulfilled', 'to satisfy', {
+        likes: xpct
+          .it('to be an array')
+          .and('to be non-empty')
+          .and('to have length', 1)
+          .and('to have items satisfying', {
+            userId: xpct.it('to be UUID').and('to be', liker.user.id),
+            createdAt: xpct.it('when passed as parameter to', validator.isISO8601, 'to be', true),
+          }),
+        users: xpct.it('to be an array').and('to have items satisfying', user),
+      });
+    });
+
+    unexpected.addAssertion('<object> to have no likes', async (xpct, subject) => {
+      xpct(subject, 'to satisfy', { status: 200 });
+      await xpct(subject.json(), 'when fulfilled', 'to satisfy', {
+        likes: xpct.it('to be an array').and('to be empty'),
+        users: xpct.it('to be an array').and('to be empty'),
+      });
+    });
+
+    unexpected.addAssertion('<object> to be [an] invitation response', async (xpct, subject) => {
+      xpct(subject, 'to satisfy', { status: 200 });
+
+      await xpct(subject.json(), 'when fulfilled', 'to satisfy', {
+        invitation: xpct.it('to satisfy', {
+          id: xpct.it('to be a number'),
+          secure_id: xpct.it('to be UUID'),
+          author: xpct.it('to be UUID'),
+          message: xpct.it('to be a string'),
+          lang: xpct.it('to be a string'),
+          single_use: xpct.it('to be a boolean'),
+          recommendations: xpct.it('to satisfy', {
+            users: xpct
+              .it('to be an array')
+              .and('to be empty')
+              .or('to have items satisfying', xpct.it('to be a string')),
+            groups: xpct
+              .it('to be an array')
+              .and('to be empty')
+              .or('to have items satisfying', xpct.it('to be a string')),
+          }),
+          registrations_count: xpct.it('to be a number'),
+          created_at: xpct.it('when passed as parameter to', validator.isISO8601, 'to be', true),
+        }),
+        users: xpct.it('to be an array').and('to be empty').or('to have items satisfying', user),
+        groups: xpct.it('to be an array').and('to be empty').or('to have items satisfying', group),
+      });
+    });
+
+    unexpected.addAssertion('<object> to be valid preferences', (xpct, subject) => {
+      xpct(() => validateUserPrefs(subject), 'to be an object');
+    });
+  },
 };
 
-export const UUID = (v) =>
-  expect(v, 'to match', /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-(8|9|a|b)[a-f0-9]{3}-[a-f0-9]{12}$/);
+const expect = _unexpected.clone().use(freefeedAssertions);
 
 export const userBasic = {
-  id: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
   username: expect.it('to be a string'),
   screenName: expect.it('to be a string'),
-  isPrivate: expect.it('to satisfy', boolString),
-  isProtected: expect.it('to satisfy', boolString),
-  createdAt: expect.it('to satisfy', timeStampString),
-  updatedAt: expect.it('to satisfy', timeStampString),
+  isPrivate: expect.it('to be boolString'),
+  isProtected: expect.it('to be boolString'),
+  createdAt: expect.it('to be timeStampString'),
+  updatedAt: expect.it('to be timeStampString'),
   type: expect.it('to equal', 'user'),
   description: expect.it('to be a string'),
   profilePictureLargeUrl: expect.it('to be a string'),
@@ -30,7 +157,7 @@ export const userBasic = {
 
 export const groupBasic = {
   ...userBasic,
-  isRestricted: expect.it('to satisfy', boolString),
+  isRestricted: expect.it('to be boolString'),
   type: expect.it('to equal', 'group'),
 };
 
@@ -42,12 +169,7 @@ export const user = {
 export const group = {
   ...groupBasic,
   statistics: expect.it('to be an object'),
-  administrators: expect.it('to be an array').and('to have items satisfying', UUID),
-};
-
-export const userOrGroupBasic = (obj) => {
-  const isGroup = obj && typeof obj === 'object' && obj.type === 'group';
-  return expect(obj, 'to exhaustively satisfy', isGroup ? groupBasic : userBasic);
+  administrators: expect.it('to be an array').and('to have items satisfying', 'to be UUID'),
 };
 
 export const userOrGroup = (obj) => {
@@ -56,16 +178,28 @@ export const userOrGroup = (obj) => {
 };
 
 const postBasic = {
-  id: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
   body: expect.it('to be a string'),
-  commentsDisabled: expect.it('to satisfy', boolString),
-  createdAt: expect.it('to satisfy', timeStampString),
-  updatedAt: expect.it('to satisfy', timeStampString),
-  createdBy: expect.it('to satisfy', UUID),
-  postedTo: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  attachments: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  comments: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
-  likes: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  commentsDisabled: expect.it('to be boolString'),
+  createdAt: expect.it('to be timeStampString'),
+  updatedAt: expect.it('to be timeStampString'),
+  createdBy: expect.it('to be UUID'),
+  postedTo: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be UUID'),
+  attachments: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be UUID'),
+  comments: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be UUID'),
+  likes: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be UUID'),
   omittedComments: expect.it('to be a number'),
   omittedLikes: expect.it('to be a number'),
   commentLikes: expect.it('to be a number'),
@@ -74,50 +208,23 @@ const postBasic = {
   omittedOwnCommentLikes: expect.it('to be a number'),
 };
 
-export const post = (obj) => {
-  const tpl = { ...postBasic };
-
-  if (obj && typeof obj === 'object' && 'isHidden' in obj) {
-    tpl.isHidden = expect.it('to be', true);
-  }
-
-  if (obj && typeof obj === 'object' && 'isSaved' in obj) {
-    tpl.isSaved = expect.it('to be', true);
-  }
-
-  if (obj && typeof obj === 'object' && obj.friendfeedUrl) {
-    tpl.friendfeedUrl = expect.it('to be a string');
-  }
-
-  return expect(obj, 'to exhaustively satisfy', tpl);
-};
-
 const commentBasic = {
-  id: expect.it('to satisfy', UUID),
-  postId: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
+  postId: expect.it('to be UUID'),
   body: expect.it('to be a string'),
-  createdAt: expect.it('to satisfy', timeStampString),
-  updatedAt: expect.it('to satisfy', timeStampString),
+  createdAt: expect.it('to be timeStampString'),
+  updatedAt: expect.it('to be timeStampString'),
   hideType: expect.it('to be greater than or equal to', Comment.VISIBLE),
   likes: expect.it('to be a number'),
   hasOwnLike: expect.it('to be a boolean'),
   seqNumber: expect.it('to be a number'),
 };
 
-export const comment = (obj) => {
-  const isHidden = obj && typeof obj === 'object' && obj.hideType !== Comment.VISIBLE;
-  const createdByExpectation = isHidden ? expect.it('to be null') : expect.it('to satisfy', UUID);
-  return expect(obj, 'to exhaustively satisfy', {
-    ...commentBasic,
-    createdBy: createdByExpectation,
-  });
-};
-
 const attachmentCommons = {
-  id: expect.it('to satisfy', UUID),
-  createdAt: expect.it('to satisfy', timeStampString),
-  updatedAt: expect.it('to satisfy', timeStampString),
-  createdBy: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
+  createdAt: expect.it('to be timeStampString'),
+  updatedAt: expect.it('to be timeStampString'),
+  createdBy: expect.it('to be UUID'),
   mediaType: expect.it('to be one of', ['image', 'audio', 'general']),
   fileName: expect.it('to be a string'),
   fileSize: expect.it('to be a string').and('to match', /^\d+$/),
@@ -152,48 +259,34 @@ export const attachmentGeneral = {
   imageSizes: expect.it('to be empty'),
 };
 
-const properAttachmentType = (obj) => {
-  switch (obj.mediaType) {
-    case 'image':
-      return expect(obj, 'to exhaustively satisfy', attachmentImage);
-    case 'audio':
-      return expect(obj, 'to exhaustively satisfy', attachmentAudio);
-    case 'general':
-      return expect(obj, 'to exhaustively satisfy', attachmentGeneral);
-  }
-
-  return null;
-};
-
-export const attachment = (obj) => {
-  return expect(obj, 'to be an object').and('to satisfy', properAttachmentType);
-};
-
 export const postResponse = {
-  posts: expect.it('to satisfy', post),
+  posts: expect.it('to be a serialized post'),
   users: expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
-  comments: expect.it('to be an array').and('to be empty').or('to have items satisfying', comment),
+  comments: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a serialized comment'),
   attachments: expect
     .it('to be an array')
     .and('to be empty')
-    .or('to have items satisfying', attachment),
+    .or('to have items satisfying', 'to be a serialized attachment'),
   subscribers: expect
     .it('to be an array')
     .and('to be empty')
-    .or('to have items satisfying', userOrGroup),
+    .or('to have items satisfying', 'to be a serialized user or group'),
   subscriptions: expect
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', {
-      id: expect.it('to satisfy', UUID),
+      id: expect.it('to be UUID'),
       name: expect.it('to be one of', ['Posts', 'Directs']),
-      user: expect.it('to satisfy', UUID),
+      user: expect.it('to be UUID'),
     }),
 };
 
 export const timelineResponse = {
   timelines: expect.it('to exhaustively satisfy', {
-    id: expect.it('to satisfy', UUID),
+    id: expect.it('to be UUID'),
     name: expect.it('to be one of', [
       'RiverOfNews',
       'Hides',
@@ -204,32 +297,44 @@ export const timelineResponse = {
       'MyDiscussions',
       'Saves',
     ]),
-    user: expect.it('to satisfy', UUID),
-    posts: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+    user: expect.it('to be UUID'),
+    posts: expect
+      .it('to be an array')
+      .and('to be empty')
+      .or('to have items satisfying', 'to be UUID'),
     subscribers: expect
       .it('to be an array')
       .and('to be empty')
-      .or('to have items satisfying', UUID),
+      .or('to have items satisfying', 'to be UUID'),
   }),
-  users: expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
+  users: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a serialized user or group'),
   admins: expect.it('to be an array').and('to be empty').or('to have items satisfying', user),
-  posts: expect.it('to be an array').and('to be empty').or('to have items satisfying', post),
-  comments: expect.it('to be an array').and('to be empty').or('to have items satisfying', comment),
+  posts: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a serialized post'),
+  comments: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a serialized comment'),
   attachments: expect
     .it('to be an array')
     .and('to be empty')
-    .or('to have items satisfying', attachment),
+    .or('to have items satisfying', 'to be a serialized attachment'),
   subscribers: expect
     .it('to be an array')
     .and('to be empty')
-    .or('to have items satisfying', userOrGroup),
+    .or('to have items satisfying', 'to be a serialized user or group'),
   subscriptions: expect
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', {
-      id: expect.it('to satisfy', UUID),
+      id: expect.it('to be UUID'),
       name: expect.it('to be one of', ['Posts', 'Directs']),
-      user: expect.it('to satisfy', UUID),
+      user: expect.it('to be UUID'),
     }),
   isLastPage: expect.it('to be a boolean'),
 };
@@ -246,7 +351,7 @@ export const postsByIdsResponse = {
   postsNotFound: expect
     .it('to be an array')
     .and('to be empty')
-    .or('to have items satisfying', UUID),
+    .or('to have items satisfying', 'to be UUID'),
   timelines: undefined,
   isLastPage: undefined,
 };
@@ -257,26 +362,29 @@ export const allGroupsResponse = {
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', {
-      id: expect.it('to satisfy', UUID),
+      id: expect.it('to be UUID'),
       subscribers: expect.it('not to be negative'),
       postsByMonth: expect.it('not to be negative'),
       authorsVariety: expect.it('to be within', 0, 1),
     }),
-  users: expect.it('to be an array').and('to be empty').or('to have items satisfying', userOrGroup),
+  users: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a serialized user or group'),
 };
 
 export const userSubscriptionsResponse = {
   subscribers: expect
     .it('to be an array')
     .and('to be empty')
-    .or('to have items satisfying', userOrGroup),
+    .or('to have items satisfying', 'to be a serialized user or group'),
   subscriptions: expect
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', {
-      id: expect.it('to satisfy', UUID),
+      id: expect.it('to be UUID'),
       name: expect.it('to be one of', ['Posts', 'Comments', 'Likes']),
-      user: expect.it('to satisfy', UUID),
+      user: expect.it('to be UUID'),
     }),
 };
 
@@ -285,11 +393,11 @@ export const userSubscribersResponse = {
 };
 
 export const appTokenInfoRestricted = {
-  id: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
   issue: expect.it('to be a number'),
-  createdAt: expect.it('to satisfy', iso8601TimeString),
-  updatedAt: expect.it('to satisfy', iso8601TimeString),
-  expiresAt: expect.it('to be null').or('to satisfy', iso8601TimeString),
+  createdAt: expect.it('to be iso8601TimeString'),
+  updatedAt: expect.it('to be iso8601TimeString'),
+  expiresAt: expect.it('to be null').or('to be iso8601TimeString'),
   scopes: expect
     .it('to be an array')
     .and('to be empty')
@@ -314,7 +422,7 @@ export const appTokenInfoRestricted = {
 export const appTokenInfo = {
   ...appTokenInfoRestricted,
   title: expect.it('to be a string'),
-  lastUsedAt: expect.it('to be null').or('to satisfy', iso8601TimeString),
+  lastUsedAt: expect.it('to be null').or('to be iso8601TimeString'),
   lastIP: expect.it('to be null').or('to be a string'),
   lastUserAgent: expect.it('to be null').or('to be a string'),
 };
@@ -346,10 +454,10 @@ export const serverInfoResponse = {
 };
 
 export const externalProfile = {
-  id: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
   provider: expect.it('to be a string'),
   title: expect.it('to be a string'),
-  createdAt: expect.it('to satisfy', iso8601TimeString),
+  createdAt: expect.it('to be iso8601TimeString'),
 };
 
 export const extAuthProfilesResponse = {
@@ -361,12 +469,12 @@ export const extAuthProfilesResponse = {
 };
 
 export const homeFeed = {
-  id: expect.it('to satisfy', UUID),
-  user: expect.it('to satisfy', UUID),
+  id: expect.it('to be UUID'),
+  user: expect.it('to be UUID'),
   name: expect.it('to be', 'RiverOfNews'),
   title: expect.it('to be a string'),
   isInherent: expect.it('to be a boolean'),
-  createdAt: expect.it('to satisfy', iso8601TimeString),
+  createdAt: expect.it('to be iso8601TimeString'),
 };
 
 export const homeFeedsListResponse = {
@@ -376,7 +484,10 @@ export const homeFeedsListResponse = {
 
 export const homeFeedsOneResponse = {
   timeline: expect.it('to satisfy', homeFeed),
-  subscribedTo: expect.it('to be an array').and('to be empty').or('to have items satisfying', UUID),
+  subscribedTo: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be UUID'),
   users: expect.it('to be an array').and('to have items satisfying', user),
 };
 
@@ -385,18 +496,18 @@ export const homeFeedsSubscriptionsResponse = {
     .it('to be an array')
     .and('to be empty')
     .or('to have items satisfying', {
-      id: expect.it('to satisfy', UUID),
+      id: expect.it('to be UUID'),
       homeFeeds: expect
         .it('to be an array')
         .and('to be empty')
-        .or('to have items satisfying', UUID),
+        .or('to have items satisfying', 'to be UUID'),
     }),
   timelines: expect.it('to be an array').and('to have items satisfying', homeFeed),
   users: expect.it('to be an array').and('to have items satisfying', user),
 };
 
 export const getCommentResponse = {
-  comments: expect.it('to satisfy', comment),
+  comments: expect.it('to be a serialized comment'),
   users: expect.it('to be an array').and('to have items satisfying', user),
   admins: expect.it('to be an array').and('to have items satisfying', user),
 };
