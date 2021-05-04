@@ -597,6 +597,28 @@ describe('Gone users', () => {
       expect(parsedMail, 'to satisfy', { subject: config.mailer.resetPasswordMailSubject });
     });
   });
+
+  describe('Comment likes', () => {
+    let marsPost, commentId;
+    beforeEach(async () => {
+      await setGoneStatus(luna, null);
+      // Mars writes a post and comment
+      marsPost = await createAndReturnPost(mars, 'Mars post');
+      const resp = await createCommentAsync(mars, marsPost.id, 'Mars comment');
+      ({
+        comments: { id: commentId },
+      } = await resp.json());
+      // Luna likes comment
+      await likeComment(commentId, luna);
+      // Luna is gone
+      await setGoneStatus(luna, GONE_COOLDOWN);
+    });
+
+    it(`should not count Luna's like`, async () => {
+      const resp = await performJSONRequest('GET', `/v1/comments/${commentId}`);
+      expect(resp, 'to satisfy', { comments: { likes: 0 } });
+    });
+  });
 });
 
 async function setGoneStatus(userCtx, status) {
