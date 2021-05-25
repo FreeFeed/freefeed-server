@@ -9,8 +9,6 @@
     "@babel/syntax-export-default-from",
     "@babel/proposal-export-default-from",
     "@babel/proposal-export-namespace-from",
-    "@babel/plugin-proposal-optional-chaining",
-    "@babel/plugin-proposal-nullish-coalescing-operator",
     "@babel/transform-modules-commonjs",
     "@babel/transform-react-jsx"
   ]
