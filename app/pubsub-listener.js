@@ -1,5 +1,6 @@
 /* eslint babel/semi: "error" */
-import { promisifyAll } from 'bluebird';
+import util from 'util';
+
 import Redis from 'ioredis';
 import {
   cloneDeep,
@@ -104,7 +105,8 @@ export default class PubsubListener {
   }
 
   onConnect = (socket) => {
-    promisifyAll(socket);
+    socket.joinAsync = util.promisify(socket.join).bind(socket);
+    socket.leaveAsync = util.promisify(socket.leave).bind(socket);
 
     socket.on('error', (e) => {
       debug(`[socket.id=${socket.id}] error`, e);

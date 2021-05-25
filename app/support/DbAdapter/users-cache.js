@@ -8,7 +8,7 @@ const usersCacheTrait = (superClass) =>
   class extends superClass {
     async cacheFlushUser(id) {
       const cacheKey = `user_${id}`;
-      await this.cache.delAsync(cacheKey);
+      await this.cache.del(cacheKey);
     }
 
     getCachedUserAttrs = async (id) => {

@@ -2,7 +2,6 @@ import _ from 'lodash';
 import NodeCache from 'node-cache';
 import cacheManager from 'cache-manager';
 import redisStore from 'cache-manager-ioredis';
-import { promisifyAll } from 'bluebird';
 import config from 'config';
 
 import usersTrait from './users';
@@ -51,9 +50,6 @@ class DbAdapterBase {
       db: config.database,
       ttl: CACHE_TTL,
     });
-
-    promisifyAll(this.cache);
-    promisifyAll(this.memoryCache);
 
     this.searchQueriesTimeout = config.performance.searchQueriesTimeout;
     this._pgVersion = null;

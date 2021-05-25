@@ -1,9 +1,9 @@
 import { promises as fs, createReadStream } from 'fs';
-import { execFile } from 'child_process';
+import childProcess from 'child_process';
 import { parse as parsePath } from 'path';
+import util from 'util';
 
 import config from 'config';
-import { promisify, promisifyAll } from 'bluebird';
 import createDebug from 'debug';
 import gm from 'gm';
 import { parseFile } from 'music-metadata';
@@ -17,13 +17,15 @@ import probe from 'probe-image-size';
 
 import { getS3 } from '../support/s3';
 
-const mvAsync = promisify(mv);
+const mvAsync = util.promisify(mv);
 
 const mimeMagic = new mmm.Magic(mmm.MAGIC_MIME_TYPE);
-const detectMime = promisify(mimeMagic.detectFile, { context: mimeMagic });
+const detectMime = util.promisify(mimeMagic.detectFile).bind(mimeMagic);
 
 const magic = new mmm.Magic();
-const detectFile = promisify(magic.detectFile, { context: magic });
+const detectFile = util.promisify(magic.detectFile).bind(magic);
+
+const execFile = util.promisify(childProcess.execFile);
 
 const debug = createDebug('freefeed:model:attachment');
 
@@ -61,8 +63,6 @@ async function mimeTypeDetect(fileName, filePath) {
 
   return mimeType;
 }
-
-const execFileAsync = promisify(execFile);
 
 export function addModel(dbAdapter) {
   return class Attachment {
@@ -340,7 +340,10 @@ export function addModel(dbAdapter) {
 
       // Fix EXIF orientation for original image, if JPEG
       if (this.mimeType === 'image/jpeg') {
-        originalImage = promisifyAll(gm(originalFile));
+        originalImage = gm(originalFile);
+        originalImage.orientationAsync = util.promisify(originalImage.orientation);
+        originalImage.writeAsync = util.promisify(originalImage.write);
+
         // orientation() returns a string. Possible values are:
         // unknown, Unknown, TopLeft, TopRight, BottomRight, BottomLeft, LeftTop, RightTop, RightBottom, LeftBottom
         // The first three options are fine, the rest should be fixed.
@@ -352,7 +355,11 @@ export function addModel(dbAdapter) {
             .autoOrient()
             .quality(95);
           await img.writeAsync(originalFile);
-          originalImage = promisifyAll(gm(originalFile));
+
+          originalImage = gm(originalFile);
+          originalImage.orientationAsync = util.promisify(originalImage.orientation);
+          originalImage.writeAsync = util.promisify(originalImage.write);
+
           originalSize = await getImageSize(originalFile);
           this.imageSizes.o.w = originalSize.width;
           this.imageSizes.o.h = originalSize.height;
@@ -389,7 +396,7 @@ export function addModel(dbAdapter) {
         await Promise.all(
           thumbIds.map(async (sizeId) => {
             const { w, h } = this.imageSizes[sizeId];
-            await execFileAsync(gifsicle, [
+            await execFile(gifsicle, [
               '--resize',
               `${w}x${h}`,
               '--resize-colors',
@@ -405,7 +412,9 @@ export function addModel(dbAdapter) {
         // Iterate over image sizes old-fashioned (and very synchronous) way
         // because gm is acting up weirdly when writing files in parallel mode
         if (originalImage === null) {
-          originalImage = promisifyAll(gm(originalFile));
+          originalImage = gm(originalFile);
+          originalImage.orientationAsync = util.promisify(originalImage.orientation);
+          originalImage.writeAsync = util.promisify(originalImage.write);
         }
 
         for (const sizeId of thumbIds) {

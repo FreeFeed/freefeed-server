@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import util from 'util';
 
 import _ from 'lodash';
 import compose from 'koa-compose';
@@ -44,6 +45,8 @@ import {
   userResumeMeInputSchema,
 } from './data-schemes';
 
+const randomBytes = util.promisify(crypto.randomBytes);
+
 export default class UsersController {
   static create = compose([
     inputSchemaRequired(userCreateInputSchema),
@@ -82,7 +85,7 @@ export default class UsersController {
         extProfileData = await profileCache.get(ctx.request.body.externalProfileKey);
 
         // If the externalProfileKey is defined then we should auto-generate password
-        params.password = (await crypto.randomBytesAsync(8)).toString('base64');
+        params.password = (await randomBytes(8)).toString('base64');
       }
 
       const invitationId = ctx.request.body.invitation;
