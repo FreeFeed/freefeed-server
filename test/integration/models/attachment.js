@@ -2,10 +2,10 @@
 /* global $pg_database */
 import { promises as fsPromises } from 'fs';
 import path from 'path';
+import util from 'util';
 
 import mkdirp from 'mkdirp';
 import gm from 'gm';
-import { promisifyAll } from 'bluebird';
 import chai from 'chai';
 import chaiFS from 'chai-fs';
 import _ from 'lodash';
@@ -386,7 +386,9 @@ describe('Attachment', () => {
 
       // original colors
       {
-        const original = promisifyAll(gm(newAttachment.getPath()));
+        const original = gm(newAttachment.getPath());
+        original.toBufferAsync = util.promisify(original.toBuffer);
+
         const buffer = await original.resize(1, 1).toBufferAsync('RGB');
 
         buffer.length.should.be.equal(3);
@@ -400,7 +402,9 @@ describe('Attachment', () => {
         const thumbnailFile = newAttachment.getResizedImagePath('t');
         thumbnailFile.should.be.a.file().and.not.empty;
 
-        const thumbnail = promisifyAll(gm(thumbnailFile));
+        const thumbnail = gm(thumbnailFile);
+        thumbnail.toBufferAsync = util.promisify(thumbnail.toBuffer);
+
         const buffer = await thumbnail.resize(1, 1).toBufferAsync('RGB');
 
         buffer.length.should.be.equal(3);

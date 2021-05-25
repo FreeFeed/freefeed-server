@@ -712,13 +712,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/bluebird@npm:~3.5.35":
-  version: 3.5.35
-  resolution: "@types/bluebird@npm:3.5.35"
-  checksum: cfad2f2de7f3bbd0dd93f991de8d1b128778b5dc82ceb64158a83d159a5d14f5a4e592f75c7b196c714920e5063dc3d2d1bfd7e2dd1404698edad5ce2d5d7b8c
-  languageName: node
-  linkType: hard
-
 "@types/body-parser@npm:*":
   version: 1.19.0
   resolution: "@types/body-parser@npm:1.19.0"
@@ -1027,6 +1020,13 @@ __metadata:
   version: 15.6.1
   resolution: "@types/node@npm:15.6.1"
   checksum: 07b3855bc0a1ba2215455a3ef4ed5e88711321b3cdc0ba1ea0286f6facbdf61530970b9fa7eec79eb1d46231f986c21ef3b7c1f1e0c365cf1b887d76b0addb86
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:~12.12.6":
+  version: 12.12.70
+  resolution: "@types/node@npm:12.12.70"
+  checksum: ef0ea535b8301d7d8f89d848bb7d5028bbd702d8d96b812100cba71829b460fc0d00cbbf296909254c49d0efe5a57dd37d40ba3abaca902dc170034e90f651a2
   languageName: node
   linkType: hard
 
@@ -1914,13 +1914,6 @@ __metadata:
   version: 2.11.0
   resolution: "bluebird@npm:2.11.0"
   checksum: b7711b9a8753b0a70f45f420ce538d8d8ba0a42b2509e06f34ef815b235a60d1871290fedc69c8ce4526ff7fff76effbbdc42decaf56aa69bfe93df2e9dc967c
-  languageName: node
-  linkType: hard
-
-"bluebird@npm:~3.5.5":
-  version: 3.5.5
-  resolution: "bluebird@npm:3.5.5"
-  checksum: 16d130f155e96c3e6cc122366b9c2f45391674437560dac61a426fdfeecbdd08a383d2332c597b18102e135b513fd07eeccc19cf118cd41c97884ef1e68278a9
   languageName: node
   linkType: hard
 
@@ -4563,7 +4556,6 @@ __metadata:
     "@babel/preset-typescript": ~7.13.0
     "@babel/register": ~7.13.16
     "@koa/router": ~10.0.0
-    "@types/bluebird": ~3.5.35
     "@types/bytes": ~3.1.0
     "@types/cache-manager": ~3.4.0
     "@types/cache-manager-ioredis": ~2.0.1
@@ -4577,6 +4569,7 @@ __metadata:
     "@types/koa-static": ~4.0.1
     "@types/lodash": ~4.14.170
     "@types/mocha": ~8.2.2
+    "@types/node": ~12.12.6
     "@types/node-fetch": ~2.5.10
     "@types/pg-format": ~1.0.1
     "@types/raven": ~2.5.3
@@ -4591,7 +4584,6 @@ __metadata:
     await-lock: ~2.1.0
     aws-sdk: ^2.913.0
     bcrypt: ~5.0.1
-    bluebird: ~3.5.5
     bytes: ~3.1.0
     cache-manager: ~3.4.3
     cache-manager-ioredis: ~2.1.0

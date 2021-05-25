@@ -1,6 +1,7 @@
 import http from 'http';
 import { createReadStream } from 'fs';
 import { stringify as qsStringify } from 'querystring';
+import util from 'util';
 
 import fetch from 'node-fetch';
 import FormData from 'form-data';
@@ -8,7 +9,6 @@ import request from 'superagent';
 import _ from 'lodash';
 import SocketIO from 'socket.io-client';
 import expect from 'unexpected';
-import { promisifyAll } from 'bluebird';
 import Application from 'koa';
 
 import { dbAdapter, Comment } from '../../app/models';
@@ -1155,7 +1155,9 @@ export class MockHTTPServer {
 
     this._server = http.createServer(app.callback());
     this._server.timeout = timeout;
-    promisifyAll(this._server);
+
+    this._server.listenAsync = util.promisify(this._server.listen);
+    this._server.closeAsync = util.promisify(this._server.close);
   }
 
   get origin() {

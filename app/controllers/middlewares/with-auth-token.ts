@@ -1,4 +1,5 @@
-import { promisifyAll } from 'bluebird';
+import util from 'util';
+
 import jwt from 'jsonwebtoken';
 import config from 'config';
 import { Context, Next } from 'koa';
@@ -8,11 +9,11 @@ import { authDebugError, AuthToken, SessionTokenV1 } from '../../models/auth-tok
 import { AppTokenV1, dbAdapter, sessionTokenV1Store } from '../../models';
 import { Nullable } from '../../support/types';
 
-promisifyAll(jwt);
-
 declare module 'jsonwebtoken' {
-  export function verifyAsync<T>(token: string, secret: string): Promise<T>;
+  export function verifyAsync(token: string, secret: string): Promise<object | undefined>;
 }
+
+jwt.verifyAsync = util.promisify(jwt.verify);
 
 export async function withAuthToken(ctx: Context, next: Next) {
   let jwtToken;

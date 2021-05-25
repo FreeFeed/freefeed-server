@@ -2,12 +2,9 @@ import crypto from 'crypto';
 
 import cacheManager, { Cache as MCache } from 'cache-manager';
 import redisStore from 'cache-manager-ioredis';
-import { promisifyAll } from 'bluebird';
 import config from 'config';
 
 const KEY_LENGTH = 16; // bytes
-
-promisifyAll(crypto);
 
 /**
  * Wrapper for the redis-based cache with auto-generated and auto-prefixed keys
