@@ -75,7 +75,7 @@ export class Comment {
 
 export const sessionTokenV1Store: SessionTokenV1Store;
 
-export { AuthToken, SessionTokenV0, AppTokenV1, SessionTokenV1 } from './models/auth-tokens';
+export { AuthToken, AppTokenV1, SessionTokenV1 } from './models/auth-tokens';
 
 export class ServerInfo {}
 

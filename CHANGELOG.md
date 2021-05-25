@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The gone user's comment likes was counted in some API responses and realtime
   messages.
 
+### Removed
+- The old session tokens (SessionTokenV0) are no longer supported.
+
 ## [1.98.0] - 2021-04-08
 
 **WARNING:** this version requires you to run manual migration script. It might run
