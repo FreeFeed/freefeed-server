@@ -112,9 +112,7 @@ export class OAuth2Adapter extends Adapter<Query> {
     return authUrl + join + qsEncode(urlParams);
   }
 
-  async acceptResponse({
-    query,
-  }: AuthFinishParams<Query>): Promise<{
+  async acceptResponse({ query }: AuthFinishParams<Query>): Promise<{
     params: AuthStartParams;
     profile: Profile;
   }> {

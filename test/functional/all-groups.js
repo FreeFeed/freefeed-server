@@ -34,15 +34,12 @@ describe('All groups', () => {
       ]);
 
       // Create groups
-      [
-        { group: privateGroup },
-        { group: protectedGroup },
-        { group: pubicGroup },
-      ] = await Promise.all([
-        testHelper.createGroupAsync(luna, 'private-group', 'Private Group'),
-        testHelper.createGroupAsync(luna, 'protected-group', 'Protected Group'),
-        testHelper.createGroupAsync(luna, 'public-group', 'Public Group'),
-      ]);
+      [{ group: privateGroup }, { group: protectedGroup }, { group: pubicGroup }] =
+        await Promise.all([
+          testHelper.createGroupAsync(luna, 'private-group', 'Private Group'),
+          testHelper.createGroupAsync(luna, 'protected-group', 'Protected Group'),
+          testHelper.createGroupAsync(luna, 'public-group', 'Public Group'),
+        ]);
 
       // Subscribe Mars and Venus to groups
       await Promise.all([

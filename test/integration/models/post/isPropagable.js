@@ -25,19 +25,14 @@ describe('Post isPropagable fields', () => {
       celestials = new Group({ username: 'celestials' });
       await Promise.all([luna.create(), mars.create()]);
       await Promise.all([selenites.create(luna.id), celestials.create(luna.id)]);
-      [
-        lunaTimeline,
-        selenitesTimeline,
-        celestialsTimeline,
-        lunaDirects,
-        marsDirects,
-      ] = await Promise.all([
-        luna.getPostsTimeline(),
-        selenites.getPostsTimeline(),
-        celestials.getPostsTimeline(),
-        luna.getDirectsTimeline(),
-        mars.getDirectsTimeline(),
-      ]);
+      [lunaTimeline, selenitesTimeline, celestialsTimeline, lunaDirects, marsDirects] =
+        await Promise.all([
+          luna.getPostsTimeline(),
+          selenites.getPostsTimeline(),
+          celestials.getPostsTimeline(),
+          luna.getDirectsTimeline(),
+          mars.getDirectsTimeline(),
+        ]);
     });
 
     it('should create propagable post in Luna feed', async () => {

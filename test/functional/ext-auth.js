@@ -27,7 +27,9 @@ describe('ExtAuthController base methods', () => {
     await cleanDB($pg_database);
 
     await Promise.all(
-      (await createTestUsers(2)).map(async ({ authToken, user }, i) => {
+      (
+        await createTestUsers(2)
+      ).map(async ({ authToken, user }, i) => {
         if (i === 0) {
           lunaToken = authToken;
           luna = await dbAdapter.getUserById(user.id);

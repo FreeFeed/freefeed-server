@@ -1437,27 +1437,31 @@ const createComment = () => async (userContext, postId, body) => {
   return commentData.comments;
 };
 
-const fetchPost = (app) => async (postId, viewerContext = null, allComments = false) => {
-  const headers = {};
+const fetchPost =
+  (app) =>
+  async (postId, viewerContext = null, allComments = false) => {
+    const headers = {};
 
-  if (viewerContext) {
-    headers['X-Authentication-Token'] = viewerContext.authToken;
-  }
+    if (viewerContext) {
+      headers['X-Authentication-Token'] = viewerContext.authToken;
+    }
 
-  const response = await fetch(
-    `${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`,
-    { method: 'GET', headers },
-  );
-  return response;
-};
+    const response = await fetch(
+      `${app.context.config.host}/v2/posts/${postId}?maxComments=${allComments ? 'all' : ''}`,
+      { method: 'GET', headers },
+    );
+    return response;
+  };
 
-const fetchTimeline = (app) => async (path, viewerContext = null) => {
-  const headers = {};
+const fetchTimeline =
+  (app) =>
+  async (path, viewerContext = null) => {
+    const headers = {};
 
-  if (viewerContext) {
-    headers['X-Authentication-Token'] = viewerContext.authToken;
-  }
+    if (viewerContext) {
+      headers['X-Authentication-Token'] = viewerContext.authToken;
+    }
 
-  const response = await fetch(`${app.context.config.host}/v2/timelines/${path}`, { headers });
-  return response;
-};
+    const response = await fetch(`${app.context.config.host}/v2/timelines/${path}`, { headers });
+    return response;
+  };

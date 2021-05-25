@@ -16,8 +16,9 @@ export default (props) => {
     false
   );
 
-  const otherAttachments = attachments.filter((attachment) => attachment.mediaType !== 'image')
-    .length;
+  const otherAttachments = attachments.filter(
+    (attachment) => attachment.mediaType !== 'image',
+  ).length;
   const otherAttachmentsContainer =
     otherAttachments > 0 ? (
       <div className="general-attachments">{otherAttachments} attachment(s)</div>

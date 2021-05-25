@@ -184,15 +184,12 @@ describe('Realtime (Socket.io)', () => {
           funcTestHelper.createCommentAsync(marsContext, lunaPost.id, 'Mars comment'),
           funcTestHelper.createCommentAsync(jupiter, lunaPost.id, 'Jupiter comment'),
         ]);
-        [
-          { comments: lunaComment },
-          { comments: marsComment },
-          { comments: jupiterComment },
-        ] = await Promise.all([
-          lunaCommentRes.json(),
-          marsCommentRes.json(),
-          jupiterCommentRes.json(),
-        ]);
+        [{ comments: lunaComment }, { comments: marsComment }, { comments: jupiterComment }] =
+          await Promise.all([
+            lunaCommentRes.json(),
+            marsCommentRes.json(),
+            jupiterCommentRes.json(),
+          ]);
       });
       describe('for public post', () => {
         describe('via post channel', () => {

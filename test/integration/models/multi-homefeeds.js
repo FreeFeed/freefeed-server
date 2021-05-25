@@ -387,17 +387,13 @@ describe(`Multiple home feeds`, () => {
         jupiter.create(),
         saturn.create(),
       ]);
-      [
-        mainHomeFeedLuna,
-        secondaryHomeFeedLuna,
-        mainHomeFeedMars,
-        secondaryHomeFeedMars,
-      ] = await Promise.all([
-        luna.getRiverOfNewsTimeline(),
-        luna.createHomeFeed('The Second One'),
-        mars.getRiverOfNewsTimeline(),
-        mars.createHomeFeed('The Second One'),
-      ]);
+      [mainHomeFeedLuna, secondaryHomeFeedLuna, mainHomeFeedMars, secondaryHomeFeedMars] =
+        await Promise.all([
+          luna.getRiverOfNewsTimeline(),
+          luna.createHomeFeed('The Second One'),
+          mars.getRiverOfNewsTimeline(),
+          mars.createHomeFeed('The Second One'),
+        ]);
 
       await Promise.all([
         luna.subscribeTo(mars),

@@ -64,9 +64,7 @@ process.stdout.write(`\n`);
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const {
-          rows,
-        } = await dbAdapter.database.raw(
+        const { rows } = await dbAdapter.database.raw(
           `select uid, body from ${table} where uid > :lastUID order by uid limit :batchSize`,
           { lastUID, batchSize },
         );

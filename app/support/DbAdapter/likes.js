@@ -46,9 +46,7 @@ const likesTrait = (superClass) =>
      * @returns {boolean}
      */
     async likePost(postId, userId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `insert into likes (post_id, user_id) values (:postId, :userId) on conflict do nothing returning user_id`,
         { postId, userId },
       );
@@ -64,9 +62,7 @@ const likesTrait = (superClass) =>
      * @returns {boolean}
      */
     async unlikePost(postId, userId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `delete from likes where (post_id, user_id) = (:postId, :userId) returning 1`,
         { postId, userId },
       );

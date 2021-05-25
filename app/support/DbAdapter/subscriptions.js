@@ -27,9 +27,7 @@ const subscriptionsTrait = (superClass) =>
     }
 
     async isUserSubscribedToTimeline(userId, timelineId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         'select 1 from subscriptions where feed_id = :timelineId and user_id = :userId',
         { userId, timelineId },
       );

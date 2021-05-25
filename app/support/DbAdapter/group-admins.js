@@ -110,9 +110,7 @@ const groupAdminTrait = (superClass) =>
     }
 
     async isUserAdminOfGroup(userId, groupId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         'select 1 from group_admins where group_id = :groupId and user_id = :userId',
         { userId, groupId },
       );

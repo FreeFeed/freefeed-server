@@ -169,9 +169,8 @@ export async function getById(ctx) {
     sComment.users = sComment.users.filter((u) => u.id !== comment.userId);
     sComment.admins = sComment.admins.filter((u) => u.id !== comment.userId);
   } else {
-    const [
-      commentLikesData = { c_likes: 0, has_own_like: false },
-    ] = await dbAdapter.getLikesInfoForComments([comment.id], user?.id);
+    const [commentLikesData = { c_likes: 0, has_own_like: false }] =
+      await dbAdapter.getLikesInfoForComments([comment.id], user?.id);
     sComment.comments.likes = parseInt(commentLikesData.c_likes);
     sComment.comments.hasOwnLike = commentLikesData.has_own_like;
   }

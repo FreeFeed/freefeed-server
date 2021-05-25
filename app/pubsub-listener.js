@@ -600,9 +600,8 @@ export default class PubsubListener {
   async _commentLikeEventEmitter(socket, type, json) {
     const commentUUID = json.comments.id;
     const viewerId = socket.userId;
-    const [
-      commentLikesData = { c_likes: 0, has_own_like: false },
-    ] = await dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
+    const [commentLikesData = { c_likes: 0, has_own_like: false }] =
+      await dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 

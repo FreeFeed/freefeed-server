@@ -147,9 +147,7 @@ const postsTrait = (superClass) =>
         await trx.raw('select 1 from posts where uid = :postId for update', { postId });
 
         // Check for another comments from this commentator
-        const {
-          rows,
-        } = await trx.raw(
+        const { rows } = await trx.raw(
           `select 1 from comments where post_id = :postId and user_id = :commentatorId limit 1`,
           { postId, commentatorId },
         );
