@@ -1,6 +1,7 @@
-import { promisifyAll } from 'bluebird';
+import util from 'util';
+
 import createDebug from 'debug';
-import { default as juice } from 'juice';
+import { juiceResources } from 'juice';
 import ReactDOMServer from 'react-dom/server';
 import config from 'config';
 
@@ -8,16 +9,21 @@ import Mailer from '../../lib/mailer';
 import { SummaryEmail } from '../views/emails/best-of-digest/SummaryEmail.jsx';
 import { fa } from '../views/emails/best-of-digest/assets/font-awesome-base64';
 
-promisifyAll(juice);
+const juiceResourcesAsync = util.promisify(juiceResources);
 
 export async function sendDailyBestOfEmail(user, data, digestDate) {
   const debug = createDebug('freefeed:BestOfDigestMailer');
 
   // TODO: const subject = config.mailer.dailyBestOfDigestEmailSubject
   const emailBody = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
-  const emailBodyWithInlineStyles = await juice.juiceResourcesAsync(emailBody, (err, html) => {
-    debug('Error occurred while trying to inline styles', err, html);
-  });
+  let emailBodyWithInlineStyles;
+
+  try {
+    emailBodyWithInlineStyles = await juiceResourcesAsync(emailBody, {});
+  } catch (err) {
+    debug('Error occurred while trying to inline styles', err);
+    return;
+  }
 
   const attachments = [
     fa['fa-heart'],
@@ -27,7 +33,7 @@ export async function sendDailyBestOfEmail(user, data, digestDate) {
     fa['fa-chevron-right'],
   ];
 
-  return Mailer.sendMail(
+  await Mailer.sendMail(
     user,
     `The best of your ${config.siteTitle} for ${digestDate}`,
     {
@@ -50,9 +56,14 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
 
   // TODO: const subject = config.mailer.weeklyBestOfDigestEmailSubject
   const emailBody = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
-  const emailBodyWithInlineStyles = await juice.juiceResourcesAsync(emailBody, (err, html) => {
-    debug('Error occurred while trying to inline styles', err, html);
-  });
+  let emailBodyWithInlineStyles;
+
+  try {
+    emailBodyWithInlineStyles = await juiceResourcesAsync(emailBody, {});
+  } catch (err) {
+    debug('Error occurred while trying to inline styles', err);
+    return;
+  }
 
   const attachments = [
     fa['fa-heart'],
@@ -62,7 +73,7 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
     fa['fa-chevron-right'],
   ];
 
-  return Mailer.sendMail(
+  await Mailer.sendMail(
     user,
     `The best of your ${config.siteTitle} for the week of ${digestDate}`,
     {

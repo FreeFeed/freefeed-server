@@ -6,9 +6,7 @@ const serverInfoTrait = (superClass) =>
      * @param {string} interval
      */
     async getLatestUsersCount(interval) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `select count(*) from users where type = 'user' and created_at >= now() - :intrvl::interval`,
         { intrvl: interval },
       );

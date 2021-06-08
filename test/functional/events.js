@@ -1,6 +1,6 @@
 /* eslint-env node, mocha */
 /* global $database, $pg_database */
-import origExpect from 'unexpected';
+import unexpected from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
@@ -48,7 +48,7 @@ import {
 import * as schema from './schemaV2-helper';
 import * as realtimeAssertions from './realtime_assertions';
 
-const expect = origExpect.clone().use(realtimeAssertions);
+const expect = unexpected.clone().use(realtimeAssertions).use(schema.freefeedAssertions);
 
 describe('EventService', () => {
   before(() => {
@@ -88,17 +88,8 @@ describe('EventService', () => {
         createUserAsync('pluto', 'pw'),
       ]);
 
-      [
-        lunaUserModel,
-        marsUserModel,
-        jupiterUserModel,
-        plutoUserModel,
-      ] = await dbAdapter.getUsersByIds([
-        luna.user.id,
-        mars.user.id,
-        jupiter.user.id,
-        pluto.user.id,
-      ]);
+      [lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel] =
+        await dbAdapter.getUsersByIds([luna.user.id, mars.user.id, jupiter.user.id, pluto.user.id]);
 
       await mutualSubscriptions([luna, mars]);
       await subscribeToAsync(jupiter, luna);
@@ -527,17 +518,8 @@ describe('EventService', () => {
         createUserAsync('pluto', 'pw'),
       ]);
 
-      [
-        lunaUserModel,
-        marsUserModel,
-        jupiterUserModel,
-        plutoUserModel,
-      ] = await dbAdapter.getUsersByIds([
-        luna.user.id,
-        mars.user.id,
-        jupiter.user.id,
-        pluto.user.id,
-      ]);
+      [lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel] =
+        await dbAdapter.getUsersByIds([luna.user.id, mars.user.id, jupiter.user.id, pluto.user.id]);
     });
 
     describe('creation', () => {
@@ -1011,17 +993,8 @@ describe('EventService', () => {
         createUserAsync('pluto', 'pw'),
       ]);
 
-      [
-        lunaUserModel,
-        marsUserModel,
-        jupiterUserModel,
-        plutoUserModel,
-      ] = await dbAdapter.getUsersByIds([
-        luna.user.id,
-        mars.user.id,
-        jupiter.user.id,
-        pluto.user.id,
-      ]);
+      [lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel] =
+        await dbAdapter.getUsersByIds([luna.user.id, mars.user.id, jupiter.user.id, pluto.user.id]);
 
       await mutualSubscriptions([luna, mars, jupiter, pluto]);
     });
@@ -1232,17 +1205,8 @@ describe('EventService', () => {
         createUserAsync('pluto', 'pw'),
       ]);
 
-      [
-        lunaUserModel,
-        marsUserModel,
-        jupiterUserModel,
-        plutoUserModel,
-      ] = await dbAdapter.getUsersByIds([
-        luna.user.id,
-        mars.user.id,
-        jupiter.user.id,
-        pluto.user.id,
-      ]);
+      [lunaUserModel, marsUserModel, jupiterUserModel, plutoUserModel] =
+        await dbAdapter.getUsersByIds([luna.user.id, mars.user.id, jupiter.user.id, pluto.user.id]);
       await mutualSubscriptions([luna, jupiter]);
       await goPrivate(jupiter);
     });
@@ -1643,11 +1607,9 @@ describe('EventService', () => {
         });
 
         it('should not create second mention_in_comment when comment updates with the same mention', async () => {
-          const res = await createCommentAsync(
-            luna,
-            post.id,
-            'Just a comment for @mars',
-          ).then((r) => r.json());
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then(
+            (r) => r.json(),
+          );
           await updateCommentAsync(luna, res.comments.id, 'Just a comment for @mars!');
           await expectMentionEvents(marsUserModel, [
             {
@@ -1661,11 +1623,9 @@ describe('EventService', () => {
         });
 
         it('should not create mention_comment_to when mention_in_comment already exists for the same user', async () => {
-          const res = await createCommentAsync(
-            luna,
-            post.id,
-            'Just a comment for @mars',
-          ).then((r) => r.json());
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then(
+            (r) => r.json(),
+          );
           await updateCommentAsync(luna, res.comments.id, '@mars Just a comment');
           await expectMentionEvents(marsUserModel, [
             {
@@ -1679,11 +1639,9 @@ describe('EventService', () => {
         });
 
         it('should not remove mention_comment_to when mention disappears from the comment', async () => {
-          const res = await createCommentAsync(
-            luna,
-            post.id,
-            'Just a comment for @mars',
-          ).then((r) => r.json());
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then(
+            (r) => r.json(),
+          );
           await updateCommentAsync(luna, res.comments.id, 'Just a comment');
           await expectMentionEvents(marsUserModel, [
             {
@@ -1697,11 +1655,9 @@ describe('EventService', () => {
         });
 
         it('should create additional mention_comment_to when a new mention appears in the comment', async () => {
-          const res = await createCommentAsync(
-            luna,
-            post.id,
-            'Just a comment for @mars',
-          ).then((r) => r.json());
+          const res = await createCommentAsync(luna, post.id, 'Just a comment for @mars').then(
+            (r) => r.json(),
+          );
           await updateCommentAsync(luna, res.comments.id, 'Just a comment for @pluto');
           await expectMentionEvents(marsUserModel, [
             {
@@ -1858,13 +1814,13 @@ describe('EventsController', () => {
       expect(res, 'to satisfy', {
         Notifications: [
           {
-            eventId: schema.UUID,
+            eventId: expect.it('to be UUID'),
             event_type: 'banned_user',
             created_user_id: luna.user.id,
             affected_user_id: mars.user.id,
           },
           {
-            eventId: schema.UUID,
+            eventId: expect.it('to be UUID'),
             event_type: 'user_subscribed',
             created_user_id: mars.user.id,
             affected_user_id: luna.user.id,
@@ -1878,7 +1834,7 @@ describe('EventsController', () => {
       expect(res, 'to satisfy', {
         Notifications: [
           {
-            eventId: schema.UUID,
+            eventId: expect.it('to be UUID'),
             event_type: 'user_subscribed',
             created_user_id: luna.user.id,
             affected_user_id: mars.user.id,
@@ -2336,14 +2292,12 @@ describe('Unread events counter realtime updates for ', () => {
 
   let luna, mars;
 
-  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => (obj) => {
-    return expect(obj, 'to satisfy', {
-      user: {
-        id: userId,
-        unreadNotificationsNumber: unreadCount,
-      },
-    });
-  };
+  const userUpdateEventWithUnreadNotifications = (unreadCount, userId) => ({
+    user: {
+      id: userId,
+      unreadNotificationsNumber: unreadCount,
+    },
+  });
 
   beforeEach(async () => {
     await cleanDB($pg_database);
@@ -2870,7 +2824,7 @@ describe('eventById', () => {
     );
 
     const eventId = events.find((e) => e.event_type === eventType)?.eventId;
-    expect(eventId, 'to satisfy', schema.UUID);
+    expect(eventId, 'to be UUID');
     return eventId;
   };
 

@@ -162,15 +162,13 @@ describe('Realtime (Socket.io)', () => {
     let lunaPost;
     let lunaComment, marsComment, jupiterComment;
 
-    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => (obj) => {
-      return expect(obj, 'to satisfy', {
-        comments: {
-          likes: nLikes,
-          hasOwnLike: hasOwn,
-          userId: likerId,
-        },
-      });
-    };
+    const commentHavingNLikesExpectation = (nLikes, hasOwn, likerId) => ({
+      comments: {
+        likes: nLikes,
+        hasOwnLike: hasOwn,
+        userId: likerId,
+      },
+    });
 
     beforeEach(async () => {
       jupiter = await funcTestHelper.createUserAsync('jupiter', 'pw');
@@ -186,15 +184,12 @@ describe('Realtime (Socket.io)', () => {
           funcTestHelper.createCommentAsync(marsContext, lunaPost.id, 'Mars comment'),
           funcTestHelper.createCommentAsync(jupiter, lunaPost.id, 'Jupiter comment'),
         ]);
-        [
-          { comments: lunaComment },
-          { comments: marsComment },
-          { comments: jupiterComment },
-        ] = await Promise.all([
-          lunaCommentRes.json(),
-          marsCommentRes.json(),
-          jupiterCommentRes.json(),
-        ]);
+        [{ comments: lunaComment }, { comments: marsComment }, { comments: jupiterComment }] =
+          await Promise.all([
+            lunaCommentRes.json(),
+            marsCommentRes.json(),
+            jupiterCommentRes.json(),
+          ]);
       });
       describe('for public post', () => {
         describe('via post channel', () => {

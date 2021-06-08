@@ -79,9 +79,7 @@ export class DbAdapter {
     viewerId?: Nullable<UUID>,
   ): Promise<{ [k: string]: UUID[] }>;
   getUsersByIdsAssoc(ids: UUID[]): Promise<{ [k: string]: User | Group }>;
-  getUsersStatsAssoc(
-    ids: UUID[],
-  ): Promise<{
+  getUsersStatsAssoc(ids: UUID[]): Promise<{
     [k: string]: {
       posts: number;
       likes: number;

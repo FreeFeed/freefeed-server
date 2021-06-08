@@ -24,70 +24,34 @@ describe('IPv6 parser', () => {
 
     it(`should parse full-length IPv6 address`, () => {
       const addr = new Address('FEDC:BA98:7654:3210:FEDC:BA98:7654:3210');
-      expect(addr.bytes, 'to equal', [
-        0xfe,
-        0xdc,
-        0xba,
-        0x98,
-        0x76,
-        0x54,
-        0x32,
-        0x10,
-        0xfe,
-        0xdc,
-        0xba,
-        0x98,
-        0x76,
-        0x54,
-        0x32,
-        0x10,
-      ]);
+      expect(
+        addr.bytes,
+        'to equal',
+        [
+          0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32,
+          0x10,
+        ],
+      );
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse full-length IPv6 address without leading zeros`, () => {
       const addr = new Address('1080:0:0:0:8:800:200C:417A');
-      expect(addr.bytes, 'to equal', [
-        0x10,
-        0x80,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0x8,
-        0x8,
-        0,
-        0x20,
-        0x0c,
-        0x41,
-        0x7a,
-      ]);
+      expect(
+        addr.bytes,
+        'to equal',
+        [0x10, 0x80, 0, 0, 0, 0, 0, 0, 0, 0x8, 0x8, 0, 0x20, 0x0c, 0x41, 0x7a],
+      );
       expect(addr.isIP4(), 'to be false');
     });
 
     it(`should parse IPv6 address with missing zero blocks [1]`, () => {
       const addr = new Address('FEDC:BA98:7654::FEDC:BA98:7654:3210');
-      expect(addr.bytes, 'to equal', [
-        0xfe,
-        0xdc,
-        0xba,
-        0x98,
-        0x76,
-        0x54,
-        0,
-        0,
-        0xfe,
-        0xdc,
-        0xba,
-        0x98,
-        0x76,
-        0x54,
-        0x32,
-        0x10,
-      ]);
+      expect(
+        addr.bytes,
+        'to equal',
+        [0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0, 0, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10],
+      );
       expect(addr.isIP4(), 'to be false');
     });
 
@@ -117,24 +81,11 @@ describe('IPv6 parser', () => {
 
     it(`should parse IPv4-in-IPv6 address in hex form`, () => {
       const addr = new Address('::FFFF:8190:3426');
-      expect(addr.bytes, 'to equal', [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0xff,
-        0xff,
-        0x81,
-        0x90,
-        0x34,
-        0x26,
-      ]);
+      expect(
+        addr.bytes,
+        'to equal',
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x81, 0x90, 0x34, 0x26],
+      );
       expect(addr.isIP4(), 'to be true');
     });
   });

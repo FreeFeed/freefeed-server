@@ -505,49 +505,53 @@ describe('TimelinesControllerV2', () => {
       await hidePost(postCreatedByMars.id, luna);
     });
 
-    const nonEmptyExpected = (anonymous = true) => async () => {
-      const viewer = anonymous ? null : luna;
+    const nonEmptyExpected =
+      (anonymous = true) =>
+      async () => {
+        const viewer = anonymous ? null : luna;
 
-      {
-        const feed = await fetchUserTimeline('Posts', mars, viewer);
-        expect(feed.timelines.posts, 'to have length', 1);
-        expect(feed.timelines.posts[0], 'to equal', postCreatedByMars.id);
-        expect(feed.timelines.subscribers, 'to be non-empty');
-        expect(feed.timelines.subscribers, 'to contain', venus.user.id);
-      }
+        {
+          const feed = await fetchUserTimeline('Posts', mars, viewer);
+          expect(feed.timelines.posts, 'to have length', 1);
+          expect(feed.timelines.posts[0], 'to equal', postCreatedByMars.id);
+          expect(feed.timelines.subscribers, 'to be non-empty');
+          expect(feed.timelines.subscribers, 'to contain', venus.user.id);
+        }
 
-      {
-        const feed = await fetchUserTimeline('Comments', mars, viewer);
-        expect(feed.timelines.posts, 'to have length', 1);
-        expect(feed.timelines.posts[0], 'to equal', postCommentedByMars.id);
-      }
+        {
+          const feed = await fetchUserTimeline('Comments', mars, viewer);
+          expect(feed.timelines.posts, 'to have length', 1);
+          expect(feed.timelines.posts[0], 'to equal', postCommentedByMars.id);
+        }
 
-      {
-        const feed = await fetchUserTimeline('Likes', mars, viewer);
-        expect(feed.timelines.posts, 'to have length', 1);
-        expect(feed.timelines.posts[0], 'to equal', postLikedByMars.id);
-      }
-    };
+        {
+          const feed = await fetchUserTimeline('Likes', mars, viewer);
+          expect(feed.timelines.posts, 'to have length', 1);
+          expect(feed.timelines.posts[0], 'to equal', postLikedByMars.id);
+        }
+      };
 
-    const emptyExpected = (anonymous = true) => async () => {
-      const viewer = anonymous ? null : luna;
+    const emptyExpected =
+      (anonymous = true) =>
+      async () => {
+        const viewer = anonymous ? null : luna;
 
-      {
-        const feed = await fetchUserTimeline('Posts', mars, viewer);
-        expect(feed.timelines.posts, 'to be empty');
-        expect(feed.timelines.subscribers, 'to be empty');
-      }
+        {
+          const feed = await fetchUserTimeline('Posts', mars, viewer);
+          expect(feed.timelines.posts, 'to be empty');
+          expect(feed.timelines.subscribers, 'to be empty');
+        }
 
-      {
-        const feed = await fetchUserTimeline('Comments', mars, viewer);
-        expect(feed.timelines.posts, 'to be empty');
-      }
+        {
+          const feed = await fetchUserTimeline('Comments', mars, viewer);
+          expect(feed.timelines.posts, 'to be empty');
+        }
 
-      {
-        const feed = await fetchUserTimeline('Likes', mars, viewer);
-        expect(feed.timelines.posts, 'to be empty');
-      }
-    };
+        {
+          const feed = await fetchUserTimeline('Likes', mars, viewer);
+          expect(feed.timelines.posts, 'to be empty');
+        }
+      };
 
     describe('Mars is a public user', () => {
       it('should return Mars timelines with posts to anonymous', nonEmptyExpected());

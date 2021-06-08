@@ -118,9 +118,7 @@ const usersTrait = (superClass) =>
     }
 
     async getPastUsernames(userId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `select username, valid_till from user_past_names where user_id = :userId order by valid_till desc`,
         { userId },
       );
@@ -140,9 +138,7 @@ const usersTrait = (superClass) =>
         updatedAt = t.toISOString();
       }
 
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `update users set updated_at = :updatedAt where uid = any(:groupIds) and type = 'group' returning uid`,
         { groupIds, updatedAt },
       );

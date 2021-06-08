@@ -7,9 +7,7 @@ import { prepareModelPayload } from './utils';
 const externalAuthTrait = (superClass) =>
   class extends superClass {
     async getExtProfiles(userId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `select * from external_auth where user_id = :userId order by created_at desc`,
         { userId },
       );
@@ -43,9 +41,7 @@ const externalAuthTrait = (superClass) =>
      * @returns {boolean} true if profile was removed, false if not found for this user
      */
     async removeExtProfile(userId, profileId) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `delete from external_auth where uid = :profileId and user_id = :userId returning uid`,
         { userId, profileId },
       );
@@ -54,9 +50,7 @@ const externalAuthTrait = (superClass) =>
     }
 
     async getUserByExtProfile({ provider, externalId }) {
-      const {
-        rows,
-      } = await this.database.raw(
+      const { rows } = await this.database.raw(
         `select user_id from external_auth where provider = :provider and external_id = :externalId`,
         { provider, externalId },
       );

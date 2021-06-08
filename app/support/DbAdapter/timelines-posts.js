@@ -346,28 +346,23 @@ const timelinesPostsTrait = (superClass) =>
         uniqPostsIds,
       );
 
-      const [
-        bannedUsersIds,
-        friendsIds,
-        postsData,
-        attData,
-        { rows: destData },
-      ] = await Promise.all([
-        viewerId ? this.getUserBansIds(viewerId) : [],
-        viewerId ? this.getUserFriendIds(viewerId) : [],
-        this.database
-          .select('a.old_url as friendfeed_url', ...postFields)
-          .from('posts as p')
-          .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id')
-          .whereIn('p.uid', uniqPostsIds),
-        this.database
-          .select(...attFields)
-          .from('attachments')
-          .orderBy('ord', 'asc')
-          .orderBy('created_at', 'asc')
-          .whereIn('post_id', uniqPostsIds),
-        this.database.raw(destinationsSQL),
-      ]);
+      const [bannedUsersIds, friendsIds, postsData, attData, { rows: destData }] =
+        await Promise.all([
+          viewerId ? this.getUserBansIds(viewerId) : [],
+          viewerId ? this.getUserFriendIds(viewerId) : [],
+          this.database
+            .select('a.old_url as friendfeed_url', ...postFields)
+            .from('posts as p')
+            .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id')
+            .whereIn('p.uid', uniqPostsIds),
+          this.database
+            .select(...attFields)
+            .from('attachments')
+            .orderBy('ord', 'asc')
+            .orderBy('created_at', 'asc')
+            .whereIn('post_id', uniqPostsIds),
+          this.database.raw(destinationsSQL),
+        ]);
 
       const nobodyIsBanned = bannedUsersIds.length === 0;
 

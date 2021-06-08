@@ -106,8 +106,10 @@ const commentLikesTrait = (superClass) =>
         `
         select uid,
             (select coalesce(count(*), '0') from comment_likes cl
+              join users u on cl.user_id = u.id
               where cl.comment_id = comments.id
                 and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+                and u.gone_status is null
             ) as c_likes,
             (select count(*) = 1 from comment_likes cl
               where cl.comment_id = comments.id
@@ -134,11 +136,13 @@ const commentLikesTrait = (superClass) =>
         `
         select  p.uid,
               (select count(cl.*)
-                from comment_likes cl join comments c
-                  on c.id = cl.comment_id
+                from comment_likes cl
+                  join comments c on c.id = cl.comment_id
+                  join users u on cl.user_id = u.id
                 where c.post_id = p.uid and
                       ${sqlNotIn('c.user_id', bannedUsersIds)} and
                       cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+                      and u.gone_status is null
               ) as post_c_likes_count,
               (select count(cl.*)
                 from comment_likes cl join comments c

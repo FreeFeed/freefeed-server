@@ -24,9 +24,7 @@ export class TestAdapter extends Adapter<Query, TestParams> {
     return `${this.authorizeURL}?${qsEncode({ state: stateKey })}`;
   }
 
-  async acceptResponse({
-    query,
-  }: AuthFinishParams<Query>): Promise<{
+  async acceptResponse({ query }: AuthFinishParams<Query>): Promise<{
     params: AuthStartParams;
     profile: Profile;
   }> {

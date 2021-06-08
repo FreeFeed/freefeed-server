@@ -19,9 +19,7 @@ export type Profile = {
 
 export abstract class Adapter<T extends object, S extends object = {}> {
   abstract getAuthorizeURL(startParams: AuthStartParams & S): Promise<string>;
-  abstract acceptResponse(
-    finishParams: AuthFinishParams<T>,
-  ): Promise<{
+  abstract acceptResponse(finishParams: AuthFinishParams<T>): Promise<{
     params: AuthStartParams;
     profile: Profile;
   }>;

@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { promises as fs, createReadStream } from 'fs';
+import util from 'util';
 
 import bcrypt from 'bcrypt';
-import { promisifyAll } from 'bluebird';
 import gm from 'gm';
 import GraphemeBreaker from 'grapheme-breaker';
 import _ from 'lodash';
@@ -20,8 +20,7 @@ import { allExternalProviders } from '../support/ExtAuth';
 
 import { valiate as validateUserPrefs } from './user-prefs';
 
-promisifyAll(crypto);
-promisifyAll(gm);
+const randomBytes = util.promisify(crypto.randomBytes);
 
 // Account is suspended for unknown period
 export const GONE_SUSPENDED = 10;
@@ -246,7 +245,7 @@ export function addModel(dbAdapter) {
     }
 
     async generateResetPasswordToken() {
-      const buf = await crypto.randomBytesAsync(48);
+      const buf = await randomBytes(48);
       return buf.toString('hex');
     }
 
@@ -958,7 +957,8 @@ export function addModel(dbAdapter) {
     }
 
     async updateProfilePicture(filePath) {
-      const image = promisifyAll(gm(filePath));
+      const image = gm(filePath);
+      image.sizeAsync = util.promisify(image.size);
 
       let originalSize;
 
@@ -993,7 +993,8 @@ export function addModel(dbAdapter) {
       const origHeight = originalSize.height;
       const retinaSize = size * 2;
 
-      let image = promisifyAll(gm(path));
+      let image = gm(path);
+      image.writeAsync = util.promisify(image.write);
 
       if (origWidth > origHeight) {
         const dx = origWidth - origHeight;

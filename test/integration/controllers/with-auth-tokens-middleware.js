@@ -7,13 +7,7 @@ import sinon from 'sinon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import {
-  User,
-  SessionTokenV0,
-  SessionTokenV1,
-  dbAdapter,
-  sessionTokenV1Store,
-} from '../../../app/models';
+import { User, dbAdapter, sessionTokenV1Store } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
@@ -31,9 +25,9 @@ describe('withAuthToken middleware', () => {
     await luna.create();
   });
 
-  describe('Token souces', () => {
+  describe('Token sources', () => {
     let authToken;
-    before(() => (authToken = new SessionTokenV0(luna.id).tokenString()));
+    before(async () => (authToken = (await sessionTokenV1Store.create(luna.id)).tokenString()));
 
     const ctxBase = { query: {}, request: { body: {} }, headers: {}, state: {}, ip: '127.0.0.127' };
 
@@ -349,40 +343,6 @@ describe('withAuthToken middleware', () => {
           'to be rejected',
         );
       });
-    });
-  });
-
-  describe('SessionTokenV0', () => {
-    const context = (tokenString = null) => ({
-      ip: '127.0.0.127',
-      headers: {
-        'user-agent': 'Lynx browser, Linux',
-        ...(tokenString ? { authorization: `Bearer ${tokenString}` } : {}),
-      },
-      state: {},
-    });
-
-    let v0TokenString;
-    before(() => (v0TokenString = new SessionTokenV0(luna.id).tokenString()));
-
-    it(`should convert V0 token to V1`, async () => {
-      const ctx = context(v0TokenString);
-      await withAuthToken(ctx, () => null);
-      expect(ctx.state.authToken instanceof SessionTokenV1, 'to be true');
-    });
-
-    it(`should allow to close V0 session`, async () => {
-      const t0 = new SessionTokenV0(luna.id).tokenString();
-      const ctx = context(t0);
-      await expect(
-        withAuthToken(ctx, () => null),
-        'to be fulfilled',
-      );
-      await ctx.state.authToken.setStatus(CLOSED);
-      await expect(
-        withAuthToken(context(t0), () => null),
-        'to be rejected',
-      );
     });
   });
 });
