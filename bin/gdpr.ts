@@ -16,13 +16,18 @@ const exists = util.promisify(_exists);
 
 class SimpleError extends Error {}
 
-async function main(username) {
+async function main(username: string) {
   if (typeof username === 'undefined') {
     throw new SimpleError(`Usage: babel-node ${path.basename(process.argv[1])} username`);
   }
 
   process.stdout.write(`Checking user '${username}'\n`);
   const user = await dbAdapter.getUserByUsername(username);
+
+  if (!user) {
+    process.stderr.write(`Can't find user named "${username}"`);
+    return;
+  }
 
   process.stdout.write(`Fetching data:\n`);
   const provider = new DataProvider(dbAdapter);

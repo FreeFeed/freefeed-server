@@ -65,6 +65,7 @@ export class DbAdapter {
   // Users
   getUserById(id: UUID): Promise<User | null>;
   getUsersByIds(ids: UUID[]): Promise<User[]>;
+  getUserByUsername(username: string): Promise<User | null>;
   getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
   getFeedOwnersByUsernames(names: string[]): Promise<(User | Group)[]>;
   getFeedOwnersByIds(ids: UUID[]): Promise<Nullable<User | Group>[]>;
