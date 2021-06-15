@@ -2,13 +2,13 @@
 import { promisify } from 'util';
 
 import moment from 'moment';
-import N3 from 'n3';
+import { DataFactory, Writer } from 'n3';
 import PgCursor from 'pg-cursor';
 import pgFormat from 'pg-format';
 import noop from 'lodash/noop';
 import config from 'config';
 
-const { literal, namedNode, quad } = N3.DataFactory;
+const { literal, namedNode, quad } = DataFactory;
 
 const schema = 'http://schema.org/';
 const frf = 'http://freefeed.net/';
@@ -91,7 +91,7 @@ export class DataProvider {
     const knex = this.dbAdapter.database;
     const pg = await knex.client.acquireConnection();
 
-    const writer = N3.Writer({
+    const writer = new Writer({
       format: 'N-Triples',
       prefixes,
     });
