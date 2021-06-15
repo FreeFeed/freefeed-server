@@ -25,6 +25,7 @@ coverage
 /public/config/envLocal.js
 
 dist
+/export-*
 
 .DS_Store
 
