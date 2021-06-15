@@ -646,6 +646,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rdfjs/types@npm:*":
+  version: 1.0.1
+  resolution: "@rdfjs/types@npm:1.0.1"
+  dependencies:
+    "@types/node": "*"
+  checksum: ecd436647353e6955d48d9a121985f62552341cd3598ff1588757d0fa83e89cb93fa0002b90f8fd58c640ad59b4f25aa6d31cc00f0cfb582de638bd6adcda064
+  languageName: node
+  linkType: hard
+
 "@sindresorhus/is@npm:^0.7.0":
   version: 0.7.0
   resolution: "@sindresorhus/is@npm:0.7.0"
@@ -1006,6 +1015,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/n3@npm:~1.10.0":
+  version: 1.10.0
+  resolution: "@types/n3@npm:1.10.0"
+  dependencies:
+    "@types/node": "*"
+    rdf-js: ^4.0.2
+  checksum: 9a923e1e74173a07feb5ff11239e3a2c14869c1573d8d9d8f8ac2485a65af694a36ed31217b8d2909d1e12b433f4334ff1065924d3c275194968c3e5f81b69bf
+  languageName: node
+  linkType: hard
+
 "@types/node-fetch@npm:~2.5.10":
   version: 2.5.10
   resolution: "@types/node-fetch@npm:2.5.10"
@@ -1043,6 +1062,17 @@ __metadata:
   version: 1.0.1
   resolution: "@types/pg-format@npm:1.0.1"
   checksum: f0c4f9bcc0a7ecbdca55281c9677f4eb1ee187cd9047cd3465d823ee94f953f3387ff91aa895062e5604fe11c3366438cba15f11c1e0ec25cafd8ec3a411397e
+  languageName: node
+  linkType: hard
+
+"@types/pg@npm:~8.6.0":
+  version: 8.6.0
+  resolution: "@types/pg@npm:8.6.0"
+  dependencies:
+    "@types/node": "*"
+    pg-protocol: "*"
+    pg-types: ^2.2.0
+  checksum: 759568812434c2155126f8cc8c344f51319ad46e26d58b13b1952ecd60c1372f41ced99d51c0e1582190d3b05453e52326496f6b022d65acee332ab1ff8f4bc2
   languageName: node
   linkType: hard
 
@@ -4579,8 +4609,10 @@ __metadata:
     "@types/koa-static": ~4.0.1
     "@types/lodash": ~4.14.170
     "@types/mocha": ~8.2.2
+    "@types/n3": ~1.10.0
     "@types/node": ~12.12.70
     "@types/node-fetch": ~2.5.10
+    "@types/pg": ~8.6.0
     "@types/pg-format": ~1.0.1
     "@types/raven": ~2.5.3
     "@types/sbd": ~1.0.1
@@ -8537,14 +8569,14 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
-"pg-protocol@npm:^1.5.0":
+"pg-protocol@npm:*, pg-protocol@npm:^1.5.0":
   version: 1.5.0
   resolution: "pg-protocol@npm:1.5.0"
   checksum: 270e72d38aaed3ee23ec35802899c707b91e176f94373ce571c45b604ee9c5fbe60f629bec0a05bb607d23d0c016c23e4e318ec3c391f83467f705284190970c
   languageName: node
   linkType: hard
 
-"pg-types@npm:^2.1.0":
+"pg-types@npm:^2.1.0, pg-types@npm:^2.2.0":
   version: 2.2.0
   resolution: "pg-types@npm:2.2.0"
   dependencies:
@@ -8974,6 +9006,15 @@ fsevents@~2.3.1:
     iconv-lite: 0.4.24
     unpipe: 1.0.0
   checksum: dc56e010d276f2fc3a17c2dd071f857917cd3734f64051488c845a9878a1eb47e03a9644861f135568d8ab4c2062072700b73060956b36f3a987025bc809402f
+  languageName: node
+  linkType: hard
+
+"rdf-js@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "rdf-js@npm:4.0.2"
+  dependencies:
+    "@rdfjs/types": "*"
+  checksum: ad79ebca721c1eed2c979f3986450bbb85baa2131cb24bc6e23b8e96a6229217374b72d3e4cf2c48459889ffc843bdd954d447d9191e100e5b5195bfb5c13454
   languageName: node
   linkType: hard
 
