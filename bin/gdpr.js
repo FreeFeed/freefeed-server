@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import childProcess from 'child_process';
-import { promises as fs } from 'fs';
+import { promises as fs, exists as _exists } from 'fs';
 import path from 'path';
 import util from 'util';
 import url from 'url';
@@ -12,6 +12,7 @@ import { DataProvider } from '../app/export/gdpr';
 import { dbAdapter } from '../app/models';
 
 const exec = util.promisify(childProcess.exec);
+const exists = util.promisify(_exists);
 
 class SimpleError extends Error {}
 
@@ -31,7 +32,7 @@ async function main(username) {
   process.stdout.write(`Writing data to file…\n`);
   const dirname = `${process.cwd()}/export-${username}`;
 
-  if (!(await fs.exists(dirname))) {
+  if (!(await exists(dirname))) {
     await fs.mkdir(dirname);
   }
 
@@ -50,7 +51,7 @@ async function main(username) {
   // attachments
   const attachmentsDir = `${process.cwd()}/export-${username}/attachments`;
 
-  if (!(await fs.exists(attachmentsDir))) {
+  if (!(await exists(attachmentsDir))) {
     await fs.mkdir(attachmentsDir);
   }
 
@@ -62,7 +63,7 @@ async function main(username) {
       const _url = new url.URL(downloadUrl);
       const filePath = `${attachmentsDir}/${path.basename(_url.pathname)}`;
 
-      if (await fs.exists(filePath)) {
+      if (await exists(filePath)) {
         return;
       }
 
