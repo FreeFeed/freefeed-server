@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.100.0] - Not released
 
+## [1.99.1] - 2021-07-03
+### Fixed
+- GDPR script works again
+
 ## [1.99.0] - 2021-06-08
 ### Fixed
 - The gone user's comment likes was counted in some API responses and realtime
