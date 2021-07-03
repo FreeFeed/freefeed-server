@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.100.0] - Not released
+
 ## [1.99.0] - 2021-06-08
 ### Fixed
 - The gone user's comment likes was counted in some API responses and realtime

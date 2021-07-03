@@ -14,6 +14,10 @@ export class User {
   id: UUID;
   intId: number;
   username: string;
+  screenName: string;
+  description: string;
+  createdAt: string; // numeric string
+  updatedAt: string; // numeric string
   readonly isActive: boolean;
   type: 'user';
   setGoneStatus(status: keyof typeof GONE_NAMES): Promise<void>;
@@ -25,16 +29,23 @@ export class User {
   isUser(): true;
   getManagedGroups(): Promise<Group[]>;
   getBanIds(): Promise<UUID[]>;
+  getPostsTimeline(): Promise<Timeline | null>;
+  getDirectsTimeline(): Promise<Timeline | null>;
 }
 
 export class Group {
   id: UUID;
   intId: number;
   username: string;
+  screenName: string;
+  description: string;
+  createdAt: string; // numeric string
+  updatedAt: string; // numeric string
   type: 'group';
   isGroup(): true;
   isUser(): false;
   getAdministrators(): Promise<User[]>;
+  getPostsTimeline(): Promise<Timeline | null>;
 }
 
 export class Post {
@@ -52,6 +63,7 @@ export class Post {
 export class Timeline {
   id: UUID;
   userId: UUID;
+  intId: number;
   getUser(): Promise<User | Group>;
   destroy(): Promise<void>;
   isDirects(): boolean;

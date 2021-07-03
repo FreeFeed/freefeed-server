@@ -13,6 +13,8 @@ declare module 'config' {
     proxyIpHeader: string;
     logResponseTime: boolean;
     attachments: {
+      url: string;
+      path: string;
       fileSizeLimit: number;
       storage: {
         rootDir: string;
