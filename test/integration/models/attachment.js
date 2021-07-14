@@ -90,6 +90,13 @@ describe('Attachment', () => {
         path: '/tmp/upload_12345678901234567890123456789012_10',
         name: 'test-image-webp.webp',
         type: 'image/webp',
+        changeableExtension: true,
+      },
+      mov: {
+        size: 589371,
+        path: '/tmp/upload_12345678901234567890123456789012_11',
+        name: 'test-quicktime-video.mov',
+        type: 'video/quicktime',
       },
     };
 
@@ -142,10 +149,14 @@ describe('Attachment', () => {
 
       newAttachment.should.have.a.property('fileExtension');
 
+      // Non-whitelisted file types are saved to FS without an extension
+      const optionalExtension = newAttachment.fileExtension
+        ? `.${newAttachment.fileExtension}`
+        : '';
       newAttachment
         .getPath()
         .should.be.equal(
-          `${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}.${newAttachment.fileExtension}`,
+          `${config.attachments.storage.rootDir}${config.attachments.path}${newAttachment.id}${optionalExtension}`,
         );
 
       newAttachment.s3Uploads = s3Uploads;
@@ -162,7 +173,9 @@ describe('Attachment', () => {
         s3Uploads[origKey].should.have.property('ContentType', newAttachment.mimeType);
 
         for (const key of Object.keys(s3Uploads)) {
-          const dispName = path.parse(newAttachment.fileName).name + path.parse(key).ext;
+          const dispName = file.changeableExtension
+            ? path.parse(newAttachment.fileName).name + path.parse(key).ext
+            : file.name;
           s3Uploads[key].should.have.property(
             'ContentDisposition',
             newAttachment.getContentDisposition(dispName),
@@ -220,6 +233,7 @@ describe('Attachment', () => {
         'sample.mp3': '8',
         sample: '9',
         'test-image-webp.webp': '10',
+        'test-quicktime-video.mov': '11',
       };
 
       const srcPrefix = path.resolve(__dirname, '../../fixtures');
@@ -530,6 +544,11 @@ describe('Attachment', () => {
       expect(attachment.getContentDisposition('sample')).to.be.equal(
         `attachment; filename="sample"; filename*=utf-8''sample`,
       );
+    });
+
+    it(`should use original filename in content-disposition header (including the extension) for video/quicktime file`, async () => {
+      // Make sure non-whitelisted file formats (such as .mov) can be downloaded with their original name, including the extension
+      await createAndCheckAttachment(files.mov, post, user, true);
     });
   });
 });

@@ -72,7 +72,7 @@ export function addModel(dbAdapter) {
       this.fileName = params.fileName; // original file name, e.g. 'cute-little-kitten.jpg'
       this.fileSize = params.fileSize; // file size in bytes
       this.mimeType = params.mimeType; // used as a fallback, in case we can't detect proper one
-      this.fileExtension = params.fileExtension; // jpg|png|gif etc.
+      this.fileExtension = params.fileExtension; // jpg|png|gif etc, but empty for non-whitelisted types
       this.mediaType = params.mediaType; // image | audio | general
 
       this.noThumbnail = params.noThumbnail; // if true, image thumbnail URL == original URL
@@ -458,7 +458,10 @@ export function addModel(dbAdapter) {
 
     // Upload original attachment or its thumbnail to the S3 bucket
     async uploadToS3(sourceFile, destPath, mimeType) {
-      const dispositionName = parsePath(this.fileName).name + parsePath(destPath).ext;
+      const dispositionName = this.fileExtension
+        ? parsePath(this.fileName).name + parsePath(destPath).ext // original extension for whitelisted types, but might be 'jpg' for webp
+        : this.fileName; // original extension for non-whitelisted types
+
       await this.s3
         .upload({
           ACL: 'public-read',
