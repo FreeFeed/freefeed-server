@@ -20,11 +20,12 @@ import {
   promoteToAdmin,
   createTestUser,
   getUserEvents,
-  deletePostAsync,
   fetchPost,
   fetchTimeline,
   goPrivate,
   mutualSubscriptions,
+  performJSONRequest,
+  authHeaders,
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -48,7 +49,7 @@ describe('Group Moderation', () => {
   describe('Mars creates group Celestials, Luna writes post to group, Venus is a stranger', () => {
     let luna, mars, venus, celestials, post;
     beforeEach(async () => {
-      [luna, mars, venus] = await createTestUsers(3);
+      [luna, mars, venus] = await createTestUsers(['luna', 'mars', 'venus']);
       celestials = await createGroupAsync(mars, 'celestials', 'Celestials');
       await subscribeToAsync(luna, celestials);
       post = await createAndReturnPostToFeed([celestials], luna, 'My post');
@@ -227,11 +228,11 @@ describe('Group Moderation', () => {
       });
     });
 
-    describe('Delete post completely from all its feeds', () => {
+    describe('Delete post from all or several feeds', () => {
       it('should allow Luna to delete their post', async () => {
         const response = await deletePostAsync(luna, post.id);
-        expect(response.status, 'to be', 200);
-        expect(await response.json(), 'to satisfy', { postStillAvailable: false });
+        expect(response.__httpCode, 'to be', 200);
+        expect(response, 'to satisfy', { postStillAvailable: false });
 
         const postResponse = await fetchPost(post.id, null, { returnError: true });
         expect(postResponse.status, 'to be', 404);
@@ -239,8 +240,8 @@ describe('Group Moderation', () => {
 
       it('should allow Mars to delete Luna post', async () => {
         const response = await deletePostAsync(mars, post.id);
-        expect(response.status, 'to be', 200);
-        expect(await response.json(), 'to satisfy', { postStillAvailable: false });
+        expect(response.__httpCode, 'to be', 200);
+        expect(response, 'to satisfy', { postStillAvailable: false });
 
         const postResponse = await fetchPost(post.id, null, { returnError: true });
         expect(postResponse.status, 'to be', 404);
@@ -248,13 +249,13 @@ describe('Group Moderation', () => {
 
       it('should not allow Venus to delete Luna post', async () => {
         const response = await deletePostAsync(venus, post.id);
-        expect(response.status, 'to be', 403);
+        expect(response.__httpCode, 'to be', 403);
       });
 
       describe('Notifications (Jupiter is also admin of Celestials)', () => {
         let jupiter;
         beforeEach(async () => {
-          jupiter = await createTestUser();
+          jupiter = await createTestUser('jupiter');
           await promoteToAdmin({ username: 'celestials' }, mars, jupiter);
         });
 
@@ -309,16 +310,42 @@ describe('Group Moderation', () => {
 
           it('should allow Luna to delete their post', async () => {
             const response = await deletePostAsync(luna, post.id);
-            expect(response.status, 'to be', 200);
+            expect(response.__httpCode, 'to be', 200);
 
             const postResponse = await fetchPost(post.id, null, { returnError: true });
             expect(postResponse.status, 'to be', 404);
           });
 
+          it('should allow Luna to delete post only from their feed', async () => {
+            const response = await deletePostAsync(luna, post.id, [luna.username]);
+            expect(response, 'to satisfy', { __httpCode: 200, postStillAvailable: true });
+
+            const postResponse = await fetchPost(post.id);
+            expect(destFeedNames(postResponse), 'when sorted', 'to equal', ['celestials', 'gods']);
+          });
+
+          it('should allow Luna to delete post only from groups', async () => {
+            const response = await deletePostAsync(luna, post.id, ['celestials', 'gods']);
+            expect(response, 'to satisfy', { __httpCode: 200, postStillAvailable: true });
+
+            const postResponse = await fetchPost(post.id);
+            expect(destFeedNames(postResponse), 'when sorted', 'to equal', ['luna']);
+          });
+
+          it('should not allow Luna to delete post from unexisting feeds', async () => {
+            const response = await deletePostAsync(luna, post.id, ['luna', 'gods', 'apples']);
+            expect(response, 'to satisfy', { __httpCode: 403 });
+          });
+
           it('should allow Mars to remove Luna post from Mars groups', async () => {
             const response = await deletePostAsync(mars, post.id);
-            expect(response.status, 'to be', 200);
-            expect(await response.json(), 'to satisfy', { postStillAvailable: true });
+            expect(response.__httpCode, 'to be', 200);
+            expect(response, 'to satisfy', { postStillAvailable: true });
+          });
+
+          it("should not allow Jupiter to remove Luna post from non-Jupiter's groups", async () => {
+            const response = await deletePostAsync(jupiter, post.id, ['celestials', 'gods']);
+            expect(response.__httpCode, 'to be', 403);
           });
 
           describe('Mars removes Luna post from managed groups', () => {
@@ -378,8 +405,8 @@ describe('Group Moderation', () => {
 
             it('should return { postStillAvailable: false } to Mars', async () => {
               const response = await deletePostAsync(mars, post.id);
-              expect(response.status, 'to be', 200);
-              expect(await response.json(), 'to satisfy', { postStillAvailable: false });
+              expect(response.__httpCode, 'to be', 200);
+              expect(response, 'to satisfy', { postStillAvailable: false });
             });
           });
 
@@ -569,4 +596,26 @@ async function createCommentAndReturnId(userCtx, postId) {
 async function getFilteredEvents(userCtx, eventTypes) {
   const resp = await getUserEvents(userCtx);
   return resp.Notifications.filter((n) => eventTypes.includes(n.event_type));
+}
+
+function deletePostAsync(userCtx, postId, fromFeeds = []) {
+  const sp = new URLSearchParams();
+
+  for (const group of fromFeeds) {
+    sp.append('fromFeed', group);
+  }
+
+  return performJSONRequest(
+    'DELETE',
+    `/v1/posts/${postId}?${sp.toString()}`,
+    null,
+    authHeaders(userCtx),
+  );
+}
+
+function destFeedNames(postData) {
+  return postData.posts.postedTo.map((id) => {
+    const userId = postData.subscriptions.find((s) => s.id === id).user;
+    return postData.subscribers.find((s) => s.id === userId).username;
+  });
 }

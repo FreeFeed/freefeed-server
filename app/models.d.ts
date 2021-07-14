@@ -58,6 +58,7 @@ export class Post {
   onlyUsersCanSeePost(fromUsers: User[]): Promise<User[]>;
   getGroupsPostedTo(): Promise<Group[]>;
   getCreatedBy(): Promise<User>;
+  isAuthorOrGroupAdmin(user: User): Promise<boolean>;
 }
 
 export class Timeline {

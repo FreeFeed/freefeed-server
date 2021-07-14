@@ -1,8 +1,10 @@
-import _ from 'lodash';
+import _, { difference, differenceBy } from 'lodash';
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
 import { dbAdapter, Post, AppTokenV1 } from '../../../models';
+/** @typedef {import('../../../models').User} User */
+/** @typedef {import('../../../models').Timeline} Timeline */
 import {
   ForbiddenException,
   NotFoundException,
@@ -165,52 +167,110 @@ export default class PostsController {
     },
   ]);
 
+  /**
+   * The 'destroy' method can have one or more 'fromFeed' GET-parameters. These
+   * parameter defines the 'Posts' feeds (by username) from which this post
+   * should be deleted.
+   *
+   * If there are no 'fromFeed' parameters, the post will be deleted completely
+   * (by author) or from all managed groups (by groups admin).
+   *
+   * The direct post cannot be deleted from the someone's 'Directs' feed.
+   */
   static destroy = compose([
     authRequired(),
     postAccessRequired(),
     async (ctx) => {
+      /** @type {{ user: User, post: Post }} */
       const { user, post } = ctx.state;
+
+      /** @type string[] */
+      const fromFeedsNames = [];
+
+      if (Array.isArray(ctx.request.query.fromFeed)) {
+        fromFeedsNames.push(...ctx.request.query.fromFeed);
+      } else if (typeof ctx.request.query.fromFeed === 'string') {
+        fromFeedsNames.push(ctx.request.query.fromFeed);
+      }
 
       if (!(await post.isAuthorOrGroupAdmin(user))) {
         throw new ForbiddenException("You can't delete another user's post");
       }
 
+      const fromFeedsAccounts = await dbAdapter.getFeedOwnersByUsernames(fromFeedsNames);
+
+      // All feed names should be valid
+      {
+        const invalidNames = difference(
+          fromFeedsNames,
+          fromFeedsAccounts.map((a) => a.username),
+        );
+
+        if (invalidNames.length > 0) {
+          throw new ForbiddenException(`Feeds do not exist: ${invalidNames.join(', ')}`);
+        }
+      }
+
+      const postDestinations = await post.getPostedTo();
+
+      // All fromFeeds should be a 'Posts' destination feeds
+      {
+        const invalidNames = fromFeedsAccounts
+          .filter((a) => !postDestinations.find((d) => d.userId === a.id && d.isPosts()))
+          .map((a) => a.username);
+
+        if (invalidNames.length > 0) {
+          throw new ForbiddenException(`Post does not belong to: ${invalidNames.join(', ')}`);
+        }
+      }
+
+      // The remover shold be either a post author or admin of all fromFeeds
+      if (post.userId !== user.id) {
+        const isAdmins = await Promise.all(
+          fromFeedsAccounts.map((a) => dbAdapter.isUserAdminOfGroup(user.id, a.id)),
+        );
+        const invalidNames = isAdmins
+          .map((v, i) => !v && fromFeedsAccounts[i].username)
+          .filter(Boolean);
+
+        if (invalidNames.length > 0) {
+          throw new ForbiddenException(`You are not admin of: ${invalidNames.join(', ')}`);
+        }
+      }
+
+      /** @type Timeline[] */
+      let fromFeeds = [];
+
+      // If fromFeeds is empty, then we should remove post from the maximum available amount of feeds.
+      if (fromFeedsNames.length === 0) {
+        if (post.userId === user.id) {
+          fromFeeds = postDestinations;
+        } else {
+          const managedGroups = await user.getManagedGroups();
+          fromFeeds = postDestinations.filter((d) => managedGroups.find((g) => g.id === d.userId));
+        }
+      } else {
+        fromFeeds = await Promise.all(fromFeedsAccounts.map((a) => a.getPostsTimeline()));
+      }
+
+      // Now we should determine what feeds will remain in the post
+      const feedsToRemain = differenceBy(postDestinations, fromFeeds, 'id');
       let postStillAvailable = false;
 
-      // Post's author deletes post
-      if (post.userId === user.id) {
-        await post.destroy();
-        monitor.increment('posts.destroys');
-        ctx.body = { postStillAvailable };
-        return;
-      }
-
-      // Group admin deletes post
-      const [postDestinations, userManagedGroups] = await Promise.all([
-        post.getPostedTo(),
-        user.getManagedGroups(),
-      ]);
-      const groupsPostsFeeds = await Promise.all(
-        userManagedGroups.map((g) => dbAdapter.getUserNamedFeed(g.id, 'Posts')),
-      );
-
-      const feedsToRemain = _.differenceBy(postDestinations, groupsPostsFeeds, 'id');
-
       if (feedsToRemain.length === 0) {
-        // No feeds left, deleting post
+        // Complete removal
         await post.destroy(user);
         monitor.increment('posts.destroys');
-        ctx.body = { postStillAvailable };
-        return;
+      } else {
+        // Partial removal: remove post only from several feeds
+        await post.update({
+          destinationFeedIds: _.map(feedsToRemain, 'intId'),
+          updatedBy: user,
+        });
+
+        const updatedPost = await dbAdapter.getPostById(post.id);
+        postStillAvailable = await updatedPost.isVisibleFor(user);
       }
-
-      // Partial removal: remove post only from several feeds
-      await post.update({
-        destinationFeedIds: _.map(feedsToRemain, 'intId'),
-        updatedBy: user,
-      });
-
-      postStillAvailable = await (await dbAdapter.getPostById(post.id)).isVisibleFor(user);
 
       ctx.body = { postStillAvailable };
     },
