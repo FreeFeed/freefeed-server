@@ -534,7 +534,7 @@ export default class PubsubListener {
 
     let receivers = List.everything();
 
-    if (account.isGroup && account.isPrivate === '1') {
+    if (account.isGroup() && account.isPrivate === '1') {
       const postsFeed = await account.getPostsTimeline();
       receivers = List.from(await dbAdapter.getTimelineSubscribersIds(postsFeed.id));
     }
