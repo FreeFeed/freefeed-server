@@ -75,6 +75,7 @@ export class DbAdapter {
     userIds: UUID[],
     timelineIds: UUID[],
   ): Promise<{ uid: UUID; is_subscribed: boolean }[]>;
+  getTimelineSubscribersIds(timelineId: UUID): Promise<UUID[]>;
   getGroupAdministratorsIds(id: UUID): Promise<UUID[]>;
   getGroupsAdministratorsIds(
     groupIds: UUID[],

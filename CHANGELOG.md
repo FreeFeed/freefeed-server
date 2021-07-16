@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    post will be deleted completely (by author) or from all managed groups (by
    groups admin).
 
+### Changed
+- When the private group info is changed, the 'global:user:update' realtime
+  event is delivered only to the group subscribers (earlier it was sent to
+  everyone).
+
 ## [1.99.1] - 2021-07-03
 ### Fixed
 - GDPR script works again

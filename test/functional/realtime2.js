@@ -367,26 +367,41 @@ describe('Realtime #2', () => {
     });
 
     describe(`Updates of group`, () => {
-      let selenites;
+      let selenites, venus, venusSession;
       beforeEach(async () => {
         ({ group: selenites } = await funcTestHelper.createGroupAsync(luna, 'selenites'));
+        await funcTestHelper.subscribeToAsync(mars, selenites);
+
+        venus = await funcTestHelper.createTestUser('venus');
+        venusSession = await Session.create(port, 'Venus session');
+        await venusSession.sendAsync('auth', { authToken: venus.authToken });
+        await venusSession.sendAsync('subscribe', { global: ['users'] });
       });
 
-      const shouldMatchActualInfo = async (action, session, userCtx = null) => {
-        const event = await session.receiveWhile('global:user:update', action);
+      const shouldMatchActualInfo = async (action, session, userCtx = null, should = true) => {
+        const event = await session[should ? 'receiveWhile' : 'notReceiveWhile'](
+          'global:user:update',
+          action,
+        );
+
+        if (!should) {
+          return;
+        }
+
         const infoResp = await funcTestHelper.performJSONRequest(
           'GET',
           `/v1/users/${selenites.username}`,
           null,
           funcTestHelper.authHeaders(userCtx),
         );
-        return expect(event, 'to satisfy', { user: infoResp.users });
+        expect(event, 'to satisfy', { user: infoResp.users });
       };
 
       const watchers = [
-        { session: null, userCtx: null, name: 'Anonymous' },
-        { session: null, userCtx: null, name: 'Luna' },
-        { session: null, userCtx: null, name: 'Mars' },
+        { session: null, userCtx: null, isGroupMember: false, name: 'Anonymous' },
+        { session: null, userCtx: null, isGroupMember: true, name: 'Luna' },
+        { session: null, userCtx: null, isGroupMember: true, name: 'Mars' },
+        { session: null, userCtx: null, isGroupMember: false, name: 'Venus' },
       ];
 
       beforeEach(() => {
@@ -395,6 +410,8 @@ describe('Realtime #2', () => {
         watchers[1].userCtx = luna;
         watchers[2].session = marsSession;
         watchers[2].userCtx = mars;
+        watchers[3].session = venusSession;
+        watchers[3].userCtx = venus;
       });
 
       for (const watcher of watchers) {
@@ -416,11 +433,15 @@ describe('Realtime #2', () => {
               watcher.userCtx,
             ));
 
-          it(`should deliver 'global:user:update' event when group becomes private`, () =>
+          it(`should ${
+            watcher.isGroupMember ? '' : 'not '
+          }deliver 'global:user:update' event when group becomes private`, () =>
             shouldMatchActualInfo(
               () => funcTestHelper.updateGroupAsync(selenites, luna, { isPrivate: '1' }),
               watcher.session,
               watcher.userCtx,
+              // Only for group members
+              watcher.isGroupMember,
             ));
 
           it(`should deliver 'global:user:update' event when group updates profile picture`, () =>
