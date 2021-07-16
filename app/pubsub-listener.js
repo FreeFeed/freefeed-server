@@ -525,18 +525,35 @@ export default class PubsubListener {
     await this._sendCommentLikeMsg(data, eventNames.COMMENT_LIKE_REMOVED);
   };
 
-  onGlobalUserUpdate = (userId) =>
-    this.broadcastMessage(
+  onGlobalUserUpdate = async (userId) => {
+    const account = await dbAdapter.getFeedOwnerById(userId);
+
+    if (!account) {
+      return;
+    }
+
+    let receivers = List.everything();
+
+    if (account.isGroup() && account.isPrivate === '1') {
+      const postsFeed = await account.getPostsTimeline();
+      receivers = List.from(await dbAdapter.getTimelineSubscribersIds(postsFeed.id));
+    }
+
+    await this.broadcastMessage(
       ['global:users'],
       eventNames.GLOBAL_USER_UPDATED,
       null,
       null,
       async (socket, type, json) => {
+        if (!receivers.includes(socket.userId)) {
+          return;
+        }
+
         const [user] = await serializeUsersByIds([userId], true, socket.userId);
         await socket.emit(type, { ...json, user });
       },
     );
-
+  };
   onGroupTimesUpdate = async ({ groupIds }) => {
     const groups = (await dbAdapter.getFeedOwnersByIds(groupIds)).filter((g) => g.isGroup());
 
