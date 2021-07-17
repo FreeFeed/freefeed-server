@@ -768,7 +768,7 @@ describe('Comment likes', () => {
 
       beforeEach(async () => {
         [luna, mars, jupiter, pluto] = await Promise.all([
-          createUserAsync('luna', 'pw'),
+          createUserAsync('luna', 'pw', { hideBannedComments: true }),
           createUserAsync('mars', 'pw'),
           createUserAsync('jupiter', 'pw'),
           createUserAsync('pluto', 'pw'),

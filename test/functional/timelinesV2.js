@@ -56,7 +56,9 @@ describe('TimelinesControllerV2', () => {
 
     describe('Viewer Luna', () => {
       let luna;
-      beforeEach(async () => (luna = await createUserAsync('luna', 'pw')));
+      beforeEach(
+        async () => (luna = await createUserAsync('luna', 'pw', { hideBannedComments: true })),
+      );
 
       it('should return proper structure for authenticated user', async () => {
         await fetchHomefeed(luna);
