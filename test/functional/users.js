@@ -1240,11 +1240,11 @@ describe('UsersController', () => {
   });
 
   describe('#updatePassword()', () => {
-    let authToken, user;
+    let authToken, user, initialPassword;
 
     beforeEach(async () => {
       const luna = await funcTestHelper.createUserAsync('Luna', 'password');
-      ({ authToken, user } = luna);
+      ({ authToken, user, password: initialPassword } = luna);
     });
 
     it('should update current user password', (done) => {
@@ -1254,7 +1254,7 @@ describe('UsersController', () => {
         .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
-          currentPassword: user.password,
+          currentPassword: initialPassword,
           password,
           passwordConfirmation: password,
           _method: 'put',
@@ -1283,7 +1283,7 @@ describe('UsersController', () => {
         .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
-          currentPassword: user.password,
+          currentPassword: initialPassword,
           password,
           passwordConfirmation: password,
           _method: 'put',
@@ -1309,7 +1309,7 @@ describe('UsersController', () => {
         .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
-          currentPassword: user.password,
+          currentPassword: initialPassword,
           password,
           passwordConfirmation: 'abc',
           _method: 'put',
@@ -1330,7 +1330,7 @@ describe('UsersController', () => {
         .post(`${app.context.config.host}/v1/users/updatePassword`)
         .send({
           authToken,
-          currentPassword: user.password,
+          currentPassword: initialPassword,
           password,
           passwordConfirmation: password,
           _method: 'put',
@@ -1437,7 +1437,7 @@ describe('UsersController', () => {
     beforeEach(async () => {
       [marsContext, zeusContext] = await Promise.all([
         funcTestHelper.createUserAsync(banUsername, 'pw'),
-        funcTestHelper.createUserAsync(username, 'pw'),
+        funcTestHelper.createUserAsync(username, 'pw', { hideBannedComments: true }),
       ]);
 
       await funcTestHelper.subscribeToAsync(marsContext, zeusContext);
