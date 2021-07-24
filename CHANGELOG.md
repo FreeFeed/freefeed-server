@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    which this post should be deleted. If there are no 'fromFeed' parameters, the
    post will be deleted completely (by author) or from all managed groups (by
    groups admin).
+- All serialized posts now have a new numeric 'backlinksCount' field. This field
+  is the count of texts (posts or comments) that mentioned the post's UUID and
+  visible to the current user. The client should display this count as a link to
+  the search by post's UUID.
+  
+  When the post hase new or removed mention in somewhere, the 'post:update'
+  realtime message is delivered with the updated backlinksCount.
+
+  It is also recommended to re-run the search indexer (`yarn babel
+  bin/reindex_search.js`) after this changes applied. The indexing of UUIDs in
+  the plain texts (not in URLs) is slightly changed, so in rare cases the search
+  may work incorrectly. These changes are not affects the backlinks
+  functionality though.
 
 ### Changed
 - When the private group info is changed, the 'global:user:update' realtime

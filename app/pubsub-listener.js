@@ -35,6 +35,7 @@ import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
 import { serializeEvents } from './serializers/v2/event';
+/** @typedef {import('./support/types').UUID} UUID */
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
@@ -246,7 +247,20 @@ export default class PubsubListener {
     }
   };
 
-  async broadcastMessage(rooms, type, payload, { post = null, emitter = defaultEmitter } = {}) {
+  async broadcastMessage(
+    rooms,
+    type,
+    payload,
+    {
+      post = null,
+      emitter = defaultEmitter,
+      // Deliver message only for these users
+      onlyForUsers = List.everything(),
+      // Only for the POST_UPDATED events: the new and removed post viewers IDs
+      newUsers = List.empty(),
+      removedUsers = List.empty(),
+    } = {},
+  ) {
     if (rooms.length === 0) {
       return;
     }
@@ -259,16 +273,18 @@ export default class PubsubListener {
       return;
     }
 
+    emitter = this._onlyUsersEmitter(onlyForUsers, emitter);
+
     let userIds = destSockets.map((s) => s.userId);
 
     if (post) {
       if (type === eventNames.POST_UPDATED) {
-        if (payload.newUserIds && !payload.newUserIds.isEmpty()) {
+        if (!newUsers.isEmpty()) {
           // Users who listen to post rooms but
           // could not see post before. They should
           // receive a 'post:new' event.
 
-          const newUserIds = List.intersection(payload.newUserIds, userIds).items;
+          const newUserIds = List.intersection(newUsers, userIds).items;
           const newUserRooms = flatten(
             destSockets
               .filter((s) => newUserIds.includes(s.userId))
@@ -285,12 +301,12 @@ export default class PubsubListener {
           userIds = List.difference(userIds, newUserIds).items;
         }
 
-        if (payload.removedUserIds && !payload.removedUserIds.isEmpty()) {
+        if (!removedUsers.isEmpty()) {
           // Users who listen to post rooms but
           // can not see post anymore. They should
           // receive a 'post:destroy' event.
 
-          const removedUserIds = List.intersection(payload.removedUserIds, userIds).items;
+          const removedUserIds = List.intersection(removedUsers, userIds).items;
           const removedUserRooms = flatten(
             destSockets
               .filter((s) => removedUserIds.includes(s.userId))
@@ -306,7 +322,7 @@ export default class PubsubListener {
           userIds = List.difference(userIds, removedUserIds).items;
         }
       } else {
-        const allPostReaders = await post.usersCanSeePostIds();
+        const allPostReaders = await post.usersCanSee();
         userIds = List.intersection(allPostReaders, userIds).items;
       }
 
@@ -379,32 +395,39 @@ export default class PubsubListener {
     await this.broadcastMessage(rooms, type, json, { post, emitter: this._postEventEmitter });
   };
 
-  onPostUpdate = async ({ postId, rooms = null, usersBeforeIds = null }) => {
+  onPostUpdate = async ({
+    postId,
+    rooms = null,
+    usersBeforeIds = null,
+    // The JSON of List.everything()
+    onlyForUsers = { items: [], inclusive: false },
+  }) => {
     const post = await dbAdapter.getPostById(postId);
 
     if (!post) {
       return;
     }
 
-    const json = { postId };
-
     if (!rooms) {
       rooms = await getRoomsOfPost(post);
     }
+
+    const broadcastOptions = {
+      post,
+      onlyForUsers: List.from(onlyForUsers),
+      emitter: this._postEventEmitter,
+    };
 
     if (usersBeforeIds) {
       // It is possible that after the update of the posts
       // destinations it will become invisible or visible for the some users.
       // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
-      const currentUserIds = await post.usersCanSeePostIds();
-      json.newUserIds = List.difference(currentUserIds, usersBeforeIds);
-      json.removedUserIds = List.difference(usersBeforeIds, currentUserIds);
+      const currentUserIds = await post.usersCanSee();
+      broadcastOptions.newUsers = List.difference(currentUserIds, usersBeforeIds);
+      broadcastOptions.removedUsers = List.difference(usersBeforeIds, currentUserIds);
     }
 
-    await this.broadcastMessage(rooms, eventNames.POST_UPDATED, json, {
-      post,
-      emitter: this._postEventEmitter,
-    });
+    await this.broadcastMessage(rooms, eventNames.POST_UPDATED, { postId }, broadcastOptions);
   };
 
   onCommentNew = async ({ commentId }) => {
@@ -658,10 +681,21 @@ export default class PubsubListener {
   };
 
   /**
+   * Emits message only to the specified List of users
+   * @param {List<UUID>} userIds
+   */
+  _onlyUsersEmitter =
+    (userIds, emitter = defaultEmitter) =>
+    (socket, type, json) =>
+      userIds.includes(socket.userId) && emitter(socket, type, json);
+
+  /**
    * Emits message only to the specified user
    */
-  _singleUserEmitter = (userId) => (socket, type, json) =>
-    socket.userId === userId && defaultEmitter(socket, type, json);
+  _singleUserEmitter = (userId, emitter = defaultEmitter) =>
+    this._onlyUsersEmitter(List.from([userId]), emitter);
+  // (socket, type, json) =>
+  //   socket.userId === userId && defaultEmitter(socket, type, json);
 
   _withUserIdEmitter = (socket, type, json) =>
     socket.userId && defaultEmitter(socket, type, { ...json, id: socket.userId });
