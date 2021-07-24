@@ -67,7 +67,9 @@ const backlinksTrait = (superClass) =>
           `${withSQL}
           select uids.uid, count(*)::int 
           from uids, posts p
-          where p.body_tsvector @@ phraseto_tsquery(:ftsCfg, replace(uids.uid::text, '-', ' '))
+          where
+            p.body_tsvector @@ phraseto_tsquery(:ftsCfg, replace(uids.uid::text, '-', ' ')) 
+            and p.uid <> uids.uid
           group by uids.uid`,
           { ftsCfg, uids },
         ),
@@ -75,9 +77,11 @@ const backlinksTrait = (superClass) =>
           `${withSQL}
           select uids.uid, count(*)::int
           from uids, comments c, posts p
-          where c.post_id = p.uid and
-            ${commentsRestrictionSQL} and
-            c.body_tsvector @@ phraseto_tsquery(:ftsCfg, replace(uids.uid::text, '-', ' '))
+          where
+            c.post_id = p.uid
+            and p.uid <> uids.uid
+            and ${commentsRestrictionSQL}
+            and c.body_tsvector @@ phraseto_tsquery(:ftsCfg, replace(uids.uid::text, '-', ' '))
           group by uids.uid`,
           { ftsCfg, uids },
         ),

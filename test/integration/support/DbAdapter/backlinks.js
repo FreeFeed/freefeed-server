@@ -232,4 +232,14 @@ describe('Backlinks DB trait', () => {
       );
     });
   });
+
+  describe('Link to the post itself', () => {
+    before(() => lunaPost.update({ body: `this post has address example.com/${lunaPost.id}` }));
+    after(() => lunaPost.update({ body: 'just a post' }));
+
+    it(`should not count self-link to the Luna post`, async () => {
+      const result = await dbAdapter.getBacklinksCounts([lunaPost.id]);
+      expect(result, 'to equal', new Map([[lunaPost.id, 2]]));
+    });
+  });
 });
