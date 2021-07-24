@@ -10,7 +10,9 @@ import {
 } from 'social-text-tokenizer';
 // The CJS version of social-text-tokenizer has not .d.ts yet, so expecting error
 // @ts-expect-error
-import byRegexp from 'social-text-tokenizer/build/cjs/lib/byRegexp';
+import byRegexp, { makeToken } from 'social-text-tokenizer/build/cjs/lib/byRegexp';
+
+import { uuidRe } from './backlinks';
 
 export class HTMLTag extends Token {
   public closing = false;
@@ -24,6 +26,10 @@ const htmlTags = byRegexp(/<(\/)?(.+?)>/g, (offset: number, text: string, m: Reg
   return t;
 });
 
+export class UUIDString extends Token {}
+
+const uuidStrings = byRegexp(uuidRe, makeToken(UUIDString));
+
 export const tokenize = withText(
   combine(
     hashTags(),
@@ -32,5 +38,6 @@ export const tokenize = withText(
     links({ tldList: ['рф', 'com', 'net', 'org', 'edu', 'place'] }),
     arrows(),
     htmlTags,
+    uuidStrings,
   ),
 );
