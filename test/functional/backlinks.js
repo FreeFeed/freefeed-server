@@ -24,19 +24,27 @@ import Session from './realtime-session';
 
 describe('Backlinks in API output', () => {
   let luna, mars;
-  let lunaPostId;
+  let lunaPostId, marsPostId;
 
   before(async () => {
     await cleanDB($pg_database);
     [luna, mars] = await createTestUsers(['luna', 'mars']);
 
     ({ id: lunaPostId } = await createAndReturnPost(luna, 'Luna post'));
-    await createAndReturnPost(mars, `As Luna said, example.com/${lunaPostId}`);
+    ({ id: marsPostId } = await createAndReturnPost(
+      mars,
+      `As Luna said, example.com/${lunaPostId}`,
+    ));
   });
 
   it(`should return Luna post with 1 backlink`, async () => {
     const resp = await performJSONRequest('GET', `/v2/posts/${lunaPostId}`);
     expect(resp, 'to satisfy', { posts: { backlinksCount: 1 } });
+  });
+
+  it(`should return Mars post by Luna post's UUID search`, async () => {
+    const resp = await performJSONRequest('GET', `/v2/search?qs=${encodeURIComponent(lunaPostId)}`);
+    expect(resp, 'to satisfy', { posts: [{ id: marsPostId }] });
   });
 
   describe('Mars becomes private', () => {

@@ -216,7 +216,7 @@ describe('Backlinks DB trait', () => {
     });
   });
 
-  describe('Mars suspends theirself', () => {
+  describe('Mars suspends themselves', () => {
     before(() => mars.setGoneStatus(GONE_SUSPENDED));
     after(() => mars.setGoneStatus(null));
 
