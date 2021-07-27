@@ -4737,6 +4737,7 @@ __metadata:
     typescript: ~4.3.5
     unexpected: ~12.0.3
     unexpected-date: ~2.0.0
+    unexpected-map: ~3.1.0
     unexpected-moment: ~3.3.0
     unexpected-sinon: ~11.0.1
     url: 0.11.0
@@ -10891,6 +10892,15 @@ typescript@~4.3.5:
   peerDependencies:
     unexpected: ">=10.32.0"
   checksum: e32b9395c1d759d6c9be9d5d864f58579f7f725d1dae05f07ecfb8af54808b241e8f9648dae3a20b6c17f58946a565bbd07d5ad092ee142f89dce24e642328b6
+  languageName: node
+  linkType: hard
+
+"unexpected-map@npm:~3.1.0":
+  version: 3.1.0
+  resolution: "unexpected-map@npm:3.1.0"
+  peerDependencies:
+    unexpected: ^10.40.2 || ^11.0.0 || ^12.0.0
+  checksum: deb264a0953fc5c44b70a1def905000fd25cd119169cd8b287df43ad1a0b720ec683c77418b7151553f06ea94694df9047f5e6eea51d15dc5c81f30067bdc40d
   languageName: node
   linkType: hard
 

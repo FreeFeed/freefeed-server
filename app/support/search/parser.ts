@@ -1,6 +1,7 @@
 import XRegExp from 'xregexp';
 import { flow } from 'lodash';
 import config from 'config';
+import { validate as uuidValidate } from 'uuid';
 
 import { normalizeText } from './norm';
 import {
@@ -64,6 +65,15 @@ export function parseQuery(query: string, { minPrefixLength }: ParseQueryOptions
     if (groups.plus) {
       tokens.push(new Plus());
       return;
+    }
+
+    // Handle UUIDs
+    // UUID-like texts should become a space-separated phrase
+    if (!groups.qstring && uuidValidate(groups.word)) {
+      groups.qstring = JSON.stringify(groups.word.replace(/-/g, ' '));
+      delete groups.word;
+    } else if (groups.qstring && uuidValidate(groups.qstring.replace(/^"|"$/g, ''))) {
+      groups.qstring = groups.qstring.replace(/-/g, ' ');
     }
 
     // in-body: (start of scope)
