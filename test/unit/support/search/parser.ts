@@ -116,35 +116,6 @@ describe('search:parseQuery', () => {
         ),
       ],
     },
-    // UUIDs
-    {
-      query: 'a b 123e4567-e89b-12d3-a456-426614174000',
-      comment: 'UUID should become exact phrase',
-      result: [
-        seqTexts(new Text(false, false, 'a')),
-        seqTexts(new Text(false, false, 'b')),
-        seqTexts(new Text(false, true, '123e4567 e89b 12d3 a456 426614174000')),
-      ],
-    },
-    {
-      query: 'a b "123e4567-e89b-12d3-a456-426614174000"',
-      comment: 'UUID should become exact phrase',
-      result: [
-        seqTexts(new Text(false, false, 'a')),
-        seqTexts(new Text(false, false, 'b')),
-        seqTexts(new Text(false, true, '123e4567 e89b 12d3 a456 426614174000')),
-      ],
-    },
-    {
-      query: 'inbody:123e4567-e89b-12d3-a456-426614174000',
-      comment: 'UUID should become exact phrase',
-      result: [
-        new InScope(
-          IN_POSTS,
-          anyText(new Text(false, true, '123e4567 e89b 12d3 a456 426614174000')),
-        ),
-      ],
-    },
   ];
 
   for (const { query, comment, result } of testData) {

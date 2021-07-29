@@ -93,7 +93,6 @@ export async function serializeFeed(
     likes,
     omittedComments,
     omittedLikes,
-    backlinksCount,
   } of postsWithStuff.filter(Boolean)) {
     const sPost = {
       ...serializePostData(post),
@@ -103,7 +102,6 @@ export async function serializeFeed(
       likes,
       omittedComments,
       omittedLikes,
-      backlinksCount,
     };
 
     if (post.feedIntIds.includes(hidesFeedId)) {

@@ -1,8 +1,7 @@
 import { Comment, dbAdapter, Post } from './models';
 import { serializeTimeline } from './serializers/v2/timeline';
-import { List } from './support/open-lists';
 import { PubSubAdapter } from './support/PubSubAdapter';
-import { Nullable, UUID } from './support/types';
+import { UUID } from './support/types';
 
 export class DummyPublisher extends PubSubAdapter {
   constructor() {
@@ -11,12 +10,6 @@ export class DummyPublisher extends PubSubAdapter {
     });
   }
 }
-
-type UpdatePostOptions = {
-  rooms?: Nullable<string[]>;
-  usersBeforeIds?: Nullable<UUID[]>;
-  onlyForUsers?: List<UUID>;
-};
 
 export default class pubSub {
   constructor(private publisher: PubSubAdapter) {}
@@ -61,13 +54,10 @@ export default class pubSub {
 
   async updatePost(
     postId: UUID,
-    {
-      rooms = null,
-      usersBeforeIds = null,
-      onlyForUsers = List.everything(),
-    }: UpdatePostOptions = {},
+    rooms: string[] | null = null,
+    usersBeforeIds: UUID[] | null = null,
   ) {
-    const payload = JSON.stringify({ postId, rooms, usersBeforeIds, onlyForUsers });
+    const payload = JSON.stringify({ postId, rooms, usersBeforeIds });
     await this.publisher.postUpdated(payload);
   }
 

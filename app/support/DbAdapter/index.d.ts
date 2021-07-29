@@ -164,7 +164,4 @@ export class DbAdapter {
 
   getUnreadDirectsNumber(userId: UUID): Promise<number>;
   getUnreadEventsNumber(userId: UUID): Promise<number>;
-
-  // Backlinks
-  getBacklinksCounts(uuids: UUID[], viewerId?: Nullable<UUID>): Promise<Map<UUID, number>>;
 }

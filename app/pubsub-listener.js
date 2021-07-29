@@ -35,7 +35,6 @@ import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentForRealtime } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
 import { serializeEvents } from './serializers/v2/event';
-/** @typedef {import('./support/types').UUID} UUID */
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
@@ -247,20 +246,7 @@ export default class PubsubListener {
     }
   };
 
-  async broadcastMessage(
-    rooms,
-    type,
-    payload,
-    {
-      post = null,
-      emitter = defaultEmitter,
-      // Deliver message only for these users
-      onlyForUsers = List.everything(),
-      // Only for the POST_UPDATED events: the new and removed post viewers IDs
-      newUsers = List.empty(),
-      removedUsers = List.empty(),
-    } = {},
-  ) {
+  async broadcastMessage(rooms, type, json, post = null, emitter = defaultEmitter) {
     if (rooms.length === 0) {
       return;
     }
@@ -273,18 +259,16 @@ export default class PubsubListener {
       return;
     }
 
-    emitter = this._onlyUsersEmitter(onlyForUsers, emitter);
-
     let userIds = destSockets.map((s) => s.userId);
 
     if (post) {
       if (type === eventNames.POST_UPDATED) {
-        if (!newUsers.isEmpty()) {
+        if (json.newUserIds && !json.newUserIds.isEmpty()) {
           // Users who listen to post rooms but
           // could not see post before. They should
           // receive a 'post:new' event.
 
-          const newUserIds = List.intersection(newUsers, userIds).items;
+          const newUserIds = List.intersection(json.newUserIds, userIds).items;
           const newUserRooms = flatten(
             destSockets
               .filter((s) => newUserIds.includes(s.userId))
@@ -294,19 +278,20 @@ export default class PubsubListener {
           await this.broadcastMessage(
             intersection(newUserRooms, rooms),
             eventNames.POST_CREATED,
-            payload,
-            { post, emitter: this._postEventEmitter },
+            json,
+            post,
+            this._postEventEmitter,
           );
 
           userIds = List.difference(userIds, newUserIds).items;
         }
 
-        if (!removedUsers.isEmpty()) {
+        if (json.removedUserIds && !json.removedUserIds.isEmpty()) {
           // Users who listen to post rooms but
           // can not see post anymore. They should
           // receive a 'post:destroy' event.
 
-          const removedUserIds = List.intersection(removedUsers, userIds).items;
+          const removedUserIds = List.intersection(json.removedUserIds, userIds).items;
           const removedUserRooms = flatten(
             destSockets
               .filter((s) => removedUserIds.includes(s.userId))
@@ -322,7 +307,7 @@ export default class PubsubListener {
           userIds = List.difference(userIds, removedUserIds).items;
         }
       } else {
-        const allPostReaders = await post.usersCanSee();
+        const allPostReaders = await post.usersCanSeePostIds();
         userIds = List.intersection(allPostReaders, userIds).items;
       }
 
@@ -336,7 +321,7 @@ export default class PubsubListener {
         const { userId } = socket;
         // We may need to change the json data, so we create a deep copy for this
         // socket.
-        const data = cloneDeep(payload);
+        const data = cloneDeep(json);
 
         // Bans
         if (post && userId) {
@@ -377,7 +362,7 @@ export default class PubsubListener {
   }
 
   onUserUpdate = async (data) => {
-    await this.broadcastMessage([`user:${data.user.id}`], 'user:update', data);
+    await this.broadcastMessage([`user:${data.user.id}`], 'user:update', data, null);
   };
 
   // Message-handlers follow
@@ -392,42 +377,27 @@ export default class PubsubListener {
     const json = { postId };
     const type = eventNames.POST_CREATED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, { post, emitter: this._postEventEmitter });
+    await this.broadcastMessage(rooms, type, json, post, this._postEventEmitter);
   };
 
-  onPostUpdate = async ({
-    postId,
-    rooms = null,
-    usersBeforeIds = null,
-    // The JSON of List.everything()
-    onlyForUsers = { items: [], inclusive: false },
-  }) => {
+  onPostUpdate = async ({ postId, rooms = null, usersBeforeIds = null }) => {
     const post = await dbAdapter.getPostById(postId);
-
-    if (!post) {
-      return;
-    }
+    const json = { postId };
 
     if (!rooms) {
       rooms = await getRoomsOfPost(post);
     }
 
-    const broadcastOptions = {
-      post,
-      onlyForUsers: List.from(onlyForUsers),
-      emitter: this._postEventEmitter,
-    };
-
     if (usersBeforeIds) {
       // It is possible that after the update of the posts
       // destinations it will become invisible or visible for the some users.
       // 'broadcastMessage' will send 'post:destroy' or 'post:new' to such users.
-      const currentUserIds = await post.usersCanSee();
-      broadcastOptions.newUsers = List.difference(currentUserIds, usersBeforeIds);
-      broadcastOptions.removedUsers = List.difference(usersBeforeIds, currentUserIds);
+      const currentUserIds = await post.usersCanSeePostIds();
+      json.newUserIds = List.difference(currentUserIds, usersBeforeIds);
+      json.removedUserIds = List.difference(usersBeforeIds, currentUserIds);
     }
 
-    await this.broadcastMessage(rooms, eventNames.POST_UPDATED, { postId }, broadcastOptions);
+    await this.broadcastMessage(rooms, eventNames.POST_UPDATED, json, post, this._postEventEmitter);
   };
 
   onCommentNew = async ({ commentId }) => {
@@ -443,10 +413,7 @@ export default class PubsubListener {
 
     const type = eventNames.COMMENT_CREATED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, {
-      post,
-      emitter: this._commentLikeEventEmitter,
-    });
+    await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
 
   onCommentUpdate = async (data) => {
@@ -456,17 +423,14 @@ export default class PubsubListener {
 
     const type = eventNames.COMMENT_UPDATED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, {
-      post,
-      emitter: this._commentLikeEventEmitter,
-    });
+    await this.broadcastMessage(rooms, type, json, post, this._commentLikeEventEmitter);
   };
 
   onCommentDestroy = async ({ postId, commentId, rooms }) => {
     const json = { postId, commentId };
     const post = await dbAdapter.getPostById(postId);
     const type = eventNames.COMMENT_DESTROYED;
-    await this.broadcastMessage(rooms, type, json, { post });
+    await this.broadcastMessage(rooms, type, json, post);
   };
 
   onLikeNew = async ({ userId, postId }) => {
@@ -479,14 +443,14 @@ export default class PubsubListener {
 
     const type = eventNames.LIKE_ADDED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, { post });
+    await this.broadcastMessage(rooms, type, json, post);
   };
 
   onLikeRemove = async ({ userId, postId, rooms }) => {
     const json = { meta: { userId, postId } };
     const post = await dbAdapter.getPostById(postId);
     const type = eventNames.LIKE_REMOVED;
-    await this.broadcastMessage(rooms, type, json, { post });
+    await this.broadcastMessage(rooms, type, json, post);
   };
 
   onPostHide = async ({ postId, userId }) => {
@@ -497,10 +461,7 @@ export default class PubsubListener {
 
     const type = eventNames.POST_HIDDEN;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, {
-      post,
-      emitter: this._singleUserEmitter(userId),
-    });
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
 
   onPostUnhide = async ({ postId, userId }) => {
@@ -511,10 +472,7 @@ export default class PubsubListener {
 
     const type = eventNames.POST_UNHIDDEN;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, {
-      post,
-      emitter: this._singleUserEmitter(userId),
-    });
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
 
   onPostSave = async ({ postId, userId }) => {
@@ -525,10 +483,7 @@ export default class PubsubListener {
 
     const type = eventNames.POST_SAVED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, {
-      post,
-      emitter: this._singleUserEmitter(userId),
-    });
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
 
   onPostUnsave = async ({ postId, userId }) => {
@@ -539,10 +494,7 @@ export default class PubsubListener {
 
     const type = eventNames.POST_UNSAVED;
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, type, json, {
-      post,
-      emitter: this._singleUserEmitter(userId),
-    });
+    await this.broadcastMessage(rooms, type, json, post, this._singleUserEmitter(userId));
   };
 
   onEventCreated = async (eventId) => {
@@ -560,7 +512,8 @@ export default class PubsubListener {
         users,
         groups,
       },
-      { emitter: this._singleUserEmitter(userId) },
+      null,
+      this._singleUserEmitter(userId),
     );
   };
 
@@ -586,8 +539,12 @@ export default class PubsubListener {
       receivers = List.from(await dbAdapter.getTimelineSubscribersIds(postsFeed.id));
     }
 
-    await this.broadcastMessage(['global:users'], eventNames.GLOBAL_USER_UPDATED, null, {
-      emitter: async (socket, type, json) => {
+    await this.broadcastMessage(
+      ['global:users'],
+      eventNames.GLOBAL_USER_UPDATED,
+      null,
+      null,
+      async (socket, type, json) => {
         if (!receivers.includes(socket.userId)) {
           return;
         }
@@ -595,7 +552,7 @@ export default class PubsubListener {
         const [user] = await serializeUsersByIds([userId], true, socket.userId);
         await socket.emit(type, { ...json, user });
       },
-    });
+    );
   };
   onGroupTimesUpdate = async ({ groupIds }) => {
     const groups = (await dbAdapter.getFeedOwnersByIds(groupIds)).filter((g) => g.isGroup());
@@ -611,31 +568,29 @@ export default class PubsubListener {
       (id) => `user:${id}`,
     );
 
-    await this.broadcastMessage(rooms, 'user:update', null, {
-      emitter: async (socket, type, json) => {
-        if (!socket.userId) {
-          return;
-        }
+    await this.broadcastMessage(rooms, 'user:update', null, null, async (socket, type, json) => {
+      if (!socket.userId) {
+        return;
+      }
 
-        let isSubscribed = [true];
+      let isSubscribed = [true];
 
-        if (groupIds.length > 1) {
-          // User probably not subscribed to all of these groups
-          isSubscribed = await Promise.all(
-            feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.userId, id)),
-          );
-        }
+      if (groupIds.length > 1) {
+        // User probably not subscribed to all of these groups
+        isSubscribed = await Promise.all(
+          feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.userId, id)),
+        );
+      }
 
-        const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
+      const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
 
-        const updatedGroups = await serializeUsersByIds(subscribedGroupIds, true, socket.userId);
+      const updatedGroups = await serializeUsersByIds(subscribedGroupIds, true, socket.userId);
 
-        await socket.emit(type, {
-          ...json,
-          updatedGroups: updatedGroups.slice(0, subscribedGroupIds.length),
-          id: socket.userId,
-        });
-      },
+      await socket.emit(type, {
+        ...json,
+        updatedGroups: updatedGroups.slice(0, subscribedGroupIds.length),
+        id: socket.userId,
+      });
     });
   };
 
@@ -658,10 +613,7 @@ export default class PubsubListener {
     }
 
     const rooms = await getRoomsOfPost(post);
-    await this.broadcastMessage(rooms, msgType, json, {
-      post,
-      emitter: this._commentLikeEventEmitter,
-    });
+    await this.broadcastMessage(rooms, msgType, json, post, this._commentLikeEventEmitter);
   };
 
   async _commentLikeEventEmitter(socket, type, json) {
@@ -681,21 +633,10 @@ export default class PubsubListener {
   };
 
   /**
-   * Emits message only to the specified List of users
-   * @param {List<UUID>} userIds
-   */
-  _onlyUsersEmitter =
-    (userIds, emitter = defaultEmitter) =>
-    (socket, type, json) =>
-      userIds.includes(socket.userId) && emitter(socket, type, json);
-
-  /**
    * Emits message only to the specified user
    */
-  _singleUserEmitter = (userId, emitter = defaultEmitter) =>
-    this._onlyUsersEmitter(List.from([userId]), emitter);
-  // (socket, type, json) =>
-  //   socket.userId === userId && defaultEmitter(socket, type, json);
+  _singleUserEmitter = (userId) => (socket, type, json) =>
+    socket.userId === userId && defaultEmitter(socket, type, json);
 
   _withUserIdEmitter = (socket, type, json) =>
     socket.userId && defaultEmitter(socket, type, { ...json, id: socket.userId });
@@ -779,7 +720,7 @@ export default class PubsubListener {
  * (as RiverOfNews and MyDiscussions).
  *
  * @param {Post} post
- * @return {Promise<string[]>}
+ * @return {string[]}
  */
 export async function getRoomsOfPost(post) {
   if (!post) {

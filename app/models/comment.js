@@ -8,8 +8,6 @@ import { extractHashtags } from '../support/hashtags';
 import { PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 import { getRoomsOfPost } from '../pubsub-listener';
-import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
-import { List } from '../support/open-lists';
 
 export function addModel(dbAdapter) {
   class Comment {
@@ -93,7 +91,7 @@ export function addModel(dbAdapter) {
     }
 
     async create() {
-      this.validate();
+      await this.validate();
 
       const payload = {
         body: this.body,
@@ -131,7 +129,6 @@ export function addModel(dbAdapter) {
         dbAdapter.statsCommentCreated(this.userId),
         pubSub.newComment(this),
         EventService.onCommentChanged(this, true),
-        notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
       ]);
 
       await pubSub.updateGroupTimes(postDestFeeds.map((f) => f.userId));
@@ -140,16 +137,10 @@ export function addModel(dbAdapter) {
     }
 
     async update(params) {
-      const notifyBacklinked = await notifyBacklinkedLater(
-        this,
-        pubSub,
-        getUpdatedUUIDs(this.body, params.body),
-      );
-
       this.updatedAt = new Date().getTime();
       this.body = params.body;
 
-      this.validate();
+      await this.validate();
 
       const payload = {
         body: this.body,
@@ -161,7 +152,6 @@ export function addModel(dbAdapter) {
         this.processHashtagsOnUpdate(),
         pubSub.updateComment(this.id),
         EventService.onCommentChanged(this),
-        notifyBacklinked(),
       ]);
 
       return this;
@@ -171,21 +161,6 @@ export function addModel(dbAdapter) {
       return dbAdapter.getPostById(this.postId);
     }
 
-    /**
-     * Users can view post body
-     */
-    async usersCanSee() {
-      if (this.hideType !== Comment.VISIBLE) {
-        return List.empty();
-      }
-
-      const [whoCanSeePost, whoBansMe] = await Promise.all([
-        this.getPost().then((p) => p.usersCanSee()),
-        dbAdapter.getUserIdsWhoBannedUser(this.userId),
-      ]);
-      return List.difference(whoCanSeePost, whoBansMe);
-    }
-
     canBeDestroyed() {
       return this.hideType !== Comment.DELETED;
     }
@@ -193,12 +168,6 @@ export function addModel(dbAdapter) {
     async destroy(destroyedBy = null) {
       const post = await this.getPost();
       const realtimeRooms = await getRoomsOfPost(post);
-      const notifyBacklinked = await notifyBacklinkedLater(
-        this,
-        pubSub,
-        getUpdatedUUIDs(this.body),
-      );
-
       const deleted = await dbAdapter.deleteComment(this.id, this.postId);
 
       if (!deleted) {
@@ -213,7 +182,6 @@ export function addModel(dbAdapter) {
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
         destroyedBy ? EventService.onCommentDestroyed(this, destroyedBy) : null,
-        notifyBacklinked(),
       ]);
 
       return true;

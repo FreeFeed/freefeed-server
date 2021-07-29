@@ -169,7 +169,6 @@
     "typescript": "~4.3.5",
     "unexpected": "~12.0.3",
     "unexpected-date": "~2.0.0",
-    "unexpected-map": "~3.1.0",
     "unexpected-moment": "~3.3.0",
     "unexpected-sinon": "~11.0.1",
     "xml-parser": "~1.2.1"
