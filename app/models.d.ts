@@ -77,6 +77,7 @@ export class Attachment {
 
 export class Comment {
   id: UUID;
+  intId: number;
   body: string;
   userId: Nullable<UUID>;
   hideType: 0 | 1 | 2 | 3;
