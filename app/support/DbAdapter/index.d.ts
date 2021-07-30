@@ -75,6 +75,7 @@ export class DbAdapter {
     userIds: UUID[],
     timelineIds: UUID[],
   ): Promise<{ uid: UUID; is_subscribed: boolean }[]>;
+  getTimelineSubscribersIds(timelineId: UUID): Promise<UUID[]>;
   getGroupAdministratorsIds(id: UUID): Promise<UUID[]>;
   getGroupsAdministratorsIds(
     groupIds: UUID[],
@@ -90,6 +91,7 @@ export class DbAdapter {
       subscriptions: number;
     };
   }>;
+  isUserAdminOfGroup(userId: UUID, groupId: UUID): Promise<boolean>;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
@@ -117,6 +119,7 @@ export class DbAdapter {
   // Timelines
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;
   getAllUserNamedFeed(userId: UUID, feedName: string): Promise<Timeline[]>;
+  getUserNamedFeed(userId: UUID, feedName: string): Promise<Nullable<Timeline>>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;

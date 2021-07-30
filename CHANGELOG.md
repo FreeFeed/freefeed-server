@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.100.0] - Not released
+### Added
+- The `DELETE /v1/posts/:postId` API method now can have one or more 'fromFeed'
+   GET-parameters. These parameter defines the 'Posts' feeds (by username) from
+   which this post should be deleted. If there are no 'fromFeed' parameters, the
+   post will be deleted completely (by author) or from all managed groups (by
+   groups admin).
+
+### Changed
+- When the private group info is changed, the 'global:user:update' realtime
+  event is delivered only to the group subscribers (earlier it was sent to
+  everyone).
+
 ## [1.99.1] - 2021-07-03
 ### Fixed
 - GDPR script works again
