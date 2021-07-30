@@ -5,6 +5,7 @@ import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
 import { Nullable, UUID } from './support/types';
 import { SessionTokenV1Store } from './models/auth-tokens';
+import { List } from './support/open-lists';
 
 export const postgres: Knex;
 export const dbAdapter: DbAdapter;
@@ -30,6 +31,7 @@ export class User {
   getManagedGroups(): Promise<Group[]>;
   getBanIds(): Promise<UUID[]>;
   getPostsTimeline(): Promise<Timeline | null>;
+  getPostsTimelineId(): Promise<UUID | null>;
   getDirectsTimeline(): Promise<Timeline | null>;
 }
 
@@ -46,10 +48,12 @@ export class Group {
   isUser(): false;
   getAdministrators(): Promise<User[]>;
   getPostsTimeline(): Promise<Timeline | null>;
+  getPostsTimelineId(): Promise<UUID | null>;
 }
 
 export class Post {
   id: UUID;
+  intId: number;
   userId: UUID;
   body: string;
   destroy(destroyedBy?: User): Promise<void>;
@@ -59,6 +63,7 @@ export class Post {
   getGroupsPostedTo(): Promise<Group[]>;
   getCreatedBy(): Promise<User>;
   isAuthorOrGroupAdmin(user: User): Promise<boolean>;
+  usersCanSee(): Promise<List<UUID>>;
 }
 
 export class Timeline {
@@ -85,6 +90,8 @@ export class Comment {
   seqNumber: number;
   getPost(): Promise<Post>;
   removeLike(user: User): Promise<boolean>;
+  getCreatedBy(): Promise<User>;
+  usersCanSee(): Promise<List<UUID>>;
 }
 
 export const sessionTokenV1Store: SessionTokenV1Store;

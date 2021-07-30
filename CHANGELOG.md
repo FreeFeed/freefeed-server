@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the plain texts (not in URLs) is slightly changed, so in rare cases the search
   may work incorrectly. These changes are not affects the backlinks
   functionality though.
+- There are two new notification types related to backlinks: 'backlink_in_post'
+  (fired when your post or comment has been mention in somebody's post) and
+  'backlink_in_comment' (same for mention in comment).
+  
+  The notification objects in  API have two new fields: 'target_post_id' and
+  'target_comment_id'. The 'target_post_id' is an ID of the mentioned post and
+  the 'target_comment_id' is an ID of the mentioned comment. When the
+  'target_comment_id' is not null, the 'target_post_id' is an ID of post this
+  comment belongs.
 
 ### Changed
 - When the private group info is changed, the 'global:user:update' realtime

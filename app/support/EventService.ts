@@ -10,6 +10,7 @@ import {
   T_EVENT_TYPE,
 } from './EventTypes';
 import { Nullable, UUID } from './types';
+import { extractUUIDs } from './backlinks';
 
 type OnPostFeedsChangedParams = {
   addedFeeds?: Timeline[];
@@ -218,6 +219,7 @@ export class EventService {
     const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
     await this._processDirectMessagesForPost(post, destinationFeeds, author);
     await this._processMentionsInPost(post, destinationFeeds, author);
+    await processBacklinks(post);
   }
 
   static async onCommentChanged(comment: Comment, wasCreated = false) {
@@ -229,6 +231,7 @@ export class EventService {
         EVENT_TYPES.MENTION_IN_COMMENT,
         EVENT_TYPES.MENTION_COMMENT_TO,
       ),
+      processBacklinks(comment),
     ]);
     const directEvents = wasCreated
       ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED)
@@ -613,6 +616,78 @@ async function getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: 
   return directReceivers.map((user) => ({ event: eventType, user }));
 }
 
+async function processBacklinks(srcEntity: Post | Comment) {
+  const uuids = extractUUIDs(srcEntity.body);
+  const [mentionedPosts, mentionedComments] = await Promise.all([
+    dbAdapter.getPostsByIds(uuids),
+    dbAdapter.getCommentsByIds(uuids),
+  ]);
+
+  if (mentionedPosts.length === 0 && mentionedComments.length === 0) {
+    return;
+  }
+
+  const [srcVewers, initiator] = await Promise.all([
+    srcEntity.usersCanSee(),
+    srcEntity.getCreatedBy(),
+  ]);
+
+  const srcPost = srcEntity instanceof Post ? srcEntity : await srcEntity.getPost();
+  const [srcPostAuthor, srcPostGroups] = await Promise.all([
+    srcPost.getCreatedBy(),
+    srcPost.getGroupsPostedTo(),
+  ]);
+
+  await Promise.all([
+    ...mentionedPosts.map(async (post) => {
+      if (srcEntity.userId === post.userId || !srcVewers.includes(post.userId)) {
+        return;
+      }
+
+      const postAuthor = await post.getCreatedBy();
+
+      await createEvent(
+        postAuthor.intId,
+        srcEntity instanceof Post ? EVENT_TYPES.BACKLINK_IN_POST : EVENT_TYPES.BACKLINK_IN_COMMENT,
+        initiator.intId,
+        postAuthor.intId,
+        srcPostGroups[0]?.intId,
+        srcPost.id,
+        srcEntity instanceof Comment ? srcEntity.id : null,
+        srcPostAuthor.intId,
+        post.id,
+      );
+    }),
+    ...mentionedComments.map(async (comment) => {
+      if (
+        !comment.userId ||
+        srcEntity.userId === comment.userId ||
+        !srcVewers.includes(comment.userId)
+      ) {
+        return;
+      }
+
+      const [commentAuthor, commentPost] = await Promise.all([
+        comment.getCreatedBy(),
+        comment.getPost(),
+      ]);
+
+      await createEvent(
+        commentAuthor.intId,
+        srcEntity instanceof Post ? EVENT_TYPES.BACKLINK_IN_POST : EVENT_TYPES.BACKLINK_IN_COMMENT,
+        initiator.intId,
+        commentAuthor.intId,
+        srcPostGroups[0]?.intId,
+        srcPost.id,
+        srcEntity instanceof Comment ? srcEntity.id : null,
+        srcPostAuthor.intId,
+        commentPost.id,
+        comment.id,
+      );
+    }),
+  ]);
+}
+
 /**
  * Create event and perform neccessary actions after create
  *
@@ -634,6 +709,8 @@ async function createEvent(
   postId: Nullable<UUID> = null,
   commentId: Nullable<UUID> = null,
   postAuthorIntId: Nullable<number> = null,
+  targetPostId: Nullable<UUID> = null,
+  targetCommentId: Nullable<UUID> = null,
 ) {
   const event = await dbAdapter.createEvent(
     recipientIntId,
@@ -644,6 +721,8 @@ async function createEvent(
     postId,
     commentId,
     postAuthorIntId,
+    targetPostId,
+    targetCommentId,
   );
 
   // It is possible if event is conflicting with existing by unique key

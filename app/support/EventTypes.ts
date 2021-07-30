@@ -35,6 +35,9 @@ export const EVENT_TYPES = {
   POST_MODERATED_BY_ANOTHER_ADMIN: 'post_moderated_by_another_admin',
 
   INVITATION_USED: 'invitation_used',
+
+  BACKLINK_IN_POST: 'backlink_in_post',
+  BACKLINK_IN_COMMENT: 'backlink_in_comment',
 } as const;
 
 export type T_EVENT_TYPE = typeof EVENT_TYPES[keyof typeof EVENT_TYPES];
