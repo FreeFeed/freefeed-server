@@ -19,6 +19,7 @@ export function addModel(dbAdapter) {
     static HIDDEN_ARCHIVED = 3;
 
     id;
+    intId;
     body_;
     userId;
     postId;
@@ -44,6 +45,7 @@ export function addModel(dbAdapter) {
 
     constructor(params) {
       this.id = params.id;
+      this.intId = params.intId;
       this.body = params.body;
       this.userId = params.userId;
       this.postId = params.postId;
@@ -104,7 +106,7 @@ export function addModel(dbAdapter) {
 
       this.id = await dbAdapter.createComment(payload);
       const newComment = await dbAdapter.getCommentById(this.id);
-      const fieldsToUpdate = ['createdAt', 'updatedAt', 'seqNumber'];
+      const fieldsToUpdate = ['intId', 'createdAt', 'updatedAt', 'seqNumber'];
 
       for (const f of fieldsToUpdate) {
         this[f] = newComment[f];

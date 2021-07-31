@@ -32,8 +32,13 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
     [k: number]: UUID;
   };
 
+  const allPostIds = [
+    ...postIdRows.map((r) => r.uid),
+    ...events.map((e) => e.target_post_id).filter(Boolean),
+  ] as UUID[];
+
   // Posts from non-suspended authors
-  const activePostIds = await dbAdapter.filterSuspendedPosts(postIdRows.map((r) => r.uid));
+  const activePostIds = await dbAdapter.filterSuspendedPosts(allPostIds);
 
   const serializedEvents = events.map((e) => {
     const s = {
@@ -47,6 +52,8 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
       post_id: postIdRows.find((r) => r.id === e.post_id)?.uid || null,
       comment_id: commentIdRows.find((r) => r.id === e.comment_id)?.uid || null,
       post_author_id: (e.post_author_id && accountId2UIDs[e.post_author_id]) || null,
+      target_post_id: e.target_post_id,
+      target_comment_id: e.target_comment_id,
     };
 
     // Do not show posts from inactive authors
@@ -54,6 +61,11 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
       s.post_id = null;
       s.comment_id = null;
       s.post_author_id = null;
+    }
+
+    if (s.target_post_id && !activePostIds.includes(s.target_post_id)) {
+      s.target_post_id = null;
+      s.target_comment_id = null;
     }
 
     return s;
