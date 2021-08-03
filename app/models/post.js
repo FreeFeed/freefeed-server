@@ -35,7 +35,7 @@ export function addModel(dbAdapter) {
     constructor(params) {
       this.id = params.id;
       this.body = params.body;
-      this.attachments = params.attachments;
+      this.attachments = params.attachments || [];
       this.userId = params.userId;
       this.timelineIds = params.timelineIds;
       this.currentUser = params.currentUser;
@@ -90,17 +90,17 @@ export function addModel(dbAdapter) {
       this.body_ = newValue.trim();
     }
 
-    validate() {
-      const valid = this.body && this.body.length > 0 && this.userId && this.userId.length > 0;
-
-      if (!valid) {
-        throw new Error('Post text must not be empty');
+    validate(newAttachments = this.attachments) {
+      if (!this.userId) {
+        throw new Error('Post autor is required');
       }
 
-      const len = GraphemeBreaker.countBreaks(this.body);
+      if (this.body.length === 0 && newAttachments.length === 0) {
+        throw new Error('Post body must not be empty (without attachments)');
+      }
 
-      if (len > config.maxLength.post) {
-        throw new Error(`Maximum post-length is ${config.maxLength.post} graphemes`);
+      if (GraphemeBreaker.countBreaks(this.body) > config.maxLength.post) {
+        throw new Error(`Maximum post length is ${config.maxLength.post} graphemes`);
       }
     }
 
@@ -165,7 +165,7 @@ export function addModel(dbAdapter) {
      * Update Post object
      * This method updates only properties that are listen in params
      *
-     * @param {object} params
+     * @param {{body: string, attachments?: string[], destinationFeedIds?: string[]}} params
      * @returns {Post}
      */
     async update(params) {
@@ -198,10 +198,12 @@ export function addModel(dbAdapter) {
         );
       }
 
+      let newAttachments = undefined;
+
       if (params.attachments != null) {
         // Calculate changes in attachments
         const oldAttachments = (await this.getAttachmentIds()) || [];
-        const newAttachments = params.attachments || [];
+        newAttachments = params.attachments || [];
         const removedAttachments = _.difference(oldAttachments, newAttachments);
 
         // Update post attachments in DB
@@ -251,7 +253,7 @@ export function addModel(dbAdapter) {
         );
       });
 
-      this.validate();
+      this.validate(newAttachments);
 
       // Update post in DB
       await dbAdapter.updatePost(this.id, payload);

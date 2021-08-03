@@ -5,6 +5,7 @@ import expect from 'unexpected';
 import cleanDB from '../../../dbCleaner';
 import { dbAdapter, Post, User } from '../../../../app/models';
 import { GONE_SUSPENDED } from '../../../../app/models/user';
+import { createAttachment } from '../attachment-helpers';
 
 describe('Post', () => {
   beforeEach(() => cleanDB($pg_database));
@@ -137,26 +138,69 @@ describe('Post', () => {
         });
     });
 
-    it('should not create with empty body', (done) => {
-      const post = new Post({
-        body: '',
-        userId: user.id,
-        timelineIds: [timelineId],
-        commentsDisabled: '0',
+    describe('Empty body', () => {
+      let att;
+      beforeEach(
+        async () => (att = await createAttachment(user.id, { name: 'foo', content: 'bar' })),
+      );
+      afterEach(() => att.destroy());
+
+      it('should not create with empty body', async () => {
+        const post = new Post({
+          body: '',
+          userId: user.id,
+          timelineIds: [timelineId],
+          commentsDisabled: '0',
+        });
+
+        await expect(
+          post.create(),
+          'to be rejected with error satisfying',
+          'Post body must not be empty (without attachments)',
+        );
       });
 
-      post
-        .create()
-        .then(() => {
-          done(new Error('FAIL'));
-        })
-        .catch((e) => {
-          e.message.should.eql('Post text must not be empty');
-          done();
+      it('should create with empty body and non-empty attachments list', async () => {
+        const post = new Post({
+          body: '',
+          userId: user.id,
+          timelineIds: [timelineId],
+          commentsDisabled: '0',
+          attachments: [att.id],
         });
+
+        await expect(post.create(), 'to be fulfilled');
+      });
+
+      it('should update with empty body and non-empty attachments list', async () => {
+        const post = new Post({
+          body: 'body',
+          userId: user.id,
+          timelineIds: [timelineId],
+          commentsDisabled: '0',
+        });
+        await expect(post.create(), 'to be fulfilled');
+        await expect(post.update({ body: '', attachments: [att.id] }), 'to be fulfilled');
+      });
+
+      it('should not update with empty body and empty attachments list', async () => {
+        const post = new Post({
+          body: '',
+          userId: user.id,
+          timelineIds: [timelineId],
+          commentsDisabled: '0',
+          attachments: [att.id],
+        });
+        await expect(post.create(), 'to be fulfilled');
+        await expect(
+          post.update({ attachments: [] }),
+          'to be rejected with error satisfying',
+          'Post body must not be empty (without attachments)',
+        );
+      });
     });
 
-    it('should not create with too-long body', (done) => {
+    it('should not create with too-long body', async () => {
       const post = new Post({
         body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est. Vivamus fermentum semper porta. Nunc diam velit, adipiscing ut tristique vitae, sagittis vel odio. Maecenas convallis ullamcorper ultricies. Curabitur ornare, ligula semper consectetur sagittis, nisi diam iaculis velit, id fringilla sem nunc vel mi. Nam dictum, odio nec pretium volutpat, arcu ante placerat erat, non tristique elit urna et turpis. Quisque mi metus, ornare sit amet fermentum et, tincidunt et orci. Fusce eget orci a orci congue vestibulum. Ut dolor diam, elementum et vestibulum eu, porttitor vel elit. Curabitur venenatis pulvinar tellus gravida ornare. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est. Vivamus fermentum semper porta. Nunc diam velit, adipiscing ut tristique vitae, sagittis vel odio. Maecenas convallis ullamcorper ultricies. Curabitur ornare, ligula semper consectetur sagittis, nisi diam iaculis velit, id fringilla sem nunc vel mi. Nam dictum, odio nec pretium volutpat, arcu ante placerat erat, non tristique elit urna et turpis. Quisque mi metus, ornare sit amet fermentum et, tincidunt et orci. Fusce eget orci a orci congue vestibulum. Ut dolor diam, elementum et vestibulum eu, porttitor vel elit. Curabitur venenatis pulvinar tellus gravida ornare.',
         userId: user.id,
@@ -164,15 +208,11 @@ describe('Post', () => {
         commentsDisabled: '0',
       });
 
-      post
-        .create()
-        .then(() => {
-          done(new Error('FAIL'));
-        })
-        .catch((e) => {
-          e.message.should.eql('Maximum post-length is 3000 graphemes');
-          done();
-        });
+      await expect(
+        post.create(),
+        'to be rejected with error satisfying',
+        'Maximum post length is 3000 graphemes',
+      );
     });
 
     it("should create with commentsDisabled='1'", (done) => {
