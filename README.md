@@ -18,6 +18,7 @@ FreeFeed is based on [Pepyatka](https://github.com/pepyatka/pepyatka-server/) pr
 brew install redis
 redis-server /usr/local/etc/redis.conf
 brew install graphicsmagick
+brew install ffmpeg
 brew install postgres
 brew services start postgresql
 createuser -P -s freefeed (enter freefeed as password)
@@ -27,6 +28,7 @@ createdb -O freefeed freefeed
 ### Or setup dependencies via Docker
 
 1. `brew install graphicsmagick`
+1. `brew install ffmpeg`
 1. [Install and run Docker](https://www.docker.com/get-started)
 1. docker-compose up -d
 
@@ -40,7 +42,9 @@ yarn install
 yarn knex --env production migrate:latest
 mkdir ./public/files/attachments/thumbnails/ && mkdir ./public/files/attachments/thumbnails2/
 ```
-Now create config `config/local.json` with some random secret string: `{   "secret": "myverysecretstring"  }`
+
+Now create config `config/local.json` with some random secret string: `{ "secret": "myverysecretstring" }`
+
 ```
 yarn start
 ```
@@ -90,4 +94,5 @@ You can drop your question [here](https://freefeed.net/support).
 FreeFeed is licensed under the MIT License.
 
 ## License
+
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FFreeFeed%2Ffreefeed-server.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FFreeFeed%2Ffreefeed-server?ref=badge_large)

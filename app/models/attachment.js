@@ -1,12 +1,13 @@
 import { promises as fs, createReadStream } from 'fs';
 import childProcess from 'child_process';
-import { parse as parsePath } from 'path';
+import { basename, dirname, parse as parsePath } from 'path';
 import util from 'util';
 
 import config from 'config';
 import createDebug from 'debug';
 import gm from 'gm';
 import { parseFile } from 'music-metadata';
+import fluentFfmpeg from 'fluent-ffmpeg';
 import { fromFile } from 'file-type';
 import mime from 'mime-types';
 import mmm from 'mmmagic';
@@ -266,6 +267,10 @@ export function addModel(dbAdapter) {
         'audio/ogg': 'ogg',
         'audio/x-wav': 'wav',
       };
+      const supportedVideoTypes = {
+        'video/mp4': 'mp4',
+        'video/quicktime': 'mp4',
+      };
 
       this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile);
       debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
@@ -298,14 +303,22 @@ export function addModel(dbAdapter) {
         } else {
           this.artist = metadata.artist;
         }
+      } else if (supportedVideoTypes[this.mimeType]) {
+        this.mediaType = 'video';
+        this.fileExtension = supportedVideoTypes[this.mimeType];
+        this.mimeType = 'video/mp4';
+        this.noThumbnail = '1';
+        this.discardOriginal = true;
+        await this.handleVideo(tmpAttachmentFile);
       } else {
         // Set media properties for 'general' type
         this.mediaType = 'general';
         this.noThumbnail = '1';
       }
 
-      // Store an original attachment
-      if (this.s3) {
+      if (this.discardOriginal) {
+        await fs.unlink(tmpAttachmentFile);
+      } else if (this.s3) {
         await this.uploadToS3(
           tmpAttachmentFile,
           config.attachments.path + this.getFilename(),
@@ -451,6 +464,100 @@ export function addModel(dbAdapter) {
           thumbIds.map(async (sizeId) => {
             const file = tmpResizedFile(sizeId);
             await mvAsync(file, this.getResizedImagePath(sizeId), {});
+          }),
+        );
+      }
+    }
+
+    /**
+     * @param {string} originalFile
+     */
+    async handleVideo(originalFile) {
+      const thumbnailTmpPath = `${this.file.path}.thumbnail.png`;
+      const thumbnailTmpFilename = basename(thumbnailTmpPath);
+      const thumbnailTmpDirname = dirname(thumbnailTmpPath);
+      const encodedVideoTmpPath = `${this.file.path}.encoded.mp4`;
+
+      this.imageSizes.o = {
+        url: config.attachments.url + config.attachments.path + this.getFilename(),
+      };
+
+      this.fileName = this.getFilename();
+
+      // encode video and generate a thumbnail
+      await (() => {
+        return new Promise((resolve, reject) => {
+          const ffmpeg = new fluentFfmpeg();
+          ffmpeg
+            .input(originalFile)
+            .on('codecData', (data) => {
+              const [h, w] = data.video_details[3].split('x');
+              this.imageSizes.o.w = parseInt(w, 10);
+              this.imageSizes.o.h = parseInt(h, 10);
+            })
+            .audioCodec('aac')
+            .videoCodec('libx264')
+            .format('mp4')
+            .output(encodedVideoTmpPath)
+            .thumbnail(
+              {
+                count: 1,
+                timemarks: ['00.1'],
+                size: `?x${config.attachments.imageSizes.t.bounds.height}`,
+                filename: thumbnailTmpFilename,
+              },
+              thumbnailTmpDirname,
+            )
+            .on('end', resolve)
+            .on('error', reject)
+            .run();
+        });
+      })();
+
+      // use encoded file size, not the original file size
+      const resultFileSize = await fs.stat(encodedVideoTmpPath);
+      this.fileSize = resultFileSize.size;
+
+      this.noThumbnail = '0';
+      this.imageSizes.t = {
+        w: Math.round(
+          (this.imageSizes.o.w * config.attachments.imageSizes.t.bounds.height) /
+            this.imageSizes.o.h,
+        ),
+        h: config.attachments.imageSizes.t.bounds.height,
+        url:
+          config.attachments.url +
+          config.attachments.imageSizes['t'].path +
+          this.getFilename('png'),
+      };
+
+      const files = [
+        {
+          tmp: thumbnailTmpPath,
+          mime: 'image/png',
+          path: config.attachments.storage.rootDir + config.attachments.imageSizes['t'].path,
+          filename: this.getFilename('png'),
+        },
+        {
+          tmp: encodedVideoTmpPath,
+          mime: 'video/mp4',
+          path: config.attachments.storage.rootDir + config.attachments.path,
+          filename: this.getFilename(),
+        },
+      ];
+
+      // Save files (permanently)
+      if (this.s3) {
+        await Promise.all(
+          files.map(async (file) => {
+            await this.uploadToS3(file.tmp, file.path + file.filename, file.mime);
+            await fs.unlink(file.tmp);
+          }),
+        );
+      } else {
+        await Promise.all(
+          files.map(async (file) => {
+            await mvAsync(file.tmp, file.path + file.filename, {});
           }),
         );
       }
