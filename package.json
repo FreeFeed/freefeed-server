@@ -52,6 +52,7 @@
     "ejs": "~3.1.6",
     "ff-url-finder": "~2.3.7",
     "file-type": "~16.5.2",
+    "fluent-ffmpeg": "^2.1.2",
     "gifsicle": "~4.0.1",
     "gm": "~1.23.1",
     "grapheme-breaker": "0.3.2",
