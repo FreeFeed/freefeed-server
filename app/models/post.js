@@ -92,7 +92,7 @@ export function addModel(dbAdapter) {
 
     validate(newAttachments = this.attachments) {
       if (!this.userId) {
-        throw new Error('Post autor is required');
+        throw new Error('Post author is required');
       }
 
       if (this.body.length === 0 && newAttachments.length === 0) {
