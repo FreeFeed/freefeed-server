@@ -76,7 +76,19 @@ export class Timeline {
   isPosts(): boolean;
 }
 
+type AttachmentParams = {
+  userId: UUID;
+  postId?: UUID;
+  file: {
+    name: string;
+    type: string;
+    size: number;
+    path: string;
+  };
+};
 export class Attachment {
+  constructor(params: AttachmentParams);
+  create(): Promise<void>;
   destroy(destroyedBy?: User): Promise<void>;
 }
 

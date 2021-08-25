@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   'target_comment_id' is not null, the 'target_post_id' is an ID of post this
   comment belongs.
 
+### Changed
+- Post can now have an empty body if it contains one or more attachments.
+
 ## [1.100.0] - 2021-07-30
 ### Added
 - The `DELETE /v1/posts/:postId` API method now can have one or more 'fromFeed'

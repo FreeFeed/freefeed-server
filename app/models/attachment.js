@@ -125,7 +125,7 @@ export function addModel(dbAdapter) {
       this.updatedAt = new Date().getTime();
       this.postId = this.postId || '';
 
-      await this.validate();
+      this.validate();
 
       this.id = await dbAdapter.createAttachment({
         postId: this.postId,

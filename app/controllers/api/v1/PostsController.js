@@ -358,7 +358,7 @@ export default class PostsController {
  *
  * @param {string[]} destNames
  * @param {User} author
- * @returns {string[]}
+ * @returns {Promise<string[]>}
  */
 export async function checkDestNames(destNames, author) {
   destNames = _.uniq(destNames.map((u) => u.toLowerCase()));
