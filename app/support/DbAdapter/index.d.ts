@@ -47,6 +47,8 @@ export type EventRecord = {
   post_id: Nullable<number>;
   comment_id: Nullable<number>;
   post_author_id: Nullable<number>;
+  target_post_id: Nullable<UUID>;
+  target_comment_id: Nullable<UUID>;
 };
 
 export class DbAdapter {
@@ -159,9 +161,14 @@ export class DbAdapter {
     postId?: Nullable<UUID>,
     commentId?: Nullable<UUID>,
     postAuthorIntId?: Nullable<number>,
+    targetPostId?: Nullable<UUID>,
+    targetCommntId?: Nullable<UUID>,
   ): Promise<EventRecord>;
   getEventById(eventId: UUID): Promise<Nullable<EventRecord>>;
 
   getUnreadDirectsNumber(userId: UUID): Promise<number>;
   getUnreadEventsNumber(userId: UUID): Promise<number>;
+
+  // Backlinks
+  getBacklinksCounts(uuids: UUID[], viewerId?: Nullable<UUID>): Promise<Map<UUID, number>>;
 }

@@ -270,6 +270,7 @@ const COMMENT_COLUMNS_MAPPING = {
 
 export const COMMENT_FIELDS = {
   uid: 'id',
+  id: 'intId',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
   body: 'body',

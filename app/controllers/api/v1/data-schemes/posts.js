@@ -16,8 +16,6 @@ export const postCreateInputSchema = {
       properties: {
         body: {
           type: 'string',
-          minLength: 1,
-          pattern: '\\S',
         },
         attachments: {
           type: 'array',
@@ -62,8 +60,6 @@ export const postUpdateInputSchema = {
       properties: {
         body: {
           type: 'string',
-          minLength: 1,
-          pattern: '\\S',
         },
         attachments: {
           type: 'array',

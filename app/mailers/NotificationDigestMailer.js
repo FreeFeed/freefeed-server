@@ -93,6 +93,38 @@ const notificationTemplates = {
       ${eventTime}
     `;
   },
+  backlink_in_post: (eventData) => {
+    const postAuthorLink = makeUserLink(eventData.postAuthor);
+    const postLink = makePostLink(eventData.postId, eventData.postAuthor);
+    const groupLink = eventData.group ? makeUserLink(eventData.group) : null;
+    const eventTime = eventData.createdAt.format('HH:MM');
+    const backlinkLink = makeBacklinkLink(eventData);
+    return `
+      ${postAuthorLink} mentioned your ${backlinkLink} in the ${postLink}${
+      groupLink ? ` [in ${groupLink}]` : ''
+    }<br />
+      ${eventTime}
+    `;
+  },
+  backlink_in_comment: (eventData) => {
+    const commentAuthorLink = makeUserLink(eventData.creator);
+    const postLink = makePostLink(eventData.postId, eventData.postAuthor);
+    const commentLink = makeCommentLink(
+      eventData.postId,
+      eventData.commentId,
+      eventData.postAuthor,
+      'comment',
+    );
+    const groupLink = eventData.group ? makeUserLink(eventData.group) : null;
+    const eventTime = eventData.createdAt.format('HH:MM');
+    const backlinkLink = makeBacklinkLink(eventData);
+    return `
+      ${commentAuthorLink} mentioned your ${backlinkLink} in a ${commentLink} to the ${postLink}${
+      groupLink ? ` [in ${groupLink}]` : ''
+    }<br />
+      ${eventTime}
+    `;
+  },
   mention_comment_to: (eventData) => {
     const commentAuthorLink = makeUserLink(eventData.creator);
     const postLink = makePostLink(eventData.postId, eventData.postAuthor);
@@ -302,4 +334,14 @@ function getEventMarkup(eventText) {
           ${eventText}
       </td>
   </tr>`;
+}
+
+function makeBacklinkLink({ target_post_id, target_comment_id }) {
+  if (target_comment_id) {
+    return `<a href="/post/${target_post_id}#comment-${target_comment_id}">comment</a>`;
+  } else if (target_post_id) {
+    return `<a href="/post/${target_post_id}">post</a>`;
+  }
+
+  return 'deleted entry';
 }

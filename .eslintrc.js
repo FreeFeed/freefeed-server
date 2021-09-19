@@ -25,6 +25,9 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: { jsx: true },
   },
+  'globals': {
+    'NodeJS': true
+  },
   rules: {
     'prettier/prettier': [
       'error',

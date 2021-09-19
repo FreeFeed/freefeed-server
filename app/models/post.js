@@ -8,6 +8,7 @@ import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { List } from '../support/open-lists';
+import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 
 import {
   HOMEFEED_MODE_FRIENDS_ONLY,
@@ -34,7 +35,7 @@ export function addModel(dbAdapter) {
     constructor(params) {
       this.id = params.id;
       this.body = params.body;
-      this.attachments = params.attachments;
+      this.attachments = params.attachments || [];
       this.userId = params.userId;
       this.timelineIds = params.timelineIds;
       this.currentUser = params.currentUser;
@@ -89,22 +90,22 @@ export function addModel(dbAdapter) {
       this.body_ = newValue.trim();
     }
 
-    validate() {
-      const valid = this.body && this.body.length > 0 && this.userId && this.userId.length > 0;
-
-      if (!valid) {
-        throw new Error('Post text must not be empty');
+    validate(newAttachments = this.attachments) {
+      if (!this.userId) {
+        throw new Error('Post author is required');
       }
 
-      const len = GraphemeBreaker.countBreaks(this.body);
+      if (this.body.length === 0 && newAttachments.length === 0) {
+        throw new Error('Post body must not be empty (without attachments)');
+      }
 
-      if (len > config.maxLength.post) {
-        throw new Error(`Maximum post-length is ${config.maxLength.post} graphemes`);
+      if (GraphemeBreaker.countBreaks(this.body) > config.maxLength.post) {
+        throw new Error(`Maximum post length is ${config.maxLength.post} graphemes`);
       }
     }
 
     async create() {
-      await this.validate();
+      this.validate();
 
       const payload = {
         body: this.body,
@@ -152,6 +153,7 @@ export function addModel(dbAdapter) {
         ...rtUpdates,
         dbAdapter.setUpdatedAtInGroupsByIds(destFeeds.map((f) => f.userId)),
         dbAdapter.statsPostCreated(this.userId),
+        notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
       ]);
 
       await pubSub.updateGroupTimes(destFeeds.map((f) => f.userId));
@@ -163,7 +165,7 @@ export function addModel(dbAdapter) {
      * Update Post object
      * This method updates only properties that are listen in params
      *
-     * @param {object} params
+     * @param {{body: string, attachments?: string[], destinationFeedIds?: string[]}} params
      * @returns {Post}
      */
     async update(params) {
@@ -181,20 +183,27 @@ export function addModel(dbAdapter) {
       const afterUpdate = [];
 
       let realtimeRooms = await getRoomsOfPost(this);
-      const usersCanSeePostBeforeIds = await this.usersCanSeePostIds();
+      const usersCanSeePostBeforeIds = await this.usersCanSee();
 
       if (params.body != null) {
+        const prevBody = this.body;
         this.body = params.body;
         payload.body = this.body;
 
         // Update post hashtags
         afterUpdate.push(() => this.processHashtagsOnUpdate());
+        // Notify mentioned posts
+        afterUpdate.push(
+          await notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body, prevBody)),
+        );
       }
+
+      let newAttachments = undefined;
 
       if (params.attachments != null) {
         // Calculate changes in attachments
         const oldAttachments = (await this.getAttachmentIds()) || [];
-        const newAttachments = params.attachments || [];
+        newAttachments = params.attachments || [];
         const removedAttachments = _.difference(oldAttachments, newAttachments);
 
         // Update post attachments in DB
@@ -244,7 +253,7 @@ export function addModel(dbAdapter) {
         );
       });
 
-      await this.validate();
+      this.validate(newAttachments);
 
       // Update post in DB
       await dbAdapter.updatePost(this.id, payload);
@@ -253,7 +262,10 @@ export function addModel(dbAdapter) {
       await Promise.all(afterUpdate.map((f) => f()));
 
       // Finally, publish changes
-      await pubSub.updatePost(this.id, realtimeRooms, usersCanSeePostBeforeIds);
+      await pubSub.updatePost(this.id, {
+        rooms: realtimeRooms,
+        usersBeforeIds: usersCanSeePostBeforeIds,
+      });
 
       return this;
     }
@@ -273,11 +285,14 @@ export function addModel(dbAdapter) {
     }
 
     async destroy(destroyedBy = null) {
-      const [realtimeRooms, comments, groups] = await Promise.all([
+      const [realtimeRooms, comments, groups, notifyBacklinked] = await Promise.all([
         getRoomsOfPost(this),
         this.getComments(),
         this.getGroupsPostedTo(),
-        dbAdapter.statsPostDeleted(this.userId, this.id), // needs data in DB
+        notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body)),
+        // Does't return anything
+        // It should be executed while post data is still in the DB
+        dbAdapter.statsPostDeleted(this.userId, this.id),
       ]);
 
       // remove all comments
@@ -289,6 +304,7 @@ export function addModel(dbAdapter) {
       await Promise.all([
         pubSub.destroyPost(this.id, realtimeRooms),
         destroyedBy ? EventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
+        notifyBacklinked(),
       ]);
     }
 
@@ -847,7 +863,7 @@ export function addModel(dbAdapter) {
         return [];
       }
 
-      const allowedIds = await this.usersCanSeePostIds();
+      const allowedIds = await this.usersCanSee();
       return users.filter(({ id }) => allowedIds.includes(id));
     }
 
@@ -855,9 +871,9 @@ export function addModel(dbAdapter) {
      * Returns ids of all users who can see this post.
      * Ids are returned as (possible open) list defined in support/open-lists.js
      *
-     * @returns {List}
+     * @returns {Promise<List>}
      */
-    async usersCanSeePostIds() {
+    async usersCanSee() {
       const bannedIds = await dbAdapter.getUsersBansOrWasBannedBy(this.userId);
       const allExceptBanned = new List(bannedIds, false);
 

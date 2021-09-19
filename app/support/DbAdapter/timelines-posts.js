@@ -418,7 +418,7 @@ const timelinesPostsTrait = (superClass) =>
       const allCommentsSQL = pgFormat(
         `
       select
-        ${commentFields.join(', ')}, id,
+        ${commentFields.join(', ')},
         rank() over (partition by post_id order by created_at, id),
         count(*) over (partition by post_id),
         (select coalesce(count(*), 0) from 
@@ -443,19 +443,19 @@ const timelinesPostsTrait = (superClass) =>
         : ``;
       const commentsSQL = `
       with comments as (${allCommentsSQL})
-      select ${commentFields.join(', ')}, id, count, c_likes, has_own_like from comments
+      select ${commentFields.join(', ')}, count, c_likes, has_own_like from comments
       ${foldCommentsSql}
       order by created_at, id
     `;
 
-      const [{ rows: likesData }, { rows: commentsData }] = await Promise.all([
-        this.database.raw(likesSQL),
-        this.database.raw(commentsSQL),
+      const [likesData, commentsData, postsCommentLikes, backlinks] = await Promise.all([
+        this.database.getAll(likesSQL),
+        this.database.getAll(commentsSQL),
+        this.getLikesInfoForPosts(uniqPostsIds, viewerId),
+        this.getBacklinksCounts(uniqPostsIds, viewerId),
       ]);
 
       const results = {};
-
-      const postsCommentLikes = await this.getLikesInfoForPosts(uniqPostsIds, viewerId);
 
       for (const post of postsData) {
         results[post.uid] = {
@@ -466,6 +466,7 @@ const timelinesPostsTrait = (superClass) =>
           omittedComments: 0,
           likes: [],
           omittedLikes: 0,
+          backlinksCount: backlinks.get(post.uid) || 0,
         };
         results[post.uid].post.commentLikes = 0;
         results[post.uid].post.ownCommentLikes = 0;

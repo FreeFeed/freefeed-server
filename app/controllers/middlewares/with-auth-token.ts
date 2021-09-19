@@ -41,8 +41,8 @@ export async function withAuthToken(ctx: Context, next: Next) {
 
   try {
     payload = await jwt.verifyAsync(jwtToken, config.secret);
-  } catch (e) {
-    authDebugError(`invalid JWT: ${e.message}`);
+  } catch (e: unknown) {
+    authDebugError(`invalid JWT`, { error: e });
     throw new NotAuthorizedException(`invalid auth token: bad JWT`);
   }
 

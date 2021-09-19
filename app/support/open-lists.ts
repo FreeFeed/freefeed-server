@@ -99,7 +99,7 @@ export class List<T> {
     }
 
     // unreachable
-    return new List();
+    return new List<X>();
   }
 
   static intersection<X>(list1: ListLike<X>, list2: ListLike<X>) {

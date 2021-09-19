@@ -1,4 +1,6 @@
-export default function cleanDB(knex) {
+import Knex from 'knex';
+
+export default function cleanDB(knex: Knex) {
   return knex.raw(`
     do $$
       declare

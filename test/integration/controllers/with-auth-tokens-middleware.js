@@ -3,7 +3,7 @@
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
 import unexpectedSinon from 'unexpected-sinon';
-import sinon from 'sinon';
+import { spy } from 'sinon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
@@ -252,7 +252,7 @@ describe('withAuthToken middleware', () => {
         });
 
         const ctx = context(session.tokenString());
-        const handler = sinon.spy();
+        const handler = spy();
         await withAuthToken(ctx, handler);
 
         expect(handler, 'was called');
@@ -280,7 +280,7 @@ describe('withAuthToken middleware', () => {
         await session.reissue();
 
         const ctx = context(tokenString);
-        const handler = sinon.spy();
+        const handler = spy();
 
         await expect(withAuthToken(ctx, handler), 'to be fulfilled');
         expect(handler, 'was called');
@@ -292,7 +292,7 @@ describe('withAuthToken middleware', () => {
         await session.reissue();
 
         const ctx = context(tokenString);
-        const handler = sinon.spy();
+        const handler = spy();
 
         await expect(withAuthToken(ctx, handler), 'to be rejected');
         expect(handler, 'was not called');
@@ -301,7 +301,7 @@ describe('withAuthToken middleware', () => {
       it('should not allow inactive token', async () => {
         await session.setStatus(CLOSED);
         const ctx = context(session.tokenString());
-        const handler = sinon.spy();
+        const handler = spy();
 
         await expect(withAuthToken(ctx, handler), 'to be rejected');
         expect(handler, 'was not called');

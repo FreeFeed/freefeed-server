@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.101.0] - Not released
+### Added
+- All serialized posts now have a new numeric 'backlinksCount' field. This field
+  is the count of texts (posts or comments) that mentioned the post's UUID and
+  visible to the current user. The client should display this count as a link to
+  the search by post's UUID.
+
+  When the post hase new or removed mention in somewhere, the 'post:update'
+  realtime message is delivered with the updated backlinksCount.
+
+  It is also recommended to re-run the search indexer (`yarn babel
+  bin/reindex_search.js`) after this changes applied. The indexing of UUIDs in
+  the plain texts (not in URLs) is slightly changed, so in rare cases the search
+  may work incorrectly. These changes are not affects the backlinks
+  functionality though.
+- There are two new notification types related to backlinks: 'backlink_in_post'
+  (fired when your post or comment has been mention in somebody's post) and
+  'backlink_in_comment' (same for mention in comment).
+  
+  The notification objects in  API have two new fields: 'target_post_id' and
+  'target_comment_id'. The 'target_post_id' is an ID of the mentioned post and
+  the 'target_comment_id' is an ID of the mentioned comment. When the
+  'target_comment_id' is not null, the 'target_post_id' is an ID of post this
+  comment belongs.
+
+### Changed
+- Post can now have an empty body if it contains one or more attachments.
+
 ## [1.100.0] - 2021-07-30
 ### Added
 - The `DELETE /v1/posts/:postId` API method now can have one or more 'fromFeed'
