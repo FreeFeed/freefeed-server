@@ -219,7 +219,7 @@ export class EventService {
     const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
     await this._processDirectMessagesForPost(post, destinationFeeds, author);
     await this._processMentionsInPost(post, destinationFeeds, author);
-    await processBacklinks(post);
+    // await processBacklinks(post);
   }
 
   static async onCommentChanged(comment: Comment, wasCreated = false) {
@@ -231,7 +231,7 @@ export class EventService {
         EVENT_TYPES.MENTION_IN_COMMENT,
         EVENT_TYPES.MENTION_COMMENT_TO,
       ),
-      processBacklinks(comment),
+      // processBacklinks(comment),
     ]);
     const directEvents = wasCreated
       ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED)
@@ -616,7 +616,8 @@ async function getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: 
   return directReceivers.map((user) => ({ event: eventType, user }));
 }
 
-async function processBacklinks(srcEntity: Post | Comment) {
+// TODO: remove this 'export', it is here only because of unused function lint/ts warning
+export async function processBacklinks(srcEntity: Post | Comment) {
   const uuids = extractUUIDs(srcEntity.body);
   const [mentionedPosts, mentionedComments] = await Promise.all([
     dbAdapter.getPostsByIds(uuids),
