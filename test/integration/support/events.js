@@ -6,7 +6,7 @@ import { User, Post, Group, dbAdapter, Comment } from '../../../app/models';
 import cleanDB from '../../dbCleaner';
 
 describe('EventService', () => {
-  describe('Backlinks', () => {
+  xdescribe('Backlinks', () => {
     before(() => cleanDB($pg_database));
 
     // There are users and every user has a post
