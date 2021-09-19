@@ -7,6 +7,13 @@ import Koa from 'koa';
 const debug = createDebug('freefeed:maintenanceCheck');
 const { messageFile } = config.maintenance;
 
+function instanceOfNodeError<T extends new (...args: any) => Error>(
+  value: Error,
+  errorType: T,
+): value is InstanceType<T> & NodeJS.ErrnoException {
+  return value instanceof errorType;
+}
+
 export async function maintenanceCheck(ctx: Koa.Context, next: Koa.Next) {
   try {
     const message = await fs.readFile(messageFile, { encoding: 'utf8' });
@@ -20,7 +27,7 @@ export async function maintenanceCheck(ctx: Koa.Context, next: Koa.Next) {
       ctx.body = { err: message, errType: 'ServiceUnavailable.Maintenance' };
     }
   } catch (err) {
-    if (err.code !== 'ENOENT') {
+    if (err instanceof Error && instanceOfNodeError(err, TypeError) && err.code !== 'ENOENT') {
       debug(`Cannot read existing maintenance file: ${err.message}`);
     }
 

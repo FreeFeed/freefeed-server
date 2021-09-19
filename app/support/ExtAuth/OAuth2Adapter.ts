@@ -184,7 +184,8 @@ export class OAuth2Adapter extends Adapter<Query> {
 
       return result as Profile;
     } catch (err) {
-      throw new AuthError(`Cannot fetch user profile: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new AuthError(`Cannot fetch user profile: ${msg}`);
     }
   }
 
@@ -208,7 +209,8 @@ export class OAuth2Adapter extends Adapter<Query> {
       });
       return access_token;
     } catch (err) {
-      throw new AuthError(`Cannot obtain access token: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new AuthError(`Cannot obtain access token: ${msg}`);
     }
   }
 }

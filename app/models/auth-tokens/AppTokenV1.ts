@@ -109,8 +109,9 @@ export class AppTokenV1 extends AuthToken {
     try {
       this.checkRestrictions({ remoteIP: ctx.ip, headers: ctx.headers });
     } catch (e) {
-      authDebugError(e.message);
-      throw new NotAuthorizedException(e.message);
+      const msg = e instanceof Error ? e.message : 'Not authorized';
+      authDebugError(msg);
+      throw new NotAuthorizedException(msg);
     }
 
     // Route access
@@ -138,10 +139,14 @@ export class AppTokenV1 extends AuthToken {
     } catch (e) {
       // We should not break request at this step
       // but we must log error
-      authDebugError(`cannot log app token usage: ${e.message}`);
+      authDebugError(`cannot log app token usage`, { error: e });
 
       if (config.sentryDsn) {
-        Raven.captureException(e, { extra: { err: `cannot log app token usage: ${e.message}` } });
+        if (e instanceof Error) {
+          Raven.captureException(e, { extra: { err: `cannot log app token usage` } });
+        } else if (isString(e)) {
+          Raven.captureMessage(e, { extra: { err: `cannot log app token usage` } });
+        }
       }
     }
   }
