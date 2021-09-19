@@ -3,7 +3,7 @@
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
 import unexpectedSinon from 'unexpected-sinon';
-import sinon from 'sinon';
+import { spy } from 'sinon';
 import { sortBy } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
@@ -184,8 +184,8 @@ describe('Jobs', () => {
       });
 
       it(`should fetch and process jobs`, async () => {
-        const spy1 = sinon.spy();
-        const spy2 = sinon.spy();
+        const spy1 = spy();
+        const spy2 = spy();
         jm.on('job1', spy1);
         jm.on('job2', spy2);
 

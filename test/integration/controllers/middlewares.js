@@ -4,7 +4,7 @@ import compose from 'koa-compose';
 import unexpected from 'unexpected';
 import unexpectedSinon from 'unexpected-sinon';
 import { noop } from 'lodash';
-import sinon from 'sinon';
+import { spy, stub } from 'sinon';
 
 import cleanDB from '../../dbCleaner';
 import {
@@ -260,10 +260,10 @@ describe('Controller middlewares', () => {
   });
 
   describe('monitored', () => {
-    const timer = { stop: sinon.spy() };
+    const timer = { stop: spy() };
     const monitor = {
-      increment: sinon.spy(),
-      timer: sinon.stub().returns(timer),
+      increment: spy(),
+      timer: stub().returns(timer),
     };
 
     const handler = compose([monitored('test', monitor)]);
@@ -277,7 +277,7 @@ describe('Controller middlewares', () => {
 
     let ctx;
     beforeEach(() => {
-      [monitor.increment, monitor.timer, timer.stop].forEach((spy) => spy.resetHistory());
+      [monitor.increment, monitor.timer, timer.stop].forEach((theSpy) => theSpy.resetHistory());
       ctx = { state: {} };
     });
 
