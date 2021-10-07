@@ -452,7 +452,7 @@ const timelinesPostsTrait = (superClass) =>
         this.database.getAll(likesSQL),
         this.database.getAll(commentsSQL),
         this.getLikesInfoForPosts(uniqPostsIds, viewerId),
-        this.getBacklinksCounts(uniqPostsIds, viewerId),
+        new Map(), // this.getBacklinksCounts(uniqPostsIds, viewerId),
       ]);
 
       const results = {};
