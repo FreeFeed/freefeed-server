@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.102.0] - Not released
 ### Changed
 - Use original filename in content-disposition header.
-
   Now, it's for both name and extension. Before, it only used original extension for whitelisted formats, setting empty extension for others.
 
 ## [1.101.1] - 2021-09-19
