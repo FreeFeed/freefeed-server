@@ -9,7 +9,7 @@ import { dbAdapter } from '../app/models';
 import { toTSVector } from '../app/support/search/to-tsvector';
 
 // Reindex search columns in 'posts' and 'comments' tables.
-// Usage: yarn babel-node bin/reindex_search.js --help
+// Usage: yarn babel bin/reindex_search.js --help
 
 const allTables = ['posts', 'comments'];
 const ZERO_UID = '00000000-00000000-00000000-00000000';
