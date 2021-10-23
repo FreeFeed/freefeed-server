@@ -3,6 +3,7 @@ import { HashTag, Mention, Link } from 'social-text-tokenizer';
 import config from 'config';
 
 import { HTMLTag, tokenize, UUIDString } from '../tokenize-text';
+import { extractUUIDs } from '../backlinks';
 
 import { normalizeText, linkToText } from './norm';
 
@@ -27,7 +28,17 @@ export function toTSVector(text: string) {
       }
 
       if (token instanceof Link) {
-        return pgFormat(`to_tsvector_with_exact(%L, %L)`, ftsCfg, linkToText(token));
+        // UUIDs in URL
+        const uuidVectors = extractUUIDs(normalizeText(token.pretty)).map((u, i) =>
+          pgFormat('%L::tsvector', `'${u.toLowerCase()}':${i + 1}`),
+        );
+        const textVector = pgFormat(`to_tsvector_with_exact(%L, %L)`, ftsCfg, linkToText(token));
+
+        if (uuidVectors.length === 0) {
+          return textVector;
+        }
+
+        return `(${[textVector, ...uuidVectors].join(" || ' ' || ")})::tsvector`;
       }
 
       if (token instanceof HTMLTag) {
@@ -35,7 +46,7 @@ export function toTSVector(text: string) {
       }
 
       if (token instanceof UUIDString) {
-        return pgFormat('to_tsvector_with_exact(%L, %L)', ftsCfg, token.text.replace(/-/g, ' '));
+        return pgFormat('%L::tsvector', `'${token.text.toLowerCase()}':1`);
       }
 
       const trimmedText = token.text.trim();
