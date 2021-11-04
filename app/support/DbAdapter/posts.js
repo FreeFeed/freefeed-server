@@ -1,6 +1,9 @@
+import { randomBytes } from 'crypto';
+
 import _ from 'lodash';
 import validator from 'validator';
 import pgFormat from 'pg-format';
+import config from 'config';
 
 import { Post } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
@@ -25,6 +28,9 @@ const postsTrait = (superClass) =>
       const [{ uid: postId }] = await this.database('posts')
         .returning('uid')
         .insert(preparedPayload);
+
+      // Create a short Id for this post
+      await this.createPostShortId(postId);
 
       // Update backlinks in the post body
       await this.updateBacklinks(payload.body, postId);
@@ -366,6 +372,51 @@ const postsTrait = (superClass) =>
       const adminIds = _.map(rows, 'uid');
       return this.getUsersByIds(adminIds);
     }
+
+    async createPostShortId(longId) {
+      let length = config.postShortIds.initialLength;
+
+      for (; ; length++) {
+        // eslint-disable-next-line no-await-in-loop
+        if (await this.createPostShortIdForLength(longId, length)) {
+          return;
+        }
+      }
+    }
+
+    async createPostShortIdForLength(longId, length) {
+      for (let i = 0; i < config.postShortIds.maxAttempts; i++) {
+        const shortId = this.getDecentRandomString(length);
+
+        // eslint-disable-next-line no-await-in-loop
+        const res = await this.database('post_short_ids')
+          .insert({ short_id: shortId, long_id: longId })
+          .returning('short_id');
+
+        if (res && res.length > 0) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    getDecentRandomString(length) {
+      for (;;) {
+        const shortId = this.getRandomString(length);
+
+        if (this.isStringDecent(shortId)) {
+          return shortId;
+        }
+      }
+    }
+
+    isStringDecent = (str) => !config.postShortIds.stopWords.some((word) => str.includes(word));
+
+    getRandomString = (length) =>
+      randomBytes(Math.ceil(length / 2)) // divide by 2 since bytes are twice longer than hex
+        .toString('hex')
+        .slice(0, length); // slice to cut an extra char when the length is odd
   };
 
 export default postsTrait;
