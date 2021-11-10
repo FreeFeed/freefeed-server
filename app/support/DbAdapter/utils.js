@@ -115,10 +115,20 @@ function joinThem(array, joinBy, defaultValue, shortcutValue, skipValue) {
   return `(${parts.join(` ${joinBy} `)})`;
 }
 
+/**
+ * @param {string[]} array
+ * @param {string} def
+ * @returns {string}
+ */
 export function andJoin(array, def = 'true') {
   return joinThem(array, 'and', def, 'false', 'true');
 }
 
+/**
+ * @param {string[]} array
+ * @param {string} def
+ * @returns {string}
+ */
 export function orJoin(array, def = 'false') {
   return joinThem(array, 'or', def, 'true', 'false');
 }

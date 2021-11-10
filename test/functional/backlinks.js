@@ -22,7 +22,7 @@ import {
 } from './functional_test_helper';
 import Session from './realtime-session';
 
-xdescribe('Backlinks in API output', () => {
+describe('Backlinks in API output', () => {
   let luna, mars;
   let lunaPostId, marsPostId;
 
@@ -78,7 +78,7 @@ xdescribe('Backlinks in API output', () => {
   });
 });
 
-xdescribe('Backlinks in realtime', () => {
+describe('Backlinks in realtime', () => {
   let luna, mars;
   let lunaSession;
 
