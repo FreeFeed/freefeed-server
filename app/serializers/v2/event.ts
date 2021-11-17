@@ -1,6 +1,6 @@
 import { dbAdapter } from '../../models';
-import { EventRecord } from '../../support/DbAdapter';
 import { Nullable, UUID } from '../../support/types';
+import type { EventRecord } from '../../support/DbAdapter';
 
 import { userSerializerFunction } from './user';
 
