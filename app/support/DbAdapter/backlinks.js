@@ -57,31 +57,43 @@ const backlinksTrait = (superClass) =>
         'u.gone_status is null',
       ]);
 
-      const withSQL = `with posts as (
-          select p.* from posts p join users u on p.user_id = u.uid 
-          where ${postsRestrictionsSQL}
-        ), uids as (select * from unnest(:uids::uuid[]) as uids (uid))`;
+      const withPostsSQL = `with
+        posts as (select p.* from posts p join users u on p.user_id = u.uid where ${andJoin([
+          postsRestrictionsSQL,
+          // Backlinks filter
+          "p.body_tsvector @@ array_to_string(:uids::text[], ' | ')::tsquery",
+        ])}),
+        uids as (select * from unnest(:uids::uuid[]) as uids (uid))`;
+
+      const withCommentsSQL = `with
+        posts as (select p.* from posts p join users u on p.user_id = u.uid where ${postsRestrictionsSQL}),
+        comments as (select c.* from comments c where ${andJoin([
+          commentsRestrictionSQL,
+          // Backlinks filter
+          "c.body_tsvector @@ array_to_string(:uids::text[], ' | ')::tsquery",
+        ])}),
+        uids as (select * from unnest(:uids::uuid[]) as uids (uid))`;
 
       const [foundPosts, foundComments] = await Promise.all([
         this.database.getAll(
-          `${withSQL}
+          `${withPostsSQL}
           select uids.uid, count(*)::int 
           from uids, posts p
           where
-            p.body_tsvector @@ phraseto_tsquery(:ftsCfg, replace(uids.uid::text, '-', ' ')) 
+            p.body_tsvector @@ uids.uid::text::tsquery
             and p.uid <> uids.uid
           group by uids.uid`,
           { ftsCfg, uids },
         ),
+        // [],
         this.database.getAll(
-          `${withSQL}
+          `${withCommentsSQL}
           select uids.uid, count(*)::int
           from uids, comments c, posts p
           where
             c.post_id = p.uid
             and p.uid <> uids.uid
-            and ${commentsRestrictionSQL}
-            and c.body_tsvector @@ phraseto_tsquery(:ftsCfg, replace(uids.uid::text, '-', ' '))
+            and c.body_tsvector @@ uids.uid::text::tsquery
           group by uids.uid`,
           { ftsCfg, uids },
         ),

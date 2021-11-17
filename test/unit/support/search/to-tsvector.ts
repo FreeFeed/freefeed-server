@@ -65,4 +65,32 @@ describe('toTSVector', () => {
         `)`,
     );
   });
+
+  it('should return vector of text with UUIDs', () => {
+    const string = 'abc 21612a6d-dbfc-4ff1-9c0b-d41502ad3e62 21612a6d-dbfc-4ff1-9c0b-d41502ad3e62';
+    expect(
+      toTSVector(string),
+      'to be',
+      `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'abc') || ` +
+        `'''21612a6d-dbfc-4ff1-9c0b-d41502ad3e62'':1'::tsvector || ` +
+        `'''21612a6d-dbfc-4ff1-9c0b-d41502ad3e62'':1'::tsvector` +
+        `)`,
+    );
+  });
+
+  it('should return vector of link with UUIDs', () => {
+    const string =
+      'abc example.com/p/21612a6d-dbfc-4ff1-9c0b-d41502ad3e62#21612a6d-dbfc-4ff1-9c0b-d41502ad3e63';
+    expect(
+      toTSVector(string),
+      'to be',
+      `(` +
+        `to_tsvector_with_exact('${ftsCfg}', 'abc') || ` +
+        `(to_tsvector_with_exact('${ftsCfg}', 'example com p 21612a6d dbfc 4ff1 9c0b d41502ad3e62 21612a6d dbfc 4ff1 9c0b d41502ad3e63') || ' ' || ` +
+        `'''21612a6d-dbfc-4ff1-9c0b-d41502ad3e62'':1'::tsvector || ' ' || ` +
+        `'''21612a6d-dbfc-4ff1-9c0b-d41502ad3e63'':2'::tsvector)::tsvector` +
+        `)`,
+    );
+  });
 });
