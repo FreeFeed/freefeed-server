@@ -22,8 +22,12 @@ const postsTrait = (superClass) =>
         // https://github.com/knex/knex/issues/2622
         toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
       );
-      const res = await this.database('posts').returning('uid').insert(preparedPayload);
-      return res[0];
+      const [postId] = await this.database('posts').returning('uid').insert(preparedPayload);
+
+      // Update backlinks in the post body
+      await this.updateBacklinks(payload.body, postId);
+
+      return postId;
     }
 
     async updatePost(postId, payload) {
@@ -35,6 +39,9 @@ const postsTrait = (superClass) =>
           // https://github.com/knex/knex/issues/2622
           toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
         );
+
+        // Update backlinks in the post body
+        await this.updateBacklinks(payload.body, postId);
       }
 
       return await this.database('posts').where('uid', postId).update(preparedPayload);

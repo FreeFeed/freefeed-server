@@ -34,8 +34,12 @@ const commentsTrait = (superClass) =>
 
         preparedPayload.seq_number = (maxCommentNumber || 0) + 1;
 
-        const [res] = await trx('comments').returning('uid').insert(preparedPayload);
-        return res;
+        const [commentId] = await trx('comments').returning('uid').insert(preparedPayload);
+
+        // Update backlinks in the comment body
+        await this.updateBacklinks(payload.body, payload.postId, commentId, trx);
+
+        return commentId;
       });
     }
 
@@ -100,6 +104,13 @@ const commentsTrait = (superClass) =>
           // https://github.com/knex/knex/issues/2622
           toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
         );
+
+        // We need a post ID to update backlinks
+        const postId = await this.database.getOne(
+          `select post_id from comments where uid = :commentId`,
+          { commentId },
+        );
+        await this.updateBacklinks(payload.body, postId, commentId);
       }
 
       return await this.database('comments').where('uid', commentId).update(preparedPayload);

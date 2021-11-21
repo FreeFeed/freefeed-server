@@ -1,109 +1,85 @@
-import pgFormat from 'pg-format';
-import config from 'config';
-
 import { Comment } from '../../models';
+import { extractUUIDs } from '../backlinks';
 
 ///////////////////////////////////////////////////
 // Backlinks
 ///////////////////////////////////////////////////
 
-import { andJoin, sqlNotIn } from './utils';
-
-const ftsCfg = config.postgres.textSearchConfigName;
-
 const backlinksTrait = (superClass) =>
   class extends superClass {
-    /**
-     * @param {string[]} uids
-     * @param {string|null} [viewerId]
-     */
     async getBacklinksCounts(uids, viewerId = null) {
       const result = new Map();
 
-      if (uids.length === 0) {
+      let backlinksData = await this.database.getAll(
+        `select * from backlinks where post_id = any(:uids)`,
+        { uids },
+      );
+
+      // Don't count backlinks to the post itself
+      backlinksData = backlinksData.filter((d) => d.post_id !== d.ref_post_id);
+
+      if (backlinksData.length === 0) {
         return result;
       }
 
-      const [
-        // Private feeds viewer can read
-        visiblePrivateFeedIntIds,
-        // Users who banned viewer or banned by viewer (viewer should not see their posts)
-        bannedUsersIds,
-        // Users banned by viewer (for comments)
-        bannedByViewer,
-      ] = await Promise.all([
-        viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
-        viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
-        viewerId ? await this.getUserBansIds(viewerId) : [],
-      ]);
+      const allPosts = backlinksData.map((d) => d.ref_post_id);
+      const visiblePosts = await this.selectPostsVisibleByUser(allPosts, viewerId);
+      // Keep only the visible posts
+      backlinksData = backlinksData.filter((d) => visiblePosts.includes(d.ref_post_id));
 
-      // Additional restrictions for comments
-      const commentsRestrictionSQL = andJoin([
-        pgFormat('c.hide_type=%L', Comment.VISIBLE),
-        sqlNotIn('c.user_id', bannedByViewer),
-      ]);
+      const allComments = backlinksData.map((d) => d.ref_comment_id).filter(Boolean);
 
-      const postsRestrictionsSQL = andJoin([
-        // Privacy
-        viewerId
-          ? pgFormat(
-              `(not p.is_private or p.destination_feed_ids && %L)`,
-              `{${visiblePrivateFeedIntIds.join(',')}}`,
-            )
-          : 'not p.is_protected',
-        // Bans
-        sqlNotIn('p.user_id', bannedUsersIds),
-        // Gone post's authors
-        'u.gone_status is null',
-      ]);
+      if (allComments.length > 0) {
+        const bannedByViewer = viewerId ? await this.getUserBansIds(viewerId) : [];
+        const visibleComments = await this.database.getCol(
+          `select uid from comments where
+            uid = any(:allComments) 
+            and hide_type = :visible 
+            and not (user_id = any(:bannedByViewer))
+            `,
+          { allComments, bannedByViewer, visible: Comment.VISIBLE },
+        );
+        // Keep only the visible comments
+        backlinksData = backlinksData.filter(
+          (d) => !d.ref_comment_id || visibleComments.includes(d.ref_comment_id),
+        );
+      }
 
-      const withPostsSQL = `with
-        posts as (select p.* from posts p join users u on p.user_id = u.uid where ${andJoin([
-          postsRestrictionsSQL,
-          // Backlinks filter
-          "p.body_tsvector @@ array_to_string(:uids::text[], ' | ')::tsquery",
-        ])}),
-        uids as (select * from unnest(:uids::uuid[]) as uids (uid))`;
-
-      const withCommentsSQL = `with
-        posts as (select p.* from posts p join users u on p.user_id = u.uid where ${postsRestrictionsSQL}),
-        comments as (select c.* from comments c where ${andJoin([
-          commentsRestrictionSQL,
-          // Backlinks filter
-          "c.body_tsvector @@ array_to_string(:uids::text[], ' | ')::tsquery",
-        ])}),
-        uids as (select * from unnest(:uids::uuid[]) as uids (uid))`;
-
-      const [foundPosts, foundComments] = await Promise.all([
-        this.database.getAll(
-          `${withPostsSQL}
-          select uids.uid, count(*)::int 
-          from uids, posts p
-          where
-            p.body_tsvector @@ uids.uid::text::tsquery
-            and p.uid <> uids.uid
-          group by uids.uid`,
-          { ftsCfg, uids },
-        ),
-        // [],
-        this.database.getAll(
-          `${withCommentsSQL}
-          select uids.uid, count(*)::int
-          from uids, comments c, posts p
-          where
-            c.post_id = p.uid
-            and p.uid <> uids.uid
-            and c.body_tsvector @@ uids.uid::text::tsquery
-          group by uids.uid`,
-          { ftsCfg, uids },
-        ),
-      ]);
-
-      for (const row of [...foundPosts, ...foundComments]) {
-        result.set(row.uid, (result.get(row.uid) || 0) + row.count);
+      for (const { post_id } of backlinksData) {
+        result.set(post_id, (result.get(post_id) || 0) + 1);
       }
 
       return result;
+    }
+
+    async updateBacklinks(text, refPostUID, refCommentUID = null, db = this.database) {
+      const uuids = await db.getCol(`select uid from posts where uid = any(?)`, [
+        extractUUIDs(text),
+      ]);
+
+      // Remove the old backlinks
+      if (refCommentUID) {
+        await db.raw(
+          `delete from backlinks where (ref_post_id, ref_comment_id) = (:refPostUID, :refCommentUID)`,
+          { refPostUID, refCommentUID },
+        );
+      } else {
+        await db.raw(`delete from backlinks where ref_post_id = :refPostUID`, {
+          refPostUID,
+        });
+      }
+
+      if (uuids.length === 0) {
+        return;
+      }
+
+      // Insert the new backlinks
+      await db.raw(
+        `insert into backlinks (post_id, ref_post_id, ref_comment_id)
+        select post_id, :refPostUID, :refCommentUID from unnest(:uuids::uuid[]) post_id
+        on conflict do nothing`,
+        { uuids, refPostUID, refCommentUID },
+      );
     }
   };
 
