@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.104] - Not released
+### Changed
+- The backlinks logic was rewritten to use a separate table for backlinks
+  information. You must run `yarn babel bin/reindex_backlinks.js` to fill the
+  `backlinks` table by the existing links.
+
 ## [1.103.1] - 2021-11-18
 ### Changed
 - Disabled backlinks (performance issues. still)
