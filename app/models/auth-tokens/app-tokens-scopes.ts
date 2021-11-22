@@ -144,6 +144,7 @@ export const appTokensScopes = [
       'POST /v1/posts/:postId/unlike',
       'POST /v2/comments/:commentId/like',
       'POST /v2/comments/:commentId/unlike',
+      'POST /v2/posts/:postId/leave',
     ],
   },
   {
