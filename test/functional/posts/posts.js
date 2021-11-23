@@ -5,12 +5,11 @@ import _ from 'lodash';
 import fetch from 'node-fetch';
 import expect from 'unexpected';
 
-import cleanDB from '../dbCleaner';
-import { getSingleton } from '../../app/app';
-import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
-
-import * as funcTestHelper from './functional_test_helper';
+import cleanDB from '../../dbCleaner';
+import { getSingleton } from '../../../app/app';
+import { DummyPublisher } from '../../../app/pubsub';
+import { PubSub } from '../../../app/models';
+import * as funcTestHelper from '../functional_test_helper';
 
 describe('PostsController', () => {
   let app;
