@@ -108,6 +108,7 @@ export class DbAdapter {
   getPostsByIds(ids: UUID[]): Promise<Post[]>;
   getPostsByIntIds(ids: number[]): Promise<Post[]>;
   filterSuspendedPosts(ids: UUID[]): Promise<UUID[]>;
+  withdrawPostFromDestFeed(feedIntId: number, postUUID: UUID): Promise<boolean>;
 
   // Comments
   getCommentById(id: UUID): Promise<Comment | null>;

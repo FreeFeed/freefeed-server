@@ -16,6 +16,11 @@ import {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
 } from './timeline';
 
+/**
+ * @typedef { import("../models").User } User
+ * @typedef { import("../models").Timeline } Timeline
+ */
+
 export function addModel(dbAdapter) {
   class Post {
     id;
@@ -25,6 +30,7 @@ export function addModel(dbAdapter) {
     currentUser;
     commentsDisabled;
     feedIntIds;
+    /** @type {number[]} */
     destinationFeedIds;
     commentsCount;
     likesCount;
@@ -165,8 +171,8 @@ export function addModel(dbAdapter) {
      * Update Post object
      * This method updates only properties that are listen in params
      *
-     * @param {{body: string, attachments?: string[], destinationFeedIds?: string[]}} params
-     * @returns {Post}
+     * @param {{body?: string, attachments?: UUID[], destinationFeedIds?: UUID[]}} params
+     * @returns {Promise<Post>}
      */
     async update(params) {
       const editableProperties = ['body', 'attachments', 'destinationFeedIds'];
@@ -345,6 +351,9 @@ export function addModel(dbAdapter) {
       return this.timelineIds;
     }
 
+    /**
+     * @return {Promise<Timeline[]>}
+     */
     async getTimelines() {
       this.timelines = await dbAdapter.getTimelinesByIntIds(this.feedIntIds);
 
@@ -929,6 +938,31 @@ export function addModel(dbAdapter) {
 
       const admins = await dbAdapter.getAdminsOfPostGroups(this.id);
       return admins.some((a) => a.id === user.id);
+    }
+
+    /**
+     * Removes the direct post recipient. Returns false (and not removes) if the
+     * user is a post author or not a direct recipient.
+     *
+     * @param {User} user
+     * @returns {Promise<boolean>}
+     */
+    async removeDirectRecipient(user) {
+      if (this.userId === user.id) {
+        return false;
+      }
+
+      const userDirectsFeed = await user.getDirectsTimeline();
+
+      const ok = await dbAdapter.withdrawPostFromDestFeed(userDirectsFeed?.intId, this.id);
+
+      if (!ok) {
+        return false;
+      }
+
+      // TODO Sent RT and notifications
+
+      return true;
     }
   }
 

@@ -64,6 +64,7 @@ export class Post {
   getCreatedBy(): Promise<User>;
   isAuthorOrGroupAdmin(user: User): Promise<boolean>;
   usersCanSee(): Promise<List<UUID>>;
+  removeDirectRecipient(user: User): Promise<boolean>;
 }
 
 export class Timeline {
