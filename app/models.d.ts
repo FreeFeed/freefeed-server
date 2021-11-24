@@ -56,6 +56,7 @@ export class Post {
   intId: number;
   userId: UUID;
   body: string;
+  destinationFeedIds: number[];
   destroy(destroyedBy?: User): Promise<void>;
   removeLike(user: User): Promise<boolean>;
   getPostedTo(): Promise<Timeline[]>;

@@ -123,6 +123,7 @@ export class DbAdapter {
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;
   getAllUserNamedFeed(userId: UUID, feedName: string): Promise<Timeline[]>;
   getUserNamedFeed(userId: UUID, feedName: string): Promise<Nullable<Timeline>>;
+  getTimelinesByIntIds(intIds: number[]): Promise<Timeline[]>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;

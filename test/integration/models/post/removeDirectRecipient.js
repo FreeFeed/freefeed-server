@@ -3,6 +3,7 @@
 import expect from 'unexpected';
 
 import { dbAdapter, Post, User } from '../../../../app/models';
+import { EVENT_TYPES } from '../../../../app/support/EventTypes';
 import cleanDB from '../../../dbCleaner';
 
 describe('Post removeDirectRecipient method', () => {
@@ -95,6 +96,38 @@ describe('Post removeDirectRecipient method', () => {
 
       expect(await updatedPost.isVisibleFor(mars), 'to be false');
       expect(await updatedPost.isVisibleFor(venus), 'to be false');
+    });
+
+    describe('Notifications', () => {
+      describe('Mars leaves post', () => {
+        beforeEach(() => post.removeDirectRecipient(mars));
+
+        let expectedEvent; // Should be same for all users except for the 'user_id'
+        beforeEach(
+          () =>
+            (expectedEvent = {
+              event_type: EVENT_TYPES.DIRECT_LEAVED,
+              created_by_user_id: mars.intId,
+              target_user_id: mars.intId,
+              post_id: post.intId,
+            }),
+        );
+
+        it(`should send "${EVENT_TYPES.DIRECT_LEAVED}" notification to Luna`, async () => {
+          const events = await dbAdapter.getUserEvents(luna.intId, [EVENT_TYPES.DIRECT_LEAVED]);
+          expect(events, 'to satisfy', [{ ...expectedEvent, user_id: luna.intId }]);
+        });
+
+        it(`should send "${EVENT_TYPES.DIRECT_LEAVED}" notification to Mars`, async () => {
+          const events = await dbAdapter.getUserEvents(mars.intId, [EVENT_TYPES.DIRECT_LEAVED]);
+          expect(events, 'to satisfy', [{ ...expectedEvent, user_id: mars.intId }]);
+        });
+
+        it(`should send "${EVENT_TYPES.DIRECT_LEAVED}" notification to Venus`, async () => {
+          const events = await dbAdapter.getUserEvents(venus.intId, [EVENT_TYPES.DIRECT_LEAVED]);
+          expect(events, 'to satisfy', [{ ...expectedEvent, user_id: venus.intId }]);
+        });
+      });
     });
   });
 });

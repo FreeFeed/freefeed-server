@@ -960,7 +960,9 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      // TODO Sent RT and notifications
+      await EventService.onDirectLeaved(this.id, user);
+
+      // TODO Sent RT
 
       return true;
     }
