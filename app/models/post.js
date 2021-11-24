@@ -954,15 +954,19 @@ export function addModel(dbAdapter) {
 
       const userDirectsFeed = await user.getDirectsTimeline();
 
+      // Get realtime parameters before changes
+      const [rooms, usersBeforeIds] = await Promise.all([getRoomsOfPost(this), this.usersCanSee()]);
+
       const ok = await dbAdapter.withdrawPostFromDestFeed(userDirectsFeed?.intId, this.id);
 
       if (!ok) {
+        // Nothing changed
         return false;
       }
 
       await EventService.onDirectLeaved(this.id, user);
 
-      // TODO Sent RT
+      await pubSub.updatePost(this.id, { rooms, usersBeforeIds });
 
       return true;
     }

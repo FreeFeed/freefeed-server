@@ -90,10 +90,7 @@ describe('POST /v2/posts/:postId/leave', () => {
     });
 
     describe('Mars and Venus leaving direct', () => {
-      beforeEach(async () => {
-        await leave(post, mars);
-        await leave(post, venus);
-      });
+      beforeEach(() => Promise.all([leave(post, mars), leave(post, venus)]));
 
       it('should not allow Mars to see post', async () => {
         const resp = await getPost(post, mars);
@@ -126,7 +123,7 @@ describe('POST /v2/posts/:postId/leave', () => {
       });
     });
 
-    xdescribe('Realtime', () => {
+    describe('Realtime', () => {
       let port;
 
       before(async () => {
@@ -136,26 +133,29 @@ describe('POST /v2/posts/:postId/leave', () => {
         PubSub.setPublisher(pubsubAdapter);
       });
 
-      let lunaSession, marsSession;
+      let lunaSession, marsSession, venusSession;
 
       beforeEach(async () => {
-        [lunaSession, marsSession] = await Promise.all([
+        [lunaSession, marsSession, venusSession] = await Promise.all([
           Session.create(port, 'Luna session'),
           Session.create(port, 'Mars session'),
+          Session.create(port, 'Venus session'),
         ]);
 
         await Promise.all([
           lunaSession.sendAsync('auth', { authToken: luna.authToken }),
           marsSession.sendAsync('auth', { authToken: mars.authToken }),
+          venusSession.sendAsync('auth', { authToken: venus.authToken }),
         ]);
 
         await Promise.all([
           lunaSession.sendAsync('subscribe', { post: [post.id] }),
           marsSession.sendAsync('subscribe', { post: [post.id] }),
+          venusSession.sendAsync('subscribe', { post: [post.id] }),
         ]);
       });
 
-      afterEach(() => [lunaSession, marsSession].forEach((s) => s.disconnect()));
+      afterEach(() => [lunaSession, marsSession, venusSession].forEach((s) => s.disconnect()));
 
       it(`should deliver 'post:destroy' event to Mars when he leaves post`, async () => {
         const test = marsSession.receiveWhile('post:destroy', () => leave(post, mars));
@@ -164,6 +164,21 @@ describe('POST /v2/posts/:postId/leave', () => {
 
       it(`should not deliver 'post:destroy' event to Luna when Mars leaves post`, async () => {
         const test = lunaSession.notReceiveWhile('post:destroy', () => leave(post, mars));
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should not deliver 'post:destroy' event to Venus when Mars leaves post`, async () => {
+        const test = venusSession.notReceiveWhile('post:destroy', () => leave(post, mars));
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should deliver 'post:update' event to Luna when Mars leaves post`, async () => {
+        const test = lunaSession.receiveWhile('post:update', () => leave(post, mars));
+        await expect(test, 'to be fulfilled');
+      });
+
+      it(`should deliver 'post:update' event to Venus when Mars leaves post`, async () => {
+        const test = venusSession.receiveWhile('post:update', () => leave(post, mars));
         await expect(test, 'to be fulfilled');
       });
     });
