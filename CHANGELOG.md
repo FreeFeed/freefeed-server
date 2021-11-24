@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.104] - Not released
+### Added
+- Any recipient of a direct message (except the author of the message) can now
+  leave the direct, i.e. exclude themselves from direct recipients. Any
+  recipient's comments and likes of the post will not be removed.
+
 ## [1.103.1] - 2021-11-18
 ### Changed
 - Disabled backlinks (performance issues. still)
