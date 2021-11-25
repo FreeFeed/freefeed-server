@@ -964,7 +964,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      await EventService.onDirectLeaved(this.id, user);
+      await EventService.onDirectLeft(this.id, user);
 
       await pubSub.updatePost(this.id, { rooms, usersBeforeIds });
 

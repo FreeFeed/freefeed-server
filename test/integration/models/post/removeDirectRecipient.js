@@ -106,25 +106,25 @@ describe('Post removeDirectRecipient method', () => {
         beforeEach(
           () =>
             (expectedEvent = {
-              event_type: EVENT_TYPES.DIRECT_LEAVED,
+              event_type: EVENT_TYPES.DIRECT_LEFT,
               created_by_user_id: mars.intId,
               target_user_id: mars.intId,
               post_id: post.intId,
             }),
         );
 
-        it(`should send "${EVENT_TYPES.DIRECT_LEAVED}" notification to Luna`, async () => {
-          const events = await dbAdapter.getUserEvents(luna.intId, [EVENT_TYPES.DIRECT_LEAVED]);
+        it(`should send "${EVENT_TYPES.DIRECT_LEFT}" notification to Luna`, async () => {
+          const events = await dbAdapter.getUserEvents(luna.intId, [EVENT_TYPES.DIRECT_LEFT]);
           expect(events, 'to satisfy', [{ ...expectedEvent, user_id: luna.intId }]);
         });
 
-        it(`should send "${EVENT_TYPES.DIRECT_LEAVED}" notification to Mars`, async () => {
-          const events = await dbAdapter.getUserEvents(mars.intId, [EVENT_TYPES.DIRECT_LEAVED]);
+        it(`should send "${EVENT_TYPES.DIRECT_LEFT}" notification to Mars`, async () => {
+          const events = await dbAdapter.getUserEvents(mars.intId, [EVENT_TYPES.DIRECT_LEFT]);
           expect(events, 'to satisfy', [{ ...expectedEvent, user_id: mars.intId }]);
         });
 
-        it(`should send "${EVENT_TYPES.DIRECT_LEAVED}" notification to Venus`, async () => {
-          const events = await dbAdapter.getUserEvents(venus.intId, [EVENT_TYPES.DIRECT_LEAVED]);
+        it(`should send "${EVENT_TYPES.DIRECT_LEFT}" notification to Venus`, async () => {
+          const events = await dbAdapter.getUserEvents(venus.intId, [EVENT_TYPES.DIRECT_LEFT]);
           expect(events, 'to satisfy', [{ ...expectedEvent, user_id: venus.intId }]);
         });
       });

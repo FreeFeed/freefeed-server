@@ -40,7 +40,7 @@ export const up = (knex) =>
       'backlink_in_comment'::text,
 
       -- NEW LINES --
-      'direct_leaved'::text
+      'direct_left'::text
     ]));
 end$$`);
 

@@ -463,7 +463,7 @@ export class EventService {
     await createEvent(fromUserIntId, EVENT_TYPES.INVITATION_USED, newUserIntId, newUserIntId);
   }
 
-  static async onDirectLeaved(postId: UUID, initiator: User) {
+  static async onDirectLeft(postId: UUID, initiator: User) {
     const post = await dbAdapter.getPostById(postId);
 
     if (!post) {
@@ -479,7 +479,7 @@ export class EventService {
       [initiator, ...participants].map((user) =>
         createEvent(
           user.intId,
-          EVENT_TYPES.DIRECT_LEAVED,
+          EVENT_TYPES.DIRECT_LEFT,
           initiator.intId,
           initiator.intId,
           null, // Directs haven't groups?
