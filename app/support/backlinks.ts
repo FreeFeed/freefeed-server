@@ -12,8 +12,8 @@ export function getUpdatedUUIDs(text1: string, text2: string = '') {
 }
 
 export const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
-export function extractUUIDs(text: string): UUID[] {
-  return [...text.matchAll(uuidRe)].map((m) => m[0]).filter(onlyUnique);
+export function extractUUIDs(text: string | null): UUID[] {
+  return text ? [...text.matchAll(uuidRe)].map((m) => m[0]).filter(onlyUnique) : [];
 }
 
 function onlyUnique<T>(value: T, index: number, arr: T[]) {

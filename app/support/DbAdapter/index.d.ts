@@ -171,4 +171,10 @@ export class DbAdapter {
 
   // Backlinks
   getBacklinksCounts(uuids: UUID[], viewerId?: Nullable<UUID>): Promise<Map<UUID, number>>;
+  updateBacklinks(
+    text: string,
+    refPostUID: UUID,
+    refCommentUID?: Nullable<UUID>,
+    db?: Knex,
+  ): Promise<void>;
 }

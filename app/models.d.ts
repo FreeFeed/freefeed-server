@@ -93,6 +93,10 @@ export class Attachment {
 }
 
 export class Comment {
+  static VISIBLE: 0;
+  static DELETED: 1;
+  static HIDDEN_BANNED: 2;
+  static HIDDEN_ARCHIVED: 3;
   id: UUID;
   intId: number;
   body: string;
