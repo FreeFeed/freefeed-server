@@ -124,7 +124,11 @@ process.stdout.write(`\n`);
                 const uuids = row.uuids.filter((u) => realUUIDs.has(u));
 
                 for (const uuid of uuids) {
-                  toInsert.push({ ...row, post_id: uuid });
+                  toInsert.push({
+                    post_id: uuid,
+                    ref_post_id: row.ref_post_id,
+                    ref_comment_id: row.ref_comment_id,
+                  });
                 }
               }
 
