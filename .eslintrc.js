@@ -39,7 +39,7 @@ module.exports = {
         printWidth: 100,
         useTabs: false,
         bracketSpacing: true,
-        jsxBracketSameLine: false,
+        bracketSameLine: false,
         arrowParens: 'always',
         endOfLine: 'auto',
       },
