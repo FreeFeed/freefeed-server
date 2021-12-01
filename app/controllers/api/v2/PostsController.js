@@ -4,7 +4,13 @@ import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
 import { serializeSinglePost, serializeFeed } from '../../../serializers/v2/post';
-import { inputSchemaRequired, monitored, postAccessRequired } from '../../middlewares';
+import {
+  authRequired,
+  inputSchemaRequired,
+  monitored,
+  postAccessRequired,
+} from '../../middlewares';
+import { ForbiddenException } from '../../../support/exceptions';
 
 import { getPostsByIdsInputSchema } from './data-schemes/posts';
 
@@ -115,5 +121,21 @@ export const getByIds = compose([
     ctx.body.postsNotFound = postsNotFound;
     delete ctx.body.isLastPage;
     delete ctx.body.timelines;
+  },
+]);
+
+export const leave = compose([
+  authRequired(),
+  postAccessRequired(),
+  async (ctx) => {
+    const { user, post } = ctx.state;
+
+    const ok = await post.removeDirectRecipient(user);
+
+    if (!ok) {
+      throw new ForbiddenException('You can not leave this post');
+    }
+
+    ctx.body = {};
   },
 ]);

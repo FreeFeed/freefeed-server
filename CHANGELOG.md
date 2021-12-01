@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.104.0] - Not released
+### Added
+- Any recipient of a direct message (except the author of the message) can now
+  leave the direct, i.e. exclude themselves from direct recipients. Any
+  recipient's comments and likes of the post will not be removed.
+
 ### Changed
 - The backlinks logic was rewritten to use a separate table for backlinks
   information. You must run `yarn babel bin/reindex_backlinks.js` to fill the

@@ -463,6 +463,34 @@ export class EventService {
     await createEvent(fromUserIntId, EVENT_TYPES.INVITATION_USED, newUserIntId, newUserIntId);
   }
 
+  static async onDirectLeft(postId: UUID, initiator: User) {
+    const post = await dbAdapter.getPostById(postId);
+
+    if (!post) {
+      return;
+    }
+
+    const postFeeds = await dbAdapter.getTimelinesByIntIds(post.destinationFeedIds);
+
+    const participantIds = postFeeds.filter((f) => f.isDirects()).map((f) => f.userId);
+    const participants = await dbAdapter.getUsersByIds(participantIds);
+    const postAuthor = participants.find((u) => u.id === post.userId);
+    await Promise.all(
+      [initiator, ...participants].map((user) =>
+        createEvent(
+          user.intId,
+          EVENT_TYPES.DIRECT_LEFT,
+          initiator.intId,
+          initiator.intId,
+          null, // Directs haven't groups?
+          postId,
+          null,
+          postAuthor?.intId || null,
+        ),
+      ),
+    );
+  }
+
   ////////////////////////////////////////////
 
   static async _processDirectMessagesForPost(

@@ -296,6 +296,7 @@ export default class PubsubListener {
             eventNames.POST_CREATED,
             payload,
             { post, emitter: this._postEventEmitter },
+            { onlyForUsers: newUsers },
           );
 
           userIds = List.difference(userIds, newUserIds).items;
@@ -317,6 +318,7 @@ export default class PubsubListener {
             intersection(removedUserRooms, rooms),
             eventNames.POST_DESTROYED,
             { meta: { postId: post.id } },
+            { onlyForUsers: removedUsers },
           );
 
           userIds = List.difference(userIds, removedUserIds).items;

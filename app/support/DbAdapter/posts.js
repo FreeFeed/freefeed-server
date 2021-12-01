@@ -141,6 +141,20 @@ const postsTrait = (superClass) =>
       ]);
     }
 
+    withdrawPostFromDestFeed(feedIntId, postUUID) {
+      return this.database.getOne(
+        `update posts set
+          feed_ids = (feed_ids - :feedIntId::int),
+          destination_feed_ids = (destination_feed_ids - :feedIntId::int)
+          where uid = :postUUID and destination_feed_ids @@ :feedIntId
+          returning true`,
+        {
+          feedIntId,
+          postUUID,
+        },
+      );
+    }
+
     /**
      * Withdraw post from the commentator Comments feed
      * if there is not other comments from this commentator.
