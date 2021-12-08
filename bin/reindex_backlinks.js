@@ -69,14 +69,16 @@ process.stdout.write(`\n`);
 
         if (isComments) {
           ({ rows } = await dbAdapter.database.raw(
-            `select uid, post_id as ref_post_id, uid as ref_comment_id, body
-              from ${table} where uid > :lastUID order by uid limit :batchSize`,
+            `select c.uid, c.post_id as ref_post_id, c.uid as ref_comment_id, c.body
+              from comments c
+              join posts p on c.post_id = p.uid
+              where c.uid > :lastUID order by c.uid limit :batchSize`,
             { lastUID, batchSize },
           ));
         } else {
           ({ rows } = await dbAdapter.database.raw(
             `select uid, uid as ref_post_id, null as ref_comment_id, body
-              from ${table} where uid > :lastUID order by uid limit :batchSize`,
+              from posts where uid > :lastUID order by uid limit :batchSize`,
             { lastUID, batchSize },
           ));
         }
