@@ -22,8 +22,12 @@ const postsTrait = (superClass) =>
         // https://github.com/knex/knex/issues/2622
         toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
       );
-      const res = await this.database('posts').returning('uid').insert(preparedPayload);
-      return res[0];
+      const [postId] = await this.database('posts').returning('uid').insert(preparedPayload);
+
+      // Update backlinks in the post body
+      await this.updateBacklinks(payload.body, postId);
+
+      return postId;
     }
 
     async updatePost(postId, payload) {
@@ -35,6 +39,9 @@ const postsTrait = (superClass) =>
           // https://github.com/knex/knex/issues/2622
           toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
         );
+
+        // Update backlinks in the post body
+        await this.updateBacklinks(payload.body, postId);
       }
 
       return await this.database('posts').where('uid', postId).update(preparedPayload);
@@ -132,6 +139,20 @@ const postsTrait = (superClass) =>
         feedIntIds,
         postUUID,
       ]);
+    }
+
+    withdrawPostFromDestFeed(feedIntId, postUUID) {
+      return this.database.getOne(
+        `update posts set
+          feed_ids = (feed_ids - :feedIntId::int),
+          destination_feed_ids = (destination_feed_ids - :feedIntId::int)
+          where uid = :postUUID and destination_feed_ids @@ :feedIntId
+          returning true`,
+        {
+          feedIntId,
+          postUUID,
+        },
+      );
     }
 
     /**

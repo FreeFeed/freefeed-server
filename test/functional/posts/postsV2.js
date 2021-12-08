@@ -3,11 +3,10 @@
 import fetch from 'node-fetch';
 import expect from 'unexpected';
 
-import cleanDB from '../dbCleaner';
-import { getSingleton } from '../../app/app';
-import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
-
+import cleanDB from '../../dbCleaner';
+import { getSingleton } from '../../../app/app';
+import { DummyPublisher } from '../../../app/pubsub';
+import { PubSub } from '../../../app/models';
 import {
   createUserAsync,
   createAndReturnPost,
@@ -28,8 +27,8 @@ import {
   sendRequestToSubscribe,
   acceptRequestToSubscribe,
   banUser,
-} from './functional_test_helper';
-import { postsByIdsResponse } from './schemaV2-helper';
+} from '../functional_test_helper';
+import { postsByIdsResponse } from '../schemaV2-helper';
 
 describe('TimelinesControllerV2', () => {
   let app;

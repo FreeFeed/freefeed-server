@@ -25,6 +25,7 @@ export const EVENT_TYPES = {
   GROUP_ADMIN_DEMOTED: 'group_admin_demoted',
   DIRECT_CREATED: 'direct',
   DIRECT_COMMENT_CREATED: 'direct_comment',
+  DIRECT_LEFT: 'direct_left',
 
   MANAGED_GROUP_SUBSCRIPTION_APPROVED: 'managed_group_subscription_approved',
   MANAGED_GROUP_SUBSCRIPTION_REJECTED: 'managed_group_subscription_rejected',

@@ -238,12 +238,12 @@ const timelinesPostsTrait = (superClass) =>
       let noDirectsSQL = 'true';
 
       if (viewerId && params.withoutDirects) {
-        // Do not show directs-only messages (any messages posted to the viewer's 'Directs' feed and to ONE other feed)
+        // Do not show direct messages (any messages posted to the viewer's 'Directs' feed)
         const [directsIntId] = await this.database
           .pluck('id')
           .from('feeds')
           .where({ user_id: viewerId, name: 'Directs' });
-        noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}' and array_length(destination_feed_ids, 1) = 2)`;
+        noDirectsSQL = `not (destination_feed_ids && '{${directsIntId}}')`;
       }
 
       const sourceConditionSQL = timelineIntIds
@@ -452,7 +452,7 @@ const timelinesPostsTrait = (superClass) =>
         this.database.getAll(likesSQL),
         this.database.getAll(commentsSQL),
         this.getLikesInfoForPosts(uniqPostsIds, viewerId),
-        new Map(), // this.getBacklinksCounts(uniqPostsIds, viewerId),
+        this.getBacklinksCounts(uniqPostsIds, viewerId),
       ]);
 
       const results = {};

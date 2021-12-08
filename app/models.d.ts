@@ -56,6 +56,7 @@ export class Post {
   intId: number;
   userId: UUID;
   body: string;
+  destinationFeedIds: number[];
   destroy(destroyedBy?: User): Promise<void>;
   removeLike(user: User): Promise<boolean>;
   getPostedTo(): Promise<Timeline[]>;
@@ -64,6 +65,7 @@ export class Post {
   getCreatedBy(): Promise<User>;
   isAuthorOrGroupAdmin(user: User): Promise<boolean>;
   usersCanSee(): Promise<List<UUID>>;
+  removeDirectRecipient(user: User): Promise<boolean>;
 }
 
 export class Timeline {
@@ -93,6 +95,10 @@ export class Attachment {
 }
 
 export class Comment {
+  static VISIBLE: 0;
+  static DELETED: 1;
+  static HIDDEN_BANNED: 2;
+  static HIDDEN_ARCHIVED: 3;
   id: UUID;
   intId: number;
   body: string;

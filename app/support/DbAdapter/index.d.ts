@@ -108,6 +108,7 @@ export class DbAdapter {
   getPostsByIds(ids: UUID[]): Promise<Post[]>;
   getPostsByIntIds(ids: number[]): Promise<Post[]>;
   filterSuspendedPosts(ids: UUID[]): Promise<UUID[]>;
+  withdrawPostFromDestFeed(feedIntId: number, postUUID: UUID): Promise<boolean>;
 
   // Comments
   getCommentById(id: UUID): Promise<Comment | null>;
@@ -122,6 +123,7 @@ export class DbAdapter {
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;
   getAllUserNamedFeed(userId: UUID, feedName: string): Promise<Timeline[]>;
   getUserNamedFeed(userId: UUID, feedName: string): Promise<Nullable<Timeline>>;
+  getTimelinesByIntIds(intIds: number[]): Promise<Timeline[]>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;
@@ -171,4 +173,10 @@ export class DbAdapter {
 
   // Backlinks
   getBacklinksCounts(uuids: UUID[], viewerId?: Nullable<UUID>): Promise<Map<UUID, number>>;
+  updateBacklinks(
+    text: string,
+    refPostUID: UUID,
+    refCommentUID?: Nullable<UUID>,
+    db?: Knex,
+  ): Promise<void>;
 }
