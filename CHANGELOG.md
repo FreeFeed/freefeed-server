@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.105.0] - Not released
+
 ## [1.104.0] - 2021-12-08
 ### Added
 - Any recipient of a direct message (except the author of the message) can now
