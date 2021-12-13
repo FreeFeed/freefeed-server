@@ -121,6 +121,18 @@ describe('POST /v2/posts/:postId/leave', () => {
         const resp = await getHome(mars);
         expect(resp, 'to satisfy', { timelines: { posts: [] } });
       });
+
+      it(`should allow Luna to update post with empty 'feeds' array`, async () => {
+        const resp = await performJSONRequest(
+          'PUT',
+          `/v1/posts/${post.id}`,
+          {
+            post: { body: 'Updated post', feeds: [] },
+          },
+          authHeaders(luna),
+        );
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+      });
     });
 
     describe('Realtime', () => {

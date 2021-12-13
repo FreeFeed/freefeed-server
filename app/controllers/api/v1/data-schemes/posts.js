@@ -69,7 +69,6 @@ export const postUpdateInputSchema = {
         },
         feeds: {
           type: 'array',
-          minItems: 1,
           items: { $ref: '#/definitions/accountName' },
         },
       },
