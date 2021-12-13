@@ -9,6 +9,7 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  ValidationException,
 } from '../../../support/exceptions';
 import {
   postAccessRequired,
@@ -90,6 +91,15 @@ export default class PostsController {
           dbAdapter.getTimelinesByIds(destUids),
           post.isStrictlyDirect(),
         ]);
+
+        if (destFeeds.length === 0) {
+          if (isDirect) {
+            // Trying to update direct to ourselves
+            destFeeds.push(await user.getDirectsTimeline());
+          } else {
+            throw new ValidationException('The "feeds" list must contain at least one feed');
+          }
+        }
 
         destinationFeedIds = destFeeds.map((f) => f.intId);
 
