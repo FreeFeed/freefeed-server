@@ -226,6 +226,7 @@ const attachmentCommons = {
   createdAt: expect.it('to be timeStampString'),
   updatedAt: expect.it('to be timeStampString'),
   createdBy: expect.it('to be UUID'),
+  postId: expect.it('to be null').or('to be UUID'),
   mediaType: expect.it('to be one of', ['image', 'audio', 'general']),
   fileName: expect.it('to be a string'),
   fileSize: expect.it('to be a string').and('to match', /^\d+$/),

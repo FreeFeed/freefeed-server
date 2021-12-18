@@ -82,4 +82,79 @@ describe('Attachments', () => {
       users: [{ id: luna.user.id }],
     });
   });
+
+  describe('List attachments', () => {
+    let mars;
+    before(async () => {
+      mars = await createTestUser('mars');
+
+      for (let i = 0; i < 10; i++) {
+        const data = new FormData();
+        data.append('file', Buffer.from('this is a test'), {
+          filename: `test${i + 1}.txt`,
+          contentType: 'text/plain',
+        });
+        // eslint-disable-next-line no-await-in-loop
+        await performJSONRequest('POST', '/v1/attachments', data, authHeaders(mars));
+      }
+    });
+
+    it(`should list Mars'es attachments`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my?limit=4',
+        null,
+        authHeaders(mars),
+      );
+      expect(resp, 'to satisfy', {
+        attachments: [
+          { fileName: 'test10.txt' },
+          { fileName: 'test9.txt' },
+          { fileName: 'test8.txt' },
+          { fileName: 'test7.txt' },
+        ],
+        users: [{ id: mars.user.id }],
+        hasMore: true,
+      });
+    });
+
+    it(`should list the rest of Mars'es attachments`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my?limit=4&page=3',
+        null,
+        authHeaders(mars),
+      );
+      expect(resp, 'to satisfy', {
+        attachments: [{ fileName: 'test2.txt' }, { fileName: 'test1.txt' }],
+        users: [{ id: mars.user.id }],
+        hasMore: false,
+      });
+    });
+
+    it(`should not list for the anonymous`, async () => {
+      const resp = await performJSONRequest('GET', '/v2/attachments/my');
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+
+    it(`should return error if limit isn't valid`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my?limit=3w4',
+        null,
+        authHeaders(mars),
+      );
+      expect(resp, 'to satisfy', { __httpCode: 422 });
+    });
+
+    it(`should return error if page isn't valid`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my?page=-454',
+        null,
+        authHeaders(mars),
+      );
+      expect(resp, 'to satisfy', { __httpCode: 422 });
+    });
+  });
 });

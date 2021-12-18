@@ -40,6 +40,7 @@ export function serializeAttachment(att) {
       ...(att.mediaType === 'audio' ? ['artist', 'title'] : []),
     ]),
     createdBy: att.userId,
+    postId: att.postId || null,
   };
   return result;
 }
