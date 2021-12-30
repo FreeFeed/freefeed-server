@@ -414,6 +414,6 @@ export async function checkDestNames(destNames, author) {
     );
   }
 
-  const timelineIds = _.flatten(destFeeds).map((f) => f.id);
+  const timelineIds = _.uniq(_.flatten(destFeeds).map((f) => f.id));
   return timelineIds;
 }
