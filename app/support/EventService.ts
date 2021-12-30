@@ -470,7 +470,8 @@ export class EventService {
       return;
     }
 
-    const postFeeds = await dbAdapter.getTimelinesByIntIds(post.destinationFeedIds);
+    // Posts can have non-unique destinationFeedIds, so we need to _.uniq them
+    const postFeeds = await dbAdapter.getTimelinesByIntIds(_.uniq(post.destinationFeedIds));
 
     const participantIds = postFeeds.filter((f) => f.isDirects()).map((f) => f.userId);
     const participants = await dbAdapter.getUsersByIds(participantIds);
