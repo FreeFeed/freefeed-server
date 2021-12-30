@@ -234,7 +234,7 @@ export default class PostsController {
         }
       }
 
-      // The remover shold be either a post author or admin of all fromFeeds
+      // The remover should be either a post author or admin of all fromFeeds
       if (post.userId !== user.id) {
         const isAdmins = await Promise.all(
           fromFeedsAccounts.map((a) => dbAdapter.isUserAdminOfGroup(user.id, a.id)),
