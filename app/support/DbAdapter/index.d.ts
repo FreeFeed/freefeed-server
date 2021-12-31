@@ -118,6 +118,7 @@ export class DbAdapter {
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
+  getPostAttachments(id: UUID): Promise<UUID[]>;
 
   // Timelines
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;

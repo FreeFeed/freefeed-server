@@ -26,6 +26,8 @@ import {
   mutualSubscriptions,
   performJSONRequest,
   authHeaders,
+  createMockAttachmentAsync,
+  updatePostAsync,
 } from './functional_test_helper';
 import Session from './realtime-session';
 
@@ -579,6 +581,23 @@ describe('Group Moderation', () => {
               });
             });
           });
+        });
+      });
+
+      describe('Moderate post without body and with attachment', () => {
+        beforeEach(async () => {
+          const att = await createMockAttachmentAsync(luna);
+          luna.post = await createAndReturnPostToFeed([celestials, luna], luna, 'Body');
+          await updatePostAsync(luna, {
+            body: '',
+            attachments: [att.id],
+          });
+        });
+
+        it(`should allow Mars to remove Luna's post from group`, async () => {
+          const response = await deletePostAsync(mars, luna.post.id);
+          expect(response.__httpCode, 'to be', 200);
+          expect(response, 'to satisfy', { postStillAvailable: true });
         });
       });
     });
