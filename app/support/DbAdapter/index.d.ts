@@ -51,6 +51,12 @@ export type EventRecord = {
   target_comment_id: Nullable<UUID>;
 };
 
+type ListAttachmentsOptions = { userId: UUID; limit: number } & (
+  | { createdBefore?: string }
+  | { createdAfter: string }
+  | { offset: number }
+);
+
 export class DbAdapter {
   constructor(connection: Knex);
 
@@ -119,6 +125,7 @@ export class DbAdapter {
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
   getPostAttachments(id: UUID): Promise<UUID[]>;
+  listAttachments(options: ListAttachmentsOptions): Promise<Attachment[]>;
 
   // Timelines
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;

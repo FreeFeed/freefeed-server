@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A group administrator could not delete a message with an empty body (and with
   attachments) from a managed group.
 
+### Added
+- The new API method, `GET /v2/attachments/my` returns all attachments created
+  by the current user, paginated and in the reverse date order. 
+  
+  This method accepts two URL parameters: _limit_ (default: 30, maximum: 100)
+  and _page_ (1-based, default: 1). The result format is { attachments:
+  AttObject[], users: UserObject[], hasMore: boolean }.
+- The new API token scope: `read-my-files`. For now it contains only one method:
+  `GET /v2/attachments/my`
+
+### Changed
+- The serialized attachments now have an additional field _postId_. This field
+  is either _null_ or the UUID of the post to which the file is attached.
+
 ## [1.104.2] - 2021-12-13
 ### Fixed
 - Allow to edit direct message without recipients.
