@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - A group administrator could not delete a message with an empty body (and with
   attachments) from a managed group.
+- "Direct left" events could be duplicated. They are unique now
 
 ### Added
 - The new API method, `GET /v2/attachments/my` returns all attachments created

@@ -30,17 +30,25 @@ describe('checkDestNames function', () => {
     ]);
   });
 
-  it('shold not allow to Luna to send direct to Jupiter', async () => {
+  it('should allow to Luna to send direct to Mars and Venus', async () => {
+    const directFeedIds = await Promise.all(
+      [users.luna, users.mars, users.venus].map((u) => u.getDirectsTimelineId()),
+    );
+    const feedIds = await checkDestNames(['mars', 'venus'], users.luna);
+    await expect(feedIds.sort(), 'to satisfy', directFeedIds.sort());
+  });
+
+  it('should not allow to Luna to send direct to Jupiter', async () => {
     const call = checkDestNames(['mars', 'venus', 'jupiter'], users.luna);
     await expect(call, 'to be rejected with', /jupiter/);
   });
 
-  it('shold not allow to Luna to send direct to Saturn', async () => {
+  it('should not allow to Luna to send direct to Saturn', async () => {
     const call = checkDestNames(['mars', 'venus', 'saturn'], users.luna);
     await expect(call, 'to be rejected with', /saturn/);
   });
 
-  it('shold not allow to Jupiter to send direct to Luna and Mars', async () => {
+  it('should not allow to Jupiter to send direct to Luna and Mars', async () => {
     const call = checkDestNames(['luna', 'mars', 'venus'], users.jupiter);
     await expect(call, 'to be rejected with', /luna/).and('to be rejected with', /mars/);
   });

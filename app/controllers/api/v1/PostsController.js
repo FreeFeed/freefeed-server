@@ -234,7 +234,7 @@ export default class PostsController {
         }
       }
 
-      // The remover shold be either a post author or admin of all fromFeeds
+      // The remover should be either a post author or admin of all fromFeeds
       if (post.userId !== user.id) {
         const isAdmins = await Promise.all(
           fromFeedsAccounts.map((a) => dbAdapter.isUserAdminOfGroup(user.id, a.id)),
@@ -414,6 +414,6 @@ export async function checkDestNames(destNames, author) {
     );
   }
 
-  const timelineIds = _.flatten(destFeeds).map((f) => f.id);
+  const timelineIds = _.uniq(_.flatten(destFeeds).map((f) => f.id));
   return timelineIds;
 }
