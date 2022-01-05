@@ -19,8 +19,12 @@ import {
 /**
  * @typedef { import("../models").User } User
  * @typedef { import("../models").Timeline } Timeline
+ * @typedef { import("../support/DbAdapter").DbAdapter } DbAdapter
  */
 
+/**
+ * @param {DbAdapter} dbAdapter
+ */
 export function addModel(dbAdapter) {
   class Post {
     id;
@@ -204,13 +208,15 @@ export function addModel(dbAdapter) {
         );
       }
 
+      // Actualize this.attachments field
+      await this.getAttachmentIds();
+
       let newAttachments = undefined;
 
       if (params.attachments != null) {
         // Calculate changes in attachments
-        const oldAttachments = (await this.getAttachmentIds()) || [];
         newAttachments = params.attachments || [];
-        const removedAttachments = _.difference(oldAttachments, newAttachments);
+        const removedAttachments = _.difference(this.attachments, newAttachments);
 
         // Update post attachments in DB
         afterUpdate.push(() => this.linkAttachments(newAttachments));
@@ -654,8 +660,8 @@ export function addModel(dbAdapter) {
     }
 
     async getAttachmentIds() {
-      this.attachmentIds = await dbAdapter.getPostAttachments(this.id);
-      return this.attachmentIds;
+      this.attachments = await dbAdapter.getPostAttachments(this.id);
+      return this.attachments;
     }
 
     async getAttachments() {

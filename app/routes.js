@@ -2,6 +2,7 @@
 import Router from '@koa/router';
 
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
+import AttachmentsRouteV2 from './routes/api/v2/AttachmentsRoute';
 import BookmarkletRoute from './routes/api/v1/BookmarkletRoute';
 import CommentsRoute from './routes/api/v1/CommentsRoute';
 import GroupsRoute from './routes/api/v1/GroupsRoute';
@@ -93,6 +94,7 @@ export function createRouter() {
   AppTokensRoute(router);
   ServerInfoRoute(router);
   ExtAuthRoute(router);
+  AttachmentsRouteV2(router);
 
   return router;
 }

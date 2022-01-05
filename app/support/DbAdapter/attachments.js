@@ -36,6 +36,17 @@ const attachmentsTrait = (superClass) =>
       return responses.map(initAttachmentObject);
     }
 
+    async listAttachments({ userId, limit, offset = 0 }) {
+      const rows = await this.database.getAll(
+        `select * from attachments where 
+          user_id = :userId 
+          order by created_at desc limit :limit offset :offset`,
+        { userId, limit, offset },
+      );
+
+      return rows.map(initAttachmentObject);
+    }
+
     updateAttachment(attachmentId, payload) {
       const preparedPayload = prepareModelPayload(
         payload,

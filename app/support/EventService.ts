@@ -470,7 +470,8 @@ export class EventService {
       return;
     }
 
-    const postFeeds = await dbAdapter.getTimelinesByIntIds(post.destinationFeedIds);
+    // Posts can have non-unique destinationFeedIds, so we need to _.uniq them
+    const postFeeds = await dbAdapter.getTimelinesByIntIds(_.uniq(post.destinationFeedIds));
 
     const participantIds = postFeeds.filter((f) => f.isDirects()).map((f) => f.userId);
     const participants = await dbAdapter.getUsersByIds(participantIds);
@@ -655,7 +656,7 @@ async function processBacklinks(srcEntity: Post | Comment) {
     return;
   }
 
-  const [srcVewers, initiator] = await Promise.all([
+  const [srcViewers, initiator] = await Promise.all([
     srcEntity.usersCanSee(),
     srcEntity.getCreatedBy(),
   ]);
@@ -668,7 +669,7 @@ async function processBacklinks(srcEntity: Post | Comment) {
 
   await Promise.all([
     ...mentionedPosts.map(async (post) => {
-      if (srcEntity.userId === post.userId || !srcVewers.includes(post.userId)) {
+      if (srcEntity.userId === post.userId || !srcViewers.includes(post.userId)) {
         return;
       }
 
@@ -690,7 +691,7 @@ async function processBacklinks(srcEntity: Post | Comment) {
       if (
         !comment.userId ||
         srcEntity.userId === comment.userId ||
-        !srcVewers.includes(comment.userId)
+        !srcViewers.includes(comment.userId)
       ) {
         return;
       }
@@ -717,7 +718,7 @@ async function processBacklinks(srcEntity: Post | Comment) {
 }
 
 /**
- * Create event and perform neccessary actions after create
+ * Create event and perform necessary actions after create
  *
  * @param recipientIntId
  * @param eventType

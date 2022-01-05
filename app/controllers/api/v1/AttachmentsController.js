@@ -1,10 +1,12 @@
 import createDebug from 'debug';
 import compose from 'koa-compose';
+import { isInt } from 'validator';
 
-import { reportError, BadRequestException } from '../../../support/exceptions';
+import { reportError, BadRequestException, ValidationException } from '../../../support/exceptions';
 import { serializeAttachment } from '../../../serializers/v2/post';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired } from '../../middlewares';
+import { dbAdapter } from '../../../models';
 
 export default class AttachmentsController {
   app;
@@ -52,6 +54,58 @@ export default class AttachmentsController {
 
         reportError(ctx)(e);
       }
+    },
+  ]);
+
+  my = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const { limit: qLimit, page: qPage } = ctx.request.query;
+
+      const DEFAULT_LIMIT = 30;
+      const MAX_LIMIT = 100;
+
+      let limit = DEFAULT_LIMIT,
+        page = 1;
+
+      if (typeof qLimit !== 'undefined') {
+        if (!isInt(qLimit, { min: 1 })) {
+          throw new ValidationException("Invalid 'limit' value");
+        }
+
+        limit = Number.parseInt(qLimit, 10);
+
+        if (limit > MAX_LIMIT) {
+          limit = MAX_LIMIT;
+        }
+      }
+
+      if (typeof qPage !== 'undefined') {
+        if (!isInt(qPage, { min: 1 })) {
+          throw new ValidationException("Invalid 'page' value");
+        }
+
+        page = Number.parseInt(qPage, 10);
+      }
+
+      const attachments = await dbAdapter.listAttachments({
+        userId: user.id,
+        limit: limit + 1,
+        offset: limit * (page - 1),
+      });
+
+      const hasMore = attachments.length > limit;
+
+      if (hasMore) {
+        attachments.length = limit;
+      }
+
+      ctx.body = {
+        attachments: attachments.map(serializeAttachment),
+        users: await serializeUsersByIds([user.id]),
+        hasMore,
+      };
     },
   ]);
 }
