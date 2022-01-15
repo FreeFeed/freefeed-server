@@ -23,6 +23,7 @@ coverage
 
 /.idea
 /public/config/envLocal.js
+/.vscode
 
 dist
 /export-*
