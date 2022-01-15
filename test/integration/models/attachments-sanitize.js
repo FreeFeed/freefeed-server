@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import { join } from 'path';
-import { readFile } from 'fs/promises';
+import { promises as fsPromises } from 'fs';
 import { createHash } from 'crypto';
 
 import { exiftool } from 'exiftool-vendored';
@@ -33,7 +33,7 @@ describe('Sanitize media metadata', () => {
     const att = await createAttachment(luna.id, {
       name: `photo.jpg`,
       type: 'image/jpeg',
-      content: await readFile(photoWithGPSPath),
+      content: await fsPromises.readFile(photoWithGPSPath),
     });
 
     const newTags = await exiftool.read(att.getPath());
@@ -41,7 +41,7 @@ describe('Sanitize media metadata', () => {
   });
 
   it('should not alter file without sensitive metadata', async () => {
-    const content = await readFile(photoWithoutGPSPath);
+    const content = await fsPromises.readFile(photoWithoutGPSPath);
     const oldHash = fileHash(content);
 
     const att = await createAttachment(luna.id, {
@@ -50,7 +50,7 @@ describe('Sanitize media metadata', () => {
       content,
     });
 
-    const newContent = await readFile(att.getPath());
+    const newContent = await fsPromises.readFile(att.getPath());
     const newHash = fileHash(newContent);
     expect(newHash, 'to equal', oldHash);
   });
@@ -60,7 +60,7 @@ describe('Sanitize media metadata', () => {
     after(() => luna.update({ preferences: { sanitizeMediaMetadata: true } }));
 
     it('should not alter file with sensitive metadata', async () => {
-      const content = await readFile(photoWithGPSPath);
+      const content = await fsPromises.readFile(photoWithGPSPath);
       const oldHash = fileHash(content);
 
       const att = await createAttachment(luna.id, {
@@ -69,7 +69,7 @@ describe('Sanitize media metadata', () => {
         content,
       });
 
-      const newContent = await readFile(att.getPath());
+      const newContent = await fsPromises.readFile(att.getPath());
       const newHash = fileHash(newContent);
       expect(newHash, 'to equal', oldHash);
     });
