@@ -31,7 +31,9 @@ jobs:
         redis-version: ${{ matrix.redis-version }}
 
     - name: install GraphicsMagick
-      run: sudo apt-get install graphicsmagick
+      run: |
+        sudo apt-get update
+        sudo apt-get install graphicsmagick
 
     - uses: actions/checkout@v2
 
