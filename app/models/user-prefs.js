@@ -44,6 +44,11 @@ const schema = {
       type: 'string',
       enum: [userModel.ACCEPT_DIRECTS_FROM_ALL, userModel.ACCEPT_DIRECTS_FROM_FRIENDS],
     },
+    sanitizeMediaMetadata: {
+      title: 'Remove sensitive information (GPS, serial numbers, etc.) from media files',
+      default: true,
+      type: 'boolean',
+    },
   },
   additionalProperties: false,
 };

@@ -14,6 +14,7 @@ import _ from 'lodash';
 import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
+import { exiftool } from 'exiftool-vendored';
 
 import { getS3 } from '../support/s3';
 
@@ -270,6 +271,12 @@ export function addModel(dbAdapter) {
       this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile);
       debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
 
+      const user = await this.getCreatedBy();
+
+      if (user.preferences.sanitizeMediaMetadata) {
+        await this.sanitizeMetadata(tmpAttachmentFile);
+      }
+
       if (supportedImageTypes[this.mimeType]) {
         // Set media properties for 'image' type
         this.mediaType = 'image';
@@ -315,6 +322,38 @@ export function addModel(dbAdapter) {
       } else {
         await mvAsync(tmpAttachmentFile, this.getPath(), {});
       }
+    }
+
+    async sanitizeMetadata(filePath) {
+      // Synthetic and permanent tags
+      const nonWritableTags = ['GPSPosition', 'SerialNumberFormat'];
+
+      // try {
+      const tags = await exiftool.read(filePath);
+      const tagsToClean = {};
+
+      for (const tag of Object.keys(tags)) {
+        if (
+          (/GPS/i.test(tag) || /Serial/i.test(tag) || /Owner/i.test(tag)) &&
+          !nonWritableTags.includes(tag)
+        ) {
+          tagsToClean[tag] = null;
+        }
+      }
+
+      if (Object.keys(tagsToClean).length > 0) {
+        try {
+          await exiftool.write(filePath, tagsToClean, ['-overwrite_original']);
+        } catch (e) {
+          // Some exiftool 'errors' are really a warnings
+          if (!e.message.startsWith('Warning:')) {
+            throw e;
+          }
+        }
+      }
+      // } finally {
+      //   await exiftool.end();
+      // }
     }
 
     /**

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.106.0] - Not released
+### Added
+- The new server-side user preference flag _sanitizeMediaMetadata_ (default:
+  true). When this flag is true, uploaded files are checked for sensitive
+  metadata tags related to GPS, owner info and serial numbers. All such tags are
+  removed from the file. This applies not only to images, but also to all other
+  files such as videos.
+
 ## [1.105.0] - 2022-01-05
 ### Fixed
 - A group administrator could not delete a message with an empty body (and with

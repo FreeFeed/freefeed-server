@@ -50,6 +50,7 @@
     "console-stamp": "~3.0.3",
     "debug": "~4.3.3",
     "ejs": "~3.1.6",
+    "exiftool-vendored": "~15.9.2",
     "ff-url-finder": "~2.3.7",
     "file-type": "~16.5.3",
     "gifsicle": "~4.0.1",
