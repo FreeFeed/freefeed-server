@@ -2,7 +2,7 @@ import _unexpected from 'unexpected';
 import validator from 'validator';
 
 import { Comment } from '../../app/models';
-import { valiate as validateUserPrefs } from '../../app/models/user-prefs';
+import { validate as validateUserPrefs } from '../../app/models/user-prefs';
 
 export const freefeedAssertions = {
   name: 'unexpected-freefeed',

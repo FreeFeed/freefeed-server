@@ -18,7 +18,7 @@ import { EventService } from '../support/EventService';
 import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
 import { allExternalProviders } from '../support/ExtAuth';
 
-import { valiate as validateUserPrefs } from './user-prefs';
+import { validate as validateUserPrefs } from './user-prefs';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
