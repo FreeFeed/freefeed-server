@@ -325,18 +325,17 @@ export function addModel(dbAdapter) {
     }
 
     async sanitizeMetadata(filePath) {
-      // Synthetic and permanent tags
-      const nonWritableTags = ['GPSPosition', 'SerialNumberFormat'];
+      const { removeTags, ignoreTags } = config.attachments.sanitizeMetadata;
 
       // try {
       const tags = await exiftool.read(filePath);
       const tagsToClean = {};
 
       for (const tag of Object.keys(tags)) {
-        if (
-          (/GPS/i.test(tag) || /Serial/i.test(tag) || /Owner/i.test(tag)) &&
-          !nonWritableTags.includes(tag)
-        ) {
+        const toRemove = removeTags.some((re) => re.test(tag));
+        const toIgnore = toRemove && ignoreTags.some((re) => re.test(tag));
+
+        if (toRemove && !toIgnore) {
           tagsToClean[tag] = null;
         }
       }
