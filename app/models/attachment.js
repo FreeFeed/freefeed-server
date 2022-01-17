@@ -327,7 +327,6 @@ export function addModel(dbAdapter) {
     async sanitizeMetadata(filePath) {
       const { removeTags, ignoreTags } = config.attachments.sanitizeMetadata;
 
-      // try {
       const tags = await exiftool.read(filePath);
       const tagsToClean = {};
 
@@ -350,9 +349,6 @@ export function addModel(dbAdapter) {
           }
         }
       }
-      // } finally {
-      //   await exiftool.end();
-      // }
     }
 
     /**
