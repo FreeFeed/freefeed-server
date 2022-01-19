@@ -14,9 +14,9 @@ import _ from 'lodash';
 import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
-import { exiftool } from 'exiftool-vendored';
 
 import { getS3 } from '../support/s3';
+import { sanitizeMediaMetadata } from '../support/sanitize-media';
 
 const mvAsync = util.promisify(mv);
 
@@ -274,14 +274,14 @@ export function addModel(dbAdapter) {
       const user = await this.getCreatedBy();
 
       if (user.preferences.sanitizeMediaMetadata) {
-        await this.sanitizeMetadata(tmpAttachmentFile);
+        await sanitizeMediaMetadata(tmpAttachmentFile);
       }
 
       if (supportedImageTypes[this.mimeType]) {
         // Set media properties for 'image' type
         this.mediaType = 'image';
         this.fileExtension = supportedImageTypes[this.mimeType];
-        this.noThumbnail = '1'; // this may be overriden below
+        this.noThumbnail = '1'; // this may be overridden below
         await this.handleImage(tmpAttachmentFile);
       } else if (supportedAudioTypes[this.mimeType]) {
         // Set media properties for 'audio' type
@@ -321,33 +321,6 @@ export function addModel(dbAdapter) {
         await fs.unlink(tmpAttachmentFile);
       } else {
         await mvAsync(tmpAttachmentFile, this.getPath(), {});
-      }
-    }
-
-    async sanitizeMetadata(filePath) {
-      const { removeTags, ignoreTags } = config.attachments.sanitizeMetadata;
-
-      const tags = await exiftool.read(filePath);
-      const tagsToClean = {};
-
-      for (const tag of Object.keys(tags)) {
-        const toRemove = removeTags.some((re) => re.test(tag));
-        const toIgnore = toRemove && ignoreTags.some((re) => re.test(tag));
-
-        if (toRemove && !toIgnore) {
-          tagsToClean[tag] = null;
-        }
-      }
-
-      if (Object.keys(tagsToClean).length > 0) {
-        try {
-          await exiftool.write(filePath, tagsToClean, ['-overwrite_original']);
-        } catch (e) {
-          // Some exiftool 'errors' are really a warnings
-          if (!e.message.startsWith('Warning:')) {
-            throw e;
-          }
-        }
       }
     }
 
