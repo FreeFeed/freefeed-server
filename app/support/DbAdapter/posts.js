@@ -62,6 +62,23 @@ const postsTrait = (superClass) =>
       return await this.database('posts').where('uid', postId).update(preparedPayload);
     }
 
+    async getPostLongId(shortId) {
+      if (!validator.isHexadecimal(shortId)) {
+        return null;
+      }
+
+      const res = await this.database('post_short_ids')
+        .select('long_id')
+        .where('short_id', shortId)
+        .first();
+
+      if (!res) {
+        return null;
+      }
+
+      return res.long_id;
+    }
+
     async getPostById(id, params) {
       if (!validator.isUUID(id)) {
         return null;

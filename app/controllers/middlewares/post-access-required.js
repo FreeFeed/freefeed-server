@@ -5,13 +5,21 @@ import {
 } from '../../support/exceptions';
 import { dbAdapter } from '../../models';
 
-export function postAccessRequired() {
+export function postAccessRequired(acceptShortId = false) {
   return async (ctx, next) => {
     const forbidden = (reason = 'You can not see this post') => new ForbiddenException(reason);
     const notFound = (reason = 'Post not found') => new NotFoundException(reason);
 
     const { user: viewer } = ctx.state;
-    const { postId } = ctx.params;
+    let { postId } = ctx.params;
+
+    if (acceptShortId && postId && postId.length < 36) {
+      postId = await dbAdapter.getPostLongId(postId);
+
+      if (!postId) {
+        throw notFound();
+      }
+    }
 
     if (!postId) {
       throw new ServerErrorException(
