@@ -25,12 +25,19 @@ const postsTrait = (superClass) =>
         // https://github.com/knex/knex/issues/2622
         toTSVector(preparedPayload.body).replace(/\?/g, '\\?'),
       );
-      const [{ uid: postId }] = await this.database('posts')
-        .returning('uid')
-        .insert(preparedPayload);
 
-      // Create a short Id for this post
-      await this.createPostShortId(postId);
+      const postId = await this.database.transaction(async (trx) => {
+        // Lock post_short_ids table to prevent any updates
+        await trx.raw('lock table post_short_ids in share row exclusive mode');
+
+        // Create post
+        const [{ uid: longId }] = await trx('posts').insert(preparedPayload).returning('uid');
+
+        // Create a short ID for this post
+        await this.createPostShortId(trx, longId);
+
+        return longId;
+      });
 
       // Update backlinks in the post body
       await this.updateBacklinks(payload.body, postId);
@@ -373,23 +380,23 @@ const postsTrait = (superClass) =>
       return this.getUsersByIds(adminIds);
     }
 
-    async createPostShortId(longId) {
+    async createPostShortId(trx, longId) {
       let length = config.postShortIds.initialLength;
 
       for (; ; length++) {
         // eslint-disable-next-line no-await-in-loop
-        if (await this.createPostShortIdForLength(longId, length)) {
+        if (await this.createPostShortIdForLength(trx, longId, length)) {
           return;
         }
       }
     }
 
-    async createPostShortIdForLength(longId, length) {
+    async createPostShortIdForLength(trx, longId, length) {
       for (let i = 0; i < config.postShortIds.maxAttempts; i++) {
         const shortId = this.getDecentRandomString(length);
 
         // eslint-disable-next-line no-await-in-loop
-        const res = await this.database('post_short_ids')
+        const res = await trx('post_short_ids')
           .insert({ short_id: shortId, long_id: longId })
           .returning('short_id');
 
