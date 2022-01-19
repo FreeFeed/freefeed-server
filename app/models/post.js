@@ -60,6 +60,10 @@ export function addModel(dbAdapter) {
       this.isProtected = params.isProtected || '0';
       this.isPropagable = params.isPropagable || '0';
 
+      if (params.shortId) {
+        this.shortId = params.shortId;
+      }
+
       if (params.friendfeedUrl) {
         this.friendfeedUrl = params.friendfeedUrl;
       }

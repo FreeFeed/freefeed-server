@@ -486,6 +486,7 @@ const POST_COLUMNS_MAPPING = {
 export const POST_FIELDS = {
   uid: 'id',
   id: 'intId',
+  short_id: 'shortId',
   created_at: 'createdAt',
   updated_at: 'updatedAt',
   bumped_at: 'bumpedAt',
