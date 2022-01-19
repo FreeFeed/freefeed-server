@@ -16,7 +16,7 @@ import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 
 import { getS3 } from '../support/s3';
-import { sanitizeMediaMetadata } from '../support/sanitize-media';
+import { sanitizeMediaMetadata, SANITIZE_NONE, SANITIZE_VERSION } from '../support/sanitize-media';
 
 const mvAsync = util.promisify(mv);
 
@@ -84,6 +84,8 @@ export function addModel(dbAdapter) {
 
       this.userId = params.userId;
       this.postId = params.postId;
+
+      this.sanitized = params.sanitized || SANITIZE_NONE;
 
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;
@@ -164,6 +166,7 @@ export function addModel(dbAdapter) {
         postId: this.postId,
         createdAt: this.createdAt.toString(),
         updatedAt: this.updatedAt.toString(),
+        sanitized: this.sanitized,
       };
 
       if (this.mediaType === 'audio') {
@@ -275,6 +278,7 @@ export function addModel(dbAdapter) {
 
       if (user.preferences.sanitizeMediaMetadata) {
         await sanitizeMediaMetadata(tmpAttachmentFile);
+        this.sanitized = SANITIZE_VERSION;
       }
 
       if (supportedImageTypes[this.mimeType]) {

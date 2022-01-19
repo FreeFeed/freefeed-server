@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metadata tags related to GPS, owner info and serial numbers. All such tags are
   removed from the file. This applies not only to images, but also to all other
   files such as videos.
+- New attachment (and its database table) field _sanitized_ indicates that the
+  file metadata was sanitized. The value of field is 0 (wasn't sanitized) or 1
+  (was sanitized).
 
 ## [1.105.0] - 2022-01-05
 ### Fixed

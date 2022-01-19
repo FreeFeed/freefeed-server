@@ -89,6 +89,7 @@ type AttachmentParams = {
   };
 };
 export class Attachment {
+  sanitized: number;
   constructor(params: AttachmentParams);
   create(): Promise<void>;
   destroy(destroyedBy?: User): Promise<void>;

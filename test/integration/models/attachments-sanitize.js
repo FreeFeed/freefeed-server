@@ -9,6 +9,7 @@ import expect from 'unexpected';
 
 import { User } from '../../../app/models';
 import cleanDB from '../../dbCleaner';
+import { SANITIZE_NONE, SANITIZE_VERSION } from '../../../app/support/sanitize-media';
 
 import { createAttachment } from './attachment-helpers';
 
@@ -38,6 +39,7 @@ describe('Sanitize media metadata', () => {
 
     const newTags = await exiftool.read(att.getPath());
     expect(newTags, 'to not have keys', gpsTags);
+    expect(att.sanitized, 'to be', SANITIZE_VERSION);
   });
 
   it('should not alter file without sensitive metadata', async () => {
@@ -53,6 +55,7 @@ describe('Sanitize media metadata', () => {
     const newContent = await fsPromises.readFile(att.getPath());
     const newHash = fileHash(newContent);
     expect(newHash, 'to equal', oldHash);
+    expect(att.sanitized, 'to be', SANITIZE_VERSION);
   });
 
   describe(`Luna doesn't want to sanitize her files`, () => {
@@ -72,6 +75,7 @@ describe('Sanitize media metadata', () => {
       const newContent = await fsPromises.readFile(att.getPath());
       const newHash = fileHash(newContent);
       expect(newHash, 'to equal', oldHash);
+      expect(att.sanitized, 'to be', SANITIZE_NONE);
     });
   });
 });

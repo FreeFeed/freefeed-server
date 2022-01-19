@@ -1,6 +1,7 @@
 import config from 'config';
 import { exiftool } from 'exiftool-vendored';
 
+export const SANITIZE_NONE = 0;
 export const SANITIZE_VERSION = 1;
 
 /**
