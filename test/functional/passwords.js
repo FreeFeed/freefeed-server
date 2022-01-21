@@ -1,11 +1,14 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import expect from 'unexpected';
+import { simpleParser } from 'mailparser';
+import config from 'config';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { dbAdapter, PubSub } from '../../app/models';
+import { addMailListener } from '../../lib/mailer';
 
 import { createUserAsync, performJSONRequest, updateUserAsync } from './functional_test_helper';
 
@@ -15,13 +18,12 @@ describe('PasswordsController', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  beforeEach(() => cleanDB($pg_database));
-
   describe('#create()', () => {
     let luna;
     const oldEmail = 'test@example.com';
 
     beforeEach(async () => {
+      await cleanDB($pg_database);
       luna = await createUserAsync('Luna', 'password', { email: oldEmail });
     });
 
@@ -71,10 +73,12 @@ describe('PasswordsController', () => {
   });
 
   describe('#update()', () => {
-    let luna = {};
+    let luna;
     const email = 'luna@example.com';
 
     beforeEach(async () => {
+      await cleanDB($pg_database);
+
       luna = await createUserAsync('Luna', 'password');
       await updateUserAsync(luna, { email });
       await performJSONRequest('POST', '/v1/passwords', { email });
@@ -86,6 +90,86 @@ describe('PasswordsController', () => {
         __httpCode: 404,
         err: 'Password reset token not found or has expired',
       });
+    });
+  });
+
+  describe('Password reset sequence', () => {
+    const email = 'luna@example.com';
+    const newPassword = 'password1';
+    let luna;
+    let token;
+
+    let capturedMail = null;
+    let removeMailListener = () => null;
+
+    before(async () => {
+      await cleanDB($pg_database);
+      luna = await createUserAsync('Luna', 'password');
+      await updateUserAsync(luna, { email });
+
+      removeMailListener = addMailListener((r) => (capturedMail = r));
+    });
+    after(removeMailListener);
+
+    it('should send password reset link', async () => {
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+
+      expect(capturedMail, 'to satisfy', { envelope: { to: [email] } });
+      const parsedMail = await simpleParser(capturedMail.response);
+      expect(parsedMail, 'to satisfy', { subject: config.mailer.resetPasswordMailSubject });
+
+      const m = /\/reset\?token=(\S+)/.exec(parsedMail.text);
+      expect(m, 'not to be null');
+
+      [, token] = m;
+    });
+
+    it('should change password using token', async () => {
+      const resp = await performJSONRequest('PUT', `/v1/passwords/${token}`, {
+        newPassword,
+        passwordConfirmation: newPassword,
+      });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+
+    it('should allow to log in with the new password', async () => {
+      const resp = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: newPassword,
+      });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+
+    it('should not allow to use same token again', async () => {
+      const resp = await performJSONRequest('PUT', `/v1/passwords/${token}`, {
+        newPassword,
+        passwordConfirmation: newPassword,
+      });
+      expect(resp, 'to satisfy', { __httpCode: 404 });
+    });
+
+    it('should not allow to use expired token', async () => {
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+
+      const age = await dbAdapter.database.getOne(
+        'select extract(epoch from reset_password_expires_at - reset_password_sent_at) from users where uid = ?',
+        luna.user.id,
+      );
+
+      expect(age, 'to be', config.passwordReset.tokenTTL);
+
+      await dbAdapter.database.raw(
+        `update users set reset_password_expires_at = now() - interval '1 second' where uid = ?`,
+        luna.user.id,
+      );
+
+      const resp1 = await performJSONRequest('PUT', `/v1/passwords/${token}`, {
+        newPassword,
+        passwordConfirmation: newPassword,
+      });
+      expect(resp1, 'to satisfy', { __httpCode: 404 });
     });
   });
 });
