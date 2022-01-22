@@ -148,6 +148,12 @@ config.attachments = {
       bounds: { width: 1050, height: 350 },
     },
   },
+  sanitizeMetadata: {
+    // Media tags to remove via exiftool (using in Attachment.sanitizeMetadata)
+    removeTags: [/GPS/i, /Serial/i, /Owner/i],
+    // Non-writable tags: synthetic and permanent
+    ignoreTags: [/^GPSPosition$/, /^SerialNumberFormat$/],
+  },
 };
 config.profilePictures = {
   defaultProfilePictureMediumUrl: 'http://placekitten.com/50/50',

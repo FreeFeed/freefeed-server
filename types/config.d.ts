@@ -19,6 +19,10 @@ declare module 'config' {
       storage: {
         rootDir: string;
       };
+      sanitizeMetadata: {
+        removeTags: RegExp[];
+        ignoreTags: RegExp[];
+      };
     };
     maintenance: {
       messageFile: string;

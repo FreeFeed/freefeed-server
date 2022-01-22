@@ -122,6 +122,7 @@ const ATTACHMENT_COLUMNS = {
   title: 'title',
   userId: 'user_id',
   postId: 'post_id',
+  sanitized: 'sanitized',
 };
 
 const ATTACHMENT_COLUMNS_MAPPING = {
@@ -172,6 +173,7 @@ export const ATTACHMENT_FIELDS = {
   title: 'title',
   user_id: 'userId',
   post_id: 'postId',
+  sanitized: 'sanitized',
 };
 
 const ATTACHMENT_FIELDS_MAPPING = {

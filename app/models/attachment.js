@@ -16,6 +16,7 @@ import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
 
 import { getS3 } from '../support/s3';
+import { sanitizeMediaMetadata, SANITIZE_NONE, SANITIZE_VERSION } from '../support/sanitize-media';
 
 const mvAsync = util.promisify(mv);
 
@@ -83,6 +84,8 @@ export function addModel(dbAdapter) {
 
       this.userId = params.userId;
       this.postId = params.postId;
+
+      this.sanitized = params.sanitized || SANITIZE_NONE;
 
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;
@@ -163,6 +166,7 @@ export function addModel(dbAdapter) {
         postId: this.postId,
         createdAt: this.createdAt.toString(),
         updatedAt: this.updatedAt.toString(),
+        sanitized: this.sanitized,
       };
 
       if (this.mediaType === 'audio') {
@@ -270,11 +274,18 @@ export function addModel(dbAdapter) {
       this.mimeType = await mimeTypeDetect(tmpAttachmentFileName, tmpAttachmentFile);
       debug(`Mime-type of ${tmpAttachmentFileName} is ${this.mimeType}`);
 
+      const user = await this.getCreatedBy();
+
+      if (user.preferences.sanitizeMediaMetadata) {
+        await sanitizeMediaMetadata(tmpAttachmentFile);
+        this.sanitized = SANITIZE_VERSION;
+      }
+
       if (supportedImageTypes[this.mimeType]) {
         // Set media properties for 'image' type
         this.mediaType = 'image';
         this.fileExtension = supportedImageTypes[this.mimeType];
-        this.noThumbnail = '1'; // this may be overriden below
+        this.noThumbnail = '1'; // this may be overridden below
         await this.handleImage(tmpAttachmentFile);
       } else if (supportedAudioTypes[this.mimeType]) {
         // Set media properties for 'audio' type

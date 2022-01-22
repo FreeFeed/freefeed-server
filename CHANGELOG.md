@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.106.0] - Not released
+### Added
+- The new server-side user preference flag _sanitizeMediaMetadata_ (default:
+  true). When this flag is true, uploaded files are checked for sensitive
+  metadata tags related to GPS, owner info and serial numbers. All such tags are
+  removed from the file. This applies not only to images, but also to all other
+  files such as videos.
+- New attachment (and its database table) field _sanitized_ indicates that the
+  file metadata was sanitized. The value of field is 0 (wasn't sanitized) or 1
+  (was sanitized).
+
 ## Changed
 - Reduced the password reset token length to 12 bytes. Perhaps enormous tokens
   (48 bytes = 96 hexadecimal characters) were broken in the email texts. Also
