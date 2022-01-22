@@ -1,3 +1,4 @@
+import config from 'config';
 import _ from 'lodash';
 import validator from 'validator';
 
@@ -17,14 +18,15 @@ const usersTrait = (superClass) =>
     }
 
     async updateUser(userId, payload) {
-      const tokenExpirationTime = new Date(Date.now());
-      const expireAfter = 60 * 60 * 24; // 24 hours
-
       const preparedPayload = prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING);
 
-      if (_.has(preparedPayload, 'reset_password_token')) {
-        tokenExpirationTime.setHours(tokenExpirationTime.getHours() + expireAfter);
-        preparedPayload['reset_password_expires_at'] = tokenExpirationTime.toISOString();
+      if ('reset_password_token' in preparedPayload) {
+        const { tokenTTL } = config.passwordReset;
+        preparedPayload['reset_password_sent_at'] = this.database.raw(`now()`);
+        preparedPayload['reset_password_expires_at'] = this.database.raw(
+          `now() + :tokenTTL * '1 second'::interval`,
+          { tokenTTL },
+        );
       }
 
       await this.database('users').where('uid', userId).update(preparedPayload);
@@ -202,7 +204,10 @@ const usersTrait = (superClass) =>
     }
 
     async getUserByResetToken(token) {
-      const attrs = await this.database('users').first().where('reset_password_token', token);
+      const attrs = await this.database.getRow(
+        `select * from users where reset_password_token = :token and reset_password_expires_at > now()`,
+        { token },
+      );
 
       if (!attrs) {
         return null;
@@ -210,12 +215,6 @@ const usersTrait = (superClass) =>
 
       if (attrs.type !== 'user') {
         throw new Error(`Expected User, got ${attrs.type}`);
-      }
-
-      const now = new Date().getTime();
-
-      if (attrs.reset_password_expires_at < now) {
-        return null;
       }
 
       return initUserObject(attrs);

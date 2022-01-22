@@ -230,13 +230,9 @@ export function addModel(dbAdapter) {
     }
 
     async updateResetPasswordToken() {
-      const now = new Date().getTime();
       const token = await this.generateResetPasswordToken();
 
-      const payload = {
-        resetPasswordToken: token,
-        resetPasswordSentAt: now,
-      };
+      const payload = { resetPasswordToken: token };
 
       await dbAdapter.updateUser(this.id, payload);
 
@@ -245,8 +241,8 @@ export function addModel(dbAdapter) {
     }
 
     async generateResetPasswordToken() {
-      const buf = await randomBytes(48);
-      return buf.toString('hex');
+      const buf = await randomBytes(config.passwordReset.tokenBytesLength);
+      return buf.toString('base64').replace(/\W/g, '');
     }
 
     validPassword(clearPassword) {

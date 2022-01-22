@@ -333,4 +333,9 @@ config.maxLength = {
   description: 1500,
 };
 
+config.passwordReset = {
+  tokenBytesLength: 12,
+  tokenTTL: 8 * 3600, // in seconds
+};
+
 module.exports = config;
