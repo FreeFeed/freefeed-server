@@ -63,6 +63,11 @@ declare module 'config' {
       comment: number;
       description: number;
     };
+
+    passwordReset: {
+      tokenBytesLength: number;
+      tokenTTL: number;
+    };
   };
 
   const c: Config;

@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file metadata was sanitized. The value of field is 0 (wasn't sanitized) or 1
   (was sanitized).
 
+## Changed
+- Reduced the password reset token length to 12 bytes. Perhaps enormous tokens
+  (48 bytes = 96 hexadecimal characters) were broken in the email texts. Also
+  reduced the TTL of the token from several years :) to 8 hours.
+
 ## [1.105.0] - 2022-01-05
 ### Fixed
 - A group administrator could not delete a message with an empty body (and with
