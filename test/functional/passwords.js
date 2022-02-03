@@ -1,11 +1,16 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
+import expect from 'unexpected';
+import { simpleParser } from 'mailparser';
+import config from 'config';
+
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { dbAdapter, PubSub } from '../../app/models';
+import { addMailListener } from '../../lib/mailer';
 
-import * as funcTestHelper from './functional_test_helper';
+import { createUserAsync, performJSONRequest, updateUserAsync } from './functional_test_helper';
 
 describe('PasswordsController', () => {
   before(async () => {
@@ -13,81 +18,158 @@ describe('PasswordsController', () => {
     PubSub.setPublisher(new DummyPublisher());
   });
 
-  beforeEach(() => cleanDB($pg_database));
-
   describe('#create()', () => {
-    let context = {};
+    let luna;
     const oldEmail = 'test@example.com';
 
     beforeEach(async () => {
-      context = await funcTestHelper.createUserAsync('Luna', 'password', { email: oldEmail });
+      await cleanDB($pg_database);
+      luna = await createUserAsync('Luna', 'password', { email: oldEmail });
     });
 
     it('should require email', async () => {
-      const response = await funcTestHelper.sendResetPassword('');
-      response.status.should.equal(400);
-
-      const data = await response.json();
-      data.should.have.property('err');
-      data.err.should.eql('Email cannot be blank');
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email: '' });
+      expect(resp, 'to satisfy', { __httpCode: 400, err: 'Email cannot be blank' });
     });
 
     it('should generate resetToken by original email of user', async () => {
-      const response = await funcTestHelper.sendResetPassword(oldEmail);
-      response.status.should.equal(200);
-
-      const data = await response.json();
-      data.should.have.property('message');
-      data.message.should.eql(`Password reset link has been sent to ${oldEmail}`);
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email: oldEmail });
+      expect(resp, 'to satisfy', {
+        __httpCode: 200,
+        message: `Password reset link has been sent to ${oldEmail}`,
+      });
     });
 
     it('should generate resetToken by new email of user', async () => {
       const email = 'luna@example.com';
 
-      await funcTestHelper.updateUserAsync(context, { email });
+      await updateUserAsync(luna, { email });
 
-      const errResponse = await funcTestHelper.sendResetPassword(oldEmail);
-      errResponse.status.should.equal(404);
+      {
+        const resp = await performJSONRequest('POST', '/v1/passwords', { email: oldEmail });
+        expect(resp, 'to satisfy', { __httpCode: 404 });
+      }
 
-      const response = await funcTestHelper.sendResetPassword(email);
-      response.status.should.equal(200, `failed to reset password for ${email} email`);
-
-      const data = await response.json();
-      data.should.have.property('message');
-      data.message.should.eql(`Password reset link has been sent to ${email}`);
+      {
+        const resp = await performJSONRequest('POST', '/v1/passwords', { email });
+        expect(resp, 'to satisfy', {
+          __httpCode: 200,
+          message: `Password reset link has been sent to ${email}`,
+        });
+      }
     });
 
     it('should generate resetToken by email with capital letters', async () => {
       const email = 'Luna@example.com';
 
-      await funcTestHelper.updateUserAsync(context, { email });
+      await updateUserAsync(luna, { email });
 
-      const response = await funcTestHelper.sendResetPassword(email);
-      response.status.should.equal(200, `failed to reset password for ${email} email`);
-
-      const data = await response.json();
-      data.should.have.property('message');
-      data.message.should.eql(`Password reset link has been sent to ${email}`);
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email });
+      expect(resp, 'to satisfy', {
+        __httpCode: 200,
+        message: `Password reset link has been sent to ${email}`,
+      });
     });
   });
 
   describe('#update()', () => {
-    let context = {};
+    let luna;
     const email = 'luna@example.com';
 
     beforeEach(async () => {
-      context = await funcTestHelper.createUserAsync('Luna', 'password');
-      await funcTestHelper.updateUserAsync(context, { email });
-      await funcTestHelper.sendResetPassword(email);
+      await cleanDB($pg_database);
+
+      luna = await createUserAsync('Luna', 'password');
+      await updateUserAsync(luna, { email });
+      await performJSONRequest('POST', '/v1/passwords', { email });
     });
 
-    it('should not reset password by invalid resetToken', (done) => {
-      funcTestHelper.resetPassword('token')((err, res) => {
-        res.body.should.not.be.empty;
-        res.body.should.have.property('err');
-        res.body.err.should.eql('Password reset token not found or has expired');
-        done();
+    it('should not reset password by invalid resetToken', async () => {
+      const resp = await performJSONRequest('PUT', '/v1/passwords/token');
+      expect(resp, 'to satisfy', {
+        __httpCode: 404,
+        err: 'Password reset token not found or has expired',
       });
+    });
+  });
+
+  describe('Password reset sequence', () => {
+    const email = 'luna@example.com';
+    const newPassword = 'password1';
+    let luna;
+    let token;
+
+    let capturedMail = null;
+    let removeMailListener = () => null;
+
+    before(async () => {
+      await cleanDB($pg_database);
+      luna = await createUserAsync('Luna', 'password');
+      await updateUserAsync(luna, { email });
+
+      removeMailListener = addMailListener((r) => (capturedMail = r));
+    });
+    after(removeMailListener);
+
+    it('should send password reset link', async () => {
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+
+      expect(capturedMail, 'to satisfy', { envelope: { to: [email] } });
+      const parsedMail = await simpleParser(capturedMail.response);
+      expect(parsedMail, 'to satisfy', { subject: config.mailer.resetPasswordMailSubject });
+
+      const m = /\/reset\?token=(\S+)/.exec(parsedMail.text);
+      expect(m, 'not to be null');
+
+      [, token] = m;
+    });
+
+    it('should change password using token', async () => {
+      const resp = await performJSONRequest('PUT', `/v1/passwords/${token}`, {
+        newPassword,
+        passwordConfirmation: newPassword,
+      });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+
+    it('should allow to log in with the new password', async () => {
+      const resp = await performJSONRequest('POST', `/v1/session`, {
+        username: luna.username,
+        password: newPassword,
+      });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+    });
+
+    it('should not allow to use same token again', async () => {
+      const resp = await performJSONRequest('PUT', `/v1/passwords/${token}`, {
+        newPassword,
+        passwordConfirmation: newPassword,
+      });
+      expect(resp, 'to satisfy', { __httpCode: 404 });
+    });
+
+    it('should not allow to use expired token', async () => {
+      const resp = await performJSONRequest('POST', '/v1/passwords', { email });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+
+      const age = await dbAdapter.database.getOne(
+        'select extract(epoch from reset_password_expires_at - reset_password_sent_at) from users where uid = ?',
+        luna.user.id,
+      );
+
+      expect(age, 'to be', config.passwordReset.tokenTTL);
+
+      await dbAdapter.database.raw(
+        `update users set reset_password_expires_at = now() - interval '1 second' where uid = ?`,
+        luna.user.id,
+      );
+
+      const resp1 = await performJSONRequest('PUT', `/v1/passwords/${token}`, {
+        newPassword,
+        passwordConfirmation: newPassword,
+      });
+      expect(resp1, 'to satisfy', { __httpCode: 404 });
     });
   });
 });

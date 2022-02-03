@@ -44,6 +44,11 @@ const schema = {
       type: 'string',
       enum: [userModel.ACCEPT_DIRECTS_FROM_ALL, userModel.ACCEPT_DIRECTS_FROM_FRIENDS],
     },
+    sanitizeMediaMetadata: {
+      title: 'Remove sensitive information (GPS, serial numbers, etc.) from media files',
+      default: true,
+      type: 'boolean',
+    },
   },
   additionalProperties: false,
 };
@@ -60,7 +65,7 @@ const check = ajv.compile(schema);
  * @param {boolean} safe - return default value instead of exception throwing
  * @return {object}
  */
-export function valiate(data = {}, safe = false) {
+export function validate(data = {}, safe = false) {
   data = cloneDeep(data);
   const valid = check(data);
 
@@ -70,7 +75,7 @@ export function valiate(data = {}, safe = false) {
 
   if (safe) {
     // Return all defaults
-    return valiate();
+    return validate();
   }
 
   throw new Error(ajv.errorsText(check.errors));

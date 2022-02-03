@@ -19,6 +19,10 @@ declare module 'config' {
       storage: {
         rootDir: string;
       };
+      sanitizeMetadata: {
+        removeTags: RegExp[];
+        ignoreTags: RegExp[];
+      };
     };
     maintenance: {
       messageFile: string;
@@ -58,6 +62,11 @@ declare module 'config' {
       post: number;
       comment: number;
       description: number;
+    };
+
+    passwordReset: {
+      tokenBytesLength: number;
+      tokenTTL: number;
     };
   };
 
