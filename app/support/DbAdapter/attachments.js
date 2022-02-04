@@ -98,11 +98,48 @@ const attachmentsTrait = (superClass) =>
         .where('post_id', postId);
       return responses.map(initAttachmentObject);
     }
+
+    async createAttachmentsSanitizeTask(userId) {
+      const row = await this.database.getRow(
+        `insert into attachments_sanitize_task (user_id) values (:userId)
+        on conflict (user_id) do 
+        -- update row for the 'returning' statement
+        update set user_id = excluded.user_id
+        returning *`,
+        { userId },
+      );
+      return initSanitizeTaskObject(row);
+    }
+
+    async deleteAttachmentsSanitizeTask(userId) {
+      await this.database.raw(`delete from attachments_sanitize_task where user_id = :userId`, {
+        userId,
+      });
+    }
+
+    async getAttachmentsSanitizeTask(userId) {
+      const row = await this.database.getRow(
+        `select * from attachments_sanitize_task where user_id = :userId`,
+        { userId },
+      );
+      return initSanitizeTaskObject(row);
+    }
   };
 
 export default attachmentsTrait;
 
 ///////////////////////////////////////////////////
+
+function initSanitizeTaskObject(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    userId: row.user_id,
+    createdAt: new Date(row.created_at),
+  };
+}
 
 export function initAttachmentObject(attrs) {
   if (!attrs) {
