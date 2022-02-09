@@ -1,6 +1,7 @@
 import validator from 'validator';
 
 import { Attachment } from '../../models';
+import { SANITIZE_VERSION } from '../sanitize-media';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -123,6 +124,19 @@ const attachmentsTrait = (superClass) =>
         { userId },
       );
       return initSanitizeTaskObject(row);
+    }
+
+    async getAttachmentsStats(userId) {
+      const rows = await this.database.getAll(
+        `select sanitized, count(*)::int from attachments where user_id = :userId group by sanitized`,
+        { userId },
+      );
+      return {
+        total: rows.reduce((sum, row) => sum + row.count, 0),
+        sanitized: rows
+          .filter((row) => row.sanitized === SANITIZE_VERSION)
+          .reduce((sum, row) => sum + row.count, 0),
+      };
     }
   };
 

@@ -73,7 +73,7 @@ export const appTokensScopes = [
   {
     name: 'read-my-files',
     title: 'Read information about my uploaded files',
-    routes: ['GET /v2/attachments/my'],
+    routes: ['GET /v2/attachments/my', 'GET /v2/attachments/my/stats'],
   },
   {
     name: 'read-feeds',

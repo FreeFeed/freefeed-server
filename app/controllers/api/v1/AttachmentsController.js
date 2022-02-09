@@ -108,4 +108,19 @@ export default class AttachmentsController {
       };
     },
   ]);
+
+  myStats = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const [stats, task] = await Promise.all([
+        dbAdapter.getAttachmentsStats(user.id),
+        dbAdapter.getAttachmentsSanitizeTask(user.id),
+      ]);
+      ctx.body = {
+        attachments: stats,
+        sanitizeTask: task && { createdAt: task.createdAt },
+      };
+    },
+  ]);
 }

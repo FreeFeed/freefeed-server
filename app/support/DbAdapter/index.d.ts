@@ -62,6 +62,11 @@ type AttachmentsSanitizeTask = {
   createdAt: Date;
 };
 
+type AttachmentsStats = {
+  total: number;
+  sanitized: number;
+};
+
 export class DbAdapter {
   constructor(connection: Knex);
 
@@ -134,6 +139,7 @@ export class DbAdapter {
   createAttachmentsSanitizeTask(userId: UUID): Promise<AttachmentsSanitizeTask>;
   getAttachmentsSanitizeTask(userId: UUID): Promise<Nullable<AttachmentsSanitizeTask>>;
   deleteAttachmentsSanitizeTask(userId: UUID): Promise<void>;
+  getAttachmentsStats(userId: UUID): Promise<AttachmentsStats>;
 
   // Timelines
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;
