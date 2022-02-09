@@ -119,6 +119,7 @@ describe('Attachment', () => {
             s3Deletes[params.Key] = params;
           },
         });
+        attachment.s3bucket = 'bucket-name';
       }
 
       await attachment.create();
@@ -129,6 +130,7 @@ describe('Attachment', () => {
 
       const newAttachment = await dbAdapter.getAttachmentById(attachment.id);
       newAttachment.s3 = attachment.s3;
+      newAttachment.s3bucket = attachment.s3bucket;
 
       newAttachment.should.be.an.instanceOf(Attachment);
       newAttachment.should.not.be.empty;

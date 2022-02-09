@@ -47,14 +47,19 @@ const attachmentsTrait = (superClass) =>
       return rows.map(initAttachmentObject);
     }
 
-    updateAttachment(attachmentId, payload) {
+    async updateAttachment(attachmentId, payload) {
       const preparedPayload = prepareModelPayload(
         payload,
         ATTACHMENT_COLUMNS,
         ATTACHMENT_COLUMNS_MAPPING,
       );
 
-      return this.database('attachments').where('uid', attachmentId).update(preparedPayload);
+      const [row] = await this.database('attachments')
+        .where('uid', attachmentId)
+        .update(preparedPayload)
+        .returning('*');
+
+      return initAttachmentObject(row);
     }
 
     async deleteAttachment(id) {
@@ -132,6 +137,10 @@ const ATTACHMENT_COLUMNS_MAPPING = {
     return d.toISOString();
   },
   updatedAt: (timestamp) => {
+    if (timestamp === 'now') {
+      return timestamp;
+    }
+
     const d = new Date();
     d.setTime(timestamp);
     return d.toISOString();

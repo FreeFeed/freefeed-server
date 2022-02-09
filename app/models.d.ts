@@ -89,9 +89,12 @@ type AttachmentParams = {
   };
 };
 export class Attachment {
+  fileSize: number;
   sanitized: number;
   constructor(params: AttachmentParams);
   create(): Promise<void>;
+  downloadOriginal(): Promise<string>;
+  sanitizeOriginal(): Promise<boolean>;
   destroy(destroyedBy?: User): Promise<void>;
 }
 

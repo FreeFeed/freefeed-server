@@ -115,6 +115,7 @@ config.media = {
     secretAccessKey: 'SECRET-ACCESS-KEY',
     bucket: 'bucket-name',
     // endpoint:        'nyc3.digitaloceanspaces.com',
+    s3ConfigOptions: {},
   },
   // Files of these types are uplodes to S3 with 'Content-Disposition: inline'.
   // All other types will have 'Content-Disposition: attachment' to prevent

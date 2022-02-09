@@ -14,6 +14,7 @@ type FileInfo = {
 export async function createAttachment(
   userId: UUID,
   { name, type = 'application/octet-stream', content }: FileInfo,
+  additionalParams = {},
 ) {
   const localPath = path.join(
     os.tmpdir(),
@@ -21,6 +22,7 @@ export async function createAttachment(
   );
   await fs.writeFile(localPath, content);
   const attachment = new Attachment({
+    ...additionalParams,
     file: { name, type, size: content.length, path: localPath },
     userId,
   });
