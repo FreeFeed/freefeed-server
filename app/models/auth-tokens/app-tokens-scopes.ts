@@ -119,6 +119,11 @@ export const appTokensScopes = [
     routes: ['WS *'],
   },
   {
+    name: 'manage-my-files',
+    title: 'Update my uploaded files',
+    routes: ['POST /v2/attachments/my/sanitize'],
+  },
+  {
     name: 'manage-notifications',
     title: 'Manage notifications',
     routes: [

@@ -89,6 +89,7 @@ type AttachmentParams = {
   };
 };
 export class Attachment {
+  id: UUID;
   fileSize: number;
   sanitized: number;
   constructor(params: AttachmentParams);
