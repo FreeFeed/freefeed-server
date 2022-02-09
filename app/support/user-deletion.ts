@@ -1,6 +1,7 @@
 import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
+import { forEachAsync } from './forEachAsync';
 import { UUID } from './types';
 
 // Objects to delete:
@@ -320,20 +321,6 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
 }
 
 // Helpers
-
-/**
- * Sequentially execute async processor for each value in values. We use this
- * instead of Promise.all to reduce performance impact.
- *
- * @param values
- * @param processor
- */
-async function forEachAsync<T>(values: T[], processor: (v: T) => Promise<any>) {
-  await values.reduce(async (prev: Promise<void>, v: T) => {
-    await prev;
-    await processor(v);
-  }, Promise.resolve());
-}
 
 type Task = (userId: UUID, runUntil: Date) => Promise<void>;
 

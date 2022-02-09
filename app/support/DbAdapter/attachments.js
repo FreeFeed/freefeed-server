@@ -126,6 +126,16 @@ const attachmentsTrait = (superClass) =>
       return initSanitizeTaskObject(row);
     }
 
+    async getNonSanitizedAttachments(userId, limit) {
+      const rows = await this.database.getAll(
+        `select * from attachments where 
+            user_id = :userId and sanitized <> :sanVersion 
+            order by created_at limit :limit`,
+        { userId, sanVersion: SANITIZE_VERSION, limit },
+      );
+      return rows.map(initAttachmentObject);
+    }
+
     async getAttachmentsStats(userId) {
       const rows = await this.database.getAll(
         `select sanitized, count(*)::int from attachments where user_id = :userId group by sanitized`,

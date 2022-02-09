@@ -139,6 +139,7 @@ export class DbAdapter {
   createAttachmentsSanitizeTask(userId: UUID): Promise<AttachmentsSanitizeTask>;
   getAttachmentsSanitizeTask(userId: UUID): Promise<Nullable<AttachmentsSanitizeTask>>;
   deleteAttachmentsSanitizeTask(userId: UUID): Promise<void>;
+  getNonSanitizedAttachments(userId: UUID, limit: number): Promise<Attachment[]>;
   getAttachmentsStats(userId: UUID): Promise<AttachmentsStats>;
 
   // Timelines
