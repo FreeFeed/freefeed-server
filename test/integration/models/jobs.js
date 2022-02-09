@@ -7,7 +7,7 @@ import { spy } from 'sinon';
 import { sortBy } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
-import { Job, dbAdapter, JobManager } from '../../../app/models';
+import { Job, dbAdapter, JobManager, KEEP_JOB } from '../../../app/models';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate).use(unexpectedSinon);
@@ -200,6 +200,34 @@ describe('Jobs', () => {
         // Jobs should be deleted
         expect(await Job.getById(job1.id), 'to be null');
         expect(await Job.getById(job2.id), 'to be null');
+      });
+
+      it(`should not delete job when handler returns KEEP_JOB`, async () => {
+        const spy1 = spy(() => KEEP_JOB);
+        jm.on('job1', spy1);
+
+        const job1 = await Job.create('job1');
+
+        await jm.fetchAndProcess();
+
+        expect(spy1, 'to have a call satisfying', [{ id: job1.id }]);
+
+        expect(await Job.getById(job1.id), 'not to be null');
+      });
+
+      it(`should not delete job when handler throws exception`, async () => {
+        const spy1 = spy(() => {
+          throw new Error('Error!');
+        });
+        jm.on('job1', spy1);
+
+        const job1 = await Job.create('job1');
+
+        await jm.fetchAndProcess();
+
+        expect(spy1, 'to have a call satisfying', [{ id: job1.id }]);
+
+        expect(await Job.getById(job1.id), 'not to be null');
       });
 
       it(`should re-lock job if it have no handler`, async () => {
