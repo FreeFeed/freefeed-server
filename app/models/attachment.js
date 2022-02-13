@@ -1,7 +1,8 @@
 import { promises as fs, createReadStream } from 'fs';
 import childProcess from 'child_process';
-import { parse as parsePath } from 'path';
+import { join, parse as parsePath } from 'path';
 import util from 'util';
+import os from 'os';
 
 import config from 'config';
 import createDebug from 'debug';
@@ -14,6 +15,7 @@ import _ from 'lodash';
 import mv from 'mv';
 import gifsicle from 'gifsicle';
 import probe from 'probe-image-size';
+import Raven from 'raven';
 
 import { getS3 } from '../support/s3';
 import { sanitizeMediaMetadata, SANITIZE_NONE, SANITIZE_VERSION } from '../support/sanitize-media';
@@ -95,7 +97,10 @@ export function addModel(dbAdapter) {
         this.updatedAt = params.updatedAt;
       }
 
-      this.s3 = config.attachments.storage.type === 's3' ? getS3(config.attachments.storage) : null;
+      const storageConfig = params.storageConfig || config.attachments.storage;
+
+      this.s3 = storageConfig.type === 's3' ? getS3(storageConfig) : null;
+      this.s3bucket = storageConfig.type === 's3' ? storageConfig.bucket : null;
     }
 
     get imageSizes() {
@@ -476,7 +481,7 @@ export function addModel(dbAdapter) {
       await this.s3
         .upload({
           ACL: 'public-read',
-          Bucket: config.attachments.storage.bucket,
+          Bucket: this.s3bucket,
           Key: destPath,
           Body: createReadStream(sourceFile),
           ContentType: mimeType,
@@ -524,7 +529,7 @@ export function addModel(dbAdapter) {
               await this.s3
                 .deleteObject({
                   Key,
-                  Bucket: config.attachments.storage.bucket,
+                  Bucket: this.s3bucket,
                 })
                 .promise();
             } catch (err) {
@@ -550,6 +555,96 @@ export function addModel(dbAdapter) {
             }
           }),
         );
+      }
+    }
+
+    /**
+     * Downloads original to the temp directory and returns the local file path
+     *
+     * @returns {Promise<string>}
+     */
+    async downloadOriginal() {
+      const localFile = join(os.tmpdir(), `${this.id}.orig`);
+
+      if (this.s3) {
+        const { Body } = await this.s3
+          .getObject({
+            Key: config.attachments.path + this.getFilename(),
+            Bucket: this.s3bucket,
+          })
+          .promise();
+
+        if (!Body) {
+          throw new Error('No body in S3 response');
+        }
+
+        await fs.writeFile(localFile, Body);
+      } else {
+        const filePath = this.getPath();
+        await fs.copyFile(filePath, localFile);
+      }
+
+      return localFile;
+    }
+
+    /**
+     * Downloads original, sanitizes it and (if changed) uploads it back
+     *
+     * @returns {Promise<boolean>}
+     */
+    async sanitizeOriginal() {
+      const localFile = await this.downloadOriginal();
+
+      try {
+        const updated = await sanitizeMediaMetadata(localFile);
+
+        if (!updated) {
+          // File wasn't changed
+          if (this.sanitized !== SANITIZE_VERSION) {
+            const updAtt = await dbAdapter.updateAttachment(this.id, {
+              updatedAt: 'now',
+              sanitized: SANITIZE_VERSION,
+            });
+            this.updatedAt = updAtt.updatedAt;
+            this.sanitized = updAtt.sanitized;
+          }
+
+          return false;
+        }
+
+        const { size: fileSize } = await fs.stat(localFile);
+        const updAtt = await dbAdapter.updateAttachment(this.id, {
+          updatedAt: 'now',
+          sanitized: SANITIZE_VERSION,
+          fileSize,
+        });
+        this.updatedAt = updAtt.updatedAt;
+        this.sanitized = updAtt.sanitized;
+        this.fileSize = updAtt.fileSize;
+
+        // Uploading
+        if (this.s3) {
+          await this.uploadToS3(
+            localFile,
+            config.attachments.path + this.getFilename(),
+            this.mimeType,
+          );
+        } else {
+          await mvAsync(localFile, this.getPath(), {});
+        }
+
+        return true;
+      } finally {
+        try {
+          await fs.unlink(localFile);
+        } catch (err) {
+          if (err.code !== 'ENOENT') {
+            debug(`sanitizeOriginal: cannot remove temporary file: ${localFile}`);
+            Raven.captureException(err, {
+              extra: { err: `sanitizeOriginal: cannot remove temporary file: ${localFile}` },
+            });
+          }
+        }
       }
     }
   };

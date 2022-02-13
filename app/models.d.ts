@@ -89,9 +89,13 @@ type AttachmentParams = {
   };
 };
 export class Attachment {
+  id: UUID;
+  fileSize: number;
   sanitized: number;
   constructor(params: AttachmentParams);
   create(): Promise<void>;
+  downloadOriginal(): Promise<string>;
+  sanitizeOriginal(): Promise<boolean>;
   destroy(destroyedBy?: User): Promise<void>;
 }
 
@@ -119,12 +123,33 @@ export { AuthToken, AppTokenV1, SessionTokenV1 } from './models/auth-tokens';
 
 export class ServerInfo {}
 
-export class Job {}
+type JobParams = {
+  uniqKey?: string;
+  unlockAt?: Date | number;
+};
 
-export class JobManager {}
+export class Job<T = unknown> {
+  name: string;
+  payload: T;
+  static create<P>(name: string, payload?: P, params?: JobParams): Promise<Job<P>>;
+  setUnlockAt(unlockAt?: Date | number): Promise<void>;
+  clone(unlockAt?: Date | number): Promise<Job<T>>;
+  delete(): Promise<void>;
+}
+
+export type JobHandler<P> = (job: Job<P>) => Promise<unknown>;
+export type JobMiddleware = (h: JobHandler<unknown>) => JobHandler<unknown>;
+
+export class JobManager {
+  on<P = unknown>(name: string, handler: JobHandler<P>): () => void;
+  fetchAndProcess(): Promise<Job>;
+  use(mw: JobMiddleware): void;
+}
 
 export {
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from './models/timeline';
+
+export { KEEP_JOB } from './models/job';

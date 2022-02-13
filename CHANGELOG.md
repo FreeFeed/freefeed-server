@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.107.0] - Not released
+### Added
+- New method _sanitizeOriginal_ of Attachment object allows to sanitize metadata
+  of existing attachments.
+- New API methods:
+  * `GET /v2/attachments/my/stats` (in `read-my-files` scope) returns statistics
+    about attachments of current user. The output includes total number of
+    attachments, number of sanitized attachments, and the state of the sanitize
+    task (if present).
+  * `POST /v2/attachments/my/sanitize` (in `manage-my-files` scope) initiates
+    the sanitization of existing user's attachments.
 
 ## [1.106.0] - 2022-02-03
 ### Added
