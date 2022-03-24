@@ -49,3 +49,5 @@ export {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from './models/timeline';
+
+export { KEEP_JOB } from './models/job';

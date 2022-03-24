@@ -7,6 +7,7 @@ import { serializeAttachment } from '../../../serializers/v2/post';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired } from '../../middlewares';
 import { dbAdapter } from '../../../models';
+import { startAttachmentsSanitizeJob } from '../../../jobs/attachments-sanitize';
 
 export default class AttachmentsController {
   app;
@@ -105,6 +106,32 @@ export default class AttachmentsController {
         attachments: attachments.map(serializeAttachment),
         users: await serializeUsersByIds([user.id]),
         hasMore,
+      };
+    },
+  ]);
+
+  myStats = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const [stats, task] = await Promise.all([
+        dbAdapter.getAttachmentsStats(user.id),
+        dbAdapter.getAttachmentsSanitizeTask(user.id),
+      ]);
+      ctx.body = {
+        attachments: stats,
+        sanitizeTask: task && { createdAt: task.createdAt },
+      };
+    },
+  ]);
+
+  mySanitize = compose([
+    authRequired(),
+    async (ctx) => {
+      const { user } = ctx.state;
+      const task = await startAttachmentsSanitizeJob(user);
+      ctx.body = {
+        sanitizeTask: { createdAt: task.createdAt },
       };
     },
   ]);

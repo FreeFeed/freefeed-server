@@ -57,6 +57,16 @@ type ListAttachmentsOptions = { userId: UUID; limit: number } & (
   | { offset: number }
 );
 
+type AttachmentsSanitizeTask = {
+  userId: UUID;
+  createdAt: Date;
+};
+
+type AttachmentsStats = {
+  total: number;
+  sanitized: number;
+};
+
 export class DbAdapter {
   constructor(connection: Knex);
 
@@ -126,6 +136,11 @@ export class DbAdapter {
   getAttachmentById(id: UUID): Promise<Attachment | null>;
   getPostAttachments(id: UUID): Promise<UUID[]>;
   listAttachments(options: ListAttachmentsOptions): Promise<Attachment[]>;
+  createAttachmentsSanitizeTask(userId: UUID): Promise<AttachmentsSanitizeTask>;
+  getAttachmentsSanitizeTask(userId: UUID): Promise<Nullable<AttachmentsSanitizeTask>>;
+  deleteAttachmentsSanitizeTask(userId: UUID): Promise<void>;
+  getNonSanitizedAttachments(userId: UUID, limit: number): Promise<Attachment[]>;
+  getAttachmentsStats(userId: UUID): Promise<AttachmentsStats>;
 
   // Timelines
   getTimelinesByIds(ids: UUID[]): Promise<Timeline[]>;

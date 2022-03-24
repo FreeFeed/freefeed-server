@@ -1,6 +1,7 @@
 import validator from 'validator';
 
 import { Attachment } from '../../models';
+import { SANITIZE_VERSION } from '../sanitize-media';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -47,14 +48,19 @@ const attachmentsTrait = (superClass) =>
       return rows.map(initAttachmentObject);
     }
 
-    updateAttachment(attachmentId, payload) {
+    async updateAttachment(attachmentId, payload) {
       const preparedPayload = prepareModelPayload(
         payload,
         ATTACHMENT_COLUMNS,
         ATTACHMENT_COLUMNS_MAPPING,
       );
 
-      return this.database('attachments').where('uid', attachmentId).update(preparedPayload);
+      const [row] = await this.database('attachments')
+        .where('uid', attachmentId)
+        .update(preparedPayload)
+        .returning('*');
+
+      return initAttachmentObject(row);
     }
 
     async deleteAttachment(id) {
@@ -93,11 +99,71 @@ const attachmentsTrait = (superClass) =>
         .where('post_id', postId);
       return responses.map(initAttachmentObject);
     }
+
+    async createAttachmentsSanitizeTask(userId) {
+      const row = await this.database.getRow(
+        `insert into attachments_sanitize_task (user_id) values (:userId)
+        on conflict (user_id) do 
+        -- update row for the 'returning' statement
+        update set user_id = excluded.user_id
+        returning *`,
+        { userId },
+      );
+      return initSanitizeTaskObject(row);
+    }
+
+    async deleteAttachmentsSanitizeTask(userId) {
+      await this.database.raw(`delete from attachments_sanitize_task where user_id = :userId`, {
+        userId,
+      });
+    }
+
+    async getAttachmentsSanitizeTask(userId) {
+      const row = await this.database.getRow(
+        `select * from attachments_sanitize_task where user_id = :userId`,
+        { userId },
+      );
+      return initSanitizeTaskObject(row);
+    }
+
+    async getNonSanitizedAttachments(userId, limit) {
+      const rows = await this.database.getAll(
+        `select * from attachments where 
+            user_id = :userId and sanitized <> :sanVersion 
+            order by created_at limit :limit`,
+        { userId, sanVersion: SANITIZE_VERSION, limit },
+      );
+      return rows.map(initAttachmentObject);
+    }
+
+    async getAttachmentsStats(userId) {
+      const rows = await this.database.getAll(
+        `select sanitized, count(*)::int from attachments where user_id = :userId group by sanitized`,
+        { userId },
+      );
+      return {
+        total: rows.reduce((sum, row) => sum + row.count, 0),
+        sanitized: rows
+          .filter((row) => row.sanitized === SANITIZE_VERSION)
+          .reduce((sum, row) => sum + row.count, 0),
+      };
+    }
   };
 
 export default attachmentsTrait;
 
 ///////////////////////////////////////////////////
+
+function initSanitizeTaskObject(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    userId: row.user_id,
+    createdAt: new Date(row.created_at),
+  };
+}
 
 export function initAttachmentObject(attrs) {
   if (!attrs) {
@@ -132,6 +198,10 @@ const ATTACHMENT_COLUMNS_MAPPING = {
     return d.toISOString();
   },
   updatedAt: (timestamp) => {
+    if (timestamp === 'now') {
+      return timestamp;
+    }
+
     const d = new Date();
     d.setTime(timestamp);
     return d.toISOString();

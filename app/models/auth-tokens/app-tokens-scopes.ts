@@ -73,7 +73,7 @@ export const appTokensScopes = [
   {
     name: 'read-my-files',
     title: 'Read information about my uploaded files',
-    routes: ['GET /v2/attachments/my'],
+    routes: ['GET /v2/attachments/my', 'GET /v2/attachments/my/stats'],
   },
   {
     name: 'read-feeds',
@@ -117,6 +117,11 @@ export const appTokensScopes = [
     name: 'read-realtime',
     title: 'Read realtime messages',
     routes: ['WS *'],
+  },
+  {
+    name: 'manage-my-files',
+    title: 'Update my uploaded files',
+    routes: ['POST /v2/attachments/my/sanitize'],
   },
   {
     name: 'manage-notifications',

@@ -4,11 +4,21 @@ import fs from 'fs';
 import path from 'path';
 
 import FormData from 'form-data';
-import expect from 'unexpected';
+import unexpected from 'unexpected';
+import unexpectedDate from 'unexpected-date';
 
 import cleanDB from '../dbCleaner';
+import { dbAdapter } from '../../app/models';
+import { initJobProcessing } from '../../app/jobs';
 
-import { createTestUser, performJSONRequest, authHeaders } from './functional_test_helper';
+import {
+  createTestUser,
+  updateUserAsync,
+  performJSONRequest,
+  authHeaders,
+} from './functional_test_helper';
+
+const expect = unexpected.clone().use(unexpectedDate);
 
 describe('Attachments', () => {
   let luna;
@@ -155,6 +165,125 @@ describe('Attachments', () => {
         authHeaders(mars),
       );
       expect(resp, 'to satisfy', { __httpCode: 422 });
+    });
+  });
+
+  describe('Attachments stats', () => {
+    let mars;
+    before(async () => {
+      mars = await createTestUser('mars1');
+
+      for (let i = 0; i < 10; i++) {
+        const data = new FormData();
+        data.append('file', Buffer.from('this is a test'), {
+          filename: `test${i + 1}.txt`,
+          contentType: 'text/plain',
+        });
+        // eslint-disable-next-line no-await-in-loop
+        await performJSONRequest('POST', '/v1/attachments', data, authHeaders(mars));
+      }
+    });
+
+    it(`should not return attachments stats for anonymous`, async () => {
+      const resp = await performJSONRequest('GET', '/v2/attachments/my/stats');
+      expect(resp, 'to satisfy', { __httpCode: 401 });
+    });
+
+    it(`should return attachments stats for Mars`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my/stats',
+        null,
+        authHeaders(mars),
+      );
+      expect(resp, 'to equal', {
+        attachments: { total: 10, sanitized: 10 },
+        sanitizeTask: null,
+        __httpCode: 200,
+      });
+    });
+  });
+
+  describe('Attachments batch sanitizing', () => {
+    let jobManager;
+    before(async () => {
+      await cleanDB($pg_database);
+      luna = await createTestUser('luna');
+      await updateUserAsync(luna, { preferences: { sanitizeMediaMetadata: false } });
+
+      for (let i = 0; i < 10; i++) {
+        const data = new FormData();
+        data.append('file', Buffer.from('this is a test'), {
+          filename: `test${i + 1}.txt`,
+          contentType: 'text/plain',
+        });
+        // eslint-disable-next-line no-await-in-loop
+        await performJSONRequest('POST', '/v1/attachments', data, authHeaders(luna));
+      }
+
+      jobManager = await initJobProcessing();
+    });
+
+    it(`should start sanitize task`, async () => {
+      const now = await dbAdapter.now();
+      const resp = await performJSONRequest(
+        'POST',
+        '/v2/attachments/my/sanitize',
+        {},
+        authHeaders(luna),
+      );
+
+      expect(resp, 'to satisfy', {
+        sanitizeTask: { createdAt: expect.it('to be a string') },
+        __httpCode: 200,
+      });
+      expect(new Date(resp.sanitizeTask.createdAt), 'to be close to', now);
+    });
+
+    it(`should return stats with the started task`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my/stats',
+        null,
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        attachments: { total: 10, sanitized: 0 },
+        sanitizeTask: { createdAt: expect.it('to be a string') },
+        __httpCode: 200,
+      });
+    });
+
+    it(`should execute task`, async () => {
+      await jobManager.fetchAndProcess();
+
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my/stats',
+        null,
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        attachments: { total: 10, sanitized: 10 },
+        sanitizeTask: { createdAt: expect.it('to be a string') },
+        __httpCode: 200,
+      });
+    });
+
+    it(`should finish task`, async () => {
+      await jobManager.fetchAndProcess();
+
+      const resp = await performJSONRequest(
+        'GET',
+        '/v2/attachments/my/stats',
+        null,
+        authHeaders(luna),
+      );
+      expect(resp, 'to satisfy', {
+        attachments: { total: 10, sanitized: 10 },
+        sanitizeTask: null,
+        __httpCode: 200,
+      });
     });
   });
 });

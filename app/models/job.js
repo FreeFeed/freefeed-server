@@ -6,6 +6,8 @@ const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:jobs:debug');
 const debugError = createDebug('freefeed:jobs:errors');
 
+export const KEEP_JOB = Symbol('KEEP_JOB');
+
 export function addJobModel(dbAdapter) {
   return class Job {
     id;
@@ -25,7 +27,8 @@ export function addJobModel(dbAdapter) {
     }
 
     /**
-     * Create and place a new job
+     * Create and place a new job. If the job with the given name and unique key
+     * already exists, return it with updated payload and unlock time.
      *
      * @param {string} name
      * @param {any} payload
@@ -42,6 +45,7 @@ export function addJobModel(dbAdapter) {
     }
 
     /**
+     * @param {Date | number} [unlockAt]
      * @returns {Promise<void>}
      */
     async setUnlockAt(unlockAt = 0) {
@@ -51,22 +55,13 @@ export function addJobModel(dbAdapter) {
     }
 
     /**
-     * Delete job. The job handler must call this method when the job is
-     * processed.
+     * Delete job. The JobManager calls this method automatically when the job
+     * is processed without errors. To keep job alive, return the KEEP_JOB from
+     * the job handler.
      * @returns {Promise<void>}
      */
     delete() {
       return dbAdapter.deleteJob(this.id);
-    }
-
-    /**
-     * Create a new job with the same properties as this but with a new unlockAt
-     * time.
-     *
-     * @returns {Promise<Job>}
-     */
-    clone(unlockAt = 0) {
-      return Job.create(this.name, this.payload, { uniqKey: this.uniqKey, unlockAt });
     }
   };
 }
@@ -178,8 +173,11 @@ export function addJobManagerModel(dbAdapter) {
 
     _process = async (job) => {
       try {
-        await this._getHandler()(job);
-        await job.delete();
+        const result = await this._getHandler()(job);
+
+        if (result !== KEEP_JOB) {
+          await job.delete();
+        }
       } catch (err) {
         debugError(`error processing job '${job.name}'`, err, job);
 
@@ -194,11 +192,13 @@ export function addJobManagerModel(dbAdapter) {
 }
 
 /**
+ * @param {Date | number} unlockAt
+ *
  * unlockAt can be:
  * - Date object (will be interpreted as a DB server time)
  * - number (of seconds from now)
  */
-function _checkUnlockAtType(unlockAt = null) {
+function _checkUnlockAtType(unlockAt) {
   if (!(unlockAt instanceof Date) && !Number.isFinite(unlockAt)) {
     throw new Error('Invalid type of unlockAt parameter');
   }

@@ -6,6 +6,7 @@ export function getS3(storageConfig) {
   const s3Config = {
     accessKeyId: storageConfig.accessKeyId || null,
     secretAccessKey: storageConfig.secretAccessKey || null,
+    ...storageConfig.s3ConfigOptions,
   };
 
   if ('endpoint' in storageConfig) {
