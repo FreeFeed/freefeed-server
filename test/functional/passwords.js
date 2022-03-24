@@ -153,9 +153,11 @@ describe('PasswordsController', () => {
       const resp = await performJSONRequest('POST', '/v1/passwords', { email });
       expect(resp, 'to satisfy', { __httpCode: 200 });
 
-      const age = await dbAdapter.database.getOne(
-        'select extract(epoch from reset_password_expires_at - reset_password_sent_at) from users where uid = ?',
-        luna.user.id,
+      const age = parseInt(
+        await dbAdapter.database.getOne(
+          'select extract(epoch from reset_password_expires_at - reset_password_sent_at) from users where uid = ?',
+          luna.user.id,
+        ),
       );
 
       expect(age, 'to be', config.passwordReset.tokenTTL);
