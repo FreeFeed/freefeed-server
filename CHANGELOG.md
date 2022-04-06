@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.108.0] - Not Released
+### Added
+- The ability to override user preference defaults based on user's creation
+  time. It allows changing the default values for new users if needed.
+
+### Changed
+- The user preference defaults are now defined in configuration.
 
 ## [1.107.0] - 2022-03-24
 ### Added
