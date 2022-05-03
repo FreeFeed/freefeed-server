@@ -204,7 +204,7 @@ describe('Attachments', () => {
     });
   });
 
-  describe('Attachments batch sanitizing', () => {
+  xdescribe('Attachments batch sanitizing', () => {
     let jobManager;
     before(async () => {
       await cleanDB($pg_database);
