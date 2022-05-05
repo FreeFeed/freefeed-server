@@ -310,6 +310,8 @@ config.goneUsers = {
 config.jobManager = {
   pollInterval: 5, // in seconds
   jobLockTime: 120, // in seconds
+  maxJobLockTime: 1800, // in seconds
+  jobLockTimeMultiplier: 1.2,
   batchSize: 5,
 };
 

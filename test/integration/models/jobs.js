@@ -242,6 +242,22 @@ describe('Jobs', () => {
         });
       });
 
+      it(`should extend unlock time for failed job`, async () => {
+        const job = await Job.create('job');
+        await jm.fetchAndProcess();
+        await dbAdapter.database.raw(`update jobs set unlock_at = now() where id = ?`, job.id);
+        const [[job1], now] = await Promise.all([jm.fetchAndProcess(), dbAdapter.now()]);
+
+        expect(job1, 'to satisfy', {
+          id: job.id,
+          attempts: 2,
+          unlockAt: expect.it(
+            'to be close to',
+            new Date(now.getTime() + jm.jobLockTime * jm.jobLockTimeMultiplier * 1000),
+          ),
+        });
+      });
+
       describe(`Middlewares`, () => {
         it(`should wrap handler by middlewares`, async () => {
           const calls = [];

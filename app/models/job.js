@@ -70,19 +70,23 @@ export function addJobManagerModel(dbAdapter) {
   return class JobManager {
     pollInterval;
     jobLockTime;
+    maxJobLockTime;
+    jobLockTimeMultiplier;
     batchSize;
 
     _pollTimer = null;
     _handlers = new Map();
 
-    constructor({
-      pollInterval = 5, // 5 sec
-      jobLockTime = 120, // 2 min
-      batchSize = 5,
-    } = {}) {
-      this.pollInterval = pollInterval;
-      this.jobLockTime = jobLockTime;
-      this.batchSize = batchSize;
+    /**
+     * @param {Partial<typeof config.jobManager>} [props]
+     */
+    constructor(props = {}) {
+      props = { ...config.jobManager, ...props };
+      this.pollInterval = props.pollInterval;
+      this.jobLockTime = props.jobLockTime;
+      this.maxJobLockTime = props.maxJobLockTime;
+      this.jobLockTimeMultiplier = props.jobLockTimeMultiplier;
+      this.batchSize = props.batchSize;
     }
 
     /**
@@ -185,7 +189,12 @@ export function addJobManagerModel(dbAdapter) {
           Raven.captureException(err, { extra: { err: `error processing job '${job.name}'` } });
         }
 
-        await job.setUnlockAt(this.jobLockTime * job.attempts ** 1.5);
+        await job.setUnlockAt(
+          Math.min(
+            this.jobLockTime * this.jobLockTimeMultiplier ** (job.attempts - 1),
+            this.maxJobLockTime,
+          ),
+        );
       }
     };
   };
