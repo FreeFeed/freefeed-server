@@ -2,7 +2,7 @@ import createDebug from 'debug';
 import { DateTime } from 'luxon';
 import Raven from 'raven';
 
-import { dbAdapter, Job, JobManager, KEEP_JOB, type User } from '../models';
+import { dbAdapter, Job, JobManager, type User } from '../models';
 import { forEachAsync } from '../support/forEachAsync';
 import { UUID } from '../support/types';
 
@@ -30,7 +30,7 @@ export function initHandlers(jobManager: JobManager) {
     if (attachments.length === 0) {
       // Nothing to do
       await dbAdapter.deleteAttachmentsSanitizeTask(userId);
-      return null;
+      return;
     }
 
     await forEachAsync(attachments, async (att) => {
@@ -49,7 +49,6 @@ export function initHandlers(jobManager: JobManager) {
     });
 
     // Repeat this job
-    await job.setUnlockAt(0);
-    return KEEP_JOB;
+    await job.keep(0);
   });
 }
