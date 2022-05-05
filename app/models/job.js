@@ -6,7 +6,7 @@ const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:jobs:debug');
 const debugError = createDebug('freefeed:jobs:errors');
 
-export const KEEP_JOB = Symbol('KEEP_JOB');
+const KEPT = Symbol('KEEP');
 
 export function addJobModel(dbAdapter) {
   return class Job {
@@ -16,7 +16,9 @@ export function addJobModel(dbAdapter) {
     name;
     payload;
     attempts;
+    failures;
     uniqKey;
+    [KEPT] = false;
 
     constructor(params) {
       for (const f of Object.keys(this)) {
@@ -46,18 +48,29 @@ export function addJobModel(dbAdapter) {
 
     /**
      * @param {Date | number} [unlockAt]
+     * @param {boolean | null} [failure] - increment failures counter if true, reset it if false
      * @returns {Promise<void>}
      */
-    async setUnlockAt(unlockAt = 0) {
+    async setUnlockAt(unlockAt = 0, failure = null) {
       _checkUnlockAtType(unlockAt);
-      const modified = await dbAdapter.setJobUnlockAt(this.id, unlockAt);
+      const modified = await dbAdapter.updateJob(this.id, { unlockAt, failure });
       this.unlockAt = modified.unlockAt;
+      this.failures = modified.failures;
+    }
+
+    async keep(unlockAt = 0) {
+      await this.setUnlockAt(unlockAt, false);
+      this[KEPT] = true;
+    }
+
+    get kept() {
+      return this[KEPT];
     }
 
     /**
      * Delete job. The JobManager calls this method automatically when the job
-     * is processed without errors. To keep job alive, return the KEEP_JOB from
-     * the job handler.
+     * is processed without errors. To keep job alive, call job.keep() at the
+     * end of the job handler.
      * @returns {Promise<void>}
      */
     delete() {
@@ -70,19 +83,23 @@ export function addJobManagerModel(dbAdapter) {
   return class JobManager {
     pollInterval;
     jobLockTime;
+    maxJobLockTime;
+    jobLockTimeMultiplier;
     batchSize;
 
     _pollTimer = null;
     _handlers = new Map();
 
-    constructor({
-      pollInterval = 5, // 5 sec
-      jobLockTime = 120, // 2 min
-      batchSize = 5,
-    } = {}) {
-      this.pollInterval = pollInterval;
-      this.jobLockTime = jobLockTime;
-      this.batchSize = batchSize;
+    /**
+     * @param {Partial<typeof config.jobManager>} [props]
+     */
+    constructor(props = {}) {
+      props = { ...config.jobManager, ...props };
+      this.pollInterval = props.pollInterval;
+      this.jobLockTime = props.jobLockTime;
+      this.maxJobLockTime = props.maxJobLockTime;
+      this.jobLockTimeMultiplier = props.jobLockTimeMultiplier;
+      this.batchSize = props.batchSize;
     }
 
     /**
@@ -173,9 +190,9 @@ export function addJobManagerModel(dbAdapter) {
 
     _process = async (job) => {
       try {
-        const result = await this._getHandler()(job);
+        await this._getHandler()(job);
 
-        if (result !== KEEP_JOB) {
+        if (!job.kept) {
           await job.delete();
         }
       } catch (err) {
@@ -185,7 +202,13 @@ export function addJobManagerModel(dbAdapter) {
           Raven.captureException(err, { extra: { err: `error processing job '${job.name}'` } });
         }
 
-        await job.setUnlockAt(this.jobLockTime * job.attempts ** 1.5);
+        await job.setUnlockAt(
+          Math.min(
+            this.jobLockTime * this.jobLockTimeMultiplier ** job.failures,
+            this.maxJobLockTime,
+          ),
+          true,
+        );
       }
     };
   };

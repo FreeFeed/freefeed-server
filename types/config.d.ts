@@ -68,6 +68,14 @@ declare module 'config' {
       tokenBytesLength: number;
       tokenTTL: number;
     };
+
+    jobManager: {
+      pollInterval: number;
+      jobLockTime: number;
+      maxJobLockTime: number;
+      jobLockTimeMultiplier: number;
+      batchSize: number;
+    };
   };
 
   const c: Config;
