@@ -3,7 +3,6 @@ import { DateTime } from 'luxon';
 import Raven from 'raven';
 
 import { dbAdapter, Job, JobManager, type User } from '../models';
-import { forEachAsync } from '../support/forEachAsync';
 import { UUID } from '../support/types';
 
 const debug = createDebug('freefeed:model:attachment');
@@ -22,6 +21,28 @@ export function initHandlers(jobManager: JobManager) {
   jobManager.on(ATTACHMENTS_SANITIZE, async (job: Job<{ userId: UUID }>) => {
     const { userId } = job.payload;
 
+    // Check if this job is stuck
+    {
+      const { total: totalAttachments } = await dbAdapter.getAttachmentsStats(userId);
+      const estJobRuns = totalAttachments / batchSize;
+
+      if (job.attempts > estJobRuns * 2) {
+        debug(
+          `${ATTACHMENTS_SANITIZE}: the job is stuck for user ${userId} (${job.attempts} attempts)`,
+        );
+        Raven.captureException(
+          new Error(
+            `${ATTACHMENTS_SANITIZE}: the job is stuck for user ${userId} (${job.attempts} attempts)`,
+          ),
+        );
+
+        await dbAdapter.deleteAttachmentsSanitizeTask(userId);
+
+        // Don't keep it
+        return;
+      }
+    }
+
     await job.setUnlockAt(maxTTL * 1.5);
     const workUntil = DateTime.local().plus({ seconds: maxTTL }).toJSDate();
 
@@ -33,20 +54,14 @@ export function initHandlers(jobManager: JobManager) {
       return;
     }
 
-    await forEachAsync(attachments, async (att) => {
+    for (const att of attachments) {
       if (new Date() > workUntil) {
-        return;
+        break;
       }
 
-      try {
-        await att.sanitizeOriginal();
-      } catch (err) {
-        debug(`${ATTACHMENTS_SANITIZE}: cannot sanitize attachment ${att.id}: ${err}`);
-        Raven.captureException(err as Error, {
-          extra: { err: `${ATTACHMENTS_SANITIZE}: cannot sanitize attachment: ${att.id}` },
-        });
-      }
-    });
+      // eslint-disable-next-line no-await-in-loop
+      await att.sanitizeOriginal();
+    }
 
     // Repeat this job
     await job.keep(0);
