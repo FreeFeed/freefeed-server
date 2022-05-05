@@ -6,12 +6,12 @@ import { JobManager } from '../models';
 
 import { initHandlers as initPeriodicHandlers } from './periodic';
 import { initHandlers as initUserGoneHandlers } from './user-gone';
-// import { initHandlers as initAttachmentsSanitizeHandlers } from './attachments-sanitize';
+import { initHandlers as initAttachmentsSanitizeHandlers } from './attachments-sanitize';
 
 export async function initJobProcessing(app) {
   const jobManager = new JobManager(config.jobManager);
   await Promise.all(
-    [initPeriodicHandlers, initUserGoneHandlers /* , initAttachmentsSanitizeHandlers*/].map((h) =>
+    [initPeriodicHandlers, initUserGoneHandlers, initAttachmentsSanitizeHandlers].map((h) =>
       h(jobManager, app),
     ),
   );
