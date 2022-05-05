@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.108.0] - Not Released
+## [1.108.1] - 2022-05-03
+### Changed
+- Temporary turned off the batch attachments sanitize job handler 
+
+## [1.108.0] - 2022-04-20
+
+Technical release. Updated dependencies
 
 ## [1.107.0] - 2022-03-24
 ### Added
