@@ -1114,7 +1114,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/luxon@npm:^2.0.9":
+"@types/luxon@npm:^2.3.1":
   version: 2.3.2
   resolution: "@types/luxon@npm:2.3.2"
   checksum: b9fe79118681f4bb9f2e37696a7df992a82683ba4448e7ad1af8cc241443ffc64ef08fdeaad749de9e6259b42b0d4b6540d7e880bca39bb504e0f3863d503c98
@@ -1986,10 +1986,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"batch-cluster@npm:^8.1.0":
-  version: 8.1.0
-  resolution: "batch-cluster@npm:8.1.0"
-  checksum: 0678b46abea8303b813ed574979fffaff4b6e040952b87f455797f26012d01cab6ba5293d279c8868ffcf739023e504a1b30555a58c2dbd5ce11d2e4f2c0483f
+"batch-cluster@npm:^10.4.1":
+  version: 10.4.2
+  resolution: "batch-cluster@npm:10.4.2"
+  checksum: 9e16e0e1fb4b36528064f8df3e5ef6db0906dd2b54dd1775f7c5cc5e7f457af247f6fa027648236b3553c231e1945e7722f4cd733493b4486ff0dba4f26fc499
   languageName: node
   linkType: hard
 
@@ -4310,37 +4310,37 @@ __metadata:
   languageName: node
   linkType: hard
 
-"exiftool-vendored.exe@npm:12.39.0":
-  version: 12.39.0
-  resolution: "exiftool-vendored.exe@npm:12.39.0"
+"exiftool-vendored.exe@npm:12.41.0":
+  version: 12.41.0
+  resolution: "exiftool-vendored.exe@npm:12.41.0"
   conditions: os=win32
   languageName: node
   linkType: hard
 
-"exiftool-vendored.pl@npm:12.39.0":
-  version: 12.39.0
-  resolution: "exiftool-vendored.pl@npm:12.39.0"
+"exiftool-vendored.pl@npm:12.41.0":
+  version: 12.41.0
+  resolution: "exiftool-vendored.pl@npm:12.41.0"
   conditions: "!os=win32"
   languageName: node
   linkType: hard
 
-"exiftool-vendored@npm:~15.10.1":
-  version: 15.10.1
-  resolution: "exiftool-vendored@npm:15.10.1"
+"exiftool-vendored@npm:~16.4.0":
+  version: 16.4.0
+  resolution: "exiftool-vendored@npm:16.4.0"
   dependencies:
-    "@types/luxon": ^2.0.9
-    batch-cluster: ^8.1.0
-    exiftool-vendored.exe: 12.39.0
-    exiftool-vendored.pl: 12.39.0
+    "@types/luxon": ^2.3.1
+    batch-cluster: ^10.4.1
+    exiftool-vendored.exe: 12.41.0
+    exiftool-vendored.pl: 12.41.0
     he: ^1.2.0
-    luxon: ^2.3.0
+    luxon: ^2.3.2
     tz-lookup: ^6.1.25
   dependenciesMeta:
     exiftool-vendored.exe:
       optional: true
     exiftool-vendored.pl:
       optional: true
-  checksum: ddab9252e5b6454d5eb99aa94c7d556f16ea5db13e51b01461cfb774451b9db199bbf32cd7370693de21f21ef2eb6198bf4de0dff7d2f1e69c04e75712328415
+  checksum: 3dc5e7f83329d3fd2ec04aee24437f3961052b7dd4c41bca47277f0ee1160de3ba14c3faa2881727034246dfd26da0aca343e623a32ad6f37e5d00f15d7b1da4
   languageName: node
   linkType: hard
 
@@ -4941,7 +4941,7 @@ __metadata:
     eslint-plugin-prettier: ~4.0.0
     eslint-plugin-promise: ~6.0.0
     eslint-plugin-you-dont-need-lodash-underscore: ~6.12.0
-    exiftool-vendored: ~15.10.1
+    exiftool-vendored: ~16.4.0
     ff-url-finder: ~2.3.7
     file-type: ~16.5.3
     form-data: ~4.0.0
@@ -7384,7 +7384,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"luxon@npm:^2.3.0":
+"luxon@npm:^2.3.2":
   version: 2.3.2
   resolution: "luxon@npm:2.3.2"
   checksum: ba4f9daa56d03771c2ddf00e3bf996ec7937badfdc2f85f5b58d63c75bb511369b3316f54ab9ce5ab42bfc9118513971f6599128529b68620b876a4b7c16570b
