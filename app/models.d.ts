@@ -33,6 +33,8 @@ export class User {
   getPostsTimeline(): Promise<Timeline | null>;
   getPostsTimelineId(): Promise<UUID | null>;
   getDirectsTimeline(): Promise<Timeline | null>;
+  isValidEmail(): Promise<boolean>;
+  static validateEmail(): Promise<void>;
 }
 
 export class Group {

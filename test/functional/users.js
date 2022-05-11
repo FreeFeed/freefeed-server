@@ -241,7 +241,7 @@ describe('UsersController', () => {
           res.should.not.be.empty;
           res.body.err.should.not.be.empty;
           err.response.error.should.have.property('text');
-          JSON.parse(err.response.error.text).err.should.eql('Invalid email');
+          JSON.parse(err.response.error.text).err.should.eql('Invalid email format');
           done();
         });
     });
@@ -294,7 +294,7 @@ describe('UsersController', () => {
       };
 
       const response = await funcTestHelper.createUserAsyncPost(user);
-      response.status.should.equal(500);
+      response.status.should.equal(422);
 
       const data = await response.json();
       data.should.have.property('err');
@@ -309,7 +309,7 @@ describe('UsersController', () => {
       };
 
       const response = await funcTestHelper.createUserAsyncPost(user);
-      response.status.should.equal(500);
+      response.status.should.equal(422);
 
       const data = await response.json();
       data.should.have.property('err');
@@ -981,7 +981,7 @@ describe('UsersController', () => {
             })
             .end((err) => {
               err.should.not.be.empty;
-              err.status.should.eql(500);
+              err.status.should.eql(422);
               done();
             });
         });
@@ -1034,9 +1034,11 @@ describe('UsersController', () => {
         funcTestHelper.updateUserCtx(lunaContext, { email: marsContext.attributes.email })(
           (err) => {
             $should.exist(err);
-            err.status.should.eql(500);
+            err.status.should.eql(422);
             err.response.error.should.have.property('text');
-            JSON.parse(err.response.error.text).err.should.eql('Invalid email');
+            JSON.parse(err.response.error.text).err.should.eql(
+              'This email address is already in use',
+            );
             done();
           },
         );
@@ -1316,7 +1318,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty;
-          err.status.should.eql(500);
+          err.status.should.eql(422);
           err.response.error.should.have.property('text');
           JSON.parse(err.response.error.text).err.should.eql('Passwords do not match');
           done();
@@ -1337,7 +1339,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty;
-          err.status.should.eql(500);
+          err.status.should.eql(422);
           err.response.error.should.have.property('text');
           JSON.parse(err.response.error.text).err.should.eql('Password cannot be blank');
           done();
@@ -1358,7 +1360,7 @@ describe('UsersController', () => {
         })
         .end((err) => {
           err.should.not.be.empty;
-          err.status.should.eql(500);
+          err.status.should.eql(403);
           err.response.error.should.have.property('text');
           JSON.parse(err.response.error.text).err.should.eql('Your old password is not valid');
           done();
