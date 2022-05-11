@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Ignore minor exif-errors while sanitizing images.
 - Skip files which can not be sanitized because if errors after and report the errors.
+- In the case of registration with an already taken email, return 'This email
+  address is already in use' message instead of obscure 'Invalid email'.
 
 ## [1.108.1] - 2022-05-03
 ### Changed

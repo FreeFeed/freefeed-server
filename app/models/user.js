@@ -249,28 +249,34 @@ export function addModel(dbAdapter) {
       return bcrypt.compare(clearPassword, this.hashedPassword);
     }
 
-    isValidEmail() {
-      return User.emailIsValid(this.email);
+    /**
+     * @return {Promise<boolean>}
+     */
+    async isValidEmail() {
+      try {
+        await User.validateEmail(this.email);
+        return true;
+      } catch {
+        return false;
+      }
     }
 
-    static async emailIsValid(email) {
+    static async validateEmail(email) {
       // email is optional
       if (!email || email.length == 0) {
-        return true;
+        return;
       }
 
       if (!validator.isEmail(email)) {
-        return false;
+        throw new ValidationException('Invalid email format');
       }
 
       const exists = await dbAdapter.existsUserEmail(email);
 
       if (exists) {
         // email is taken
-        return false;
+        throw new ValidationException('This email address is already in use');
       }
-
-      return true;
     }
 
     isValidUsername(skip_stoplist) {
@@ -337,21 +343,19 @@ export function addModel(dbAdapter) {
 
     async validate(skip_stoplist) {
       if (!this.isValidUsername(skip_stoplist)) {
-        throw new Error('Invalid username');
+        throw new ValidationException('Invalid username');
       }
 
       if (!this.isValidScreenName()) {
-        throw new Error(
+        throw new ValidationException(
           `"${this.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
         );
       }
 
-      if (!(await this.isValidEmail())) {
-        throw new Error('Invalid email');
-      }
+      await User.validateEmail(this.email);
 
       if (!this.isValidDescription()) {
-        throw new Error('Description is too long');
+        throw new ValidationException('Description is too long');
       }
     }
 
@@ -359,7 +363,7 @@ export function addModel(dbAdapter) {
       const res = await dbAdapter.existsUsername(this.username);
 
       if (res !== 0) {
-        throw new Error('Already exists');
+        throw new ValidationException('Already exists');
       }
     }
 
@@ -380,7 +384,7 @@ export function addModel(dbAdapter) {
 
       if (this.plaintextPassword !== null) {
         if (this.plaintextPassword.length === 0) {
-          throw new Error('Password cannot be blank');
+          throw new ValidationException('Password cannot be blank');
         }
 
         this.hashedPassword = await bcrypt.hash(this.plaintextPassword, 10);
@@ -425,7 +429,7 @@ export function addModel(dbAdapter) {
 
       if (params.hasOwnProperty('screenName') && params.screenName != this.screenName) {
         if (!this.screenNameIsValid(params.screenName)) {
-          throw new Error(
+          throw new ValidationException(
             `"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
           );
         }
@@ -434,17 +438,14 @@ export function addModel(dbAdapter) {
       }
 
       if (params.hasOwnProperty('email') && params.email != this.email) {
-        if (!(await User.emailIsValid(params.email))) {
-          throw new Error('Invalid email');
-        }
-
+        await User.validateEmail(params.email);
         payload.email = params.email;
       }
 
       if (params.hasOwnProperty('isPrivate') && params.isPrivate != this.isPrivate) {
         if (params.isPrivate != '0' && params.isPrivate != '1') {
           // ???
-          throw new Error('bad input');
+          throw new ValidationException('bad input');
         }
 
         payload.isPrivate = params.isPrivate;
@@ -465,7 +466,7 @@ export function addModel(dbAdapter) {
 
       if (params.hasOwnProperty('description') && params.description != this.description) {
         if (!User.descriptionIsValid(params.description)) {
-          throw new Error('Description is too long');
+          throw new ValidationException('Description is too long');
         }
 
         payload.description = params.description;
@@ -563,11 +564,11 @@ export function addModel(dbAdapter) {
 
     async updatePassword(password, passwordConfirmation) {
       if (password.length === 0) {
-        throw new Error('Password cannot be blank');
+        throw new ValidationException('Password cannot be blank');
       }
 
       if (password !== passwordConfirmation) {
-        throw new Error('Passwords do not match');
+        throw new ValidationException('Passwords do not match');
       }
 
       const updatedAt = new Date().getTime();

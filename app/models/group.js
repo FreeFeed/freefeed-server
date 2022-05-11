@@ -1,5 +1,5 @@
 import { User, PubSub as pubSub } from '../models';
-import { ForbiddenException } from '../support/exceptions';
+import { ForbiddenException, ValidationException } from '../support/exceptions';
 
 export function addModel(dbAdapter) {
   return class Group extends User {
@@ -34,17 +34,17 @@ export function addModel(dbAdapter) {
 
     validate(skip_stoplist) {
       if (!this.isValidUsername(skip_stoplist)) {
-        throw new Error('Invalid username');
+        throw new ValidationException('Invalid username');
       }
 
       if (!this.isValidScreenName()) {
-        throw new Error(
+        throw new ValidationException(
           `"${this.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
         );
       }
 
       if (!this.isValidDescription()) {
-        throw new Error('Description is too long');
+        throw new ValidationException('Description is too long');
       }
     }
 
@@ -83,7 +83,7 @@ export function addModel(dbAdapter) {
 
       if (params.hasOwnProperty('screenName') && this.screenName != params.screenName) {
         if (!this.screenNameIsValid(params.screenName)) {
-          throw new Error(
+          throw new ValidationException(
             `"${params.screenName}" is not a valid display name. Names must be between 3 and 25 characters long.`,
           );
         }
@@ -94,7 +94,7 @@ export function addModel(dbAdapter) {
 
       if (params.hasOwnProperty('description') && params.description != this.description) {
         if (!User.descriptionIsValid(params.description)) {
-          throw new Error('Description is too long');
+          throw new ValidationException('Description is too long');
         }
 
         this.description = params.description;
