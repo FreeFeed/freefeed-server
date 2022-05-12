@@ -1178,10 +1178,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:~12.12.70":
-  version: 12.12.70
-  resolution: "@types/node@npm:12.12.70"
-  checksum: 69c193e0bce8fa914d478f829bd923ee662b220e069a2e00ffbe109f27d0b38fbf2a9fe78c99eb4d4ccb294248ff8de68019a2c7fadb032d301c6feca25f3d22
+"@types/node@npm:~14.18.17":
+  version: 14.18.17
+  resolution: "@types/node@npm:14.18.17"
+  checksum: 39c1647c10dba23d338a9d76b90b814a86275f047beb856a2f85536f3c061a7232ff7b8691e85800a82f2e3670976aa29635c84344690052cf03272476198adb
   languageName: node
   linkType: hard
 
@@ -4915,7 +4915,7 @@ __metadata:
     "@types/lodash": ~4.14.182
     "@types/mocha": ~9.1.1
     "@types/n3": ~1.10.4
-    "@types/node": ~12.12.70
+    "@types/node": ~14.18.17
     "@types/node-fetch": ~2.6.1
     "@types/pg": ~8.6.5
     "@types/pg-format": ~1.0.2
