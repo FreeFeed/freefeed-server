@@ -10,9 +10,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [12.x, 14.x, 15.x]
-        postgres-version: ["10.15", "11.10", "12.5", "13.1"]
-        redis-version: ["6"]
+        node-version: [14, 16, 18]
+        postgres-version: ["12.10", "13.6", "14.2"]
+        redis-version: [6, 7]
 
     services:
       db:
@@ -26,7 +26,7 @@ jobs:
 
     steps:
     - name: Start Redis v${{ matrix.redis-version }}
-      uses: supercharge/redis-github-action@1.1.0
+      uses: supercharge/redis-github-action@1.4.0
       with:
         redis-version: ${{ matrix.redis-version }}
 
@@ -35,10 +35,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install graphicsmagick
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
 
@@ -46,7 +46,7 @@ jobs:
       id: yarn-cache-dir-path
       run: echo "::set-output name=dir::$(yarn cache dir)"
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: yarn-cache
       with:
         path: ${{ steps.yarn-cache-dir-path.outputs.dir }}

@@ -1,7 +1,7 @@
 import { encode as qsEncode } from 'querystring';
 
 import { get as _get } from 'lodash';
-import fetch, { RequestInit } from 'node-fetch';
+import fetch, { type RequestInit } from 'node-fetch';
 
 import { Cache } from './Cache';
 import { Adapter, AuthStartParams, AuthFinishParams, Profile } from './Adapter';
@@ -226,7 +226,7 @@ async function fetchJSON<R>(url: string, params?: RequestInit) {
   };
 
   try {
-    respBody = await response.json();
+    respBody = (await response.json()) as R;
   } catch (e) {
     // pass
   }

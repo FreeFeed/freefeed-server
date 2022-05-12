@@ -627,7 +627,7 @@ export async function mutualSubscriptions(userContexts) {
         continue;
       }
 
-      promises.push(exports.subscribeToAsync(ctx1, ctx2));
+      promises.push(subscribeToAsync(ctx1, ctx2));
     }
   }
 

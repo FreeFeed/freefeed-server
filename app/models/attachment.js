@@ -8,7 +8,7 @@ import config from 'config';
 import createDebug from 'debug';
 import gm from 'gm';
 import { parseFile } from 'music-metadata';
-import { fromFile } from 'file-type';
+import { fileTypeFromFile } from 'file-type';
 import mime from 'mime-types';
 import mmm from 'mmmagic';
 import _ from 'lodash';
@@ -34,7 +34,7 @@ const debug = createDebug('freefeed:model:attachment');
 
 async function mimeTypeDetect(fileName, filePath) {
   // The file type is detected by checking the magic number of the buffer.
-  const info = await fromFile(filePath);
+  const info = await fileTypeFromFile(filePath);
 
   if (info && info.mime && info.mime !== 'application/octet-stream') {
     return info.mime;
