@@ -1,6 +1,7 @@
 /* eslint-env node, mocha */
 /* global $pg_database */
 import expect from 'unexpected';
+import { toPlainObject } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
 import { User, Timeline, dbAdapter } from '../../../app/models';
@@ -26,7 +27,7 @@ describe(`Multiple home feeds`, () => {
 
     it(`should return initial list of Luna's homefeeds`, async () => {
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed]);
+      expect(homefeeds, 'to equal', [mainHomeFeed]);
     });
 
     it(`should add a second and third home feeds`, async () => {
@@ -46,7 +47,11 @@ describe(`Multiple home feeds`, () => {
 
     it(`should return list of three Luna's homefeeds`, async () => {
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed, secondaryHomeFeed, tertiaryHomeFeed]);
+      expect(
+        homefeeds,
+        'to satisfy',
+        [mainHomeFeed, secondaryHomeFeed, tertiaryHomeFeed].map(toPlainObject),
+      );
     });
 
     it(`should remove the second homefeed`, async () => {
@@ -56,7 +61,7 @@ describe(`Multiple home feeds`, () => {
       expect(params, 'to satisfy', { backupFeedId: mainHomeFeed.id });
 
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed, tertiaryHomeFeed]);
+      expect(homefeeds, 'to satisfy', [mainHomeFeed, tertiaryHomeFeed].map(toPlainObject));
     });
 
     it(`shouldn't remove the main homefeed`, async () => {
@@ -64,14 +69,18 @@ describe(`Multiple home feeds`, () => {
       expect(ok, 'to be false');
 
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed, tertiaryHomeFeed]);
+      expect(homefeeds, 'to satisfy', [mainHomeFeed, tertiaryHomeFeed].map(toPlainObject));
     });
 
     it(`should add a second home feed again`, async () => {
       secondaryHomeFeed = await luna.createHomeFeed('The Second One');
 
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed, tertiaryHomeFeed, secondaryHomeFeed]);
+      expect(
+        homefeeds,
+        'to satisfy',
+        [mainHomeFeed, tertiaryHomeFeed, secondaryHomeFeed].map(toPlainObject),
+      );
     });
 
     it(`should update the second home feed`, async () => {
@@ -79,7 +88,11 @@ describe(`Multiple home feeds`, () => {
       expect(ok, 'to be true');
 
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed, tertiaryHomeFeed, secondaryHomeFeed]);
+      expect(
+        homefeeds,
+        'to satisfy',
+        [mainHomeFeed, tertiaryHomeFeed, secondaryHomeFeed].map(toPlainObject),
+      );
     });
 
     it(`should move the second home feed up`, async () => {
@@ -96,7 +109,11 @@ describe(`Multiple home feeds`, () => {
       ]);
 
       const homefeeds = await luna.getHomeFeeds();
-      expect(homefeeds, 'to satisfy', [mainHomeFeed, secondaryHomeFeed, tertiaryHomeFeed]);
+      expect(
+        homefeeds,
+        'to satisfy',
+        [mainHomeFeed, secondaryHomeFeed, tertiaryHomeFeed].map(toPlainObject),
+      );
     });
   });
 

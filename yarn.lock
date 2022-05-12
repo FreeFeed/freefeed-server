@@ -882,9 +882,9 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:~14.18.17":
-  version: 14.18.17
-  resolution: "@types/node@npm:14.18.17"
-  checksum: 39c1647c10dba23d338a9d76b90b814a86275f047beb856a2f85536f3c061a7232ff7b8691e85800a82f2e3670976aa29635c84344690052cf03272476198adb
+  version: 14.18.18
+  resolution: "@types/node@npm:14.18.18"
+  checksum: a165225cd2603f6e62af8407449e4a4407305e03b41c1adf6b186fdf546e1a03c8214217659b5b36c556947c0c06234993ac880d4db6378136a7a810d47e0742
   languageName: node
   linkType: hard
 
@@ -4808,7 +4808,7 @@ __metadata:
     superagent: ~7.1.3
     ts-json-check: ~2.0.3
     typescript: ~4.6.4
-    unexpected: ~12.0.4
+    unexpected: ~13.0.0
     unexpected-date: ~2.0.0
     unexpected-map: ~3.1.0
     unexpected-moment: ~3.3.0
@@ -11015,9 +11015,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"unexpected@npm:~12.0.4":
-  version: 12.0.4
-  resolution: "unexpected@npm:12.0.4"
+"unexpected@npm:~13.0.0":
+  version: 13.0.0
+  resolution: "unexpected@npm:13.0.0"
   dependencies:
     array-changes: 3.0.1
     array-changes-async: 3.0.1
@@ -11027,7 +11027,7 @@ __metadata:
     magicpen: ^6.2.4
     ukkonen: ^1.4.0
     unexpected-bluebird: 2.9.34-longstack2
-  checksum: cec4ecf0e517408c5056b86c0b99a7ca189312053b8b3bebe6fa8d7731bb45aa3564b913da1490f9742c95f688c90f0a13d1399412d56a11c85a33cfe4d98f37
+  checksum: cb7202ced5e58345a88f5cb0fc5dca64a42da4b048aab9f0ddf29603e7180e144b6e66f15a911cc7bd583b5ce0cb31b88bd42de8f5a32f655041c893489958db
   languageName: node
   linkType: hard
 

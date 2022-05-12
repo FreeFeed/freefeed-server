@@ -149,7 +149,7 @@ describe('search:parseQuery', () => {
 
   for (const { query, comment, result } of testData) {
     it(`should parse '${query}'${comment ? ` (${comment})` : ''}`, () => {
-      expect(parseQuery(query), 'to satisfy', result);
+      expect(parseQuery(query), 'to equal', result);
     });
   }
 });
