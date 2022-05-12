@@ -11,7 +11,7 @@ import SocketIO from 'socket.io-client';
 import expect from 'unexpected';
 import Application from 'koa';
 
-import { dbAdapter, Comment, sessionTokenV1Store, User } from '../../app/models';
+import { dbAdapter, sessionTokenV1Store, User } from '../../app/models';
 import { getSingleton as initApp } from '../../app/app';
 
 import * as schema from './schemaV2-helper';
@@ -478,30 +478,16 @@ export function createUserAsyncPost(user) {
   return postJson(`/v1/users`, user);
 }
 
-export async function createUserAsync(
-  username,
-  password = 'pw',
-  {
-    email,
-    // User does't want to view banned comments by default
-    // (for compatibility with old tests)
-    hideBannedComments,
-    ...attributes
-  } = {},
-) {
+export async function createUserAsync(username, password = 'pw', { email, ...attributes } = {}) {
   const user = new User({ username, password, email });
   await user.create();
-  const [session] = await Promise.all([
-    sessionTokenV1Store.create(user.id),
-    hideBannedComments &&
-      user.update({ preferences: { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] } }),
-  ]);
+  const session = await sessionTokenV1Store.create(user.id);
   return {
     authToken: session.tokenString(),
     username: user.username,
     password,
     user,
-    attributes: { email, hideBannedComments, ...attributes },
+    attributes: { email, ...attributes },
   };
 }
 

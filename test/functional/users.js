@@ -1439,7 +1439,7 @@ describe('UsersController', () => {
     beforeEach(async () => {
       [marsContext, zeusContext] = await Promise.all([
         funcTestHelper.createUserAsync(banUsername, 'pw'),
-        funcTestHelper.createUserAsync(username, 'pw', { hideBannedComments: true }),
+        funcTestHelper.createUserAsync(username, 'pw'),
       ]);
 
       await funcTestHelper.subscribeToAsync(marsContext, zeusContext);

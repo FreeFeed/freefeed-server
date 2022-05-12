@@ -282,10 +282,12 @@ describe('UsersControllerV2', () => {
       expect(res, 'to satisfy', { status: 422 });
     });
 
-    it('should not allow to update preferences with invalid key', async () => {
+    it('should ignore invalid key in new preferences with', async () => {
       const preferences = { hideCommentsOfTypes2: 1 };
       const res = await updateUserAsync(luna, { preferences });
-      expect(res, 'to satisfy', { status: 422 });
+      expect(res, 'to satisfy', { status: 200 });
+      const body = await res.json();
+      expect(body.users.preferences, 'to not have key', 'hideCommentsOfTypes2');
     });
   });
 

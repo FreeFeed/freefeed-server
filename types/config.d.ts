@@ -1,6 +1,6 @@
 /**
  * Override config to match our configuration shape. This file is to be complete
- * as the code is translated to Typesctipt.
+ * as the code is translated to TypeScript.
  */
 declare module 'config' {
   type Config = {
@@ -75,6 +75,22 @@ declare module 'config' {
       maxJobLockTime: number;
       jobLockTimeMultiplier: number;
       batchSize: number;
+    };
+
+    userPreferences: {
+      defaults: {
+        hideCommentsOfTypes: number[];
+        sendNotificationsDigest: boolean;
+        sendDailyBestOfDigest: boolean;
+        sendWeeklyBestOfDigest: boolean;
+        acceptDirectsFrom: string;
+        sanitizeMediaMetadata: boolean;
+      };
+      overrides: {
+        [k: string]:
+          | { createdSince: string; value: unknown }
+          | { createdBefore: string; value: unknown };
+      };
     };
   };
 

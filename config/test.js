@@ -45,4 +45,12 @@ module.exports = {
   ],
 
   registrationsLimit: { maxCount: 10 },
+
+  userPreferences: {
+    defaults: {
+      // User does't want to view banned comments by default (for compatibility
+      // with old tests)
+      hideCommentsOfTypes: [2 /* Comment.HIDDEN_BANNED */],
+    },
+  },
 };

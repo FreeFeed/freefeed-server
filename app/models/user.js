@@ -71,7 +71,7 @@ export function addModel(dbAdapter) {
       this.hiddenEmail = params.email || '';
       this.description = params.description || '';
       this.frontendPreferences = params.frontendPreferences || {};
-      this.preferences = validateUserPrefs(params.preferences, true);
+      this.preferences = validateUserPrefs(params.preferences, true, params.createdAt);
 
       this.isPrivate = params.isPrivate;
       this.isProtected = this.isPrivate === '1' ? '1' : params.isProtected;
@@ -111,7 +111,7 @@ export function addModel(dbAdapter) {
         this.email = '';
         this.description = '';
         this.frontendPreferences = {};
-        this.preferences = validateUserPrefs({}, true);
+        this.preferences = validateUserPrefs({}, true, this.createdAt);
         this.isPrivate = '1';
         this.isProtected = '1';
         this.updatedAt = this.createdAt;
@@ -497,10 +497,14 @@ export function addModel(dbAdapter) {
         }
 
         try {
-          payload.preferences = validateUserPrefs({
-            ...this.preferences,
-            ...params.preferences,
-          });
+          payload.preferences = validateUserPrefs(
+            {
+              ...this.preferences,
+              ...params.preferences,
+            },
+            false,
+            this.createdAt,
+          );
         } catch (e) {
           throw new ValidationException(`Invalid 'preferences': ${e}`);
         }
