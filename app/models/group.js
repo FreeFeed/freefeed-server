@@ -49,8 +49,6 @@ export function addModel(dbAdapter) {
     }
 
     async create(ownerId, skip_stoplist) {
-      this.createdAt = new Date().getTime();
-      this.updatedAt = new Date().getTime();
       this.screenName = this.screenName || this.username;
 
       await this.validateOnCreate(skip_stoplist);
@@ -60,13 +58,15 @@ export function addModel(dbAdapter) {
         screenName: this.screenName,
         description: this.description,
         type: this.type,
-        createdAt: this.createdAt.toString(),
-        updatedAt: this.updatedAt.toString(),
         isPrivate: this.isPrivate,
         isProtected: this.isProtected,
         isRestricted: this.isRestricted,
       };
-      [this.id, this.intId] = await dbAdapter.createUser(payload);
+      const newAcc = await dbAdapter.createUser(payload);
+
+      for (const key of ['id', 'intId', 'createdAt', 'updatedAt']) {
+        this[key] = newAcc[key];
+      }
 
       await dbAdapter.createUserTimelines(this.id, Group.feedNames);
 
