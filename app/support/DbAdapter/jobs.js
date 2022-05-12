@@ -18,11 +18,16 @@ export default function jobsTrait(superClass) {
       return initJobObject(row);
     }
 
-    async setJobUnlockAt(id, unlockAt) {
-      const [row] = await this.database('jobs')
-        .update({ unlock_at: this._jobUnlockAt(unlockAt) })
-        .where({ id })
-        .returning('*');
+    async updateJob(id, { unlockAt = 0, failure = null } = {}) {
+      const toUpdate = { unlock_at: this._jobUnlockAt(unlockAt) };
+
+      if (failure === true) {
+        toUpdate.failures = this.database.raw('failures + 1');
+      } else if (failure === false) {
+        toUpdate.failures = 0;
+      }
+
+      const [row] = await this.database('jobs').update(toUpdate).where({ id }).returning('*');
       return initJobObject(row);
     }
 
@@ -97,6 +102,7 @@ const JOB_FIELDS = {
   name: 'name',
   payload: 'payload',
   attempts: 'attempts',
+  failures: 'failures',
   uniq_key: 'uniqKey',
 };
 

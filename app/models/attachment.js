@@ -596,7 +596,20 @@ export function addModel(dbAdapter) {
       const localFile = await this.downloadOriginal();
 
       try {
-        const updated = await sanitizeMediaMetadata(localFile);
+        let updated = false;
+
+        try {
+          updated = await sanitizeMediaMetadata(localFile);
+        } catch (err) {
+          // Exiftool is failed, so the file was not updated and we cannot do
+          // anymore here
+          debug(`sanitizeOriginal: cannot sanitize attachment ${this.id}: ${err.message}`);
+          Raven.captureException(err, {
+            extra: {
+              err: `sanitizeOriginal: cannot sanitize attachment ${this.id}`,
+            },
+          });
+        }
 
         if (!updated) {
           // File wasn't changed

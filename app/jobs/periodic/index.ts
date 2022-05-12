@@ -3,7 +3,7 @@ import createDebug from 'debug';
 import Raven from 'raven';
 
 import FreefeedApp from '../../freefeed-app';
-import { Job, type JobHandler, JobManager, KEEP_JOB } from '../../models';
+import { Job, type JobHandler, JobManager } from '../../models';
 
 import { initHandlers as initAuthTokensHandlers } from './auth-tokens';
 
@@ -41,8 +41,7 @@ export async function definePeriodicJob<P>(
       }
     }
 
-    await job.setUnlockAt(getNextTime(nextTime));
-    return KEEP_JOB;
+    await job.keep(getNextTime(nextTime));
   });
   // Create a first job
   await Job.create(name, payload, { uniqKey: 'periodic', unlockAt: getNextTime(nextTime) });

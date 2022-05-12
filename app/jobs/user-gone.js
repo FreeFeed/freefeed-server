@@ -1,7 +1,7 @@
 import config from 'config';
 import { DateTime } from 'luxon';
 
-import { Job, dbAdapter, KEEP_JOB } from '../models';
+import { Job, dbAdapter } from '../models';
 import { GONE_COOLDOWN, GONE_DELETION, GONE_DELETED } from '../models/user';
 import Mailer from '../../lib/mailer';
 import { deleteAllUserData } from '../../app/support/user-deletion';
@@ -105,11 +105,11 @@ export function initHandlers(jobManager) {
         `${config.appRoot}/app/scripts/views/mailer/user-cooldown-finish.ejs`,
       );
       // We are done
-      return null;
+      return;
     }
 
     // Repeat this job if we are not done
-    return KEEP_JOB;
+    await job.keep();
   });
 }
 

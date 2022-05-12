@@ -630,7 +630,7 @@ export default class UsersController {
     const valid = await ctx.state.user.validPassword(currentPassword);
 
     if (!valid) {
-      throw new Error('Your old password is not valid');
+      throw new ForbiddenException('Your old password is not valid');
     }
 
     await ctx.state.user.updatePassword(

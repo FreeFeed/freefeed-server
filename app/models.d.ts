@@ -33,6 +33,8 @@ export class User {
   getPostsTimeline(): Promise<Timeline | null>;
   getPostsTimelineId(): Promise<UUID | null>;
   getDirectsTimeline(): Promise<Timeline | null>;
+  isValidEmail(): Promise<boolean>;
+  static validateEmail(): Promise<void>;
 }
 
 export class Group {
@@ -131,9 +133,13 @@ type JobParams = {
 export class Job<T = unknown> {
   name: string;
   payload: T;
+  attempts: number;
+  failures: number;
+  uniqKey: string | null;
+  readonly kept: boolean;
   static create<P>(name: string, payload?: P, params?: JobParams): Promise<Job<P>>;
-  setUnlockAt(unlockAt?: Date | number): Promise<void>;
-  clone(unlockAt?: Date | number): Promise<Job<T>>;
+  setUnlockAt(unlockAt?: Date | number, failure?: boolean | null): Promise<void>;
+  keep(unlockAt?: Date | number): Promise<void>;
   delete(): Promise<void>;
 }
 
@@ -151,5 +157,3 @@ export {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from './models/timeline';
-
-export { KEEP_JOB } from './models/job';

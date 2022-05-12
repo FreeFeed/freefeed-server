@@ -213,7 +213,7 @@ describe('User', () => {
       try {
         await user.create();
       } catch (e) {
-        expect(e.message).to.equal('Invalid email');
+        expect(e.message).to.equal('Invalid email format');
         return;
       }
 
@@ -238,7 +238,7 @@ describe('User', () => {
       try {
         await user2.create();
       } catch (e) {
-        expect(e.message).to.equal('Invalid email');
+        expect(e.message).to.equal('This email address is already in use');
         return;
       }
 

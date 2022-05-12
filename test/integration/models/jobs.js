@@ -7,7 +7,7 @@ import { spy } from 'sinon';
 import { sortBy } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
-import { Job, dbAdapter, JobManager, KEEP_JOB } from '../../../app/models';
+import { Job, dbAdapter, JobManager } from '../../../app/models';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate).use(unexpectedSinon);
@@ -202,8 +202,8 @@ describe('Jobs', () => {
         expect(await Job.getById(job2.id), 'to be null');
       });
 
-      it(`should not delete job when handler returns KEEP_JOB`, async () => {
-        const spy1 = spy(() => KEEP_JOB);
+      it(`should not delete job when handler calls 'keep'`, async () => {
+        const spy1 = spy((job) => job.keep());
         jm.on('job1', spy1);
 
         const job1 = await Job.create('job1');
@@ -238,7 +238,25 @@ describe('Jobs', () => {
         expect(job1, 'to satisfy', {
           id: job.id,
           attempts: 1,
+          failures: 1,
           unlockAt: expect.it('to be close to', new Date(now.getTime() + jm.jobLockTime * 1000)),
+        });
+      });
+
+      it(`should extend unlock time for failed job`, async () => {
+        const job = await Job.create('job');
+        await jm.fetchAndProcess();
+        await dbAdapter.database.raw(`update jobs set unlock_at = now() where id = ?`, job.id);
+        const [[job1], now] = await Promise.all([jm.fetchAndProcess(), dbAdapter.now()]);
+
+        expect(job1, 'to satisfy', {
+          id: job.id,
+          attempts: 2,
+          failures: 2,
+          unlockAt: expect.it(
+            'to be close to',
+            new Date(now.getTime() + jm.jobLockTime * jm.jobLockTimeMultiplier * 1000),
+          ),
         });
       });
 

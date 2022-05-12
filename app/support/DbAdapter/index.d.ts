@@ -1,7 +1,7 @@
 import Knex, { RawBinding, ValueDict, Transaction } from 'knex';
 
 import { IPAddr, Nullable, UUID } from '../types';
-import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User } from '../../models';
+import { AppTokenV1, Attachment, Comment, Group, Post, Timeline, User, Job } from '../../models';
 import {
   AppTokenCreateParams,
   AppTokenLogPayload,
@@ -202,4 +202,16 @@ export class DbAdapter {
     refCommentUID?: Nullable<UUID>,
     db?: Knex,
   ): Promise<void>;
+
+  // Jobs
+  createJob<T extends {}>(
+    name: string,
+    payload: T,
+    params: { unlockAt?: Date | number; uniqKey?: string },
+  ): Promise<Job<T>>;
+  updateJob(id: UUID, params: { unlockAt?: Date | number; failure?: boolean | null }): Promise<Job>;
+  getJobById(id: UUID): Promise<Nullable<Job>>;
+  deleteJob(id: UUID): Promise<void>;
+  fetchJobs(count: number, lockTime: number): Promise<Job[]>;
+  getAllJobs(names?: string[]): Promise<Job[]>; // For testing purposes only
 }

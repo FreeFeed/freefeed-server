@@ -25,7 +25,7 @@ export async function sanitizeMediaMetadata(filePath: string): Promise<boolean> 
 
   if (Object.keys(tagsToClean).length > 0) {
     try {
-      await exiftool.write(filePath, tagsToClean, ['-overwrite_original']);
+      await exiftool.write(filePath, tagsToClean, ['-overwrite_original', '-ignoreMinorErrors']);
       return true;
     } catch (e) {
       // Some exiftool 'errors' are really a warnings
