@@ -1,4 +1,3 @@
-import { dbAdapter } from '../../../models';
 import { EventService } from '../../../support/EventService';
 import { NotFoundException } from '../../../support/exceptions';
 
@@ -11,13 +10,15 @@ export default class RequestsController {
     }
 
     const followedFeedOwnerName = ctx.params.followedUserName;
-    const followedFeedOwner = await dbAdapter.getFeedOwnerByUsername(followedFeedOwnerName);
+    const followedFeedOwner = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(
+      followedFeedOwnerName,
+    );
 
     if (null === followedFeedOwner) {
       throw new NotFoundException(`Feed owner "${followedFeedOwnerName}" is not found`);
     }
 
-    const subscriptionRequestFound = await dbAdapter.isSubscriptionRequestPresent(
+    const subscriptionRequestFound = await ctx.modelRegistry.dbAdapter.isSubscriptionRequestPresent(
       ctx.state.user.id,
       followedFeedOwner.id,
     );

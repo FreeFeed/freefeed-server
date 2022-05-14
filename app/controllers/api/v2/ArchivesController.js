@@ -4,7 +4,6 @@ import compose from 'koa-compose';
 import config from 'config';
 
 import Mailer from '../../../../lib/mailer';
-import { dbAdapter } from '../../../models';
 import { ForbiddenException, NotFoundException } from '../../../support/exceptions';
 import { authRequired, monitored } from '../../middlewares';
 
@@ -13,7 +12,7 @@ export const restoration = compose([
   monitored('archives.restoration'),
   async (ctx) => {
     const { user } = ctx.state;
-    const archParams = await dbAdapter.getUserArchiveParams(user.id);
+    const archParams = await ctx.modelRegistry.dbAdapter.getUserArchiveParams(user.id);
 
     if (!archParams) {
       throw new ForbiddenException('You have no archive record');
@@ -47,7 +46,7 @@ export const restoration = compose([
       throw new ForbiddenException('Invalid data format');
     }
 
-    await dbAdapter.startArchiveRestoration(user.id, params);
+    await ctx.modelRegistry.dbAdapter.startArchiveRestoration(user.id, params);
 
     await Mailer.sendMail(
       config.mailer.adminRecipient,
@@ -66,7 +65,7 @@ export const activities = compose([
   monitored('archives.activities'),
   async (ctx) => {
     const { user } = ctx.state;
-    const archParams = await dbAdapter.getUserArchiveParams(user.id);
+    const archParams = await ctx.modelRegistry.dbAdapter.getUserArchiveParams(user.id);
 
     if (!archParams) {
       throw new ForbiddenException('You have no archive record');
@@ -79,7 +78,7 @@ export const activities = compose([
     }
 
     if (!archParams.restore_comments_and_likes) {
-      await dbAdapter.enableArchivedActivitiesRestoration(user.id);
+      await ctx.modelRegistry.dbAdapter.enableArchivedActivitiesRestoration(user.id);
     }
 
     ctx.status = 202;
@@ -91,7 +90,7 @@ export const postByOldName = compose([
   monitored('archives.postByOldName'),
   async (ctx) => {
     const { name } = ctx.params;
-    const postId = await dbAdapter.getPostIdByOldName(name);
+    const postId = await ctx.modelRegistry.dbAdapter.getPostIdByOldName(name);
 
     if (!postId) {
       throw new NotFoundException('Post not found');

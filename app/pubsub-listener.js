@@ -22,7 +22,7 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { dbAdapter, Comment } from './models';
+import { registry, dbAdapter, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
@@ -918,6 +918,7 @@ async function getAuthUserId(jwtToken, socket) {
     },
     method: 'WS',
     state: { matchedRoute: '*' },
+    modelRegistry: registry,
   };
 
   await withAuthToken(ctx, () => null);

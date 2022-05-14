@@ -1,7 +1,6 @@
 import config from 'config';
 
 import { version } from '../../../../package.json';
-import { ServerInfo } from '../../../models';
 import { allExternalProviders } from '../../../support/ExtAuth';
 
 export async function serverInfo(ctx) {
@@ -10,7 +9,7 @@ export async function serverInfo(ctx) {
     title,
     brand,
   }));
-  const registrationOpen = await ServerInfo.isRegistrationOpen();
+  const registrationOpen = await ctx.modelRegistry.ServerInfo.isRegistrationOpen();
   ctx.body = {
     version,
     registrationOpen,

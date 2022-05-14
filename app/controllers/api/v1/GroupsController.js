@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter, Group, AppTokenV1 } from '../../../models';
+import { AppTokenV1 } from '../../../models/auth-tokens/AppTokenV1';
 import { EventService } from '../../../support/EventService';
 import {
   BadRequestException,
@@ -36,7 +36,7 @@ export default class GroupsController {
       'isRestricted',
     ]);
 
-    const group = new Group(params);
+    const group = new ctx.modelRegistry.Group(params);
     await group.create(ctx.state.user.id, false);
     await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
 
@@ -63,13 +63,13 @@ export default class GroupsController {
     }
 
     const adminPromises = ctx.request.body.admins.map(async (username) => {
-      const admin = await dbAdapter.getUserByUsername(username);
+      const admin = await ctx.modelRegistry.dbAdapter.getUserByUsername(username);
       return null === admin ? false : admin;
     });
     let admins = await Promise.all(adminPromises);
     admins = admins.filter(Boolean);
 
-    const group = new Group(params);
+    const group = new ctx.modelRegistry.Group(params);
     await group.create(admins[0].id, true);
 
     // starting iteration from the second admin
@@ -106,7 +106,7 @@ export default class GroupsController {
       'isRestricted',
     ]);
 
-    const group = await dbAdapter.getGroupById(ctx.params.userId);
+    const group = await ctx.modelRegistry.dbAdapter.getGroupById(ctx.params.userId);
 
     if (null === group) {
       throw new NotFoundException("Can't find group");
@@ -134,7 +134,7 @@ export default class GroupsController {
       return;
     }
 
-    const group = await dbAdapter.getGroupByUsername(ctx.params.groupName);
+    const group = await ctx.modelRegistry.dbAdapter.getGroupByUsername(ctx.params.groupName);
 
     if (null === group) {
       throw new NotFoundException(`Group "${ctx.params.groupName}" is not found`);
@@ -146,7 +146,7 @@ export default class GroupsController {
       throw new ForbiddenException("You aren't an administrator of this group");
     }
 
-    const newAdmin = await dbAdapter.getUserByUsername(ctx.params.adminName);
+    const newAdmin = await ctx.modelRegistry.dbAdapter.getUserByUsername(ctx.params.adminName);
 
     if (null === newAdmin) {
       throw new NotFoundException(`User "${ctx.params.adminName}" is not found`);
@@ -251,7 +251,7 @@ export default class GroupsController {
     }
 
     const { groupName, userName } = ctx.params;
-    const group = await dbAdapter.getGroupByUsername(groupName);
+    const group = await ctx.modelRegistry.dbAdapter.getGroupByUsername(groupName);
 
     if (null === group) {
       throw new NotFoundException(`Group "${groupName}" is not found`);
@@ -263,13 +263,16 @@ export default class GroupsController {
       throw new ForbiddenException("You aren't an administrator of this group");
     }
 
-    const user = await dbAdapter.getUserByUsername(userName);
+    const user = await ctx.modelRegistry.dbAdapter.getUserByUsername(userName);
 
     if (null === user) {
       throw new NotFoundException(`User "${userName}" is not found`);
     }
 
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, group.id);
+    const hasRequest = await ctx.modelRegistry.dbAdapter.isSubscriptionRequestPresent(
+      user.id,
+      group.id,
+    );
 
     if (!hasRequest) {
       throw new Error('Invalid');
@@ -289,7 +292,7 @@ export default class GroupsController {
     }
 
     const { groupName, userName } = ctx.params;
-    const group = await dbAdapter.getGroupByUsername(groupName);
+    const group = await ctx.modelRegistry.dbAdapter.getGroupByUsername(groupName);
 
     if (null === group) {
       throw new NotFoundException(`Group "${groupName}" is not found`);
@@ -301,7 +304,7 @@ export default class GroupsController {
       throw new ForbiddenException("You aren't an administrator of this group");
     }
 
-    const user = await dbAdapter.getUserByUsername(userName);
+    const user = await ctx.modelRegistry.dbAdapter.getUserByUsername(userName);
 
     if (null === user) {
       throw new NotFoundException(`User "${userName}" is not found`);

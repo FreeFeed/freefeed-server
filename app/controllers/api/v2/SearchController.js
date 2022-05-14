@@ -1,6 +1,5 @@
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored } from '../../middlewares';
 
@@ -33,7 +32,7 @@ export default class SearchController {
       }
 
       const postIds = query
-        ? await dbAdapter.search(query, {
+        ? await ctx.modelRegistry.dbAdapter.search(query, {
             viewerId: user && user.id,
             limit: limit + 1,
             offset,

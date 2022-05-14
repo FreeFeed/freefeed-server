@@ -1,6 +1,5 @@
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 
@@ -26,10 +25,12 @@ export const generalSummary = compose([
 
     // Get timelines that forms a "RiverOfNews" of current user
     const homeFeed = await currentUser.getRiverOfNewsTimeline();
-    ({ destinations, activities } = await dbAdapter.getSubscriprionsIntIds(homeFeed));
+    ({ destinations, activities } = await ctx.modelRegistry.dbAdapter.getSubscriprionsIntIds(
+      homeFeed,
+    ));
 
     // Get posts current user subscribed to
-    const foundPostsIds = await dbAdapter.getSummaryPostsIds(
+    const foundPostsIds = await ctx.modelRegistry.dbAdapter.getSummaryPostsIds(
       currentUser.id,
       days,
       destinations,
@@ -52,10 +53,17 @@ export const userSummary = compose([
     const currentUserId = ctx.state.user ? ctx.state.user.id : null;
 
     // Get timeline "Posts" of target user
-    const [timelineIntId] = await dbAdapter.getUserNamedFeedsIntIds(targetUser.id, ['Posts']);
+    const [timelineIntId] = await ctx.modelRegistry.dbAdapter.getUserNamedFeedsIntIds(
+      targetUser.id,
+      ['Posts'],
+    );
 
     // Get posts authored by target user, and provide current user (the reader) for filtering
-    const foundPostsIds = await dbAdapter.getSummaryPostsIds(currentUserId, days, [timelineIntId]);
+    const foundPostsIds = await ctx.modelRegistry.dbAdapter.getSummaryPostsIds(
+      currentUserId,
+      days,
+      [timelineIntId],
+    );
 
     ctx.body = await serializeFeed(foundPostsIds, currentUserId, null, { isLastPage: true });
   },

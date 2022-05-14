@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models';
 import { ALLOWED_EVENT_TYPES } from '../../../support/EventTypes';
 import { serializeEvents } from '../../../serializers/v2/event';
 import { authRequired } from '../../middlewares';
@@ -43,7 +42,7 @@ export default class EventsController {
     }
 
     const params = getQueryParams(ctx);
-    const events = await dbAdapter.getUserEvents(
+    const events = await ctx.modelRegistry.dbAdapter.getUserEvents(
       ctx.state.user.intId,
       params.eventTypes,
       params.limit + 1,
@@ -74,7 +73,7 @@ export default class EventsController {
       const { user } = ctx.state;
       const { notifId: eventId } = ctx.params;
 
-      const event = await dbAdapter.getEventById(eventId);
+      const event = await ctx.modelRegistry.dbAdapter.getEventById(eventId);
 
       if (event?.user_id !== user.intId) {
         throw new NotFoundException('Notification not found');

@@ -3,7 +3,6 @@ import {
   NotFoundException,
   ServerErrorException,
 } from '../../support/exceptions';
-import { dbAdapter } from '../../models';
 
 export function postAccessRequired(map = { postId: 'post' }) {
   return async (ctx, next) => {
@@ -20,8 +19,8 @@ export function postAccessRequired(map = { postId: 'post' }) {
         }
 
         const { [key]: postId } = ctx.params;
-        const post = await dbAdapter.getPostById(postId);
-        const author = post ? await dbAdapter.getUserById(post.userId) : null;
+        const post = await ctx.modelRegistry.dbAdapter.getPostById(postId);
+        const author = post ? await ctx.modelRegistry.dbAdapter.getUserById(post.userId) : null;
 
         if (!post || !author.isActive) {
           throw notFound();

@@ -1,7 +1,5 @@
 import moment from 'moment';
 
-import { dbAdapter } from '../../../models';
-
 export default class StatsController {
   static async stats(ctx) {
     const MAX_STATS_PERIOD = 365 * 2; // 2 years
@@ -53,7 +51,7 @@ export default class StatsController {
       throw new Error(`ERROR: the requested period is too long`);
     }
 
-    const stats_res = await dbAdapter.getStats(
+    const stats_res = await ctx.modelRegistry.dbAdapter.getStats(
       data,
       start.format(`YYYY-MM-DD`),
       end.format(`YYYY-MM-DD`),

@@ -14,12 +14,14 @@ import koaStatic from 'koa-static';
 
 import { version as serverVersion } from '../package.json';
 
+import { type ModelsRegistry } from './models-registry';
 import { koaServerTiming } from './support/koa-server-timing';
 import { originMiddleware } from './setup/initializers/origin';
 import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 import type PubsubListener from './pubsub-listener';
+import { registry } from './models';
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -27,6 +29,7 @@ export interface FreefeedContext {
   config: typeof config;
   port: number;
   pubsub: PubsubListener;
+  modelRegistry: ModelsRegistry;
 }
 
 class FreefeedApp extends Application<DefaultState, FreefeedContext> {
@@ -42,6 +45,7 @@ class FreefeedApp extends Application<DefaultState, FreefeedContext> {
 
     this.context.config = config;
     this.context.port = process.env.PORT ? parseInt(process.env.PORT) : config.port;
+    this.context.modelRegistry = registry;
 
     this.use(
       koaBody({

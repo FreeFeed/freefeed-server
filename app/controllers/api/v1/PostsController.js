@@ -2,7 +2,7 @@ import _, { difference, differenceBy } from 'lodash';
 import monitor from 'monitor-dog';
 import compose from 'koa-compose';
 
-import { dbAdapter, Post, AppTokenV1 } from '../../../models';
+import { AppTokenV1 } from '../../../models';
 /** @typedef {import('../../../models').User} User */
 /** @typedef {import('../../../models').Timeline} Timeline */
 import {
@@ -34,10 +34,10 @@ export default class PostsController {
       } = ctx.request.body;
 
       const destNames = typeof feeds === 'string' ? [feeds] : feeds;
-      const timelineIds = await checkDestNames(destNames, author);
+      const timelineIds = await checkDestNames(destNames, author, ctx.modelRegistry.dbAdapter);
 
       if (attachments) {
-        const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
+        const attObjects = await ctx.modelRegistry.dbAdapter.getAttachmentsByIds(attachments);
 
         if (attObjects.some((a) => a.userId !== author.id)) {
           throw new ForbiddenException('You can not use attachments created by other user');
@@ -48,7 +48,7 @@ export default class PostsController {
         }
       }
 
-      const newPost = new Post({
+      const newPost = new ctx.modelRegistry.Post({
         userId: author.id,
         body,
         attachments,
@@ -86,9 +86,9 @@ export default class PostsController {
       let { destinationFeedIds } = post;
 
       if (feeds) {
-        const destUids = await checkDestNames(feeds, user);
+        const destUids = await checkDestNames(feeds, user, ctx.modelRegistry.dbAdapter);
         const [destFeeds, isDirect] = await Promise.all([
-          dbAdapter.getTimelinesByIds(destUids),
+          ctx.modelRegistry.dbAdapter.getTimelinesByIds(destUids),
           post.isStrictlyDirect(),
         ]);
 
@@ -117,7 +117,7 @@ export default class PostsController {
       }
 
       if (attachments) {
-        const attObjects = await dbAdapter.getAttachmentsByIds(attachments);
+        const attObjects = await ctx.modelRegistry.dbAdapter.getAttachmentsByIds(attachments);
 
         if (attObjects.some((a) => a.userId !== user.id)) {
           throw new ForbiddenException('You can not use attachments created by other user');
@@ -207,7 +207,9 @@ export default class PostsController {
         throw new ForbiddenException("You can't delete another user's post");
       }
 
-      const fromFeedsAccounts = await dbAdapter.getFeedOwnersByUsernames(fromFeedsNames);
+      const fromFeedsAccounts = await ctx.modelRegistry.dbAdapter.getFeedOwnersByUsernames(
+        fromFeedsNames,
+      );
 
       // All feed names should be valid
       {
@@ -237,7 +239,9 @@ export default class PostsController {
       // The remover should be either a post author or admin of all fromFeeds
       if (post.userId !== user.id) {
         const isAdmins = await Promise.all(
-          fromFeedsAccounts.map((a) => dbAdapter.isUserAdminOfGroup(user.id, a.id)),
+          fromFeedsAccounts.map((a) =>
+            ctx.modelRegistry.dbAdapter.isUserAdminOfGroup(user.id, a.id),
+          ),
         );
         const invalidNames = isAdmins
           .map((v, i) => !v && fromFeedsAccounts[i].username)
@@ -278,7 +282,7 @@ export default class PostsController {
           updatedBy: user,
         });
 
-        const updatedPost = await dbAdapter.getPostById(post.id);
+        const updatedPost = await ctx.modelRegistry.dbAdapter.getPostById(post.id);
         postStillAvailable = await updatedPost.isVisibleFor(user);
       }
 
@@ -370,7 +374,7 @@ export default class PostsController {
  * @param {User} author
  * @returns {Promise<string[]>}
  */
-export async function checkDestNames(destNames, author) {
+export async function checkDestNames(destNames, author, dbAdapter) {
   destNames = _.uniq(destNames.map((u) => u.toLowerCase()));
   const destUsers = await dbAdapter.getFeedOwnersByUsernames(destNames);
   const destUserNames = destUsers.map((u) => u.username);

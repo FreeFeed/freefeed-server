@@ -1,6 +1,5 @@
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models';
 import { ForbiddenException } from '../../../support/exceptions';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired, monitored, commentAccessRequired } from '../../middlewares';
@@ -55,8 +54,11 @@ export default class CommentLikesController {
     async (ctx) => {
       const { comment, user } = ctx.state;
 
-      const commentIntId = await dbAdapter._getCommentIntIdByUUID(comment.id);
-      const likes = await dbAdapter.getCommentLikesWithoutBannedUsers(commentIntId, user?.id);
+      const commentIntId = await ctx.modelRegistry.dbAdapter._getCommentIntIdByUUID(comment.id);
+      const likes = await ctx.modelRegistry.dbAdapter.getCommentLikesWithoutBannedUsers(
+        commentIntId,
+        user?.id,
+      );
 
       const users = await serializeUsersByIds(
         likes.map((l) => l.userId),

@@ -1,6 +1,6 @@
 import compose from 'koa-compose';
 
-import { Post, Comment, AppTokenV1 } from '../../../models';
+import { AppTokenV1 } from '../../../models/auth-tokens/AppTokenV1';
 import { ForbiddenException } from '../../../support/exceptions';
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
 import { show as showPost } from '../v2/PostsController';
@@ -29,7 +29,7 @@ export const create = compose([
       destNames.push(author.username);
     }
 
-    const timelineIds = await checkDestNames(destNames, author);
+    const timelineIds = await checkDestNames(destNames, author, ctx.modelRegistry.dbAdapter);
 
     // Attachments
     if (images.length === 0 && image !== '') {
@@ -47,7 +47,7 @@ export const create = compose([
       }),
     );
 
-    const post = new Post({
+    const post = new ctx.modelRegistry.Post({
       userId: author.id,
       body,
       attachments,
@@ -56,7 +56,7 @@ export const create = compose([
     await post.create();
 
     if (commentBody !== '') {
-      const comment = new Comment({
+      const comment = new ctx.modelRegistry.Comment({
         body: commentBody,
         postId: post.id,
         userId: author.id,

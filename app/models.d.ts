@@ -6,10 +6,12 @@ import { GONE_NAMES } from './models/user';
 import { Nullable, UUID } from './support/types';
 import { SessionTokenV1Store } from './models/auth-tokens';
 import { List } from './support/open-lists';
+import { ModelsRegistry } from './models-registry';
 
 export const postgres: Knex;
 export const dbAdapter: DbAdapter;
 export const PubSub: PubSubAdapter;
+export const registry: ModelsRegistry;
 
 export class User {
   static ACCEPT_DIRECTS_FROM_ALL: string;

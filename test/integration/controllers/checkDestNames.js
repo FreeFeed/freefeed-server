@@ -4,7 +4,7 @@ import expect from 'unexpected';
 import { zipObject } from 'lodash';
 
 import cleanDB from '../../dbCleaner';
-import { User } from '../../../app/models';
+import { User, dbAdapter } from '../../../app/models';
 import { checkDestNames } from '../../../app/controllers/api/v1/PostsController';
 
 describe('checkDestNames function', () => {
@@ -34,22 +34,22 @@ describe('checkDestNames function', () => {
     const directFeedIds = await Promise.all(
       [users.luna, users.mars, users.venus].map((u) => u.getDirectsTimelineId()),
     );
-    const feedIds = await checkDestNames(['mars', 'venus'], users.luna);
+    const feedIds = await checkDestNames(['mars', 'venus'], users.luna, dbAdapter);
     await expect(feedIds.sort(), 'to satisfy', directFeedIds.sort());
   });
 
   it('should not allow to Luna to send direct to Jupiter', async () => {
-    const call = checkDestNames(['mars', 'venus', 'jupiter'], users.luna);
+    const call = checkDestNames(['mars', 'venus', 'jupiter'], users.luna, dbAdapter);
     await expect(call, 'to be rejected with', /jupiter/);
   });
 
   it('should not allow to Luna to send direct to Saturn', async () => {
-    const call = checkDestNames(['mars', 'venus', 'saturn'], users.luna);
+    const call = checkDestNames(['mars', 'venus', 'saturn'], users.luna, dbAdapter);
     await expect(call, 'to be rejected with', /saturn/);
   });
 
   it('should not allow to Jupiter to send direct to Luna and Mars', async () => {
-    const call = checkDestNames(['luna', 'mars', 'venus'], users.jupiter);
+    const call = checkDestNames(['luna', 'mars', 'venus'], users.jupiter, dbAdapter);
     await expect(call, 'to be rejected with', /luna/).and('to be rejected with', /mars/);
   });
 });

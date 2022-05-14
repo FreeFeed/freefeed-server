@@ -1,5 +1,4 @@
 import { NotFoundException, ServerErrorException } from '../../support/exceptions';
-import { dbAdapter } from '../../models';
 
 /**
  * Checks existene of all users/groups mentioned in ctx.params
@@ -22,7 +21,7 @@ export function targetUserRequired(mapping = { username: 'targetUser' }) {
         }
 
         const { [key]: username } = ctx.params;
-        const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+        const targetUser = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(username);
 
         if (!targetUser) {
           throw new NotFoundException(`User "${username}" is not found`);

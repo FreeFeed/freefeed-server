@@ -1,4 +1,3 @@
-import { dbAdapter } from '../../../models';
 import { UserMailer } from '../../../mailers';
 import { NotFoundException } from '../../../support/exceptions';
 
@@ -12,7 +11,7 @@ export default class PasswordsController {
       return;
     }
 
-    const user = await dbAdapter.getUserByEmail(email);
+    const user = await ctx.modelRegistry.dbAdapter.getUserByEmail(email);
 
     if (!user?.isActive && !user?.isResumable) {
       throw new NotFoundException(`Invalid email address or user not found`);
@@ -33,7 +32,7 @@ export default class PasswordsController {
       return;
     }
 
-    const user = await dbAdapter.getUserByResetToken(token);
+    const user = await ctx.modelRegistry.dbAdapter.getUserByResetToken(token);
 
     if (!user?.isActive && !user?.isResumable) {
       throw new NotFoundException(`Password reset token not found or has expired`);

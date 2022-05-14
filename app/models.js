@@ -21,7 +21,7 @@ if (config.disableRealtime) {
 
 export const PubSub = new pubSub(pubsubAdapter);
 
-const registry = new ModelsRegistry(postgres, PubSub);
+export const registry = new ModelsRegistry(postgres, PubSub);
 export const {
   dbAdapter,
   User,
