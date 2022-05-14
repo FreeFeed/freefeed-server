@@ -1,12 +1,11 @@
 import _ from 'lodash';
 import pgFormat from 'pg-format';
 
-import { Comment } from '../../models';
 import { List } from '../open-lists';
 
-import { COMMENT_FIELDS, initCommentObject } from './comments';
-import { ATTACHMENT_FIELDS, initAttachmentObject } from './attachments';
-import { POST_FIELDS, initPostObject } from './posts';
+import { COMMENT_FIELDS } from './comments';
+import { ATTACHMENT_FIELDS } from './attachments';
+import { POST_FIELDS } from './posts';
 import { sqlIn, sqlIntarrayIn, sqlNotIn, andJoin, orJoin } from './utils';
 
 ///////////////////////////////////////////////////
@@ -400,12 +399,15 @@ const timelinesPostsTrait = (superClass) =>
       let hideCommentsSQL = 'true';
 
       if (params.hiddenCommentTypes.length > 0) {
-        if (params.hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && !nobodyIsBanned) {
+        if (
+          params.hiddenCommentTypes.includes(this.registry.Comment.HIDDEN_BANNED) &&
+          !nobodyIsBanned
+        ) {
           hideCommentsSQL = sqlNotIn('user_id', bannedUsersIds);
         }
 
         const ht = params.hiddenCommentTypes.filter(
-          (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
+          (t) => t !== this.registry.Comment.HIDDEN_BANNED && t !== this.registry.Comment.VISIBLE,
         );
 
         if (ht.length > 0) {
@@ -459,7 +461,7 @@ const timelinesPostsTrait = (superClass) =>
 
       for (const post of postsData) {
         results[post.uid] = {
-          post: initPostObject(post),
+          post: this.initPostObject(post),
           destinations: [],
           attachments: [],
           comments: [],
@@ -483,7 +485,7 @@ const timelinesPostsTrait = (superClass) =>
       }
 
       for (const att of attData) {
-        results[att.post_id].attachments.push(initAttachmentObject(att));
+        results[att.post_id].attachments.push(this.initAttachmentObject(att));
       }
 
       for (const lk of likesData) {
@@ -494,13 +496,13 @@ const timelinesPostsTrait = (superClass) =>
       for (const comm of commentsData) {
         if (!nobodyIsBanned && bannedUsersIds.includes(comm.user_id)) {
           comm.user_id = null;
-          comm.hide_type = Comment.HIDDEN_BANNED;
-          comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+          comm.hide_type = this.registry.Comment.HIDDEN_BANNED;
+          comm.body = this.registry.Comment.hiddenBody(this.registry.Comment.HIDDEN_BANNED);
           comm.c_likes = '0';
           comm.has_own_like = null;
         }
 
-        const comment = initCommentObject(comm);
+        const comment = this.initCommentObject(comm);
         comment.likes = parseInt(comm.c_likes);
         comment.hasOwnLike = Boolean(comm.has_own_like);
         results[comm.post_id].comments.push(comment);

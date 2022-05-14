@@ -1,5 +1,3 @@
-import { Job } from '../../models';
-
 import { prepareModelPayload, initObject } from './utils';
 
 export default function jobsTrait(superClass) {
@@ -15,7 +13,7 @@ export default function jobsTrait(superClass) {
         { name, payload, uniqKey, unlockAt: this._jobUnlockAt(unlockAt) },
       );
 
-      return initJobObject(row);
+      return this.initJobObject(row);
     }
 
     async updateJob(id, { unlockAt = 0, failure = null } = {}) {
@@ -28,12 +26,12 @@ export default function jobsTrait(superClass) {
       }
 
       const [row] = await this.database('jobs').update(toUpdate).where({ id }).returning('*');
-      return initJobObject(row);
+      return this.initJobObject(row);
     }
 
     async getJobById(id) {
       const row = await this.database.getRow(`select * from jobs where id = :id`, { id });
-      return initJobObject(row);
+      return this.initJobObject(row);
     }
 
     async deleteJob(id) {
@@ -55,7 +53,7 @@ export default function jobsTrait(superClass) {
           returning *`,
         { count, lockTime },
       );
-      return rows.map(initJobObject);
+      return rows.map(this.initJobObject);
     }
 
     // For testing purposes only
@@ -71,7 +69,7 @@ export default function jobsTrait(superClass) {
         rows = await this.database.getAll(`select * from jobs order by created_at`);
       }
 
-      return rows.map(initJobObject);
+      return rows.map(this.initJobObject);
     }
 
     _jobUnlockAt(unlockAt) {
@@ -83,16 +81,16 @@ export default function jobsTrait(superClass) {
 
       return this.database.raw('default');
     }
+
+    initJobObject = (row) => {
+      if (!row) {
+        return null;
+      }
+
+      row = prepareModelPayload(row, JOB_FIELDS, JOB_FIELDS_MAPPING);
+      return initObject(this.registry.Job, row, row.id);
+    };
   };
-}
-
-function initJobObject(row) {
-  if (!row) {
-    return null;
-  }
-
-  row = prepareModelPayload(row, JOB_FIELDS, JOB_FIELDS_MAPPING);
-  return initObject(Job, row, row.id);
 }
 
 const JOB_FIELDS = {

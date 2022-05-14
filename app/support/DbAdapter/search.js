@@ -14,7 +14,6 @@ import {
   SeqTexts,
 } from '../search/query-tokens';
 import { List } from '../open-lists';
-import { Comment } from '../../models';
 
 import { sqlIn, sqlNotIn, sqlIntarrayIn, andJoin, orJoin } from './utils';
 
@@ -171,7 +170,7 @@ const searchTrait = (superClass) =>
       // Additional restrictions for comments
       const commentsRestrictionSQL = useCommentsTable
         ? andJoin([
-            pgFormat('c.hide_type=%L', Comment.VISIBLE),
+            pgFormat('c.hide_type=%L', this.registry.Comment.VISIBLE),
             sqlNotIn('c.user_id', bannedByViewer),
           ])
         : 'true';

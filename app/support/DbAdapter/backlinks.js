@@ -1,4 +1,3 @@
-import { Comment } from '../../models';
 import { extractUUIDs } from '../backlinks';
 
 ///////////////////////////////////////////////////
@@ -37,7 +36,7 @@ const backlinksTrait = (superClass) =>
             and hide_type = :visible 
             and not (user_id = any(:bannedByViewer))
             `,
-          { allComments, bannedByViewer, visible: Comment.VISIBLE },
+          { allComments, bannedByViewer, visible: this.registry.Comment.VISIBLE },
         );
         // Keep only the visible comments
         backlinksData = backlinksData.filter(

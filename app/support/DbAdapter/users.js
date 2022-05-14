@@ -2,8 +2,6 @@ import config from 'config';
 import _ from 'lodash';
 import validator from 'validator';
 
-import { User, Group, Comment } from '../../models';
-
 import { initObject, prepareModelPayload } from './utils';
 
 const usersTrait = (superClass) =>
@@ -170,7 +168,7 @@ const usersTrait = (superClass) =>
         return null;
       }
 
-      if (!(user instanceof User)) {
+      if (!(user instanceof this.registry.User)) {
         throw new Error(`Expected User, got ${user.constructor.name}`);
       }
 
@@ -181,7 +179,7 @@ const usersTrait = (superClass) =>
       const users = await this.getFeedOwnersByIds(userIds);
 
       _.each(users, (user) => {
-        if (!(user instanceof User)) {
+        if (!(user instanceof this.registry.User)) {
           throw new Error(`Expected User, got ${user.constructor.name}`);
         }
       });
@@ -196,7 +194,7 @@ const usersTrait = (superClass) =>
         return null;
       }
 
-      if (!(feed instanceof User)) {
+      if (!(feed instanceof this.registry.User)) {
         throw new Error(`Expected User, got ${feed.constructor.name}`);
       }
 
@@ -217,7 +215,7 @@ const usersTrait = (superClass) =>
         throw new Error(`Expected User, got ${attrs.type}`);
       }
 
-      return initUserObject(attrs);
+      return this.initUserObject(attrs);
     }
 
     async getUserByEmail(email) {
@@ -231,7 +229,7 @@ const usersTrait = (superClass) =>
         throw new Error(`Expected User, got ${attrs.type}`);
       }
 
-      return initUserObject(attrs);
+      return this.initUserObject(attrs);
     }
 
     async _getUserIntIdByUUID(userUUID) {
@@ -253,15 +251,15 @@ const usersTrait = (superClass) =>
         return null;
       }
 
-      return initUserObject(await this.fetchUser(id));
+      return this.initUserObject(await this.fetchUser(id));
     }
 
     async getFeedOwnersByIds(ids) {
-      return (await this.fetchUsers(ids)).map(initUserObject);
+      return (await this.fetchUsers(ids)).map(this.initUserObject);
     }
 
     async getUsersByIdsAssoc(ids) {
-      return _.mapValues(await this.fetchUsersAssoc(ids), initUserObject);
+      return _.mapValues(await this.fetchUsersAssoc(ids), this.initUserObject);
     }
 
     getUsersIdsByIntIds(intIds) {
@@ -284,7 +282,7 @@ const usersTrait = (superClass) =>
         }
       }
 
-      return initUserObject(attrs);
+      return this.initUserObject(attrs);
     }
 
     async getFeedOwnersByUsernames(usernames) {
@@ -308,7 +306,7 @@ const usersTrait = (superClass) =>
         users.push(...rows);
       }
 
-      return _.uniqBy(users, 'id').map(initUserObject);
+      return _.uniqBy(users, 'id').map(this.initUserObject);
     }
 
     async getGroupById(id) {
@@ -318,7 +316,7 @@ const usersTrait = (superClass) =>
         return null;
       }
 
-      if (!(user instanceof Group)) {
+      if (!(user instanceof this.registry.Group)) {
         throw new Error(`Expected Group, got ${user.constructor.name}`);
       }
 
@@ -332,7 +330,7 @@ const usersTrait = (superClass) =>
         return null;
       }
 
-      if (!(feed instanceof Group)) {
+      if (!(feed instanceof this.registry.Group)) {
         throw new Error(`Expected Group, got ${feed.constructor.name}`);
       }
 
@@ -378,7 +376,7 @@ const usersTrait = (superClass) =>
         join comments c on c.uid = h.comment_id
         where c.hide_type = :hideType and (h.user_id = :userId or h.old_username = :oldUsername)`;
         const res = await this.database.raw(sql, {
-          hideType: Comment.HIDDEN_ARCHIVED,
+          hideType: this.registry.Comment.HIDDEN_ARCHIVED,
           userId,
           oldUsername: params.old_username,
         });
@@ -451,41 +449,45 @@ const usersTrait = (superClass) =>
       const users = await this.database('users')
         .where('type', 'user')
         .whereRaw(`preferences -> 'sendNotificationsDigest' = 'true'::jsonb`);
-      return users.map(initUserObject);
+      return users.map(this.initUserObject);
     }
 
     async getDailyBestOfDigestRecipients() {
       const users = await this.database('users')
         .where('type', 'user')
         .whereRaw(`preferences -> 'sendDailyBestOfDigest' = 'true'::jsonb`);
-      return users.map(initUserObject);
+      return users.map(this.initUserObject);
     }
 
     async getWeeklyBestOfDigestRecipients() {
       const users = await this.database('users')
         .where('type', 'user')
         .whereRaw(`preferences -> 'sendWeeklyBestOfDigest' = 'true'::jsonb`);
-      return users.map(initUserObject);
+      return users.map(this.initUserObject);
     }
 
     async deleteUser(uid) {
       await this.database('users').where({ uid }).delete();
       await this.cacheFlushUser(uid);
     }
+
+    initUserObject = (attrs) => {
+      if (!attrs) {
+        return null;
+      }
+
+      attrs = prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING);
+      return initObject(
+        attrs.type === 'group' ? this.registry.Group : this.registry.User,
+        attrs,
+        attrs.id,
+      );
+    };
   };
 
 export default usersTrait;
 
 ///////////////////////////////////////////////////
-
-export function initUserObject(attrs) {
-  if (!attrs) {
-    return null;
-  }
-
-  attrs = prepareModelPayload(attrs, USER_FIELDS, USER_FIELDS_MAPPING);
-  return initObject(attrs.type === 'group' ? Group : User, attrs, attrs.id);
-}
 
 const USER_COLUMNS = {
   username: 'username',

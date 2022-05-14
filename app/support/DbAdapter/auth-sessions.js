@@ -1,5 +1,4 @@
-import { SessionTokenV1 } from '../../models';
-import { ACTIVE } from '../../models/auth-tokens/SessionTokenV1';
+import { ACTIVE, SessionTokenV1 } from '../../models/auth-tokens/SessionTokenV1';
 
 import { prepareModelPayload } from './utils';
 
