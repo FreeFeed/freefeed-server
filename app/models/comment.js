@@ -5,13 +5,12 @@ import monitor from 'monitor-dog';
 import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
-import { PubSub as pubSub } from '../models';
 import { EventService } from '../support/EventService';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 import { List } from '../support/open-lists';
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pubSub) {
   class Comment {
     static VISIBLE = 0;
     static DELETED = 1;

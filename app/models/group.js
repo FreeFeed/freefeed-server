@@ -1,7 +1,7 @@
-import { User, PubSub as pubSub } from '../models';
+import { User } from '../models';
 import { ForbiddenException, ValidationException } from '../support/exceptions';
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pubSub) {
   return class Group extends User {
     // Groups only have 'Posts' feed
     static feedNames = ['Posts'];

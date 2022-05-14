@@ -13,7 +13,7 @@ import config from 'config';
 
 import { getS3 } from '../support/s3';
 import { BadRequestException, NotFoundException, ValidationException } from '../support/exceptions';
-import { Attachment, Comment, Post, PubSub as pubSub } from '../models';
+import { Attachment, Comment, Post } from '../models';
 import { EventService } from '../support/EventService';
 import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
 import { allExternalProviders } from '../support/ExtAuth';
@@ -38,7 +38,7 @@ export const GONE_NAMES = {
   [GONE_DELETED]: 'DELETED',
 };
 
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pubSub) {
   return class User {
     static PROFILE_PICTURE_SIZE_LARGE = 75;
     static PROFILE_PICTURE_SIZE_MEDIUM = 50;

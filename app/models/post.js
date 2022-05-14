@@ -4,7 +4,6 @@ import _ from 'lodash';
 import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
-import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { EventService } from '../support/EventService';
 import { List } from '../support/open-lists';
@@ -25,7 +24,7 @@ import {
 /**
  * @param {DbAdapter} dbAdapter
  */
-export function addModel(dbAdapter) {
+export function addModel(dbAdapter, pubSub) {
   class Post {
     id;
     attachments;

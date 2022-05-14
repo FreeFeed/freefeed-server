@@ -30,12 +30,12 @@ if (config.disableRealtime) {
 
 export const PubSub = new pubSub(pubsubAdapter);
 
-export const User = userModel(dbAdapter);
-export const Group = groupModel(dbAdapter);
-export const Post = postModel(dbAdapter);
+export const User = userModel(dbAdapter, PubSub);
+export const Group = groupModel(dbAdapter, PubSub);
+export const Post = postModel(dbAdapter, PubSub);
 export const Timeline = timelineModel(dbAdapter);
 export const Attachment = attachmentModel(dbAdapter);
-export const Comment = commentModel(dbAdapter);
+export const Comment = commentModel(dbAdapter, PubSub);
 export const ServerInfo = addServerInfoModel(dbAdapter);
 export const Job = addJobModel(dbAdapter);
 export const JobManager = addJobManagerModel(dbAdapter);
