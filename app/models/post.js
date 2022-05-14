@@ -23,6 +23,7 @@ import {
 
 /**
  * @param {DbAdapter} dbAdapter
+ * @returns {typeof import('../models').Post}
  */
 export function addModel(dbAdapter, pubSub) {
   class Post {

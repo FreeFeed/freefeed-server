@@ -37,6 +37,9 @@ export const GONE_NAMES = {
   [GONE_DELETED]: 'DELETED',
 };
 
+/**
+ * @returns {typeof import('../models').User}
+ */
 export function addModel(registry, dbAdapter, pubSub) {
   return class User {
     static PROFILE_PICTURE_SIZE_LARGE = 75;

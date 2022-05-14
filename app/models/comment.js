@@ -10,6 +10,9 @@ import { getRoomsOfPost } from '../pubsub-listener';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 import { List } from '../support/open-lists';
 
+/**
+ * @returns {typeof import('../models').Comment}
+ */
 export function addModel(dbAdapter, pubSub) {
   class Comment {
     static VISIBLE = 0;

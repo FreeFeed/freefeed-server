@@ -1,5 +1,8 @@
 import { ForbiddenException, ValidationException } from '../support/exceptions';
 
+/**
+ * @returns {typeof import('../models').Group}
+ */
 export function addModel(registry, dbAdapter, pubSub) {
   return class Group extends registry.User {
     // Groups only have 'Posts' feed

@@ -12,6 +12,9 @@ export const dbAdapter: DbAdapter;
 export const PubSub: PubSubAdapter;
 
 export class User {
+  static ACCEPT_DIRECTS_FROM_ALL: string;
+  static ACCEPT_DIRECTS_FROM_FRIENDS: string;
+
   id: UUID;
   intId: number;
   username: string;
