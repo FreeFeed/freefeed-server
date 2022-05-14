@@ -1,4 +1,6 @@
-import { type DbAdapter } from './support/DbAdapter';
+import type Knex from 'knex';
+
+import { DbAdapter } from './support/DbAdapter';
 import type PubSub from './pubsub';
 import { addModel as attachmentModel } from './models/attachment';
 import { addModel as commentModel } from './models/comment';
@@ -34,8 +36,8 @@ export class ModelsRegistry {
   readonly Job: typeof Job;
   readonly JobManager: typeof JobManager;
 
-  constructor(dbAdapter: DbAdapter, pubSub: PubSub) {
-    this.dbAdapter = dbAdapter;
+  constructor(database: Knex, pubSub: PubSub) {
+    this.dbAdapter = new DbAdapter(database, this);
     this.pubSub = pubSub;
 
     this.User = userModel(this, this.dbAdapter, this.pubSub);

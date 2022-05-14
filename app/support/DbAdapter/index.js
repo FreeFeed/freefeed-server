@@ -37,8 +37,9 @@ import authSessionsTrait from './auth-sessions';
 import backlinksTrait from './backlinks';
 
 class DbAdapterBase {
-  constructor(database) {
+  constructor(database, registry) {
     this.database = withDbHelpers(database);
+    this.registry = registry;
     this.statsCache = new NodeCache({ stdTTL: 300 });
 
     const CACHE_TTL = 60 * 60 * 24; // 24 hours

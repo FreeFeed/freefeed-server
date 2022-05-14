@@ -11,6 +11,7 @@ import {
 } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
+import { ModelsRegistry } from '../../models-registry';
 
 type QueryBindings = readonly RawBinding[] | ValueDict | RawBinding;
 
@@ -68,7 +69,7 @@ type AttachmentsStats = {
 };
 
 export class DbAdapter {
-  constructor(connection: Knex);
+  constructor(connection: Knex, registry: ModelsRegistry);
 
   database: Knex & CommonDBHelpers & TrxDBHelpers;
 
