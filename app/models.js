@@ -6,15 +6,8 @@ import { connect as postgresConnection } from './setup/postgres';
 import { DbAdapter } from './support/DbAdapter';
 import { PubSubAdapter } from './support/PubSubAdapter';
 import pubSub, { DummyPublisher } from './pubsub';
-import { addModel as attachmentModel } from './models/attachment';
-import { addModel as commentModel } from './models/comment';
-import { addModel as groupModel } from './models/group';
-import { addModel as postModel } from './models/post';
-import { addModel as timelineModel } from './models/timeline';
-import { addModel as userModel } from './models/user';
-import { addServerInfoModel } from './models/server-info';
-import { addJobModel, addJobManagerModel } from './models/job';
 import { SessionTokenV1Store } from './models/auth-tokens';
+import { ModelsRegistry } from './models-registry';
 
 // Be careful: order of exports is important.
 export const postgres = postgresConnection();
@@ -30,15 +23,9 @@ if (config.disableRealtime) {
 
 export const PubSub = new pubSub(pubsubAdapter);
 
-export const User = userModel(dbAdapter, PubSub);
-export const Group = groupModel(dbAdapter, PubSub);
-export const Post = postModel(dbAdapter, PubSub);
-export const Timeline = timelineModel(dbAdapter);
-export const Attachment = attachmentModel(dbAdapter);
-export const Comment = commentModel(dbAdapter, PubSub);
-export const ServerInfo = addServerInfoModel(dbAdapter);
-export const Job = addJobModel(dbAdapter);
-export const JobManager = addJobManagerModel(dbAdapter);
+const registry = new ModelsRegistry(dbAdapter, PubSub);
+export const { User, Group, Post, Timeline, Attachment, Comment, ServerInfo, Job, JobManager } =
+  registry;
 
 export const sessionTokenV1Store = new SessionTokenV1Store(dbAdapter);
 

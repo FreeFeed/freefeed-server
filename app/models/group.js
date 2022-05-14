@@ -1,8 +1,7 @@
-import { User } from '../models';
 import { ForbiddenException, ValidationException } from '../support/exceptions';
 
-export function addModel(dbAdapter, pubSub) {
-  return class Group extends User {
+export function addModel(registry, dbAdapter, pubSub) {
+  return class Group extends registry.User {
     // Groups only have 'Posts' feed
     static feedNames = ['Posts'];
 
@@ -27,7 +26,7 @@ export function addModel(dbAdapter, pubSub) {
         this.username.length >= 3 && // per spec
         this.username.length <= 35 && // per evidence and consensus
         this.username.match(/^[A-Za-z0-9]+(-[a-zA-Z0-9]+)*$/) &&
-        !User.stopList(skip_stoplist).includes(this.username);
+        !registry.User.stopList(skip_stoplist).includes(this.username);
 
       return valid;
     }
@@ -93,7 +92,7 @@ export function addModel(dbAdapter, pubSub) {
       }
 
       if (params.hasOwnProperty('description') && params.description != this.description) {
-        if (!User.descriptionIsValid(params.description)) {
+        if (!registry.User.descriptionIsValid(params.description)) {
           throw new ValidationException('Description is too long');
         }
 
