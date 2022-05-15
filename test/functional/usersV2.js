@@ -9,7 +9,7 @@ import { sortBy, uniq } from 'lodash';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub, Comment, dbAdapter } from '../../app/models';
+import { pubSub, Comment, dbAdapter } from '../../app/models';
 import {
   createUserAsync,
   mutualSubscriptions,
@@ -37,7 +37,7 @@ describe('UsersControllerV2', () => {
 
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

@@ -11,7 +11,7 @@ import config from 'config';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub, SessionTokenV1 } from '../../app/models';
+import { pubSub, SessionTokenV1 } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
 import * as schema from './schemaV2-helper';
@@ -21,7 +21,7 @@ describe('UsersController', () => {
 
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

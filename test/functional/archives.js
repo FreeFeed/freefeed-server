@@ -6,14 +6,14 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub, dbAdapter, Comment } from '../../app/models';
+import { pubSub, dbAdapter, Comment } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
 
 describe('Archives', () => {
   let app;
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
   beforeEach(() => cleanDB($pg_database));
 

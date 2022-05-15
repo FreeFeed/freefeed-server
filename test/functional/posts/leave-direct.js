@@ -5,7 +5,7 @@ import expect from 'unexpected';
 import cleanDB from '../../dbCleaner';
 import { getSingleton } from '../../../app/app';
 import { PubSubAdapter } from '../../../app/support/PubSubAdapter';
-import { PubSub } from '../../../app/models';
+import { pubSub } from '../../../app/models';
 import {
   authHeaders,
   createAndReturnPostToFeed,
@@ -142,7 +142,7 @@ describe('POST /v2/posts/:postId/leave', () => {
         const app = await getSingleton();
         port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
         const pubsubAdapter = new PubSubAdapter($database);
-        PubSub.setPublisher(pubsubAdapter);
+        pubSub.setPublisher(pubsubAdapter);
       });
 
       let lunaSession, marsSession, venusSession;

@@ -4,7 +4,7 @@ import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { PubSub } from '../../app/models';
+import { pubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
@@ -87,7 +87,7 @@ describe('Backlinks in realtime', () => {
     const app = await getSingleton();
     const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
 
     [luna, mars] = await createTestUsers(['luna', 'mars']);
     lunaSession = await Session.create(port, 'Luna session');

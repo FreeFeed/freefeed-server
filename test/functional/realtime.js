@@ -4,7 +4,7 @@ import origExpect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, pubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import * as funcTestHelper from './functional_test_helper';
@@ -16,7 +16,7 @@ describe('Realtime (Socket.io)', () => {
   before(async () => {
     await getSingleton();
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   let lunaContext = {};

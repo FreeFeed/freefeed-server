@@ -7,7 +7,7 @@ import config from 'config';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, pubSub } from '../../app/models';
 import { addMailListener } from '../../lib/mailer';
 
 import { createUserAsync, performJSONRequest, updateUserAsync } from './functional_test_helper';
@@ -15,7 +15,7 @@ import { createUserAsync, performJSONRequest, updateUserAsync } from './function
 describe('PasswordsController', () => {
   before(async () => {
     await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   describe('#create()', () => {

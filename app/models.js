@@ -4,7 +4,7 @@ import config from 'config';
 import { connect as redisConnection } from './setup/database';
 import { connect as postgresConnection } from './setup/postgres';
 import { PubSubAdapter } from './support/PubSubAdapter';
-import pubSub, { DummyPublisher } from './pubsub';
+import { DummyPublisher } from './pubsub';
 import { SessionTokenV1Store } from './models/auth-tokens';
 import { ModelsRegistry } from './models-registry';
 
@@ -19,11 +19,10 @@ if (config.disableRealtime) {
   pubsubAdapter = new PubSubAdapter(redisConnection());
 }
 
-export const PubSub = new pubSub(pubsubAdapter);
-
-export const registry = new ModelsRegistry(postgres, PubSub);
+export const registry = new ModelsRegistry(postgres, pubsubAdapter);
 export const {
   dbAdapter,
+  pubSub,
   User,
   Group,
   Post,

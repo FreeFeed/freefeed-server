@@ -8,7 +8,7 @@ import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
 import {
-  PubSub,
+  pubSub,
   dbAdapter,
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ONLY,
@@ -41,7 +41,7 @@ describe('TimelinesControllerV2', () => {
 
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

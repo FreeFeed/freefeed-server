@@ -1,7 +1,7 @@
 import type Knex from 'knex';
 
 import { DbAdapter } from './support/DbAdapter';
-import type PubSub from './pubsub';
+import PubSub from './pubsub';
 import { addModel as attachmentModel } from './models/attachment';
 import { addModel as commentModel } from './models/comment';
 import { addModel as groupModel } from './models/group';
@@ -22,6 +22,7 @@ import {
   type JobManager,
 } from './models';
 import { EventService } from './support/EventService';
+import { PubSubAdapter } from './support/PubSubAdapter';
 
 export class ModelsRegistry {
   readonly dbAdapter: DbAdapter;
@@ -38,9 +39,9 @@ export class ModelsRegistry {
   readonly Job: typeof Job;
   readonly JobManager: typeof JobManager;
 
-  constructor(database: Knex, pubSub: PubSub) {
+  constructor(database: Knex, pubsubAdapter: PubSubAdapter) {
     this.dbAdapter = new DbAdapter(database, this);
-    this.pubSub = pubSub;
+    this.pubSub = new PubSub(pubsubAdapter, this);
 
     this.User = userModel(this);
     this.Group = groupModel(this, this.dbAdapter, this.pubSub);

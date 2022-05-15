@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
+import { User, Group, Post, Comment, pubSub, Timeline } from '../models';
 import { type ModelsRegistry } from '../models-registry';
 
 import { extractMentions, extractMentionsWithOffsets } from './mentions';

@@ -7,7 +7,7 @@ import unexpected from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { pubSub } from '../../app/models';
 import * as testHelper from '../functional/functional_test_helper';
 
 import { allGroupsResponse, freefeedAssertions } from './schemaV2-helper';
@@ -18,7 +18,7 @@ describe('All groups', () => {
   let app;
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
     await cleanDB($pg_database);
   });
 

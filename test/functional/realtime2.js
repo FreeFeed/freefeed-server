@@ -6,7 +6,7 @@ import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import {
   dbAdapter,
-  PubSub,
+  pubSub,
   HOMEFEED_MODE_FRIENDS_ONLY,
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
@@ -24,7 +24,7 @@ describe('Realtime #2', () => {
     const app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   let luna, mars, lunaSession, marsSession, anonSession;
@@ -694,7 +694,7 @@ describe('Realtime: Homefeed modes', () => {
     const app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
 
     [luna, mars, venus] = await Promise.all([
       funcTestHelper.createUserAsync('luna', 'pw'),
@@ -882,7 +882,7 @@ describe('Realtime: Group time updates', () => {
     const app = await getSingleton();
     const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
 
     // luna, mars, venus, jupiter are users
     [luna, mars, venus, jupiter] = await funcTestHelper.createTestUsers([
