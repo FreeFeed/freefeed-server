@@ -5,7 +5,6 @@ import monitor from 'monitor-dog';
 import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
-import { EventService } from '../support/EventService';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 import { List } from '../support/open-lists';
@@ -13,7 +12,9 @@ import { List } from '../support/open-lists';
 /**
  * @returns {typeof import('../models').Comment}
  */
-export function addModel(dbAdapter, pubSub) {
+export function addModel(registry) {
+  const { dbAdapter, pubSub } = registry;
+
   class Comment {
     static VISIBLE = 0;
     static DELETED = 1;
@@ -134,7 +135,7 @@ export function addModel(dbAdapter, pubSub) {
         this.processHashtagsOnCreate(),
         dbAdapter.statsCommentCreated(this.userId),
         pubSub.newComment(this),
-        EventService.onCommentChanged(this, true),
+        registry.eventService.onCommentChanged(this, true),
         notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
       ]);
 
@@ -164,7 +165,7 @@ export function addModel(dbAdapter, pubSub) {
       await Promise.all([
         this.processHashtagsOnUpdate(),
         pubSub.updateComment(this.id),
-        EventService.onCommentChanged(this),
+        registry.eventService.onCommentChanged(this),
         notifyBacklinked(),
       ]);
 
@@ -216,7 +217,7 @@ export function addModel(dbAdapter, pubSub) {
       await Promise.all([
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
-        destroyedBy ? EventService.onCommentDestroyed(this, destroyedBy) : null,
+        destroyedBy ? registry.eventService.onCommentDestroyed(this, destroyedBy) : null,
         notifyBacklinked(),
       ]);
 

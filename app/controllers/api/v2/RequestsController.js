@@ -1,4 +1,3 @@
-import { EventService } from '../../../support/EventService';
 import { NotFoundException } from '../../../support/exceptions';
 
 export default class RequestsController {
@@ -32,12 +31,15 @@ export default class RequestsController {
     await followedFeedOwner.rejectSubscriptionRequest(ctx.state.user.id);
 
     if (followedFeedOwner.type === 'user') {
-      await EventService.onSubscriptionRequestRevoked(
+      await ctx.modelRegistry.eventService.onSubscriptionRequestRevoked(
         ctx.state.user.intId,
         followedFeedOwner.intId,
       );
     } else {
-      await EventService.onGroupSubscriptionRequestRevoked(ctx.state.user.intId, followedFeedOwner);
+      await ctx.modelRegistry.eventService.onGroupSubscriptionRequestRevoked(
+        ctx.state.user.intId,
+        followedFeedOwner,
+      );
     }
 
     ctx.body = { err: null, status: 'success' };

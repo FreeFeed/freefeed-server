@@ -10,8 +10,8 @@ import { addModel as userModelMaker } from './user';
 const { defaults, overrides } = config.userPreferences;
 type UserPrefs = typeof defaults;
 
-const commentModel = commentModelMaker(null);
-const userModel = userModelMaker(null);
+const commentModel = commentModelMaker({ dbAdapter: null, pubSub: null });
+const userModel = userModelMaker({ dbAdapter: null, pubSub: null });
 
 const schema = {
   $schema: 'http://json-schema.org/schema#',

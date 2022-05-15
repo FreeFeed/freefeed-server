@@ -2,7 +2,6 @@ import _ from 'lodash';
 import compose from 'koa-compose';
 
 import { AppTokenV1 } from '../../../models/auth-tokens/AppTokenV1';
-import { EventService } from '../../../support/EventService';
 import {
   BadRequestException,
   NotFoundException,
@@ -38,7 +37,7 @@ export default class GroupsController {
 
     const group = new ctx.modelRegistry.Group(params);
     await group.create(ctx.state.user.id, false);
-    await EventService.onGroupCreated(ctx.state.user.intId, group.intId);
+    await ctx.modelRegistry.eventService.onGroupCreated(ctx.state.user.intId, group.intId);
 
     // The same output as of the UsersController.show with 'users' -> 'groups' replacing
     ctx.params['username'] = group.username;
@@ -158,10 +157,18 @@ export default class GroupsController {
 
     if (newStatus) {
       await group.addAdministrator(newAdmin.id);
-      await EventService.onGroupAdminPromoted(ctx.state.user.intId, group, newAdmin.intId);
+      await ctx.modelRegistry.eventService.onGroupAdminPromoted(
+        ctx.state.user.intId,
+        group,
+        newAdmin.intId,
+      );
     } else {
       await group.removeAdministrator(newAdmin.id);
-      await EventService.onGroupAdminDemoted(ctx.state.user.intId, group, newAdmin.intId);
+      await ctx.modelRegistry.eventService.onGroupAdminDemoted(
+        ctx.state.user.intId,
+        group,
+        newAdmin.intId,
+      );
     }
 
     ctx.body = { err: null, status: 'success' };
@@ -279,7 +286,11 @@ export default class GroupsController {
     }
 
     await group.rejectSubscriptionRequest(user.id);
-    await EventService.onGroupSubscriptionRequestRejected(ctx.state.user.intId, group, user.intId);
+    await ctx.modelRegistry.eventService.onGroupSubscriptionRequestRejected(
+      ctx.state.user.intId,
+      group,
+      user.intId,
+    );
 
     ctx.body = { err: null, status: 'success' };
   }

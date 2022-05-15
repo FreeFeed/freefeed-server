@@ -21,10 +21,12 @@ import {
   type Job,
   type JobManager,
 } from './models';
+import { EventService } from './support/EventService';
 
 export class ModelsRegistry {
   readonly dbAdapter: DbAdapter;
   readonly pubSub: PubSub;
+  readonly eventService: EventService;
 
   readonly User: typeof User;
   readonly Group: typeof Group;
@@ -40,14 +42,16 @@ export class ModelsRegistry {
     this.dbAdapter = new DbAdapter(database, this);
     this.pubSub = pubSub;
 
-    this.User = userModel(this, this.dbAdapter, this.pubSub);
+    this.User = userModel(this);
     this.Group = groupModel(this, this.dbAdapter, this.pubSub);
-    this.Post = postModel(this.dbAdapter, this.pubSub);
+    this.Post = postModel(this);
     this.Timeline = timelineModel(this.dbAdapter);
     this.Attachment = attachmentModel(this.dbAdapter);
-    this.Comment = commentModel(this.dbAdapter, this.pubSub);
+    this.Comment = commentModel(this);
     this.ServerInfo = addServerInfoModel(this.dbAdapter);
     this.Job = addJobModel(this.dbAdapter);
     this.JobManager = addJobManagerModel(this.dbAdapter);
+
+    this.eventService = new EventService(this);
   }
 }

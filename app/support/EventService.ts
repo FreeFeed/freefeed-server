@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
-import { dbAdapter, User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
+import { User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
+import { type ModelsRegistry } from '../models-registry';
 
 import { extractMentions, extractMentionsWithOffsets } from './mentions';
 import {
@@ -18,14 +19,20 @@ type OnPostFeedsChangedParams = {
 };
 
 export class EventService {
-  static async onUserBanned(
+  readonly registry: ModelsRegistry;
+
+  constructor(registry: ModelsRegistry) {
+    this.registry = registry;
+  }
+
+  async onUserBanned(
     initiatorIntId: number,
     bannedUserIntId: number,
     hasRequestedSubscription = false,
   ) {
     await Promise.all([
-      createEvent(initiatorIntId, EVENT_TYPES.USER_BANNED, initiatorIntId, bannedUserIntId),
-      createEvent(bannedUserIntId, EVENT_TYPES.BANNED_BY, initiatorIntId, bannedUserIntId),
+      this.createEvent(initiatorIntId, EVENT_TYPES.USER_BANNED, initiatorIntId, bannedUserIntId),
+      this.createEvent(bannedUserIntId, EVENT_TYPES.BANNED_BY, initiatorIntId, bannedUserIntId),
     ]);
 
     if (hasRequestedSubscription) {
@@ -33,15 +40,25 @@ export class EventService {
     }
   }
 
-  static async onUserUnbanned(initiatorIntId: number, unbannedUserIntId: number) {
+  async onUserUnbanned(initiatorIntId: number, unbannedUserIntId: number) {
     await Promise.all([
-      createEvent(initiatorIntId, EVENT_TYPES.USER_UNBANNED, initiatorIntId, unbannedUserIntId),
-      createEvent(unbannedUserIntId, EVENT_TYPES.UNBANNED_BY, initiatorIntId, unbannedUserIntId),
+      this.createEvent(
+        initiatorIntId,
+        EVENT_TYPES.USER_UNBANNED,
+        initiatorIntId,
+        unbannedUserIntId,
+      ),
+      this.createEvent(
+        unbannedUserIntId,
+        EVENT_TYPES.UNBANNED_BY,
+        initiatorIntId,
+        unbannedUserIntId,
+      ),
     ]);
   }
 
-  static async onUserSubscribed(initiatorIntId: number, subscribedUserIntId: number) {
-    await createEvent(
+  async onUserSubscribed(initiatorIntId: number, subscribedUserIntId: number) {
+    await this.createEvent(
       subscribedUserIntId,
       EVENT_TYPES.USER_SUBSCRIBED,
       initiatorIntId,
@@ -49,8 +66,8 @@ export class EventService {
     );
   }
 
-  static async onUserUnsubscribed(initiatorIntId: number, unsubscribedUserIntId: number) {
-    await createEvent(
+  async onUserUnsubscribed(initiatorIntId: number, unsubscribedUserIntId: number) {
+    await this.createEvent(
       unsubscribedUserIntId,
       EVENT_TYPES.USER_UNSUBSCRIBED,
       initiatorIntId,
@@ -58,12 +75,17 @@ export class EventService {
     );
   }
 
-  static async onSubscriptionRequestCreated(fromUserIntId: number, toUserIntId: number) {
-    await createEvent(toUserIntId, EVENT_TYPES.SUBSCRIPTION_REQUESTED, fromUserIntId, toUserIntId);
+  async onSubscriptionRequestCreated(fromUserIntId: number, toUserIntId: number) {
+    await this.createEvent(
+      toUserIntId,
+      EVENT_TYPES.SUBSCRIPTION_REQUESTED,
+      fromUserIntId,
+      toUserIntId,
+    );
   }
 
-  static async onSubscriptionRequestRevoked(fromUserIntId: number, toUserIntId: number) {
-    await createEvent(
+  async onSubscriptionRequestRevoked(fromUserIntId: number, toUserIntId: number) {
+    await this.createEvent(
       toUserIntId,
       EVENT_TYPES.SUBSCRIPTION_REQUEST_REVOKED,
       fromUserIntId,
@@ -71,8 +93,8 @@ export class EventService {
     );
   }
 
-  static async onSubscriptionRequestApproved(fromUserIntId: number, toUserIntId: number) {
-    await createEvent(
+  async onSubscriptionRequestApproved(fromUserIntId: number, toUserIntId: number) {
+    await this.createEvent(
       fromUserIntId,
       EVENT_TYPES.SUBSCRIPTION_REQUEST_APPROVED,
       toUserIntId,
@@ -80,8 +102,8 @@ export class EventService {
     );
   }
 
-  static async onSubscriptionRequestRejected(fromUserIntId: number, toUserIntId: number) {
-    await createEvent(
+  async onSubscriptionRequestRejected(fromUserIntId: number, toUserIntId: number) {
+    await this.createEvent(
       fromUserIntId,
       EVENT_TYPES.SUBSCRIPTION_REQUEST_REJECTED,
       toUserIntId,
@@ -89,13 +111,13 @@ export class EventService {
     );
   }
 
-  static async onGroupCreated(ownerIntId: number, groupIntId: number) {
-    await createEvent(ownerIntId, EVENT_TYPES.GROUP_CREATED, ownerIntId, null, groupIntId);
+  async onGroupCreated(ownerIntId: number, groupIntId: number) {
+    await this.createEvent(ownerIntId, EVENT_TYPES.GROUP_CREATED, ownerIntId, null, groupIntId);
   }
 
-  static async onGroupSubscribed(initiatorIntId: number, subscribedGroup: Group) {
+  async onGroupSubscribed(initiatorIntId: number, subscribedGroup: Group) {
     await this._notifyGroupAdmins(subscribedGroup, (adminUser: User) =>
-      createEvent(
+      this.createEvent(
         adminUser.intId,
         EVENT_TYPES.GROUP_SUBSCRIBED,
         initiatorIntId,
@@ -105,9 +127,9 @@ export class EventService {
     );
   }
 
-  static async onGroupUnsubscribed(initiatorIntId: number, unsubscribedGroup: Group) {
+  async onGroupUnsubscribed(initiatorIntId: number, unsubscribedGroup: Group) {
     await this._notifyGroupAdmins(unsubscribedGroup, (adminUser: User) =>
-      createEvent(
+      this.createEvent(
         adminUser.intId,
         EVENT_TYPES.GROUP_UNSUBSCRIBED,
         initiatorIntId,
@@ -117,10 +139,10 @@ export class EventService {
     );
   }
 
-  static async onGroupAdminPromoted(initiatorIntId: number, group: Group, newAdminIntId: number) {
+  async onGroupAdminPromoted(initiatorIntId: number, group: Group, newAdminIntId: number) {
     await this._notifyGroupAdmins(group, async (adminUser: User) => {
       if (adminUser.intId !== newAdminIntId) {
-        await createEvent(
+        await this.createEvent(
           adminUser.intId,
           EVENT_TYPES.GROUP_ADMIN_PROMOTED,
           initiatorIntId,
@@ -131,10 +153,10 @@ export class EventService {
     });
   }
 
-  static async onGroupAdminDemoted(initiatorIntId: number, group: Group, formerAdminIntId: number) {
+  async onGroupAdminDemoted(initiatorIntId: number, group: Group, formerAdminIntId: number) {
     await this._notifyGroupAdmins(group, async (adminUser: User) => {
       if (adminUser.intId !== formerAdminIntId) {
-        await createEvent(
+        await this.createEvent(
           adminUser.intId,
           EVENT_TYPES.GROUP_ADMIN_DEMOTED,
           initiatorIntId,
@@ -145,9 +167,9 @@ export class EventService {
     });
   }
 
-  static async onGroupSubscriptionRequestCreated(initiatorIntId: number, group: Group) {
+  async onGroupSubscriptionRequestCreated(initiatorIntId: number, group: Group) {
     await this._notifyGroupAdmins(group, (adminUser: User) =>
-      createEvent(
+      this.createEvent(
         adminUser.intId,
         EVENT_TYPES.GROUP_SUBSCRIPTION_REQUEST,
         initiatorIntId,
@@ -157,9 +179,9 @@ export class EventService {
     );
   }
 
-  static async onGroupSubscriptionRequestRevoked(initiatorIntId: number, group: Group) {
+  async onGroupSubscriptionRequestRevoked(initiatorIntId: number, group: Group) {
     await this._notifyGroupAdmins(group, (adminUser: User) =>
-      createEvent(
+      this.createEvent(
         adminUser.intId,
         EVENT_TYPES.GROUP_REQUEST_REVOKED,
         initiatorIntId,
@@ -169,13 +191,13 @@ export class EventService {
     );
   }
 
-  static async onGroupSubscriptionRequestApproved(
+  async onGroupSubscriptionRequestApproved(
     adminIntId: number,
     group: Group,
     requesterIntId: number,
   ) {
     await this._notifyGroupAdmins(group, (adminUser: User) =>
-      createEvent(
+      this.createEvent(
         adminUser.intId,
         EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_APPROVED,
         adminIntId,
@@ -183,7 +205,7 @@ export class EventService {
         group.intId,
       ),
     );
-    await createEvent(
+    await this.createEvent(
       requesterIntId,
       EVENT_TYPES.GROUP_SUBSCRIPTION_APPROVED,
       adminIntId,
@@ -192,13 +214,13 @@ export class EventService {
     );
   }
 
-  static async onGroupSubscriptionRequestRejected(
+  async onGroupSubscriptionRequestRejected(
     adminIntId: number,
     group: Group,
     requesterIntId: number,
   ) {
     await this._notifyGroupAdmins(group, (adminUser: User) =>
-      createEvent(
+      this.createEvent(
         adminUser.intId,
         EVENT_TYPES.MANAGED_GROUP_SUBSCRIPTION_REJECTED,
         adminIntId,
@@ -206,7 +228,7 @@ export class EventService {
         group.intId,
       ),
     );
-    await createEvent(
+    await this.createEvent(
       requesterIntId,
       EVENT_TYPES.GROUP_SUBSCRIPTION_REJECTED,
       null,
@@ -215,26 +237,26 @@ export class EventService {
     );
   }
 
-  static async onPostCreated(post: Post, destinationFeedIds: UUID[], author: User) {
-    const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
+  async onPostCreated(post: Post, destinationFeedIds: UUID[], author: User) {
+    const destinationFeeds = await this.registry.dbAdapter.getTimelinesByIds(destinationFeedIds);
     await this._processDirectMessagesForPost(post, destinationFeeds, author);
     await this._processMentionsInPost(post, destinationFeeds, author);
-    await processBacklinks(post);
+    await this.processBacklinks(post);
   }
 
-  static async onCommentChanged(comment: Comment, wasCreated = false) {
+  async onCommentChanged(comment: Comment, wasCreated = false) {
     const [post, mentionEvents] = await Promise.all([
       comment.getPost(),
-      getMentionEvents(
+      this.getMentionEvents(
         comment.body,
         comment.userId,
         EVENT_TYPES.MENTION_IN_COMMENT,
         EVENT_TYPES.MENTION_COMMENT_TO,
       ),
-      processBacklinks(comment),
+      this.processBacklinks(comment),
     ]);
     const directEvents = wasCreated
-      ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED)
+      ? await this.getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED)
       : [];
 
     if (mentionEvents.length === 0 && directEvents.length === 0) {
@@ -242,9 +264,9 @@ export class EventService {
     }
 
     const [postAuthor, commentAuthor, commentAuthorBanners, destFeeds] = await Promise.all([
-      dbAdapter.getUserById(post.userId),
-      comment.userId ? dbAdapter.getUserById(comment.userId) : null,
-      dbAdapter.getUserIdsWhoBannedUser(comment.userId!),
+      this.registry.dbAdapter.getUserById(post.userId),
+      comment.userId ? this.registry.dbAdapter.getUserById(comment.userId) : null,
+      this.registry.dbAdapter.getUserIdsWhoBannedUser(comment.userId!),
       post.getPostedTo(),
     ]);
 
@@ -273,7 +295,7 @@ export class EventService {
       [...mentionEvents, ...directEvents]
         .filter(({ user }) => affectedUsers.some((u) => u.id === user.id))
         .map(({ event, user }) =>
-          createEvent(
+          this.createEvent(
             user.intId,
             event,
             commentAuthor!.intId,
@@ -287,20 +309,20 @@ export class EventService {
     );
   }
 
-  static async onCommentDestroyed(comment: Comment, destroyedBy: User) {
+  async onCommentDestroyed(comment: Comment, destroyedBy: User) {
     if (destroyedBy.id === comment.userId) {
       return;
     }
 
     const [post, commentAuthor, destroyerGroups] = await Promise.all([
       comment.getPost(),
-      comment.userId ? dbAdapter.getUserById(comment.userId) : null,
+      comment.userId ? this.registry.dbAdapter.getUserById(comment.userId) : null,
       destroyedBy.getManagedGroups(),
     ]);
 
     const [postGroupAdmins, postAuthor, postGroups] = await Promise.all([
-      dbAdapter.getAdminsOfPostGroups(post.id),
-      dbAdapter.getUserById(post.userId),
+      this.registry.dbAdapter.getAdminsOfPostGroups(post.id),
+      this.registry.dbAdapter.getUserById(post.userId),
       post.getGroupsPostedTo(),
     ]);
 
@@ -308,7 +330,7 @@ export class EventService {
     if (commentAuthor) {
       // Is post belongs to any group managed by destroyer?
       const groups = _.intersectionBy(destroyerGroups, postGroups, 'id');
-      await createEvent(
+      await this.createEvent(
         commentAuthor.intId,
         EVENT_TYPES.COMMENT_MODERATED,
         destroyedBy.intId,
@@ -333,7 +355,7 @@ export class EventService {
       otherAdmins.map(async (a) => {
         const managedGroups = await a.getManagedGroups();
         const groups = _.intersectionBy(managedGroups, postGroups, 'id');
-        return createEvent(
+        return this.createEvent(
           a.intId,
           EVENT_TYPES.COMMENT_MODERATED_BY_ANOTHER_ADMIN,
           destroyedBy.intId,
@@ -347,17 +369,17 @@ export class EventService {
     );
   }
 
-  static async onPostDestroyed(post: Post, destroyedBy: User, params: { groups?: Group[] } = {}) {
+  async onPostDestroyed(post: Post, destroyedBy: User, params: { groups?: Group[] } = {}) {
     const { groups: postGroups = [] } = params;
 
     if (destroyedBy.id === post.userId) {
       return;
     }
 
-    const postAuthor = await dbAdapter.getUserById(post.userId);
+    const postAuthor = await this.registry.dbAdapter.getUserById(post.userId);
 
     // Message to the post author
-    await createEvent(
+    await this.createEvent(
       postAuthor!.intId,
       EVENT_TYPES.POST_MODERATED,
       destroyedBy.intId,
@@ -382,7 +404,7 @@ export class EventService {
       otherAdmins.map(async (a) => {
         const managedGroups = await a.getManagedGroups();
         const groups = _.intersectionBy(managedGroups, postGroups, 'id');
-        return createEvent(
+        return this.createEvent(
           a.intId,
           EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
           destroyedBy.intId,
@@ -396,11 +418,7 @@ export class EventService {
     );
   }
 
-  static async onPostFeedsChanged(
-    post: Post,
-    changedBy: User,
-    params: OnPostFeedsChangedParams = {},
-  ) {
+  async onPostFeedsChanged(post: Post, changedBy: User, params: OnPostFeedsChangedParams = {}) {
     const { addedFeeds = [], removedFeeds = [] } = params;
 
     if (addedFeeds.length > 0) {
@@ -417,10 +435,10 @@ export class EventService {
     );
     const removedFromGroups = removedFeedOwners.filter((o) => o.isGroup()) as Group[];
 
-    const postAuthor = await dbAdapter.getUserById(post.userId);
+    const postAuthor = await this.registry.dbAdapter.getUserById(post.userId);
 
     // Message to the post author
-    await createEvent(
+    await this.createEvent(
       postAuthor!.intId,
       EVENT_TYPES.POST_MODERATED,
       changedBy.intId,
@@ -445,7 +463,7 @@ export class EventService {
       otherAdmins.map(async (a) => {
         const managedGroups = await a.getManagedGroups();
         const groups = _.intersectionBy(managedGroups, removedFromGroups, 'id');
-        return createEvent(
+        return this.createEvent(
           a.intId,
           EVENT_TYPES.POST_MODERATED_BY_ANOTHER_ADMIN,
           changedBy.intId,
@@ -459,26 +477,28 @@ export class EventService {
     );
   }
 
-  static async onInvitationUsed(fromUserIntId: number, newUserIntId: number) {
-    await createEvent(fromUserIntId, EVENT_TYPES.INVITATION_USED, newUserIntId, newUserIntId);
+  async onInvitationUsed(fromUserIntId: number, newUserIntId: number) {
+    await this.createEvent(fromUserIntId, EVENT_TYPES.INVITATION_USED, newUserIntId, newUserIntId);
   }
 
-  static async onDirectLeft(postId: UUID, initiator: User) {
-    const post = await dbAdapter.getPostById(postId);
+  async onDirectLeft(postId: UUID, initiator: User) {
+    const post = await this.registry.dbAdapter.getPostById(postId);
 
     if (!post) {
       return;
     }
 
     // Posts can have non-unique destinationFeedIds, so we need to _.uniq them
-    const postFeeds = await dbAdapter.getTimelinesByIntIds(_.uniq(post.destinationFeedIds));
+    const postFeeds = await this.registry.dbAdapter.getTimelinesByIntIds(
+      _.uniq(post.destinationFeedIds),
+    );
 
     const participantIds = postFeeds.filter((f) => f.isDirects()).map((f) => f.userId);
-    const participants = await dbAdapter.getUsersByIds(participantIds);
+    const participants = await this.registry.dbAdapter.getUsersByIds(participantIds);
     const postAuthor = participants.find((u) => u.id === post.userId);
     await Promise.all(
       [initiator, ...participants].map((user) =>
-        createEvent(
+        this.createEvent(
           user.intId,
           EVENT_TYPES.DIRECT_LEFT,
           initiator.intId,
@@ -494,7 +514,7 @@ export class EventService {
 
   ////////////////////////////////////////////
 
-  static async _processDirectMessagesForPost(
+  private async _processDirectMessagesForPost(
     post: Post,
     destinationFeeds: Timeline[],
     author: User,
@@ -508,10 +528,10 @@ export class EventService {
         return f.userId;
       });
 
-      const directReceivers = await dbAdapter.getUsersByIds(directReceiversIds);
+      const directReceivers = await this.registry.dbAdapter.getUsersByIds(directReceiversIds);
       await Promise.all(
         directReceivers.map((receiver) =>
-          createEvent(
+          this.createEvent(
             receiver.intId,
             EVENT_TYPES.DIRECT_CREATED,
             author.intId,
@@ -526,7 +546,7 @@ export class EventService {
     }
   }
 
-  static async _processMentionsInPost(post: Post, destinationFeeds: Timeline[], author: User) {
+  private async _processMentionsInPost(post: Post, destinationFeeds: Timeline[], author: User) {
     const mentionedUsernames = _.uniq(extractMentions(post.body));
 
     if (mentionedUsernames.length === 0) {
@@ -548,15 +568,20 @@ export class EventService {
     const nonDirectFeeds = destinationFeeds.filter((f) => !f.isDirects());
     const nonDirectFeedsIds = nonDirectFeeds.map((f) => f.id);
     const nonDirectFeedsOwnerIds = nonDirectFeeds.map((f) => f.userId);
-    const postIsPublic = await dbAdapter.someUsersArePublic(nonDirectFeedsOwnerIds, false);
+    const postIsPublic = await this.registry.dbAdapter.someUsersArePublic(
+      nonDirectFeedsOwnerIds,
+      false,
+    );
 
     const usersBannedByPostAuthor = await author.getBanIds();
-    const mentionedUsers = await dbAdapter.getFeedOwnersByUsernames(mentionedUsernames);
+    const mentionedUsers = await this.registry.dbAdapter.getFeedOwnersByUsernames(
+      mentionedUsernames,
+    );
 
     let usersSubscriptionsStatus = [] as { uid: UUID; is_subscribed: boolean }[];
 
     if (!postIsPublic) {
-      usersSubscriptionsStatus = await dbAdapter.areUsersSubscribedToOneOfTimelines(
+      usersSubscriptionsStatus = await this.registry.dbAdapter.areUsersSubscribedToOneOfTimelines(
         mentionedUsers.map((u) => u.id),
         nonDirectFeedsIds,
       );
@@ -595,7 +620,7 @@ export class EventService {
         }
       }
 
-      await createEvent(
+      await this.createEvent(
         user.intId,
         EVENT_TYPES.MENTION_IN_POST,
         author.intId,
@@ -609,173 +634,172 @@ export class EventService {
     await Promise.all(promises);
   }
 
-  static async _notifyGroupAdmins(group: Group, adminNotifier: (admin: User) => Promise<any>) {
-    const groupAdminsIds = await dbAdapter.getGroupAdministratorsIds(group.id);
-    const admins = await dbAdapter.getUsersByIds(groupAdminsIds);
+  private async _notifyGroupAdmins(group: Group, adminNotifier: (admin: User) => Promise<any>) {
+    const groupAdminsIds = await this.registry.dbAdapter.getGroupAdministratorsIds(group.id);
+    const admins = await this.registry.dbAdapter.getUsersByIds(groupAdminsIds);
 
     const promises = admins.map((adminUser) => {
       return adminNotifier(adminUser);
     });
     await Promise.all(promises);
   }
-}
 
-async function getMentionEvents(
-  text: string,
-  authorId: Nullable<UUID>,
-  eventType: T_EVENT_TYPE,
-  firstMentionEventType = eventType,
-) {
-  const mentions = _.uniqBy(extractMentionsWithOffsets(text), 'username');
-  const mentionedUsers = (await dbAdapter.getFeedOwnersByUsernames(mentions.map((u) => u.username)))
-    // Only users (not groups) and not an event author
-    .filter((u) => u.isUser() && u.id !== authorId) as User[];
-  return mentions
-    .map(({ username, offset }) => ({
-      event: offset === 0 ? firstMentionEventType : eventType,
-      user: mentionedUsers.find((u) => u.username === username),
-    }))
-    .filter(({ user }) => !!user) as { user: User; event: T_EVENT_TYPE }[];
-}
-
-async function getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: T_EVENT_TYPE) {
-  const destFeeds = await post.getPostedTo();
-  const directFeeds = destFeeds.filter((f) => f.isDirects() && f.userId !== authorId);
-  const directReceivers = await dbAdapter.getUsersByIds(directFeeds.map((f) => f.userId));
-  return directReceivers.map((user) => ({ event: eventType, user }));
-}
-
-async function processBacklinks(srcEntity: Post | Comment) {
-  const uuids = extractUUIDs(srcEntity.body);
-  const [mentionedPosts, mentionedComments] = await Promise.all([
-    dbAdapter.getPostsByIds(uuids),
-    dbAdapter.getCommentsByIds(uuids),
-  ]);
-
-  if (mentionedPosts.length === 0 && mentionedComments.length === 0) {
-    return;
+  async getMentionEvents(
+    text: string,
+    authorId: Nullable<UUID>,
+    eventType: T_EVENT_TYPE,
+    firstMentionEventType = eventType,
+  ) {
+    const mentions = _.uniqBy(extractMentionsWithOffsets(text), 'username');
+    const mentionedUsers = (
+      await this.registry.dbAdapter.getFeedOwnersByUsernames(mentions.map((u) => u.username))
+    )
+      // Only users (not groups) and not an event author
+      .filter((u) => u.isUser() && u.id !== authorId) as User[];
+    return mentions
+      .map(({ username, offset }) => ({
+        event: offset === 0 ? firstMentionEventType : eventType,
+        user: mentionedUsers.find((u) => u.username === username),
+      }))
+      .filter(({ user }) => !!user) as { user: User; event: T_EVENT_TYPE }[];
   }
 
-  const [srcViewers, initiator] = await Promise.all([
-    srcEntity.usersCanSee(),
-    srcEntity.getCreatedBy(),
-  ]);
-
-  const srcPost = srcEntity instanceof Post ? srcEntity : await srcEntity.getPost();
-  const [srcPostAuthor, srcPostGroups] = await Promise.all([
-    srcPost.getCreatedBy(),
-    srcPost.getGroupsPostedTo(),
-  ]);
-
-  await Promise.all([
-    ...mentionedPosts.map(async (post) => {
-      if (srcEntity.userId === post.userId || !srcViewers.includes(post.userId)) {
-        return;
-      }
-
-      const postAuthor = await post.getCreatedBy();
-
-      await createEvent(
-        postAuthor.intId,
-        srcEntity instanceof Post ? EVENT_TYPES.BACKLINK_IN_POST : EVENT_TYPES.BACKLINK_IN_COMMENT,
-        initiator.intId,
-        postAuthor.intId,
-        srcPostGroups[0]?.intId,
-        srcPost.id,
-        srcEntity instanceof Comment ? srcEntity.id : null,
-        srcPostAuthor.intId,
-        post.id,
-      );
-    }),
-    ...mentionedComments.map(async (comment) => {
-      if (
-        !comment.userId ||
-        srcEntity.userId === comment.userId ||
-        !srcViewers.includes(comment.userId)
-      ) {
-        return;
-      }
-
-      const [commentAuthor, commentPost] = await Promise.all([
-        comment.getCreatedBy(),
-        comment.getPost(),
-      ]);
-
-      await createEvent(
-        commentAuthor.intId,
-        srcEntity instanceof Post ? EVENT_TYPES.BACKLINK_IN_POST : EVENT_TYPES.BACKLINK_IN_COMMENT,
-        initiator.intId,
-        commentAuthor.intId,
-        srcPostGroups[0]?.intId,
-        srcPost.id,
-        srcEntity instanceof Comment ? srcEntity.id : null,
-        srcPostAuthor.intId,
-        commentPost.id,
-        comment.id,
-      );
-    }),
-  ]);
-}
-
-/**
- * Create event and perform necessary actions after create
- *
- * @param recipientIntId
- * @param eventType
- * @param createdByUserIntId
- * @param targetUserIntId
- * @param groupIntId
- * @param postId
- * @param commentId
- * @param postAuthorIntId
- */
-async function createEvent(
-  recipientIntId: number,
-  eventType: T_EVENT_TYPE,
-  createdByUserIntId: Nullable<number>,
-  targetUserIntId: Nullable<number> = null,
-  groupIntId: Nullable<number> = null,
-  postId: Nullable<UUID> = null,
-  commentId: Nullable<UUID> = null,
-  postAuthorIntId: Nullable<number> = null,
-  targetPostId: Nullable<UUID> = null,
-  targetCommentId: Nullable<UUID> = null,
-) {
-  const event = await dbAdapter.createEvent(
-    recipientIntId,
-    eventType,
-    createdByUserIntId,
-    targetUserIntId,
-    groupIntId,
-    postId,
-    commentId,
-    postAuthorIntId,
-    targetPostId,
-    targetCommentId,
-  );
-
-  // It is possible if event is conflicting with existing by unique key
-  if (!event) {
-    return null;
+  async getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: T_EVENT_TYPE) {
+    const destFeeds = await post.getPostedTo();
+    const directFeeds = destFeeds.filter((f) => f.isDirects() && f.userId !== authorId);
+    const directReceivers = await this.registry.dbAdapter.getUsersByIds(
+      directFeeds.map((f) => f.userId),
+    );
+    return directReceivers.map((user) => ({ event: eventType, user }));
   }
 
-  const updates = [];
+  async processBacklinks(srcEntity: Post | Comment) {
+    const uuids = extractUUIDs(srcEntity.body);
+    const [mentionedPosts, mentionedComments] = await Promise.all([
+      this.registry.dbAdapter.getPostsByIds(uuids),
+      this.registry.dbAdapter.getCommentsByIds(uuids),
+    ]);
 
-  if (ALLOWED_EVENT_TYPES.includes(eventType)) {
-    updates.push(pubSub.newEvent(event.uid));
+    if (mentionedPosts.length === 0 && mentionedComments.length === 0) {
+      return;
+    }
+
+    const [srcViewers, initiator] = await Promise.all([
+      srcEntity.usersCanSee(),
+      srcEntity.getCreatedBy(),
+    ]);
+
+    const srcPost = srcEntity instanceof Post ? srcEntity : await srcEntity.getPost();
+    const [srcPostAuthor, srcPostGroups] = await Promise.all([
+      srcPost.getCreatedBy(),
+      srcPost.getGroupsPostedTo(),
+    ]);
+
+    await Promise.all([
+      ...mentionedPosts.map(async (post) => {
+        if (srcEntity.userId === post.userId || !srcViewers.includes(post.userId)) {
+          return;
+        }
+
+        const postAuthor = await post.getCreatedBy();
+
+        await this.createEvent(
+          postAuthor.intId,
+          srcEntity instanceof Post
+            ? EVENT_TYPES.BACKLINK_IN_POST
+            : EVENT_TYPES.BACKLINK_IN_COMMENT,
+          initiator.intId,
+          postAuthor.intId,
+          srcPostGroups[0]?.intId,
+          srcPost.id,
+          srcEntity instanceof Comment ? srcEntity.id : null,
+          srcPostAuthor.intId,
+          post.id,
+        );
+      }),
+      ...mentionedComments.map(async (comment) => {
+        if (
+          !comment.userId ||
+          srcEntity.userId === comment.userId ||
+          !srcViewers.includes(comment.userId)
+        ) {
+          return;
+        }
+
+        const [commentAuthor, commentPost] = await Promise.all([
+          comment.getCreatedBy(),
+          comment.getPost(),
+        ]);
+
+        await this.createEvent(
+          commentAuthor.intId,
+          srcEntity instanceof Post
+            ? EVENT_TYPES.BACKLINK_IN_POST
+            : EVENT_TYPES.BACKLINK_IN_COMMENT,
+          initiator.intId,
+          commentAuthor.intId,
+          srcPostGroups[0]?.intId,
+          srcPost.id,
+          srcEntity instanceof Comment ? srcEntity.id : null,
+          srcPostAuthor.intId,
+          commentPost.id,
+          comment.id,
+        );
+      }),
+    ]);
   }
 
-  if (COUNTABLE_EVENT_TYPES.includes(eventType)) {
-    if (recipientIntId !== createdByUserIntId) {
-      updates.push(pubSub.updateUnreadNotifications(recipientIntId));
+  /**
+   * Create event and perform necessary actions after create
+   */
+  async createEvent(
+    recipientIntId: number,
+    eventType: T_EVENT_TYPE,
+    createdByUserIntId: Nullable<number>,
+    targetUserIntId: Nullable<number> = null,
+    groupIntId: Nullable<number> = null,
+    postId: Nullable<UUID> = null,
+    commentId: Nullable<UUID> = null,
+    postAuthorIntId: Nullable<number> = null,
+    targetPostId: Nullable<UUID> = null,
+    targetCommentId: Nullable<UUID> = null,
+  ) {
+    const event = await this.registry.dbAdapter.createEvent(
+      recipientIntId,
+      eventType,
+      createdByUserIntId,
+      targetUserIntId,
+      groupIntId,
+      postId,
+      commentId,
+      postAuthorIntId,
+      targetPostId,
+      targetCommentId,
+    );
 
-      if (eventType === EVENT_TYPES.SUBSCRIPTION_REQUEST_APPROVED) {
-        updates.push(pubSub.updateUnreadNotifications(createdByUserIntId!));
+    // It is possible if event is conflicting with existing by unique key
+    if (!event) {
+      return null;
+    }
+
+    const updates = [];
+
+    if (ALLOWED_EVENT_TYPES.includes(eventType)) {
+      updates.push(pubSub.newEvent(event.uid));
+    }
+
+    if (COUNTABLE_EVENT_TYPES.includes(eventType)) {
+      if (recipientIntId !== createdByUserIntId) {
+        updates.push(pubSub.updateUnreadNotifications(recipientIntId));
+
+        if (eventType === EVENT_TYPES.SUBSCRIPTION_REQUEST_APPROVED) {
+          updates.push(pubSub.updateUnreadNotifications(createdByUserIntId!));
+        }
       }
     }
+
+    await Promise.all(updates);
+
+    return event;
   }
-
-  await Promise.all(updates);
-
-  return event;
 }

@@ -16,7 +16,6 @@ import {
   BadRequestException,
   TooManyRequestsException,
 } from '../../../support/exceptions';
-import { EventService } from '../../../support/EventService';
 import recaptchaVerify from '../../../../lib/recaptcha';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import {
@@ -116,7 +115,7 @@ export default class UsersController {
               user,
               invitation,
               ctx.request.body.cancel_subscription,
-              ctx.modelRegistry.dbAdapter,
+              ctx.modelRegistry,
             ),
           ),
         // Subscribe to onboarding user
@@ -240,9 +239,15 @@ export default class UsersController {
       await user.sendSubscriptionRequest(targetUser.id, ctx.request.body.homeFeeds);
 
       if (targetUser.isUser()) {
-        await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);
+        await ctx.modelRegistry.eventService.onSubscriptionRequestCreated(
+          user.intId,
+          targetUser.intId,
+        );
       } else {
-        await EventService.onGroupSubscriptionRequestCreated(user.intId, targetUser);
+        await ctx.modelRegistry.eventService.onGroupSubscriptionRequestCreated(
+          user.intId,
+          targetUser,
+        );
       }
 
       ctx.body = {};
@@ -288,7 +293,10 @@ export default class UsersController {
     }
 
     await ctx.state.user.rejectSubscriptionRequest(user.id);
-    await EventService.onSubscriptionRequestRejected(user.intId, ctx.state.user.intId);
+    await ctx.modelRegistry.eventService.onSubscriptionRequestRejected(
+      user.intId,
+      ctx.state.user.intId,
+    );
     ctx.body = {};
   }
 
@@ -742,9 +750,18 @@ async function validateInvitationAndSelectUsers(invitation, invitationId, regist
   return { ...invitation, publicUsers, privateUsers, publicGroups, privateGroups };
 }
 
-async function useInvitation(newUser, invitation, cancel_subscription = false, dbAdapter) {
+/**
+ *
+ * @param {User} newUser
+ * @param invitation
+ * @param {boolean} cancel_subscription
+ * @param {ModelsRegistry} registry
+ * @returns {Promise<void>}
+ */
+async function useInvitation(newUser, invitation, cancel_subscription = false, registry) {
+  const { dbAdapter, eventService } = registry;
   await dbAdapter.useInvitation(invitation.secure_id);
-  await EventService.onInvitationUsed(invitation.author, newUser.intId);
+  await eventService.onInvitationUsed(invitation.author, newUser.intId);
 
   if (cancel_subscription) {
     return;
@@ -765,14 +782,14 @@ async function useInvitation(newUser, invitation, cancel_subscription = false, d
   await Promise.all(
     invitation.privateUsers.map(async (recommendedUser) => {
       await newUser.sendSubscriptionRequest(recommendedUser.id);
-      return EventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
+      return eventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
     }),
   );
 
   await Promise.all(
     invitation.privateGroups.map(async (recommendedGroup) => {
       await newUser.sendSubscriptionRequest(recommendedGroup.id);
-      return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
+      return eventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
     }),
   );
 }

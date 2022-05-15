@@ -13,7 +13,6 @@ import config from 'config';
 
 import { getS3 } from '../support/s3';
 import { BadRequestException, NotFoundException, ValidationException } from '../support/exceptions';
-import { EventService } from '../support/EventService';
 import { userCooldownStart, userDataDeletionStart } from '../jobs/user-gone';
 import { allExternalProviders } from '../support/ExtAuth';
 
@@ -40,7 +39,9 @@ export const GONE_NAMES = {
 /**
  * @returns {typeof import('../models').User}
  */
-export function addModel(registry, dbAdapter, pubSub) {
+export function addModel(registry) {
+  const { dbAdapter, pubSub } = registry;
+
   return class User {
     static PROFILE_PICTURE_SIZE_LARGE = 75;
     static PROFILE_PICTURE_SIZE_MEDIUM = 50;
@@ -811,7 +812,11 @@ export function addModel(registry, dbAdapter, pubSub) {
       await Promise.all(promises);
       monitor.increment('users.bans');
 
-      await EventService.onUserBanned(this.intId, user.intId, bannedUserHasRequestedSubscription);
+      await registry.eventService.onUserBanned(
+        this.intId,
+        user.intId,
+        bannedUserHasRequestedSubscription,
+      );
       return 1;
     }
 
@@ -824,7 +829,7 @@ export function addModel(registry, dbAdapter, pubSub) {
 
       await dbAdapter.deleteUserBan(this.id, user.id);
       monitor.increment('users.unbans');
-      await EventService.onUserUnbanned(this.intId, user.intId);
+      await registry.eventService.onUserUnbanned(this.intId, user.intId);
       return 1;
     }
 
@@ -856,9 +861,9 @@ export function addModel(registry, dbAdapter, pubSub) {
 
       if (!noEvents) {
         if (targetUser.isUser()) {
-          await EventService.onUserSubscribed(this.intId, targetUser.intId);
+          await registry.eventService.onUserSubscribed(this.intId, targetUser.intId);
         } else {
-          await EventService.onGroupSubscribed(this.intId, targetUser);
+          await registry.eventService.onGroupSubscribed(this.intId, targetUser);
         }
       }
 
@@ -890,9 +895,9 @@ export function addModel(registry, dbAdapter, pubSub) {
       monitor.increment('users.unsubscriptions');
 
       if (targetUser.isUser()) {
-        await EventService.onUserUnsubscribed(this.intId, targetUser.intId);
+        await registry.eventService.onUserUnsubscribed(this.intId, targetUser.intId);
       } else {
-        await EventService.onGroupUnsubscribed(this.intId, targetUser);
+        await registry.eventService.onGroupUnsubscribed(this.intId, targetUser);
       }
 
       return true;
@@ -1198,13 +1203,13 @@ export function addModel(registry, dbAdapter, pubSub) {
       await fromUser.subscribeTo(this, { homeFeedIds: request.homefeed_ids });
 
       if (this.isGroup()) {
-        await EventService.onGroupSubscriptionRequestApproved(
+        await registry.eventService.onGroupSubscriptionRequestApproved(
           acceptedBy.intId,
           this,
           fromUser.intId,
         );
       } else {
-        await EventService.onSubscriptionRequestApproved(fromUser.intId, this.intId);
+        await registry.eventService.onSubscriptionRequestApproved(fromUser.intId, this.intId);
       }
 
       return true;

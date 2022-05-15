@@ -5,7 +5,6 @@ import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
 import { getRoomsOfPost } from '../pubsub-listener';
-import { EventService } from '../support/EventService';
 import { List } from '../support/open-lists';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 
@@ -22,10 +21,11 @@ import {
  */
 
 /**
- * @param {DbAdapter} dbAdapter
+ * @param {ModelsRegistry} registry
  * @returns {typeof import('../models').Post}
  */
-export function addModel(dbAdapter, pubSub) {
+export function addModel(registry) {
+  const { dbAdapter, pubSub } = registry;
   class Post {
     id;
     attachments;
@@ -153,7 +153,7 @@ export function addModel(dbAdapter, pubSub) {
         .map((f) => pubSub.updateUnreadDirects(f.userId));
       rtUpdates.push(pubSub.newPost(this.id));
 
-      await EventService.onPostCreated(
+      await registry.eventService.onPostCreated(
         newPost,
         destFeeds.map((f) => f.id),
         author,
@@ -242,7 +242,7 @@ export function addModel(dbAdapter, pubSub) {
               dbAdapter.getTimelinesByIntIds(addedFeedIds),
             ]);
             afterUpdate.push(() =>
-              EventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, {
+              registry.eventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, {
                 addedFeeds,
                 removedFeeds,
               }),
@@ -258,7 +258,7 @@ export function addModel(dbAdapter, pubSub) {
       }
 
       afterUpdate.push(async () => {
-        await EventService.onPostCreated(
+        await registry.eventService.onPostCreated(
           this,
           await dbAdapter.getTimelinesUUIDsByIntIds(this.destinationFeedIds),
           await this.getCreatedBy(),
@@ -315,7 +315,7 @@ export function addModel(dbAdapter, pubSub) {
 
       await Promise.all([
         pubSub.destroyPost(this.id, realtimeRooms),
-        destroyedBy ? EventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
+        destroyedBy ? registry.eventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
         notifyBacklinked(),
       ]);
     }
@@ -970,7 +970,7 @@ export function addModel(dbAdapter, pubSub) {
         return false;
       }
 
-      await EventService.onDirectLeft(this.id, user);
+      await registry.eventService.onDirectLeft(this.id, user);
 
       await pubSub.updatePost(this.id, { rooms, usersBeforeIds });
 
