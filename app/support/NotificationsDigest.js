@@ -1,13 +1,12 @@
 import moment from 'moment';
 import createDebug from 'debug';
 
-import { dbAdapter } from '../models';
 import { serializeEvents } from '../serializers/v2/event';
 import { sendEventsDigestEmail } from '../mailers/NotificationDigestMailer';
 
 import { DIGEST_EVENT_TYPES } from './EventTypes';
 
-export async function sendEmails() {
+export async function sendEmails(dbAdapter) {
   const debug = createDebug('freefeed:sendEmails');
 
   const users = await dbAdapter.getNotificationsDigestRecipients();
