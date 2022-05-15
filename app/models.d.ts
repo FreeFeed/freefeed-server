@@ -1,17 +1,23 @@
 import Knex from 'knex';
+import type Config from 'config';
 
 import { DbAdapter } from './support/DbAdapter';
-import PubSubAdapter from './pubsub';
+import PubSub from './pubsub';
 import { GONE_NAMES } from './models/user';
 import { Nullable, UUID } from './support/types';
 import { SessionTokenV1Store } from './models/auth-tokens';
 import { List } from './support/open-lists';
+import { ModelsRegistry } from './models-registry';
 
 export const postgres: Knex;
 export const dbAdapter: DbAdapter;
-export const PubSub: PubSubAdapter;
+export const pubSub: PubSub;
+export const registry: ModelsRegistry;
 
 export class User {
+  static ACCEPT_DIRECTS_FROM_ALL: string;
+  static ACCEPT_DIRECTS_FROM_FRIENDS: string;
+
   id: UUID;
   intId: number;
   username: string;
@@ -147,6 +153,9 @@ export type JobHandler<P> = (job: Job<P>) => Promise<unknown>;
 export type JobMiddleware = (h: JobHandler<unknown>) => JobHandler<unknown>;
 
 export class JobManager {
+  readonly dbAdapter: DbAdapter;
+
+  constructor(props: Partial<typeof Config.jobManager>);
   on<P = unknown>(name: string, handler: JobHandler<P>): () => void;
   fetchAndProcess(): Promise<Job>;
   use(mw: JobMiddleware): void;

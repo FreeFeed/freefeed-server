@@ -25,6 +25,9 @@ export const HOMEFEED_MODE_CLASSIC = 'classic';
  */
 export const HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY = 'friends-all-activity';
 
+/**
+ * @returns {typeof import('../models').Timeline}
+ */
 export function addModel(dbAdapter) {
   class Timeline {
     id;

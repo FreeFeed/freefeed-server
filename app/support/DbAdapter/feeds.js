@@ -1,7 +1,5 @@
 import validator from 'validator';
 
-import { Timeline, User } from '../../models';
-
 import { initObject, prepareModelPayload } from './utils';
 import { lockByUUID, USER_SUBSCRIPTIONS } from './adv-locks';
 
@@ -43,7 +41,7 @@ const feedsTrait = (superClass) =>
       const res = await this.database('feeds').where({ user_id: userId, ord: null });
       const timelines = {};
 
-      for (const name of User.feedNames) {
+      for (const name of this.registry.User.feedNames) {
         const feed = res.find((record) => record.name === name);
 
         if (feed) {
@@ -69,12 +67,12 @@ const feedsTrait = (superClass) =>
       }
 
       const attrs = await this.database('feeds').first().where('uid', id);
-      return initTimelineObject(attrs, params);
+      return this.initTimelineObject(attrs, params);
     }
 
     async getTimelineByIntId(id, params) {
       const attrs = await this.database('feeds').first().where('id', id);
-      return initTimelineObject(attrs, params);
+      return this.initTimelineObject(attrs, params);
     }
 
     async getTimelinesByIds(ids, params) {
@@ -87,7 +85,7 @@ const feedsTrait = (superClass) =>
       `,
         { ids },
       );
-      return rows.map((r) => initTimelineObject(r, params));
+      return rows.map((r) => this.initTimelineObject(r, params));
     }
 
     async getTimelinesByIntIds(ids, params) {
@@ -100,7 +98,7 @@ const feedsTrait = (superClass) =>
       `,
         { ids },
       );
-      return rows.map((r) => initTimelineObject(r, params));
+      return rows.map((r) => this.initTimelineObject(r, params));
     }
 
     async getTimelinesIntIdsByUUIDs(uuids) {
@@ -131,7 +129,7 @@ const feedsTrait = (superClass) =>
         .where(where)
         .orderBy('s.created_at', 'desc')
         .orderBy('s.id', 'desc');
-      return records.map(initTimelineObject);
+      return records.map(this.initTimelineObject);
     }
 
     async getUserNamedFeedId(userId, name) {
@@ -151,7 +149,7 @@ const feedsTrait = (superClass) =>
         .first()
         .returning('uid')
         .where({ user_id: userId, name, ord: null });
-      return initTimelineObject(response, params);
+      return this.initTimelineObject(response, params);
     }
 
     /**
@@ -169,7 +167,7 @@ const feedsTrait = (superClass) =>
         { userId, name },
       );
 
-      return rows.map((r) => initTimelineObject(r));
+      return rows.map((r) => this.initTimelineObject(r));
     }
 
     /**
@@ -192,7 +190,7 @@ const feedsTrait = (superClass) =>
             { userId, name },
           ),
         });
-      return initTimelineObject(row);
+      return this.initTimelineObject(row);
     }
 
     async getUserNamedFeedsIntIds(userId, names) {
@@ -230,7 +228,7 @@ const feedsTrait = (superClass) =>
       `,
         { userIds, name },
       );
-      return rows.map((r) => initTimelineObject(r, params));
+      return rows.map((r) => this.initTimelineObject(r, params));
     }
 
     /**
@@ -314,7 +312,7 @@ const feedsTrait = (superClass) =>
         where uid = :feedId and ord is not null returning *`,
         { feedId, title },
       );
-      return row ? initTimelineObject(row) : null;
+      return row ? this.initTimelineObject(row) : null;
     }
 
     /**
@@ -354,20 +352,32 @@ const feedsTrait = (superClass) =>
         { feedIds },
       );
     }
+
+    initTimelineObject = (attrs, params) => {
+      if (!attrs) {
+        return null;
+      }
+
+      const { Timeline } = this.registry;
+
+      const FEED_FIELDS_MAPPING = {
+        created_at: (time) => time.toISOString(),
+        updated_at: (time) => time.toISOString(),
+        user_id: (user_id) => {
+          return user_id ? user_id : '';
+        },
+        title: (title, { name }) =>
+          name === 'RiverOfNews' && title === null ? Timeline.defaultRiverOfNewsTitle : title,
+      };
+
+      attrs = prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING);
+      return initObject(Timeline, attrs, attrs.id, params);
+    };
   };
 
 export default feedsTrait;
 
 ///////////////////////////////////////////////////
-
-function initTimelineObject(attrs, params) {
-  if (!attrs) {
-    return null;
-  }
-
-  attrs = prepareModelPayload(attrs, FEED_FIELDS, FEED_FIELDS_MAPPING);
-  return initObject(Timeline, attrs, attrs.id, params);
-}
 
 const FEED_COLUMNS = {
   createdAt: 'created_at',
@@ -391,14 +401,4 @@ const FEED_FIELDS = {
   user_id: 'userId',
   title: 'title',
   ord: 'ord',
-};
-
-const FEED_FIELDS_MAPPING = {
-  created_at: (time) => time.toISOString(),
-  updated_at: (time) => time.toISOString(),
-  user_id: (user_id) => {
-    return user_id ? user_id : '';
-  },
-  title: (title, { name }) =>
-    name === 'RiverOfNews' && title === null ? Timeline.defaultRiverOfNewsTitle : title,
 };

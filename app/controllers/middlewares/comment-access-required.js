@@ -3,7 +3,6 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '../../support/exceptions';
-import { dbAdapter, Comment } from '../../models';
 
 import { postAccessRequired } from './post-access-required';
 
@@ -23,7 +22,7 @@ export function commentAccessRequired() {
     }
 
     const { commentId } = ctx.params;
-    const comment = await dbAdapter.getCommentById(commentId);
+    const comment = await ctx.modelRegistry.dbAdapter.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException("Can't find comment");
@@ -41,7 +40,7 @@ export function commentAccessRequired() {
       throw new ForbiddenException('You have banned by the author of this comment');
     }
 
-    if (comment.hideType !== Comment.VISIBLE) {
+    if (comment.hideType !== ctx.modelRegistry.Comment.VISIBLE) {
       throw new ForbiddenException(`You don't have access to this comment`);
     }
 

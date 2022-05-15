@@ -1,5 +1,3 @@
-import { dbAdapter } from '../../../models';
-import { EventService } from '../../../support/EventService';
 import { NotFoundException } from '../../../support/exceptions';
 
 export default class RequestsController {
@@ -11,13 +9,15 @@ export default class RequestsController {
     }
 
     const followedFeedOwnerName = ctx.params.followedUserName;
-    const followedFeedOwner = await dbAdapter.getFeedOwnerByUsername(followedFeedOwnerName);
+    const followedFeedOwner = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(
+      followedFeedOwnerName,
+    );
 
     if (null === followedFeedOwner) {
       throw new NotFoundException(`Feed owner "${followedFeedOwnerName}" is not found`);
     }
 
-    const subscriptionRequestFound = await dbAdapter.isSubscriptionRequestPresent(
+    const subscriptionRequestFound = await ctx.modelRegistry.dbAdapter.isSubscriptionRequestPresent(
       ctx.state.user.id,
       followedFeedOwner.id,
     );
@@ -31,12 +31,15 @@ export default class RequestsController {
     await followedFeedOwner.rejectSubscriptionRequest(ctx.state.user.id);
 
     if (followedFeedOwner.type === 'user') {
-      await EventService.onSubscriptionRequestRevoked(
+      await ctx.modelRegistry.eventService.onSubscriptionRequestRevoked(
         ctx.state.user.intId,
         followedFeedOwner.intId,
       );
     } else {
-      await EventService.onGroupSubscriptionRequestRevoked(ctx.state.user.intId, followedFeedOwner);
+      await ctx.modelRegistry.eventService.onGroupSubscriptionRequestRevoked(
+        ctx.state.user.intId,
+        followedFeedOwner,
+      );
     }
 
     ctx.body = { err: null, status: 'success' };

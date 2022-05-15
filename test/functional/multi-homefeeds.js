@@ -3,7 +3,7 @@
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
-import { Timeline, PubSub, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY } from '../../app/models';
+import { Timeline, pubSub, HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY } from '../../app/models';
 import { getSingleton } from '../../app/app';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
@@ -32,7 +32,7 @@ describe(`Multiple home feeds API`, () => {
     const app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   describe(`Home feeds management`, () => {

@@ -1,6 +1,5 @@
 import _ from 'lodash';
 
-import { dbAdapter } from '../../../models';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
 export default class GroupsController {
@@ -23,7 +22,9 @@ export default class GroupsController {
       ]);
 
       const unconfirmedFollowerIds = await group.getSubscriptionRequestIds();
-      const unconfirmedFollowers = await dbAdapter.getUsersByIds(unconfirmedFollowerIds);
+      const unconfirmedFollowers = await ctx.modelRegistry.dbAdapter.getUsersByIds(
+        unconfirmedFollowerIds,
+      );
       const requests = unconfirmedFollowers.map(async (user) => {
         const request = _.pick(user, ['id', 'username', 'screenName']);
         request.profilePictureLargeUrl = await user.getProfilePictureLargeUrl();
@@ -41,6 +42,7 @@ export default class GroupsController {
   static async allGroups(ctx) {
     const { user: viewer } = ctx.state;
     const withProtected = !!viewer;
+    const { dbAdapter } = ctx.modelRegistry;
     const groups = await dbAdapter.getAllGroups({ withProtected });
     ctx.body = { groups };
 

@@ -6,7 +6,7 @@ import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, pubSub } from '../../app/models';
 
 import {
   createTestUsers,
@@ -468,7 +468,7 @@ describe('Group Moderation', () => {
             before(() => {
               port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
               const pubsubAdapter = new PubSubAdapter($database);
-              PubSub.setPublisher(pubsubAdapter);
+              pubSub.setPublisher(pubsubAdapter);
             });
 
             let rtSession;

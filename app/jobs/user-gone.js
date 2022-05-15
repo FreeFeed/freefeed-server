@@ -1,10 +1,10 @@
 import config from 'config';
 import { DateTime } from 'luxon';
 
-import { Job, dbAdapter } from '../models';
+import { Job } from '../models';
 import { GONE_COOLDOWN, GONE_DELETION, GONE_DELETED } from '../models/user';
 import Mailer from '../../lib/mailer';
-import { deleteAllUserData } from '../../app/support/user-deletion';
+import { deleteAllUserData } from '../support/user-deletion';
 
 // User deletion process
 export const USER_COOLDOWN_START = 'USER_COOLDOWN_START';
@@ -40,7 +40,7 @@ export function userDataDeletionStart(user) {
 export function initHandlers(jobManager) {
   jobManager.on(
     USER_COOLDOWN_START,
-    checkUserStatus(GONE_COOLDOWN, async (user) => {
+    checkUserStatus(jobManager.dbAdapter, GONE_COOLDOWN, async (user) => {
       // Send email to user
       await Mailer.sendMail(
         // User is gone so the regular .email field is empty
@@ -68,7 +68,7 @@ export function initHandlers(jobManager) {
 
   jobManager.on(
     USER_COOLDOWN_REMINDER,
-    checkUserStatus(GONE_COOLDOWN, async (user) => {
+    checkUserStatus(jobManager.dbAdapter, GONE_COOLDOWN, async (user) => {
       // Send email to user
       await Mailer.sendMail(
         // User is gone so the regular .email field is empty
@@ -82,7 +82,9 @@ export function initHandlers(jobManager) {
 
   jobManager.on(
     USER_DELETION_START,
-    checkUserStatus(GONE_COOLDOWN, (user) => user.setGoneStatus(GONE_DELETION)),
+    checkUserStatus(jobManager.dbAdapter, GONE_COOLDOWN, (user) =>
+      user.setGoneStatus(GONE_DELETION),
+    ),
   );
 
   jobManager.on(USER_DELETE_DATA, async (job) => {
@@ -91,9 +93,13 @@ export function initHandlers(jobManager) {
 
     const { id, email } = job.payload;
 
-    await deleteAllUserData(id, DateTime.local().plus({ seconds: maxTTL }).toJSDate());
+    await deleteAllUserData(
+      jobManager.dbAdapter,
+      id,
+      DateTime.local().plus({ seconds: maxTTL }).toJSDate(),
+    );
 
-    const user = await dbAdapter.getUserById(id);
+    const user = await jobManager.dbAdapter.getUserById(id);
 
     if (user.goneStatus === GONE_DELETED) {
       // All data has been deleted, send email and finish job
@@ -115,7 +121,7 @@ export function initHandlers(jobManager) {
 
 // Helpers
 
-const checkUserStatus = (desiredStatus, handler) => async (job) => {
+const checkUserStatus = (dbAdapter, desiredStatus, handler) => async (job) => {
   const { id, goneAt } = job.payload;
   const user = await dbAdapter.getUserById(id);
 

@@ -49,11 +49,8 @@ export class SessionTokenV1 extends AuthToken {
   public lastUserAgent!: string;
   public databaseTime!: Date;
 
-  private readonly [database]: DbAdapter;
-
   constructor(params: SessionRecord, dbAdapter: DbAdapter) {
-    super(params.userId);
-    this[database] = dbAdapter;
+    super(params.userId, dbAdapter);
     this.copyFieldsFrom(params);
   }
 

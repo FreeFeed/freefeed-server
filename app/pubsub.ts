@@ -1,8 +1,9 @@
-import { Comment, dbAdapter, Post } from './models';
 import { serializeTimeline } from './serializers/v2/timeline';
 import { List } from './support/open-lists';
 import { PubSubAdapter } from './support/PubSubAdapter';
 import { Nullable, UUID } from './support/types';
+import { ModelsRegistry } from './models-registry';
+import { type Post, type Comment } from './models';
 
 export class DummyPublisher extends PubSubAdapter {
   constructor() {
@@ -18,30 +19,30 @@ type UpdatePostOptions = {
   onlyForUsers?: List<UUID>;
 };
 
-export default class pubSub {
-  constructor(private publisher: PubSubAdapter) {}
+export default class PubSub {
+  constructor(private publisher: PubSubAdapter, readonly registry: ModelsRegistry) {}
 
   setPublisher(publisher: PubSubAdapter) {
     this.publisher = publisher;
   }
 
   async updateUnreadDirects(userId: UUID) {
-    const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(userId);
+    const unreadDirectsNumber = await this.registry.dbAdapter.getUnreadDirectsNumber(userId);
     const user = { id: userId, unreadDirectsNumber };
     const payload = JSON.stringify({ user });
     await this.publisher.userUpdated(payload);
   }
 
   async updateUnreadNotifications(userIntId: number) {
-    const [{ uid: userId }] = await dbAdapter.getUsersIdsByIntIds([userIntId]);
-    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(userId);
+    const [{ uid: userId }] = await this.registry.dbAdapter.getUsersIdsByIntIds([userIntId]);
+    const unreadNotificationsNumber = await this.registry.dbAdapter.getUnreadEventsNumber(userId);
     const user = { id: userId, unreadNotificationsNumber };
     const payload = JSON.stringify({ user });
     await this.publisher.userUpdated(payload);
   }
 
   async updateHomeFeeds(userId: UUID) {
-    const feedObjects = await dbAdapter.getAllUserNamedFeed(userId, 'RiverOfNews');
+    const feedObjects = await this.registry.dbAdapter.getAllUserNamedFeed(userId, 'RiverOfNews');
     const payload = JSON.stringify({
       homeFeeds: feedObjects.map((f) => serializeTimeline(f)),
       user: { id: userId },

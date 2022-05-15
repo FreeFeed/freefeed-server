@@ -6,7 +6,7 @@ import { simpleParser } from 'mailparser';
 
 import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, pubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { GONE_SUSPENDED, GONE_COOLDOWN, GONE_DELETED } from '../../app/models/user';
 import { addMailListener } from '../../lib/mailer';
@@ -42,7 +42,7 @@ describe('Gone users', () => {
     const app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   beforeEach(() => cleanDB($pg_database));

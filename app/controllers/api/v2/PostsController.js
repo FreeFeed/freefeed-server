@@ -2,7 +2,6 @@ import config from 'config';
 import _, { difference } from 'lodash';
 import compose from 'koa-compose';
 
-import { dbAdapter } from '../../../models';
 import { serializeSinglePost, serializeFeed } from '../../../serializers/v2/post';
 import {
   authRequired,
@@ -30,6 +29,7 @@ export const show = compose([
 export const opengraph = compose([
   monitored('posts.opengraph-v2'),
   async (ctx) => {
+    const { dbAdapter } = ctx.modelRegistry;
     const post = await dbAdapter.getPostById(ctx.params.postId);
 
     // OpenGraph is available for public posts that are not protected
@@ -113,7 +113,10 @@ export const getByIds = compose([
     const foldComments = ctx.request.query.maxComments !== 'all';
     const foldLikes = ctx.request.query.maxLikes !== 'all';
 
-    const visiblePostIds = await dbAdapter.selectPostsVisibleByUser(postIds, viewer?.id);
+    const visiblePostIds = await ctx.modelRegistry.dbAdapter.selectPostsVisibleByUser(
+      postIds,
+      viewer?.id,
+    );
 
     ctx.body = await serializeFeed(visiblePostIds, viewer?.id, null, { foldComments, foldLikes });
     const postsFound = ctx.body.posts.map((p) => p.id);

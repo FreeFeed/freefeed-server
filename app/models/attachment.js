@@ -67,6 +67,9 @@ async function mimeTypeDetect(fileName, filePath) {
   return mimeType;
 }
 
+/**
+ * @returns {typeof import('../models').Attachment}
+ */
 export function addModel(dbAdapter) {
   return class Attachment {
     constructor(params) {

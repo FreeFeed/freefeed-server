@@ -1,7 +1,8 @@
 #!/usr/bin/env babel-node
 import { sendEmails } from '../app/support/NotificationsDigest';
+import { registry } from '../app/models';
 
-sendEmails()
+sendEmails(registry.dbAdapter)
   .then(() => {
     process.stdout.write('Finished\n');
     process.exit(0);

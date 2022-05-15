@@ -11,7 +11,7 @@ import { getSingleton } from '../../app/app';
 import {
   AuthToken,
   dbAdapter,
-  PubSub,
+  pubSub,
   SessionTokenV1,
   sessionTokenV1Store,
   User,
@@ -29,7 +29,7 @@ describe('SessionController', () => {
     app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   beforeEach(() => cleanDB($pg_database));

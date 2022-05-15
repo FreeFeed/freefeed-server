@@ -4,9 +4,7 @@ import _ from 'lodash';
 import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
-import { PubSub as pubSub } from '../models';
 import { getRoomsOfPost } from '../pubsub-listener';
-import { EventService } from '../support/EventService';
 import { List } from '../support/open-lists';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 
@@ -23,9 +21,11 @@ import {
  */
 
 /**
- * @param {DbAdapter} dbAdapter
+ * @param {ModelsRegistry} registry
+ * @returns {typeof import('../models').Post}
  */
-export function addModel(dbAdapter) {
+export function addModel(registry) {
+  const { dbAdapter, pubSub } = registry;
   class Post {
     id;
     attachments;
@@ -153,7 +153,7 @@ export function addModel(dbAdapter) {
         .map((f) => pubSub.updateUnreadDirects(f.userId));
       rtUpdates.push(pubSub.newPost(this.id));
 
-      await EventService.onPostCreated(
+      await registry.eventService.onPostCreated(
         newPost,
         destFeeds.map((f) => f.id),
         author,
@@ -192,7 +192,7 @@ export function addModel(dbAdapter) {
       const payload = { updatedAt: this.updatedAt.toString() };
       const afterUpdate = [];
 
-      let realtimeRooms = await getRoomsOfPost(this);
+      let realtimeRooms = await getRoomsOfPost(dbAdapter, this);
       const usersCanSeePostBeforeIds = await this.usersCanSee();
 
       if (params.body != null) {
@@ -242,7 +242,7 @@ export function addModel(dbAdapter) {
               dbAdapter.getTimelinesByIntIds(addedFeedIds),
             ]);
             afterUpdate.push(() =>
-              EventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, {
+              registry.eventService.onPostFeedsChanged(this, params.updatedBy || postAuthor, {
                 addedFeeds,
                 removedFeeds,
               }),
@@ -251,14 +251,14 @@ export function addModel(dbAdapter) {
 
           // Publishing changes to the old AND new realtime rooms
           afterUpdate.push(async () => {
-            const rooms = await getRoomsOfPost(this);
+            const rooms = await getRoomsOfPost(dbAdapter, this);
             realtimeRooms = _.union(realtimeRooms, rooms);
           });
         }
       }
 
       afterUpdate.push(async () => {
-        await EventService.onPostCreated(
+        await registry.eventService.onPostCreated(
           this,
           await dbAdapter.getTimelinesUUIDsByIntIds(this.destinationFeedIds),
           await this.getCreatedBy(),
@@ -298,7 +298,7 @@ export function addModel(dbAdapter) {
 
     async destroy(destroyedBy = null) {
       const [realtimeRooms, comments, groups, notifyBacklinked] = await Promise.all([
-        getRoomsOfPost(this),
+        getRoomsOfPost(dbAdapter, this),
         this.getComments(),
         this.getGroupsPostedTo(),
         notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body)),
@@ -315,7 +315,7 @@ export function addModel(dbAdapter) {
 
       await Promise.all([
         pubSub.destroyPost(this.id, realtimeRooms),
-        destroyedBy ? EventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
+        destroyedBy ? registry.eventService.onPostDestroyed(this, destroyedBy, { groups }) : null,
         notifyBacklinked(),
       ]);
     }
@@ -786,7 +786,7 @@ export function addModel(dbAdapter) {
       }
 
       const [realtimeRooms, timelineId, ,] = await Promise.all([
-        getRoomsOfPost(this),
+        getRoomsOfPost(dbAdapter, this),
         user.getLikesTimelineIntId(),
         dbAdapter.statsLikeDeleted(user.id),
       ]);
@@ -961,7 +961,10 @@ export function addModel(dbAdapter) {
       const userDirectsFeed = await user.getDirectsTimeline();
 
       // Get realtime parameters before changes
-      const [rooms, usersBeforeIds] = await Promise.all([getRoomsOfPost(this), this.usersCanSee()]);
+      const [rooms, usersBeforeIds] = await Promise.all([
+        getRoomsOfPost(dbAdapter, this),
+        this.usersCanSee(),
+      ]);
 
       const ok = await dbAdapter.withdrawPostFromDestFeed(userDirectsFeed?.intId, this.id);
 
@@ -970,7 +973,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      await EventService.onDirectLeft(this.id, user);
+      await registry.eventService.onDirectLeft(this.id, user);
 
       await pubSub.updatePost(this.id, { rooms, usersBeforeIds });
 

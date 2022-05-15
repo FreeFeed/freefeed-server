@@ -2,14 +2,14 @@ import moment from 'moment';
 import createDebug from 'debug';
 import _ from 'lodash';
 
-import { dbAdapter } from '../models';
 import { sendDailyBestOfEmail, sendWeeklyBestOfEmail } from '../mailers/BestOfDigestMailer';
 import { generalSummary } from '../controllers/api/v2/SummaryController.js';
 
 const BESTOF_DIGEST_POSTS_LIMIT = 15;
 
-export async function sendBestOfEmails() {
+export async function sendBestOfEmails(registry) {
   const debug = createDebug('freefeed:sendBestOfEmails');
+  const { dbAdapter } = registry;
 
   const weeklyDigestRecipients = (await dbAdapter.getWeeklyBestOfDigestRecipients()).filter(
     (u) => u.isActive,
@@ -41,7 +41,7 @@ export async function sendBestOfEmails() {
     }
 
     debug(`[${u.username}] -> getSummary()`);
-    const weeklySummary = await getSummary(u, 7); // eslint-disable-line no-await-in-loop
+    const weeklySummary = await getSummary(registry, u, 7); // eslint-disable-line no-await-in-loop
 
     if (!canMakeBestOfEmail(weeklySummary)) {
       debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
@@ -72,7 +72,7 @@ export async function sendBestOfEmails() {
     }
 
     debug(`[${u.username}] -> getSummary()`);
-    const dailySummary = await getSummary(u, 1); // eslint-disable-line no-await-in-loop
+    const dailySummary = await getSummary(registry, u, 1); // eslint-disable-line no-await-in-loop
 
     if (!canMakeBestOfEmail(dailySummary)) {
       debug(`[${u.username}] getSummary() returned 0 posts: SKIP`);
@@ -162,11 +162,12 @@ function preparePosts(payload, recipient) {
   return payload;
 }
 
-async function getSummary(user, days) {
+async function getSummary(registry, user, days) {
   const ctx = {
     request: { query: { limit: BESTOF_DIGEST_POSTS_LIMIT } },
     state: { user },
     params: { days },
+    modelRegistry: registry,
   };
 
   await generalSummary(ctx);

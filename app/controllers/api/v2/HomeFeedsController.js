@@ -8,7 +8,6 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '../../../support/exceptions';
-import { dbAdapter, PubSub as pubSub } from '../../../models';
 
 import {
   createHomeFeedInputSchema,
@@ -50,7 +49,7 @@ export const createHomeFeed = compose([
 
     const feed = await user.createHomeFeed(body.title);
 
-    await pubSub.updateHomeFeeds(user.id);
+    await ctx.modelRegistry.pubSub.updateHomeFeeds(user.id);
 
     if ('subscribedTo' in body) {
       await feed.updateHomeFeedSubscriptions(body.subscribedTo);
@@ -71,7 +70,7 @@ export const updateHomeFeed = compose([
       request: { body },
     } = ctx;
 
-    const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
+    const feed = await ctx.modelRegistry.dbAdapter.getTimelineById(ctx.params.feedId);
 
     if (!feed || feed.userId !== user.id || feed.name !== 'RiverOfNews') {
       throw new NotFoundException(`Home feed is not found`);
@@ -88,7 +87,7 @@ export const updateHomeFeed = compose([
         throw new NotFoundException(`Home feed is not found`);
       }
 
-      await pubSub.updateHomeFeeds(user.id);
+      await ctx.modelRegistry.pubSub.updateHomeFeeds(user.id);
     }
 
     if ('subscribedTo' in body) {
@@ -109,7 +108,7 @@ export const deleteHomeFeed = compose([
       request: { body },
     } = ctx;
 
-    const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
+    const feed = await ctx.modelRegistry.dbAdapter.getTimelineById(ctx.params.feedId);
 
     if (!feed || feed.userId !== user.id || feed.name !== 'RiverOfNews') {
       throw new NotFoundException(`Home feed is not found`);
@@ -126,7 +125,7 @@ export const deleteHomeFeed = compose([
       throw new NotFoundException(`Home feed is not found`);
     }
 
-    await pubSub.updateHomeFeeds(user.id);
+    await ctx.modelRegistry.pubSub.updateHomeFeeds(user.id);
 
     ctx.body = { backupFeed: params.backupFeedId };
   },
@@ -142,15 +141,15 @@ export const reorderHomeFeeds = compose([
       request: { body },
     } = ctx;
 
-    const feeds = await dbAdapter.getTimelinesByIds(body.reorder);
+    const feeds = await ctx.modelRegistry.dbAdapter.getTimelinesByIds(body.reorder);
 
     if (feeds.length === 0 || feeds.some((f) => f.userId !== user.id || f.name !== 'RiverOfNews')) {
       throw new ForbiddenException(`These feeds cannot be reordered`);
     }
 
-    await dbAdapter.reorderFeeds(feeds.map((f) => f.id));
+    await ctx.modelRegistry.dbAdapter.reorderFeeds(feeds.map((f) => f.id));
 
-    await pubSub.updateHomeFeeds(user.id);
+    await ctx.modelRegistry.pubSub.updateHomeFeeds(user.id);
 
     await listHomeFeeds(ctx);
   },
@@ -192,7 +191,7 @@ export const getHomeFeedInfo = compose([
       state: { user },
     } = ctx;
 
-    const feed = await dbAdapter.getTimelineById(ctx.params.feedId);
+    const feed = await ctx.modelRegistry.dbAdapter.getTimelineById(ctx.params.feedId);
 
     if (!feed || feed.userId !== user.id || feed.name !== 'RiverOfNews') {
       throw new NotFoundException(`Home feed is not found`);

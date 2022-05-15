@@ -1,6 +1,5 @@
 import validator from 'validator';
 
-import { Attachment } from '../../models';
 import { SANITIZE_VERSION } from '../sanitize-media';
 
 import { initObject, prepareModelPayload } from './utils';
@@ -27,14 +26,14 @@ const attachmentsTrait = (superClass) =>
       }
 
       const attrs = await this.database('attachments').first().where('uid', id);
-      return initAttachmentObject(attrs);
+      return this.initAttachmentObject(attrs);
     }
 
     async getAttachmentsByIds(ids) {
       const responses = await this.database('attachments')
         .whereIn('uid', ids)
         .orderByRaw(`position(uid::text in '${ids.toString()}')`);
-      return responses.map(initAttachmentObject);
+      return responses.map(this.initAttachmentObject);
     }
 
     async listAttachments({ userId, limit, offset = 0 }) {
@@ -45,7 +44,7 @@ const attachmentsTrait = (superClass) =>
         { userId, limit, offset },
       );
 
-      return rows.map(initAttachmentObject);
+      return rows.map(this.initAttachmentObject);
     }
 
     async updateAttachment(attachmentId, payload) {
@@ -60,7 +59,7 @@ const attachmentsTrait = (superClass) =>
         .update(preparedPayload)
         .returning('*');
 
-      return initAttachmentObject(row);
+      return this.initAttachmentObject(row);
     }
 
     async deleteAttachment(id) {
@@ -97,7 +96,7 @@ const attachmentsTrait = (superClass) =>
         .orderBy('ord', 'asc')
         .orderBy('created_at', 'asc')
         .where('post_id', postId);
-      return responses.map(initAttachmentObject);
+      return responses.map(this.initAttachmentObject);
     }
 
     async createAttachmentsSanitizeTask(userId) {
@@ -133,7 +132,7 @@ const attachmentsTrait = (superClass) =>
             order by created_at limit :limit`,
         { userId, sanVersion: SANITIZE_VERSION, limit },
       );
-      return rows.map(initAttachmentObject);
+      return rows.map(this.initAttachmentObject);
     }
 
     async getAttachmentsStats(userId) {
@@ -148,6 +147,15 @@ const attachmentsTrait = (superClass) =>
           .reduce((sum, row) => sum + row.count, 0),
       };
     }
+
+    initAttachmentObject = (attrs) => {
+      if (!attrs) {
+        return null;
+      }
+
+      attrs = prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING);
+      return initObject(this.registry.Attachment, attrs, attrs.id);
+    };
   };
 
 export default attachmentsTrait;
@@ -163,15 +171,6 @@ function initSanitizeTaskObject(row) {
     userId: row.user_id,
     createdAt: new Date(row.created_at),
   };
-}
-
-export function initAttachmentObject(attrs) {
-  if (!attrs) {
-    return null;
-  }
-
-  attrs = prepareModelPayload(attrs, ATTACHMENT_FIELDS, ATTACHMENT_FIELDS_MAPPING);
-  return initObject(Attachment, attrs, attrs.id);
 }
 
 const ATTACHMENT_COLUMNS = {

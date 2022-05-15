@@ -12,7 +12,7 @@ import {
   inputSchemaRequired,
   monitored,
 } from '../../../app/controllers/middlewares';
-import { User, Post } from '../../../app/models';
+import { User, Post, registry } from '../../../app/models';
 
 const expect = unexpected.clone();
 expect.use(unexpectedSinon);
@@ -40,6 +40,7 @@ describe('Controller middlewares', () => {
         ctx = {
           params: { postId: post.id },
           state: {},
+          modelRegistry: registry,
         };
       });
 
@@ -202,6 +203,7 @@ describe('Controller middlewares', () => {
             ctx = {
               params: { postId: post.id },
               state: {},
+              modelRegistry: registry,
             };
           });
 

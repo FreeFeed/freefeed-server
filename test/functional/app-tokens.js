@@ -7,7 +7,7 @@ import config from 'config';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, pubSub } from '../../app/models';
 import {
   appTokensScopes,
   alwaysAllowedRoutes,
@@ -400,7 +400,7 @@ describe('Realtime', () => {
     app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
 
     luna = await createTestUser();
     await goPrivate(luna);

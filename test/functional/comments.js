@@ -6,7 +6,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { Comment, PubSub } from '../../app/models';
+import { Comment, pubSub } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
 import { getCommentResponse } from './schemaV2-helper';
@@ -16,7 +16,7 @@ describe('CommentsController', () => {
 
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

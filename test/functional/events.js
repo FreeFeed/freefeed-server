@@ -4,7 +4,7 @@ import unexpected from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { PubSub, dbAdapter } from '../../app/models';
+import { pubSub, dbAdapter } from '../../app/models';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
@@ -52,7 +52,7 @@ const expect = unexpected.clone().use(realtimeAssertions).use(schema.freefeedAss
 
 describe('EventService', () => {
   before(() => {
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));
@@ -1784,7 +1784,7 @@ describe('EventService', () => {
 
 describe('EventsController', () => {
   before(() => {
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));
@@ -2175,7 +2175,7 @@ describe('EventsController', () => {
 
 describe('Unread events counter', () => {
   before(() => {
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   let luna, mars, lunaUserModel;
@@ -2287,7 +2287,7 @@ describe('Unread events counter realtime updates for ', () => {
   before(async () => {
     await getSingleton();
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   let luna, mars;
@@ -2799,7 +2799,7 @@ describe('Unread events counter realtime updates for ', () => {
 
 describe('eventById', () => {
   before(() => {
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   let luna, mars;

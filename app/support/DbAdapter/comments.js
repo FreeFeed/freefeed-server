@@ -1,6 +1,5 @@
 import validator from 'validator';
 
-import { Comment } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
 
 import { initObject, prepareModelPayload } from './utils';
@@ -49,28 +48,28 @@ const commentsTrait = (superClass) =>
       }
 
       const attrs = await this.database('comments').first().where('uid', id);
-      return initCommentObject(attrs);
+      return this.initCommentObject(attrs);
     }
 
     async getCommentBySeqNumber(postId, seqNumber) {
       const attrs = await this.database('comments')
         .first()
         .where({ post_id: postId, seq_number: seqNumber });
-      return initCommentObject(attrs);
+      return this.initCommentObject(attrs);
     }
 
     async getCommentsByIds(ids) {
       const responses = await this.database('comments')
         .orderBy('created_at', 'desc')
         .whereIn('uid', ids);
-      return responses.map((attrs) => initCommentObject(attrs));
+      return responses.map((attrs) => this.initCommentObject(attrs));
     }
 
     async getCommentsByIntIds(ids) {
       const responses = await this.database('comments')
         .orderBy('created_at', 'desc')
         .whereIn('id', ids);
-      return responses.map((attrs) => initCommentObject(attrs));
+      return responses.map((attrs) => this.initCommentObject(attrs));
     }
 
     getCommentsIdsByIntIds(intIds) {
@@ -136,7 +135,7 @@ const commentsTrait = (superClass) =>
         { postId },
       );
 
-      return rows.map(initCommentObject);
+      return rows.map(this.initCommentObject);
     }
 
     async getPostCommentsCount(postId) {
@@ -161,12 +160,15 @@ const commentsTrait = (superClass) =>
         const hiddenCommentTypes = viewer.getHiddenCommentTypes();
 
         if (hiddenCommentTypes.length > 0) {
-          if (hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && bannedUsersIds.length > 0) {
+          if (
+            hiddenCommentTypes.includes(this.registry.Comment.HIDDEN_BANNED) &&
+            bannedUsersIds.length > 0
+          ) {
             query = query.where('user_id', 'not in', bannedUsersIds);
           }
 
           const ht = hiddenCommentTypes.filter(
-            (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
+            (t) => t !== this.registry.Comment.HIDDEN_BANNED && t !== this.registry.Comment.VISIBLE,
           );
 
           if (ht.length > 0) {
@@ -179,13 +181,13 @@ const commentsTrait = (superClass) =>
       const comments = responses.map((comm) => {
         if (bannedUsersIds.includes(comm.user_id)) {
           comm.user_id = null;
-          comm.hide_type = Comment.HIDDEN_BANNED;
-          comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
+          comm.hide_type = this.registry.Comment.HIDDEN_BANNED;
+          comm.body = this.registry.Comment.hiddenBody(this.registry.Comment.HIDDEN_BANNED);
         }
 
         return comm;
       });
-      return comments.map(initCommentObject);
+      return comments.map(this.initCommentObject);
     }
 
     _deletePostComments(postId) {
@@ -199,7 +201,7 @@ const commentsTrait = (superClass) =>
         postId: null,
         userId: null,
         oldUsername: null,
-        hideType: Comment.DELETED,
+        hideType: this.registry.Comment.DELETED,
         ...params,
       };
 
@@ -207,19 +209,22 @@ const commentsTrait = (superClass) =>
         throw new Error(`Undefined postId of comment`);
       }
 
-      if (params.hideType !== Comment.DELETED && params.hideType !== Comment.HIDDEN_ARCHIVED) {
+      if (
+        params.hideType !== this.registry.Comment.DELETED &&
+        params.hideType !== this.registry.Comment.HIDDEN_ARCHIVED
+      ) {
         throw new Error(`Invalid hideType of comment: ${params.hideType}`);
       }
 
       if (
-        params.hideType === Comment.HIDDEN_ARCHIVED &&
+        params.hideType === this.registry.Comment.HIDDEN_ARCHIVED &&
         !params.userId === null &&
         params.oldUsername === null
       ) {
         throw new Error(`Undefined author of HIDDEN_ARCHIVED comment`);
       }
 
-      if (params.hideType === Comment.HIDDEN_ARCHIVED && params.body === null) {
+      if (params.hideType === this.registry.Comment.HIDDEN_ARCHIVED && params.body === null) {
         throw new Error(`Undefined body of HIDDEN_ARCHIVED comment`);
       }
 
@@ -228,10 +233,10 @@ const commentsTrait = (superClass) =>
         .insert({
           post_id: params.postId,
           hide_type: params.hideType,
-          body: Comment.hiddenBody(params.hideType),
+          body: this.registry.Comment.hiddenBody(params.hideType),
         });
 
-      if (params.hideType === Comment.HIDDEN_ARCHIVED) {
+      if (params.hideType === this.registry.Comment.HIDDEN_ARCHIVED) {
         await this.database('hidden_comments').insert({
           comment_id: uid,
           body: params.body,
@@ -242,20 +247,20 @@ const commentsTrait = (superClass) =>
 
       return uid;
     }
+
+    initCommentObject = (attrs) => {
+      if (!attrs) {
+        return null;
+      }
+
+      attrs = prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING);
+      return initObject(this.registry.Comment, attrs, attrs.id);
+    };
   };
 
 export default commentsTrait;
 
 ///////////////////////////////////////////////////
-
-export function initCommentObject(attrs) {
-  if (!attrs) {
-    return null;
-  }
-
-  attrs = prepareModelPayload(attrs, COMMENT_FIELDS, COMMENT_FIELDS_MAPPING);
-  return initObject(Comment, attrs, attrs.id);
-}
 
 const COMMENT_COLUMNS = {
   createdAt: 'created_at',

@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { pubSub } from '../../app/models';
 
 import {
   acceptRequestToJoinGroup,
@@ -40,7 +40,7 @@ describe('Comment likes', () => {
     writeComment = createComment();
     getPost = fetchPost(app);
     getFeed = fetchTimeline(app);
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

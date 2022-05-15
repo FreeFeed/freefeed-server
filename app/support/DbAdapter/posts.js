@@ -2,7 +2,6 @@ import _ from 'lodash';
 import validator from 'validator';
 import pgFormat from 'pg-format';
 
-import { Post } from '../../models';
 import { toTSVector } from '../search/to-tsvector';
 
 import { andJoin, initObject, orJoin, prepareModelPayload, sqlIntarrayIn, sqlNotIn } from './utils';
@@ -53,21 +52,21 @@ const postsTrait = (superClass) =>
       }
 
       const attrs = await this.database('posts').first().where('uid', id);
-      return initPostObject(attrs, params);
+      return this.initPostObject(attrs, params);
     }
 
     async getPostsByIds(ids, params) {
       const responses = await this.database('posts')
         .orderBy('bumped_at', 'desc')
         .whereIn('uid', ids);
-      return responses.map((attrs) => initPostObject(attrs, params));
+      return responses.map((attrs) => this.initPostObject(attrs, params));
     }
 
     async getPostsByIntIds(ids) {
       const responses = await this.database('posts')
         .orderBy('bumped_at', 'desc')
         .whereIn('id', ids);
-      return responses.map((attrs) => initPostObject(attrs));
+      return responses.map((attrs) => this.initPostObject(attrs));
     }
 
     getPostsIdsByIntIds(intIds) {
@@ -351,7 +350,7 @@ const postsTrait = (superClass) =>
     }
 
     initRawPosts(rawPosts, params) {
-      return rawPosts.map((attrs) => initPostObject(attrs, params));
+      return rawPosts.map((attrs) => this.initPostObject(attrs, params));
     }
 
     async isPostInUserFeed(postUID, userUID, feedName) {
@@ -401,20 +400,20 @@ const postsTrait = (superClass) =>
       const adminIds = _.map(rows, 'uid');
       return this.getUsersByIds(adminIds);
     }
+
+    initPostObject = (attrs, params) => {
+      if (!attrs) {
+        return null;
+      }
+
+      attrs = prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING);
+      return initObject(this.registry.Post, attrs, attrs.id, params);
+    };
   };
 
 export default postsTrait;
 
 ///////////////////////////////////////////////////
-
-export function initPostObject(attrs, params) {
-  if (!attrs) {
-    return null;
-  }
-
-  attrs = prepareModelPayload(attrs, POST_FIELDS, POST_FIELDS_MAPPING);
-  return initObject(Post, attrs, attrs.id, params);
-}
 
 const POST_COLUMNS = {
   createdAt: 'created_at',

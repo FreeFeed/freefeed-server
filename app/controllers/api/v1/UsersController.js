@@ -6,14 +6,8 @@ import compose from 'koa-compose';
 import config from 'config';
 import jwt from 'jsonwebtoken';
 
-import {
-  dbAdapter,
-  User,
-  Group,
-  AppTokenV1,
-  ServerInfo,
-  sessionTokenV1Store,
-} from '../../../models';
+import { sessionTokenV1Store } from '../../../models';
+import { AppTokenV1 } from '../../../models/auth-tokens/AppTokenV1';
 import {
   NotFoundException,
   ForbiddenException,
@@ -22,7 +16,6 @@ import {
   BadRequestException,
   TooManyRequestsException,
 } from '../../../support/exceptions';
-import { EventService } from '../../../support/EventService';
 import recaptchaVerify from '../../../../lib/recaptcha';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import {
@@ -51,7 +44,7 @@ export default class UsersController {
   static create = compose([
     inputSchemaRequired(userCreateInputSchema),
     async (ctx) => {
-      const registrationOpen = await ServerInfo.isRegistrationOpen();
+      const registrationOpen = await ctx.modelRegistry.ServerInfo.isRegistrationOpen();
 
       if (!registrationOpen) {
         throw new TooManyRequestsException('New user registrations are temporarily suspended');
@@ -92,11 +85,15 @@ export default class UsersController {
       let invitation;
 
       if (invitationId) {
-        invitation = await dbAdapter.getInvitation(invitationId);
-        invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
+        invitation = await ctx.modelRegistry.dbAdapter.getInvitation(invitationId);
+        invitation = await validateInvitationAndSelectUsers(
+          invitation,
+          invitationId,
+          ctx.modelRegistry,
+        );
       }
 
-      const user = new User(params);
+      const user = new ctx.modelRegistry.User(params);
       await user.create(false);
 
       const safeRun = async (foo) => {
@@ -113,10 +110,19 @@ export default class UsersController {
         extProfileData && safeRun(() => user.addOrUpdateExtProfile(extProfileData)),
         // Register invitation and subscribe to suggested feeds
         invitation &&
-          safeRun(() => useInvitation(user, invitation, ctx.request.body.cancel_subscription)),
+          safeRun(() =>
+            useInvitation(
+              user,
+              invitation,
+              ctx.request.body.cancel_subscription,
+              ctx.modelRegistry,
+            ),
+          ),
         // Subscribe to onboarding user
         safeRun(async () => {
-          const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
+          const onboardingUser = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(
+            config.onboardingUsername,
+          );
 
           if (onboardingUser) {
             await user.subscribeTo(onboardingUser);
@@ -158,11 +164,13 @@ export default class UsersController {
       params.password = ctx.request.body.password;
     }
 
-    const user = new User(params);
+    const user = new ctx.modelRegistry.User(params);
     await user.create(true);
 
     try {
-      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
+      const onboardingUser = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(
+        config.onboardingUsername,
+      );
 
       if (null === onboardingUser) {
         throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`);
@@ -199,7 +207,10 @@ export default class UsersController {
         );
       }
 
-      const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, targetUser.id);
+      const hasRequest = await ctx.modelRegistry.dbAdapter.isSubscriptionRequestPresent(
+        user.id,
+        targetUser.id,
+      );
 
       if (hasRequest) {
         throw new ForbiddenException(
@@ -216,7 +227,10 @@ export default class UsersController {
       }
 
       const postsTimelineId = await targetUser.getPostsTimelineId();
-      const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(user.id, postsTimelineId);
+      const isSubscribed = await ctx.modelRegistry.dbAdapter.isUserSubscribedToTimeline(
+        user.id,
+        postsTimelineId,
+      );
 
       if (isSubscribed) {
         throw new ForbiddenException(`You are already subscribed to this ${targetUser.type}`);
@@ -225,9 +239,15 @@ export default class UsersController {
       await user.sendSubscriptionRequest(targetUser.id, ctx.request.body.homeFeeds);
 
       if (targetUser.isUser()) {
-        await EventService.onSubscriptionRequestCreated(user.intId, targetUser.intId);
+        await ctx.modelRegistry.eventService.onSubscriptionRequestCreated(
+          user.intId,
+          targetUser.intId,
+        );
       } else {
-        await EventService.onGroupSubscriptionRequestCreated(user.intId, targetUser);
+        await ctx.modelRegistry.eventService.onGroupSubscriptionRequestCreated(
+          user.intId,
+          targetUser,
+        );
       }
 
       ctx.body = {};
@@ -257,20 +277,26 @@ export default class UsersController {
       return;
     }
 
-    const user = await dbAdapter.getUserByUsername(ctx.params.username);
+    const user = await ctx.modelRegistry.dbAdapter.getUserByUsername(ctx.params.username);
 
     if (null === user) {
       throw new NotFoundException(`User "${ctx.params.username}" is not found`);
     }
 
-    const hasRequest = await dbAdapter.isSubscriptionRequestPresent(user.id, ctx.state.user.id);
+    const hasRequest = await ctx.modelRegistry.dbAdapter.isSubscriptionRequestPresent(
+      user.id,
+      ctx.state.user.id,
+    );
 
     if (!hasRequest) {
       throw new Error('Invalid');
     }
 
     await ctx.state.user.rejectSubscriptionRequest(user.id);
-    await EventService.onSubscriptionRequestRejected(user.intId, ctx.state.user.intId);
+    await ctx.modelRegistry.eventService.onSubscriptionRequestRejected(
+      user.intId,
+      ctx.state.user.intId,
+    );
     ctx.body = {};
   }
 
@@ -336,7 +362,7 @@ export default class UsersController {
         throw new ForbiddenException('Unknown token type');
       }
 
-      const user = await dbAdapter.getUserById(token.userId);
+      const user = await ctx.modelRegistry.dbAdapter.getUserById(token.userId);
 
       if (user?.isActive) {
         throw new ForbiddenException('This account is already active');
@@ -365,7 +391,7 @@ export default class UsersController {
         throw new ForbiddenException('User is protected');
       }
 
-      const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+      const subscriberIds = await ctx.modelRegistry.dbAdapter.getUserSubscribersIds(user.id);
 
       if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
         throw new ForbiddenException('User is private');
@@ -396,17 +422,17 @@ export default class UsersController {
         throw new ForbiddenException('User is protected');
       }
 
-      const subscriberIds = await dbAdapter.getUserSubscribersIds(user.id);
+      const subscriberIds = await ctx.modelRegistry.dbAdapter.getUserSubscribersIds(user.id);
 
       if (user.isPrivate === '1' && viewer.id !== user.id && !subscriberIds.includes(viewer.id)) {
         throw new ForbiddenException('User is private');
       }
 
-      let timelines = await dbAdapter.getTimelinesUserSubscribed(user.id);
+      let timelines = await ctx.modelRegistry.dbAdapter.getTimelinesUserSubscribed(user.id);
       let timelineOwnersIds = timelines.map((t) => t.userId);
 
       // Leave only users and groups visible to viewer
-      const groupsVisibility = await dbAdapter.getGroupsVisibility(
+      const groupsVisibility = await ctx.modelRegistry.dbAdapter.getGroupsVisibility(
         timelineOwnersIds,
         viewer && viewer.id,
       );
@@ -533,7 +559,7 @@ export default class UsersController {
       const subscriber = ctx.state.user;
 
       const { username } = ctx.params;
-      const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+      const targetUser = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(username);
 
       if (!targetUser) {
         throw new NotFoundException(`User "${username}" is not found`);
@@ -675,7 +701,7 @@ export default class UsersController {
   ]);
 }
 
-async function validateInvitationAndSelectUsers(invitation, invitationId) {
+async function validateInvitationAndSelectUsers(invitation, invitationId, registry) {
   if (!invitation) {
     throw new NotFoundException(`Invitation "${invitationId}" not found`);
   }
@@ -683,6 +709,8 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
   if (invitation.registrations_count > 0 && invitation.single_use) {
     throw new ValidationException(`Somebody has already used invitation "${invitationId}"`);
   }
+
+  const { dbAdapter, User, Group } = registry;
 
   const userNames = invitation.recommendations.users || [];
   const groupNames = invitation.recommendations.groups || [];
@@ -722,9 +750,18 @@ async function validateInvitationAndSelectUsers(invitation, invitationId) {
   return { ...invitation, publicUsers, privateUsers, publicGroups, privateGroups };
 }
 
-async function useInvitation(newUser, invitation, cancel_subscription = false) {
+/**
+ *
+ * @param {User} newUser
+ * @param invitation
+ * @param {boolean} cancel_subscription
+ * @param {ModelsRegistry} registry
+ * @returns {Promise<void>}
+ */
+async function useInvitation(newUser, invitation, cancel_subscription = false, registry) {
+  const { dbAdapter, eventService } = registry;
   await dbAdapter.useInvitation(invitation.secure_id);
-  await EventService.onInvitationUsed(invitation.author, newUser.intId);
+  await eventService.onInvitationUsed(invitation.author, newUser.intId);
 
   if (cancel_subscription) {
     return;
@@ -745,14 +782,14 @@ async function useInvitation(newUser, invitation, cancel_subscription = false) {
   await Promise.all(
     invitation.privateUsers.map(async (recommendedUser) => {
       await newUser.sendSubscriptionRequest(recommendedUser.id);
-      return EventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
+      return eventService.onSubscriptionRequestCreated(newUser.intId, recommendedUser.intId);
     }),
   );
 
   await Promise.all(
     invitation.privateGroups.map(async (recommendedGroup) => {
       await newUser.sendSubscriptionRequest(recommendedGroup.id);
-      return EventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
+      return eventService.onGroupSubscriptionRequestCreated(newUser.intId, recommendedGroup);
     }),
   );
 }

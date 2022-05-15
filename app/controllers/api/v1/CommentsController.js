@@ -1,7 +1,7 @@
 import compose from 'koa-compose';
 import monitor from 'monitor-dog';
 
-import { dbAdapter, Comment, AppTokenV1 } from '../../../models';
+import { AppTokenV1 } from '../../../models/auth-tokens/AppTokenV1';
 import {
   ForbiddenException,
   NotFoundException,
@@ -37,7 +37,7 @@ export const create = compose([
       throw new ForbiddenException('Comments disabled');
     }
 
-    const comment = new Comment({ body, postId, userId: author.id });
+    const comment = new ctx.modelRegistry.Comment({ body, postId, userId: author.id });
 
     try {
       await comment.create();
@@ -58,13 +58,13 @@ export const update = compose([
     const { user } = ctx.state;
     const { commentId } = ctx.params;
 
-    const comment = await dbAdapter.getCommentById(commentId);
+    const comment = await ctx.modelRegistry.dbAdapter.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException('Can not find comment');
     }
 
-    const post = await dbAdapter.getPostById(comment.postId);
+    const post = await ctx.modelRegistry.dbAdapter.getPostById(comment.postId);
 
     if (!post) {
       // Should not be possible
@@ -98,13 +98,13 @@ export const destroy = compose([
     const { user } = ctx.state;
     const { commentId } = ctx.params;
 
-    const comment = await dbAdapter.getCommentById(commentId);
+    const comment = await ctx.modelRegistry.dbAdapter.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException('Can not find comment');
     }
 
-    const post = await dbAdapter.getPostById(comment.postId);
+    const post = await ctx.modelRegistry.dbAdapter.getPostById(comment.postId);
 
     if (!post) {
       // Should not be possible
@@ -135,6 +135,8 @@ export const destroy = compose([
 export async function getById(ctx) {
   const { user } = ctx.state;
   const { commentId } = ctx.params;
+
+  const { dbAdapter, Comment } = ctx.modelRegistry;
 
   const comment = await dbAdapter.getCommentById(commentId);
 
@@ -182,7 +184,7 @@ export async function getBySeqNumber(ctx) {
   const { postId, seqNumber } = ctx.params;
 
   const number = Number.parseInt(seqNumber, 10);
-  const comment = await dbAdapter.getCommentBySeqNumber(
+  const comment = await ctx.modelRegistry.dbAdapter.getCommentBySeqNumber(
     postId,
     Number.isFinite(number) ? number : -1,
   );

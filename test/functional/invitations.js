@@ -6,7 +6,7 @@ import unexpected from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { pubSub } from '../../app/models';
 
 import {
   banUser,
@@ -26,7 +26,7 @@ const expect = unexpected.clone().use(schema.freefeedAssertions);
 describe('Invitations', () => {
   before(async () => {
     await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

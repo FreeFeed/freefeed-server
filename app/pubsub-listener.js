@@ -22,7 +22,6 @@ import createDebug from 'debug';
 import Raven from 'raven';
 import config from 'config';
 
-import { dbAdapter, Comment } from './models';
 import { eventNames } from './support/PubSubAdapter';
 import { List } from './support/open-lists';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
@@ -41,10 +40,17 @@ const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:PubsubListener');
 
 export default class PubsubListener {
+  registry;
   app;
   io;
 
-  constructor(server, app) {
+  /**
+   * @param {ModelsRegistry} registry
+   * @param server
+   * @param app
+   */
+  constructor(registry, server, app) {
+    this.registry = registry;
     this.app = app;
 
     const pubClient = new Redis({
@@ -73,7 +79,7 @@ export default class PubsubListener {
     // authentication
     this.io.use(async (socket, next) => {
       try {
-        socket.userId = await getAuthUserId(socket.handshake.query.token, socket);
+        socket.userId = await this.getAuthUserId(socket.handshake.query.token, socket);
         socket.authToken = socket.handshake.query.token;
         debug(`[socket.id=${socket.id}] auth user`, socket.userId);
       } catch (e) {
@@ -118,7 +124,7 @@ export default class PubsubListener {
         throw new EventHandlingError('request without data');
       }
 
-      socket.userId = await getAuthUserId(data.authToken, socket);
+      socket.userId = await this.getAuthUserId(data.authToken, socket);
       socket.authToken = data.authToken;
       debug(`[socket.id=${socket.id}] auth user`, socket.userId);
     });
@@ -137,7 +143,7 @@ export default class PubsubListener {
           const [objId] = channelId.split('?', 2); // channelId may have params after '?'
 
           if (channelType === 'timeline') {
-            const t = await dbAdapter.getTimelineById(objId);
+            const t = await this.registry.dbAdapter.getTimelineById(objId);
 
             if (!t) {
               throw new EventHandlingError(
@@ -273,6 +279,7 @@ export default class PubsubListener {
       return;
     }
 
+    const { dbAdapter, Comment } = this.registry;
     emitter = this._onlyUsersEmitter(onlyForUsers, emitter);
 
     let userIds = destSockets.map((s) => s.userId);
@@ -390,10 +397,10 @@ export default class PubsubListener {
   };
 
   onPostNew = async ({ postId }) => {
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
     const json = { postId };
     const type = eventNames.POST_CREATED;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, { post, emitter: this._postEventEmitter });
   };
 
@@ -404,14 +411,14 @@ export default class PubsubListener {
     // The JSON of List.everything()
     onlyForUsers = { items: [], inclusive: false },
   }) => {
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
 
     if (!post) {
       return;
     }
 
     if (!rooms) {
-      rooms = await getRoomsOfPost(post);
+      rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     }
 
     const broadcastOptions = {
@@ -433,18 +440,18 @@ export default class PubsubListener {
   };
 
   onCommentNew = async ({ commentId }) => {
-    const comment = await dbAdapter.getCommentById(commentId);
+    const comment = await this.registry.dbAdapter.getCommentById(commentId);
 
     if (!comment) {
       // might be outdated event
       return;
     }
 
-    const post = await dbAdapter.getPostById(comment.postId);
+    const post = await this.registry.dbAdapter.getPostById(comment.postId);
     const json = await serializeCommentForRealtime(comment);
 
     const type = eventNames.COMMENT_CREATED;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, {
       post,
       emitter: this._commentLikeEventEmitter,
@@ -452,12 +459,12 @@ export default class PubsubListener {
   };
 
   onCommentUpdate = async (data) => {
-    const comment = await dbAdapter.getCommentById(data.commentId);
-    const post = await dbAdapter.getPostById(comment.postId);
+    const comment = await this.registry.dbAdapter.getCommentById(data.commentId);
+    const post = await this.registry.dbAdapter.getPostById(comment.postId);
     const json = await serializeCommentForRealtime(comment);
 
     const type = eventNames.COMMENT_UPDATED;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, {
       post,
       emitter: this._commentLikeEventEmitter,
@@ -466,27 +473,27 @@ export default class PubsubListener {
 
   onCommentDestroy = async ({ postId, commentId, rooms }) => {
     const json = { postId, commentId };
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
     const type = eventNames.COMMENT_DESTROYED;
     await this.broadcastMessage(rooms, type, json, { post });
   };
 
   onLikeNew = async ({ userId, postId }) => {
     const [user, post] = await Promise.all([
-      await dbAdapter.getUserById(userId),
-      await dbAdapter.getPostById(postId),
+      await this.registry.dbAdapter.getUserById(userId),
+      await this.registry.dbAdapter.getPostById(postId),
     ]);
     const json = serializeLike(user);
     json.meta = { postId };
 
     const type = eventNames.LIKE_ADDED;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, { post });
   };
 
   onLikeRemove = async ({ userId, postId, rooms }) => {
     const json = { meta: { userId, postId } };
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
     const type = eventNames.LIKE_REMOVED;
     await this.broadcastMessage(rooms, type, json, { post });
   };
@@ -495,10 +502,10 @@ export default class PubsubListener {
     // NOTE: this event only broadcasts to hider's sockets
     // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
 
     const type = eventNames.POST_HIDDEN;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, {
       post,
       emitter: this._singleUserEmitter(userId),
@@ -509,10 +516,10 @@ export default class PubsubListener {
     // NOTE: this event only broadcasts to hider's sockets
     // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
 
     const type = eventNames.POST_UNHIDDEN;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, {
       post,
       emitter: this._singleUserEmitter(userId),
@@ -523,10 +530,10 @@ export default class PubsubListener {
     // NOTE: this event only broadcasts to saver's sockets
     // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
 
     const type = eventNames.POST_SAVED;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, {
       post,
       emitter: this._singleUserEmitter(userId),
@@ -537,10 +544,10 @@ export default class PubsubListener {
     // NOTE: this event only broadcasts to saver's sockets
     // so it won't leak any personal information
     const json = { meta: { postId } };
-    const post = await dbAdapter.getPostById(postId);
+    const post = await this.registry.dbAdapter.getPostById(postId);
 
     const type = eventNames.POST_UNSAVED;
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, type, json, {
       post,
       emitter: this._singleUserEmitter(userId),
@@ -548,9 +555,9 @@ export default class PubsubListener {
   };
 
   onEventCreated = async (eventId) => {
-    const event = await dbAdapter.getEventById(eventId);
+    const event = await this.registry.dbAdapter.getEventById(eventId);
 
-    const [{ uid: userId }] = await dbAdapter.getUsersIdsByIntIds([event.user_id]);
+    const [{ uid: userId }] = await this.registry.dbAdapter.getUsersIdsByIntIds([event.user_id]);
 
     const { events, users, groups } = await serializeEvents([event], userId);
 
@@ -575,7 +582,7 @@ export default class PubsubListener {
   };
 
   onGlobalUserUpdate = async (userId) => {
-    const account = await dbAdapter.getFeedOwnerById(userId);
+    const account = await this.registry.dbAdapter.getFeedOwnerById(userId);
 
     if (!account) {
       return;
@@ -585,7 +592,7 @@ export default class PubsubListener {
 
     if (account.isGroup() && account.isPrivate === '1') {
       const postsFeed = await account.getPostsTimeline();
-      receivers = List.from(await dbAdapter.getTimelineSubscribersIds(postsFeed.id));
+      receivers = List.from(await this.registry.dbAdapter.getTimelineSubscribersIds(postsFeed.id));
     }
 
     await this.broadcastMessage(['global:users'], eventNames.GLOBAL_USER_UPDATED, null, {
@@ -600,16 +607,20 @@ export default class PubsubListener {
     });
   };
   onGroupTimesUpdate = async ({ groupIds }) => {
-    const groups = (await dbAdapter.getFeedOwnersByIds(groupIds)).filter((g) => g.isGroup());
+    const groups = (await this.registry.dbAdapter.getFeedOwnersByIds(groupIds)).filter((g) =>
+      g.isGroup(),
+    );
 
     if (groups.length === 0) {
       return;
     }
 
     groupIds = groups.map((g) => g.id);
-    const feedIds = (await dbAdapter.getUsersNamedTimelines(groupIds, 'Posts')).map((f) => f.id);
+    const feedIds = (await this.registry.dbAdapter.getUsersNamedTimelines(groupIds, 'Posts')).map(
+      (f) => f.id,
+    );
 
-    const rooms = (await dbAdapter.getUsersSubscribedToTimelines(feedIds)).map(
+    const rooms = (await this.registry.dbAdapter.getUsersSubscribedToTimelines(feedIds)).map(
       (id) => `user:${id}`,
     );
 
@@ -624,7 +635,9 @@ export default class PubsubListener {
         if (groupIds.length > 1) {
           // User probably not subscribed to all of these groups
           isSubscribed = await Promise.all(
-            feedIds.map((id) => dbAdapter.isUserSubscribedToTimeline(socket.userId, id)),
+            feedIds.map((id) =>
+              this.registry.dbAdapter.isUserSubscribedToTimeline(socket.userId, id),
+            ),
           );
         }
 
@@ -644,8 +657,8 @@ export default class PubsubListener {
   // Helpers
 
   _sendCommentLikeMsg = async (data, msgType) => {
-    const comment = await dbAdapter.getCommentById(data.commentId);
-    const post = await dbAdapter.getPostById(data.postId);
+    const comment = await this.registry.dbAdapter.getCommentById(data.commentId);
+    const post = await this.registry.dbAdapter.getPostById(data.postId);
 
     if (!comment || !post) {
       return;
@@ -659,23 +672,23 @@ export default class PubsubListener {
       json.comments.userId = data.unlikerUUID;
     }
 
-    const rooms = await getRoomsOfPost(post);
+    const rooms = await getRoomsOfPost(this.registry.dbAdapter, post);
     await this.broadcastMessage(rooms, msgType, json, {
       post,
       emitter: this._commentLikeEventEmitter,
     });
   };
 
-  async _commentLikeEventEmitter(socket, type, json) {
+  _commentLikeEventEmitter = async (socket, type, json) => {
     const commentUUID = json.comments.id;
     const viewerId = socket.userId;
     const [commentLikesData = { c_likes: 0, has_own_like: false }] =
-      await dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
+      await this.registry.dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
     json.comments.likes = parseInt(commentLikesData.c_likes);
     json.comments.hasOwnLike = commentLikesData.has_own_like;
 
     defaultEmitter(socket, type, json);
-  }
+  };
 
   _postEventEmitter = async (socket, type, { postId, realtimeChannels }) => {
     const json = await serializeSinglePost(postId, socket.userId);
@@ -718,8 +731,8 @@ export default class PubsubListener {
     }
 
     const [commentLikesData, [commentLikesForPost]] = await Promise.all([
-      dbAdapter.getLikesInfoForComments(commentIds, viewerUUID),
-      dbAdapter.getLikesInfoForPosts([postPayload.posts.id], viewerUUID),
+      this.registry.dbAdapter.getLikesInfoForComments(commentIds, viewerUUID),
+      this.registry.dbAdapter.getLikesInfoForPosts([postPayload.posts.id], viewerUUID),
     ]);
 
     const commentLikes = keyBy(commentLikesData, 'uid');
@@ -761,7 +774,7 @@ export default class PubsubListener {
           let userId = null;
 
           try {
-            userId = await getAuthUserId(socket.authToken, socket);
+            userId = await this.getAuthUserId(socket.authToken, socket);
           } catch (e) {
             // pass
           }
@@ -773,6 +786,32 @@ export default class PubsubListener {
         }),
     );
   }
+
+  getAuthUserId = async (jwtToken, socket) => {
+    if (!jwtToken) {
+      return null;
+    }
+
+    // Parse the 'X-Forwarded-For' header ("client, proxy1, proxy2")
+    const proxyHeader = socket.handshake.headers[config.proxyIpHeader.toLowerCase()];
+    const ips = config.trustProxyHeaders && proxyHeader ? proxyHeader.split(/\s*,\s*/) : [];
+
+    // Fake context
+    const ctx = {
+      ip: ips[0] || socket.handshake.address,
+      headers: {
+        ...socket.handshake.headers,
+        authorization: `Bearer ${jwtToken}`,
+      },
+      method: 'WS',
+      state: { matchedRoute: '*' },
+      modelRegistry: this.registry,
+    };
+
+    await withAuthToken(ctx, () => null);
+
+    return ctx.state.authToken.userId;
+  };
 }
 
 /**
@@ -783,7 +822,7 @@ export default class PubsubListener {
  * @param {Post} post
  * @return {Promise<string[]>}
  */
-export async function getRoomsOfPost(post) {
+export async function getRoomsOfPost(dbAdapter, post) {
   if (!post) {
     return [];
   }
@@ -899,28 +938,3 @@ const onSocketEvent = (socket, event, handler) =>
       callback({ success: false, message: e.message });
     }
   });
-
-async function getAuthUserId(jwtToken, socket) {
-  if (!jwtToken) {
-    return null;
-  }
-
-  // Parse the 'X-Forwarded-For' header ("client, proxy1, proxy2")
-  const proxyHeader = socket.handshake.headers[config.proxyIpHeader.toLowerCase()];
-  const ips = config.trustProxyHeaders && proxyHeader ? proxyHeader.split(/\s*,\s*/) : [];
-
-  // Fake context
-  const ctx = {
-    ip: ips[0] || socket.handshake.address,
-    headers: {
-      ...socket.handshake.headers,
-      authorization: `Bearer ${jwtToken}`,
-    },
-    method: 'WS',
-    state: { matchedRoute: '*' },
-  };
-
-  await withAuthToken(ctx, () => null);
-
-  return ctx.state.authToken.userId;
-}

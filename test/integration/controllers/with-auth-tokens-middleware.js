@@ -7,7 +7,7 @@ import { spy } from 'sinon';
 import config from 'config';
 
 import cleanDB from '../../dbCleaner';
-import { User, dbAdapter, sessionTokenV1Store } from '../../../app/models';
+import { registry, User, dbAdapter, sessionTokenV1Store } from '../../../app/models';
 import { withAuthToken } from '../../../app/controllers/middlewares/with-auth-token';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
 import { fallbackIP, fallbackUserAgent } from '../../../app/models/common';
@@ -80,6 +80,7 @@ describe('withAuthToken middleware', () => {
       },
       request: { body: {} },
       state: { matchedRoute: '/v1/posts' },
+      modelRegistry: registry,
     });
 
     before(async () => {

@@ -1,6 +1,5 @@
 import pgFormat from 'pg-format';
 
-import { initUserObject } from './users';
 import { lockByUUID, USER_SUBSCRIPTIONS } from './adv-locks';
 
 ///////////////////////////////////////////////////
@@ -78,7 +77,7 @@ const subscriptionsTrait = (superClass) =>
       const responses = await this.database('users').whereRaw('subscribed_feed_ids && ?', [
         [timelineIntId],
       ]);
-      return responses.map(initUserObject);
+      return responses.map(this.initUserObject);
     }
 
     /**

@@ -5,7 +5,6 @@ import { escape as htmlEscape } from 'lodash';
 import compose from 'koa-compose';
 import builder from 'xmlbuilder';
 
-import { dbAdapter } from '../../../models';
 import { extractTitle, textToHTML } from '../../../support/rss-text-parser';
 import { monitored } from '../../middlewares';
 import { serializeComment } from '../../../serializers/v2/post';
@@ -223,7 +222,7 @@ async function postItemMaker(postId, data, ctx) {
 
 async function loadAllComments(postId, ctx) {
   const { user: viewer } = ctx.state;
-  const [postWithStuff] = await dbAdapter.getPostsWithStuffByIds(
+  const [postWithStuff] = await ctx.modelRegistry.dbAdapter.getPostsWithStuffByIds(
     [postId],
     viewer ? viewer.id : null,
     { foldComments: false },

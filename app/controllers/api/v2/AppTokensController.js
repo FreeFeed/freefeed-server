@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import config from 'config';
 
 import { authRequired, monitored, inputSchemaRequired } from '../../middlewares';
-import { AppTokenV1, dbAdapter } from '../../../models';
+import { AppTokenV1 } from '../../../models/auth-tokens/AppTokenV1';
 import {
   ValidationException,
   NotFoundException,
@@ -68,7 +68,7 @@ export const create = compose([
       }
     }
 
-    const token = await dbAdapter.createAppToken({
+    const token = await ctx.modelRegistry.dbAdapter.createAppToken({
       userId: user.id,
       title: body.title,
       scopes: body.scopes,
@@ -91,7 +91,7 @@ export const inactivate = compose([
   monitored('app-tokens.inactivate'),
   async (ctx) => {
     const { user } = ctx.state;
-    const token = await dbAdapter.getAppTokenById(ctx.params.tokenId);
+    const token = await ctx.modelRegistry.dbAdapter.getAppTokenById(ctx.params.tokenId);
 
     if (!token || token.userId !== user.id) {
       throw new NotFoundException('Token not found');
@@ -108,7 +108,7 @@ export const reissue = compose([
   monitored('app-tokens.reissue'),
   async (ctx) => {
     const { user } = ctx.state;
-    const token = await dbAdapter.getAppTokenById(ctx.params.tokenId);
+    const token = await ctx.modelRegistry.dbAdapter.getAppTokenById(ctx.params.tokenId);
 
     if (!token || token.userId !== user.id || !token.isActive) {
       throw new NotFoundException('Token not found');
@@ -155,7 +155,7 @@ export const update = compose([
         body: { title },
       },
     } = ctx;
-    const token = await dbAdapter.getAppTokenById(ctx.params.tokenId);
+    const token = await ctx.modelRegistry.dbAdapter.getAppTokenById(ctx.params.tokenId);
 
     if (!token || token.userId !== user.id || !token.isActive) {
       throw new NotFoundException('Token not found');
@@ -175,7 +175,7 @@ export const list = compose([
       state: { user },
     } = ctx;
 
-    const tokens = await dbAdapter.listActiveAppTokens(user.id);
+    const tokens = await ctx.modelRegistry.dbAdapter.listActiveAppTokens(user.id);
 
     ctx.body = { tokens: tokens.map((t) => serializeAppToken(t)) };
   },
@@ -208,7 +208,7 @@ export const activate = compose([
       throw new ValidationException(`Invalid activation code, check that you entered it correctly`);
     }
 
-    const token = await dbAdapter.getAppTokenByActivationCode(
+    const token = await ctx.modelRegistry.dbAdapter.getAppTokenByActivationCode(
       activationCode,
       config.appTokens.activationCodeTTL,
     );

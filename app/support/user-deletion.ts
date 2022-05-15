@@ -1,8 +1,10 @@
-import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
 import { forEachAsync } from './forEachAsync';
 import { UUID } from './types';
+import { type DbAdapter } from './DbAdapter';
+
+type Task = (dbAdapter: DbAdapter, userId: UUID, runUntil: Date) => Promise<void>;
 
 // Objects to delete:
 // 1. [x] User personal information
@@ -24,38 +26,12 @@ import { UUID } from './types';
 // 17. [x] Statistics (posts, likes, subscriptions = 0, update comments count)
 // 18. [x] User's attachments
 
-/**
- * Delete user data. User must be in GONE_DELETION status, when all data is
- * deleted the status becomes GONE_DELETED.
- */
-export const deleteAllUserData = combineTasks(
-  deletePersonalInfo,
-  deletePosts,
-  deleteLikes,
-  deleteCommentLikes,
-  unbanAll,
-  deleteSubscriptions,
-  deleteSubscriptionRequests,
-  deleteAuxHomeFeeds,
-  deleteNotifications,
-  deleteAppTokens,
-  deleteExtAuthProfiles,
-  deleteArchives,
-  deleteInvitations,
-  deleteLocalBumps,
-  deleteSentEmailsLog,
-  resetUserStatistics,
-  deleteAttachments,
-  // This ↓ must be the last task
-  setDeletedStatus,
-);
-
-async function setDeletedStatus(userId: UUID) {
+const setDeletedStatus: Task = async (dbAdapter, userId) => {
   const user = await dbAdapter.getUserById(userId);
   await user?.setGoneStatus(GONE_DELETED);
-}
+};
 
-export async function deletePersonalInfo(userId: UUID) {
+export const deletePersonalInfo: Task = async (dbAdapter, userId) => {
   const userRow = await dbAdapter.database.getRow(`select * from users where uid = ?`, userId);
 
   // Update all 'users' row fields to their default values except for some fields
@@ -80,9 +56,9 @@ export async function deletePersonalInfo(userId: UUID) {
     );
 
   await dbAdapter.database('users').where('uid', userId).update(payload);
-}
+};
 
-export async function deletePosts(userId: UUID, runUntil: Date) {
+export const deletePosts: Task = async (dbAdapter, userId, runUntil) => {
   const batchSize = 20;
 
   do {
@@ -102,9 +78,9 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
       await post?.destroy();
     });
   } while (new Date() < runUntil);
-}
+};
 
-export async function deleteLikes(userId: UUID, runUntil: Date) {
+export const deleteLikes: Task = async (dbAdapter, userId, runUntil) => {
   const batchSize = 50;
   const user = await dbAdapter.getUserById(userId);
 
@@ -129,9 +105,9 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
       await post?.removeLike(user);
     });
   } while (new Date() < runUntil);
-}
+};
 
-export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
+export const deleteCommentLikes: Task = async (dbAdapter, userId, runUntil) => {
   const batchSize = 50;
   const user = await dbAdapter.getUserById(userId);
 
@@ -160,9 +136,9 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
       await comment?.removeLike(user);
     });
   } while (new Date() < runUntil);
-}
+};
 
-export async function unbanAll(userId: UUID) {
+export const unbanAll: Task = async (dbAdapter, userId) => {
   const user = await dbAdapter.getUserById(userId);
 
   if (!user) {
@@ -181,9 +157,9 @@ export async function unbanAll(userId: UUID) {
   );
 
   await forEachAsync(usernames, (username: string) => user?.unban(username));
-}
+};
 
-export async function deleteSubscriptions(userId: UUID, runUntil: Date) {
+export const deleteSubscriptions: Task = async (dbAdapter, userId, runUntil) => {
   const user = await dbAdapter.getUserById(userId);
 
   if (!user) {
@@ -199,26 +175,26 @@ export async function deleteSubscriptions(userId: UUID, runUntil: Date) {
       friend && (await user.unsubscribeFrom(friend));
     }
   });
-}
+};
 
-export async function deleteSubscriptionRequests(userId: UUID) {
+export const deleteSubscriptionRequests: Task = async (dbAdapter, userId) => {
   const toUserIds = await dbAdapter.getUserSubscriptionPendingRequestsIds(userId);
 
   await forEachAsync(toUserIds, (toUserId: UUID) =>
     dbAdapter.deleteSubscriptionRequest(toUserId, userId),
   );
-}
+};
 
-export async function deleteAuxHomeFeeds(userId: UUID) {
+export const deleteAuxHomeFeeds: Task = async (dbAdapter, userId) => {
   const user = await dbAdapter.getUserById(userId);
 
   if (user) {
     const homeFeeds = await user.getHomeFeeds();
     await forEachAsync(homeFeeds, (homeFeed) => homeFeed.destroy());
   }
-}
+};
 
-export async function deleteNotifications(userId: UUID) {
+export const deleteNotifications: Task = async (dbAdapter, userId) => {
   const user = await dbAdapter.getUserById(userId);
 
   // Remove user's notifications caused by the user themself
@@ -227,9 +203,9 @@ export async function deleteNotifications(userId: UUID) {
       `delete from events where user_id = ? and created_by_user_id = user_id`,
       user.intId,
     ));
-}
+};
 
-export async function deleteAppTokens(userId: UUID, runUntil: Date) {
+export const deleteAppTokens: Task = async (dbAdapter, userId, runUntil) => {
   const batchSize = 50;
 
   do {
@@ -249,35 +225,35 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
       await token?.destroy();
     });
   } while (new Date() < runUntil);
-}
+};
 
-export async function deleteExtAuthProfiles(userId: UUID) {
+export const deleteExtAuthProfiles: Task = async (dbAdapter, userId) => {
   const profiles = await dbAdapter.getExtProfiles(userId);
   await Promise.all(profiles.map((p: { id: UUID }) => dbAdapter.removeExtProfile(userId, p.id)));
-}
+};
 
-export async function deleteArchives(userId: UUID) {
+export const deleteArchives: Task = async (dbAdapter, userId) => {
   await dbAdapter.database.raw(`delete from archives where user_id = ?`, userId);
   await dbAdapter.database.raw(`delete from hidden_comments where user_id = ?`, userId);
   await dbAdapter.database.raw(`delete from hidden_likes where user_id = ?`, userId);
-}
+};
 
-export async function deleteInvitations(userId: UUID) {
+export const deleteInvitations: Task = async (dbAdapter, userId) => {
   const user = await dbAdapter.getUserById(userId);
   user && (await dbAdapter.database.raw(`delete from invitations where author = ?`, user.intId));
-}
+};
 
-export async function deleteLocalBumps(userId: UUID) {
+export const deleteLocalBumps: Task = async (dbAdapter, userId) => {
   await dbAdapter.database.raw(`delete from local_bumps where user_id = ?`, userId);
-}
+};
 
-export async function deleteSentEmailsLog(userId: UUID) {
+export const deleteSentEmailsLog: Task = async (dbAdapter, userId) => {
   const user = await dbAdapter.getUserById(userId);
   user &&
     (await dbAdapter.database.raw(`delete from sent_emails_log where user_id = ?`, user.intId));
-}
+};
 
-export async function resetUserStatistics(userId: UUID) {
+export const resetUserStatistics: Task = async (dbAdapter, userId) => {
   // We still have an unattached comments problem so we need to count only
   // comments of the real posts.
   const commentsCount = await dbAdapter.database.getOne<number>(
@@ -296,9 +272,9 @@ export async function resetUserStatistics(userId: UUID) {
       where user_id = :userId`,
     { userId, commentsCount },
   );
-}
+};
 
-export async function deleteAttachments(userId: UUID, runUntil: Date) {
+export const deleteAttachments: Task = async (dbAdapter, userId, runUntil) => {
   const batchSize = 20;
 
   do {
@@ -318,17 +294,41 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
       await att?.destroy();
     });
   } while (new Date() < runUntil);
-}
+};
+
+/**
+ * Delete user data. User must be in GONE_DELETION status, when all data is
+ * deleted the status becomes GONE_DELETED.
+ */
+export const deleteAllUserData: Task = combineTasks(
+  deletePersonalInfo,
+  deletePosts,
+  deleteLikes,
+  deleteCommentLikes,
+  unbanAll,
+  deleteSubscriptions,
+  deleteSubscriptionRequests,
+  deleteAuxHomeFeeds,
+  deleteNotifications,
+  deleteAppTokens,
+  deleteExtAuthProfiles,
+  deleteArchives,
+  deleteInvitations,
+  deleteLocalBumps,
+  deleteSentEmailsLog,
+  resetUserStatistics,
+  deleteAttachments,
+  // This ↓ must be the last task
+  setDeletedStatus,
+);
 
 // Helpers
 
-type Task = (userId: UUID, runUntil: Date) => Promise<void>;
-
 function combineTasks(...tasks: Task[]): Task {
-  return (userId: UUID, runUntil: Date) =>
+  return (dbAdapter, userId, runUntil) =>
     forEachAsync(tasks, async (task: Task) => {
       if (new Date() < runUntil) {
-        await task(userId, runUntil);
+        await task(dbAdapter, userId, runUntil);
       }
     });
 }

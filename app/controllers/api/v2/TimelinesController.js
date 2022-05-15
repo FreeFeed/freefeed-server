@@ -5,11 +5,10 @@ import compose from 'koa-compose';
 import config from 'config';
 
 import {
-  dbAdapter,
   HOMEFEED_MODE_CLASSIC,
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
   HOMEFEED_MODE_FRIENDS_ONLY,
-} from '../../../models';
+} from '../../../models/timeline';
 import { serializeFeed } from '../../../serializers/v2/post';
 import { monitored, authRequired, targetUserRequired } from '../../middlewares';
 import { NotFoundException } from '../../../support/exceptions';
@@ -26,7 +25,11 @@ export const bestOf = compose([
     const offset = parseInt(ctx.request.query.offset, 10) || 0;
     const limit = parseInt(ctx.request.query.limit, 10) || DEFAULT_LIMIT;
 
-    const foundPostsIds = await dbAdapter.bestPostsIds(ctx.state.user, offset, limit + 1);
+    const foundPostsIds = await ctx.modelRegistry.dbAdapter.bestPostsIds(
+      ctx.state.user,
+      offset,
+      limit + 1,
+    );
     const isLastPage = foundPostsIds.length <= limit;
 
     if (!isLastPage) {
@@ -63,16 +66,19 @@ export const ownTimeline = (feedName, params = {}) =>
       let timeline;
 
       if (ctx.params.feedId) {
-        timeline = await dbAdapter.getTimelineById(ctx.params.feedId);
+        timeline = await ctx.modelRegistry.dbAdapter.getTimelineById(ctx.params.feedId);
       } else {
-        timeline = await dbAdapter.getUserNamedFeed(user.id, feedName);
+        timeline = await ctx.modelRegistry.dbAdapter.getUserNamedFeed(user.id, feedName);
       }
 
       if (!timeline || timeline.userId !== user.id || timeline.name !== feedName) {
         throw new NotFoundException(`Timeline is not found`);
       }
 
-      ctx.body = await genericTimeline(timeline, user.id, { ...params, ...getCommonParams(ctx) });
+      ctx.body = await genericTimeline(ctx.modelRegistry.dbAdapter, timeline, user.id, {
+        ...params,
+        ...getCommonParams(ctx),
+      });
     },
   ]);
 
@@ -82,11 +88,16 @@ export const userTimeline = (feedName) =>
     monitored(`timelines.${feedName.toLowerCase()}-v2`),
     async (ctx) => {
       const { targetUser, user: viewer } = ctx.state;
-      const timeline = await dbAdapter.getUserNamedFeed(targetUser.id, feedName);
-      ctx.body = await genericTimeline(timeline, viewer ? viewer.id : null, {
-        withoutDirects: feedName !== 'Posts',
-        ...getCommonParams(ctx),
-      });
+      const timeline = await ctx.modelRegistry.dbAdapter.getUserNamedFeed(targetUser.id, feedName);
+      ctx.body = await genericTimeline(
+        ctx.modelRegistry.dbAdapter,
+        timeline,
+        viewer ? viewer.id : null,
+        {
+          withoutDirects: feedName !== 'Posts',
+          ...getCommonParams(ctx),
+        },
+      );
     },
   ]);
 
@@ -94,7 +105,12 @@ export const everything = compose([
   monitored(`timelines.everything`),
   async (ctx) => {
     const { user: viewer } = ctx.state;
-    ctx.body = await genericTimeline(null, viewer ? viewer.id : null, getCommonParams(ctx));
+    ctx.body = await genericTimeline(
+      ctx.modelRegistry.dbAdapter,
+      null,
+      viewer ? viewer.id : null,
+      getCommonParams(ctx),
+    );
   },
 ]);
 
@@ -102,7 +118,7 @@ export const metatags = compose([
   monitored(`timelines-metatags`),
   async (ctx) => {
     const { username } = ctx.params;
-    const targetUser = await dbAdapter.getFeedOwnerByUsername(username);
+    const targetUser = await ctx.modelRegistry.dbAdapter.getFeedOwnerByUsername(username);
 
     if (!targetUser || !targetUser.isActive) {
       ctx.body = '';
@@ -176,7 +192,7 @@ function getCommonParams(ctx, defaultSort = ORD_UPDATED) {
   return { limit, offset, sort, homefeedMode, withMyPosts, createdBefore, createdAfter };
 }
 
-async function genericTimeline(timeline = null, viewerId = null, params = {}) {
+async function genericTimeline(dbAdapter, timeline = null, viewerId = null, params = {}) {
   params = {
     limit: 30,
     offset: 0,

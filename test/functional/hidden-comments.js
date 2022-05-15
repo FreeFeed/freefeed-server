@@ -4,7 +4,7 @@ import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { PubSub, Comment } from '../../app/models';
+import { pubSub, Comment } from '../../app/models';
 import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
@@ -24,7 +24,7 @@ describe('Hidden comments', () => {
   before(async () => {
     app = await getSingleton();
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   beforeEach(() => cleanDB($pg_database));

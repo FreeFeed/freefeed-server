@@ -6,7 +6,6 @@ import { reportError, BadRequestException, ValidationException } from '../../../
 import { serializeAttachment } from '../../../serializers/v2/post';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired } from '../../middlewares';
-import { dbAdapter } from '../../../models';
 import { startAttachmentsSanitizeJob } from '../../../jobs/attachments-sanitize';
 
 export default class AttachmentsController {
@@ -90,7 +89,7 @@ export default class AttachmentsController {
         page = Number.parseInt(qPage, 10);
       }
 
-      const attachments = await dbAdapter.listAttachments({
+      const attachments = await ctx.modelRegistry.dbAdapter.listAttachments({
         userId: user.id,
         limit: limit + 1,
         offset: limit * (page - 1),
@@ -115,8 +114,8 @@ export default class AttachmentsController {
     async (ctx) => {
       const { user } = ctx.state;
       const [stats, task] = await Promise.all([
-        dbAdapter.getAttachmentsStats(user.id),
-        dbAdapter.getAttachmentsSanitizeTask(user.id),
+        ctx.modelRegistry.dbAdapter.getAttachmentsStats(user.id),
+        ctx.modelRegistry.dbAdapter.getAttachmentsSanitizeTask(user.id),
       ]);
       ctx.body = {
         attachments: stats,
@@ -129,7 +128,7 @@ export default class AttachmentsController {
     authRequired(),
     async (ctx) => {
       const { user } = ctx.state;
-      const task = await startAttachmentsSanitizeJob(user);
+      const task = await startAttachmentsSanitizeJob(ctx.modelRegistry.dbAdapter, user);
       ctx.body = {
         sanitizeTask: { createdAt: task.createdAt },
       };

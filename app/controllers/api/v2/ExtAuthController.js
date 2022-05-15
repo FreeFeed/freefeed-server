@@ -19,7 +19,7 @@ import {
   SIGN_IN_CONTINUE,
   profileCache,
 } from '../../../support/ExtAuth';
-import { User, dbAdapter, sessionTokenV1Store } from '../../../models';
+import { sessionTokenV1Store } from '../../../models';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 
 import { authStartInputSchema, authFinishInputSchema } from './data-schemes/ext-auth';
@@ -87,7 +87,7 @@ export const authFinish = compose([
           throw new NotAuthorizedException();
         }
 
-        const profileUser = await User.getByExtProfile(profileData);
+        const profileUser = await ctx.modelRegistry.User.getByExtProfile(profileData);
 
         if (profileUser && profileUser.id !== currentUser.id) {
           throw new ForbiddenException(
@@ -109,7 +109,7 @@ export const authFinish = compose([
           pictureURL: state.profile.pictureURL,
         };
 
-        const profileUser = await User.getByExtProfile(profileData);
+        const profileUser = await ctx.modelRegistry.User.getByExtProfile(profileData);
 
         if (profileUser) {
           if (!profileUser.isActive) {
@@ -130,7 +130,8 @@ export const authFinish = compose([
         }
 
         const emailUser =
-          state.profile.email && (await dbAdapter.getUserByEmail(state.profile.email));
+          state.profile.email &&
+          (await ctx.modelRegistry.dbAdapter.getUserByEmail(state.profile.email));
 
         ctx.body = {
           status: emailUser ? SIGN_IN_USER_EXISTS : SIGN_IN_CONTINUE,
@@ -156,7 +157,11 @@ export const authFinish = compose([
               .replace(/[^a-z0-9]/gi, '');
           }
 
-          ctx.body.suggestedUsername = await adaptUsername(username);
+          ctx.body.suggestedUsername = await adaptUsername(
+            username,
+            ctx.modelRegistry.dbAdapter,
+            ctx.modelRegistry.User,
+          );
         }
       }
     } catch (err) {
@@ -175,7 +180,7 @@ function serializeExtProfile(profile) {
   return pick(profile, ['id', 'provider', 'title', 'createdAt']);
 }
 
-function isValidUsername(username) {
+function isValidUsername(username, User) {
   return Reflect.apply(User.prototype.isValidUsername, { username }, [false]);
 }
 
@@ -184,16 +189,16 @@ function isValidUsername(username) {
  * Return empty string if can not adapt username.
  *
  * @param {string} username
- * @return {string}
+ * @return {Promise<string>}
  */
-async function adaptUsername(username) {
+async function adaptUsername(username, dbAdapter, User) {
   if (username.length < 3) {
     return '';
   }
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    if (isValidUsername(username)) {
+    if (isValidUsername(username, User)) {
       // eslint-disable-next-line no-await-in-loop
       const existingUser = await dbAdapter.getFeedOwnerByUsername(username);
 

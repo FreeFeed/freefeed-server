@@ -2,7 +2,6 @@ import compose from 'koa-compose';
 import _ from 'lodash';
 import monitor from 'monitor-dog';
 
-import { dbAdapter, PubSub as pubSub } from '../../../models';
 import {
   serializeSelfUser,
   serializeUsersByIds,
@@ -33,7 +32,9 @@ export default class UsersController {
     const timer = monitor.timer('users.unread-directs');
 
     try {
-      const unreadDirectsNumber = await dbAdapter.getUnreadDirectsNumber(ctx.state.user.id);
+      const unreadDirectsNumber = await ctx.modelRegistry.dbAdapter.getUnreadDirectsNumber(
+        ctx.state.user.id,
+      );
       ctx.body = { unread: unreadDirectsNumber };
       monitor.increment('users.unread-directs-requests');
     } finally {
@@ -48,7 +49,9 @@ export default class UsersController {
       return;
     }
 
-    const unreadNotificationsNumber = await dbAdapter.getUnreadEventsNumber(ctx.state.user.id);
+    const unreadNotificationsNumber = await ctx.modelRegistry.dbAdapter.getUnreadEventsNumber(
+      ctx.state.user.id,
+    );
     ctx.body = { unread: unreadNotificationsNumber };
   }
 
@@ -59,8 +62,8 @@ export default class UsersController {
       return;
     }
 
-    await dbAdapter.markAllDirectsAsRead(ctx.state.user.id);
-    await pubSub.updateUnreadDirects(ctx.state.user.id);
+    await ctx.modelRegistry.dbAdapter.markAllDirectsAsRead(ctx.state.user.id);
+    await ctx.modelRegistry.pubSub.updateUnreadDirects(ctx.state.user.id);
     ctx.body = { message: `Directs are now marked as read for ${ctx.state.user.id}` };
   }
 
@@ -71,8 +74,8 @@ export default class UsersController {
       return;
     }
 
-    await dbAdapter.markAllEventsAsRead(ctx.state.user.id);
-    await pubSub.updateUnreadNotifications(ctx.state.user.intId);
+    await ctx.modelRegistry.dbAdapter.markAllEventsAsRead(ctx.state.user.id);
+    await ctx.modelRegistry.pubSub.updateUnreadNotifications(ctx.state.user.intId);
     ctx.body = { message: `Notifications are now marked as read for ${ctx.state.user.id}` };
   }
 
@@ -85,6 +88,7 @@ export default class UsersController {
     async (ctx) => {
       const {
         state: { user, authToken },
+        modelRegistry: { dbAdapter },
       } = ctx;
 
       const [

@@ -5,13 +5,16 @@ import monitor from 'monitor-dog';
 import config from 'config';
 
 import { extractHashtags } from '../support/hashtags';
-import { PubSub as pubSub } from '../models';
-import { EventService } from '../support/EventService';
 import { getRoomsOfPost } from '../pubsub-listener';
 import { getUpdatedUUIDs, notifyBacklinkedLater, notifyBacklinkedNow } from '../support/backlinks';
 import { List } from '../support/open-lists';
 
-export function addModel(dbAdapter) {
+/**
+ * @returns {typeof import('../models').Comment}
+ */
+export function addModel(registry) {
+  const { dbAdapter, pubSub } = registry;
+
   class Comment {
     static VISIBLE = 0;
     static DELETED = 1;
@@ -132,7 +135,7 @@ export function addModel(dbAdapter) {
         this.processHashtagsOnCreate(),
         dbAdapter.statsCommentCreated(this.userId),
         pubSub.newComment(this),
-        EventService.onCommentChanged(this, true),
+        registry.eventService.onCommentChanged(this, true),
         notifyBacklinkedNow(this, pubSub, getUpdatedUUIDs(this.body)),
       ]);
 
@@ -162,7 +165,7 @@ export function addModel(dbAdapter) {
       await Promise.all([
         this.processHashtagsOnUpdate(),
         pubSub.updateComment(this.id),
-        EventService.onCommentChanged(this),
+        registry.eventService.onCommentChanged(this),
         notifyBacklinked(),
       ]);
 
@@ -194,7 +197,7 @@ export function addModel(dbAdapter) {
 
     async destroy(destroyedBy = null) {
       const post = await this.getPost();
-      const realtimeRooms = await getRoomsOfPost(post);
+      const realtimeRooms = await getRoomsOfPost(dbAdapter, post);
       const notifyBacklinked = await notifyBacklinkedLater(
         this,
         pubSub,
@@ -214,7 +217,7 @@ export function addModel(dbAdapter) {
       await Promise.all([
         pubSub.destroyComment(this.id, this.postId, realtimeRooms),
         this.userId ? dbAdapter.statsCommentDeleted(this.userId) : null,
-        destroyedBy ? EventService.onCommentDestroyed(this, destroyedBy) : null,
+        destroyedBy ? registry.eventService.onCommentDestroyed(this, destroyedBy) : null,
         notifyBacklinked(),
       ]);
 

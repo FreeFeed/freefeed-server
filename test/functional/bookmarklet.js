@@ -9,7 +9,7 @@ import config from 'config';
 
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
-import { dbAdapter, PubSub } from '../../app/models';
+import { dbAdapter, pubSub } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
@@ -30,7 +30,7 @@ describe('BookmarkletController', () => {
     const app = await getSingleton();
     rtPort = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
   });
 
   beforeEach(() => cleanDB($pg_database));

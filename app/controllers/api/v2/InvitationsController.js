@@ -1,18 +1,18 @@
 import _ from 'lodash';
 
-import { dbAdapter } from '../../../models';
 import { NotFoundException, ValidationException } from '../../../support/exceptions';
 import { userSerializerFunction } from '../../../serializers/v2/user';
 
 export default class InvitationsController {
   static async getInvitation(ctx) {
-    const invitation = await dbAdapter.getInvitation(ctx.params.secureId);
+    const invitation = await ctx.modelRegistry.dbAdapter.getInvitation(ctx.params.secureId);
 
     if (!invitation) {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
 
     const invitationUsers = await serializeInvitationUsers(
+      ctx.modelRegistry.dbAdapter,
       invitation.recommendations.users,
       invitation.recommendations.groups,
       invitation.author,
@@ -34,9 +34,9 @@ export default class InvitationsController {
       return;
     }
 
-    await validateInvitation(ctx.request);
+    await validateInvitation(ctx.request, ctx.modelRegistry.dbAdapter);
 
-    const [invitationId] = await dbAdapter.createInvitation(
+    const [invitationId] = await ctx.modelRegistry.dbAdapter.createInvitation(
       ctx.state.user.intId,
       ctx.request.body.message,
       ctx.request.body.lang,
@@ -50,7 +50,7 @@ export default class InvitationsController {
   }
 }
 
-async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
+async function serializeInvitationUsers(dbAdapter, userNames, groupNames, authorIntId) {
   userNames = userNames || [];
   groupNames = groupNames || [];
 
@@ -81,7 +81,7 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
   };
 }
 
-async function validateInvitation(request) {
+async function validateInvitation(request, dbAdapter) {
   const users = await dbAdapter.getFeedOwnersByUsernames(request.body.users || []);
   const groups = await dbAdapter.getFeedOwnersByUsernames(request.body.groups || []);
 

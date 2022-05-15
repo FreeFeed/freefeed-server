@@ -5,7 +5,7 @@ import request from 'superagent';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { pubSub } from '../../app/models';
 
 import * as funcTestHelper from './functional_test_helper';
 
@@ -14,7 +14,7 @@ describe('RequestRevocation', () => {
 
   before(async () => {
     app = await getSingleton();
-    PubSub.setPublisher(new DummyPublisher());
+    pubSub.setPublisher(new DummyPublisher());
   });
 
   beforeEach(() => cleanDB($pg_database));

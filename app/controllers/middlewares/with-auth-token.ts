@@ -2,11 +2,12 @@ import util from 'util';
 
 import jwt from 'jsonwebtoken';
 import config from 'config';
-import { Context, Next } from 'koa';
+import { Middleware, DefaultState } from 'koa';
 
+import { type FreefeedContext } from '../../freefeed-app';
 import { NotAuthorizedException } from '../../support/exceptions';
-import { authDebugError, AuthToken, SessionTokenV1 } from '../../models/auth-tokens';
-import { AppTokenV1, dbAdapter, sessionTokenV1Store } from '../../models';
+import { authDebugError, AuthToken, SessionTokenV1, AppTokenV1 } from '../../models/auth-tokens';
+import { sessionTokenV1Store } from '../../models';
 import { Nullable } from '../../support/types';
 
 declare module 'jsonwebtoken' {
@@ -15,7 +16,7 @@ declare module 'jsonwebtoken' {
 
 jwt.verifyAsync = util.promisify(jwt.verify);
 
-export async function withAuthToken(ctx: Context, next: Next) {
+export const withAuthToken: Middleware<DefaultState, FreefeedContext> = async (ctx, next) => {
   let jwtToken;
 
   if (ctx.headers['authorization']) {
@@ -53,7 +54,7 @@ export async function withAuthToken(ctx: Context, next: Next) {
     authToken = await sessionTokenV1Store.getById(payload.id!);
   } else if (payload.type === AppTokenV1.TYPE) {
     // Application token v1
-    authToken = await dbAdapter.getAppTokenById(payload.id!);
+    authToken = await ctx.modelRegistry.dbAdapter.getAppTokenById(payload.id!);
   } else {
     authToken = null;
   }
@@ -66,4 +67,4 @@ export async function withAuthToken(ctx: Context, next: Next) {
   ctx.state = { ...ctx.state, authToken, authJWTPayload: payload };
 
   await authToken.middleware(ctx, next);
-}
+};

@@ -5,7 +5,7 @@ import expect from 'unexpected';
 import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { getSingleton } from '../../app/app';
 import cleanDB from '../dbCleaner';
-import { PubSub } from '../../app/models';
+import { pubSub } from '../../app/models';
 import { EVENT_TYPES } from '../../app/support/EventTypes';
 
 import {
@@ -26,7 +26,7 @@ describe('Realtime Notifications', () => {
     const app = await getSingleton();
     port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
     const pubsubAdapter = new PubSubAdapter($database);
-    PubSub.setPublisher(pubsubAdapter);
+    pubSub.setPublisher(pubsubAdapter);
     await cleanDB($pg_database);
   });
 
