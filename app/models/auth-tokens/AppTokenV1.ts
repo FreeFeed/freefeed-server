@@ -56,12 +56,8 @@ export class AppTokenV1 extends AuthToken {
   public lastUserAgent: Nullable<string>;
   public activationCode: Nullable<string>;
 
-  private readonly [database]: DbAdapter;
-
   constructor(params: AppTokenRecord, dbAdapter: DbAdapter) {
-    super(params.userId);
-
-    this[database] = dbAdapter;
+    super(params.userId, dbAdapter);
 
     this.id = params.id;
     this.createdAt = params.createdAt;

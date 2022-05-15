@@ -1,8 +1,9 @@
 import { Context, Next } from 'koa';
 
-import { dbAdapter } from '../../models';
 import { NotAuthorizedException } from '../../support/exceptions';
 import { UUID } from '../../support/types';
+import { DbAdapter } from '../../support/DbAdapter';
+import { database } from '../common';
 
 import { authDebug, authDebugError } from '.';
 
@@ -12,13 +13,16 @@ import { authDebug, authDebugError } from '.';
  */
 export abstract class AuthToken {
   readonly hasFullAccess: boolean = false;
+  readonly [database]: DbAdapter;
 
-  constructor(public readonly userId: UUID) {}
+  constructor(public readonly userId: UUID, dbAdapter: DbAdapter) {
+    this[database] = dbAdapter;
+  }
 
   abstract tokenString(): string;
 
   getUser() {
-    return dbAdapter.getUserById(this.userId);
+    return this[database].getUserById(this.userId);
   }
 
   async middleware(ctx: Context, next: Next) {
