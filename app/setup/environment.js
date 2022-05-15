@@ -32,8 +32,6 @@ if (sentryIsEnabled) {
 const log = createDebug('freefeed:init');
 process.env.MONITOR_PREFIX = config.monitorPrefix;
 
-passportInit(passport);
-
 const checkIfMediaDirectoriesExist = async () => {
   let gotErrors = false;
 
@@ -78,6 +76,11 @@ export const init = async function () {
   }
 
   await setPostgresSearchConfig();
+
+  const {
+    default: { registry },
+  } = await import('../models.js'); // FIXME: replace this with explicit initialization
+  passportInit(passport, registry.dbAdapter);
 
   if (config.media.storage.type === 'fs') {
     await checkIfMediaDirectoriesExist();
