@@ -197,7 +197,7 @@ export function addModel(registry) {
 
     async destroy(destroyedBy = null) {
       const post = await this.getPost();
-      const realtimeRooms = await getRoomsOfPost(post);
+      const realtimeRooms = await getRoomsOfPost(dbAdapter, post);
       const notifyBacklinked = await notifyBacklinkedLater(
         this,
         pubSub,

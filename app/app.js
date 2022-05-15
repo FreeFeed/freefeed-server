@@ -36,7 +36,7 @@ export async function getSingleton() {
     const server = http.createServer(_app.callback());
     const listen = util.promisify(server.listen).bind(server);
 
-    _app.context.pubsub = new PubsubListener(server, _app);
+    _app.context.pubsub = new PubsubListener(_app.context.modelRegistry, server, _app);
 
     const port = process.env.PEPYATKA_SERVER_PORT || process.env.PORT || _app.context.config.port;
     await listen(port);

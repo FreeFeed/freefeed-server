@@ -192,7 +192,7 @@ export function addModel(registry) {
       const payload = { updatedAt: this.updatedAt.toString() };
       const afterUpdate = [];
 
-      let realtimeRooms = await getRoomsOfPost(this);
+      let realtimeRooms = await getRoomsOfPost(dbAdapter, this);
       const usersCanSeePostBeforeIds = await this.usersCanSee();
 
       if (params.body != null) {
@@ -251,7 +251,7 @@ export function addModel(registry) {
 
           // Publishing changes to the old AND new realtime rooms
           afterUpdate.push(async () => {
-            const rooms = await getRoomsOfPost(this);
+            const rooms = await getRoomsOfPost(dbAdapter, this);
             realtimeRooms = _.union(realtimeRooms, rooms);
           });
         }
@@ -298,7 +298,7 @@ export function addModel(registry) {
 
     async destroy(destroyedBy = null) {
       const [realtimeRooms, comments, groups, notifyBacklinked] = await Promise.all([
-        getRoomsOfPost(this),
+        getRoomsOfPost(dbAdapter, this),
         this.getComments(),
         this.getGroupsPostedTo(),
         notifyBacklinkedLater(this, pubSub, getUpdatedUUIDs(this.body)),
@@ -786,7 +786,7 @@ export function addModel(registry) {
       }
 
       const [realtimeRooms, timelineId, ,] = await Promise.all([
-        getRoomsOfPost(this),
+        getRoomsOfPost(dbAdapter, this),
         user.getLikesTimelineIntId(),
         dbAdapter.statsLikeDeleted(user.id),
       ]);
@@ -961,7 +961,10 @@ export function addModel(registry) {
       const userDirectsFeed = await user.getDirectsTimeline();
 
       // Get realtime parameters before changes
-      const [rooms, usersBeforeIds] = await Promise.all([getRoomsOfPost(this), this.usersCanSee()]);
+      const [rooms, usersBeforeIds] = await Promise.all([
+        getRoomsOfPost(dbAdapter, this),
+        this.usersCanSee(),
+      ]);
 
       const ok = await dbAdapter.withdrawPostFromDestFeed(userDirectsFeed?.intId, this.id);
 
