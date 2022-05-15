@@ -1,6 +1,6 @@
 import config from 'config';
 
-import { dbAdapter, JobManager } from '../../models';
+import { JobManager } from '../../models';
 import FreefeedApp from '../../freefeed-app';
 
 import { definePeriodicJob } from '.';
@@ -13,14 +13,14 @@ export function initHandlers(jobManager: JobManager, app: FreefeedApp) {
   return Promise.all([
     definePeriodicJob(jobManager, {
       name: PERIODIC_INACTIVATE_APP_TOKENS,
-      handler: () => dbAdapter.periodicInvalidateAppTokens(),
+      handler: () => jobManager.dbAdapter.periodicInvalidateAppTokens(),
       nextTime: 10 * 60, // every 10 minutes
       payload: {},
     }),
     definePeriodicJob(jobManager, {
       name: PERIODIC_CLEAN_AUTH_SESSIONS,
       handler: () =>
-        dbAdapter.cleanOldAuthSessions(
+        jobManager.dbAdapter.cleanOldAuthSessions(
           config.authSessions.activeSessionTTLDays,
           config.authSessions.inactiveSessionTTLDays,
         ),

@@ -90,6 +90,8 @@ export function addJobManagerModel(dbAdapter) {
     _pollTimer = null;
     _handlers = new Map();
 
+    dbAdapter;
+
     /**
      * @param {Partial<typeof config.jobManager>} [props]
      */
@@ -100,6 +102,7 @@ export function addJobManagerModel(dbAdapter) {
       this.maxJobLockTime = props.maxJobLockTime;
       this.jobLockTimeMultiplier = props.jobLockTimeMultiplier;
       this.batchSize = props.batchSize;
+      this.dbAdapter = dbAdapter;
     }
 
     /**

@@ -1,4 +1,5 @@
 import Knex from 'knex';
+import type Config from 'config';
 
 import { DbAdapter } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
@@ -152,6 +153,9 @@ export type JobHandler<P> = (job: Job<P>) => Promise<unknown>;
 export type JobMiddleware = (h: JobHandler<unknown>) => JobHandler<unknown>;
 
 export class JobManager {
+  readonly dbAdapter: DbAdapter;
+
+  constructor(props: Partial<typeof Config.jobManager>);
   on<P = unknown>(name: string, handler: JobHandler<P>): () => void;
   fetchAndProcess(): Promise<Job>;
   use(mw: JobMiddleware): void;

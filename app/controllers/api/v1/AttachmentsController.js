@@ -128,7 +128,7 @@ export default class AttachmentsController {
     authRequired(),
     async (ctx) => {
       const { user } = ctx.state;
-      const task = await startAttachmentsSanitizeJob(user);
+      const task = await startAttachmentsSanitizeJob(ctx.modelRegistry.dbAdapter, user);
       ctx.body = {
         sanitizeTask: { createdAt: task.createdAt },
       };

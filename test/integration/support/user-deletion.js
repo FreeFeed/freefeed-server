@@ -46,12 +46,12 @@ describe('User data deletion', () => {
   });
 
   it(`should pass smoke test`, () =>
-    expect(deleteAllUserData(luna.id, afterHour()), 'to be fulfilled'));
+    expect(deleteAllUserData(dbAdapter, luna.id, afterHour()), 'to be fulfilled'));
 
   it(`should delete user personal data`, async () => {
     await luna.setGoneStatus(GONE_DELETION);
 
-    await deletePersonalInfo(luna.id);
+    await deletePersonalInfo(dbAdapter, luna.id);
     const newData = await dbAdapter.database.getRow(`select * from users where uid = ?`, luna.id);
 
     expect(newData, 'to satisfy', {
@@ -77,7 +77,7 @@ describe('User data deletion', () => {
       await post.create();
     }
 
-    await deletePosts(luna.id, afterHour());
+    await deletePosts(dbAdapter, luna.id, afterHour());
     const postIds = await dbAdapter.database.getCol(
       `select uid from posts where user_id = ?`,
       luna.id,
@@ -103,7 +103,7 @@ describe('User data deletion', () => {
       expect(likes, 'to satisfy', [{ user_id: luna.id, post_id: marsPost.id }]);
     }
 
-    await deleteLikes(luna.id, afterHour());
+    await deleteLikes(dbAdapter, luna.id, afterHour());
 
     {
       const likes = await dbAdapter.database.getAll(
@@ -139,7 +139,7 @@ describe('User data deletion', () => {
       expect(likes, 'to have length', 1);
     }
 
-    await deleteCommentLikes(luna.id, afterHour());
+    await deleteCommentLikes(dbAdapter, luna.id, afterHour());
 
     {
       const likes = await dbAdapter.database.getAll(
@@ -153,7 +153,7 @@ describe('User data deletion', () => {
   it(`should delete user bans`, async () => {
     await luna.ban(mars.username);
 
-    await unbanAll(luna.id, afterHour());
+    await unbanAll(dbAdapter, luna.id, afterHour());
 
     {
       const bans = await dbAdapter.database.getAll(`select * from bans where user_id = ?`, luna.id);
@@ -164,7 +164,7 @@ describe('User data deletion', () => {
   it(`should delete user subscriptions`, async () => {
     await luna.subscribeTo(mars);
 
-    await deleteSubscriptions(luna.id, afterHour());
+    await deleteSubscriptions(dbAdapter, luna.id, afterHour());
 
     {
       const friends = await luna.getSubscriptionsWithHomeFeeds();
@@ -185,7 +185,7 @@ describe('User data deletion', () => {
       expect(requests, 'to have length', 2);
     }
 
-    await deleteSubscriptionRequests(luna.id, afterHour());
+    await deleteSubscriptionRequests(dbAdapter, luna.id, afterHour());
 
     {
       const requests = await luna.getPendingSubscriptionRequestIds();
@@ -202,7 +202,7 @@ describe('User data deletion', () => {
       expect(feeds, 'to have length', 3);
     }
 
-    await deleteAuxHomeFeeds(luna.id);
+    await deleteAuxHomeFeeds(dbAdapter, luna.id);
 
     {
       const feeds = await luna.getHomeFeeds();
@@ -219,7 +219,7 @@ describe('User data deletion', () => {
       expect(notifications, 'to have length', 2);
     }
 
-    await deleteNotifications(luna.id);
+    await deleteNotifications(dbAdapter, luna.id);
 
     {
       const notifications = await dbAdapter.database.getAll(`select * from events`);
@@ -239,7 +239,7 @@ describe('User data deletion', () => {
       expect(tokenIds, 'to have length', 2);
     }
 
-    await deleteAppTokens(luna.id, afterHour());
+    await deleteAppTokens(dbAdapter, luna.id, afterHour());
 
     {
       const tokenIds = await dbAdapter.database.getAll(
@@ -267,7 +267,7 @@ describe('User data deletion', () => {
       expect(profiles, 'to have length', 2);
     }
 
-    await deleteExtAuthProfiles(luna.id);
+    await deleteExtAuthProfiles(dbAdapter, luna.id);
 
     {
       const profiles = await dbAdapter.database.getCol(`select uid from external_auth`);
@@ -283,7 +283,7 @@ describe('User data deletion', () => {
 
     expect(await dbAdapter.getUserArchiveParams(luna.id), 'not to be null');
 
-    await deleteArchives(luna.id);
+    await deleteArchives(dbAdapter, luna.id);
 
     expect(await dbAdapter.getUserArchiveParams(luna.id), 'to be null');
   });
@@ -300,7 +300,7 @@ describe('User data deletion', () => {
 
     expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 1);
 
-    await deleteInvitations(luna.id);
+    await deleteInvitations(dbAdapter, luna.id);
 
     expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 0);
   });
@@ -324,7 +324,7 @@ describe('User data deletion', () => {
     await att.create();
     await filesMustExist(att);
 
-    await deleteAttachments(luna.id, afterHour());
+    await deleteAttachments(dbAdapter, luna.id, afterHour());
 
     expect(await dbAdapter.database.getOne(`select count(*)::int from attachments`), 'to be', 0);
     await filesMustExist(att, false);

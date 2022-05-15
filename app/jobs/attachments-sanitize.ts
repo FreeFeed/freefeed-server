@@ -2,14 +2,15 @@ import createDebug from 'debug';
 import { DateTime } from 'luxon';
 import Raven from 'raven';
 
-import { dbAdapter, Job, JobManager, type User } from '../models';
+import { Job, JobManager, type User } from '../models';
 import { UUID } from '../support/types';
+import { DbAdapter } from '../support/DbAdapter';
 
 const debug = createDebug('freefeed:model:attachment');
 
 export const ATTACHMENTS_SANITIZE = 'ATTACHMENTS_SANITIZE';
 
-export async function startAttachmentsSanitizeJob(user: User) {
+export async function startAttachmentsSanitizeJob(dbAdapter: DbAdapter, user: User) {
   await Job.create(ATTACHMENTS_SANITIZE, { userId: user.id }, { uniqKey: user.id });
   return dbAdapter.createAttachmentsSanitizeTask(user.id);
 }
@@ -23,7 +24,7 @@ export function initHandlers(jobManager: JobManager) {
 
     // Check if this job is stuck
     {
-      const { total: totalAttachments } = await dbAdapter.getAttachmentsStats(userId);
+      const { total: totalAttachments } = await jobManager.dbAdapter.getAttachmentsStats(userId);
       const estJobRuns = totalAttachments / batchSize;
 
       if (job.attempts > estJobRuns * 2) {
@@ -36,7 +37,7 @@ export function initHandlers(jobManager: JobManager) {
           ),
         );
 
-        await dbAdapter.deleteAttachmentsSanitizeTask(userId);
+        await jobManager.dbAdapter.deleteAttachmentsSanitizeTask(userId);
 
         // Don't keep it
         return;
@@ -46,11 +47,11 @@ export function initHandlers(jobManager: JobManager) {
     await job.setUnlockAt(maxTTL * 1.5);
     const workUntil = DateTime.local().plus({ seconds: maxTTL }).toJSDate();
 
-    const attachments = await dbAdapter.getNonSanitizedAttachments(userId, batchSize);
+    const attachments = await jobManager.dbAdapter.getNonSanitizedAttachments(userId, batchSize);
 
     if (attachments.length === 0) {
       // Nothing to do
-      await dbAdapter.deleteAttachmentsSanitizeTask(userId);
+      await jobManager.dbAdapter.deleteAttachmentsSanitizeTask(userId);
       return;
     }
 
