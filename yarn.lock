@@ -3609,15 +3609,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild-register@npm:~3.3.2":
-  version: 3.3.2
-  resolution: "esbuild-register@npm:3.3.2"
-  peerDependencies:
-    esbuild: ">=0.12 <1"
-  checksum: 94c353571b23f9a54d00e4551f03696c99b068699f6afaa2bed9cdf5247ec54536f50ea4c68572485904026a4fd374625418682fd240837895839aeba3f29ec2
-  languageName: node
-  linkType: hard
-
 "esbuild-sunos-64@npm:0.14.39":
   version: 0.14.39
   resolution: "esbuild-sunos-64@npm:0.14.39"
@@ -4746,7 +4737,6 @@ __metadata:
     ejs: ~3.1.8
     ejs-lint: ~1.2.2
     esbuild: ~0.14.39
-    esbuild-register: ~3.3.2
     eslint: ~8.15.0
     eslint-config-prettier: ~8.5.0
     eslint-plugin-babel: ~5.3.1

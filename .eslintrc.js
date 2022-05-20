@@ -1,4 +1,4 @@
-require('esbuild-register/dist/node').register();
+require('./esm/register.cjs');
 
 module.exports = {
   extends: [

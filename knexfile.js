@@ -1,4 +1,4 @@
-require('esbuild-register/dist/node').register();
+require('./esm/register.cjs');
 const { loadFileConfigs } = require('config').util;
 
 let env = process.env.NODE_ENV || 'development';

@@ -1,4 +1,4 @@
-require('esbuild-register/dist/node').register();
+require('../esm/register.cjs');
 
 global.$database = require('../app/setup/database').default; // used by realtime-tests
 
