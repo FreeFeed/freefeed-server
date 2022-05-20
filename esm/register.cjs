@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const esbuild = require("esbuild");
 
+const preprocess = require("./preprocess.cjs");
+
 const esbuildOptions = {
   format: "cjs",
   logLevel: "error",
@@ -61,6 +63,7 @@ for (const ext in loaders) {
 }
 
 function transpile(code, filename) {
+  code = preprocess(code, filename);
   return esbuild.transformSync(code, {
     ...esbuildOptions,
     loader: loaders[path.extname(filename)],

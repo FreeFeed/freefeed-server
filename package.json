@@ -53,7 +53,7 @@
     "exiftool-vendored": "~16.4.0",
     "ff-url-finder": "~2.3.7",
     "file-type": "~17.1.1",
-    "gifsicle": "~5.3.0",
+    "gifsicle": "~7.0.1",
     "gm": "~1.23.1",
     "grapheme-breaker": "0.3.2",
     "ioredis": "~4.28.5",
