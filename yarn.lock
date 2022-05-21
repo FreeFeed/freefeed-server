@@ -505,7 +505,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinonjs/commons@npm:^1.6.0, @sinonjs/commons@npm:^1.7.0, @sinonjs/commons@npm:^1.8.1":
+"@sinonjs/commons@npm:^1.6.0, @sinonjs/commons@npm:^1.7.0, @sinonjs/commons@npm:^1.8.3":
   version: 1.8.3
   resolution: "@sinonjs/commons@npm:1.8.3"
   dependencies:
@@ -514,23 +514,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinonjs/fake-timers@npm:^6.0.0, @sinonjs/fake-timers@npm:^6.0.1":
-  version: 6.0.1
-  resolution: "@sinonjs/fake-timers@npm:6.0.1"
+"@sinonjs/fake-timers@npm:>=5, @sinonjs/fake-timers@npm:^9.1.2":
+  version: 9.1.2
+  resolution: "@sinonjs/fake-timers@npm:9.1.2"
   dependencies:
     "@sinonjs/commons": ^1.7.0
-  checksum: 8e331aa1412d905ecc8efd63550f58a6f77dcb510f878172004e53be63eb82650623618763001a918fc5e21257b86c45041e4e97c454ed6a2d187de084abbd11
+  checksum: 7d3aef54e17c1073101cb64d953157c19d62a40e261a30923fa1ee337b049c5f29cc47b1f0c477880f42b5659848ba9ab897607ac8ea4acd5c30ddcfac57fca6
   languageName: node
   linkType: hard
 
-"@sinonjs/samsam@npm:^5.3.1":
-  version: 5.3.1
-  resolution: "@sinonjs/samsam@npm:5.3.1"
+"@sinonjs/samsam@npm:^6.1.1":
+  version: 6.1.1
+  resolution: "@sinonjs/samsam@npm:6.1.1"
   dependencies:
     "@sinonjs/commons": ^1.6.0
     lodash.get: ^4.4.2
     type-detect: ^4.0.8
-  checksum: 1c2c49d51b1840775980e9496707d68b936f443896f92e48150c4f7713d14904e576740e52660b602f8a53b665bd5f149c5c733758030758427ddb1621090279
+  checksum: a09b0914bf573f0da82bd03c64ba413df81a7c173818dc3f0a90c2652240ac835ef583f4d52f0b215e626633c91a4095c255e0669f6ead97241319f34f05e7fc
   languageName: node
   linkType: hard
 
@@ -3065,13 +3065,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"diff@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "diff@npm:4.0.2"
-  checksum: f2c09b0ce4e6b301c221addd83bf3f454c0bc00caa3dd837cf6c127d6edf7223aa2bbe3b688feea110b7f262adbfc845b757c44c8a9f8c0c5b15d8fa9ce9d20d
-  languageName: node
-  linkType: hard
-
 "dir-glob@npm:^3.0.1":
   version: 3.0.1
   resolution: "dir-glob@npm:3.0.1"
@@ -4796,7 +4789,7 @@ __metadata:
     react-dom: ~16.13.1
     s3rver: ~3.7.1
     sbd: ~1.0.19
-    sinon: ~9.2.4
+    sinon: ~14.0.0
     social-text-tokenizer: ~2.2.0
     socket.io: ~2.4.1
     socket.io-client: ~2.3.1
@@ -7732,16 +7725,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nise@npm:^4.0.4":
-  version: 4.1.0
-  resolution: "nise@npm:4.1.0"
+"nise@npm:^5.1.1":
+  version: 5.1.1
+  resolution: "nise@npm:5.1.1"
   dependencies:
-    "@sinonjs/commons": ^1.7.0
-    "@sinonjs/fake-timers": ^6.0.0
+    "@sinonjs/commons": ^1.8.3
+    "@sinonjs/fake-timers": ">=5"
     "@sinonjs/text-encoding": ^0.7.1
     just-extend: ^4.0.2
     path-to-regexp: ^1.7.0
-  checksum: b2ea1c96a41c392adf746509904af565ebd667ad4e40267f6d73be3648f04267945624ba0ce6a991b779f3ae246181f71975152b93b4dafee1f62886fa897c32
+  checksum: d8be29e84a014743c9a10f428fac86f294ac5f92bed1f606fe9b551e935f494d8e0ce1af8a12673c6014010ec7f771f2d48aa5c8e116f223eb4f40c5e1ab44b3
   languageName: node
   linkType: hard
 
@@ -9870,17 +9863,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sinon@npm:~9.2.4":
-  version: 9.2.4
-  resolution: "sinon@npm:9.2.4"
+"sinon@npm:~14.0.0":
+  version: 14.0.0
+  resolution: "sinon@npm:14.0.0"
   dependencies:
-    "@sinonjs/commons": ^1.8.1
-    "@sinonjs/fake-timers": ^6.0.1
-    "@sinonjs/samsam": ^5.3.1
-    diff: ^4.0.2
-    nise: ^4.0.4
-    supports-color: ^7.1.0
-  checksum: 34b881886daa4b491bb9147ccad43d662f58b45a1b6f1e8b26a405ad77041108306fac3648646335f00f702897f0ba12282588ab64de470f48f1a7678e08dc65
+    "@sinonjs/commons": ^1.8.3
+    "@sinonjs/fake-timers": ^9.1.2
+    "@sinonjs/samsam": ^6.1.1
+    diff: ^5.0.0
+    nise: ^5.1.1
+    supports-color: ^7.2.0
+  checksum: b2aeeb0cdc2cd30f904ccbcd60bae4e1b3dcf3aeeface09c1832db0336be0dbaa461f3b91b769bed84f05c83d45d5072a9da7ee14bc7289daeda2a1214fe173c
   languageName: node
   linkType: hard
 
@@ -10524,7 +10517,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"supports-color@npm:^7.1.0":
+"supports-color@npm:^7.1.0, supports-color@npm:^7.2.0":
   version: 7.2.0
   resolution: "supports-color@npm:7.2.0"
   dependencies:
