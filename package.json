@@ -61,7 +61,7 @@
     "juice": "~7.0.0",
     "knex": "~0.21.21",
     "koa": "~2.13.4",
-    "koa-body": "~4.2.0",
+    "koa-body": "~5.0.0",
     "koa-compose": "~4.1.0",
     "koa-conditional-get": "~3.0.0",
     "koa-etag": "~4.0.0",

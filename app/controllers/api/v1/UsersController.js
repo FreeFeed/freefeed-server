@@ -653,7 +653,7 @@ export default class UsersController {
       let filePath = null;
 
       if (ctx.request.files && ctx.request.files.file) {
-        filePath = ctx.request.files.file.path;
+        filePath = ctx.request.files.file.filepath;
       } else if (ctx.request.body.url) {
         const fileInfo = await downloadURL(ctx.request.body.url);
 

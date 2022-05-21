@@ -29,7 +29,9 @@ export default class AttachmentsController {
       }
 
       try {
-        const newAttachment = await ctx.state.user.newAttachment({ file });
+        const newAttachment = await ctx.state.user.newAttachment({
+          file: { ...file, path: file.filepath, name: file.originalFilename },
+        });
         await newAttachment.create();
 
         ctx.body = {

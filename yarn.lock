@@ -657,12 +657,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/formidable@npm:^1.0.31":
-  version: 1.2.5
-  resolution: "@types/formidable@npm:1.2.5"
+"@types/formidable@npm:^2.0.4":
+  version: 2.0.5
+  resolution: "@types/formidable@npm:2.0.5"
   dependencies:
     "@types/node": "*"
-  checksum: 2e4eea700f5bf392e98df1c2fc9afa1666204097cbdf69b826b7e13292ce194bcd77e3babcf6e41c184e9ab55d80c1a1461d369118c576dcc7cfaafc09fcf775
+  checksum: 2de9a08a539309229f0d15074dc9587b7e1316f29da1092ef2eb1e7c9f10ce4b02f1a0b7da5fe21391a5946c9fe5d2be7bfabd5bc6b93005acda22bcc424a456
   languageName: node
   linkType: hard
 
@@ -4679,13 +4679,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"formidable@npm:^1.1.1":
-  version: 1.2.6
-  resolution: "formidable@npm:1.2.6"
-  checksum: 2b68ed07ba88302b9c63f8eda94f19a460cef6017bfda48348f09f41d2a36660c9353137991618e0e4c3db115b41e4b8f6fa63bc973b7a7c91dec66acdd02a56
-  languageName: node
-  linkType: hard
-
 "formidable@npm:^2.0.1":
   version: 2.0.1
   resolution: "formidable@npm:2.0.1"
@@ -4777,7 +4770,7 @@ __metadata:
     juice: ~7.0.0
     knex: ~0.21.21
     koa: ~2.13.4
-    koa-body: ~4.2.0
+    koa-body: ~5.0.0
     koa-compose: ~4.1.0
     koa-conditional-get: ~3.0.0
     koa-etag: ~4.0.0
@@ -6687,14 +6680,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"koa-body@npm:~4.2.0":
-  version: 4.2.0
-  resolution: "koa-body@npm:4.2.0"
+"koa-body@npm:~5.0.0":
+  version: 5.0.0
+  resolution: "koa-body@npm:5.0.0"
   dependencies:
-    "@types/formidable": ^1.0.31
+    "@types/formidable": ^2.0.4
     co-body: ^5.1.1
-    formidable: ^1.1.1
-  checksum: 8da5eb00eb43345d9976b830df5973e2eb4d33a6b58735576284b20069a37ce84b34c8b60b18fdbff5e59aadfd6f7a9a03632a1c0c53aa3c84a07dfffd888af9
+    formidable: ^2.0.1
+  checksum: 2fed59a8b91ff107f276e398dbe78cf258f71e7c743946fe9197c0b6b5d3da9ea6516c68a3d13513c32669ccd43971c66d5e80ab0d2932ad1f9aaef627f8f868
   languageName: node
   linkType: hard
 
