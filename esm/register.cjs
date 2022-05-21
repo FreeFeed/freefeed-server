@@ -1,29 +1,47 @@
 /**
  * Transpile imported/required files using esbuild
  */
-const mmodule = require("module");
-const fs = require("fs");
-const path = require("path");
-const esbuild = require("esbuild");
+const mmodule = require('module');
+const fs = require('fs');
+const path = require('path');
 
-const preprocess = require("./preprocess.cjs");
+const esbuild = require('esbuild');
+const sourceMapSupport = require('source-map-support');
+
+const preprocess = require('./preprocess.cjs');
+
+const allSourceMaps = new Map();
+
+sourceMapSupport.install({
+  handleUncaughtExceptions: false,
+  retrieveSourceMap: (filename) => {
+    if (allSourceMaps.has(filename)) {
+      return {
+        url: filename,
+        map: allSourceMaps.get(filename),
+      };
+    }
+
+    return null;
+  },
+});
 
 const esbuildOptions = {
-  format: "cjs",
-  logLevel: "error",
+  format: 'cjs',
+  logLevel: 'error',
   target: [`node${process.version.slice(1)}`],
   minify: false,
-  sourcemap: false,
+  sourcemap: true,
 };
 
 const loaders = {
-  ".js": "js",
-  ".mjs": "js",
-  ".cjs": "js",
-  ".jsx": "jsx",
-  ".ts": "ts",
-  ".tsx": "tsx",
-  ".json": "json",
+  '.js': 'js',
+  '.mjs': 'js',
+  '.cjs': 'js',
+  '.jsx': 'jsx',
+  '.ts': 'ts',
+  '.tsx': 'tsx',
+  '.json': 'json',
 };
 
 /**
@@ -32,21 +50,22 @@ const loaders = {
  *
  * As per https://github.com/standard-things/esm/issues/868#issuecomment-594480715
  */
-const jsHandler = mmodule._extensions[".js"];
-mmodule._extensions[".js"] = function (mod, filename) {
+const jsHandler = mmodule._extensions['.js'];
+mmodule._extensions['.js'] = (mod, filename) => {
   try {
-    return jsHandler.call(this, mod, filename);
+    jsHandler.call(this, mod, filename);
   } catch (error) {
-    if (error.code !== "ERR_REQUIRE_ESM") {
+    if (error.code !== 'ERR_REQUIRE_ESM') {
       throw error;
     }
-    const content = fs.readFileSync(filename, "utf8");
+
+    const content = fs.readFileSync(filename, 'utf8');
     mod._compile(transpile(content, filename), filename);
   }
 };
 
 for (const ext in loaders) {
-  const defaultLoader = mmodule._extensions[ext] || mmodule._extensions[".js"];
+  const defaultLoader = mmodule._extensions[ext] || mmodule._extensions['.js'];
 
   mmodule._extensions[ext] = (mod, filename) => {
     // Transpile all known types except for node_modules
@@ -63,10 +82,11 @@ for (const ext in loaders) {
 }
 
 function transpile(code, filename) {
-  code = preprocess(code, filename);
-  return esbuild.transformSync(code, {
+  const { code: newCode, map } = esbuild.transformSync(preprocess(code, filename), {
     ...esbuildOptions,
     loader: loaders[path.extname(filename)],
     sourcefile: filename,
-  }).code;
+  });
+  allSourceMaps.set(filename, map);
+  return newCode;
 }
