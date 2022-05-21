@@ -22,7 +22,7 @@ export default class AttachmentsController {
     authRequired(),
     async (ctx) => {
       // Accept one file-type field with any name
-      const [file] = Object.values(ctx.request.files);
+      const [file] = Object.values(ctx.request.files || []);
 
       if (!file) {
         throw new BadRequestException('No file provided');

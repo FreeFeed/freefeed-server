@@ -4659,7 +4659,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"form-data@npm:^4.0.0, form-data@npm:~4.0.0":
+"form-data@npm:^4.0.0":
   version: 4.0.0
   resolution: "form-data@npm:4.0.0"
   dependencies:
@@ -4667,6 +4667,16 @@ __metadata:
     combined-stream: ^1.0.8
     mime-types: ^2.1.12
   checksum: 01135bf8675f9d5c61ff18e2e2932f719ca4de964e3be90ef4c36aacfc7b9cb2fceb5eca0b7e0190e3383fe51c5b37f4cb80b62ca06a99aaabfcfd6ac7c9328c
+  languageName: node
+  linkType: hard
+
+"formdata-node@npm:~4.3.2":
+  version: 4.3.2
+  resolution: "formdata-node@npm:4.3.2"
+  dependencies:
+    node-domexception: 1.0.0
+    web-streams-polyfill: 4.0.0-beta.1
+  checksum: e1d7aae7d579775b813ddc8ea4511fee613552715e81b36afb188d3a65b3d4df2ef69017106079ba52d9ab1e3367fea0206862d8ae64c02008ababdb341d2c3d
   languageName: node
   linkType: hard
 
@@ -4761,7 +4771,7 @@ __metadata:
     exiftool-vendored: ~16.4.0
     ff-url-finder: ~2.3.7
     file-type: ~17.1.1
-    form-data: ~4.0.0
+    formdata-node: ~4.3.2
     gifsicle: ~7.0.1
     gm: ~1.23.1
     grapheme-breaker: 0.3.2
@@ -7804,7 +7814,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-domexception@npm:^1.0.0":
+"node-domexception@npm:1.0.0, node-domexception@npm:^1.0.0":
   version: 1.0.0
   resolution: "node-domexception@npm:1.0.0"
   checksum: ee1d37dd2a4eb26a8a92cd6b64dfc29caec72bff5e1ed9aba80c294f57a31ba4895a60fd48347cf17dd6e766da0ae87d75657dfd1f384ebfa60462c2283f5c7f
@@ -11302,6 +11312,13 @@ __metadata:
     node-fetch: ^2.6.0
     valid-data-url: ^3.0.0
   checksum: 5b8a398dec7cf27b40ed0560bd8e4f27c80363a902fdb1558b60b5652451254e859be7b42d2566843fdf645653727d1f85bb72d92c49ae8c48ab5b28b8108d1f
+  languageName: node
+  linkType: hard
+
+"web-streams-polyfill@npm:4.0.0-beta.1":
+  version: 4.0.0-beta.1
+  resolution: "web-streams-polyfill@npm:4.0.0-beta.1"
+  checksum: 94c21d3aba1c26e5942bb210ffd60c6990cbc750d34bdf548ed93ed845f0a6eac89cdae1dd0195afaba15fbcf4aaca9e397ee40fa4d1f2c191d04d43717bd065
   languageName: node
   linkType: hard
 
