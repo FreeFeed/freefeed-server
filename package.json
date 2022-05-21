@@ -148,7 +148,7 @@
     "eslint-plugin-promise": "~6.0.0",
     "eslint-plugin-you-dont-need-lodash-underscore": "~6.12.0",
     "formdata-node": "~4.3.2",
-    "mailparser": "~2.8.1",
+    "mailparser": "~3.5.0",
     "mkdirp": "~1.0.4",
     "mocha": "~10.0.0",
     "npm-run-all": "~4.1.5",
