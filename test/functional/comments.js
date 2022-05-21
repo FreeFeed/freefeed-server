@@ -47,7 +47,7 @@ describe('CommentsController', () => {
             const postB = res.body.posts;
             funcTestHelper.getTimeline(`/v1/users/${groupName}`, context.authToken, (err, res) => {
               res.status.should.eql(200);
-              const lastUpdatedAt = res.body.users.updatedAt;
+              const lastUpdatedAt = parseInt(res.body.users.updatedAt, 10);
 
               funcTestHelper.createComment(body, postB.id, context.authToken, (err, res) => {
                 res.status.should.eql(200);
@@ -58,7 +58,7 @@ describe('CommentsController', () => {
                     res.status.should.eql(200);
                     res.body.should.have.property('users');
                     res.body.users.should.have.property('updatedAt');
-                    lastUpdatedAt.should.be.lt(res.body.users.updatedAt);
+                    lastUpdatedAt.should.be.lt(parseInt(res.body.users.updatedAt, 10));
 
                     done();
                   },

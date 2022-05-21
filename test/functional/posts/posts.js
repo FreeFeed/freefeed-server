@@ -475,17 +475,17 @@ describe('PostsController', () => {
         const body = 'Post body';
 
         funcTestHelper.getTimeline(`/v1/users/${groupName}`, ctx.authToken, (err, res) => {
-          const oldGroupTimestamp = res.body.users.updatedAt;
+          const oldGroupTimestamp = parseInt(res.body.users.updatedAt, 10);
 
           request
             .post(`${app.context.config.host}/v1/posts`)
             .send({ post: { body }, meta: { feeds: [groupName] }, authToken: ctx.authToken })
             .end((err, res) => {
-              const postTimestamp = res.body.posts.createdAt;
+              const postTimestamp = parseInt(res.body.posts.createdAt, 10);
               res.status.should.eql(200);
 
               funcTestHelper.getTimeline(`/v1/users/${groupName}`, ctx.authToken, (err, res) => {
-                const groupTimestamp = res.body.users.updatedAt;
+                const groupTimestamp = parseInt(res.body.users.updatedAt, 10);
 
                 groupTimestamp.should.be.gt(oldGroupTimestamp);
                 groupTimestamp.should.be.gte(postTimestamp);

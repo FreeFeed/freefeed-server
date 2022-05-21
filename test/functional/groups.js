@@ -418,7 +418,7 @@ describe('GroupsController', () => {
         .end((err, res) => {
           res.status.should.eql(200);
           res.should.not.be.empty;
-          res.error.should.be.empty;
+          res.should.have.property('error');
           done();
         });
     });

@@ -815,7 +815,7 @@ describe('Privates', () => {
             marsContext.authToken,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines.posts');
+              res.should.have.nested.property('body.timelines.posts');
               done();
             },
           );
@@ -824,7 +824,7 @@ describe('Privates', () => {
         it('should not influence how mars sees posts in his river of news', (done) => {
           funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false;
-            res.should.have.deep.property('body.timelines.posts');
+            res.should.have.nested.property('body.timelines.posts');
             done();
           });
         });
@@ -835,7 +835,7 @@ describe('Privates', () => {
             zeusContext.authToken,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines');
+              res.should.have.nested.property('body.timelines');
               res.body.timelines.posts.should.eql([]);
               done();
             },
@@ -848,7 +848,7 @@ describe('Privates', () => {
             null,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines');
+              res.should.have.nested.property('body.timelines');
               res.body.timelines.posts.should.eql([]);
               done();
             },
@@ -861,7 +861,7 @@ describe('Privates', () => {
             zeusContext.authToken,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines');
+              res.should.have.nested.property('body.timelines');
               res.body.timelines.posts.should.eql([]);
               done();
             },
@@ -871,7 +871,7 @@ describe('Privates', () => {
         it('should not show zeus her posts in his river of news', (done) => {
           funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false;
-            res.should.have.deep.property('body.timelines');
+            res.should.have.nested.property('body.timelines');
             res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'));
             done();
           });
@@ -886,7 +886,7 @@ describe('Privates', () => {
               marsContext.authToken,
               (err, res) => {
                 _.isUndefined(res).should.be.false;
-                res.should.have.deep.property('body.timelines.posts');
+                res.should.have.nested.property('body.timelines.posts');
                 done();
               },
             );
@@ -895,7 +895,7 @@ describe('Privates', () => {
           it('should not influence how mars sees posts in his river of news', (done) => {
             funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines.posts');
+              res.should.have.nested.property('body.timelines.posts');
               done();
             });
           });
@@ -906,7 +906,7 @@ describe('Privates', () => {
               zeusContext.authToken,
               (err, res) => {
                 _.isUndefined(res).should.be.false;
-                res.should.have.deep.property('body.timelines.posts');
+                res.should.have.nested.property('body.timelines.posts');
                 res.body.timelines.posts.length.should.eql(1);
                 res.body.should.have.property('posts');
                 res.body.posts.length.should.eql(1);
@@ -922,7 +922,7 @@ describe('Privates', () => {
               zeusContext.authToken,
               (err, res) => {
                 _.isUndefined(res).should.be.false;
-                res.should.have.deep.property('body.timelines.posts');
+                res.should.have.nested.property('body.timelines.posts');
                 res.body.timelines.posts.length.should.eql(1);
                 res.body.should.have.property('posts');
                 res.body.posts.length.should.eql(1);
@@ -935,7 +935,7 @@ describe('Privates', () => {
           it('should show zeus her posts in his river of news', (done) => {
             funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines.posts');
+              res.should.have.nested.property('body.timelines.posts');
               res.body.timelines.posts.length.should.eql(1);
               res.body.should.have.property('posts');
               res.body.posts.length.should.eql(1);
@@ -957,7 +957,7 @@ describe('Privates', () => {
             marsContext.authToken,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines.posts');
+              res.should.have.nested.property('body.timelines.posts');
               done();
             },
           );
@@ -966,7 +966,7 @@ describe('Privates', () => {
         it('should not influence how mars sees posts in his river of news', (done) => {
           funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false;
-            res.should.have.deep.property('body.timelines.posts');
+            res.should.have.nested.property('body.timelines.posts');
             done();
           });
         });
@@ -977,7 +977,7 @@ describe('Privates', () => {
             zeusContext.authToken,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines');
+              res.should.have.nested.property('body.timelines');
               res.body.timelines.posts.should.eql([]);
               done();
             },
@@ -990,7 +990,7 @@ describe('Privates', () => {
             null,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines');
+              res.should.have.nested.property('body.timelines');
               res.body.timelines.posts.should.eql([]);
               done();
             },
@@ -1003,7 +1003,7 @@ describe('Privates', () => {
             zeusContext.authToken,
             (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines');
+              res.should.have.nested.property('body.timelines');
               res.body.timelines.posts.should.eql([]);
               done();
             },
@@ -1013,7 +1013,7 @@ describe('Privates', () => {
         it('should not show zeus her posts in his river of news', (done) => {
           funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
             _.isUndefined(res).should.be.false;
-            res.should.have.deep.property('body.timelines');
+            res.should.have.nested.property('body.timelines');
             res.body.timelines.should.satisfy(funcTestHelper.noFieldOrEmptyArray('posts'));
             done();
           });
@@ -1028,7 +1028,7 @@ describe('Privates', () => {
               marsContext.authToken,
               (err, res) => {
                 _.isUndefined(res).should.be.false;
-                res.should.have.deep.property('body.timelines.posts');
+                res.should.have.nested.property('body.timelines.posts');
                 done();
               },
             );
@@ -1037,7 +1037,7 @@ describe('Privates', () => {
           it('should not influence how mars sees posts in his river of news', (done) => {
             funcTestHelper.getTimeline('/v2/timelines/home', marsContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines.posts');
+              res.should.have.nested.property('body.timelines.posts');
               done();
             });
           });
@@ -1048,7 +1048,7 @@ describe('Privates', () => {
               zeusContext.authToken,
               (err, res) => {
                 _.isUndefined(res).should.be.false;
-                res.should.have.deep.property('body.timelines.posts');
+                res.should.have.nested.property('body.timelines.posts');
                 res.body.timelines.posts.length.should.eql(1);
                 res.body.should.have.property('posts');
                 res.body.posts.length.should.eql(1);
@@ -1064,7 +1064,7 @@ describe('Privates', () => {
               zeusContext.authToken,
               (err, res) => {
                 _.isUndefined(res).should.be.false;
-                res.should.have.deep.property('body.timelines.posts');
+                res.should.have.nested.property('body.timelines.posts');
                 res.body.timelines.posts.length.should.eql(1);
                 res.body.should.have.property('posts');
                 res.body.posts.length.should.eql(1);
@@ -1077,7 +1077,7 @@ describe('Privates', () => {
           it('should show zeus her posts in his river of news', (done) => {
             funcTestHelper.getTimeline('/v2/timelines/home', zeusContext.authToken, (err, res) => {
               _.isUndefined(res).should.be.false;
-              res.should.have.deep.property('body.timelines.posts');
+              res.should.have.nested.property('body.timelines.posts');
               res.body.timelines.posts.length.should.eql(1);
               res.body.should.have.property('posts');
               res.body.posts.length.should.eql(1);
