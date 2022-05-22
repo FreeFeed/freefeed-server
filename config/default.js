@@ -169,10 +169,17 @@ config.mailer = {
   transport: defer((cfg) => (cfg.mailer.useSMTPTransport ? smtpTransport : stubTransport)),
   fromName: 'Pepyatka',
   fromEmail: 'mail@pepyatka.com',
-  resetPasswordMailSubject: 'Pepyatka password reset',
   host: defer((cfg) => cfg.host),
   options: {},
   adminRecipient: { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' },
+  // Subjects
+  resetPasswordMailSubject: 'Pepyatka password reset',
+  dailyBestOfDigestMailSubject: defer(
+    (cfg) => `The best of your ${cfg.siteTitle} for <%= digestDate %>`,
+  ),
+  weeklyBestOfDigestMailSubject: defer(
+    (cfg) => `The best of your ${cfg.siteTitle} for the week of <%= digestDate %>`,
+  ),
 };
 
 config.redis = {

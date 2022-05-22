@@ -3,6 +3,7 @@ import util from 'util';
 import createDebug from 'debug';
 import { juiceResources } from 'juice';
 import ReactDOMServer from 'react-dom/server';
+import { render as renderEJS } from 'ejs';
 import config from 'config';
 
 import Mailer from '../../lib/mailer';
@@ -11,15 +12,18 @@ import { fa } from '../views/emails/best-of-digest/assets/font-awesome-base64';
 
 const juiceResourcesAsync = util.promisify(juiceResources);
 
+export function renderSummaryBody(data) {
+  const body = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
+  return juiceResourcesAsync(body, {});
+}
+
 export async function sendDailyBestOfEmail(user, data, digestDate) {
   const debug = createDebug('freefeed:BestOfDigestMailer');
 
-  // TODO: const subject = config.mailer.dailyBestOfDigestEmailSubject
-  const emailBody = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
   let emailBodyWithInlineStyles;
 
   try {
-    emailBodyWithInlineStyles = await juiceResourcesAsync(emailBody, {});
+    emailBodyWithInlineStyles = await renderSummaryBody(data);
   } catch (err) {
     debug('Error occurred while trying to inline styles', err);
     return;
@@ -35,7 +39,7 @@ export async function sendDailyBestOfEmail(user, data, digestDate) {
 
   await Mailer.sendMail(
     user,
-    `The best of your ${config.siteTitle} for ${digestDate}`,
+    renderEJS(config.mailer.dailyBestOfDigestMailSubject, { digestDate }),
     {
       digest: {
         body: emailBodyWithInlineStyles,
@@ -54,12 +58,10 @@ export async function sendDailyBestOfEmail(user, data, digestDate) {
 export async function sendWeeklyBestOfEmail(user, data, digestDate) {
   const debug = createDebug('freefeed:BestOfDigestMailer');
 
-  // TODO: const subject = config.mailer.weeklyBestOfDigestEmailSubject
-  const emailBody = ReactDOMServer.renderToStaticMarkup(SummaryEmail(data));
   let emailBodyWithInlineStyles;
 
   try {
-    emailBodyWithInlineStyles = await juiceResourcesAsync(emailBody, {});
+    emailBodyWithInlineStyles = await renderSummaryBody(data);
   } catch (err) {
     debug('Error occurred while trying to inline styles', err);
     return;
@@ -75,7 +77,7 @@ export async function sendWeeklyBestOfEmail(user, data, digestDate) {
 
   await Mailer.sendMail(
     user,
-    `The best of your ${config.siteTitle} for the week of ${digestDate}`,
+    renderEJS(config.mailer.weeklyBestOfDigestMailSubject, { digestDate }),
     {
       digest: {
         body: emailBodyWithInlineStyles,
