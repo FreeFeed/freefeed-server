@@ -1,4 +1,5 @@
 /* eslint-env node, mocha */
+import { toPlainObject } from 'lodash';
 import expect from 'unexpected';
 
 import {
@@ -68,7 +69,7 @@ describe('Backlinks notifier', () => {
     for (const id of ids) {
       expect(pubSubCalls, 'to have an item satisfying', {
         id,
-        options: { onlyForUsers: scope },
+        options: { onlyForUsers: toPlainObject(scope) },
       });
     }
   });
@@ -90,7 +91,7 @@ describe('Backlinks notifier', () => {
     for (const id of ids) {
       expect(pubSubCalls, 'to have an item satisfying', {
         id,
-        options: { onlyForUsers: scopeTotal },
+        options: { onlyForUsers: toPlainObject(scopeTotal) },
       });
     }
   });

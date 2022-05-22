@@ -3,9 +3,10 @@
 import fs from 'fs';
 import path from 'path';
 
-import FormData from 'form-data';
+import { FormData } from 'formdata-node';
 import unexpected from 'unexpected';
 import unexpectedDate from 'unexpected-date';
+import { Blob, fileFrom } from 'node-fetch';
 
 import cleanDB from '../dbCleaner';
 import { dbAdapter } from '../../app/models';
@@ -29,10 +30,7 @@ describe('Attachments', () => {
 
   it(`should not create attachment anonymously`, async () => {
     const data = new FormData();
-    data.append('file', Buffer.from('this is a test'), {
-      filename: 'test.txt',
-      contentType: 'text/plain',
-    });
+    data.append('file', new Blob(['this is a test'], { type: 'text/plain' }), 'test.txt');
     const resp = await performJSONRequest('POST', '/v1/attachments', data);
     expect(resp, 'to satisfy', { __httpCode: 401 });
   });
@@ -45,10 +43,7 @@ describe('Attachments', () => {
 
   it(`should create text attachment`, async () => {
     const data = new FormData();
-    data.append('file', Buffer.from('this is a test'), {
-      filename: 'test.txt',
-      contentType: 'text/plain',
-    });
+    data.append('file', new Blob(['this is a test'], { type: 'text/plain' }), 'test.txt');
     const resp = await performJSONRequest('POST', '/v1/attachments', data, authHeaders(luna));
     expect(resp, 'to satisfy', {
       attachments: {
@@ -63,7 +58,7 @@ describe('Attachments', () => {
   it(`should create image attachment`, async () => {
     const filePath = path.join(__dirname, '../fixtures/test-image.150x150.png');
     const data = new FormData();
-    data.append('file', fs.createReadStream(filePath));
+    data.append('file', await fileFrom(filePath, 'image/png'));
     const resp = await performJSONRequest('POST', '/v1/attachments', data, authHeaders(luna));
     expect(resp, 'to satisfy', {
       attachments: {
@@ -78,10 +73,11 @@ describe('Attachments', () => {
   it(`should create attachment from any binary form field`, async () => {
     const data = new FormData();
     data.append('name', 'john');
-    data.append('attachment[a42]', Buffer.from('this is a test'), {
-      filename: 'test.txt',
-      contentType: 'text/plain',
-    });
+    data.append(
+      'attachment[a42]',
+      new Blob(['this is a test'], { type: 'text/plain' }),
+      'test.txt',
+    );
     const resp = await performJSONRequest('POST', '/v1/attachments', data, authHeaders(luna));
     expect(resp, 'to satisfy', {
       attachments: {
@@ -100,10 +96,11 @@ describe('Attachments', () => {
 
       for (let i = 0; i < 10; i++) {
         const data = new FormData();
-        data.append('file', Buffer.from('this is a test'), {
-          filename: `test${i + 1}.txt`,
-          contentType: 'text/plain',
-        });
+        data.append(
+          'file',
+          new Blob(['this is a test'], { type: 'text/plain' }),
+          `test${i + 1}.txt`,
+        );
         // eslint-disable-next-line no-await-in-loop
         await performJSONRequest('POST', '/v1/attachments', data, authHeaders(mars));
       }
@@ -175,7 +172,7 @@ describe('Attachments', () => {
 
       for (let i = 0; i < 10; i++) {
         const data = new FormData();
-        data.append('file', Buffer.from('this is a test'), {
+        data.append('file', new Blob(['this is a test']), {
           filename: `test${i + 1}.txt`,
           contentType: 'text/plain',
         });
@@ -213,7 +210,7 @@ describe('Attachments', () => {
 
       for (let i = 0; i < 10; i++) {
         const data = new FormData();
-        data.append('file', Buffer.from('this is a test'), {
+        data.append('file', new Blob(['this is a test']), {
           filename: `test${i + 1}.txt`,
           contentType: 'text/plain',
         });

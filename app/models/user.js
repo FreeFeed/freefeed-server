@@ -374,8 +374,6 @@ export function addModel(dbAdapter) {
     }
 
     async create(skip_stoplist) {
-      this.createdAt = new Date().getTime();
-      this.updatedAt = new Date().getTime();
       this.screenName = this.screenName || this.username;
 
       await this.validateOnCreate(skip_stoplist);
@@ -399,14 +397,16 @@ export function addModel(dbAdapter) {
         isPrivate: this.isPrivate,
         isProtected: this.isProtected,
         description: '',
-        createdAt: this.createdAt.toString(),
-        updatedAt: this.updatedAt.toString(),
         hashedPassword: this.hashedPassword,
         frontendPreferences: JSON.stringify({}),
         preferences: this.preferences,
       };
 
-      [this.id, this.intId] = await dbAdapter.createUser(payload);
+      const newAcc = await dbAdapter.createUser(payload);
+
+      for (const key of ['id', 'intId', 'createdAt', 'updatedAt']) {
+        this[key] = newAcc[key];
+      }
 
       await dbAdapter.createUserTimelines(this.id, User.feedNames);
       timer.stop(); // @todo finally {}

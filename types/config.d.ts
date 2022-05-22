@@ -92,6 +92,11 @@ declare module 'config' {
           | { createdBefore: string; value: unknown };
       };
     };
+
+    mailer: {
+      dailyBestOfDigestMailSubject: string;
+      weeklyBestOfDigestMailSubject: string;
+    };
   };
 
   const c: Config;

@@ -1,10 +1,9 @@
 import http from 'http';
-import { createReadStream } from 'fs';
 import { stringify as qsStringify } from 'querystring';
 import util from 'util';
 
-import fetch from 'node-fetch';
-import FormData from 'form-data';
+import fetch, { fileFrom } from 'node-fetch';
+import { FormData } from 'formdata-node';
 import request from 'superagent';
 import _ from 'lodash';
 import SocketIO from 'socket.io-client';
@@ -543,24 +542,24 @@ export function updateGroupAsync(group, adminContext, groupData) {
 
 export async function updateProfilePicture(userContext, filePath) {
   const form = new FormData();
-  form.append('file', createReadStream(filePath));
+  form.append('file', await fileFrom(filePath, 'image/png'));
   const url = await apiUrl(`/v1/users/updateProfilePicture`);
   return await fetch(url, {
     agent,
     method: 'POST',
-    headers: { ...form.getHeaders(), 'X-Authentication-Token': userContext.authToken },
+    headers: { 'X-Authentication-Token': userContext.authToken },
     body: form,
   });
 }
 
 export async function updateGroupProfilePicture(userContext, groupName, filePath) {
   const form = new FormData();
-  form.append('file', createReadStream(filePath));
+  form.append('file', await fileFrom(filePath, 'image/png'));
   const url = await apiUrl(`/v1/groups/${groupName}/updateProfilePicture`);
   return await fetch(url, {
     agent,
     method: 'POST',
-    headers: { ...form.getHeaders(), 'X-Authentication-Token': userContext.authToken },
+    headers: { 'X-Authentication-Token': userContext.authToken },
     body: form,
   });
 }
