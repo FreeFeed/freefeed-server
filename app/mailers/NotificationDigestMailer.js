@@ -1,6 +1,7 @@
 import moment from 'moment';
 import createDebug from 'debug';
 import config from 'config';
+import { render as renderEJS } from 'ejs';
 
 import Mailer from '../../lib/mailer';
 
@@ -24,7 +25,7 @@ export function sendEventsDigestEmail(user, events, users, groups, digestInterva
 
   return Mailer.sendMail(
     user,
-    'Notifications digest',
+    renderEJS(config.mailer.notificationDigestEmailSubject, { digestInterval }),
     {
       digest: {
         body: emailBody,

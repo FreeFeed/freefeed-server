@@ -180,6 +180,7 @@ config.mailer = {
   weeklyBestOfDigestMailSubject: defer(
     (cfg) => `The best of your ${cfg.siteTitle} for the week of <%= digestDate %>`,
   ),
+  notificationDigestEmailSubject: 'Notifications digest for <%= digestInterval %>',
 };
 
 config.redis = {
