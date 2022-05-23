@@ -13,10 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Using ESBuild instead of Babel for transpiling
 - The user preference defaults are now defined in configuration.
+- The notification digest's mail subject is now defined in configuration.
 
 ### Added
 - The ability to override user preference defaults based on user's creation
   time. It allows changing the default values for new users if needed.
+- 'direct_left' notification in the notification digest.
+
+### Fixed
+- Invalid texts for backlink-related notifications in the notification digest.
 
 ## [1.109.0] - 2022-05-12
 ### Fixed
