@@ -57,6 +57,8 @@ function getEventPayload(event, users, groups) {
     postId: event.post_id,
     group,
     createdAt: moment(event.date),
+    targetPostId: event.target_post_id,
+    targetCommentId: event.target_comment_id,
   };
 }
 
@@ -348,11 +350,11 @@ function getEventMarkup(eventText) {
   </tr>`;
 }
 
-function makeBacklinkLink({ target_post_id, target_comment_id }) {
-  if (target_comment_id) {
-    return `<a href="/post/${target_post_id}#comment-${target_comment_id}">comment</a>`;
-  } else if (target_post_id) {
-    return `<a href="/post/${target_post_id}">post</a>`;
+function makeBacklinkLink({ targetPostId, targetCommentId }) {
+  if (targetCommentId) {
+    return `<a href="/post/${targetPostId}#comment-${targetCommentId}">comment</a>`;
+  } else if (targetPostId) {
+    return `<a href="/post/${targetPostId}">post</a>`;
   }
 
   return 'deleted entry';
