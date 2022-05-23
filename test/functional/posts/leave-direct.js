@@ -5,7 +5,7 @@ import expect from 'unexpected';
 import cleanDB from '../../dbCleaner';
 import { getSingleton } from '../../../app/app';
 import { PubSubAdapter } from '../../../app/support/PubSubAdapter';
-import { PubSub } from '../../../app/models';
+import { dbAdapter, PubSub } from '../../../app/models';
 import {
   authHeaders,
   createAndReturnPostToFeed,
@@ -14,6 +14,9 @@ import {
   performJSONRequest,
 } from '../functional_test_helper';
 import Session from '../realtime-session';
+import { EVENT_TYPES } from '../../../app/support/EventTypes';
+import { serializeEvents } from '../../../app/serializers/v2/event';
+import { getEventText } from '../../../app/mailers/NotificationDigestMailer';
 
 describe('POST /v2/posts/:postId/leave', () => {
   let luna, mars, venus, jupiter;
@@ -86,6 +89,29 @@ describe('POST /v2/posts/:postId/leave', () => {
       it(`should not show post in Marses homefdeed`, async () => {
         const resp = await getHome(mars);
         expect(resp, 'to satisfy', { timelines: { posts: [] } });
+      });
+
+      describe('Notifications', () => {
+        it(`should create notification for Mars`, async () => {
+          const events = await getSerializedEvents(mars.user.id);
+          expect(events.events, 'to have length', 1);
+          const text = stripHTML(getEventText(events.events[0], events.users, events.groups));
+          expect(text, 'to be', 'You left a direct message created by @luna');
+        });
+
+        it(`should create notification for Luna`, async () => {
+          const events = await getSerializedEvents(luna.user.id);
+          expect(events.events, 'to have length', 1);
+          const text = stripHTML(getEventText(events.events[0], events.users, events.groups));
+          expect(text, 'to be', '@mars left a direct message created by you');
+        });
+
+        it(`should create notification for Venus`, async () => {
+          const events = await getSerializedEvents(venus.user.id);
+          expect(events.events, 'to have length', 1);
+          const text = stripHTML(getEventText(events.events[0], events.users, events.groups));
+          expect(text, 'to be', '@mars left a direct message created by @luna');
+        });
       });
     });
 
@@ -204,3 +230,13 @@ const getPost = (post, ctx) =>
   performJSONRequest('GET', `/v2/posts/${post.id}`, null, authHeaders(ctx));
 
 const getHome = (ctx) => performJSONRequest('GET', `/v2/timelines/home`, null, authHeaders(ctx));
+
+async function getSerializedEvents(userId) {
+  const userObj = await dbAdapter.getUserById(userId);
+  const events = await dbAdapter.getUserEvents(userObj.intId, [EVENT_TYPES.DIRECT_LEFT]);
+  return serializeEvents(events, userId);
+}
+
+function stripHTML(str) {
+  return str.replace(/<.+?>/g, '');
+}
