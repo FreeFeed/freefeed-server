@@ -35,6 +35,7 @@ export class User {
   getDirectsTimeline(): Promise<Timeline | null>;
   isValidEmail(): Promise<boolean>;
   static validateEmail(): Promise<void>;
+  newComment(params: { body: string; postId: UUID }): Comment;
 }
 
 export class Group {
@@ -59,6 +60,8 @@ export class Post {
   userId: UUID;
   body: string;
   destinationFeedIds: number[];
+  constructor(params: { userId: UUID; body: string; timelineIds: UUID[] });
+  create(): Promise<this>;
   destroy(destroyedBy?: User): Promise<void>;
   removeLike(user: User): Promise<boolean>;
   getPostedTo(): Promise<Timeline[]>;
@@ -68,6 +71,7 @@ export class Post {
   isAuthorOrGroupAdmin(user: User): Promise<boolean>;
   usersCanSee(): Promise<List<UUID>>;
   removeDirectRecipient(user: User): Promise<boolean>;
+  isVisibleFor(viewer: Nullable<User>): Promise<boolean>;
 }
 
 export class Timeline {
@@ -113,6 +117,8 @@ export class Comment {
   hideType: 0 | 1 | 2 | 3;
   postId: UUID;
   seqNumber: number;
+  create(): Promise<void>;
+  destroy(destroyedBy?: User): Promise<boolean>;
   getPost(): Promise<Post>;
   removeLike(user: User): Promise<boolean>;
   getCreatedBy(): Promise<User>;

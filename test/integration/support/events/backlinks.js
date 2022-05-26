@@ -2,8 +2,8 @@
 /* global $pg_database */
 import expect from 'unexpected';
 
-import { User, Post, Group, dbAdapter, Comment } from '../../../app/models';
-import cleanDB from '../../dbCleaner';
+import { User, Post, Group, dbAdapter, Comment } from '../../../../app/models';
+import cleanDB from '../../../dbCleaner';
 
 describe('EventService', () => {
   describe('Backlinks', () => {
