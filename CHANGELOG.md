@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Users will not longer receive notifications about someone else's actions over
   inaccessible (for recipient) posts. Previously, such notifications were sent
   when a user's comment was deleted in a post that was hidden from him.
+- Multiple 'backlink_in_post' and 'backlink_in_comment' notifications when the
+  author of a post/comment edits its text.
 
 ## [1.109.0] - 2022-05-12
 ### Fixed

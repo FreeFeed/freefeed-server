@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import _, { difference } from 'lodash';
 
 import { dbAdapter, User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
 
@@ -215,14 +215,19 @@ export class EventService {
     );
   }
 
-  static async onPostCreated(post: Post, destinationFeedIds: UUID[], author: User) {
+  static async onPostCreated(
+    post: Post,
+    destinationFeedIds: UUID[],
+    author: User,
+    { prevBody = '' } = {},
+  ) {
     const destinationFeeds = await dbAdapter.getTimelinesByIds(destinationFeedIds);
     await this._processDirectMessagesForPost(post, destinationFeeds, author);
     await this._processMentionsInPost(post, destinationFeeds, author);
-    await processBacklinks(post);
+    await processBacklinks(post, prevBody);
   }
 
-  static async onCommentChanged(comment: Comment, wasCreated = false) {
+  static async onCommentChanged(comment: Comment, wasCreated = false, { prevBody = '' } = {}) {
     const [post, mentionEvents] = await Promise.all([
       comment.getPost(),
       getMentionEvents(
@@ -231,7 +236,7 @@ export class EventService {
         EVENT_TYPES.MENTION_IN_COMMENT,
         EVENT_TYPES.MENTION_COMMENT_TO,
       ),
-      processBacklinks(comment),
+      processBacklinks(comment, prevBody),
     ]);
     const directEvents = wasCreated
       ? await getDirectEvents(post, comment.userId, EVENT_TYPES.DIRECT_COMMENT_CREATED)
@@ -645,8 +650,10 @@ async function getDirectEvents(post: Post, authorId: Nullable<UUID>, eventType: 
   return directReceivers.map((user) => ({ event: eventType, user }));
 }
 
-async function processBacklinks(srcEntity: Post | Comment) {
-  const uuids = extractUUIDs(srcEntity.body);
+async function processBacklinks(srcEntity: Post | Comment, prevBody = '') {
+  const prevUUIDs = extractUUIDs(prevBody);
+  const newUUIDs = extractUUIDs(srcEntity.body);
+  const uuids = difference(newUUIDs, prevUUIDs);
   const [mentionedPosts, mentionedComments] = await Promise.all([
     dbAdapter.getPostsByIds(uuids),
     dbAdapter.getCommentsByIds(uuids),
