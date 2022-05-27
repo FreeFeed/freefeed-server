@@ -741,6 +741,20 @@ async function createEvent(
   targetPostId: Nullable<UUID> = null,
   targetCommentId: Nullable<UUID> = null,
 ) {
+  // Somebody else's action over the post: we should check, is the post visible
+  // for the recipient.
+  if (postId !== null && createdByUserIntId !== recipientIntId) {
+    const [recipient, post] = await Promise.all([
+      dbAdapter.getUserByIntId(recipientIntId),
+      dbAdapter.getPostById(postId),
+    ]);
+    const visible = post ? await post.isVisibleFor(recipient) : false;
+
+    if (!visible) {
+      return null;
+    }
+  }
+
   const event = await dbAdapter.createEvent(
     recipientIntId,
     eventType,

@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The ability to override user preference defaults based on user's creation
   time. It allows changing the default values for new users if needed.
 
+### Fixed
+- Users will not longer receive notifications about someone else's actions over
+  inaccessible (for recipient) posts. Previously, such notifications were sent
+  when a user's comment was deleted in a post that was hidden from him.
+
 ## [1.109.0] - 2022-05-12
 ### Fixed
 - Ignore minor exif-errors while sanitizing images.

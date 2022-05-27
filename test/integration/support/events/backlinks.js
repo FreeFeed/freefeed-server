@@ -4,6 +4,7 @@ import expect from 'unexpected';
 
 import { User, Post, Group, dbAdapter, Comment } from '../../../../app/models';
 import cleanDB from '../../../dbCleaner';
+import { createPost } from '../../helpers/posts-and-comments';
 
 describe('EventService', () => {
   describe('Backlinks', () => {
@@ -439,19 +440,6 @@ describe('EventService', () => {
     });
   });
 });
-
-/**
- * @param {User} author
- * @param {string} body
- * @param {(User|Group)[]} destinations
- * @returns {Promise<Post>}
- */
-async function createPost(author, body, destinations = [author]) {
-  const timelineIds = await Promise.all(destinations.map((d) => d.getPostsTimelineId()));
-  const post = new Post({ userId: author.id, body, timelineIds });
-  await post.create();
-  return post;
-}
 
 /**
  *

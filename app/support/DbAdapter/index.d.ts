@@ -82,6 +82,7 @@ export class DbAdapter {
 
   // Users
   getUserById(id: UUID): Promise<User | null>;
+  getUserByIntId(intId: number): Promise<User | null>;
   getUsersByIds(ids: UUID[]): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
   getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
