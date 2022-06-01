@@ -1,17 +1,16 @@
 import http from 'http';
-import { createReadStream } from 'fs';
 import { stringify as qsStringify } from 'querystring';
 import util from 'util';
 
-import fetch from 'node-fetch';
-import FormData from 'form-data';
+import fetch, { fileFrom } from 'node-fetch';
+import { FormData } from 'formdata-node';
 import request from 'superagent';
 import _ from 'lodash';
 import SocketIO from 'socket.io-client';
 import expect from 'unexpected';
 import Application from 'koa';
 
-import { dbAdapter, Comment, sessionTokenV1Store, User } from '../../app/models';
+import { dbAdapter, sessionTokenV1Store, User } from '../../app/models';
 import { getSingleton as initApp } from '../../app/app';
 
 import * as schema from './schemaV2-helper';
@@ -478,30 +477,16 @@ export function createUserAsyncPost(user) {
   return postJson(`/v1/users`, user);
 }
 
-export async function createUserAsync(
-  username,
-  password = 'pw',
-  {
-    email,
-    // User does't want to view banned comments by default
-    // (for compatibility with old tests)
-    hideBannedComments,
-    ...attributes
-  } = {},
-) {
+export async function createUserAsync(username, password = 'pw', { email, ...attributes } = {}) {
   const user = new User({ username, password, email });
   await user.create();
-  const [session] = await Promise.all([
-    sessionTokenV1Store.create(user.id),
-    hideBannedComments &&
-      user.update({ preferences: { hideCommentsOfTypes: [Comment.HIDDEN_BANNED] } }),
-  ]);
+  const session = await sessionTokenV1Store.create(user.id);
   return {
     authToken: session.tokenString(),
     username: user.username,
     password,
     user,
-    attributes: { email, hideBannedComments, ...attributes },
+    attributes: { email, ...attributes },
   };
 }
 
@@ -557,24 +542,24 @@ export function updateGroupAsync(group, adminContext, groupData) {
 
 export async function updateProfilePicture(userContext, filePath) {
   const form = new FormData();
-  form.append('file', createReadStream(filePath));
+  form.append('file', await fileFrom(filePath, 'image/png'));
   const url = await apiUrl(`/v1/users/updateProfilePicture`);
   return await fetch(url, {
     agent,
     method: 'POST',
-    headers: { ...form.getHeaders(), 'X-Authentication-Token': userContext.authToken },
+    headers: { 'X-Authentication-Token': userContext.authToken },
     body: form,
   });
 }
 
 export async function updateGroupProfilePicture(userContext, groupName, filePath) {
   const form = new FormData();
-  form.append('file', createReadStream(filePath));
+  form.append('file', await fileFrom(filePath, 'image/png'));
   const url = await apiUrl(`/v1/groups/${groupName}/updateProfilePicture`);
   return await fetch(url, {
     agent,
     method: 'POST',
-    headers: { ...form.getHeaders(), 'X-Authentication-Token': userContext.authToken },
+    headers: { 'X-Authentication-Token': userContext.authToken },
     body: form,
   });
 }
@@ -641,7 +626,7 @@ export async function mutualSubscriptions(userContexts) {
         continue;
       }
 
-      promises.push(exports.subscribeToAsync(ctx1, ctx2));
+      promises.push(subscribeToAsync(ctx1, ctx2));
     }
   }
 

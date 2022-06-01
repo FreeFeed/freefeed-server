@@ -1,9 +1,4 @@
-try {
-  require('@babel/register')({ extensions: ['.js', '.jsx', '.es6', '.es', '.mjs', '.ts', '.tsx'] });
-} catch (e) {
-  // It might be already enabled
-}
-
+require('./esm/register.cjs');
 const { loadFileConfigs } = require('config').util;
 
 let env = process.env.NODE_ENV || 'development';

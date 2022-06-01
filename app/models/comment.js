@@ -148,6 +148,7 @@ export function addModel(dbAdapter) {
         getUpdatedUUIDs(this.body, params.body),
       );
 
+      const prevBody = this.body;
       this.updatedAt = new Date().getTime();
       this.body = params.body;
 
@@ -162,7 +163,7 @@ export function addModel(dbAdapter) {
       await Promise.all([
         this.processHashtagsOnUpdate(),
         pubSub.updateComment(this.id),
-        EventService.onCommentChanged(this),
+        EventService.onCommentChanged(this, false, { prevBody }),
         notifyBacklinked(),
       ]);
 

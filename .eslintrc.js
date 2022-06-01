@@ -1,4 +1,4 @@
-require('@babel/register');
+require('./esm/register.cjs');
 
 module.exports = {
   extends: [

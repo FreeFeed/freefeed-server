@@ -10,11 +10,9 @@ const usersTrait = (superClass) =>
   class extends superClass {
     async createUser(payload) {
       const preparedPayload = prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING);
-      const [{ uid: uid, id: intId }] = await this.database('users')
-        .returning(['uid', 'id'])
-        .insert(preparedPayload);
-      await this.createUserStats(uid);
-      return [uid, intId];
+      const [row] = await this.database('users').returning('*').insert(preparedPayload);
+      await this.createUserStats(row.uid);
+      return initUserObject(row);
     }
 
     async updateUser(userId, payload) {
@@ -266,6 +264,11 @@ const usersTrait = (superClass) =>
 
     getUsersIdsByIntIds(intIds) {
       return this.database('users').select('id', 'uid').whereIn('id', intIds);
+    }
+
+    async getUserByIntId(intId) {
+      const row = await this.database.getRow(`select * from users where id = :intId`, { intId });
+      return initUserObject(row);
     }
 
     async getFeedOwnerByUsername(username) {

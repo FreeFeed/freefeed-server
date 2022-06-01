@@ -553,7 +553,7 @@ describe('PrivateGroups', () => {
           .end((err, res) => {
             res.status.should.eql(200);
             res.should.not.be.empty;
-            res.error.should.be.empty;
+            res.error.should.be.false;
 
             request
               .get(`${app.context.config.host}/v2/users/whoami`)
@@ -685,7 +685,7 @@ describe('PrivateGroups', () => {
           .end((err, res) => {
             res.status.should.eql(200);
             res.should.not.be.empty;
-            res.error.should.be.empty;
+            res.error.should.be.false;
 
             request
               .get(`${app.context.config.host}/v2/users/whoami`)
@@ -812,7 +812,7 @@ describe('PrivateGroups', () => {
           .end((err, res) => {
             res.status.should.eql(200);
             res.should.not.be.empty;
-            res.error.should.be.empty;
+            res.error.should.be.false;
 
             funcTestHelper.getTimeline(
               '/v2/timelines/home',
@@ -1050,7 +1050,7 @@ describe('PrivateGroups', () => {
           response.status.should.eql(200);
 
           const data = await response.json();
-          data.should.have.deep.property('users.pendingGroupRequests');
+          data.should.have.nested.property('users.pendingGroupRequests');
           data.users.pendingGroupRequests.should.eql(shouldHave);
         };
 

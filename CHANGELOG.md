@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - Not released
+### Removed
+- Support for NodeJs 12.x
+- Support for Postgres 10.x, 11.x
+
+### Changed
+- Using ESBuild instead of Babel for transpiling
+- The user preference defaults are now defined in configuration.
+- The notification digest's mail subject is now defined in configuration.
+
+### Added
+- The ability to override user preference defaults based on user's creation
+  time. It allows changing the default values for new users if needed.
+- 'direct_left' notification in the notification digest.
+
+### Fixed
+- Invalid texts for backlink-related notifications in the notification digest.
+- Users will not longer receive notifications about someone else's actions over
+  inaccessible (for recipient) posts. Previously, such notifications were sent
+  when a user's comment was deleted in a post that was hidden from him.
+- Multiple 'backlink_in_post' and 'backlink_in_comment' notifications when the
+  author of a post/comment edits its text.
+
 ## [1.109.0] - 2022-05-12
 ### Fixed
 - Ignore minor exif-errors while sanitizing images.

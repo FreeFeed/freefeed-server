@@ -22,14 +22,16 @@ export default class AttachmentsController {
     authRequired(),
     async (ctx) => {
       // Accept one file-type field with any name
-      const [file] = Object.values(ctx.request.files);
+      const [file] = Object.values(ctx.request.files || []);
 
       if (!file) {
         throw new BadRequestException('No file provided');
       }
 
       try {
-        const newAttachment = await ctx.state.user.newAttachment({ file });
+        const newAttachment = await ctx.state.user.newAttachment({
+          file: { ...file, path: file.filepath, name: file.originalFilename },
+        });
         await newAttachment.create();
 
         ctx.body = {

@@ -1,30 +1,22 @@
 import moment from 'moment';
 import createDebug from 'debug';
 import config from 'config';
+import { render as renderEJS } from 'ejs';
 
 import Mailer from '../../lib/mailer';
 
-export function sendEventsDigestEmail(user, events, users, groups, digestInterval) {
-  // TODO: const subject = config.mailer.notificationDigestEmailSubject
-  const debug = createDebug('freefeed:sendEmails');
-  let emailBody = '';
+const debug = createDebug('freefeed:sendEmails');
 
-  for (const event of events) {
-    const eventData = getEventPayload(event, users, groups);
-    const template = notificationTemplates[event.event_type];
-
-    if (template) {
-      const eventText = template(eventData);
-      const eventMarkup = getEventMarkup(eventText);
-      emailBody += `${eventMarkup}\n`;
-    } else {
-      debug(`Template not found for event type ${event.event_type}`);
-    }
-  }
+export function sendEventsDigestEmail(user, { events, users, groups }, digestInterval) {
+  const emailBody = events
+    .map((event) => getEventText(event, users, groups))
+    .filter(Boolean)
+    .map((text) => getEventMarkup(text))
+    .join('\n');
 
   return Mailer.sendMail(
     user,
-    'Notifications digest',
+    renderEJS(config.mailer.notificationDigestEmailSubject, { digestInterval }),
     {
       digest: {
         body: emailBody,
@@ -38,20 +30,26 @@ export function sendEventsDigestEmail(user, events, users, groups, digestInterva
   );
 }
 
+export function getEventText(event, users, groups) {
+  const eventData = getEventPayload(event, users, groups);
+  const template = notificationTemplates[event.event_type];
+
+  if (template) {
+    return template(eventData);
+  }
+
+  debug(`Template not found for event type ${event.event_type}`);
+  return null;
+}
+
 function getEventPayload(event, users, groups) {
-  const creator = users.find((u) => {
-    return u.id === event.created_user_id;
-  });
-  const affectedUser = users.find((u) => {
-    return u.id === event.affected_user_id;
-  });
-  const postAuthor = users.find((u) => {
-    return u.id === event.post_author_id;
-  });
-  const group = groups.find((g) => {
-    return g.id === event.group_id;
-  });
+  const recipient = users.find((u) => u.id === event.recipient_user_id);
+  const creator = users.find((u) => u.id === event.created_user_id);
+  const affectedUser = users.find((u) => u.id === event.affected_user_id);
+  const postAuthor = users.find((u) => u.id === event.post_author_id);
+  const group = groups.find((g) => g.id === event.group_id);
   return {
+    recipient,
     creator,
     affectedUser,
     postAuthor,
@@ -59,6 +57,8 @@ function getEventPayload(event, users, groups) {
     postId: event.post_id,
     group,
     createdAt: moment(event.date),
+    targetPostId: event.target_post_id,
+    targetCommentId: event.target_comment_id,
   };
 }
 
@@ -301,6 +301,20 @@ const notificationTemplates = {
       ${eventTime}
     `;
   },
+  direct_left: (eventData) => {
+    const creatorHTML =
+      eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    const postAuthorHTML =
+      eventData.recipient.id === eventData.postAuthor.id
+        ? 'you'
+        : makeUserLink(eventData.postAuthor);
+    const postHTML =
+      eventData.recipient.id === eventData.creator.id
+        ? 'direct message'
+        : makePostLink(eventData.postId, eventData.postAuthor, true);
+
+    return `${creatorHTML} left a ${postHTML} created by ${postAuthorHTML}`;
+  },
 };
 
 function makeUserLink(user) {
@@ -336,11 +350,11 @@ function getEventMarkup(eventText) {
   </tr>`;
 }
 
-function makeBacklinkLink({ target_post_id, target_comment_id }) {
-  if (target_comment_id) {
-    return `<a href="/post/${target_post_id}#comment-${target_comment_id}">comment</a>`;
-  } else if (target_post_id) {
-    return `<a href="/post/${target_post_id}">post</a>`;
+function makeBacklinkLink({ targetPostId, targetCommentId }) {
+  if (targetCommentId) {
+    return `<a href="/post/${targetPostId}#comment-${targetCommentId}">comment</a>`;
+  } else if (targetPostId) {
+    return `<a href="/post/${targetPostId}">post</a>`;
   }
 
   return 'deleted entry';

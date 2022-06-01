@@ -169,10 +169,18 @@ config.mailer = {
   transport: defer((cfg) => (cfg.mailer.useSMTPTransport ? smtpTransport : stubTransport)),
   fromName: 'Pepyatka',
   fromEmail: 'mail@pepyatka.com',
-  resetPasswordMailSubject: 'Pepyatka password reset',
   host: defer((cfg) => cfg.host),
   options: {},
   adminRecipient: { email: 'admin@pepyatka.com', screenName: 'Pepyatka admin' },
+  // Subjects
+  resetPasswordMailSubject: 'Pepyatka password reset',
+  dailyBestOfDigestMailSubject: defer(
+    (cfg) => `The best of your ${cfg.siteTitle} for <%= digestDate %>`,
+  ),
+  weeklyBestOfDigestMailSubject: defer(
+    (cfg) => `The best of your ${cfg.siteTitle} for the week of <%= digestDate %>`,
+  ),
+  notificationDigestEmailSubject: 'Notifications digest for <%= digestInterval %>',
 };
 
 config.redis = {
@@ -345,6 +353,43 @@ config.maxLength = {
 config.passwordReset = {
   tokenBytesLength: 12,
   tokenTTL: 8 * 3600, // in seconds
+};
+
+config.userPreferences = {
+  /**
+   * Default user preferences. This object must satisfy the JSON Schema defined
+   * in app/models/user-prefs.ts
+   *
+   * It is not recommended to change these default values after creating a site
+   * instance. Use 'overrides' to change the default values for new users.
+   */
+  defaults: {
+    // Do not show comments with these hideType's (see Comment model constants)
+    hideCommentsOfTypes: [],
+    // Send notifications digest email for current user
+    sendNotificationsDigest: true,
+    // Send daily Best Of digest email for current user
+    sendDailyBestOfDigest: false,
+    // Send weekly Best Of digest email for current user
+    sendWeeklyBestOfDigest: false,
+    // Who to get direct messages from? ("all" or "friends", see User model constants)
+    acceptDirectsFrom: 'friends',
+    // Remove sensitive information (GPS, serial numbers, etc.) from media files
+    sanitizeMediaMetadata: true,
+  },
+  /**
+   *  Here you can override the default values depending on the 'createdAt' time
+   *  of user. The object key is a Lodash 'path' in the user preferences object.
+   *
+   * The 'createdBefore' and 'createdSince' are the only supported operators for
+   * now.
+   *
+   * The example below means that for all accounts created since 2022-04-05, the
+   * 'acceptDirectsFrom' has a "all" default value.
+   */
+  overrides: {
+    // acceptDirectsFrom: { createdSince: '2022-04-05', value: "all" },
+  },
 };
 
 module.exports = config;

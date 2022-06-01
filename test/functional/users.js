@@ -1091,11 +1091,11 @@ describe('UsersController', () => {
           response.status.should.eql(200);
 
           const data = await response.json();
-          data.should.have.deep.property(
+          data.should.have.nested.property(
             'users.frontendPreferences.net\\.freefeed.screenName.displayOption',
           );
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1);
-          data.should.have.deep.property(
+          data.should.have.nested.property(
             'users.frontendPreferences.net\\.freefeed.screenName.useYou',
           );
           data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true);
@@ -1112,11 +1112,11 @@ describe('UsersController', () => {
           response.status.should.eql(200);
 
           const data = await response.json();
-          data.should.have.deep.property(
+          data.should.have.nested.property(
             'users.frontendPreferences.net\\.freefeed.screenName.displayOption',
           );
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1);
-          data.should.have.deep.property(
+          data.should.have.nested.property(
             'users.frontendPreferences.net\\.freefeed.screenName.useYou',
           );
           data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true);
@@ -1138,13 +1138,13 @@ describe('UsersController', () => {
           response.status.should.eql(200);
 
           const data = await response.json();
-          data.should.have.deep.property('users.description');
+          data.should.have.nested.property('users.description');
           data.users.description.should.equal(newDescription);
-          data.should.have.deep.property(
+          data.should.have.nested.property(
             'users.frontendPreferences.net\\.freefeed.screenName.displayOption',
           );
           data.users.frontendPreferences['net.freefeed'].screenName.displayOption.should.equal(1);
-          data.should.have.deep.property(
+          data.should.have.nested.property(
             'users.frontendPreferences.net\\.freefeed.screenName.useYou',
           );
           data.users.frontendPreferences['net.freefeed'].screenName.useYou.should.equal(true);
@@ -1166,7 +1166,7 @@ describe('UsersController', () => {
           response.status.should.eql(200);
 
           const data = await response.json();
-          data.should.have.deep.property('users.frontendPreferences');
+          data.should.have.nested.property('users.frontendPreferences');
           // net.freefeed should be unchanged
           data.users.frontendPreferences.should.have.property('net.freefeed');
           data.users.frontendPreferences['net.freefeed'].should.be.deep.equal(
@@ -1439,7 +1439,7 @@ describe('UsersController', () => {
     beforeEach(async () => {
       [marsContext, zeusContext] = await Promise.all([
         funcTestHelper.createUserAsync(banUsername, 'pw'),
-        funcTestHelper.createUserAsync(username, 'pw', { hideBannedComments: true }),
+        funcTestHelper.createUserAsync(username, 'pw'),
       ]);
 
       await funcTestHelper.subscribeToAsync(marsContext, zeusContext);
@@ -1508,7 +1508,7 @@ describe('UsersController', () => {
             .post(`${app.context.config.host}/v1/users/${banUsername}/ban`)
             .send({ authToken: zeusContext.authToken })
             .end((err, res) => {
-              res.error.should.be.empty;
+              res.body.should.not.have.property('error');
               res.body.should.not.be.empty;
               funcTestHelper.getTimeline(
                 '/v2/timelines/home',

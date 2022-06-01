@@ -34,7 +34,7 @@ describe('Realtime (Socket.io)', () => {
 
     [lunaContext, marsContext] = await Promise.all([
       funcTestHelper.createUserAsync('luna', 'pw'),
-      funcTestHelper.createUserAsync('mars', 'pw', { hideBannedComments: true }),
+      funcTestHelper.createUserAsync('mars', 'pw'),
     ]);
 
     [

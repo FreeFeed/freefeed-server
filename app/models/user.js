@@ -71,7 +71,7 @@ export function addModel(dbAdapter) {
       this.hiddenEmail = params.email || '';
       this.description = params.description || '';
       this.frontendPreferences = params.frontendPreferences || {};
-      this.preferences = validateUserPrefs(params.preferences, true);
+      this.preferences = validateUserPrefs(params.preferences, true, params.createdAt);
 
       this.isPrivate = params.isPrivate;
       this.isProtected = this.isPrivate === '1' ? '1' : params.isProtected;
@@ -111,7 +111,7 @@ export function addModel(dbAdapter) {
         this.email = '';
         this.description = '';
         this.frontendPreferences = {};
-        this.preferences = validateUserPrefs({}, true);
+        this.preferences = validateUserPrefs({}, true, this.createdAt);
         this.isPrivate = '1';
         this.isProtected = '1';
         this.updatedAt = this.createdAt;
@@ -374,8 +374,6 @@ export function addModel(dbAdapter) {
     }
 
     async create(skip_stoplist) {
-      this.createdAt = new Date().getTime();
-      this.updatedAt = new Date().getTime();
       this.screenName = this.screenName || this.username;
 
       await this.validateOnCreate(skip_stoplist);
@@ -399,14 +397,16 @@ export function addModel(dbAdapter) {
         isPrivate: this.isPrivate,
         isProtected: this.isProtected,
         description: '',
-        createdAt: this.createdAt.toString(),
-        updatedAt: this.updatedAt.toString(),
         hashedPassword: this.hashedPassword,
         frontendPreferences: JSON.stringify({}),
         preferences: this.preferences,
       };
 
-      [this.id, this.intId] = await dbAdapter.createUser(payload);
+      const newAcc = await dbAdapter.createUser(payload);
+
+      for (const key of ['id', 'intId', 'createdAt', 'updatedAt']) {
+        this[key] = newAcc[key];
+      }
 
       await dbAdapter.createUserTimelines(this.id, User.feedNames);
       timer.stop(); // @todo finally {}
@@ -497,10 +497,14 @@ export function addModel(dbAdapter) {
         }
 
         try {
-          payload.preferences = validateUserPrefs({
-            ...this.preferences,
-            ...params.preferences,
-          });
+          payload.preferences = validateUserPrefs(
+            {
+              ...this.preferences,
+              ...params.preferences,
+            },
+            false,
+            this.createdAt,
+          );
         } catch (e) {
           throw new ValidationException(`Invalid 'preferences': ${e}`);
         }

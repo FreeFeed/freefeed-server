@@ -31,6 +31,10 @@ export async function downloadURL(url: string) {
     throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
   }
 
+  if (!response.body) {
+    throw new Error('No response body');
+  }
+
   const mType = mediaType.fromString(response.headers.get('content-type') || '');
 
   // if (mType.type !== 'image') {
