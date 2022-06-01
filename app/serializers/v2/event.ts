@@ -45,6 +45,7 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
       id: e.id,
       eventId: e.uid,
       date: e.created_at.toISOString(),
+      recipient_user_id: (e.user_id && accountId2UIDs[e.user_id]) || null,
       created_user_id: (e.created_by_user_id && accountId2UIDs[e.created_by_user_id]) || null,
       affected_user_id: (e.target_user_id && accountId2UIDs[e.target_user_id]) || null,
       event_type: e.event_type,

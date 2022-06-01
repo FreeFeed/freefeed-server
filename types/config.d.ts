@@ -96,6 +96,7 @@ declare module 'config' {
     mailer: {
       dailyBestOfDigestMailSubject: string;
       weeklyBestOfDigestMailSubject: string;
+      notificationDigestEmailSubject: string;
     };
   };
 
