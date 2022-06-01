@@ -195,8 +195,9 @@ export function addModel(dbAdapter) {
       let realtimeRooms = await getRoomsOfPost(this);
       const usersCanSeePostBeforeIds = await this.usersCanSee();
 
+      const prevBody = this.body;
+
       if (params.body != null) {
-        const prevBody = this.body;
         this.body = params.body;
         payload.body = this.body;
 
@@ -262,6 +263,7 @@ export function addModel(dbAdapter) {
           this,
           await dbAdapter.getTimelinesUUIDsByIntIds(this.destinationFeedIds),
           await this.getCreatedBy(),
+          { prevBody },
         );
       });
 

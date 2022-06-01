@@ -266,6 +266,11 @@ const usersTrait = (superClass) =>
       return this.database('users').select('id', 'uid').whereIn('id', intIds);
     }
 
+    async getUserByIntId(intId) {
+      const row = await this.database.getRow(`select * from users where id = :intId`, { intId });
+      return initUserObject(row);
+    }
+
     async getFeedOwnerByUsername(username) {
       let attrs = await this.database('users').first().where('username', username.toLowerCase());
 
