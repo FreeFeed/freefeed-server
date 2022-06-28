@@ -283,7 +283,11 @@ describe('Controller middlewares', () => {
 
     it(`should increment 'test-requests' counter after successiful call`, async () => {
       await handler(ctx);
-      expect(monitor.increment, 'to have a call satisfying', ['test-requests']);
+      expect(monitor.increment, 'to have a call satisfying', [
+        'test-requests',
+        1,
+        { auth: 'anonymous' },
+      ]);
     });
 
     it(`should not increment 'test-requests' counter after failed call`, async () => {
@@ -310,7 +314,11 @@ describe('Controller middlewares', () => {
 
     it(`should not call monitor methods in nested call`, async () => {
       await nestedHandler(ctx);
-      expect(monitor.increment, 'to have a call satisfying', ['test1-requests']);
+      expect(monitor.increment, 'to have a call satisfying', [
+        'test1-requests',
+        1,
+        { auth: 'anonymous' },
+      ]);
       expect(monitor.timer, 'to have a call satisfying', ['test1-time']);
       expect(monitor.increment, 'was called once');
       expect(monitor.timer, 'was called once');
@@ -320,7 +328,11 @@ describe('Controller middlewares', () => {
     it(`should use custom counter and timer names`, async () => {
       await monitored({ timer: 'timerA', requests: 'requestsB' }, monitor)(ctx, noop);
       expect(monitor.timer, 'to have a call satisfying', ['timerA']);
-      expect(monitor.increment, 'to have a call satisfying', ['requestsB']);
+      expect(monitor.increment, 'to have a call satisfying', [
+        'requestsB',
+        1,
+        { auth: 'anonymous' },
+      ]);
     });
   });
 });
