@@ -34,7 +34,8 @@ export function monitored(monitorName, monitor = monitorDog) {
 
     try {
       await next();
-      monitor.increment(requestsName);
+      const authTokenType = ctx.state.authJWTPayload?.type || 'anonymous';
+      monitor.increment(requestsName, 1, { auth: authTokenType });
     } finally {
       timer.stop();
 
