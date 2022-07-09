@@ -4,6 +4,7 @@ import config from 'config';
 
 const sentryIsEnabled = 'sentryDsn' in config;
 const debug = createDebug('freefeed:jobs:debug');
+const debugVerbose = createDebug('freefeed:jobs:verbose');
 const debugError = createDebug('freefeed:jobs:errors');
 
 const KEPT = Symbol('KEEP');
@@ -146,9 +147,9 @@ export function addJobManagerModel(dbAdapter) {
     }
 
     async fetch(count = this.batchSize, lockTime = this.jobLockTime) {
-      debug('fetching jobs');
+      debugVerbose('fetching jobs');
       const jobs = await dbAdapter.fetchJobs(count, lockTime);
-      debug(`${jobs.length} jobs found`);
+      debugVerbose(`${jobs.length} jobs found`);
       return jobs;
     }
 
@@ -190,13 +191,17 @@ export function addJobManagerModel(dbAdapter) {
 
     _process = async (job) => {
       try {
+        debug(`processing job ${job.name} (${job.id})`);
         await this._getHandler()(job);
 
         if (!job.kept) {
+          debug(`deleting job ${job.name} (${job.id})`);
           await job.delete();
+        } else {
+          debug(`job is left in queue ${job.name} (${job.id})`);
         }
       } catch (err) {
-        debugError(`error processing job '${job.name}'`, err, job);
+        debugError(`error processing job ${job.name} (${job.id})`, err, job);
 
         if (sentryIsEnabled) {
           Raven.captureException(err, { extra: { err: `error processing job '${job.name}'` } });
