@@ -98,6 +98,12 @@ declare module 'config' {
       weeklyBestOfDigestMailSubject: string;
       notificationDigestEmailSubject: string;
     };
+
+    loggly: {
+      subdomain: string;
+      token: string;
+      tags: string[];
+    };
   };
 
   const c: Config;

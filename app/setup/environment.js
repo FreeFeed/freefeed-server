@@ -7,6 +7,9 @@ import config from 'config';
 
 import { setSearchConfig as setPostgresSearchConfig } from './postgres';
 import { init as passportInit } from './initializers/passport';
+import { addLogglyToDebug } from './loggly';
+
+addLogglyToDebug();
 
 // Always print these namespaces to stderr in non-test environment
 if (process.env.NODE_ENV !== 'test') {
