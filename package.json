@@ -27,7 +27,7 @@
     "bestof_emails": "yarn babel bin/bestof_emails",
     "count_stats": "yarn babel bin/count_stats",
     "count-daily-stats": "yarn babel bin/count-daily-stats",
-    "usermod": "run-s \"babel bin/usermod.js\"",
+    "usermod": "yarn babel bin/usermod.js",
     "gdpr": "yarn babel bin/gdpr.ts"
   },
   "repository": {
