@@ -32,7 +32,7 @@ export function addLogglyToDebug() {
 // use it's algorithm here.
 function argsToString(args) {
   args = [...args];
-  args[0] = this.coerce(args[0]);
+  args[0] = createDebug.coerce(args[0]);
 
   if (typeof args[0] !== 'string') {
     // Anything else let's inspect with %O
