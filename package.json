@@ -27,7 +27,7 @@
     "bestof_emails": "yarn babel bin/bestof_emails",
     "count_stats": "yarn babel bin/count_stats",
     "count-daily-stats": "yarn babel bin/count-daily-stats",
-    "usermod": "run-s \"babel bin/usermod.js\"",
+    "usermod": "yarn babel bin/usermod.js",
     "gdpr": "yarn babel bin/gdpr.ts"
   },
   "repository": {
@@ -82,6 +82,7 @@
     "n3": "~1.16.2",
     "node-cache": "~5.1.2",
     "node-fetch": "~3.2.6",
+    "node-loggly-bulk": "~3.0.1",
     "nodemailer": "~6.7.5",
     "nodemailer-smtp-transport": "~2.7.4",
     "nodemailer-stub-transport": "~1.1.0",

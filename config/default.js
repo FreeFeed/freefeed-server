@@ -392,4 +392,10 @@ config.userPreferences = {
   },
 };
 
+config.loggly = {
+  subdomain: '',
+  token: '',
+  tags: [],
+};
+
 module.exports = config;
