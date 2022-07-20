@@ -1,8 +1,12 @@
+import createDebug from 'debug';
+
 import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
 import { forEachAsync } from './forEachAsync';
 import { UUID } from './types';
+
+const debug = createDebug('freefeed:user-gone');
 
 // Objects to delete:
 // 1. [x] User personal information
@@ -328,6 +332,7 @@ function combineTasks(...tasks: Task[]): Task {
   return (userId: UUID, runUntil: Date) =>
     forEachAsync(tasks, async (task: Task) => {
       if (new Date() < runUntil) {
+        debug(`starting ${task.name} for ${userId}`);
         await task(userId, runUntil);
       }
     });
