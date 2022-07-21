@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.0] - Not released
 
+## [2.3.1] - 2022-07-21
+### Fixed
+- Remove orphan post/comment likes during user deletion
+- 
 ## [2.3.0] - 2022-07-20
 ### Added
 - Loggly (https://www.loggly.com/) logging service support
