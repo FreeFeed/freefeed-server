@@ -97,8 +97,11 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
     );
 
     if (postIds.length === 0) {
+      debug(`no posts to delete for ${userId}`);
       break;
     }
+
+    debug(`found ${postIds.length} posts to delete for ${userId}`);
 
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(postIds, async (postId: UUID) => {
@@ -124,13 +127,22 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
     );
 
     if (postIds.length === 0) {
+      debug(`no likes to delete for ${userId}`);
       break;
     }
+
+    debug(`found ${postIds.length} likes to delete for ${userId}`);
 
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(postIds, async (postId: UUID) => {
       const post = await dbAdapter.getPostById(postId);
-      await post?.removeLike(user);
+
+      if (!post) {
+        debug(`post ${postId} is not found, but like from ${userId} still exists`);
+        await dbAdapter.unlikePost(postId, userId);
+      } else {
+        await post.removeLike(user);
+      }
     });
   } while (new Date() < runUntil);
 }
@@ -155,13 +167,22 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
     );
 
     if (commentIds.length === 0) {
+      debug(`no comment likes to delete for ${userId}`);
       break;
     }
+
+    debug(`found ${commentIds.length} comment likes to delete for ${userId}`);
 
     // eslint-disable-next-line no-await-in-loop
     await forEachAsync(commentIds, async (commentId: UUID) => {
       const comment = await dbAdapter.getCommentById(commentId);
-      await comment?.removeLike(user);
+
+      if (!comment) {
+        debug(`comment ${commentId} is not found, but like from ${userId} still exists`);
+        await dbAdapter.deleteCommentLike(commentId, userId);
+      } else {
+        await comment.removeLike(user);
+      }
     });
   } while (new Date() < runUntil);
 }
@@ -333,7 +354,14 @@ function combineTasks(...tasks: Task[]): Task {
     forEachAsync(tasks, async (task: Task) => {
       if (new Date() < runUntil) {
         debug(`starting ${task.name} for ${userId}`);
-        await task(userId, runUntil);
+
+        try {
+          await task(userId, runUntil);
+          debug(`finished ${task.name} for ${userId}`);
+        } catch (e) {
+          debug(`failed ${task.name} for ${userId}: %o`, e);
+          throw e;
+        }
       }
     });
 }

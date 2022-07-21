@@ -127,11 +127,17 @@ export class DbAdapter {
   filterSuspendedPosts(ids: UUID[]): Promise<UUID[]>;
   withdrawPostFromDestFeed(feedIntId: number, postUUID: UUID): Promise<boolean>;
 
+  // Likes
+  unlikePost(postId: UUID, userId: UUID): Promise<boolean>;
+
   // Comments
   getCommentById(id: UUID): Promise<Comment | null>;
   getCommentsByIds(ids: UUID[]): Promise<Comment[]>;
   getCommentsByIntIds(ids: number[]): Promise<Comment[]>;
   getCommentBySeqNumber(postId: UUID, seqNumber: number): Promise<Comment | null>;
+
+  // Comment likes
+  deleteCommentLike(commentUUID: UUID, likerUUID: UUID): Promise<boolean>;
 
   // Attachments
   getAttachmentById(id: UUID): Promise<Attachment | null>;
