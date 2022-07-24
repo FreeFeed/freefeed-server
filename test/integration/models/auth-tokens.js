@@ -22,6 +22,7 @@ import {
   PERIODIC_INACTIVATE_APP_TOKENS,
 } from '../../../app/jobs/periodic/auth-tokens';
 import { ACTIVE, CLOSED } from '../../../app/models/auth-tokens/SessionTokenV1';
+import { delay } from '../../../app/support/timers';
 
 const expect = unexpected.clone();
 expect.use(unexpectedDate);
@@ -425,7 +426,7 @@ describe('Auth Tokens', () => {
       });
 
       it(`should not fetch token by expired activation code`, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await delay(10);
         const t = await dbAdapter.getAppTokenByActivationCode(token.activationCode, 0);
         expect(t, 'to be null');
       });
