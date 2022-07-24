@@ -4,6 +4,7 @@ import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
 import { forEachAsync } from './forEachAsync';
+import { delay } from './timers';
 import { UUID } from './types';
 
 const debug = createDebug('freefeed:user-gone');
@@ -53,6 +54,8 @@ export const deleteAllUserData = combineTasks(
   // This ↓ must be the last task
   setDeletedStatus,
 );
+
+const batchPauseMs = 500;
 
 async function setDeletedStatus(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
@@ -108,6 +111,9 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
       const post = await dbAdapter.getPostById(postId);
       await post?.destroy();
     });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
@@ -150,6 +156,9 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
         { feedId, postIds },
       );
     }
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
@@ -183,6 +192,9 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
       `delete from comment_likes where comment_id = any(:commentIntIds)`,
       { commentIntIds },
     );
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
@@ -272,6 +284,9 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
       const token = await dbAdapter.getAppTokenById(tokenId);
       await token?.destroy();
     });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
@@ -341,6 +356,9 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
       const att = await dbAdapter.getAttachmentById(attId);
       await att?.destroy();
     });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
