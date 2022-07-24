@@ -84,6 +84,9 @@ export class Group {
   getAdministrators(): Promise<User[]>;
   getPostsTimeline(): Promise<Timeline | null>;
   getPostsTimelineId(): Promise<UUID | null>;
+
+  blockUser(userId: UUID, adminId: UUID): Promise<boolean>;
+  unblockUser(userId: UUID, adminId: UUID): Promise<boolean>;
 }
 
 export class Post {

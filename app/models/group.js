@@ -1,6 +1,16 @@
 import { User, PubSub as pubSub } from '../models';
 import { ForbiddenException, ValidationException } from '../support/exceptions';
 
+/**
+ * @typedef { import('../support/DbAdapter').DbAdapter } DbAdapter
+ * @typedef { import('../models').Group } Group
+ * @typedef { import('../support/types').UUID } UUID
+ */
+
+/**
+ * @param {DbAdapter} dbAdapter
+ * @returns {Group}
+ */
 export function addModel(dbAdapter) {
   return class Group extends User {
     // Groups only have 'Posts' feed
@@ -223,6 +233,52 @@ export function addModel(dbAdapter) {
       }
 
       return [timeline];
+    }
+
+    /**
+     * Blocks user in the group. adminId is the id of the admin who blocking the
+     * user. This method doesn't perform any access checks, it even doesn't
+     * check if the admin is actually a group administrator. Returns true if the
+     * user is blocked by this call, false if the user is already blocked.
+     *
+     * @param {UUID} userId
+     * @param {UUID} adminId
+     * @returns {Promise<boolean>}
+     */
+    async blockUser(userId, adminId) {
+      const ok = await dbAdapter.blockUserInGroup(userId, this.id);
+
+      if (!ok) {
+        return false;
+      }
+
+      // TODO notification
+      // TODO realtime
+
+      return true;
+    }
+
+    /**
+     * Unblocks user in the group. adminId is the id of the admin who unblocking
+     * the user. This method doesn't perform any access checks, it even doesn't
+     * check if the admin is actually a group administrator. Returns true if the
+     * user is unblocked by this call, false if the user is already not blocked.
+     *
+     * @param {UUID} userId
+     * @param {UUID} adminId
+     * @returns {Promise<boolean>}
+     */
+    async unblockUser(userId, adminId) {
+      const ok = await dbAdapter.unblockUserInGroup(userId, this.id);
+
+      if (!ok) {
+        return false;
+      }
+
+      // TODO notification
+      // TODO realtime
+
+      return true;
     }
   };
 }

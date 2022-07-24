@@ -229,4 +229,10 @@ export class DbAdapter {
   deleteJob(id: UUID): Promise<void>;
   fetchJobs(count: number, lockTime: number): Promise<Job[]>;
   getAllJobs(names?: string[]): Promise<Job[]>; // For testing purposes only
+
+  // Group blocks
+  blockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
+  unblockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
+  userIdsBlockedInGroup(groupId: UUID): Promise<UUID[]>;
+  groupIdsBlockedUser(userId: UUID): Promise<UUID[]>;
 }
