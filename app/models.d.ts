@@ -12,6 +12,17 @@ export const dbAdapter: DbAdapter;
 export const PubSub: PubSubAdapter;
 
 export class User {
+  static feedNames: [
+    'RiverOfNews',
+    'Hides',
+    'Comments',
+    'Likes',
+    'Posts',
+    'Directs',
+    'MyDiscussions',
+    'Saves',
+  ];
+
   id: UUID;
   intId: number;
   username: string;
@@ -31,11 +42,32 @@ export class User {
   getManagedGroups(): Promise<Group[]>;
   getBanIds(): Promise<UUID[]>;
   getPostsTimeline(): Promise<Timeline | null>;
-  getPostsTimelineId(): Promise<UUID | null>;
   getDirectsTimeline(): Promise<Timeline | null>;
   isValidEmail(): Promise<boolean>;
   static validateEmail(): Promise<void>;
   newComment(params: { body: string; postId: UUID }): Comment;
+
+  getGenericTimeline(name: typeof User.feedNames[number]): Promise<Timeline | null>;
+  getGenericTimelineId(name: typeof User.feedNames[number]): Promise<UUID | null>;
+  getGenericTimelineIntId(name: typeof User.feedNames[number]): Promise<number | null>;
+
+  getRiverOfNewsTimelineId(): Promise<UUID | null>;
+  getHidesTimelineId(): Promise<UUID | null>;
+  getCommentsTimelineId(): Promise<UUID | null>;
+  getLikesTimelineId(): Promise<UUID | null>;
+  getPostsTimelineId(): Promise<UUID | null>;
+  getDirectsTimelineId(): Promise<UUID | null>;
+  getMyDiscussionsTimelineId(): Promise<UUID | null>;
+  getSavesTimelineId(): Promise<UUID | null>;
+
+  getRiverOfNewsTimelineIntId(): Promise<number | null>;
+  getHidesTimelineIntId(): Promise<number | null>;
+  getCommentsTimelineIntId(): Promise<number | null>;
+  getLikesTimelineIntId(): Promise<number | null>;
+  getPostsTimelineIntId(): Promise<number | null>;
+  getDirectsTimelineIntId(): Promise<number | null>;
+  getMyDiscussionsTimelineIntId(): Promise<number | null>;
+  getSavesTimelineIntId(): Promise<number | null>;
 }
 
 export class Group {

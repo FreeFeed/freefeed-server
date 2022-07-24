@@ -164,7 +164,7 @@ process.stdout.write(`\n`);
             }
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 1000 * delay));
+          await delay(1000 * delay);
         }
       }
 

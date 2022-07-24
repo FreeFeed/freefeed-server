@@ -4,6 +4,7 @@ import { dbAdapter } from '../models';
 import { GONE_DELETED } from '../models/user';
 
 import { forEachAsync } from './forEachAsync';
+import { delay } from './timers';
 import { UUID } from './types';
 
 const debug = createDebug('freefeed:user-gone');
@@ -53,6 +54,8 @@ export const deleteAllUserData = combineTasks(
   // This ↓ must be the last task
   setDeletedStatus,
 );
+
+const batchPauseMs = 500;
 
 async function setDeletedStatus(userId: UUID) {
   const user = await dbAdapter.getUserById(userId);
@@ -108,16 +111,21 @@ export async function deletePosts(userId: UUID, runUntil: Date) {
       const post = await dbAdapter.getPostById(postId);
       await post?.destroy();
     });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
 export async function deleteLikes(userId: UUID, runUntil: Date) {
-  const batchSize = 50;
+  const batchSize = 100;
   const user = await dbAdapter.getUserById(userId);
 
   if (!user) {
     return;
   }
+
+  const feedId = await user.getLikesTimelineIntId();
 
   do {
     // eslint-disable-next-line no-await-in-loop
@@ -133,22 +141,30 @@ export async function deleteLikes(userId: UUID, runUntil: Date) {
 
     debug(`found ${postIds.length} likes to delete for ${userId}`);
 
-    // eslint-disable-next-line no-await-in-loop
-    await forEachAsync(postIds, async (postId: UUID) => {
-      const post = await dbAdapter.getPostById(postId);
+    // Fast likes deletion
 
-      if (!post) {
-        debug(`post ${postId} is not found, but like from ${userId} still exists`);
-        await dbAdapter.unlikePost(postId, userId);
-      } else {
-        await post.removeLike(user);
-      }
-    });
+    // eslint-disable-next-line no-await-in-loop
+    await dbAdapter.database.raw(
+      `delete from likes where user_id = :userId and post_id = any(:postIds)`,
+      { userId, postIds },
+    );
+
+    if (feedId !== null) {
+      // eslint-disable-next-line no-await-in-loop
+      await dbAdapter.database.raw(
+        `update posts set feed_ids  = (feed_ids - :feedId::int) WHERE uid = any(:postIds)`,
+        { feedId, postIds },
+      );
+    }
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
 export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
-  const batchSize = 50;
+  const batchSize = 100;
+
   const user = await dbAdapter.getUserById(userId);
 
   if (!user) {
@@ -157,33 +173,28 @@ export async function deleteCommentLikes(userId: UUID, runUntil: Date) {
 
   do {
     // eslint-disable-next-line no-await-in-loop
-    const commentIds = await dbAdapter.database.getCol<UUID>(
-      `select c.uid from
-        comment_likes l
-        join comments c on c.id = l.comment_id
-        where l.user_id = :userIntId 
-        order by l.created_at limit :batchSize`,
+    const commentIntIds = await dbAdapter.database.getCol<number>(
+      `select comment_id from comment_likes where user_id = :userIntId order by created_at limit :batchSize`,
       { userIntId: user.intId, batchSize },
     );
 
-    if (commentIds.length === 0) {
+    if (commentIntIds.length === 0) {
       debug(`no comment likes to delete for ${userId}`);
       break;
     }
 
-    debug(`found ${commentIds.length} comment likes to delete for ${userId}`);
+    debug(`found ${commentIntIds.length} comment likes to delete for ${userId}`);
+
+    // Fast comment likes deletion
 
     // eslint-disable-next-line no-await-in-loop
-    await forEachAsync(commentIds, async (commentId: UUID) => {
-      const comment = await dbAdapter.getCommentById(commentId);
+    await dbAdapter.database.raw(
+      `delete from comment_likes where comment_id = any(:commentIntIds)`,
+      { commentIntIds },
+    );
 
-      if (!comment) {
-        debug(`comment ${commentId} is not found, but like from ${userId} still exists`);
-        await dbAdapter.deleteCommentLike(commentId, userId);
-      } else {
-        await comment.removeLike(user);
-      }
-    });
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
@@ -273,6 +284,9 @@ export async function deleteAppTokens(userId: UUID, runUntil: Date) {
       const token = await dbAdapter.getAppTokenById(tokenId);
       await token?.destroy();
     });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 
@@ -342,6 +356,9 @@ export async function deleteAttachments(userId: UUID, runUntil: Date) {
       const att = await dbAdapter.getAttachmentById(attId);
       await att?.destroy();
     });
+
+    // eslint-disable-next-line no-await-in-loop
+    await delay(batchPauseMs);
   } while (new Date() < runUntil);
 }
 

@@ -45,7 +45,12 @@ export async function initJobProcessing(app) {
   });
 
   if (process.env.NODE_ENV !== 'test') {
-    jobManager.startPolling();
+    // Delay the start of the job polling for a random interval. In multi-node
+    // environment it will allow a more even distribution of the job fetching.
+    setTimeout(
+      () => jobManager.startPolling(),
+      Math.random() * config.jobManager.pollInterval * 1000,
+    );
   }
 
   return jobManager;
