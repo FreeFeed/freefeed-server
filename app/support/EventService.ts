@@ -1,4 +1,4 @@
-import _, { difference } from 'lodash';
+import _, { difference, uniqBy } from 'lodash';
 
 import { dbAdapter, User, Group, Post, Comment, PubSub as pubSub, Timeline } from '../models';
 
@@ -493,6 +493,38 @@ export class EventService {
           null,
           postAuthor?.intId || null,
         ),
+      ),
+    );
+  }
+
+  static async onBlockedInGroup(group: Group, userId: UUID, adminId: UUID) {
+    const [user, admin] = await dbAdapter.getFeedOwnersByIds([userId, adminId]);
+
+    if (!user || !admin) {
+      return;
+    }
+
+    const participants = uniqBy([user, ...(await group.getActiveAdministrators())], 'id');
+
+    await Promise.all(
+      participants.map((p) =>
+        createEvent(p.intId, EVENT_TYPES.BLOCKED_IN_GROUP, admin.intId, user.intId, group.intId),
+      ),
+    );
+  }
+
+  static async onUnblockedInGroup(group: Group, userId: UUID, adminId: UUID) {
+    const [user, admin] = await dbAdapter.getFeedOwnersByIds([userId, adminId]);
+
+    if (!user || !admin) {
+      return;
+    }
+
+    const participants = uniqBy([user, ...(await group.getActiveAdministrators())], 'id');
+
+    await Promise.all(
+      participants.map((p) =>
+        createEvent(p.intId, EVENT_TYPES.UNBLOCKED_IN_GROUP, admin.intId, user.intId, group.intId),
       ),
     );
   }

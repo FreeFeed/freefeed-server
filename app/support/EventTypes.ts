@@ -39,6 +39,9 @@ export const EVENT_TYPES = {
 
   BACKLINK_IN_POST: 'backlink_in_post',
   BACKLINK_IN_COMMENT: 'backlink_in_comment',
+
+  BLOCKED_IN_GROUP: 'blocked_in_group',
+  UNBLOCKED_IN_GROUP: 'unblocked_in_group',
 } as const;
 
 export type T_EVENT_TYPE = typeof EVENT_TYPES[keyof typeof EVENT_TYPES];

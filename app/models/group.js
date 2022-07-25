@@ -1,4 +1,5 @@
 import { User, PubSub as pubSub } from '../models';
+import { EventService } from '../support/EventService';
 import { ForbiddenException, ValidationException } from '../support/exceptions';
 
 /**
@@ -252,7 +253,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      // TODO notification
+      await EventService.onBlockedInGroup(this, userId, adminId);
       // TODO realtime
 
       return true;
@@ -275,7 +276,7 @@ export function addModel(dbAdapter) {
         return false;
       }
 
-      // TODO notification
+      await EventService.onUnblockedInGroup(this, userId, adminId);
       // TODO realtime
 
       return true;
