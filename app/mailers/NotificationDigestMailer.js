@@ -317,29 +317,37 @@ const notificationTemplates = {
   },
 
   blocked_in_group: (eventData) => {
-    const adminHTML =
-      eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    let adminHTML = 'Group admin';
+
+    if (eventData.creator) {
+      adminHTML =
+        eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    }
+
     const victimHTML =
       eventData.recipient.id === eventData.affectedUser.id
         ? 'You'
         : makeUserLink(eventData.affectedUser);
     const groupLink = makeUserLink(eventData.group);
 
-    return `
-      ${adminHTML} blocked ${victimHTML} in group ${groupLink}`;
+    return `${adminHTML} blocked ${victimHTML} in group ${groupLink}`;
   },
 
   unblocked_in_group: (eventData) => {
-    const adminHTML =
-      eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    let adminHTML = 'Group admin';
+
+    if (eventData.creator) {
+      adminHTML =
+        eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    }
+
     const victimHTML =
       eventData.recipient.id === eventData.affectedUser.id
         ? 'You'
         : makeUserLink(eventData.affectedUser);
     const groupLink = makeUserLink(eventData.group);
 
-    return `
-      ${adminHTML} unblocked ${victimHTML} in group ${groupLink}`;
+    return `${adminHTML} unblocked ${victimHTML} in group ${groupLink}`;
   },
 };
 

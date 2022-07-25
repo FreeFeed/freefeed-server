@@ -1,6 +1,7 @@
 import { dbAdapter } from '../../models';
 import { Nullable, UUID } from '../../support/types';
 import type { EventRecord } from '../../support/DbAdapter';
+import { HIDDEN_CREATOR_EVENT_TYPES } from '../../support/EventTypes';
 
 import { userSerializerFunction } from './user';
 
@@ -10,6 +11,13 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
   const commentIntIds = new Set<Nullable<number>>();
 
   for (const event of events) {
+    if (
+      HIDDEN_CREATOR_EVENT_TYPES.includes(event.event_type) &&
+      event.user_id === event.target_user_id
+    ) {
+      event.created_by_user_id = null;
+    }
+
     accountIntIds.add(event.user_id);
     accountIntIds.add(event.target_user_id);
     accountIntIds.add(event.created_by_user_id);

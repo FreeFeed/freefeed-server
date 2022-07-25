@@ -317,7 +317,7 @@ export class EventService {
         commentAuthor.intId,
         EVENT_TYPES.COMMENT_MODERATED,
         destroyedBy.intId,
-        null,
+        commentAuthor.intId,
         groups.length === 0 ? null : groups[0].intId,
         post.id,
         null,
