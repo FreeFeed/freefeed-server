@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.4.0] - Not released
+### Added
+- Group administrators can now block certain users from write to the group. This
+  feature includes:
+  - New event types, 'blocked_in_group' and 'unblocked_in_group', which are sent
+    to the (un)blocked user and to the all of group admins.
+
+## Changed
+- Notifications: hide the initiator of some events from the event target user.
+  It is useful, for example, to protect the anonymity of group admins. The
+  affected event types are: 'comment_moderated', 'post_moderated',
+  'blocked_in_group', 'unblocked_in_group'.
+
 ### Fixed
 - User data deletion process has been optimized for likes and comment likes.
 - Job manager now starting with a random delay for more even distribution of the
