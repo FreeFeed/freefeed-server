@@ -224,9 +224,13 @@ export function addModel(dbAdapter) {
         return [];
       }
 
-      const admins = await this.getActiveAdministrators();
+      const [admins, blocked] = await Promise.all([
+        this.getActiveAdministrators(),
+        dbAdapter.groupIdsBlockedUser(postingUser.id, [this.id]),
+      ]);
 
       if (
+        blocked.length > 0 ||
         admins.length === 0 ||
         (this.isRestricted === '1' && !admins.some((a) => a.id === postingUser.id))
       ) {

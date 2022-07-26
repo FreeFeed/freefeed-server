@@ -27,7 +27,14 @@ const groupBlocksTrait = (superClass) =>
       );
     }
 
-    groupIdsBlockedUser(userId) {
+    groupIdsBlockedUser(userId, fromGroupIds = null) {
+      if (fromGroupIds) {
+        return this.database.getCol(
+          `select group_id from group_blocks where blocked_user_id = :userId and group_id = any(:fromGroupIds)`,
+          { userId, fromGroupIds },
+        );
+      }
+
       return this.database.getCol(
         `select group_id from group_blocks where blocked_user_id = :userId order by group_id`,
         { userId },

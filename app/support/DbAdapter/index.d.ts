@@ -234,5 +234,5 @@ export class DbAdapter {
   blockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
   unblockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
   userIdsBlockedInGroup(groupId: UUID): Promise<UUID[]>;
-  groupIdsBlockedUser(userId: UUID): Promise<UUID[]>;
+  groupIdsBlockedUser(userId: UUID, fromGroupIds?: UUID[]): Promise<UUID[]>;
 }

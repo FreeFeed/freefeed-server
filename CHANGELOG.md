@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Group administrators can now block certain users from write to the group. This
   feature includes:
+  - New API methods for group administrators:
+    - `GET /v2/groups/:groupName/blockedUsers` 
+    - `POST /v2/groups/:groupName/block/:userName`
+    - `POST /v2/groups/:groupName/unblock/:userName`
   - New event types, 'blocked_in_group' and 'unblocked_in_group', which are sent
     to the (un)blocked user and to the all of group admins.
 
