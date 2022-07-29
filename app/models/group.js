@@ -5,6 +5,7 @@ import { ForbiddenException, ValidationException } from '../support/exceptions';
 /**
  * @typedef { import('../support/DbAdapter').DbAdapter } DbAdapter
  * @typedef { import('../models').Group } Group
+ * @typedef { import('../models').Timeline } Timeline
  * @typedef { import('../support/types').UUID } UUID
  */
 
@@ -213,14 +214,14 @@ export function addModel(dbAdapter) {
      * and returns array of destination timelines or empty array if
      * user can not post to this group.
      *
-     * @param {string} postingUser
-     * @returns {Timeline[]}
+     * @param {User} postingUser
+     * @returns {Promise<Timeline[]>}
      */
     async getFeedsToPost(postingUser) {
       const timeline = await dbAdapter.getUserNamedFeed(this.id, 'Posts');
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
 
-      if (!isSubscribed) {
+      if (this.isPrivate === '1' && !isSubscribed) {
         return [];
       }
 

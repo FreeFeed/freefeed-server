@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     to the (un)blocked user and to the all of group admins.
 
 ## Changed
+- Users can now write posts to public and protected groups that they are not members of.
 - Notifications: hide the initiator of some events from the event target user.
   It is useful, for example, to protect the anonymity of group admins. The
   affected event types are: 'comment_moderated', 'post_moderated',
