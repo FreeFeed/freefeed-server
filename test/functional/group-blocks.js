@@ -1,7 +1,10 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
+import { getSingleton } from '../../app/app';
+import { PubSub } from '../../app/models';
+import { eventNames, PubSubAdapter } from '../../app/support/PubSubAdapter';
 import cleanDB from '../dbCleaner';
 
 import {
@@ -12,6 +15,7 @@ import {
   promoteToAdmin,
   subscribeToAsync,
 } from './functional_test_helper';
+import Session from './realtime-session';
 
 describe('Group Blocks', () => {
   beforeEach(() => cleanDB($pg_database));
@@ -44,6 +48,41 @@ describe('Group Blocks', () => {
   it(`should not allow Mars (as non-admin) to block anyone in Selenites`, async () => {
     const resp = await blockUserInGroup(jupiter, selenites, mars);
     expect(resp, 'to satisfy', { __httpCode: 403 });
+  });
+
+  describe('Realtime events', () => {
+    let jupiterSession;
+    beforeEach(async () => {
+      const app = await getSingleton();
+      const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
+      const pubsubAdapter = new PubSubAdapter($database);
+      PubSub.setPublisher(pubsubAdapter);
+
+      jupiterSession = await Session.create(port, 'Jupiter session');
+      await jupiterSession.sendAsync('auth', { authToken: jupiter.authToken });
+      await jupiterSession.sendAsync('subscribe', { global: ['users'] });
+    });
+
+    after(() => jupiterSession.disconnect());
+
+    it(`should emit a 'global:user:update' event for Selenites when some user is blocked in it`, async () => {
+      const test = jupiterSession.receiveWhile(eventNames.GLOBAL_USER_UPDATED, () =>
+        blockUserInGroup(mars, selenites, luna),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        user: { id: selenites.group.id },
+      });
+    });
+
+    it(`should emit a 'global:user:update' event for Selenites when some user is unblocked in it`, async () => {
+      await blockUserInGroup(mars, selenites, luna);
+      const test = jupiterSession.receiveWhile(eventNames.GLOBAL_USER_UPDATED, () =>
+        unblockUserInGroup(mars, selenites, luna),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        user: { id: selenites.group.id },
+      });
+    });
   });
 
   describe('Mars is blocked in Selenites', () => {

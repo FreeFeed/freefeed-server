@@ -259,7 +259,7 @@ export function addModel(dbAdapter) {
       }
 
       await EventService.onBlockedInGroup(this, userId, adminId);
-      // TODO realtime
+      await pubSub.globalUserUpdate(this.id);
 
       return true;
     }
@@ -282,7 +282,7 @@ export function addModel(dbAdapter) {
       }
 
       await EventService.onUnblockedInGroup(this, userId, adminId);
-      // TODO realtime
+      await pubSub.globalUserUpdate(this.id);
 
       return true;
     }
