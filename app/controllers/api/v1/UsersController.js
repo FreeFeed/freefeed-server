@@ -280,12 +280,14 @@ export default class UsersController {
     async (ctx) => {
       const { targetUser, user: viewer } = ctx.state;
 
-      const [serUsers, acceptsDirects, pastUsernames, inHomeFeeds] = await Promise.all([
-        serializeUsersByIds([targetUser.id], true, viewer && viewer.id),
-        targetUser.acceptsDirectsFrom(viewer),
-        targetUser.getPastUsernames(),
-        viewer ? viewer.getHomeFeedIdsSubscribedTo(targetUser) : [],
-      ]);
+      const [serUsers, acceptsDirects, pastUsernames, inHomeFeeds, availableFeeds] =
+        await Promise.all([
+          serializeUsersByIds([targetUser.id], true, viewer && viewer.id),
+          targetUser.acceptsDirectsFrom(viewer),
+          targetUser.getPastUsernames(),
+          viewer ? viewer.getHomeFeedIdsSubscribedTo(targetUser) : [],
+          viewer && targetUser.isGroup() ? targetUser.getFeedsToPost(viewer) : [],
+        ]);
 
       const users = serUsers.find((u) => u.id === targetUser.id);
       const admins = serUsers.filter((u) => u.type === 'user');
@@ -294,6 +296,7 @@ export default class UsersController {
         users,
         admins,
         acceptsDirects,
+        acceptsPosts: availableFeeds.length !== 0,
         pastUsernames,
         inHomeFeeds,
       };

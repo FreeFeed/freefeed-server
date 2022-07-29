@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.0] - Not released
 ### Added
+- Users can now write posts to public and protected groups that they are not members of.
 - Group administrators can now block certain users from write to the group. This
   feature includes:
   - New API methods for group administrators:
@@ -15,9 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `POST /v2/groups/:groupName/unblock/:userName`
   - New event types, 'blocked_in_group' and 'unblocked_in_group', which are sent
     to the (un)blocked user and to the all of group admins.
+- The `GET /v1/users/:username` now returns additional boolean _acceptsPosts_
+  field. This field is always _false_ for users. It is _true_ for groups only if
+  the current user can create posts in this group. 
+  
+  This field takes into account all factors, including the user blocking
+  described above. It will make it easier for the client to determine if it is
+  possible to post to the group.
 
 ## Changed
-- Users can now write posts to public and protected groups that they are not members of.
 - Notifications: hide the initiator of some events from the event target user.
   It is useful, for example, to protect the anonymity of group admins. The
   affected event types are: 'comment_moderated', 'post_moderated',
