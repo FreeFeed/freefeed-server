@@ -20,11 +20,14 @@ import Session from './realtime-session';
 describe('Group Blocks', () => {
   beforeEach(() => cleanDB($pg_database));
 
-  let luna, mars, venus, jupiter, selenites;
+  let luna, mars, venus, jupiter, selenites, celestials;
 
   beforeEach(async () => {
     [luna, mars, venus, jupiter] = await createTestUsers(['luna', 'mars', ' venus', 'jupiter']);
-    selenites = await createGroupAsync(luna, 'selenites');
+    [selenites, celestials] = await Promise.all([
+      createGroupAsync(luna, 'selenites'),
+      createGroupAsync(luna, 'celestials'),
+    ]);
     await Promise.all([promoteToAdmin(selenites, luna, venus), subscribeToAsync(mars, selenites)]);
   });
 
@@ -42,6 +45,11 @@ describe('Group Blocks', () => {
 
   it(`should not block Venus (as admin) in Selenites`, async () => {
     const resp = await blockUserInGroup(venus, selenites, luna);
+    expect(resp, 'to satisfy', { __httpCode: 403 });
+  });
+
+  it(`should not block Celestials (as group) in Selenites`, async () => {
+    const resp = await blockUserInGroup(celestials, selenites, luna);
     expect(resp, 'to satisfy', { __httpCode: 403 });
   });
 

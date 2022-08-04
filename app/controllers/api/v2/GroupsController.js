@@ -88,6 +88,11 @@ export default class GroupsController {
     targetUserRequired({ groupName: 'group', userName: 'targetUser' }),
     async (ctx) => {
       const { user, group, targetUser } = ctx.state;
+
+      if (targetUser.isGroup()) {
+        throw new ForbiddenException('You cannot block group account');
+      }
+
       const adminIds = await group.getAdministratorIds();
 
       if (!adminIds.includes(user.id)) {
