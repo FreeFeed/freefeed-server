@@ -118,7 +118,7 @@ export async function serializeFeed(
     allPosts.push(sPost);
     allDestinations.push(...destinations);
     allSubscribers.push(...destinations.map((d) => d.user));
-    allComments.push(...comments.map(serializeComment));
+    allComments.push(...comments.map((c) => serializeComment(c, viewerId)));
     allAttachments.push(...attachments.map(serializeAttachment));
 
     allUserIds.add(sPost.createdBy);

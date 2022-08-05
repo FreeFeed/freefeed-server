@@ -32,7 +32,7 @@ import {
   HOMEFEED_MODE_FRIENDS_ONLY,
 } from './models/timeline';
 import { serializeSinglePost, serializeLike } from './serializers/v2/post';
-import { serializeCommentForRealtime } from './serializers/v2/comment';
+import { serializeCommentFull } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
 import { serializeEvents } from './serializers/v2/event';
 /** @typedef {import('./support/types').UUID} UUID */
@@ -441,7 +441,7 @@ export default class PubsubListener {
     }
 
     const post = await dbAdapter.getPostById(comment.postId);
-    const json = await serializeCommentForRealtime(comment);
+    const json = await serializeCommentFull(comment);
 
     const type = eventNames.COMMENT_CREATED;
     const rooms = await getRoomsOfPost(post);
@@ -454,7 +454,7 @@ export default class PubsubListener {
   onCommentUpdate = async (data) => {
     const comment = await dbAdapter.getCommentById(data.commentId);
     const post = await dbAdapter.getPostById(comment.postId);
-    const json = await serializeCommentForRealtime(comment);
+    const json = await serializeCommentFull(comment);
 
     const type = eventNames.COMMENT_UPDATED;
     const rooms = await getRoomsOfPost(post);
@@ -594,7 +594,7 @@ export default class PubsubListener {
           return;
         }
 
-        const [user] = await serializeUsersByIds([userId], true, socket.userId);
+        const [user] = await serializeUsersByIds([userId], socket.userId);
         await socket.emit(type, { ...json, user });
       },
     });
@@ -630,7 +630,7 @@ export default class PubsubListener {
 
         const subscribedGroupIds = groupIds.filter((_, i) => isSubscribed[i]);
 
-        const updatedGroups = await serializeUsersByIds(subscribedGroupIds, true, socket.userId);
+        const updatedGroups = await serializeUsersByIds(subscribedGroupIds, socket.userId);
 
         await socket.emit(type, {
           ...json,
@@ -651,7 +651,7 @@ export default class PubsubListener {
       return;
     }
 
-    const json = await serializeCommentForRealtime(comment);
+    const json = await serializeCommentFull(comment);
 
     if (msgType === eventNames.COMMENT_LIKE_ADDED) {
       json.comments.userId = data.likerUUID;
@@ -667,8 +667,15 @@ export default class PubsubListener {
   };
 
   async _commentLikeEventEmitter(socket, type, json) {
-    const commentUUID = json.comments.id;
     const viewerId = socket.userId;
+    // We need to re-serialize users according to the viewerId
+    const users = await serializeUsersByIds(
+      json.users.map((u) => u.id),
+      viewerId,
+    );
+    json.users = users;
+    json.admins = users;
+    const commentUUID = json.comments.id;
     const [commentLikesData = { c_likes: 0, has_own_like: false }] =
       await dbAdapter.getLikesInfoForComments([commentUUID], viewerId);
     json.comments.likes = parseInt(commentLikesData.c_likes);

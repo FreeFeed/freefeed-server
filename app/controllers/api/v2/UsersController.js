@@ -18,7 +18,7 @@ export default class UsersController {
         state: { user },
       } = ctx;
       const banIds = await user.getBanIds();
-      const users = await serializeUsersByIds(banIds, false);
+      const users = await serializeUsersByIds(banIds, user.id);
       ctx.body = banIds.map((id) => users.find((u) => u.id === id));
     },
   ]);

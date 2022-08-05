@@ -78,7 +78,7 @@ export default class GroupsController {
       }
 
       const blockedUsers = await dbAdapter.userIdsBlockedInGroup(group.id);
-      const users = await serializeUsersByIds(blockedUsers, false, user.id);
+      const users = await serializeUsersByIds(blockedUsers, user.id);
       ctx.body = { blockedUsers, users };
     },
   ]);
@@ -110,7 +110,7 @@ export default class GroupsController {
       }
 
       const blockedUsers = await dbAdapter.userIdsBlockedInGroup(group.id);
-      const users = await serializeUsersByIds(blockedUsers, false, user.id);
+      const users = await serializeUsersByIds(blockedUsers, user.id);
       ctx.body = { blockedUsers, users };
     },
   ]);
@@ -133,7 +133,7 @@ export default class GroupsController {
       }
 
       const blockedUsers = await dbAdapter.userIdsBlockedInGroup(group.id);
-      const users = await serializeUsersByIds(blockedUsers, false, user.id);
+      const users = await serializeUsersByIds(blockedUsers, user.id);
       ctx.body = { blockedUsers, users };
     },
   ]);
