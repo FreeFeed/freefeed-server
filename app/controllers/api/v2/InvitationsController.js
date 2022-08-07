@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { dbAdapter } from '../../../models';
 import { NotFoundException, ValidationException } from '../../../support/exceptions';
-import { userSerializerFunction } from '../../../serializers/v2/user';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
 
 export default class InvitationsController {
   static async getInvitation(ctx) {
@@ -61,22 +61,10 @@ async function serializeInvitationUsers(userNames, groupNames, authorIntId) {
   const userIds = recommendedUsersAndGroups.map((u) => u.id);
   userIds.push(authorUUID);
 
-  const [allUsersAssoc, allStatsAssoc] = await Promise.all([
-    dbAdapter.getUsersByIdsAssoc(userIds),
-    dbAdapter.getUsersStatsAssoc(userIds),
-  ]);
-
-  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc);
-  const users = Object.keys(allUsersAssoc)
-    .map(serializeUser)
-    .filter((u) => u.type === 'user');
-  const groups = Object.keys(allUsersAssoc)
-    .map(serializeUser)
-    .filter((u) => u.type === 'group');
-
+  const sUsers = await serializeUsersByIds(userIds);
   return {
-    users,
-    groups,
+    users: sUsers.filter((u) => u.type === 'user'),
+    groups: sUsers.filter((u) => u.type === 'group'),
     authorUUID,
   };
 }

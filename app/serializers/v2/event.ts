@@ -3,7 +3,7 @@ import { Nullable, UUID } from '../../support/types';
 import type { EventRecord } from '../../support/DbAdapter';
 import { HIDDEN_CREATOR_EVENT_TYPES } from '../../support/EventTypes';
 
-import { userSerializerFunction } from './user';
+import { serializeUsersByIds } from './user';
 
 export async function serializeEvents(events: EventRecord[], viewerId: Nullable<UUID> = null) {
   const accountIntIds = new Set<Nullable<number>>();
@@ -82,22 +82,11 @@ export async function serializeEvents(events: EventRecord[], viewerId: Nullable<
 
   // Now collecting user information for the output
   const accountIds = accountIdRows.map((r) => r.uid);
-  const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(accountIds, viewerId);
-  Object.values(allGroupAdmins).forEach((ids) =>
-    ids.forEach((s) => !accountIds.includes(s) && accountIds.push(s)),
-  );
-
-  const [allUsersAssoc, allStatsAssoc] = await Promise.all([
-    dbAdapter.getUsersByIdsAssoc(accountIds),
-    dbAdapter.getUsersStatsAssoc(accountIds),
-  ]);
-
-  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-  const accounts = Object.keys(allUsersAssoc).map(serializeUser);
+  const sAccounts = await serializeUsersByIds(accountIds, viewerId);
 
   return {
     events: serializedEvents,
-    users: accounts.filter((u) => u.type === 'user'),
-    groups: accounts.filter((u) => u.type === 'group'),
+    users: sAccounts.filter((u) => u.type === 'user'),
+    groups: sAccounts.filter((u) => u.type === 'group'),
   };
 }

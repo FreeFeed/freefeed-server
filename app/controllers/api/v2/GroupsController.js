@@ -2,7 +2,7 @@ import compose from 'koa-compose';
 import _ from 'lodash';
 
 import { dbAdapter } from '../../../models';
-import { serializeUsersByIds, userSerializerFunction } from '../../../serializers/v2/user';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { ForbiddenException } from '../../../support/exceptions';
 import { authRequired, targetUserRequired } from '../../middlewares';
 
@@ -45,23 +45,11 @@ export default class GroupsController {
     const { user: viewer } = ctx.state;
     const withProtected = !!viewer;
     const groups = await dbAdapter.getAllGroups({ withProtected });
-    ctx.body = { groups };
 
-    const allUserIds = new Set(groups.map((it) => it.id));
-
-    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(
-      [...allUserIds],
-      viewer && viewer.id,
+    const users = await serializeUsersByIds(
+      groups.map((g) => g.id),
+      viewer?.id,
     );
-    Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
-
-    const [allUsersAssoc, allStatsAssoc] = await Promise.all([
-      dbAdapter.getUsersByIdsAssoc([...allUserIds]),
-      dbAdapter.getUsersStatsAssoc([...allUserIds]),
-    ]);
-    const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-
-    const users = Object.keys(allUsersAssoc).map(serializeUser);
 
     ctx.body = { withProtected, groups, users };
   }

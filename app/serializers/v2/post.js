@@ -2,7 +2,7 @@ import { uniqBy, pick, compact, uniq } from 'lodash';
 
 import { dbAdapter } from '../../models';
 
-import { userSerializerFunction } from './user';
+import { serializeUsersByIds } from './user';
 
 export function serializeComment(comment) {
   return {
@@ -145,29 +145,21 @@ export async function serializeFeed(
 
   allSubscribers.forEach((s) => allUserIds.add(s));
 
-  const allGroupAdmins = canViewTimeline
-    ? await dbAdapter.getGroupsAdministratorsIds([...allUserIds], viewerId)
-    : {};
-  Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
+  const sAccounts = await serializeUsersByIds(compact([...allUserIds]), viewerId);
+  const sAccountsMap = new Map(sAccounts.map((a) => [a.id, a]));
 
-  const [allUsersAssoc, allStatsAssoc] = await Promise.all([
-    dbAdapter.getUsersByIdsAssoc([...allUserIds]),
-    dbAdapter.getUsersStatsAssoc([...allUserIds]),
-  ]);
-
-  const uniqSubscribers = compact(uniq(allSubscribers));
-
-  const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-
-  const users = Object.keys(allUsersAssoc)
-    .map(serializeUser)
-    .filter((u) => u.type === 'user' || (timeline && u.id === timeline.userId));
-  const subscribers = canViewTimeline ? uniqSubscribers.map(serializeUser) : [];
+  const users = sAccounts.filter(
+    (u) => u.type === 'user' || (timeline && u.id === timeline.userId),
+  );
 
   const subscriptions = canViewTimeline ? uniqBy(compact(allDestinations), 'id') : [];
-
+  const subscribers = canViewTimeline
+    ? compact(uniq(allSubscribers)).map((id) => sAccountsMap.get(id))
+    : [];
   const admins =
-    timeline && canViewTimeline ? (allGroupAdmins[timeline.userId] || []).map(serializeUser) : [];
+    timeline && canViewTimeline
+      ? (sAccountsMap.get(timeline.userId)?.administrators || []).map((id) => sAccountsMap.get(id))
+      : [];
 
   return {
     timelines,

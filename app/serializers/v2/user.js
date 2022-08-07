@@ -61,27 +61,6 @@ const defaultStats = {
 };
 
 /**
- * Returns function that returns serialized user by its id
- */
-export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) {
-  return (id) => {
-    const obj = pickAccountProps(allUsers[id]);
-    obj.statistics = (!obj.isGone && allStats[id]) || defaultStats;
-
-    if (obj.type === 'group') {
-      obj.administrators = allGroupAdmins[obj.id] || [];
-
-      // Groups that have no active admins are restricted
-      if (!obj.administrators.some((a) => allUsers[a]?.isActive)) {
-        obj.isRestricted = '1';
-      }
-    }
-
-    return obj;
-  };
-}
-
-/**
  * Serializes users by their ids
  *
  * Keeps userIds order, but adds uniqueness and puts admins (if withAdmins is
@@ -107,9 +86,20 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
     dbAdapter.getUsersStatsAssoc(allUserIds),
   ]);
 
-  // Create serializer
-  const getSerializedUserById = userSerializerFunction(usersAssoc, statsAssoc, adminsAssoc);
-
   // Serialize
-  return allUserIds.map(getSerializedUserById);
+  return allUserIds.map((id) => {
+    const obj = pickAccountProps(usersAssoc[id]);
+    obj.statistics = (!obj.isGone && statsAssoc[id]) || defaultStats;
+
+    if (obj.type === 'group') {
+      obj.administrators = adminsAssoc[obj.id] || [];
+
+      // Groups that have no active admins are restricted
+      if (!obj.administrators.some((a) => usersAssoc[a]?.isActive)) {
+        obj.isRestricted = '1';
+      }
+    }
+
+    return obj;
+  });
 }
