@@ -30,68 +30,76 @@ describe('Group acceptsPosts field', () => {
   });
 
   it(`should show acceptsPosts: true for all users for public group`, async () => {
-    expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: true });
+    expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { users: { acceptsPosts: true } });
   });
 
   it(`should show acceptsPosts: true for all users for protected group`, async () => {
     await updateGroupAsync(selenites.group, luna, { isProtected: '1' });
-    expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: true });
+    expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { users: { acceptsPosts: true } });
   });
 
   it(`should show acceptsPosts: true only for members of private group`, async () => {
     await updateGroupAsync(selenites.group, luna, { isPrivate: '1' });
-    expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: false });
+    expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { users: { acceptsPosts: false } });
   });
 
   it(`should show acceptsPosts: true only for admins of restricted group`, async () => {
     await updateGroupAsync(selenites.group, luna, { isRestricted: '1' });
-    expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: false });
-    expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: false });
+    expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: false } });
+    expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+    expect(await getUserInfo(selenites, jupiter), 'to satisfy', { users: { acceptsPosts: false } });
   });
 
   describe('Mars is blocked in group', () => {
     beforeEach(() => blockUserInGroup(mars, selenites, luna));
 
     it(`should show acceptsPosts: true for all users (except Mars) for public group`, async () => {
-      expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: false });
-      expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: true });
+      expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: false } });
+      expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, jupiter), 'to satisfy', {
+        users: { acceptsPosts: true },
+      });
     });
 
     it(`should show acceptsPosts: true for all users (except Mars) for protected group`, async () => {
       await updateGroupAsync(selenites.group, luna, { isProtected: '1' });
-      expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: false });
-      expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: true });
+      expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: false } });
+      expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, jupiter), 'to satisfy', {
+        users: { acceptsPosts: true },
+      });
     });
 
     it(`should show acceptsPosts: true only for members (except Mars) of private group`, async () => {
       await updateGroupAsync(selenites.group, luna, { isPrivate: '1' });
-      expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: false });
-      expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: false });
+      expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: false } });
+      expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, jupiter), 'to satisfy', {
+        users: { acceptsPosts: false },
+      });
     });
 
     it(`should show acceptsPosts: true only for admins of restricted group`, async () => {
       await updateGroupAsync(selenites.group, luna, { isRestricted: '1' });
-      expect(await getUserInfo(selenites, luna), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, mars), 'to satisfy', { acceptsPosts: false });
-      expect(await getUserInfo(selenites, venus), 'to satisfy', { acceptsPosts: true });
-      expect(await getUserInfo(selenites, jupiter), 'to satisfy', { acceptsPosts: false });
+      expect(await getUserInfo(selenites, luna), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, mars), 'to satisfy', { users: { acceptsPosts: false } });
+      expect(await getUserInfo(selenites, venus), 'to satisfy', { users: { acceptsPosts: true } });
+      expect(await getUserInfo(selenites, jupiter), 'to satisfy', {
+        users: { acceptsPosts: false },
+      });
     });
   });
 });

@@ -17,12 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New event types, 'blocked_in_group' and 'unblocked_in_group', which are sent
     to the (un)blocked user and to the all of group admins.
   - When some user is blocked/unblocked in a group, the 'global:user:update'
-    realtime event _about the group_ is sent. This event doesn't contain
-    information about the block, but it is signals that this group _may_ become
-    unavailable to posting.
-- The `GET /v1/users/:username` now returns additional boolean _acceptsPosts_
-  field. This field is always _false_ for users. It is _true_ for groups only if
-  the current user can create posts in this group. 
+    realtime event _about the group_ is sent. This event contain general group
+    info, including the new  _acceptsPosts_ field (see below), so the listening
+    user can determine, if he can or cannot post to the group.
+- Any serialized group data (not user data) in API responses now have additional
+  boolean _acceptsPosts_ field. This field is _true_ if the current user can
+  create posts in this group. 
   
   This field takes into account all factors, including the user blocking
   described above. It will make it easier for the client to determine if it is

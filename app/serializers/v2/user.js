@@ -2,6 +2,10 @@ import { pick, uniq } from 'lodash';
 
 import { dbAdapter } from '../../models';
 
+/**
+ * @typedef { import('../../support/types').UUID } UUID
+ */
+
 const commonUserFields = [
   'id',
   'username',
@@ -67,6 +71,7 @@ const defaultStats = {
  * true) to the end of list.
  *
  * @param {UUID[]} userIds
+ * @param {UUID | null} viewerId
  * @param {boolean} withAdmins
  * @returns {Promise<Array>}
  */
@@ -86,6 +91,12 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
     dbAdapter.getUsersStatsAssoc(allUserIds),
   ]);
 
+  const groupIds = allUserIds.filter((id) => usersAssoc[id]?.type === 'group');
+  const [subscribedGroupsId, blockedGroupsId] = await Promise.all([
+    dbAdapter.getOnlySubscribedTo(viewerId, groupIds),
+    viewerId ? await dbAdapter.groupIdsBlockedUser(viewerId, groupIds) : [],
+  ]);
+
   // Serialize
   return allUserIds.map((id) => {
     const obj = pickAccountProps(usersAssoc[id]);
@@ -97,6 +108,18 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
       // Groups that have no active admins are restricted
       if (!obj.administrators.some((a) => usersAssoc[a]?.isActive)) {
         obj.isRestricted = '1';
+      }
+
+      obj.acceptsPosts = false;
+
+      if (viewerId && !blockedGroupsId.includes(id)) {
+        if (obj.isRestricted === '1') {
+          obj.acceptsPosts = obj.administrators.includes(viewerId);
+        } else if (obj.isPrivate === '1') {
+          obj.acceptsPosts = subscribedGroupsId.includes(id);
+        } else {
+          obj.acceptsPosts = true;
+        }
       }
     }
 

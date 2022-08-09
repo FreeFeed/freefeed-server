@@ -235,4 +235,7 @@ export class DbAdapter {
   unblockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
   userIdsBlockedInGroup(groupId: UUID): Promise<UUID[]>;
   groupIdsBlockedUser(userId: UUID, fromGroupIds?: UUID[]): Promise<UUID[]>;
+
+  // Subscriptions
+  getOnlySubscribedTo(subscriberId: UUID | null, toUserIds: UUID[]): Promise<UUID[]>;
 }

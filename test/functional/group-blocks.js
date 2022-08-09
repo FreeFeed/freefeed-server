@@ -59,7 +59,7 @@ describe('Group Blocks', () => {
   });
 
   describe('Realtime events', () => {
-    let jupiterSession;
+    let jupiterSession, marsSession;
     beforeEach(async () => {
       const app = await getSingleton();
       const port = process.env.PEPYATKA_SERVER_PORT || app.context.config.port;
@@ -69,6 +69,9 @@ describe('Group Blocks', () => {
       jupiterSession = await Session.create(port, 'Jupiter session');
       await jupiterSession.sendAsync('auth', { authToken: jupiter.authToken });
       await jupiterSession.sendAsync('subscribe', { global: ['users'] });
+      marsSession = await Session.create(port, 'Mars session');
+      await marsSession.sendAsync('auth', { authToken: mars.authToken });
+      await marsSession.sendAsync('subscribe', { global: ['users'] });
     });
 
     after(() => jupiterSession.disconnect());
@@ -78,7 +81,16 @@ describe('Group Blocks', () => {
         blockUserInGroup(mars, selenites, luna),
       );
       await expect(test, 'when fulfilled', 'to satisfy', {
-        user: { id: selenites.group.id },
+        user: { id: selenites.group.id, acceptsPosts: true },
+      });
+    });
+
+    it(`should emit a 'global:user:update' event for Selenites when this user is blocked in it`, async () => {
+      const test = marsSession.receiveWhile(eventNames.GLOBAL_USER_UPDATED, () =>
+        blockUserInGroup(mars, selenites, luna),
+      );
+      await expect(test, 'when fulfilled', 'to satisfy', {
+        user: { id: selenites.group.id, acceptsPosts: false },
       });
     });
 

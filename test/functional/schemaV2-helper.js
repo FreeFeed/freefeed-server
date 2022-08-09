@@ -158,6 +158,7 @@ export const userBasic = {
 export const groupBasic = {
   ...userBasic,
   isRestricted: expect.it('to be boolString'),
+  acceptsPosts: expect.it('to be a boolean'),
   type: expect.it('to equal', 'group'),
 };
 

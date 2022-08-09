@@ -34,6 +34,28 @@ const subscriptionsTrait = (superClass) =>
       return rows.length > 0;
     }
 
+    /**
+     * Return only those toUserIds that have a subscriberId subscribed to
+     *
+     * @param {UUID|null} subscriberId
+     * @param {UUID[]} toUserIds
+     * @returns {Promise<UUID[]>}
+     */
+    getOnlySubscribedTo(subscriberId, toUserIds) {
+      if (!subscriberId || toUserIds.length === 0) {
+        return [];
+      }
+
+      return this.database.getCol(
+        `select f.user_id from
+          feeds f
+          join subscriptions s on s.feed_id = f.uid and f.name = 'Posts'
+          where s.user_id = :subscriberId and f.user_id = any(:toUserIds)
+        `,
+        { subscriberId, toUserIds },
+      );
+    }
+
     async areUsersSubscribedToOneOfTimelines(userIds, timelineIds) {
       if (userIds.length === 0 || timelineIds.length === 0) {
         return [];
