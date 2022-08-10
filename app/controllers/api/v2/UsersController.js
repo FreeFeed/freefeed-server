@@ -3,11 +3,7 @@ import _ from 'lodash';
 import monitor from 'monitor-dog';
 
 import { dbAdapter, PubSub as pubSub } from '../../../models';
-import {
-  serializeSelfUser,
-  serializeUsersByIds,
-  userSerializerFunction,
-} from '../../../serializers/v2/user';
+import { serializeSelfUser, serializeUsersByIds } from '../../../serializers/v2/user';
 import { monitored, authRequired } from '../../middlewares';
 
 export default class UsersController {
@@ -18,7 +14,7 @@ export default class UsersController {
         state: { user },
       } = ctx;
       const banIds = await user.getBanIds();
-      const users = await serializeUsersByIds(banIds, false);
+      const users = await serializeUsersByIds(banIds, user.id);
       ctx.body = banIds.map((id) => users.find((u) => u.id === id));
     },
   ]);
@@ -129,45 +125,25 @@ export default class UsersController {
         users.banIds,
       );
 
-      const [allUsers, allStats] = await Promise.all([
-        dbAdapter.getUsersByIdsAssoc(allUIDs),
-        dbAdapter.getUsersStatsAssoc(allUIDs),
-      ]);
-      const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(
-        _.map(_.filter(allUsers, { type: 'group' }), 'id'),
-        user.id,
-      );
-
-      {
-        // We need to fetch info for group admins too
-        const additionalUIDs = _.uniq(Object.values(allGroupAdmins).flat()).filter(
-          (id) => !allUsers[id],
-        );
-
-        if (additionalUIDs.length > 0) {
-          const addUsers = await dbAdapter.getUsersByIdsAssoc(additionalUIDs);
-
-          for (const id of Object.keys(addUsers)) {
-            allUsers[id] = addUsers[id];
-          }
-        }
-      }
-
-      const serializeUser = userSerializerFunction(allUsers, allStats, allGroupAdmins);
+      const sAccounts = await serializeUsersByIds(allUIDs, user.id);
+      const sAccountsMap = new Map(sAccounts.map((a) => [a.id, a]));
 
       users.pendingGroupRequests = groupRequestersUIDs.length > 0;
       users.pendingSubscriptionRequests = pendingSubscriptionRequestsUIDs;
       users.subscriptionRequests = subscriptionRequestsUIDs;
       users.subscriptions = _.map(timelinesUserSubscribed, 'id');
-      users.subscribers = subscribersUIDs.map(serializeUser);
-      const subscribers = subscriptionsUIDs.map(serializeUser);
+      users.subscribers = subscribersUIDs.map((id) => sAccountsMap.get(id));
+      const subscribers = subscriptionsUIDs.map((id) => sAccountsMap.get(id));
+
       const requests = _.union(pendingSubscriptionRequestsUIDs, subscriptionRequestsUIDs).map(
-        serializeUser,
+        (id) => sAccountsMap.get(id),
       );
-      const managedGroups = managedGroupUIDs.map(serializeUser).map((group) => {
-        group.requests = (pendingGroupRequests[group.id] || []).map(serializeUser);
-        return group;
-      });
+      const managedGroups = managedGroupUIDs
+        .map((id) => sAccountsMap.get(id))
+        .map((group) => ({
+          ...group,
+          requests: (pendingGroupRequests[group.id] || []).map((id) => sAccountsMap.get(id)),
+        }));
 
       // Only full access tokens can see privateMeta
       if (!authToken.hasFullAccess) {

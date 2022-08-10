@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.4.0] - Not released
+### Added
+- Users can now write posts to public and protected groups that they are not members of.
+- Group administrators can now block certain users from write to the group. This
+  feature includes:
+  - New API methods for group administrators:
+    - `GET /v2/groups/:groupName/blockedUsers` 
+    - `POST /v2/groups/:groupName/block/:userName`
+    - `POST /v2/groups/:groupName/unblock/:userName`
+  - New event types, 'blocked_in_group' and 'unblocked_in_group', which are sent
+    to the (un)blocked user and to the all of group admins.
+  - When some user is blocked/unblocked in a group, the 'global:user:update'
+    realtime event _about the group_ is sent. This event contain general group
+    info, including the new  _acceptsPosts_ field (see below), so the listening
+    user can determine, if he can or cannot post to the group.
+- Any serialized group data (not user data) in API responses now have additional
+  boolean _acceptsPosts_ field. This field is _true_ if the current user can
+  create posts in this group. 
+  
+  This field takes into account all factors, including the user blocking
+  described above. It will make it easier for the client to determine if it is
+  possible to post to the group.
+
+## Changed
+- Notifications: hide the initiator of some events from the event target user.
+  It is useful, for example, to protect the anonymity of group admins. The
+  affected event types are: 'comment_moderated', 'post_moderated',
+  'blocked_in_group', 'unblocked_in_group'.
+
 ### Fixed
 - User data deletion process has been optimized for likes and comment likes.
 - Job manager now starting with a random delay for more even distribution of the

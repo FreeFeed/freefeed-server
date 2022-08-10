@@ -7,7 +7,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '../../../support/exceptions';
-import { serializeComment, serializeCommentForRealtime } from '../../../serializers/v2/comment';
+import { serializeComment, serializeCommentFull } from '../../../serializers/v2/comment';
 import {
   authRequired,
   inputSchemaRequired,
@@ -46,7 +46,7 @@ export const create = compose([
     }
 
     AppTokenV1.addLogPayload(ctx, { commentId: comment.id });
-    ctx.body = await serializeComment(comment);
+    ctx.body = await serializeComment(comment, author.id);
   },
 ]);
 
@@ -87,7 +87,7 @@ export const update = compose([
       throw new BadRequestException(`Can not update comment: ${e.message}`);
     }
 
-    ctx.body = await serializeComment(comment);
+    ctx.body = await serializeComment(comment, user.id);
   },
 ]);
 
@@ -157,7 +157,7 @@ export async function getById(ctx) {
 
   const viewerBans = user ? await dbAdapter.getUserBansIds(user.id) : [];
 
-  const sComment = await serializeCommentForRealtime(comment);
+  const sComment = await serializeCommentFull(comment, user?.id);
 
   if (viewerBans.includes(comment.userId)) {
     sComment.comments.likes = 0;

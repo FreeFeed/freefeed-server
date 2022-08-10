@@ -82,8 +82,13 @@ export class Group {
   isGroup(): true;
   isUser(): false;
   getAdministrators(): Promise<User[]>;
+  getActiveAdministrators(): Promise<User[]>;
+  addAdministrator(adminId: UUID): Promise<void>;
   getPostsTimeline(): Promise<Timeline | null>;
   getPostsTimelineId(): Promise<UUID | null>;
+
+  blockUser(userId: UUID, adminId: UUID): Promise<boolean>;
+  unblockUser(userId: UUID, adminId: UUID): Promise<boolean>;
 }
 
 export class Post {

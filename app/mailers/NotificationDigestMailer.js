@@ -315,6 +315,40 @@ const notificationTemplates = {
 
     return `${creatorHTML} left a ${postHTML} created by ${postAuthorHTML}`;
   },
+
+  blocked_in_group: (eventData) => {
+    let adminHTML = 'Group admin';
+
+    if (eventData.creator) {
+      adminHTML =
+        eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    }
+
+    const victimHTML =
+      eventData.recipient.id === eventData.affectedUser.id
+        ? 'You'
+        : makeUserLink(eventData.affectedUser);
+    const groupLink = makeUserLink(eventData.group);
+
+    return `${adminHTML} blocked ${victimHTML} in group ${groupLink}`;
+  },
+
+  unblocked_in_group: (eventData) => {
+    let adminHTML = 'Group admin';
+
+    if (eventData.creator) {
+      adminHTML =
+        eventData.recipient.id === eventData.creator.id ? 'You' : makeUserLink(eventData.creator);
+    }
+
+    const victimHTML =
+      eventData.recipient.id === eventData.affectedUser.id
+        ? 'You'
+        : makeUserLink(eventData.affectedUser);
+    const groupLink = makeUserLink(eventData.group);
+
+    return `${adminHTML} unblocked ${victimHTML} in group ${groupLink}`;
+  },
 };
 
 function makeUserLink(user) {

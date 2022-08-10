@@ -1,6 +1,18 @@
 import { User, PubSub as pubSub } from '../models';
+import { EventService } from '../support/EventService';
 import { ForbiddenException, ValidationException } from '../support/exceptions';
 
+/**
+ * @typedef { import('../support/DbAdapter').DbAdapter } DbAdapter
+ * @typedef { import('../models').Group } Group
+ * @typedef { import('../models').Timeline } Timeline
+ * @typedef { import('../support/types').UUID } UUID
+ */
+
+/**
+ * @param {DbAdapter} dbAdapter
+ * @returns {Group}
+ */
 export function addModel(dbAdapter) {
   return class Group extends User {
     // Groups only have 'Posts' feed
@@ -202,20 +214,24 @@ export function addModel(dbAdapter) {
      * and returns array of destination timelines or empty array if
      * user can not post to this group.
      *
-     * @param {string} postingUser
-     * @returns {Timeline[]}
+     * @param {User} postingUser
+     * @returns {Promise<Timeline[]>}
      */
     async getFeedsToPost(postingUser) {
       const timeline = await dbAdapter.getUserNamedFeed(this.id, 'Posts');
       const isSubscribed = await dbAdapter.isUserSubscribedToTimeline(postingUser.id, timeline.id);
 
-      if (!isSubscribed) {
+      if (this.isPrivate === '1' && !isSubscribed) {
         return [];
       }
 
-      const admins = await this.getActiveAdministrators();
+      const [admins, blocked] = await Promise.all([
+        this.getActiveAdministrators(),
+        dbAdapter.groupIdsBlockedUser(postingUser.id, [this.id]),
+      ]);
 
       if (
+        blocked.length > 0 ||
         admins.length === 0 ||
         (this.isRestricted === '1' && !admins.some((a) => a.id === postingUser.id))
       ) {
@@ -223,6 +239,52 @@ export function addModel(dbAdapter) {
       }
 
       return [timeline];
+    }
+
+    /**
+     * Blocks user in the group. adminId is the id of the admin who blocking the
+     * user. This method doesn't perform any access checks, it even doesn't
+     * check if the admin is actually a group administrator. Returns true if the
+     * user is blocked by this call, false if the user is already blocked.
+     *
+     * @param {UUID} userId
+     * @param {UUID} adminId
+     * @returns {Promise<boolean>}
+     */
+    async blockUser(userId, adminId) {
+      const ok = await dbAdapter.blockUserInGroup(userId, this.id);
+
+      if (!ok) {
+        return false;
+      }
+
+      await EventService.onBlockedInGroup(this, userId, adminId);
+      await pubSub.globalUserUpdate(this.id);
+
+      return true;
+    }
+
+    /**
+     * Unblocks user in the group. adminId is the id of the admin who unblocking
+     * the user. This method doesn't perform any access checks, it even doesn't
+     * check if the admin is actually a group administrator. Returns true if the
+     * user is unblocked by this call, false if the user is already not blocked.
+     *
+     * @param {UUID} userId
+     * @param {UUID} adminId
+     * @returns {Promise<boolean>}
+     */
+    async unblockUser(userId, adminId) {
+      const ok = await dbAdapter.unblockUserInGroup(userId, this.id);
+
+      if (!ok) {
+        return false;
+      }
+
+      await EventService.onUnblockedInGroup(this, userId, adminId);
+      await pubSub.globalUserUpdate(this.id);
+
+      return true;
     }
   };
 }

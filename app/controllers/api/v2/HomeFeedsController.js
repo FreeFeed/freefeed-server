@@ -26,7 +26,7 @@ export const listHomeFeeds = compose([
 
     const homeFeeds = await user.getHomeFeeds();
     const timelines = homeFeeds.map((t) => serializeTimeline(t));
-    const users = await serializeUsersByIds([user.id]);
+    const users = await serializeUsersByIds([user.id], user.id);
 
     ctx.body = { timelines, users };
   },
@@ -173,7 +173,6 @@ export const listSubscriptions = compose([
     const usersInHomeFeeds = subs.map((s) => ({ id: s.user_id, homeFeeds: s.homefeed_ids }));
     const users = await serializeUsersByIds(
       [user.id, ...usersInHomeFeeds.map((s) => s.id)],
-      true,
       user.id,
     );
 
@@ -199,7 +198,7 @@ export const getHomeFeedInfo = compose([
     }
 
     const subscribedTo = await feed.getHomeFeedSubscriptions();
-    const users = await serializeUsersByIds([...subscribedTo, feed.userId], true, user.id);
+    const users = await serializeUsersByIds([...subscribedTo, feed.userId], user.id);
 
     ctx.body = {
       timeline: serializeTimeline(feed),

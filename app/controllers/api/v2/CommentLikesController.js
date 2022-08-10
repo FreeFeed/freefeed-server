@@ -60,7 +60,6 @@ export default class CommentLikesController {
 
       const users = await serializeUsersByIds(
         likes.map((l) => l.userId),
-        true,
         user?.id,
       );
 

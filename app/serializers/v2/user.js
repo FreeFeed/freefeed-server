@@ -2,6 +2,10 @@ import { pick, uniq } from 'lodash';
 
 import { dbAdapter } from '../../models';
 
+/**
+ * @typedef { import('../../support/types').UUID } UUID
+ */
+
 const commonUserFields = [
   'id',
   'username',
@@ -61,37 +65,17 @@ const defaultStats = {
 };
 
 /**
- * Returns function that returns serialized user by its id
- */
-export function userSerializerFunction(allUsers, allStats, allGroupAdmins = {}) {
-  return (id) => {
-    const obj = pickAccountProps(allUsers[id]);
-    obj.statistics = (!obj.isGone && allStats[id]) || defaultStats;
-
-    if (obj.type === 'group') {
-      obj.administrators = allGroupAdmins[obj.id] || [];
-
-      // Groups that have no active admins are restricted
-      if (!obj.administrators.some((a) => allUsers[a]?.isActive)) {
-        obj.isRestricted = '1';
-      }
-    }
-
-    return obj;
-  };
-}
-
-/**
- * Serialises users by their ids
+ * Serializes users by their ids
  *
  * Keeps userIds order, but adds uniqueness and puts admins (if withAdmins is
  * true) to the end of list.
  *
- * @param {Array.<string>} userIds
+ * @param {UUID[]} userIds
+ * @param {UUID | null} viewerId
  * @param {boolean} withAdmins
  * @returns {Promise<Array>}
  */
-export async function serializeUsersByIds(userIds, withAdmins = true, viewerId = null) {
+export async function serializeUsersByIds(userIds, viewerId = null, withAdmins = true) {
   let allUserIds = uniq(userIds);
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds, viewerId);
 
@@ -107,9 +91,38 @@ export async function serializeUsersByIds(userIds, withAdmins = true, viewerId =
     dbAdapter.getUsersStatsAssoc(allUserIds),
   ]);
 
-  // Create serializer
-  const getSerializedUserById = userSerializerFunction(usersAssoc, statsAssoc, adminsAssoc);
+  const groupIds = allUserIds.filter((id) => usersAssoc[id]?.type === 'group');
+  const [subscribedGroupsId, blockedGroupsId] = await Promise.all([
+    dbAdapter.getOnlySubscribedTo(viewerId, groupIds),
+    viewerId ? await dbAdapter.groupIdsBlockedUser(viewerId, groupIds) : [],
+  ]);
 
   // Serialize
-  return allUserIds.map(getSerializedUserById);
+  return allUserIds.map((id) => {
+    const obj = pickAccountProps(usersAssoc[id]);
+    obj.statistics = (!obj.isGone && statsAssoc[id]) || defaultStats;
+
+    if (obj.type === 'group') {
+      obj.administrators = adminsAssoc[obj.id] || [];
+
+      // Groups that have no active admins are restricted
+      if (!obj.administrators.some((a) => usersAssoc[a]?.isActive)) {
+        obj.isRestricted = '1';
+      }
+
+      obj.acceptsPosts = false;
+
+      if (viewerId && !blockedGroupsId.includes(id)) {
+        if (obj.isRestricted === '1') {
+          obj.acceptsPosts = obj.administrators.includes(viewerId);
+        } else if (obj.isPrivate === '1') {
+          obj.acceptsPosts = subscribedGroupsId.includes(id);
+        } else {
+          obj.acceptsPosts = true;
+        }
+      }
+    }
+
+    return obj;
+  });
 }

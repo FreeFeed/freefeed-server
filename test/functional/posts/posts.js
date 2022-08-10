@@ -610,7 +610,7 @@ describe('PostsController', () => {
           });
       });
 
-      it('should not allow a user to post to a group to which they are not subscribed', (done) => {
+      it('should allow a user to post to a public group to which they are not subscribed', (done) => {
         request
           .post(`${app.context.config.host}/v1/posts`)
           .send({
@@ -618,9 +618,10 @@ describe('PostsController', () => {
             meta: { feeds: [groupName] },
             authToken: otherUserAuthToken,
           })
-          .end((err) => {
-            err.should.not.be.empty;
-            err.status.should.eql(403);
+          .end((err, res) => {
+            res.status.should.eql(200);
+            const post = res.body.posts;
+            post.body.should.eql('Post body');
             done();
           });
       });
@@ -1118,9 +1119,9 @@ describe('PostsController', () => {
           expect(postedToUsernames(res), 'to equal', [luna.username]);
         });
 
-        it('should not be able to add a group to post when Luna not in the group', async () => {
+        it('should be able to add a public group to post when Luna not in the group', async () => {
           const call = updatePost(post, luna, { feeds: [luna.username, evilmartians.username] });
-          await expect(call, 'to be rejected with', /\(403\)/);
+          await expect(call, 'to be fulfilled');
         });
 
         it('should not be able to add a direct recipient to post', async () => {

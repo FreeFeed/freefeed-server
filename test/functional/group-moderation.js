@@ -178,7 +178,7 @@ describe('Group Moderation', () => {
           expect(marsEvents, 'to satisfy', [
             {
               event_type: EVENT_TYPES.COMMENT_MODERATED,
-              created_user_id: luna.user.id,
+              created_user_id: null,
               post_id: post.id,
             },
           ]);
@@ -194,7 +194,7 @@ describe('Group Moderation', () => {
           expect(marsEvents, 'to satisfy', [
             {
               event_type: EVENT_TYPES.COMMENT_MODERATED,
-              created_user_id: jupiter.user.id,
+              created_user_id: null,
               post_id: post.id,
               group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
             },
@@ -212,7 +212,7 @@ describe('Group Moderation', () => {
           expect(lunaEvents, 'to satisfy', [
             {
               event_type: EVENT_TYPES.COMMENT_MODERATED,
-              created_user_id: mars.user.id,
+              created_user_id: null,
               post_id: post.id,
               group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
             },
@@ -279,7 +279,7 @@ describe('Group Moderation', () => {
           expect(lunaEvents, 'to satisfy', [
             {
               event_type: EVENT_TYPES.POST_MODERATED,
-              created_user_id: mars.user.id,
+              created_user_id: null,
               group_id: celestials.group.id,
             },
           ]);
@@ -382,7 +382,7 @@ describe('Group Moderation', () => {
               expect(lunaEvents, 'to satisfy', [
                 {
                   event_type: EVENT_TYPES.POST_MODERATED,
-                  created_user_id: mars.user.id,
+                  created_user_id: null,
                   group_id: expect.it('to be one of', [gods.group.id, celestials.group.id]),
                   post_id: post.id,
                 },
@@ -444,7 +444,7 @@ describe('Group Moderation', () => {
               expect(lunaEvents, 'to satisfy', [
                 {
                   event_type: EVENT_TYPES.POST_MODERATED,
-                  created_user_id: jupiter.user.id,
+                  created_user_id: null,
                   group_id: gods.group.id,
                   post_id: post.id,
                 },

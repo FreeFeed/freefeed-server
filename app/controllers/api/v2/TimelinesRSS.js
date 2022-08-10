@@ -229,5 +229,5 @@ async function loadAllComments(postId, ctx) {
     { foldComments: false },
   );
 
-  return postWithStuff ? postWithStuff.comments.map(serializeComment) : [];
+  return postWithStuff ? postWithStuff.comments.map((c) => serializeComment(c)) : [];
 }
