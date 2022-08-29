@@ -6,6 +6,8 @@ import { User, Group, Comment } from '../../models';
 
 import { initObject, prepareModelPayload } from './utils';
 
+/** @typedef {import('../types').UUID} UUID */
+
 const usersTrait = (superClass) =>
   class extends superClass {
     async createUser(payload) {
@@ -474,6 +476,31 @@ const usersTrait = (superClass) =>
     async deleteUser(uid) {
       await this.database('users').where({ uid }).delete();
       await this.cacheFlushUser(uid);
+    }
+
+    /**
+     *
+     * @param {UUID[]} userIds
+     * @returns {Promise<Map<UUID, string>>}
+     */
+    async getDirectModesMap(userIds) {
+      const map = new Map();
+
+      if (userIds.length === 0) {
+        return map;
+      }
+
+      const rows = await this.database.getAll(
+        `select uid, preferences -> 'acceptDirectsFrom' as mode
+          from users where uid = any(:userIds)`,
+        { userIds },
+      );
+
+      for (const { uid, mode } of rows) {
+        map.set(uid, mode);
+      }
+
+      return map;
     }
   };
 

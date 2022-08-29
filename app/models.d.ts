@@ -12,6 +12,9 @@ export const dbAdapter: DbAdapter;
 export const PubSub: PubSubAdapter;
 
 export class User {
+  static ACCEPT_DIRECTS_FROM_ALL: 'all';
+  static ACCEPT_DIRECTS_FROM_FRIENDS: 'friends';
+
   static feedNames: [
     'RiverOfNews',
     'Hides',

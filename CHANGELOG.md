@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.0] - Not released
 ### Added
+- Serialized users and groups now have two new fields: _youCan_ and _theyDid_.
+  These fields are arrays of strings and represents actions, that the current
+  user can perform over the object (_youCan_) and actions, that the object
+  performed over the current user (_theyDid_). The incomplete list of actions
+  is: "post", "dm", "(un)subscribe", "(un)ban", "block",
+  "(un)request_subscription" and so on.
 - Users can now write posts to public and protected groups that they are not members of.
 - Group administrators can now block certain users from write to the group. This
   feature includes:
@@ -18,15 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     to the (un)blocked user and to the all of group admins.
   - When some user is blocked/unblocked in a group, the 'global:user:update'
     realtime event _about the group_ is sent. This event contain general group
-    info, including the new  _acceptsPosts_ field (see below), so the listening
-    user can determine, if he can or cannot post to the group.
-- Any serialized group data (not user data) in API responses now have additional
-  boolean _acceptsPosts_ field. This field is _true_ if the current user can
-  create posts in this group. 
-  
-  This field takes into account all factors, including the user blocking
-  described above. It will make it easier for the client to determine if it is
-  possible to post to the group.
+    info, including the new _youCan_ (with "post") and _theyDid_ (with "block")
+    fields, so the listening user can determine, if he can or cannot post to the
+    group, and why.
 
 ## Changed
 - Notifications: hide the initiator of some events from the event target user.
