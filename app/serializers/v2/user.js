@@ -1,6 +1,6 @@
 import { pick, uniq } from 'lodash';
 
-import { dbAdapter } from '../../models';
+import { User, dbAdapter } from '../../models';
 
 /**
  * @typedef { import('../../support/types').UUID } UUID
@@ -40,6 +40,8 @@ export async function serializeSelfUser(user) {
       user.getUnreadNotificationsNumber(),
       user.getStatistics(),
     ]);
+  result.youCan = ['post'];
+  result.theyDid = [];
 
   return result;
 }
@@ -85,17 +87,30 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
     allUserIds = uniq(allUserIds);
   }
 
-  // Select users and their stats
-  const [usersAssoc, statsAssoc] = await Promise.all([
+  const [
+    // Select users and their stats
+    usersAssoc,
+    statsAssoc,
+    // Select subscriptions and requests statuses
+    subscriptionStatuses,
+    subscriptionRequestStatuses,
+    // Bans
+    viewerBans,
+    theyBans,
+    // Directs
+    directModes,
+  ] = await Promise.all([
     dbAdapter.getUsersByIdsAssoc(allUserIds),
     dbAdapter.getUsersStatsAssoc(allUserIds),
+    dbAdapter.getMutualSubscriptionStatuses(viewerId, allUserIds),
+    dbAdapter.getMutualSubscriptionRequestStatuses(viewerId, allUserIds),
+    viewerId ? dbAdapter.getUserBansIds(viewerId) : [],
+    viewerId ? dbAdapter.getUserIdsWhoBannedUser(viewerId) : [],
+    viewerId ? dbAdapter.getDirectModesMap(allUserIds) : null,
   ]);
 
   const groupIds = allUserIds.filter((id) => usersAssoc[id]?.type === 'group');
-  const [subscribedGroupsId, blockedGroupsId] = await Promise.all([
-    dbAdapter.getOnlySubscribedTo(viewerId, groupIds),
-    viewerId ? await dbAdapter.groupIdsBlockedUser(viewerId, groupIds) : [],
-  ]);
+  const blockedInGroups = viewerId ? await dbAdapter.groupIdsBlockedUser(viewerId, groupIds) : [];
 
   // Serialize
   return allUserIds.map((id) => {
@@ -109,16 +124,64 @@ export async function serializeUsersByIds(userIds, viewerId = null, withAdmins =
       if (!obj.administrators.some((a) => usersAssoc[a]?.isActive)) {
         obj.isRestricted = '1';
       }
+    }
 
-      obj.acceptsPosts = false;
+    obj.youCan = [];
+    obj.theyDid = [];
 
-      if (viewerId && !blockedGroupsId.includes(id)) {
-        if (obj.isRestricted === '1') {
-          obj.acceptsPosts = obj.administrators.includes(viewerId);
-        } else if (obj.isPrivate === '1') {
-          obj.acceptsPosts = subscribedGroupsId.includes(id);
-        } else {
-          obj.acceptsPosts = true;
+    if (!viewerId) {
+      return obj;
+    }
+
+    if (obj.id === viewerId) {
+      // Viewer themselves
+      obj.youCan.push('post');
+      return obj;
+    }
+
+    const viewerSubscribed = (subscriptionStatuses.get(id) & 1) !== 0;
+    const theySubscribed = (subscriptionStatuses.get(id) & 2) !== 0;
+    const viewerSentRequest = (subscriptionRequestStatuses.get(id) & 1) !== 0;
+    const theySentRequest = (subscriptionRequestStatuses.get(id) & 2) !== 0;
+
+    if (viewerSubscribed) {
+      obj.youCan.push('unsubscribe');
+    } else if (obj.isPrivate === '1') {
+      // Actually we cannot send request if user banned us, but for now we don't
+      // want to demonstrate it.
+      obj.youCan.push(viewerSentRequest ? 'unrequest_subscription' : 'request_subscription');
+    } else {
+      obj.youCan.push('subscribe');
+    }
+
+    if (theySubscribed) {
+      obj.theyDid.push('subscribe');
+    } else if (theySentRequest) {
+      obj.theyDid.push('request_subscription');
+    }
+
+    if (obj.type === 'group') {
+      if (blockedInGroups.includes(id)) {
+        obj.theyDid.push('block');
+      } else if (obj.isRestricted === '1') {
+        obj.administrators.includes(viewerId) && obj.youCan.push('post');
+      } else if (obj.isPrivate === '0' || viewerSubscribed) {
+        obj.youCan.push('post');
+      }
+    } else {
+      // Regular user
+      // Bans
+      obj.youCan.push(viewerBans.includes(id) ? 'unban' : 'ban');
+
+      // Directs
+      if (!obj.isGone && !theyBans.includes(viewerId) && !viewerBans.includes(id)) {
+        const mode = directModes.get(id);
+
+        if (
+          mode === User.ACCEPT_DIRECTS_FROM_ALL ||
+          (mode === User.ACCEPT_DIRECTS_FROM_FRIENDS && theySubscribed)
+        ) {
+          obj.youCan.push('dm');
         }
       }
     }

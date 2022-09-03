@@ -2,6 +2,7 @@ import pgFormat from 'pg-format';
 
 import { initUserObject } from './users';
 import { lockByUUID, USER_SUBSCRIPTIONS } from './adv-locks';
+/** @typedef {import('../types').UUID} UUID */
 
 ///////////////////////////////////////////////////
 // Subscriptions
@@ -32,6 +33,51 @@ const subscriptionsTrait = (superClass) =>
         { userId, timelineId },
       );
       return rows.length > 0;
+    }
+
+    /**
+     * Returns map that represents the mutual subscription status between the
+     * userId and one of otherUserIds. Map keys are UUIDs from the otherUserIds
+     * and map values are bit masks: bit 0 means userId subscribed to this user,
+     * bit 1 means this user subscribed to userId.
+     *
+     * @param {UUID|null} userId
+     * @param {UUID[]} otherUserIds
+     * @returns {Promise<Map<UUID, 0|1|2|3>>}
+     */
+    async getMutualSubscriptionStatuses(userId, otherUserIds) {
+      const map = new Map(otherUserIds.map((id) => [id, 0]));
+
+      if (!userId || otherUserIds.length === 0) {
+        return map;
+      }
+
+      const postsFeedId = await this.database.getOne(
+        `select uid from feeds where user_id = :userId and name = :name`,
+        { userId, name: 'Posts' },
+      );
+
+      const rows = await this.database.getAll(
+        `( -- subscriptions of userId
+            select f.user_id as id, 1 as status from
+            feeds f
+            join subscriptions s on s.feed_id = f.uid and f.name = 'Posts'
+            where s.user_id = :userId and f.user_id = any(:otherUserIds)
+          )
+          union all
+          ( -- subscribers of userId
+            select user_id as id, 2 as status from subscriptions 
+            where user_id = any(:otherUserIds) and feed_id = :postsFeedId
+          )
+        `,
+        { userId, otherUserIds, postsFeedId },
+      );
+
+      for (const { id, status } of rows) {
+        map.set(id, map.get(id) | status);
+      }
+
+      return map;
     }
 
     /**

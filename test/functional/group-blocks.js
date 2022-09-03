@@ -81,7 +81,7 @@ describe('Group Blocks', () => {
         blockUserInGroup(mars, selenites, luna),
       );
       await expect(test, 'when fulfilled', 'to satisfy', {
-        user: { id: selenites.group.id, acceptsPosts: true },
+        user: { id: selenites.group.id, youCan: expect.it('to contain', 'post'), theyDid: [] },
       });
     });
 
@@ -90,7 +90,11 @@ describe('Group Blocks', () => {
         blockUserInGroup(mars, selenites, luna),
       );
       await expect(test, 'when fulfilled', 'to satisfy', {
-        user: { id: selenites.group.id, acceptsPosts: false },
+        user: {
+          id: selenites.group.id,
+          youCan: expect.it('not to contain', 'post'),
+          theyDid: expect.it('to contain', 'block'),
+        },
       });
     });
 

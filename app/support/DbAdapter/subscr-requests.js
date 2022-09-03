@@ -76,6 +76,46 @@ const subscrRequestsTrait = (superClass) =>
         { fromUserId, toUserId },
       );
     }
+
+    /**
+     * Returns map that represents the mutual subscription request status between the
+     * userId and one of otherUserIds. Map keys are UUIDs from the otherUserIds
+     * and map values are bit masks: bit 0 means userId sent request to this user,
+     * bit 1 means this user request to userId.
+     *
+     * @param {UUID|null} userId
+     * @param {UUID[]} otherUserIds
+     * @returns {Promise<Map<UUID, 0|1|2|3>>}
+     */
+    async getMutualSubscriptionRequestStatuses(userId, otherUserIds) {
+      const map = new Map(otherUserIds.map((id) => [id, 0]));
+
+      if (!userId || otherUserIds.length === 0) {
+        return map;
+      }
+
+      const rows = await this.database.getAll(
+        `( -- requests from userId
+            select to_user_id as id, 1 as status from
+            subscription_requests
+            where from_user_id = :userId and to_user_id = any(:otherUserIds)
+          )
+          union all
+          ( -- requests to userId
+            select from_user_id as id, 2 as status from
+            subscription_requests
+            where to_user_id = :userId and from_user_id = any(:otherUserIds)
+          )
+        `,
+        { userId, otherUserIds },
+      );
+
+      for (const { id, status } of rows) {
+        map.set(id, map.get(id) | status);
+      }
+
+      return map;
+    }
   };
 
 export default subscrRequestsTrait;
