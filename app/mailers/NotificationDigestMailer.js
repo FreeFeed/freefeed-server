@@ -386,9 +386,9 @@ function getEventMarkup(eventText) {
 
 function makeBacklinkLink({ targetPostId, targetCommentId }) {
   if (targetCommentId) {
-    return `<a href="/post/${targetPostId}#comment-${targetCommentId}">comment</a>`;
+    return `<a href="${config.host}/post/${targetPostId}#comment-${targetCommentId}">comment</a>`;
   } else if (targetPostId) {
-    return `<a href="/post/${targetPostId}">post</a>`;
+    return `<a href="${config.host}/post/${targetPostId}">post</a>`;
   }
 
   return 'deleted entry';
