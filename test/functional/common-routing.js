@@ -10,6 +10,7 @@ import expect from 'unexpected';
 import { getSingleton } from '../../app/app';
 import { version as serverVersion } from '../../package.json';
 import cleanDB from '../dbCleaner';
+import { CURRENT_VERSION, MIN_SUPPORTED_VERSION } from '../../app/api-versions';
 
 import { createTestUser, updateUserAsync } from './functional_test_helper';
 
@@ -20,11 +21,13 @@ describe('Common API routing', () => {
     app = await getSingleton();
   });
 
-  it(`should publish the X-Freefeed-Server (server version) and Date response header`, async () => {
+  it(`should publish the X-Freefeed-Server (server version), Freefeed-API-Version and Date response header`, async () => {
     const resp = await fetch(`${app.context.config.host}/v2/users/whoami`);
     expect(resp.status, 'to be', 401);
     expect(resp.headers.get('X-Freefeed-Server'), 'to be', serverVersion);
+    expect(resp.headers.get('Freefeed-API-Version'), 'to be', CURRENT_VERSION.toString(10));
     expect(resp.headers.get('Access-Control-Expose-Headers'), 'to contain', 'X-Freefeed-Server');
+    expect(resp.headers.get('Access-Control-Expose-Headers'), 'to contain', 'Freefeed-API-Version');
     expect(resp.headers.get('Access-Control-Expose-Headers'), 'to contain', 'Date');
   });
 
@@ -38,6 +41,29 @@ describe('Common API routing', () => {
     expect(resp.status, 'to be', 404);
     const respData = await resp.json();
     expect(respData, 'to satisfy', { err: "API method not found: '/v1/unexisting/method'" });
+  });
+
+  it(`should return error if API version is too high and method exists`, async () => {
+    const resp = await fetch(`${app.context.config.host}/v${CURRENT_VERSION + 1}/server-info`);
+    expect(resp.status, 'to be', 404);
+    const respData = await resp.json();
+    expect(respData, 'to satisfy', { err: `Unknown API version ${CURRENT_VERSION + 1}` });
+  });
+
+  it(`should return error if API version is too high and method not exists`, async () => {
+    const resp = await fetch(
+      `${app.context.config.host}/v${CURRENT_VERSION + 1}/unexisting/method`,
+    );
+    expect(resp.status, 'to be', 404);
+    const respData = await resp.json();
+    expect(respData, 'to satisfy', { err: `Unknown API version ${CURRENT_VERSION + 1}` });
+  });
+
+  it(`should return minimal version if API version is below minimal`, async () => {
+    const p = `/v${MIN_SUPPORTED_VERSION - 1}/server-info`;
+    const resp = await fetch(`${app.context.config.host}${p}`);
+    expect(resp.status, 'to be', 200);
+    expect(resp.headers.get('Freefeed-API-Version'), 'to be', MIN_SUPPORTED_VERSION.toString(10));
   });
 
   it(`should response '200 OK' to OPTIONS request`, async () => {

@@ -28,6 +28,7 @@ import AppTokensRoute from './routes/api/v2/AppTokens';
 import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
+import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
 
 export default function (app) {
   const router = createRouter();
@@ -35,24 +36,11 @@ export default function (app) {
   app.use(router.allowedMethods());
 
   // Not Found middleware for API-like URIs
-  app.use(async (ctx, next) => {
-    if (/\/v\d+\//.test(ctx.url)) {
-      if (ctx.request.method === 'OPTIONS') {
-        ctx.status = 200;
-        return;
-      }
-
-      ctx.status = 404;
-      ctx.body = { err: `API method not found: '${ctx.url}'` };
-      return;
-    }
-
-    await next();
-  });
+  app.use(apiNotFoundMiddleware);
 }
 
 export function createRouter() {
-  const router = new Router();
+  const router = new Router({ prefix: '/v([1-9]\\d*)' });
 
   // unauthenticated routes
   PasswordsRoute(router);
