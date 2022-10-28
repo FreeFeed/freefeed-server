@@ -17,23 +17,23 @@ import {
 } from '../../../controllers/api/v2/HomeFeedsController';
 
 export default function addRoutes(app) {
-  app.get('/v2/bestof', bestOf);
-  app.get('/v2/everything', everything);
-  app.get('/v2/timelines/home/list', listHomeFeeds);
-  app.get('/v2/timelines/home/subscriptions', listSubscriptions);
-  app.get('/v2/timelines/home', ownTimeline('RiverOfNews', { withLocalBumps: true }));
-  app.get('/v2/timelines/home/:feedId/posts', ownTimeline('RiverOfNews', { withLocalBumps: true }));
-  app.post('/v2/timelines/home', createHomeFeed);
-  app.get('/v2/timelines/home/:feedId', getHomeFeedInfo);
-  app.patch('/v2/timelines/home/:feedId', updateHomeFeed);
-  app.delete('/v2/timelines/home/:feedId', deleteHomeFeed);
-  app.patch('/v2/timelines/home', reorderHomeFeeds);
-  app.get('/v2/timelines/filter/discussions', ownTimeline('MyDiscussions'));
-  app.get('/v2/timelines/filter/directs', ownTimeline('Directs'));
-  app.get('/v2/timelines/filter/saves', ownTimeline('Saves'));
-  app.get('/v2/timelines/:username', userTimeline('Posts'));
-  app.get('/v2/timelines/:username/likes', userTimeline('Likes'));
-  app.get('/v2/timelines/:username/comments', userTimeline('Comments'));
-  app.get('/v2/timelines-rss/:username', timelineRSS);
-  app.get('/v2/timelines-metatags/:username', metatags);
+  app.get('/bestof', bestOf);
+  app.get('/everything', everything);
+  app.get('/timelines/home/list', listHomeFeeds);
+  app.get('/timelines/home/subscriptions', listSubscriptions);
+  app.get('/timelines/home', ownTimeline('RiverOfNews', { withLocalBumps: true }));
+  app.get('/timelines/home/:feedId/posts', ownTimeline('RiverOfNews', { withLocalBumps: true }));
+  app.post('/timelines/home', createHomeFeed);
+  app.get('/timelines/home/:feedId', getHomeFeedInfo);
+  app.patch('/timelines/home/:feedId', updateHomeFeed);
+  app.delete('/timelines/home/:feedId', deleteHomeFeed);
+  app.patch('/timelines/home', reorderHomeFeeds);
+  app.get('/timelines/filter/discussions', ownTimeline('MyDiscussions'));
+  app.get('/timelines/filter/directs', ownTimeline('Directs'));
+  app.get('/timelines/filter/saves', ownTimeline('Saves'));
+  app.get('/timelines/:username', userTimeline('Posts'));
+  app.get('/timelines/:username/likes', userTimeline('Likes'));
+  app.get('/timelines/:username/comments', userTimeline('Comments'));
+  app.get('/timelines-rss/:username', timelineRSS);
+  app.get('/timelines-metatags/:username', metatags);
 }

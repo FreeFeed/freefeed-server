@@ -9,7 +9,6 @@ import GroupsRoute from './routes/api/v1/GroupsRoute';
 import PasswordsRoute from './routes/api/v1/PasswordsRoute';
 import PostsRoute from './routes/api/v1/PostsRoute';
 import SessionRoute from './routes/api/v1/SessionRoute';
-import TimelinesRoute from './routes/api/v1/TimelinesRoute';
 import UsersRoute from './routes/api/v1/UsersRoute';
 import GroupsRouteV2 from './routes/api/v2/GroupsRoute';
 import RequestsRouteV2 from './routes/api/v2/RequestsRoute';
@@ -63,7 +62,7 @@ export function createRouter() {
   CommentsRoute(router);
   GroupsRoute(router);
   PostsRoute(router);
-  TimelinesRoute(router);
+  UsersRouteV2(router);
   UsersRoute(router);
   StatsRouteV2(router);
 
@@ -72,7 +71,6 @@ export function createRouter() {
   SearchRoute(router);
   SummaryRoute(router);
   TimelinesRouteV2(router);
-  UsersRouteV2(router);
   PostsRouteV2(router);
   ArchivesRoute(router);
   ArchivesStatsRouteV2(router);
