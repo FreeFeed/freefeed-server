@@ -35,6 +35,7 @@ import { serializeSinglePost, serializeLike } from './serializers/v2/post';
 import { serializeCommentFull } from './serializers/v2/comment';
 import { serializeUsersByIds } from './serializers/v2/user';
 import { serializeEvents } from './serializers/v2/event';
+import { API_VERSION_ACTUAL, API_VERSION_MINIMAL } from './api-versions';
 /** @typedef {import('./support/types').UUID} UUID */
 
 const sentryIsEnabled = 'sentryDsn' in config;
@@ -70,17 +71,31 @@ export default class PubsubListener {
       debug('socket.io error', err);
     });
 
-    // authentication
+    // Initialization
     this.io.use(async (socket, next) => {
-      try {
-        socket.userId = await getAuthUserId(socket.handshake.query.token, socket);
-        socket.authToken = socket.handshake.query.token;
-        debug(`[socket.id=${socket.id}] auth user`, socket.userId);
-      } catch (e) {
-        // Can not properly return error to client so just treat user as anonymous
-        socket.userId = null;
-        socket.authToken = null;
-        debug(`[socket.id=${socket.id}] auth error`, e.message);
+      const { token, apiVersion: sApiVersion } = socket.handshake.query;
+
+      socket.userId = null;
+      socket.authToken = null;
+      socket.apiVersion = Number.parseInt(sApiVersion || '0', 10);
+
+      if (
+        !Number.isFinite(socket.apiVersion) ||
+        socket.apiVersion < API_VERSION_MINIMAL ||
+        socket.apiVersion > API_VERSION_ACTUAL
+      ) {
+        socket.apiVersion = API_VERSION_MINIMAL;
+      }
+
+      if (token) {
+        try {
+          socket.userId = await getAuthUserId(socket.handshake.query.token, socket);
+          socket.authToken = socket.handshake.query.token;
+          debug(`[socket.id=${socket.id}] auth user`, socket.userId);
+        } catch (e) {
+          // Can not properly return error to client so just treat user as anonymous
+          debug(`[socket.id=${socket.id}] auth error`, e.message);
+        }
       }
 
       return next();
@@ -122,6 +137,12 @@ export default class PubsubListener {
       socket.authToken = data.authToken;
       debug(`[socket.id=${socket.id}] auth user`, socket.userId);
     });
+
+    onSocketEvent(socket, 'status', () => ({
+      userId: socket.userId,
+      apiVersion: socket.apiVersion,
+      rooms: buildGroupedListOfSubscriptions(socket),
+    }));
 
     onSocketEvent(socket, 'subscribe', async (data, debugPrefix) => {
       if (!isPlainObject(data)) {

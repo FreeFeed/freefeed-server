@@ -14,6 +14,7 @@ import Application from 'koa';
 import { dbAdapter, sessionTokenV1Store, User } from '../../app/models';
 import { getSingleton as initApp } from '../../app/app';
 import { addMailListener } from '../../lib/mailer';
+import { API_VERSION_ACTUAL } from '../../app/api-versions';
 
 import * as schema from './schemaV2-helper';
 
@@ -1023,8 +1024,8 @@ export async function createRealtimeConnection(context, callbacks) {
   const port = process.env.PEPYATKA_SERVER_PORT || app.context.port;
   const options = {
     transports: ['websocket'],
-    'force new connection': true,
-    query: `token=${context.authToken}`,
+    forceNew: true,
+    query: { token: context.authToken, apiVersion: API_VERSION_ACTUAL },
   };
 
   return PromisifiedIO(`http://localhost:${port}/`, options, callbacks);

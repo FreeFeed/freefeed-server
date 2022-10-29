@@ -12,6 +12,7 @@ import {
   HOMEFEED_MODE_FRIENDS_ALL_ACTIVITY,
 } from '../../app/models';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
+import { API_VERSION_ACTUAL, API_VERSION_MINIMAL } from '../../app/api-versions';
 
 import * as funcTestHelper from './functional_test_helper';
 import * as schema from './schemaV2-helper';
@@ -50,6 +51,62 @@ describe('Realtime #2', () => {
   });
 
   afterEach(() => [lunaSession, marsSession, anonSession].forEach((s) => s.disconnect()));
+
+  describe('Socket status', () => {
+    it(`should return status of anonSession`, async () => {
+      const resp = await anonSession.sendAsync('status', null);
+      expect(resp, 'to equal', {
+        success: true,
+        userId: null,
+        apiVersion: API_VERSION_MINIMAL,
+        rooms: {},
+      });
+    });
+
+    it(`should return status of lunaSession`, async () => {
+      const resp = await lunaSession.sendAsync('status', null);
+      expect(resp, 'to equal', {
+        success: true,
+        userId: luna.user.id,
+        apiVersion: API_VERSION_ACTUAL,
+        rooms: {},
+      });
+    });
+
+    it(`should return minimal API version if it is not set`, async () => {
+      const session = await Session.create(port, 'Some session', { query: {} });
+      const resp = await session.sendAsync('status', null);
+      expect(resp, 'to satisfy', { apiVersion: API_VERSION_MINIMAL });
+      await session.disconnect();
+    });
+
+    it(`should return minimal API version if it is invalid`, async () => {
+      const session = await Session.create(port, 'Some session', {
+        query: { apiVersion: 'qwerty' },
+      });
+      const resp = await session.sendAsync('status', null);
+      expect(resp, 'to satisfy', { apiVersion: API_VERSION_MINIMAL });
+      await session.disconnect();
+    });
+
+    it(`should return minimal API version if it is below minimal`, async () => {
+      const session = await Session.create(port, 'Some session', {
+        query: { apiVersion: API_VERSION_MINIMAL - 1 },
+      });
+      const resp = await session.sendAsync('status', null);
+      expect(resp, 'to satisfy', { apiVersion: API_VERSION_MINIMAL });
+      await session.disconnect();
+    });
+
+    it(`should return minimal API version if it is above actual`, async () => {
+      const session = await Session.create(port, 'Some session', {
+        query: { apiVersion: API_VERSION_ACTUAL + 1 },
+      });
+      const resp = await session.sendAsync('status', null);
+      expect(resp, 'to satisfy', { apiVersion: API_VERSION_MINIMAL });
+      await session.disconnect();
+    });
+  });
 
   describe('Luna wrote post, Mars likes it', () => {
     let post;

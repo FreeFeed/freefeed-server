@@ -1,5 +1,7 @@
 import SocketIO from 'socket.io-client';
 
+import { API_VERSION_ACTUAL } from '../../app/api-versions';
+
 const eventTimeout = 2000;
 const silenceTimeout = 500;
 
@@ -12,10 +14,12 @@ export default class Session {
   name = '';
   listeners = new Set();
 
-  static create(port, name = '') {
+  static create(port, name = '', extraOptions = {}) {
     const options = {
       transports: ['websocket'],
-      'force new connection': true,
+      forceNew: true,
+      query: { apiVersion: API_VERSION_ACTUAL },
+      ...extraOptions,
     };
     return new Promise((resolve, reject) => {
       const socket = SocketIO.connect(`http://localhost:${port}/`, options);
