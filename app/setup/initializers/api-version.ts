@@ -1,6 +1,6 @@
 import { Context, Next } from 'koa';
 
-import { CURRENT_VERSION, MIN_SUPPORTED_VERSION } from '../../api-versions';
+import { API_VERSION_ACTUAL, API_VERSION_MINIMAL } from '../../api-versions';
 
 export async function apiVersionMiddleware(ctx: Context, next: Next) {
   const match = /\/v([1-9]\d*)\//.exec(ctx.url);
@@ -12,14 +12,14 @@ export async function apiVersionMiddleware(ctx: Context, next: Next) {
 
   let apiVersion = Number.parseInt(match[1], 10);
 
-  if (apiVersion > CURRENT_VERSION) {
+  if (apiVersion > API_VERSION_ACTUAL) {
     ctx.status = 404;
     ctx.body = { err: `Unknown API version ${apiVersion}` };
     return;
   }
 
-  if (apiVersion < MIN_SUPPORTED_VERSION) {
-    apiVersion = MIN_SUPPORTED_VERSION;
+  if (apiVersion < API_VERSION_MINIMAL) {
+    apiVersion = API_VERSION_MINIMAL;
   }
 
   ctx.state.apiVersion = apiVersion;
