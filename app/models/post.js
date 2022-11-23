@@ -28,6 +28,7 @@ import {
 export function addModel(dbAdapter) {
   class Post {
     id;
+    intId;
     attachments;
     userId;
     timelineIds;
@@ -44,6 +45,7 @@ export function addModel(dbAdapter) {
 
     constructor(params) {
       this.id = params.id;
+      this.intId = params.intId;
       this.body = params.body;
       this.attachments = params.attachments || [];
       this.userId = params.userId;
@@ -140,6 +142,7 @@ export function addModel(dbAdapter) {
         'createdAt',
         'updatedAt',
         'bumpedAt',
+        'intId',
       ];
 
       for (const f of fieldsToUpdate) {
