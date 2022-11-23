@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.0] - Not released
 
+## [2.4.1] - 2022-11-23
+### Fixed
+- Incorrect 'file-type' import
+
 ## [2.4.0] - 2022-11-23
 ### Added
 - Serialized users and groups now have two new fields: _youCan_ and _theyDid_.
