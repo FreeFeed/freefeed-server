@@ -201,6 +201,9 @@ export const appTokensScopes = [
       'POST /v1/groups/:groupName/acceptRequest/:userName',
       'POST /v1/groups/:groupName/rejectRequest/:userName',
       'POST /v1/groups/:groupName/unsubscribeFromGroup/:userName',
+      'GET /v2/groups/:groupName/blockedUsers',
+      'POST /v2/groups/:groupName/block/:userName',
+      'POST /v2/groups/:groupName/unblock/:userName',
     ],
   },
   {

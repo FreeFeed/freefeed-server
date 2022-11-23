@@ -39,6 +39,9 @@ export const EVENT_TYPES = {
 
   BACKLINK_IN_POST: 'backlink_in_post',
   BACKLINK_IN_COMMENT: 'backlink_in_comment',
+
+  BLOCKED_IN_GROUP: 'blocked_in_group',
+  UNBLOCKED_IN_GROUP: 'unblocked_in_group',
 } as const;
 
 export type T_EVENT_TYPE = typeof EVENT_TYPES[keyof typeof EVENT_TYPES];
@@ -72,3 +75,18 @@ export const DIGEST_EVENT_TYPES = _.difference(Object.values(EVENT_TYPES), [
   'post_moderated_by_another_admin',
   'invitation_used',
 ] as const);
+
+/**
+ * Hide the initiator of action from the action target user
+ *
+ * It is useful, for example, to protect the anonymity of group admins.
+ *
+ * Technically, we should not show (serialize) the 'created_by' field of these
+ * types when 'user_id' (recipient) is the same as 'target_user_id'.
+ */
+export const HIDDEN_CREATOR_EVENT_TYPES = [
+  EVENT_TYPES.COMMENT_MODERATED,
+  EVENT_TYPES.POST_MODERATED,
+  EVENT_TYPES.BLOCKED_IN_GROUP,
+  EVENT_TYPES.UNBLOCKED_IN_GROUP,
+] as T_EVENT_TYPE[];

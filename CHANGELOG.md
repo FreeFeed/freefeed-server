@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - Not released
+### Added
+- Serialized users and groups now have two new fields: _youCan_ and _theyDid_.
+  These fields are arrays of strings and represents actions, that the current
+  user can perform over the object (_youCan_) and actions, that the object
+  performed over the current user (_theyDid_). The incomplete list of actions
+  is: "post", "dm", "(un)subscribe", "(un)ban", "block",
+  "(un)request_subscription" and so on.
+- Users can now write posts to public and protected groups that they are not members of.
+- Group administrators can now block certain users from write to the group. This
+  feature includes:
+  - New API methods for group administrators:
+    - `GET /v2/groups/:groupName/blockedUsers` 
+    - `POST /v2/groups/:groupName/block/:userName`
+    - `POST /v2/groups/:groupName/unblock/:userName`
+  - New event types, 'blocked_in_group' and 'unblocked_in_group', which are sent
+    to the (un)blocked user and to the all of group admins.
+  - When some user is blocked/unblocked in a group, the 'global:user:update'
+    realtime event _about the group_ is sent. This event contain general group
+    info, including the new _youCan_ (with "post") and _theyDid_ (with "block")
+    fields, so the listening user can determine, if he can or cannot post to the
+    group, and why.
+
+## Changed
+- Notifications: hide the initiator of some events from the event target user.
+  It is useful, for example, to protect the anonymity of group admins. The
+  affected event types are: 'comment_moderated', 'post_moderated',
+  'blocked_in_group', 'unblocked_in_group'.
+
+### Fixed
+- User data deletion process has been optimized for likes and comment likes.
+- Job manager now starting with a random delay for more even distribution of the
+  job fetching in multi-node environment.
+- In the notifications digest email, links to the backlinked entities was
+  relative instead of absolute.
+
 ## [2.3.1] - 2022-07-21
 ### Fixed
 - Remove orphan post/comment likes during user deletion

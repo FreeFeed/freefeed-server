@@ -281,7 +281,7 @@ export default class UsersController {
       const { targetUser, user: viewer } = ctx.state;
 
       const [serUsers, acceptsDirects, pastUsernames, inHomeFeeds] = await Promise.all([
-        serializeUsersByIds([targetUser.id], true, viewer && viewer.id),
+        serializeUsersByIds([targetUser.id], viewer?.id),
         targetUser.acceptsDirectsFrom(viewer),
         targetUser.getPastUsernames(),
         viewer ? viewer.getHomeFeedIdsSubscribedTo(targetUser) : [],
@@ -371,7 +371,7 @@ export default class UsersController {
         throw new ForbiddenException('User is private');
       }
 
-      let subscribers = await serializeUsersByIds(subscriberIds, true, viewer?.id);
+      let subscribers = await serializeUsersByIds(subscriberIds, viewer?.id);
 
       if (viewer?.id !== user.id) {
         // Sort by 'random' id to mask actual subscription order
@@ -413,7 +413,7 @@ export default class UsersController {
       timelineOwnersIds = timelineOwnersIds.filter((id) => groupsVisibility[id] !== false);
       timelines = timelines.filter(({ userId }) => groupsVisibility[userId] !== false);
 
-      let subscribers = await serializeUsersByIds(timelineOwnersIds, false, viewer?.id);
+      let subscribers = await serializeUsersByIds(timelineOwnersIds, viewer?.id, false);
       let subscriptions = timelines.map((t) => ({
         id: t.id,
         name: t.name,

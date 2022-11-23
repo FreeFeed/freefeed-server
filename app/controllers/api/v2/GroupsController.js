@@ -1,7 +1,10 @@
+import compose from 'koa-compose';
 import _ from 'lodash';
 
 import { dbAdapter } from '../../../models';
-import { userSerializerFunction } from '../../../serializers/v2/user';
+import { serializeUsersByIds } from '../../../serializers/v2/user';
+import { ForbiddenException } from '../../../support/exceptions';
+import { authRequired, targetUserRequired } from '../../middlewares';
 
 export default class GroupsController {
   static async managedGroups(ctx) {
@@ -42,24 +45,84 @@ export default class GroupsController {
     const { user: viewer } = ctx.state;
     const withProtected = !!viewer;
     const groups = await dbAdapter.getAllGroups({ withProtected });
-    ctx.body = { groups };
 
-    const allUserIds = new Set(groups.map((it) => it.id));
-
-    const allGroupAdmins = await dbAdapter.getGroupsAdministratorsIds(
-      [...allUserIds],
-      viewer && viewer.id,
+    const users = await serializeUsersByIds(
+      groups.map((g) => g.id),
+      viewer?.id,
     );
-    Object.values(allGroupAdmins).forEach((ids) => ids.forEach((s) => allUserIds.add(s)));
-
-    const [allUsersAssoc, allStatsAssoc] = await Promise.all([
-      dbAdapter.getUsersByIdsAssoc([...allUserIds]),
-      dbAdapter.getUsersStatsAssoc([...allUserIds]),
-    ]);
-    const serializeUser = userSerializerFunction(allUsersAssoc, allStatsAssoc, allGroupAdmins);
-
-    const users = Object.keys(allUsersAssoc).map(serializeUser);
 
     ctx.body = { withProtected, groups, users };
   }
+
+  static getBlockedUsers = compose([
+    authRequired(),
+    targetUserRequired({ groupName: 'group' }),
+    async (ctx) => {
+      const { user, group } = ctx.state;
+      const adminIds = await group.getAdministratorIds();
+
+      if (!adminIds.includes(user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group");
+      }
+
+      const blockedUsers = await dbAdapter.userIdsBlockedInGroup(group.id);
+      const users = await serializeUsersByIds(blockedUsers, user.id);
+      ctx.body = { blockedUsers, users };
+    },
+  ]);
+
+  static blockUser = compose([
+    authRequired(),
+    targetUserRequired({ groupName: 'group', userName: 'targetUser' }),
+    async (ctx) => {
+      const { user, group, targetUser } = ctx.state;
+
+      if (targetUser.isGroup()) {
+        throw new ForbiddenException('You cannot block group account');
+      }
+
+      const adminIds = await group.getAdministratorIds();
+
+      if (!adminIds.includes(user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group");
+      }
+
+      if (adminIds.includes(targetUser.id)) {
+        throw new ForbiddenException('You cannot block group administrator');
+      }
+
+      const ok = await group.blockUser(targetUser.id, user.id);
+
+      if (!ok) {
+        throw new ForbiddenException('This user is already blocked');
+      }
+
+      const blockedUsers = await dbAdapter.userIdsBlockedInGroup(group.id);
+      const users = await serializeUsersByIds(blockedUsers, user.id);
+      ctx.body = { blockedUsers, users };
+    },
+  ]);
+
+  static unblockUser = compose([
+    authRequired(),
+    targetUserRequired({ groupName: 'group', userName: 'targetUser' }),
+    async (ctx) => {
+      const { user, group, targetUser } = ctx.state;
+      const adminIds = await group.getAdministratorIds();
+
+      if (!adminIds.includes(user.id)) {
+        throw new ForbiddenException("You aren't an administrator of this group");
+      }
+
+      const ok = await group.unblockUser(targetUser.id, user.id);
+
+      if (!ok) {
+        throw new ForbiddenException("This user isn't blocked");
+      }
+
+      const blockedUsers = await dbAdapter.userIdsBlockedInGroup(group.id);
+      const users = await serializeUsersByIds(blockedUsers, user.id);
+      ctx.body = { blockedUsers, users };
+    },
+  ]);
 }

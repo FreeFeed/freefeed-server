@@ -75,6 +75,10 @@ export class DbAdapter {
   // Subscription requests
   getUserSubscriptionPendingRequestsIds(userId: UUID): Promise<UUID[]>;
   deleteSubscriptionRequest(toUserId: UUID, fromUserId: UUID): Promise<void>;
+  getMutualSubscriptionRequestStatuses(
+    userId: UUID | null,
+    otherUserIds: UUID[],
+  ): Promise<Map<UUID, 0 | 1 | 2 | 3>>;
 
   // External authentication
   getExtProfiles(userId: UUID): Promise<ExtProfileData[]>;
@@ -111,6 +115,11 @@ export class DbAdapter {
     };
   }>;
   isUserAdminOfGroup(userId: UUID, groupId: UUID): Promise<boolean>;
+  getDirectModesMap(
+    userIds: UUID[],
+  ): Promise<
+    Map<UUID, typeof User.ACCEPT_DIRECTS_FROM_ALL | typeof User.ACCEPT_DIRECTS_FROM_FRIENDS>
+  >;
 
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
@@ -229,4 +238,17 @@ export class DbAdapter {
   deleteJob(id: UUID): Promise<void>;
   fetchJobs(count: number, lockTime: number): Promise<Job[]>;
   getAllJobs(names?: string[]): Promise<Job[]>; // For testing purposes only
+
+  // Group blocks
+  blockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
+  unblockUserInGroup(userId: UUID, groupId: UUID): Promise<boolean>;
+  userIdsBlockedInGroup(groupId: UUID): Promise<UUID[]>;
+  groupIdsBlockedUser(userId: UUID, fromGroupIds?: UUID[]): Promise<UUID[]>;
+
+  // Subscriptions
+  getOnlySubscribedTo(subscriberId: UUID | null, toUserIds: UUID[]): Promise<UUID[]>;
+  getMutualSubscriptionStatuses(
+    userId: UUID | null,
+    otherUserIds: UUID[],
+  ): Promise<Map<UUID, 0 | 1 | 2 | 3>>;
 }

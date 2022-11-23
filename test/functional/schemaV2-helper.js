@@ -153,12 +153,28 @@ export const userBasic = {
   description: expect.it('to be a string'),
   profilePictureLargeUrl: expect.it('to be a string'),
   profilePictureMediumUrl: expect.it('to be a string'),
+  youCan: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a string'),
+  theyDid: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a string'),
 };
 
 export const groupBasic = {
   ...userBasic,
   isRestricted: expect.it('to be boolString'),
   type: expect.it('to equal', 'group'),
+  youCan: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a string'),
+  theyDid: expect
+    .it('to be an array')
+    .and('to be empty')
+    .or('to have items satisfying', 'to be a string'),
 };
 
 export const user = {

@@ -23,20 +23,21 @@ export default class AttachmentsController {
     async (ctx) => {
       // Accept one file-type field with any name
       const [file] = Object.values(ctx.request.files || []);
+      const { user } = ctx.state;
 
       if (!file) {
         throw new BadRequestException('No file provided');
       }
 
       try {
-        const newAttachment = await ctx.state.user.newAttachment({
+        const newAttachment = await user.newAttachment({
           file: { ...file, path: file.filepath, name: file.originalFilename },
         });
         await newAttachment.create();
 
         ctx.body = {
           attachments: serializeAttachment(newAttachment),
-          users: await serializeUsersByIds([newAttachment.userId]),
+          users: await serializeUsersByIds([newAttachment.userId], user.id),
         };
       } catch (e) {
         if (e.message && e.message.indexOf('Corrupt image') > -1) {
@@ -106,7 +107,7 @@ export default class AttachmentsController {
 
       ctx.body = {
         attachments: attachments.map(serializeAttachment),
-        users: await serializeUsersByIds([user.id]),
+        users: await serializeUsersByIds([user.id], user.id),
         hasMore,
       };
     },
