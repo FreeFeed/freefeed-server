@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User data deletion process has been optimized for likes and comment likes.
 - Job manager now starting with a random delay for more even distribution of the
   job fetching in multi-node environment.
+- In the notifications digest email, links to the backlinked entities was
+  relative instead of absolute.
 
 ## [2.3.1] - 2022-07-21
 ### Fixed
