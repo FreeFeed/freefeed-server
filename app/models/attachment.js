@@ -8,7 +8,7 @@ import config from 'config';
 import createDebug from 'debug';
 import gm from 'gm';
 import { parseFile } from 'music-metadata';
-import { fileTypeFromFile } from 'file-type';
+import { fromFile as fileTypeFromFile } from 'file-type';
 import mime from 'mime-types';
 import mmm from 'mmmagic';
 import _ from 'lodash';
