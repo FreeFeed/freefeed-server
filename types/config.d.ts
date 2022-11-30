@@ -104,6 +104,10 @@ declare module 'config' {
       token: string;
       tags: string[];
     };
+
+    emailVerification: {
+      domainBlockList: string | null;
+    };
   };
 
   const c: Config;
