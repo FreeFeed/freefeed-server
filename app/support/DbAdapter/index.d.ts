@@ -251,4 +251,9 @@ export class DbAdapter {
     userId: UUID | null,
     otherUserIds: UUID[],
   ): Promise<Map<UUID, 0 | 1 | 2 | 3>>;
+
+  // Email verification
+  createEmailVerificationCode(email: string, ipAddress: IPAddr): Promise<string | null>;
+  checkEmailVerificationCode(code: string, email: string): Promise<boolean>;
+  cleanOldEmailVerificationCodes(): Promise<void>;
 }

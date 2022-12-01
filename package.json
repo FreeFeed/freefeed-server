@@ -50,6 +50,7 @@
     "console-stamp": "~3.0.6",
     "debug": "~4.3.4",
     "ejs": "~3.1.8",
+    "email-validator": "~2.0.4",
     "exiftool-vendored": "~16.5.1",
     "ff-url-finder": "~2.3.7",
     "file-type": "~16.5.4",

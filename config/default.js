@@ -410,6 +410,11 @@ config.emailVerification = {
   //
   // Spaces, blank lines and lines starting with "#" are ignored.
   domainBlockList: null,
+  codes: {
+    TTL: 3600, // in secs
+    limitPerEmail: { count: 10, interval: 3600 },
+    limitPerIP: { count: 30, interval: 24 * 3600 },
+  },
 };
 
 module.exports = config;

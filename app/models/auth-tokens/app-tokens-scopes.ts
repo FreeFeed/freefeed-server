@@ -57,6 +57,8 @@ export const alwaysDisallowedRoutes = [
   // User suspend/resume
   'POST /v1/users/suspend-me',
   'POST /v1/users/resume-me',
+  // Email verification
+  'POST /v2/users/verifyEmail',
 ];
 
 export const appTokensScopes = [

@@ -7,4 +7,5 @@ export default function addRoutes(app) {
   app.get('/v2/users/markAllDirectsAsRead', UsersControllerV2.markAllDirectsAsRead);
   app.post('/v2/users/markAllNotificationsAsRead', UsersControllerV2.markAllNotificationsAsRead);
   app.get('/v2/users/whoami', UsersControllerV2.whoAmI);
+  app.post('/v2/users/verifyEmail', UsersControllerV2.verifyEmail);
 }

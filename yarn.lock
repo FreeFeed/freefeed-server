@@ -3520,6 +3520,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"email-validator@npm:~2.0.4":
+  version: 2.0.4
+  resolution: "email-validator@npm:2.0.4"
+  checksum: e702fee24e1b9efb7e6a84abb309bebdb4ddde137fdb99a61e24bd82ac0b605be34e191b1c4d04fbc855be7b94cad967f932a456c0def2240303881f4e388f2d
+  languageName: node
+  linkType: hard
+
 "emoji-regex@npm:^8.0.0":
   version: 8.0.0
   resolution: "emoji-regex@npm:8.0.0"
@@ -5019,6 +5026,7 @@ __metadata:
     debug: ~4.3.4
     ejs: ~3.1.8
     ejs-lint: ~1.2.2
+    email-validator: ~2.0.4
     esbuild: ~0.15.15
     eslint: ~8.20.0
     eslint-config-prettier: ~8.5.0

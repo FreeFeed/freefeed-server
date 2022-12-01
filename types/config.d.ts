@@ -107,6 +107,11 @@ declare module 'config' {
 
     emailVerification: {
       domainBlockList: string | null;
+      codes: {
+        TTL: number;
+        limitPerEmail: { count: number; interval: number };
+        limitPerIP: { count: number; interval: number };
+      };
     };
   };
 
