@@ -106,6 +106,7 @@ declare module 'config' {
     };
 
     emailVerification: {
+      enabled: boolean;
       domainBlockList: string | null;
       codes: {
         TTL: number;

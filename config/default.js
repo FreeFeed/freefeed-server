@@ -399,6 +399,7 @@ config.loggly = {
 };
 
 config.emailVerification = {
+  enabled: false,
   // Path to the file contains email domains that are not available for
   // inspection. These could be one-time email services or other unwanted hosts.
   //

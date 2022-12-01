@@ -26,5 +26,6 @@ export async function serverInfo(ctx) {
       comment: config.maxLength.comment,
       description: config.maxLength.description,
     },
+    emailVerificationEnabled: config.emailVerification.enabled,
   };
 }
