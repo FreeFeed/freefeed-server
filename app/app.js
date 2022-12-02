@@ -15,6 +15,9 @@ let app = null;
 
 const lock = new AwaitLock();
 
+/**
+ * @returns {Promise<FreefeedApp>}
+ */
 export async function getSingleton() {
   if (app !== null) {
     return app;

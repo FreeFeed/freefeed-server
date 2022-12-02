@@ -3,7 +3,7 @@
  * as the code is translated to TypeScript.
  */
 declare module 'config' {
-  type Config = {
+  export type Config = {
     siteTitle: string;
     host: string;
     port: number;
@@ -117,5 +117,5 @@ declare module 'config' {
   };
 
   const c: Config;
-  export = c;
+  export default c;
 }
