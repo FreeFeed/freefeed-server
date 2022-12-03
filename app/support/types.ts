@@ -10,6 +10,8 @@ export type IPAddr = Branded<string, 'IP address'>;
 
 export type Nullable<T> = T | null;
 
+export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
+
 // Controller context
 export type AppContext = { config: Config; port: number; pubsub: PubsubListener };
 export type Ctx = ParameterizedContext<DefaultState, AppContext>;
