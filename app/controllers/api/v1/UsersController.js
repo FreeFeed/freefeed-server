@@ -3,7 +3,6 @@ import util from 'util';
 
 import _ from 'lodash';
 import compose from 'koa-compose';
-import config from 'config';
 import jwt from 'jsonwebtoken';
 
 import {
@@ -52,6 +51,7 @@ const randomBytes = util.promisify(crypto.randomBytes);
 export default class UsersController {
   static create = compose([
     inputSchemaRequired(userCreateInputSchema),
+    /** @param {Ctx} ctx */
     async (ctx) => {
       const registrationOpen = await ServerInfo.isRegistrationOpen();
 
@@ -69,7 +69,7 @@ export default class UsersController {
         isProtected: ctx.request.body.isPrivate || ctx.request.body.isProtected ? '1' : '0',
       };
 
-      if (config.recaptcha.enabled) {
+      if (ctx.config.recaptcha.enabled) {
         await recaptchaVerify(ctx.request.body.captcha, ctx.request.ip);
       }
 
@@ -118,7 +118,9 @@ export default class UsersController {
           safeRun(() => useInvitation(user, invitation, ctx.request.body.cancel_subscription)),
         // Subscribe to onboarding user
         safeRun(async () => {
-          const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
+          const onboardingUser = await dbAdapter.getFeedOwnerByUsername(
+            ctx.config.onboardingUsername,
+          );
 
           if (onboardingUser) {
             await user.subscribeTo(onboardingUser);
@@ -148,6 +150,7 @@ export default class UsersController {
     },
   ]);
 
+  /** @param {Ctx} ctx */
   static async sudoCreate(ctx) {
     const params = {
       username: ctx.request.body.username,
@@ -156,7 +159,7 @@ export default class UsersController {
 
     params.hashedPassword = ctx.request.body.password_hash;
 
-    if (!config.acceptHashedPasswordsOnly) {
+    if (!ctx.config.acceptHashedPasswordsOnly) {
       params.password = ctx.request.body.password;
     }
 
@@ -164,10 +167,10 @@ export default class UsersController {
     await user.create(true);
 
     try {
-      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
+      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(ctx.config.onboardingUsername);
 
       if (null === onboardingUser) {
-        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`);
+        throw new NotFoundException(`Feed "${ctx.config.onboardingUsername}" is not found`);
       }
 
       await user.subscribeTo(onboardingUser);
@@ -331,8 +334,9 @@ export default class UsersController {
   static resumeMe = compose([
     inputSchemaRequired(userResumeMeInputSchema),
     monitored('users.resume-me'),
+    /** @param {Ctx} ctx */
     async (ctx) => {
-      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, config.secret);
+      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, ctx.config.secret);
 
       if (token.type !== 'resume-account') {
         throw new ForbiddenException('Unknown token type');

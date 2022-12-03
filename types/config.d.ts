@@ -28,6 +28,11 @@ declare module 'config' {
       messageFile: string;
     };
 
+    recaptcha: {
+      enabled: boolean;
+      secret: string;
+    };
+
     postgres: {
       textSearchConfigName: string;
     };
