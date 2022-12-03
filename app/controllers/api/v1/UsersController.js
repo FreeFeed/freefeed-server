@@ -47,6 +47,8 @@ import {
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
+/** @typedef {import('../../../support/types').Ctx} Ctx */
+
 export default class UsersController {
   static create = compose([
     inputSchemaRequired(userCreateInputSchema),
@@ -579,6 +581,7 @@ export default class UsersController {
   static update = compose([
     authRequired(),
     monitored('users.update'),
+    /** @param {Ctx} ctx */
     async (ctx) => {
       const {
         state: { user, authToken },
@@ -611,6 +614,27 @@ export default class UsersController {
 
         return acc;
       }, {});
+
+      if (
+        ctx.config.emailVerification.enabled &&
+        attrNames.includes('email') &&
+        'email' in ctx.request.body.user &&
+        // Not-strict equality here to compare, i.e. null with ''
+        user.email != attrs.email
+      ) {
+        if (ctx.request.body.emailVerificationCode) {
+          const ok = await dbAdapter.checkEmailVerificationCode(
+            ctx.request.body.emailVerificationCode,
+            attrs.email,
+          );
+
+          if (!ok) {
+            throw new ValidationException('Invalid or outdated email verification code');
+          }
+        } else {
+          throw new ValidationException('Email verification code required');
+        }
+      }
 
       await user.update(attrs);
 
