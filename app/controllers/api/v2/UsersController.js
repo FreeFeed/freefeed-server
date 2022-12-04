@@ -9,6 +9,7 @@ import { serializeSelfUser, serializeUsersByIds } from '../../../serializers/v2/
 import { monitored, authRequired, inputSchemaRequired } from '../../middlewares';
 import { ValidationException, TooManyRequestsException } from '../../../support/exceptions';
 import Mailer from '../../../../lib/mailer';
+import { isBlockedEmailDomain } from '../../../support/email-norm';
 
 import { verifyEmailSchema } from './data-schemes/users';
 
@@ -180,13 +181,15 @@ export default class UsersController {
         );
       }
 
-      // Send email to user
-      await Mailer.sendMail(
-        { screenName: email, email },
-        `Email confirmation code: ${code}`,
-        { code, email },
-        `${config.appRoot}/app/scripts/views/mailer/email-confirmation-code.ejs`,
-      );
+      if (!isBlockedEmailDomain(email)) {
+        // Send email to user
+        await Mailer.sendMail(
+          { screenName: email, email },
+          `Email confirmation code: ${code}`,
+          { code, email },
+          `${config.appRoot}/app/scripts/views/mailer/email-confirmation-code.ejs`,
+        );
+      }
 
       ctx.body = {};
     },

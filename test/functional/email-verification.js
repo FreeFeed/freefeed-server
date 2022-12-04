@@ -33,6 +33,14 @@ describe('Email verification', () => {
       expect(resp, 'to satisfy', { __httpCode: 422 });
     });
 
+    it(`should not send email to blocked address`, async () => {
+      const email = 'foo@bar.bad.com';
+      const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, { email });
+      expect(resp, 'to satisfy', { __httpCode: 200 });
+
+      expect(capturedMail.current, 'to be null');
+    });
+
     it(`should send email with code`, async () => {
       const email = 'foo@bar.baz';
       const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, { email });
