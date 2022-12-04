@@ -77,6 +77,7 @@ export const authFinish = compose([
         provider: provName,
         externalId: state.profile.id,
         title: state.profile.name,
+        email: state.profile.email,
       };
 
       // Connect external profile to FreeFeed account

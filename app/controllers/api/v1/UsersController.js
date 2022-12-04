@@ -99,6 +99,29 @@ export default class UsersController {
       }
 
       const user = new User(params);
+      await user.validateOnCreate();
+
+      if (ctx.config.emailVerification.enabled) {
+        if (!params.email) {
+          throw new ValidationException('Email address required');
+        }
+
+        if (extProfileData?.email !== params.email) {
+          if (ctx.request.body.emailVerificationCode) {
+            const ok = await dbAdapter.checkEmailVerificationCode(
+              ctx.request.body.emailVerificationCode,
+              params.email,
+            );
+
+            if (!ok) {
+              throw new ValidationException('Invalid or outdated email verification code');
+            }
+          } else {
+            throw new ValidationException('Email verification code required');
+          }
+        }
+      }
+
       await user.create(false);
 
       const safeRun = async (foo) => {
