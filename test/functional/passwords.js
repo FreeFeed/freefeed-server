@@ -36,7 +36,7 @@ describe('PasswordsController', () => {
       const resp = await performJSONRequest('POST', '/v1/passwords', { email: oldEmail });
       expect(resp, 'to satisfy', {
         __httpCode: 200,
-        message: `Password reset link has been sent to ${oldEmail}`,
+        message: `Password reset link has been sent to the specified address`,
       });
     });
 
@@ -54,7 +54,7 @@ describe('PasswordsController', () => {
         const resp = await performJSONRequest('POST', '/v1/passwords', { email });
         expect(resp, 'to satisfy', {
           __httpCode: 200,
-          message: `Password reset link has been sent to ${email}`,
+          message: `Password reset link has been sent to the specified address`,
         });
       }
     });
@@ -67,7 +67,7 @@ describe('PasswordsController', () => {
       const resp = await performJSONRequest('POST', '/v1/passwords', { email });
       expect(resp, 'to satisfy', {
         __httpCode: 200,
-        message: `Password reset link has been sent to ${email}`,
+        message: `Password reset link has been sent to the specified address`,
       });
     });
   });

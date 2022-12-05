@@ -1179,11 +1179,20 @@ export function withModifiedAppConfig(patch) {
  * Capture sent emails for all tests in 'describe' block. Use it only in
  * 'describe', not in test functions!
  */
-export function withEmailCapture({ clearBeforeEach = true } = {}) {
-  const ref = { current: null };
+export function withEmailCapture({ clearBeforeEach = true, multiple = false } = {}) {
+  const ref = { current: multiple ? [] : null };
   let removeMailListener = () => null;
-  before(() => (removeMailListener = addMailListener((r) => (ref.current = r))));
+  before(
+    () =>
+      (removeMailListener = addMailListener((r) => {
+        if (multiple) {
+          ref.current.push(r);
+        } else {
+          ref.current = r;
+        }
+      })),
+  );
   after(removeMailListener);
-  clearBeforeEach && beforeEach(() => (ref.current = null));
+  clearBeforeEach && beforeEach(() => (ref.current = multiple ? [] : null));
   return ref;
 }

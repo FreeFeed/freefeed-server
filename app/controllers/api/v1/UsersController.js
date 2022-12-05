@@ -106,6 +106,11 @@ export default class UsersController {
           throw new ValidationException('Email address required');
         }
 
+        if (await dbAdapter.existsNormEmail(params.email)) {
+          // email is taken
+          throw new ValidationException('This email address is already in use');
+        }
+
         if (extProfileData?.email !== params.email) {
           if (ctx.request.body.emailVerificationCode) {
             const ok = await dbAdapter.checkEmailVerificationCode(

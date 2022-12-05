@@ -11,9 +11,12 @@ export const up = (knex) =>
     primary key (code, email)
   );
 
+  alter table users add column email_norm text;
+
   end$$`);
 
 export const down = (knex) =>
   knex.schema.raw(`do $$begin
   drop table email_verification_codes;
+  alter table users drop column email_norm;
   end$$`);

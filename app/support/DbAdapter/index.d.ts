@@ -89,6 +89,10 @@ export class DbAdapter {
   getUserByIntId(intId: number): Promise<User | null>;
   getUsersByIds(ids: UUID[]): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUsersByNormEmail(email: string): Promise<User[]>;
+  existsEmail(email: string): Promise<boolean>;
+  existsNormEmail(email: string): Promise<boolean>;
   getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
   getFeedOwnerById(id: UUID): Promise<User | Group | null>;
   getFeedOwnersByUsernames(names: string[]): Promise<(User | Group)[]>;

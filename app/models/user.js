@@ -271,7 +271,7 @@ export function addModel(dbAdapter) {
         throw new ValidationException('Invalid email format');
       }
 
-      const exists = await dbAdapter.existsUserEmail(email);
+      const exists = await dbAdapter.existsEmail(email);
 
       if (exists) {
         // email is taken

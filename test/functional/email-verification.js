@@ -8,10 +8,12 @@ import { simpleParser } from 'mailparser';
 
 import cleanDB from '../dbCleaner';
 import { dbAdapter } from '../../app/models';
+import { SIGN_IN_USER_EXISTS } from '../../app/support/ExtAuth';
 
 import {
   authHeaders,
   createTestUser,
+  createUserAsync,
   performJSONRequest,
   withEmailCapture,
   withModifiedAppConfig,
@@ -400,6 +402,106 @@ describe('Email verification', () => {
         expect(resp, 'to satisfy', {
           __httpCode: 200,
           users: { username: 'luna', email: alteredEmail },
+        });
+      });
+    });
+  });
+
+  describe('Email normalization effects', () => {
+    beforeEach(() =>
+      Promise.all([
+        createUserAsync('luna', 'pw', { email: 'luna@example.com' }),
+        createUserAsync('luna2', 'pw', { email: 'luna+2@example.com' }),
+      ]),
+    );
+
+    describe('New user registration', () => {
+      it(`should not allow to create user with exactly same email`, async () => {
+        const email = 'luna@example.com';
+        const emailVerificationCode = await dbAdapter.createEmailVerificationCode(email, '::1');
+        const resp = await performJSONRequest('POST', `/v1/users`, {
+          username: 'mars',
+          password: 'pw',
+          email,
+          emailVerificationCode,
+        });
+        expect(resp, 'to satisfy', {
+          __httpCode: 422,
+          err: 'This email address is already in use',
+        });
+      });
+
+      it(`should not allow to create user with same normalized email`, async () => {
+        const email = 'luna+mars@example.com';
+        const emailVerificationCode = await dbAdapter.createEmailVerificationCode(email, '::1');
+        const resp = await performJSONRequest('POST', `/v1/users`, {
+          username: 'mars',
+          password: 'pw',
+          email,
+          emailVerificationCode,
+        });
+        expect(resp, 'to satisfy', {
+          __httpCode: 422,
+          err: 'This email address is already in use',
+        });
+      });
+
+      it(`should allow to create user with different email`, async () => {
+        const email = 'mars@example.com';
+        const emailVerificationCode = await dbAdapter.createEmailVerificationCode(email, '::1');
+        const resp = await performJSONRequest('POST', `/v1/users`, {
+          username: 'mars',
+          password: 'pw',
+          email,
+          emailVerificationCode,
+        });
+        expect(resp, 'to satisfy', { __httpCode: 200, users: { username: 'mars', email } });
+      });
+    });
+
+    describe(`External authorization`, () => {
+      it('should detect existing normalized email', async () => {
+        const email = 'luna+mars@example.com';
+
+        // Ubtaining auth URL
+        const authParams = {
+          provider: 'test',
+          redirectURL: 'http://localhost/callback',
+          mode: 'sign-in',
+          // Test values
+          externalId: '111',
+          externalName: 'Luna Lovegood',
+          externalEmail: email,
+        };
+
+        let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', authParams);
+        const redirectParams = qsParse(new URL(resp.redirectTo).search.substring(1));
+
+        // Finalizing flow
+        resp = await performJSONRequest('POST', '/v2/ext-auth/auth-finish', {
+          provider: 'test',
+          query: { code: '12345', state: redirectParams.state },
+        });
+
+        expect(resp, 'to satisfy', { status: SIGN_IN_USER_EXISTS });
+      });
+    });
+
+    describe(`Password reset`, () => {
+      const emails = withEmailCapture({ multiple: true });
+
+      it('should send password reset links to all users with the same norm. emails', async () => {
+        const resp = await performJSONRequest('POST', '/v1/passwords', {
+          email: 'luna+3@example.com',
+        });
+
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+        expect(emails.current, 'to have length', 2);
+        expect(emails.current, 'to have an item satisfying', {
+          envelope: { to: ['luna@example.com'] },
+        });
+        expect(emails.current, 'to have an item satisfying', {
+          envelope: { to: ['luna+2@example.com'] },
         });
       });
     });

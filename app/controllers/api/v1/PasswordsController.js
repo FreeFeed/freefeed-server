@@ -3,6 +3,7 @@ import { UserMailer } from '../../../mailers';
 import { NotFoundException } from '../../../support/exceptions';
 
 export default class PasswordsController {
+  /** @param {import('../../../support/types').Ctx} ctx */
   static async create(ctx) {
     const { email } = ctx.request.body;
 
@@ -12,16 +13,28 @@ export default class PasswordsController {
       return;
     }
 
-    const user = await dbAdapter.getUserByEmail(email);
+    let users;
 
-    if (!user?.isActive && !user?.isResumable) {
+    if (ctx.config.emailVerification.enabled) {
+      users = await dbAdapter.getUsersByNormEmail(email);
+    } else {
+      users = [await dbAdapter.getUserByEmail(email)];
+    }
+
+    users = users.filter((u) => u?.isActive || u?.isResumable);
+
+    if (users.length === 0) {
       throw new NotFoundException(`Invalid email address or user not found`);
     }
 
-    await user.updateResetPasswordToken();
-    await UserMailer.resetPassword(user, { user });
+    await Promise.all(
+      users.map(async (user) => {
+        await user.updateResetPasswordToken();
+        await UserMailer.resetPassword(user, { user });
+      }),
+    );
 
-    ctx.body = { message: `Password reset link has been sent to ${user.email}` };
+    ctx.body = { message: `Password reset link has been sent to the specified address` };
   }
 
   static async update(ctx) {

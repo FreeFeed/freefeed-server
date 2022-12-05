@@ -3,6 +3,7 @@ import _ from 'lodash';
 import validator from 'validator';
 
 import { User, Group, Comment } from '../../models';
+import { normalizeEmail } from '../email-norm';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -12,6 +13,11 @@ const usersTrait = (superClass) =>
   class extends superClass {
     async createUser(payload) {
       const preparedPayload = prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING);
+
+      if (preparedPayload.email) {
+        preparedPayload.email_norm = normalizeEmail(preparedPayload.email);
+      }
+
       const [row] = await this.database('users').returning('*').insert(preparedPayload);
       await this.createUserStats(row.uid);
       return initUserObject(row);
@@ -27,6 +33,10 @@ const usersTrait = (superClass) =>
           `now() + :tokenTTL * '1 second'::interval`,
           { tokenTTL },
         );
+      }
+
+      if (preparedPayload.email) {
+        preparedPayload.email_norm = normalizeEmail(preparedPayload.email);
       }
 
       await this.database('users').where('uid', userId).update(preparedPayload);
@@ -158,9 +168,19 @@ const usersTrait = (superClass) =>
       return parseInt(res[0].count);
     }
 
-    async existsUserEmail(email) {
-      const res = await this.database('users').whereRaw('LOWER(email)=LOWER(?)', email).count();
-      return parseInt(res[0].count);
+    existsEmail(email) {
+      return this.database.getOne(
+        `select exists(select 1 from users where lower(email) = lower(:email))`,
+        { email },
+      );
+    }
+
+    existsNormEmail(email) {
+      const normEmail = normalizeEmail(email);
+      return this.database.getOne(
+        `select exists(select 1 from users where email_norm = :normEmail)`,
+        { normEmail },
+      );
     }
 
     async getUserById(id) {
@@ -232,6 +252,15 @@ const usersTrait = (superClass) =>
       }
 
       return initUserObject(attrs);
+    }
+
+    async getUsersByNormEmail(email) {
+      const normEmail = normalizeEmail(email);
+      const rows = await this.database.getAll(`select * from users where email_norm = :normEmail`, {
+        normEmail,
+      });
+
+      return rows.map(initUserObject);
     }
 
     async _getUserIntIdByUUID(userUUID) {
