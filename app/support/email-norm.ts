@@ -8,7 +8,7 @@ const domainBlockList = readBlockList(config.emailVerification.domainBlockList);
 // A very simple normalization. It just removes from username part of email all
 // dots and all content starting from "+" symbol.
 export function normalizeEmail(address: string): string {
-  const [username, hostname] = address.toLowerCase().split('@');
+  const [username, hostname] = splitAddress(address.toLowerCase());
 
   if (!hostname) {
     // Not email address
@@ -19,7 +19,7 @@ export function normalizeEmail(address: string): string {
 }
 
 export function isBlockedEmailDomain(address: string, blockList = domainBlockList): boolean {
-  const [, hostname = ''] = address.toLowerCase().split('@');
+  const [, hostname = ''] = splitAddress(address.toLowerCase());
 
   for (const block of blockList) {
     if (hostname === block || hostname.endsWith(`.${block}`)) {
@@ -28,6 +28,16 @@ export function isBlockedEmailDomain(address: string, blockList = domainBlockLis
   }
 
   return false;
+}
+
+function splitAddress(address: string): [string] | [string, string] {
+  const p = address.indexOf('@');
+
+  if (p === -1) {
+    return [address];
+  }
+
+  return [address.substring(0, p), address.substring(p + 1)];
 }
 
 function readBlockList(path: string | null): string[] {
