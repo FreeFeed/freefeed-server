@@ -346,7 +346,7 @@ describe('App tokens controller', () => {
           userId: luna.user.id,
           title: 'My app',
           scopes: ['read-my-info'],
-          restrictions: { netmasks: ['127.0.0.1/24'] },
+          restrictions: { netmasks: ['127.0.0.1/24', '::1'] },
         });
       });
 
