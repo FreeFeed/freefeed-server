@@ -76,6 +76,69 @@ describe('Email verification', () => {
       const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, { email });
       expect(resp, 'to satisfy', { __httpCode: 429 });
     });
+
+    describe(`Different modes when some user exists`, () => {
+      const email = 'luna@example.com';
+      beforeEach(() => createUserAsync('luna', 'pw', { email }));
+
+      it(`should send warning in 'sign-in' mode with existing address`, async () => {
+        const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, {
+          email: 'luna@example.com',
+          mode: 'sign-up',
+        });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+
+        const parsedMail = await simpleParser(capturedMail.current.response);
+        expect(parsedMail.text, 'to satisfy', /WARNING:/);
+        expect(
+          parsedMail.text,
+          'to satisfy',
+          /Registering multiple accounts with the same email is not possible./,
+        );
+      });
+
+      it(`should send warning in 'sign-in' mode with existing norm address`, async () => {
+        const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, {
+          email: 'luna+1@example.com',
+          mode: 'sign-up',
+        });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+
+        const parsedMail = await simpleParser(capturedMail.current.response);
+        expect(parsedMail.text, 'to satisfy', /WARNING:/);
+        expect(
+          parsedMail.text,
+          'to satisfy',
+          /Registering multiple accounts with the same email is not possible./,
+        );
+      });
+
+      it(`should send warning in 'update' mode with existing address`, async () => {
+        const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, {
+          email: 'luna@example.com',
+          mode: 'update',
+        });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+
+        const parsedMail = await simpleParser(capturedMail.current.response);
+        expect(
+          parsedMail.text,
+          'to satisfy',
+          /WARNING: We already have a @luna account with this email address./,
+        );
+      });
+
+      it(`should not send warning in 'update' mode with existing norm address`, async () => {
+        const resp = await performJSONRequest('POST', `/v2/users/verifyEmail`, {
+          email: 'luna+1@example.com',
+          mode: 'update',
+        });
+        expect(resp, 'to satisfy', { __httpCode: 200 });
+
+        const parsedMail = await simpleParser(capturedMail.current.response);
+        expect(parsedMail.text, 'not to satisfy', /WARNING:/);
+      });
+    });
   });
 
   describe('Update email in profile', () => {

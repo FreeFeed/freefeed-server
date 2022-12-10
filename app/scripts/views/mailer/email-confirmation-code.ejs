@@ -8,5 +8,17 @@ Your email address (<%= email %>) confirmation code is as follows:
 Copy this code to the <%= config.siteTitle %> form that requires it.
 
 If you didn't request an email address confirmation, just ignore this email.
+<% if (someAccountsExists) { %>
+WARNING: You are signing up for a user account on <%=config.siteTitle %> with an email address
+that has been previously used to register one or more user accounts.
+
+Registering multiple accounts with the same email is not possible.
+<%_ } -%>
+<% if (otherAccount) { %>
+WARNING: We already have a @<%=otherAccount.username%> account with this email address.
+You will need to provide a different address to successfully change your account email. 
+<%_ } -%>
+
+If you forgot your password you can reset it here: <%= config.mailer.host %>/restore
 
 <%= config.siteTitle %> Team

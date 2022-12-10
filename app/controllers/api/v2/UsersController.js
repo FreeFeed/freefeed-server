@@ -166,8 +166,8 @@ export default class UsersController {
     monitored('verify-email'),
     async (ctx) => {
       const { ip } = ctx;
-      let { email } = ctx.request.body;
-      email = email.trim();
+      const { email: passedEmail, mode } = ctx.request.body;
+      const email = passedEmail.trim();
 
       if (!validateEmail(email)) {
         throw new ValidationException('Invalid email address format');
@@ -182,11 +182,21 @@ export default class UsersController {
       }
 
       if (!isBlockedEmailDomain(email)) {
+        const data = { code, email, someAccountsExists: false, otherAccount: false };
+
+        if (mode === 'sign-up') {
+          data.someAccountsExists = await dbAdapter.existsNormEmail(email);
+        }
+
+        if (mode === 'update') {
+          data.otherAccount = await dbAdapter.getUserByEmail(email);
+        }
+
         // Send email to user
         await Mailer.sendMail(
           { screenName: email, email },
           `Email confirmation code: ${code}`,
-          { code, email },
+          data,
           `${config.appRoot}/app/scripts/views/mailer/email-confirmation-code.ejs`,
         );
       }

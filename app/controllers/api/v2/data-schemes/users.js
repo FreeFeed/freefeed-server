@@ -10,5 +10,6 @@ export const verifyEmailSchema = {
 
   properties: {
     email: { type: 'string' },
+    mode: { type: 'string' },
   },
 };
