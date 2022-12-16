@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Site administrator should run `yarn babel bin/normalize_emails.js` command
     to normalize existing addresses in database.
 
+### Changed
+- BestOf, Everything and Search pages are not available from anonymous access
 
 ## [2.4.1] - 2022-11-23
 ### Fixed
