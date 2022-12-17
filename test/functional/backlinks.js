@@ -43,7 +43,12 @@ describe('Backlinks in API output', () => {
   });
 
   it(`should return Mars post by Luna post's UUID search`, async () => {
-    const resp = await performJSONRequest('GET', `/v2/search?qs=${encodeURIComponent(lunaPostId)}`);
+    const resp = await performJSONRequest(
+      'GET',
+      `/v2/search?qs=${encodeURIComponent(lunaPostId)}`,
+      null,
+      authHeaders(luna),
+    );
     expect(resp, 'to satisfy', { posts: [{ id: marsPostId }] });
   });
 
