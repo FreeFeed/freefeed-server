@@ -160,7 +160,7 @@
     "sinon": "~15.0.1",
     "socket.io-client": "~2.3.1",
     "source-map-support": "~0.5.21",
-    "superagent": "~7.1.6",
+    "superagent": "~8.0.6",
     "typescript": "~4.7.4",
     "unexpected": "~13.0.1",
     "unexpected-date": "~2.0.0",

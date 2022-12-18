@@ -4954,7 +4954,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"formidable@npm:^2.0.1":
+"formidable@npm:^2.0.1, formidable@npm:^2.1.1":
   version: 2.1.2
   resolution: "formidable@npm:2.1.2"
   dependencies:
@@ -5096,7 +5096,7 @@ __metadata:
     socket.io-redis: ~5.4.0
     source-map-support: ~0.5.21
     stream-meter: ~1.0.4
-    superagent: ~7.1.6
+    superagent: ~8.0.6
     ts-json-check: ~2.0.3
     typescript: ~4.7.4
     unexpected: ~13.0.1
@@ -9567,7 +9567,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.10.3, qs@npm:^6.11.0, qs@npm:^6.4.0":
+"qs@npm:^6.11.0, qs@npm:^6.4.0":
   version: 6.11.0
   resolution: "qs@npm:6.11.0"
   dependencies:
@@ -10244,7 +10244,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.3.5, semver@npm:^7.3.7":
+"semver@npm:^7.3.5, semver@npm:^7.3.7, semver@npm:^7.3.8":
   version: 7.3.8
   resolution: "semver@npm:7.3.8"
   dependencies:
@@ -11019,22 +11019,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"superagent@npm:~7.1.6":
-  version: 7.1.6
-  resolution: "superagent@npm:7.1.6"
+"superagent@npm:~8.0.6":
+  version: 8.0.6
+  resolution: "superagent@npm:8.0.6"
   dependencies:
     component-emitter: ^1.3.0
     cookiejar: ^2.1.3
     debug: ^4.3.4
     fast-safe-stringify: ^2.1.1
     form-data: ^4.0.0
-    formidable: ^2.0.1
+    formidable: ^2.1.1
     methods: ^1.1.2
     mime: 2.6.0
-    qs: ^6.10.3
-    readable-stream: ^3.6.0
-    semver: ^7.3.7
-  checksum: b73316836003219f1a4886a6d77dd28551a6784c30e871009fb7bad699fae772b20370d39d2ccb5a543c9335ce12b43a76b959a3ca983f1d6365cb4b5682c08f
+    qs: ^6.11.0
+    semver: ^7.3.8
+  checksum: 2dfe44b74acd37da34cb44617919927ebf689570f46f89234be3a0b8e89cae5afca8e28adae6b6be77a3cd06661f47cf5c4c872e9d98ba184e8f12fcb041a29d
   languageName: node
   linkType: hard
 
