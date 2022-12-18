@@ -2723,13 +2723,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"console-stamp@npm:~3.0.6":
-  version: 3.0.6
-  resolution: "console-stamp@npm:3.0.6"
+"console-stamp@npm:~3.1.0":
+  version: 3.1.0
+  resolution: "console-stamp@npm:3.1.0"
   dependencies:
     chalk: ^4.1.2
     dateformat: ^4.6.3
-  checksum: 06c7147a752d840e8323eab1c4433c66ec0cc0ae2de3e54aa0343fc52a7953506d1f8188766e6a47835e118e261bf3e5e2fb969228db3948de6dbfa3ffc96cbd
+  checksum: 8f3fb60794d6ef61ef8f6529fccb737bd804924725a1951d111099e917aab252ecff48476c139dc7c3281645074360604470ad7fb5fd143a8631b733f6e0c3ef
   languageName: node
   linkType: hard
 
@@ -5012,7 +5012,7 @@ __metadata:
     classnames: ~2.3.2
     commander: ~6.2.1
     config: ~3.3.8
-    console-stamp: ~3.0.6
+    console-stamp: ~3.1.0
     cross-env: ~7.0.3
     debug: ~4.3.4
     ejs: ~3.1.8

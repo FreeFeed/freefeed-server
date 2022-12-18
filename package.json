@@ -47,7 +47,7 @@
     "classnames": "~2.3.2",
     "commander": "~6.2.1",
     "config": "~3.3.8",
-    "console-stamp": "~3.0.6",
+    "console-stamp": "~3.1.0",
     "debug": "~4.3.4",
     "ejs": "~3.1.8",
     "email-validator": "~2.0.4",
