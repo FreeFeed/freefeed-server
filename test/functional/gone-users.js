@@ -281,7 +281,7 @@ describe('Gone users', () => {
     });
 
     it(`should not show Luna's post in everything feed`, async () => {
-      const resp = await performJSONRequest('GET', `/v2/everything`);
+      const resp = await performJSONRequest('GET', `/v2/everything`, null, authHeaders(mars));
       expect(resp, 'to satisfy', { posts: [] });
     });
 
@@ -336,7 +336,12 @@ describe('Gone users', () => {
     });
 
     it(`should not show Luna's post in search results`, async () => {
-      const resp = await performJSONRequest('GET', `/v2/search?qs=from:${luna.username}`);
+      const resp = await performJSONRequest(
+        'GET',
+        `/v2/search?qs=from:${luna.username}`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { posts: [] });
     });
 
@@ -406,7 +411,12 @@ describe('Gone users', () => {
     });
 
     it(`should not show liked post during search in Luna likes`, async () => {
-      const resp = await performJSONRequest('GET', `/v2/search?qs=liked-by:${luna.username}`);
+      const resp = await performJSONRequest(
+        'GET',
+        `/v2/search?qs=liked-by:${luna.username}`,
+        null,
+        authHeaders(mars),
+      );
       expect(resp, 'to satisfy', { posts: [] });
     });
   });
