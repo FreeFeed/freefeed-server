@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - BestOf, Everything and Search pages are not available from anonymous access
 
+### Fixed
+- ExifTools write errors don't interrupts the attachment creation anymore.
+
 ## [2.4.1] - 2022-11-23
 ### Fixed
 - Incorrect 'file-type' import

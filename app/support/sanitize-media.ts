@@ -1,5 +1,8 @@
+import Raven from 'raven';
 import config from 'config';
 import { exiftool } from 'exiftool-vendored';
+
+const sentryIsEnabled = 'sentryDsn' in config;
 
 export const SANITIZE_NONE = 0;
 export const SANITIZE_VERSION = 1;
@@ -28,9 +31,11 @@ export async function sanitizeMediaMetadata(filePath: string): Promise<boolean> 
       await exiftool.write(filePath, tagsToClean, ['-overwrite_original', '-ignoreMinorErrors']);
       return true;
     } catch (e) {
+      // It's ok to fail, we cannot do anything useful in this case
+
       // Some exiftool 'errors' are really a warnings
-      if (!(e instanceof Error) || !e.message.startsWith('Warning:')) {
-        throw e;
+      if (e instanceof Error && !e.message.startsWith('Warning:') && sentryIsEnabled) {
+        Raven.captureException(e);
       }
     }
   }
