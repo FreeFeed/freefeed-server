@@ -29,9 +29,9 @@ export abstract class AuthToken {
       throw new NotAuthorizedException(`user is not exists or is not active`);
     }
 
-    if (!(await user.isFrozen())) {
-      authDebugError(`user ${this.userId} is suspended by the site administration`);
-      throw new NotAuthorizedException(`account is suspended by the site administration`);
+    if (await user.isFrozen()) {
+      authDebugError(`user ${this.userId} has been suspended by the site administration`);
+      throw new NotAuthorizedException(`account has been suspended by the site administration`);
     }
 
     authDebug(`authenticated as ${user.username} with ${this.constructor.name} token`);

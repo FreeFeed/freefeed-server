@@ -8,7 +8,7 @@ import expect from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { dbAdapter } from '../../app/models';
 
-import { createTestUser, performJSONRequest } from './functional_test_helper';
+import { authHeaders, createTestUser, performJSONRequest } from './functional_test_helper';
 
 describe('User freeze', () => {
   /** @type {import('../../app/models').User} */
@@ -27,7 +27,6 @@ describe('User freeze', () => {
 
     beforeEach(async () => {
       luna = await createTestUser('luna');
-      await freeze(luna.user.id, 10);
 
       // Luna has connected external profile
       let resp = await performJSONRequest('POST', '/v2/ext-auth/auth-start', {
@@ -41,6 +40,9 @@ describe('User freeze', () => {
         { provider: 'test', query: { code: '12345', state: redirectParams.state } },
         { Authorization: `Bearer ${luna.authToken}` },
       );
+
+      // Freeze!
+      await freeze(luna.user.id, 10);
     });
 
     it(`should not allow Luna to sign in by login and password`, async () => {
@@ -62,6 +64,11 @@ describe('User freeze', () => {
         query: { code: '12345', state: redirectParams.state },
       });
 
+      expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended by the site administration/ });
+    });
+
+    it(`should not allow Luna to perform any request`, async () => {
+      const resp = await performJSONRequest('GET', '/v1/users/me', null, authHeaders(luna));
       expect(resp, 'to satisfy', { __httpCode: 401, err: /suspended by the site administration/ });
     });
   });
