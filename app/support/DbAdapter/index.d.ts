@@ -129,6 +129,10 @@ export class DbAdapter {
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getCommentsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
 
+  // Freeze
+  freezeUser(userId: UUID, freezeTime: number | string): Promise<void>;
+  isUserFrozen(userId: UUID): Promise<boolean>;
+
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
 

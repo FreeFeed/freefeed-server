@@ -1324,5 +1324,13 @@ export function addModel(dbAdapter) {
     static async getByExtProfile({ provider, externalId }) {
       return await dbAdapter.getUserByExtProfile({ provider, externalId });
     }
+
+    async freeze(freezeTime) {
+      await dbAdapter.freezeUser(this.id, freezeTime);
+    }
+
+    isFrozen() {
+      return dbAdapter.isUserFrozen(this.id);
+    }
   };
 }
