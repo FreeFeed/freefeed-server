@@ -57,9 +57,10 @@ describe('sanitizeMediaMetadata', () => {
   );
 
   it(
-    `should throw error on broken file`,
+    `should not throw error on broken file`,
     withTempFile(brokenFilePath, async (filePath) => {
-      await expect(sanitizeMediaMetadata(filePath), 'to be rejected');
+      const ok = await sanitizeMediaMetadata(filePath);
+      expect(ok, 'to be false');
     }),
   );
 });
