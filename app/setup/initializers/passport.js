@@ -33,6 +33,13 @@ export function init(passport) {
             return;
           }
 
+          if (user && (await user.isFrozen())) {
+            done({
+              message:
+                'Your account has been suspended by the site administration. Please contact support for more information.',
+            });
+          }
+
           const valid = await user.validPassword(clearPassword);
 
           if (!valid) {
