@@ -558,11 +558,20 @@ const usersTrait = (superClass) =>
      * @param {UUID} userId
      * @returns {Promise<boolean>}
      */
-    isUserFrozen(userId) {
-      return this.database.getOne(
-        `select exists (select 1 from frozen_users where user_id = :userId and expires_at > now())`,
+    async isUserFrozen(userId) {
+      return (await this.userFrozenUntil(userId)) !== null;
+    }
+
+    /**
+     * @param {UUID} userId
+     * @returns {Promise<string|null>}
+     */
+    async userFrozenUntil(userId) {
+      const exp = await this.database.getOne(
+        `select expires_at from frozen_users where user_id = :userId and expires_at > now()`,
         { userId },
       );
+      return exp || null;
     }
 
     async cleanFrozenUsers() {

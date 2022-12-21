@@ -45,7 +45,7 @@
     "cache-manager": "~3.6.3",
     "cache-manager-ioredis": "~2.1.0",
     "classnames": "~2.3.2",
-    "commander": "~6.2.1",
+    "commander": "~9.4.1",
     "config": "~3.3.8",
     "console-stamp": "~3.1.0",
     "debug": "~4.3.4",

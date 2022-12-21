@@ -17,9 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     given email.
   - Site administrator should run `yarn babel bin/normalize_emails.js` command
     to normalize existing addresses in database.
-- User accounts can now be suspended (frozen) for a certain amount of time. This
-  feature is only available at the User model level and is not yet reflected in
-  the API. Suspended accounts cannot log in and call API methods.
+- User accounts can now be suspended (frozen) for a certain amount of time.
+  Suspended accounts cannot log in and call API methods.
+
+  This feature is only available at the User model level and is not yet
+  reflected in the API. But the site administrator can freeze/unfreeze users via
+  the 'usermod' script.
 
 ### Changed
 - BestOf, Everything and Search pages are not available from anonymous access

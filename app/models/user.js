@@ -1332,5 +1332,9 @@ export function addModel(dbAdapter) {
     isFrozen() {
       return dbAdapter.isUserFrozen(this.id);
     }
+
+    frozenUntil() {
+      return dbAdapter.userFrozenUntil(this.id);
+    }
   };
 }
