@@ -564,6 +564,10 @@ const usersTrait = (superClass) =>
         { userId },
       );
     }
+
+    async cleanFrozenUsers() {
+      await this.database.raw(`delete from frozen_users where expires_at < now()`);
+    }
   };
 
 export default usersTrait;

@@ -6,11 +6,14 @@ import FreefeedApp from '../../freefeed-app';
 import { Job, type JobHandler, JobManager } from '../../models';
 
 import { initHandlers as initAuthTokensHandlers } from './auth-tokens';
+import { initHandlers as initFrozenUsersHandlers } from './frozen-users';
 
 const debugError = createDebug('freefeed:jobs:errors');
 
 export async function initHandlers(jobManager: JobManager, app: FreefeedApp) {
-  await Promise.all([initAuthTokensHandlers(jobManager, app)]);
+  await Promise.all(
+    [initAuthTokensHandlers, initFrozenUsersHandlers].map((h) => h(jobManager, app)),
+  );
 }
 
 ////////////////////////////////////

@@ -132,6 +132,7 @@ export class DbAdapter {
   // Freeze
   freezeUser(userId: UUID, freezeTime: number | string): Promise<void>;
   isUserFrozen(userId: UUID): Promise<boolean>;
+  cleanFrozenUsers(): Promise<void>;
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
