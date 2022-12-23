@@ -2,8 +2,8 @@
 /* global $pg_database, $should */
 import { expect } from 'chai';
 
-import cleanDB from '../../dbCleaner';
-import { dbAdapter, Post, Timeline, User } from '../../../app/models';
+import cleanDB from '../../../dbCleaner';
+import { dbAdapter, Post, Timeline, User } from '../../../../app/models';
 
 describe('User', () => {
   beforeEach(() => cleanDB($pg_database));
