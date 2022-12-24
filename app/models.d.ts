@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { DbAdapter, InvitationRecord } from './support/DbAdapter';
+import { DbAdapter, type InvitationRecord } from './support/DbAdapter';
 import PubSubAdapter from './pubsub';
 import { GONE_NAMES } from './models/user';
 import { Nullable, UUID } from './support/types';
@@ -79,6 +79,13 @@ export class User {
   frozenUntil(): Promise<Date | null>;
 
   getInvitation(): Promise<InvitationRecord | null>;
+  createInvitation(params: {
+    message: string;
+    lang: 'ru' | 'en';
+    singleUse: boolean;
+    users: string[];
+    groups: string[];
+  }): Promise<UUID>;
 }
 
 export class Group {

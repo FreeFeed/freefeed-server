@@ -28,14 +28,13 @@ describe('Invitations in User model', () => {
     /** @type {number} */
     let invitationId;
     before(async () => {
-      const [secureId] = await dbAdapter.createInvitation(
-        luna.intId,
-        'Hello, Mars',
-        'en',
-        true,
-        [],
-        [],
-      );
+      const secureId = await luna.createInvitation({
+        message: 'Hello, Mars',
+        lang: 'en',
+        singleUse: true,
+        groups: [],
+        users: [],
+      });
       ({ id: invitationId } = await dbAdapter.getInvitation(secureId));
 
       mars = new User({ username: 'mars', password: 'pw', invitationId });

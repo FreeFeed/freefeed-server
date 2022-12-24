@@ -1347,5 +1347,17 @@ export function addModel(dbAdapter) {
 
       return await dbAdapter.getInvitationById(this.invitationId);
     }
+
+    async createInvitation(params) {
+      const [invitationId] = await dbAdapter.createInvitation(
+        this.intId,
+        params.message,
+        params.lang,
+        params.singleUse,
+        params.users,
+        params.groups,
+      );
+      return invitationId;
+    }
   };
 }

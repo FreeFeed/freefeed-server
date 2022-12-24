@@ -289,14 +289,13 @@ describe('User data deletion', () => {
   });
 
   it(`should delete invitations`, async () => {
-    await dbAdapter.createInvitation(
-      luna.intId,
-      'Welcome to Freefeed!',
-      'en',
-      true,
-      ['luna', 'mars', 'jupiter'],
-      [],
-    );
+    await luna.createInvitation({
+      message: 'Welcome to Freefeed!',
+      lang: 'en',
+      singleUse: true,
+      users: ['luna', 'mars', 'jupiter'],
+      groups: [],
+    });
 
     expect(await dbAdapter.database.getOne(`select count(*)::int from invitations`), 'to be', 1);
 
