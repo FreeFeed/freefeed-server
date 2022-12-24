@@ -624,6 +624,7 @@ const USER_COLUMNS = {
   resetPasswordExpiresAt: 'reset_password_expires_at',
   frontendPreferences: 'frontend_preferences',
   preferences: 'preferences',
+  invitationId: 'invitation_id',
 };
 
 const USER_COLUMNS_MAPPING = {
@@ -687,6 +688,7 @@ const USER_FIELDS = {
   preferences: 'preferences',
   gone_status: 'goneStatus',
   gone_at: 'goneAt',
+  invitation_id: 'invitationId',
 };
 
 const USER_FIELDS_MAPPING = {

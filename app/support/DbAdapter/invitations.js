@@ -14,6 +14,10 @@ const invitationsTrait = (superClass) =>
       return this.database('invitations').first().where('secure_id', secureId);
     }
 
+    getInvitationById(id) {
+      return this.database.getRow('select * from invitations where id = :id', { id });
+    }
+
     async createInvitation(authorIntId, message, lang, singleUse, userNames, groupNames) {
       const payload = {
         author: authorIntId,
@@ -30,8 +34,8 @@ const invitationsTrait = (superClass) =>
       return res[0].secure_id;
     }
 
-    useInvitation(secureId) {
-      return this.database.raw(
+    async useInvitation(secureId) {
+      await this.database.raw(
         'UPDATE invitations SET registrations_count = registrations_count + 1 where secure_id=?;',
         [secureId],
       );

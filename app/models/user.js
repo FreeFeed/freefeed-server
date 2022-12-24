@@ -76,6 +76,8 @@ export function addModel(dbAdapter) {
       this.isPrivate = params.isPrivate;
       this.isProtected = this.isPrivate === '1' ? '1' : params.isProtected;
 
+      this.invitationId = params.invitationId || null;
+
       if (parseInt(params.createdAt, 10)) {
         this.createdAt = params.createdAt;
       }
@@ -398,6 +400,7 @@ export function addModel(dbAdapter) {
         hashedPassword: this.hashedPassword,
         frontendPreferences: JSON.stringify({}),
         preferences: this.preferences,
+        invitationId: this.invitationId,
       };
 
       const newAcc = await dbAdapter.createUser(payload);
@@ -1335,6 +1338,14 @@ export function addModel(dbAdapter) {
 
     frozenUntil() {
       return dbAdapter.userFrozenUntil(this.id);
+    }
+
+    async getInvitation() {
+      if (!this.invitationId) {
+        return null;
+      }
+
+      return await dbAdapter.getInvitationById(this.invitationId);
     }
   };
 }

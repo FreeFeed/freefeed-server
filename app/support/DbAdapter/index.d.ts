@@ -68,6 +68,18 @@ type AttachmentsStats = {
   sanitized: number;
 };
 
+export type InvitationRecord = {
+  id: number;
+  secure_id: UUID;
+  author: number;
+  message: string;
+  lang: 'ru' | 'en';
+  single_use: boolean;
+  recommendations: { users: string[]; groups: string[] };
+  registrations_count: number;
+  created_at: Date;
+};
+
 export class DbAdapter {
   constructor(connection: Knex);
 
@@ -305,4 +317,17 @@ export class DbAdapter {
       details: object;
     }[]
   >;
+
+  // Invitations
+  getInvitation(secureId: UUID): Promise<InvitationRecord | null>;
+  getInvitationById(id: number): Promise<InvitationRecord | null>;
+  createInvitation(
+    authorIntId: number,
+    message: string,
+    lang: 'ru' | 'en',
+    singleUse: boolean,
+    userNames: string[],
+    groupNames: string[],
+  ): Promise<[UUID]>;
+  useInvitation(secureId: UUID): Promise<void>;
 }
