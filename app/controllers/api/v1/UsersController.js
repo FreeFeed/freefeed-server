@@ -67,6 +67,7 @@ export default class UsersController {
         password: ctx.request.body.password,
         isPrivate: ctx.request.body.isPrivate ? '1' : '0',
         isProtected: ctx.request.body.isPrivate || ctx.request.body.isProtected ? '1' : '0',
+        invitationId: null,
       };
 
       if (ctx.config.recaptcha.enabled) {
@@ -96,6 +97,7 @@ export default class UsersController {
       if (invitationId) {
         invitation = await dbAdapter.getInvitation(invitationId);
         invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
+        params.invitationId = invitation.id;
       }
 
       const user = new User(params);
@@ -313,15 +315,17 @@ export default class UsersController {
     async (ctx) => {
       const { targetUser, user: viewer } = ctx.state;
 
-      const [serUsers, acceptsDirects, pastUsernames, inHomeFeeds] = await Promise.all([
+      const [serUsers, acceptsDirects, pastUsernames, inHomeFeeds, invitation] = await Promise.all([
         serializeUsersByIds([targetUser.id], viewer?.id),
         targetUser.acceptsDirectsFrom(viewer),
         targetUser.getPastUsernames(),
         viewer ? viewer.getHomeFeedIdsSubscribedTo(targetUser) : [],
+        targetUser.getInvitation(),
       ]);
 
       const users = serUsers.find((u) => u.id === targetUser.id);
       const admins = serUsers.filter((u) => u.type === 'user');
+      const invitedBy = invitation ? await dbAdapter.getUserByIntId(invitation.author) : null;
 
       ctx.body = {
         users,
@@ -329,6 +333,7 @@ export default class UsersController {
         acceptsDirects,
         pastUsernames,
         inHomeFeeds,
+        invitedBy: invitedBy?.username ?? null,
       };
     },
   ]);
