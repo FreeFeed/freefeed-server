@@ -118,6 +118,12 @@ export const authFinish = compose([
             throw new ForbiddenException('Your account is not active');
           }
 
+          if (await profileUser.isFrozen()) {
+            throw new NotAuthorizedException(
+              'Your account has been suspended by the site administration. Please contact support for more information.',
+            );
+          }
+
           // User found, signing in
           const authToken = (await sessionTokenV1Store.create(profileUser.id, ctx)).tokenString();
           const [user] = await serializeUsersByIds([profileUser.id]);

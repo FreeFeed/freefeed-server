@@ -71,6 +71,10 @@ export class User {
   getDirectsTimelineIntId(): Promise<number | null>;
   getMyDiscussionsTimelineIntId(): Promise<number | null>;
   getSavesTimelineIntId(): Promise<number | null>;
+
+  freeze(freezeTime: number | string): Promise<void>;
+  isFrozen(): Promise<boolean>;
+  frozenUntil(): Promise<Date | null>;
 }
 
 export class Group {

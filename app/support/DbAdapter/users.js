@@ -1,6 +1,7 @@
 import config from 'config';
 import _ from 'lodash';
 import validator from 'validator';
+import { DateTime } from 'luxon';
 
 import { User, Group, Comment } from '../../models';
 import { normalizeEmail } from '../email-norm';
@@ -530,6 +531,51 @@ const usersTrait = (superClass) =>
       }
 
       return map;
+    }
+
+    /**
+     * @param {UUID} userId
+     * @param {string|number} freezeTime
+     * @returns {Promise<void>}
+     */
+    async freezeUser(userId, freezeTime) {
+      if (Number.isFinite(freezeTime)) {
+        // Time in seconds
+        freezeTime = this.database.raw(`now() + ? * '1 second'::interval`, freezeTime);
+      } else {
+        // Time as ISO time string
+        freezeTime = DateTime.fromISO(freezeTime, { zone: config.ianaTimeZone }).toJSDate();
+      }
+
+      await this.database.raw(
+        `insert into frozen_users (user_id, expires_at) values (:userId, :freezeTime)
+        on conflict (user_id) do update set expires_at = excluded.expires_at`,
+        { userId, freezeTime },
+      );
+    }
+
+    /**
+     * @param {UUID} userId
+     * @returns {Promise<boolean>}
+     */
+    async isUserFrozen(userId) {
+      return (await this.userFrozenUntil(userId)) !== null;
+    }
+
+    /**
+     * @param {UUID} userId
+     * @returns {Promise<string|null>}
+     */
+    async userFrozenUntil(userId) {
+      const exp = await this.database.getOne(
+        `select expires_at from frozen_users where user_id = :userId and expires_at > now()`,
+        { userId },
+      );
+      return exp || null;
+    }
+
+    async cleanFrozenUsers() {
+      await this.database.raw(`delete from frozen_users where expires_at < now()`);
     }
   };
 
