@@ -40,50 +40,53 @@ export default function (app) {
 }
 
 export function createRouter() {
-  const router = new Router({ prefix: '/v([1-9]\\d*)' });
+  const publicRouter = new Router();
 
   // unauthenticated routes
-  PasswordsRoute(router);
+  PasswordsRoute(publicRouter);
 
   // Fix for ctx._matchedRoute
   // koa-router puts most generic instead of most specific route to the ctx._matchedRoute
   // See https://github.com/ZijianHe/koa-router/issues/246
-  router.use((ctx, next) => {
+  publicRouter.use((ctx, next) => {
     ctx.state.matchedRoute = ctx.matched.find((layer) => layer.methods.includes(ctx.method)).path;
     return next();
   });
 
   // [at least optionally] authenticated routes
-  router.use(withAuthToken);
+  publicRouter.use(withAuthToken);
 
-  router.use(rateLimiterMiddleware);
+  publicRouter.use(rateLimiterMiddleware);
 
-  SessionRoute(router);
+  SessionRoute(publicRouter);
 
-  AttachmentsRoute(router);
-  BookmarkletRoute(router);
-  CommentsRoute(router);
-  GroupsRoute(router);
-  PostsRoute(router);
-  UsersRouteV2(router);
-  UsersRoute(router);
-  StatsRouteV2(router);
+  AttachmentsRoute(publicRouter);
+  BookmarkletRoute(publicRouter);
+  CommentsRoute(publicRouter);
+  GroupsRoute(publicRouter);
+  PostsRoute(publicRouter);
+  UsersRouteV2(publicRouter);
+  UsersRoute(publicRouter);
+  StatsRouteV2(publicRouter);
 
-  GroupsRouteV2(router);
-  RequestsRouteV2(router);
-  SearchRoute(router);
-  SummaryRoute(router);
-  TimelinesRouteV2(router);
-  PostsRouteV2(router);
-  ArchivesRoute(router);
-  ArchivesStatsRouteV2(router);
-  NotificationsRoute(router);
-  CommentLikesRoute(router);
-  InvitationsRoute(router);
-  AppTokensRoute(router);
-  ServerInfoRoute(router);
-  ExtAuthRoute(router);
-  AttachmentsRouteV2(router);
+  GroupsRouteV2(publicRouter);
+  RequestsRouteV2(publicRouter);
+  SearchRoute(publicRouter);
+  SummaryRoute(publicRouter);
+  TimelinesRouteV2(publicRouter);
+  PostsRouteV2(publicRouter);
+  ArchivesRoute(publicRouter);
+  ArchivesStatsRouteV2(publicRouter);
+  NotificationsRoute(publicRouter);
+  CommentLikesRoute(publicRouter);
+  InvitationsRoute(publicRouter);
+  AppTokensRoute(publicRouter);
+  ServerInfoRoute(publicRouter);
+  ExtAuthRoute(publicRouter);
+  AttachmentsRouteV2(publicRouter);
+
+  const router = new Router();
+  router.use('/v([1-9]\\d*)', publicRouter.routes(), publicRouter.allowedMethods());
 
   return router;
 }
