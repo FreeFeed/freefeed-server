@@ -2,13 +2,14 @@ import compose from 'koa-compose';
 
 import { dbAdapter } from '../../../models';
 import { serializeFeed } from '../../../serializers/v2/post';
-import { monitored } from '../../middlewares';
+import { authRequired, monitored } from '../../middlewares';
 
 import { ORD_CREATED, ORD_UPDATED } from './TimelinesController';
 
 export default class SearchController {
   search = compose([
     monitored('search'),
+    authRequired(),
     async (ctx) => {
       const DEFAULT_LIMIT = 30;
       const MAX_LIMIT = 120;

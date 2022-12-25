@@ -36,6 +36,7 @@ import jobsTrait from './jobs';
 import authSessionsTrait from './auth-sessions';
 import backlinksTrait from './backlinks';
 import groupBlocksTrait from './group-blocks';
+import emailVerificationTrait from './email-verification';
 
 class DbAdapterBase {
   constructor(database) {
@@ -102,4 +103,5 @@ export const DbAdapter = _.flow([
   authSessionsTrait,
   backlinksTrait,
   groupBlocksTrait,
+  emailVerificationTrait,
 ])(DbAdapterBase);

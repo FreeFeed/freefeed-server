@@ -1,0 +1,4 @@
+# This is a list of bad email domain suffixes
+
+bad.com
+a.b.c

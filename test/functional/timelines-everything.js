@@ -37,7 +37,8 @@ describe('TimelinesControllerV2: Everything', () => {
     posts.reverse();
   });
 
-  it('should return public posts to anonymous viewer', async () => {
+  // Anonymous Everything is disabled
+  xit('should return public posts to anonymous viewer', async () => {
     const resp = await fetchEverything(null);
     const publicPosts = posts.filter((p) => p.createdBy === luna.user.id);
     expect(resp.posts, 'to equal', publicPosts);
@@ -60,7 +61,8 @@ describe('TimelinesControllerV2: Everything', () => {
     before(() => banUser(luna, mars));
     after(() => unbanUser(luna, mars));
 
-    it('should return public posts to anonymous viewer', async () => {
+    // Anonymous Everything is disabled
+    xit('should return public posts to anonymous viewer', async () => {
       const resp = await fetchEverything(null);
       const publicPosts = posts.filter((p) => p.createdBy === luna.user.id);
       expect(resp.posts, 'to equal', publicPosts);

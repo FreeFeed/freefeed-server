@@ -48,7 +48,7 @@ function argsToString(args) {
     }
 
     index++;
-    const formatter = this.formatters[fmt];
+    const formatter = this.formatters?.[fmt];
 
     if (typeof formatter === 'function') {
       const val = args[index];

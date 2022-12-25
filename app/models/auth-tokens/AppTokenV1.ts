@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 import _ from 'lodash';
 import jwt from 'jsonwebtoken';
 import config from 'config';
@@ -12,6 +10,7 @@ import { IPAddr, Nullable, UUID } from '../../support/types';
 import { Address } from '../../support/ipv6';
 import { database } from '../common';
 import { NotAuthorizedException } from '../../support/exceptions';
+import { createBase32Code, normalizeBase32Code } from '../../support/base32-codes';
 
 import { AuthToken } from './AuthToken';
 import { AppTokenRecord } from './types';
@@ -20,8 +19,6 @@ import { alwaysAllowedRoutes, alwaysDisallowedRoutes, appTokensScopes } from './
 import { authDebugError } from '.';
 
 const appTokenUsageDebounce = '10 sec'; // PostgreSQL 'interval' type syntax
-
-const activationCodeChars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 type Restrictions = {
   netmasks: string[];
@@ -240,17 +237,10 @@ export class AppTokenV1 extends AuthToken {
   }
 
   static createActivationCode() {
-    const bytes = crypto.randomBytes(6);
-    return [...bytes].map((b) => activationCodeChars.charAt(b & 0x1f)).join('');
+    return createBase32Code(6);
   }
 
   static normalizeActivationCode(input: string) {
-    const code = input
-      .toUpperCase()
-      .replace(/[IL]/g, '1')
-      .replace(/O/g, '0')
-      .replace(/U/g, 'V')
-      .replace(new RegExp(`[^${activationCodeChars}]`, 'g'), '');
-    return code.length === 6 ? code : null;
+    return normalizeBase32Code(input, 6);
   }
 }

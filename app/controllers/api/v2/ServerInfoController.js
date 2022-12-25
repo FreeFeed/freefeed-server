@@ -1,10 +1,12 @@
-import config from 'config';
-
 import { version } from '../../../../package.json';
 import { ServerInfo } from '../../../models';
 import { allExternalProviders } from '../../../support/ExtAuth';
 
+/**
+ * @param {import('../../../support/types').Ctx} ctx
+ */
 export async function serverInfo(ctx) {
+  const { config } = ctx;
   const externalAuthProvidersInfo = allExternalProviders.map(({ id, title, brand = id }) => ({
     id,
     title,
@@ -26,5 +28,6 @@ export async function serverInfo(ctx) {
       comment: config.maxLength.comment,
       description: config.maxLength.description,
     },
+    emailVerificationEnabled: config.emailVerification.enabled,
   };
 }

@@ -1,8 +1,10 @@
 import config from 'config';
 import _ from 'lodash';
 import validator from 'validator';
+import { DateTime } from 'luxon';
 
 import { User, Group, Comment } from '../../models';
+import { normalizeEmail } from '../email-norm';
 
 import { initObject, prepareModelPayload } from './utils';
 
@@ -12,6 +14,11 @@ const usersTrait = (superClass) =>
   class extends superClass {
     async createUser(payload) {
       const preparedPayload = prepareModelPayload(payload, USER_COLUMNS, USER_COLUMNS_MAPPING);
+
+      if (preparedPayload.email) {
+        preparedPayload.email_norm = normalizeEmail(preparedPayload.email);
+      }
+
       const [row] = await this.database('users').returning('*').insert(preparedPayload);
       await this.createUserStats(row.uid);
       return initUserObject(row);
@@ -27,6 +34,10 @@ const usersTrait = (superClass) =>
           `now() + :tokenTTL * '1 second'::interval`,
           { tokenTTL },
         );
+      }
+
+      if (preparedPayload.email) {
+        preparedPayload.email_norm = normalizeEmail(preparedPayload.email);
       }
 
       await this.database('users').where('uid', userId).update(preparedPayload);
@@ -158,9 +169,19 @@ const usersTrait = (superClass) =>
       return parseInt(res[0].count);
     }
 
-    async existsUserEmail(email) {
-      const res = await this.database('users').whereRaw('LOWER(email)=LOWER(?)', email).count();
-      return parseInt(res[0].count);
+    existsEmail(email) {
+      return this.database.getOne(
+        `select exists(select 1 from users where lower(email) = lower(:email))`,
+        { email },
+      );
+    }
+
+    existsNormEmail(email) {
+      const normEmail = normalizeEmail(email);
+      return this.database.getOne(
+        `select exists(select 1 from users where email_norm = :normEmail)`,
+        { normEmail },
+      );
     }
 
     async getUserById(id) {
@@ -232,6 +253,15 @@ const usersTrait = (superClass) =>
       }
 
       return initUserObject(attrs);
+    }
+
+    async getUsersByNormEmail(email) {
+      const normEmail = normalizeEmail(email);
+      const rows = await this.database.getAll(`select * from users where email_norm = :normEmail`, {
+        normEmail,
+      });
+
+      return rows.map(initUserObject);
     }
 
     async _getUserIntIdByUUID(userUUID) {
@@ -501,6 +531,51 @@ const usersTrait = (superClass) =>
       }
 
       return map;
+    }
+
+    /**
+     * @param {UUID} userId
+     * @param {string|number} freezeTime
+     * @returns {Promise<void>}
+     */
+    async freezeUser(userId, freezeTime) {
+      if (Number.isFinite(freezeTime)) {
+        // Time in seconds
+        freezeTime = this.database.raw(`now() + ? * '1 second'::interval`, freezeTime);
+      } else {
+        // Time as ISO time string
+        freezeTime = DateTime.fromISO(freezeTime, { zone: config.ianaTimeZone }).toJSDate();
+      }
+
+      await this.database.raw(
+        `insert into frozen_users (user_id, expires_at) values (:userId, :freezeTime)
+        on conflict (user_id) do update set expires_at = excluded.expires_at`,
+        { userId, freezeTime },
+      );
+    }
+
+    /**
+     * @param {UUID} userId
+     * @returns {Promise<boolean>}
+     */
+    async isUserFrozen(userId) {
+      return (await this.userFrozenUntil(userId)) !== null;
+    }
+
+    /**
+     * @param {UUID} userId
+     * @returns {Promise<string|null>}
+     */
+    async userFrozenUntil(userId) {
+      const exp = await this.database.getOne(
+        `select expires_at from frozen_users where user_id = :userId and expires_at > now()`,
+        { userId },
+      );
+      return exp || null;
+    }
+
+    async cleanFrozenUsers() {
+      await this.database.raw(`delete from frozen_users where expires_at < now()`);
     }
   };
 

@@ -1,4 +1,5 @@
 /* eslint-env node, mocha */
+import config from 'config';
 import expect from 'unexpected';
 
 import { version as serverVersion } from '../../package.json';
@@ -32,5 +33,10 @@ describe('/v2/server-info', () => {
       'to equal',
       externalAuthProvidersInfo.map((p) => p.id),
     );
+  });
+
+  it(`should return the emailVerificationEnabled field`, async () => {
+    const resp = await performJSONRequest('GET', `/v2/server-info`);
+    expect(resp.emailVerificationEnabled, 'to be', config.emailVerification.enabled);
   });
 });

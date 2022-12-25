@@ -19,6 +19,15 @@ export function init(passport) {
             user = await dbAdapter.getUserByEmail(username.trim());
           }
 
+          if (user && (await user.isFrozen())) {
+            done({
+              message:
+                'Your account has been suspended by the site administration. Please contact support for more information.',
+            });
+
+            return;
+          }
+
           if (!user?.isActive) {
             if (user?.isResumable) {
               done({

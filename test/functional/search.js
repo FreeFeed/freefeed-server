@@ -20,12 +20,14 @@ describe('SearchController', () => {
   describe('#search()', () => {
     let lunaContext = {};
     let marsContext = {};
+    let venusContext = {};
     const anonContext = {};
 
     before(async () => {
-      [lunaContext, marsContext] = await Promise.all([
-        funcTestHelper.createUserAsync('luna', 'pw'),
-        funcTestHelper.createUserAsync('mars', 'pw'),
+      [lunaContext, marsContext, venusContext] = await funcTestHelper.createTestUsers([
+        'luna',
+        'mars',
+        'venus',
       ]);
       await Promise.all([
         funcTestHelper.createPostWithCommentsDisabled(lunaContext, 'hello from luna', false),
@@ -45,25 +47,25 @@ describe('SearchController', () => {
     });
 
     it('should search posts', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'hello');
+      const response = await funcTestHelper.performSearch(venusContext, 'hello');
       expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
     it('should return empty response on empty query', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, '');
+      const response = await funcTestHelper.performSearch(venusContext, '');
       expect(response, 'to satisfy', { posts: [] });
     });
 
     it('should search posts by non-normalized unicode query', async () => {
       const response = await funcTestHelper.performSearch(
-        anonContext,
+        venusContext,
         '"publicação"'.normalize('NFD'),
       );
       expect(response, 'to satisfy', { posts: [{}] });
     });
 
     it("should search user's posts", async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from:luna hello');
+      const response = await funcTestHelper.performSearch(venusContext, 'from:luna hello');
       expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
     });
 
@@ -72,18 +74,19 @@ describe('SearchController', () => {
       expect(response, 'to satisfy', { posts: [{ body: 'hello from luna' }] });
     });
 
-    it('should not search anonymously with from:me', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from:me hello');
+    // Anonymous search is disabled
+    xit('should not search anonymously with from:me', async () => {
+      const response = await funcTestHelper.performSearch(venusContext, 'from:me hello');
       expect(response, 'to have key', 'err');
     });
 
     it('should search hashtags with different casing', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, '#hashtaga');
+      const response = await funcTestHelper.performSearch(venusContext, '#hashtaga');
       expect(response, 'to satisfy', { posts: [{}, {}] });
     });
 
     it('should return first page with isLastPage = false', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna', {
+      const response = await funcTestHelper.performSearch(venusContext, 'from luna', {
         limit: 2,
         offset: 0,
       });
@@ -91,7 +94,7 @@ describe('SearchController', () => {
     });
 
     it('should return last page with isLastPage = true', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna', {
+      const response = await funcTestHelper.performSearch(venusContext, 'from luna', {
         limit: 2,
         offset: 2,
       });
@@ -99,7 +102,7 @@ describe('SearchController', () => {
     });
 
     it('should return the only page with isLastPage = true', async () => {
-      const response = await funcTestHelper.performSearch(anonContext, 'from luna');
+      const response = await funcTestHelper.performSearch(venusContext, 'from luna');
       expect(response, 'to satisfy', { isLastPage: true });
     });
 
@@ -140,7 +143,7 @@ describe('SearchController', () => {
 
       it('should find only post to group', async () => {
         await expect(
-          funcTestHelper.performSearch(anonContext, 'from:luna group:lunagroup hello'),
+          funcTestHelper.performSearch(venusContext, 'from:luna group:lunagroup hello'),
           'when fulfilled',
           'to satisfy',
           { posts: [{ body: 'hello from luna to lunagroup' }] },
@@ -153,7 +156,8 @@ describe('SearchController', () => {
         );
       });
 
-      describe('Group is protected, Luna is public', () => {
+      // Anonymous search is disabled
+      xdescribe('Group is protected, Luna is public', () => {
         before(async () => {
           await funcTestHelper.goPublic(lunaContext);
           await funcTestHelper.groupToProtected(group.group, lunaContext);

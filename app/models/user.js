@@ -64,7 +64,7 @@ export function addModel(dbAdapter) {
       this.intId = params.intId;
       this.id = params.id;
       this.username = params.username;
-      this.screenName = params.screenName;
+      this.screenName = params.screenName || params.username;
       this.email = params.email;
       // The .hiddenEmail field holds real email address of inactive user (the
       // .email field of such user is always empty)
@@ -271,7 +271,7 @@ export function addModel(dbAdapter) {
         throw new ValidationException('Invalid email format');
       }
 
-      const exists = await dbAdapter.existsUserEmail(email);
+      const exists = await dbAdapter.existsEmail(email);
 
       if (exists) {
         // email is taken
@@ -368,9 +368,16 @@ export function addModel(dbAdapter) {
     }
 
     async validateOnCreate(skip_stoplist) {
-      const promises = [this.validate(skip_stoplist), this.validateUsernameUniqueness()];
+      await Promise.all([this.validate(skip_stoplist), this.validateUsernameUniqueness()]);
 
-      await Promise.all(promises);
+      if (this.type === 'user' && this.plaintextPassword !== null) {
+        if (this.plaintextPassword.length === 0) {
+          throw new ValidationException('Password cannot be blank');
+        }
+
+        this.hashedPassword = await bcrypt.hash(this.plaintextPassword, 10);
+        this.plaintextPassword = null;
+      }
     }
 
     async create(skip_stoplist) {
@@ -379,15 +386,6 @@ export function addModel(dbAdapter) {
       await this.validateOnCreate(skip_stoplist);
 
       const timer = monitor.timer('users.create-time');
-
-      if (this.plaintextPassword !== null) {
-        if (this.plaintextPassword.length === 0) {
-          throw new ValidationException('Password cannot be blank');
-        }
-
-        this.hashedPassword = await bcrypt.hash(this.plaintextPassword, 10);
-        this.plaintextPassword = null;
-      }
 
       const payload = {
         username: this.username,
@@ -1325,6 +1323,18 @@ export function addModel(dbAdapter) {
 
     static async getByExtProfile({ provider, externalId }) {
       return await dbAdapter.getUserByExtProfile({ provider, externalId });
+    }
+
+    async freeze(freezeTime) {
+      await dbAdapter.freezeUser(this.id, freezeTime);
+    }
+
+    isFrozen() {
+      return dbAdapter.isUserFrozen(this.id);
+    }
+
+    frozenUntil() {
+      return dbAdapter.userFrozenUntil(this.id);
     }
   };
 }

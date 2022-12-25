@@ -1,10 +1,17 @@
 import compose from 'koa-compose';
+import config from 'config';
 import _ from 'lodash';
 import monitor from 'monitor-dog';
+import { validate as validateEmail } from 'email-validator';
 
 import { dbAdapter, PubSub as pubSub } from '../../../models';
 import { serializeSelfUser, serializeUsersByIds } from '../../../serializers/v2/user';
-import { monitored, authRequired } from '../../middlewares';
+import { monitored, authRequired, inputSchemaRequired } from '../../middlewares';
+import { ValidationException, TooManyRequestsException } from '../../../support/exceptions';
+import Mailer from '../../../../lib/mailer';
+import { isBlockedEmailDomain } from '../../../support/email-norm';
+
+import { verifyEmailSchema } from './data-schemes/users';
 
 export default class UsersController {
   static blockedByMe = compose([
@@ -151,6 +158,50 @@ export default class UsersController {
       }
 
       ctx.body = { users, subscribers, subscriptions, requests, managedGroups };
+    },
+  ]);
+
+  static verifyEmail = compose([
+    inputSchemaRequired(verifyEmailSchema),
+    monitored('verify-email'),
+    async (ctx) => {
+      const { ip } = ctx;
+      const { email: passedEmail, mode } = ctx.request.body;
+      const email = passedEmail.trim();
+
+      if (!validateEmail(email)) {
+        throw new ValidationException('Invalid email address format');
+      }
+
+      const code = await dbAdapter.createEmailVerificationCode(email, ip);
+
+      if (!code) {
+        throw new TooManyRequestsException(
+          'Too many requests for this address or from this IP. Please try again later.',
+        );
+      }
+
+      if (!isBlockedEmailDomain(email)) {
+        const data = { code, email, someAccountsExists: false, otherAccount: false };
+
+        if (mode === 'sign-up') {
+          data.someAccountsExists = await dbAdapter.existsNormEmail(email);
+        }
+
+        if (mode === 'update') {
+          data.otherAccount = await dbAdapter.getUserByEmail(email);
+        }
+
+        // Send email to user
+        await Mailer.sendMail(
+          { screenName: email, email },
+          `Email confirmation code: ${code}`,
+          data,
+          `${config.appRoot}/app/scripts/views/mailer/email-confirmation-code.ejs`,
+        );
+      }
+
+      ctx.body = {};
     },
   ]);
 }

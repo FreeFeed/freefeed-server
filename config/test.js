@@ -1,3 +1,5 @@
+import { resolve } from 'path';
+
 import stubTransport from 'nodemailer-stub-transport';
 
 module.exports = {
@@ -52,5 +54,9 @@ module.exports = {
       // with old tests)
       hideCommentsOfTypes: [2 /* Comment.HIDDEN_BANNED */],
     },
+  },
+
+  emailVerification: {
+    domainBlockList: resolve(__dirname, '../test/emailDomainBlockList.txt'),
   },
 };

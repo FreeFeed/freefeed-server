@@ -89,6 +89,10 @@ export class DbAdapter {
   getUserByIntId(intId: number): Promise<User | null>;
   getUsersByIds(ids: UUID[]): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUsersByNormEmail(email: string): Promise<User[]>;
+  existsEmail(email: string): Promise<boolean>;
+  existsNormEmail(email: string): Promise<boolean>;
   getUserIdsWhoBannedUser(id: UUID): Promise<UUID[]>;
   getFeedOwnerById(id: UUID): Promise<User | Group | null>;
   getFeedOwnersByUsernames(names: string[]): Promise<(User | Group)[]>;
@@ -124,6 +128,12 @@ export class DbAdapter {
   getUsersIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getCommentsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
+
+  // Freeze
+  freezeUser(userId: UUID, freezeTime: number | string): Promise<void>;
+  userFrozenUntil(userId: UUID): Promise<Date | null>;
+  isUserFrozen(userId: UUID): Promise<boolean>;
+  cleanFrozenUsers(): Promise<void>;
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
@@ -251,4 +261,9 @@ export class DbAdapter {
     userId: UUID | null,
     otherUserIds: UUID[],
   ): Promise<Map<UUID, 0 | 1 | 2 | 3>>;
+
+  // Email verification
+  createEmailVerificationCode(email: string, ipAddress: IPAddr): Promise<string | null>;
+  checkEmailVerificationCode(code: string, email: string): Promise<boolean>;
+  cleanOldEmailVerificationCodes(): Promise<void>;
 }

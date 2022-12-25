@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 import createDebug from 'debug';
-import Application from 'koa';
+import Application, { DefaultState } from 'koa';
 import config from 'config';
 import koaBody from 'koa-body';
 import methodOverride from 'koa-methodoverride';
@@ -19,10 +19,11 @@ import { originMiddleware } from './setup/initializers/origin';
 import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
+import { AppContext } from './support/types';
 
 const env = process.env.NODE_ENV || 'development';
 
-class FreefeedApp extends Application {
+class FreefeedApp extends Application<DefaultState, AppContext> {
   constructor(options: Record<string, unknown> | undefined = {}) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore  // error in ts-definition
@@ -34,7 +35,7 @@ class FreefeedApp extends Application {
     }
 
     this.context.config = config;
-    this.context.port = process.env.PORT || config.port;
+    this.context.port = process.env.PORT ? parseInt(process.env.PORT) : config.port;
 
     this.use(
       koaBody({

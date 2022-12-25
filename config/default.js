@@ -398,4 +398,24 @@ config.loggly = {
   tags: [],
 };
 
+config.emailVerification = {
+  enabled: false,
+  // Path to the file contains email domains that are not available for
+  // inspection. These could be one-time email services or other unwanted hosts.
+  //
+  // File, if specified, must exists, or application will not start.
+  //
+  // It should be a plain text file, one domain suffix (!) per line. For
+  // example, host.net will block addresses like user@host.net,
+  // user@sub.host.net, but will not block user@otherhost.net.
+  //
+  // Spaces, blank lines and lines starting with "#" are ignored.
+  domainBlockList: null,
+  codes: {
+    TTL: 3600, // in secs
+    limitPerEmail: { count: 10, interval: 3600 },
+    limitPerIP: { count: 30, interval: 24 * 3600 },
+  },
+};
+
 module.exports = config;

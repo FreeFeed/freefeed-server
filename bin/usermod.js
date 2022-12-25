@@ -24,6 +24,18 @@ import { GONE_NAMES, GONE_COOLDOWN, GONE_SUSPENDED, GONE_DELETION } from '../app
       .option('-f, --force', 'Resume even from the permanently deleted status', false)
       .description('Resume the inactive account')
       .action(setGoneStatus(null));
+    program
+      .command('freeze')
+      .argument('<username>', 'user to freeze')
+      .argument('[days]', 'freeze period', 7)
+      .description('Freeze account for a given amount of days (7 by default)')
+      .action(freezeUser());
+    program
+      .command('unfreeze')
+      .argument('<username>', 'user to unfreeze')
+      .description('Unfreeze account')
+      .action(freezeUser(0));
+
     await program.parseAsync(process.argv);
 
     process.exit(0);
@@ -103,6 +115,37 @@ function setGoneStatus(newStatus) {
   };
 }
 
+function freezeUser(setDays) {
+  return async function (username, days) {
+    const account = await loadAccount(username);
+
+    if (!account.isUser()) {
+      throw new Error(`This operation is only applicable to users`);
+    }
+
+    if (typeof setDays === 'number') {
+      days = setDays;
+    }
+
+    if (typeof days !== 'number') {
+      days = parseInt(days, 10);
+    }
+
+    if (!isFinite(days)) {
+      throw new Error(`Invalid 'days' value`);
+    }
+
+    await account.freeze(days * 24 * 3600);
+    const upTo = await account.frozenUntil();
+
+    if (upTo) {
+      process.stdout.write(`Done! Account is frozen up to ${upTo.toISOString()}\n\n`);
+    } else {
+      process.stdout.write(`Done! Account is unfrozen.\n\n`);
+    }
+  };
+}
+
 async function loadAccount(username) {
   const account = await dbAdapter.getFeedOwnerByUsername(username);
 
@@ -130,6 +173,12 @@ async function loadAccount(username) {
       account.goneAt ? ` since ${account.goneAt.toISOString()}` : ''
     }\n`,
   );
+
+  if (account.type === 'user') {
+    const upTo = await account.frozenUntil();
+    process.stdout.write(`Frozen:  ${upTo ? `up to ${upTo.toISOString()}` : 'no'}\n`);
+  }
+
   const pastUsernames = await account.getPastUsernames();
 
   if (pastUsernames.length > 0) {

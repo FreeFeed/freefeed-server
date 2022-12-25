@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 import http from 'http';
 import { stringify as qsStringify } from 'querystring';
 import util from 'util';
@@ -5,13 +6,14 @@ import util from 'util';
 import fetch, { fileFrom } from 'node-fetch';
 import { FormData } from 'formdata-node';
 import request from 'superagent';
-import _ from 'lodash';
+import _, { merge } from 'lodash';
 import SocketIO from 'socket.io-client';
 import expect from 'unexpected';
 import Application from 'koa';
 
 import { dbAdapter, sessionTokenV1Store, User } from '../../app/models';
 import { getSingleton as initApp } from '../../app/app';
+import { addMailListener } from '../../lib/mailer';
 
 import * as schema from './schemaV2-helper';
 
@@ -1152,4 +1154,45 @@ export class MockHTTPServer {
   async stop() {
     await this._server.closeAsync();
   }
+}
+
+/**
+ * Run tests in 'describe' block with modified app config. Use it only in
+ * 'describe', not in test functions!
+ * @typedef {import('config').Config} Config
+ * @param {import('../../app/support/types').DeepPartial<Config>} patch
+ */
+export function withModifiedAppConfig(patch) {
+  let app, prevConfig;
+  before(async () => {
+    app = await initApp();
+    prevConfig = app.context.config;
+    app.context.config = merge({}, prevConfig, patch);
+  });
+
+  after(() => {
+    app.context.config = prevConfig;
+  });
+}
+
+/**
+ * Capture sent emails for all tests in 'describe' block. Use it only in
+ * 'describe', not in test functions!
+ */
+export function withEmailCapture({ clearBeforeEach = true, multiple = false } = {}) {
+  const ref = { current: multiple ? [] : null };
+  let removeMailListener = () => null;
+  before(
+    () =>
+      (removeMailListener = addMailListener((r) => {
+        if (multiple) {
+          ref.current.push(r);
+        } else {
+          ref.current = r;
+        }
+      })),
+  );
+  after(removeMailListener);
+  clearBeforeEach && beforeEach(() => (ref.current = multiple ? [] : null));
+  return ref;
 }

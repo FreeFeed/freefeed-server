@@ -3,7 +3,7 @@
  * as the code is translated to TypeScript.
  */
 declare module 'config' {
-  type Config = {
+  export type Config = {
     siteTitle: string;
     host: string;
     port: number;
@@ -26,6 +26,11 @@ declare module 'config' {
     };
     maintenance: {
       messageFile: string;
+    };
+
+    recaptcha: {
+      enabled: boolean;
+      secret: string;
     };
 
     postgres: {
@@ -104,8 +109,18 @@ declare module 'config' {
       token: string;
       tags: string[];
     };
+
+    emailVerification: {
+      enabled: boolean;
+      domainBlockList: string | null;
+      codes: {
+        TTL: number;
+        limitPerEmail: { count: number; interval: number };
+        limitPerIP: { count: number; interval: number };
+      };
+    };
   };
 
   const c: Config;
-  export = c;
+  export default c;
 }

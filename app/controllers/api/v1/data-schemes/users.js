@@ -12,7 +12,7 @@ export const userCreateInputSchema = {
     // Currently it would break all legacy tests.
     // 'email',
   ],
-  oneOf: [{ required: ['password'] }, { required: ['externalProfileKey'] }],
+  anyOf: [{ required: ['password'] }, { required: ['externalProfileKey'] }],
   properties: {
     username: { $ref: '#/definitions/userName' },
     screenName: { type: 'string' },
@@ -25,6 +25,7 @@ export const userCreateInputSchema = {
       default: false,
     },
     externalProfileKey: { type: 'string' },
+    emailVerificationCode: { type: 'string' },
     profilePictureURL: {
       type: 'string',
       pattern: '^https?://',

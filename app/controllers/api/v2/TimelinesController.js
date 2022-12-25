@@ -19,6 +19,7 @@ export const ORD_CREATED = 'created';
 
 export const bestOf = compose([
   monitored('timelines.bestof'),
+  authRequired(),
   async (ctx) => {
     const DEFAULT_LIMIT = 30;
 
@@ -92,6 +93,7 @@ export const userTimeline = (feedName) =>
 
 export const everything = compose([
   monitored(`timelines.everything`),
+  authRequired(),
   async (ctx) => {
     const { user: viewer } = ctx.state;
     ctx.body = await genericTimeline(null, viewer ? viewer.id : null, getCommonParams(ctx));

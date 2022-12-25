@@ -3,7 +3,6 @@ import util from 'util';
 
 import _ from 'lodash';
 import compose from 'koa-compose';
-import config from 'config';
 import jwt from 'jsonwebtoken';
 
 import {
@@ -47,9 +46,12 @@ import {
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
+/** @typedef {import('../../../support/types').Ctx} Ctx */
+
 export default class UsersController {
   static create = compose([
     inputSchemaRequired(userCreateInputSchema),
+    /** @param {Ctx} ctx */
     async (ctx) => {
       const registrationOpen = await ServerInfo.isRegistrationOpen();
 
@@ -67,7 +69,7 @@ export default class UsersController {
         isProtected: ctx.request.body.isPrivate || ctx.request.body.isProtected ? '1' : '0',
       };
 
-      if (config.recaptcha.enabled) {
+      if (ctx.config.recaptcha.enabled) {
         await recaptchaVerify(ctx.request.body.captcha, ctx.request.ip);
       }
 
@@ -97,6 +99,34 @@ export default class UsersController {
       }
 
       const user = new User(params);
+      await user.validateOnCreate();
+
+      if (ctx.config.emailVerification.enabled) {
+        if (!params.email) {
+          throw new ValidationException('Email address required');
+        }
+
+        if (await dbAdapter.existsNormEmail(params.email)) {
+          // email is taken
+          throw new ValidationException('This email address is already in use');
+        }
+
+        if (extProfileData?.email !== params.email) {
+          if (ctx.request.body.emailVerificationCode) {
+            const ok = await dbAdapter.checkEmailVerificationCode(
+              ctx.request.body.emailVerificationCode,
+              params.email,
+            );
+
+            if (!ok) {
+              throw new ValidationException('Invalid or outdated email verification code');
+            }
+          } else {
+            throw new ValidationException('Email verification code required');
+          }
+        }
+      }
+
       await user.create(false);
 
       const safeRun = async (foo) => {
@@ -116,7 +146,9 @@ export default class UsersController {
           safeRun(() => useInvitation(user, invitation, ctx.request.body.cancel_subscription)),
         // Subscribe to onboarding user
         safeRun(async () => {
-          const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
+          const onboardingUser = await dbAdapter.getFeedOwnerByUsername(
+            ctx.config.onboardingUsername,
+          );
 
           if (onboardingUser) {
             await user.subscribeTo(onboardingUser);
@@ -146,6 +178,7 @@ export default class UsersController {
     },
   ]);
 
+  /** @param {Ctx} ctx */
   static async sudoCreate(ctx) {
     const params = {
       username: ctx.request.body.username,
@@ -154,7 +187,7 @@ export default class UsersController {
 
     params.hashedPassword = ctx.request.body.password_hash;
 
-    if (!config.acceptHashedPasswordsOnly) {
+    if (!ctx.config.acceptHashedPasswordsOnly) {
       params.password = ctx.request.body.password;
     }
 
@@ -162,10 +195,10 @@ export default class UsersController {
     await user.create(true);
 
     try {
-      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(config.onboardingUsername);
+      const onboardingUser = await dbAdapter.getFeedOwnerByUsername(ctx.config.onboardingUsername);
 
       if (null === onboardingUser) {
-        throw new NotFoundException(`Feed "${config.onboardingUsername}" is not found`);
+        throw new NotFoundException(`Feed "${ctx.config.onboardingUsername}" is not found`);
       }
 
       await user.subscribeTo(onboardingUser);
@@ -329,8 +362,9 @@ export default class UsersController {
   static resumeMe = compose([
     inputSchemaRequired(userResumeMeInputSchema),
     monitored('users.resume-me'),
+    /** @param {Ctx} ctx */
     async (ctx) => {
-      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, config.secret);
+      const token = await jwt.verifyAsync(ctx.request.body.resumeToken, ctx.config.secret);
 
       if (token.type !== 'resume-account') {
         throw new ForbiddenException('Unknown token type');
@@ -579,6 +613,7 @@ export default class UsersController {
   static update = compose([
     authRequired(),
     monitored('users.update'),
+    /** @param {Ctx} ctx */
     async (ctx) => {
       const {
         state: { user, authToken },
@@ -611,6 +646,27 @@ export default class UsersController {
 
         return acc;
       }, {});
+
+      if (
+        ctx.config.emailVerification.enabled &&
+        attrNames.includes('email') &&
+        'email' in ctx.request.body.user &&
+        // Not-strict equality here to compare, i.e. null with ''
+        user.email != attrs.email
+      ) {
+        if (ctx.request.body.emailVerificationCode) {
+          const ok = await dbAdapter.checkEmailVerificationCode(
+            ctx.request.body.emailVerificationCode,
+            attrs.email,
+          );
+
+          if (!ok) {
+            throw new ValidationException('Invalid or outdated email verification code');
+          }
+        } else {
+          throw new ValidationException('Email verification code required');
+        }
+      }
 
       await user.update(attrs);
 

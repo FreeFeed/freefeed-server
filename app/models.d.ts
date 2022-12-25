@@ -47,7 +47,7 @@ export class User {
   getPostsTimeline(): Promise<Timeline | null>;
   getDirectsTimeline(): Promise<Timeline | null>;
   isValidEmail(): Promise<boolean>;
-  static validateEmail(): Promise<void>;
+  static validateEmail(email: string | null): Promise<void>;
   newComment(params: { body: string; postId: UUID }): Comment;
 
   getGenericTimeline(name: typeof User.feedNames[number]): Promise<Timeline | null>;
@@ -71,6 +71,10 @@ export class User {
   getDirectsTimelineIntId(): Promise<number | null>;
   getMyDiscussionsTimelineIntId(): Promise<number | null>;
   getSavesTimelineIntId(): Promise<number | null>;
+
+  freeze(freezeTime: number | string): Promise<void>;
+  isFrozen(): Promise<boolean>;
+  frozenUntil(): Promise<Date | null>;
 }
 
 export class Group {

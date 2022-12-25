@@ -62,6 +62,7 @@ export const authStart = compose([
 
 export const authFinish = compose([
   inputSchemaRequired(authFinishInputSchema),
+  /** @param {import('../../../support/types').Ctx} ctx */
   async (ctx) => {
     const { provider: provName } = ctx.request.body;
     const authProvider = getAuthProvider(provName);
@@ -77,6 +78,7 @@ export const authFinish = compose([
         provider: provName,
         externalId: state.profile.id,
         title: state.profile.name,
+        email: state.profile.email,
       };
 
       // Connect external profile to FreeFeed account
@@ -116,6 +118,12 @@ export const authFinish = compose([
             throw new ForbiddenException('Your account is not active');
           }
 
+          if (await profileUser.isFrozen()) {
+            throw new NotAuthorizedException(
+              'Your account has been suspended by the site administration. Please contact support for more information.',
+            );
+          }
+
           // User found, signing in
           const authToken = (await sessionTokenV1Store.create(profileUser.id, ctx)).tokenString();
           const [user] = await serializeUsersByIds([profileUser.id]);
@@ -129,12 +137,13 @@ export const authFinish = compose([
           return;
         }
 
-        const emailUser =
-          state.profile.email && (await dbAdapter.getUserByEmail(state.profile.email));
+        const emailCheck = ctx.config.emailVerification.enabled ? 'existsNormEmail' : 'existsEmail';
+        const emailInUse =
+          state.profile.email && (await dbAdapter[emailCheck](state.profile.email));
 
         ctx.body = {
-          status: emailUser ? SIGN_IN_USER_EXISTS : SIGN_IN_CONTINUE,
-          message: emailUser
+          status: emailInUse ? SIGN_IN_USER_EXISTS : SIGN_IN_CONTINUE,
+          message: emailInUse
             ? `Another user exists with this email address.`
             : `No user exists with this profile or email address. You can continue signing up.`,
           profile,

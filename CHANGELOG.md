@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - Not released
+### Added
+- Email verification mode. With the 'emailVerification.enabled' configuration
+  flag, the server starts to request and check the existence of email addresses
+  during registration and email change. Also, the address normalization is
+  enabled, that is, you can not register an account with address
+  user+tag@example.com if there is already an account with address
+  user@example.com.
+  - New API method `POST /v2/users/verifyEmail` sends verification code to the
+    given email.
+  - Site administrator should run `yarn babel bin/normalize_emails.js` command
+    to normalize existing addresses in database.
+- User accounts can now be suspended (frozen) for a certain amount of time.
+  Suspended accounts cannot log in and call API methods.
+
+  This feature is only available at the User model level and is not yet
+  reflected in the API. But the site administrator can freeze/unfreeze users via
+  the 'usermod' script.
+
+### Changed
+- BestOf, Everything and Search pages are not available from anonymous access
+
+### Fixed
+- ExifTools write errors don't interrupts the attachment creation anymore.
+
 ## [2.4.1] - 2022-11-23
 ### Fixed
 - Incorrect 'file-type' import
