@@ -268,4 +268,8 @@ export class DbAdapter {
   createEmailVerificationCode(email: string, ipAddress: IPAddr): Promise<string | null>;
   checkEmailVerificationCode(code: string, email: string): Promise<boolean>;
   cleanOldEmailVerificationCodes(): Promise<void>;
+
+  // Admin-related methods
+  userIsAdmin(user_id: UUID): Promise<boolean>;
+  userIsModerator(user_id: UUID): Promise<boolean>;
 }
