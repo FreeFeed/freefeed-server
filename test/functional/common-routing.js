@@ -36,7 +36,7 @@ describe('Common API routing', () => {
     expect(resp.headers.get('Server-Timing'), 'to satisfy', /total;dur=\d/);
   });
 
-  it(`should return error if API method is not exists`, async () => {
+  it(`should return error if API method does not exist`, async () => {
     const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`);
     expect(resp.status, 'to be', 404);
     const respData = await resp.json();
@@ -66,16 +66,26 @@ describe('Common API routing', () => {
     expect(resp.headers.get('Freefeed-API-Version'), 'to be', API_VERSION_MINIMAL.toString(10));
   });
 
-  it(`should response '200 OK' to OPTIONS request`, async () => {
-    const resp = await fetch(`${app.context.config.host}/v2/users/whoami`, { method: 'OPTIONS' });
-    expect(resp.status, 'to be', 200);
+  it(`should response '204 No Content' to CORS request`, async () => {
+    const resp = await fetch(`${app.context.config.host}/v2/users/whoami`, {
+      method: 'OPTIONS',
+      headers: {
+        'Access-Control-Request-Method': 'GET',
+        Origin: 'example.com',
+      },
+    });
+    expect(resp.status, 'to be', 204);
   });
 
-  it(`should response '200 OK' to OPTIONS request if API method is not exists`, async () => {
+  it(`should response '204 No Content' to CORS request if API method does not exist`, async () => {
     const resp = await fetch(`${app.context.config.host}/v1/unexisting/method`, {
       method: 'OPTIONS',
+      headers: {
+        'Access-Control-Request-Method': 'GET',
+        Origin: 'example.com',
+      },
     });
-    expect(resp.status, 'to be', 200);
+    expect(resp.status, 'to be', 204);
   });
 
   it('should normalize unicode strings in request', async () => {

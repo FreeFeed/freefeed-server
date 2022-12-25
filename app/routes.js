@@ -1,5 +1,6 @@
 /* eslint babel/semi: "error" */
 import Router from '@koa/router';
+import cors from '@koa/cors';
 
 import AttachmentsRoute from './routes/api/v1/AttachmentsRoute';
 import AttachmentsRouteV2 from './routes/api/v2/AttachmentsRoute';
@@ -35,7 +36,7 @@ export default function (app) {
   app.use(router.routes());
   app.use(router.allowedMethods());
 
-  // Not Found middleware for API-like URIs
+  app.use(cors());
   app.use(apiNotFoundMiddleware);
 }
 

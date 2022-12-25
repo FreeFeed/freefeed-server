@@ -573,6 +573,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@koa/cors@npm:~4.0.0":
+  version: 4.0.0
+  resolution: "@koa/cors@npm:4.0.0"
+  dependencies:
+    vary: ^1.1.2
+  checksum: e0760544823532f2d71d792e3076858e38bab9b1c090abea175f1319fd91ea58a1da384a2fe7f5108f1c681e3830b01f62a1cafe271d6406751976af443187aa
+  languageName: node
+  linkType: hard
+
 "@koa/router@npm:^9.0.0":
   version: 9.4.0
   resolution: "@koa/router@npm:9.4.0"
@@ -4711,6 +4720,7 @@ __metadata:
   resolution: "freefeed-server@workspace:."
   dependencies:
     "@babel/core": ~7.20.12
+    "@koa/cors": ~4.0.0
     "@koa/router": ~12.0.0
     "@types/bytes": ~3.1.1
     "@types/cache-manager": ~3.4.3

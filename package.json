@@ -35,6 +35,7 @@
     "url": "git://github.com/FreeFeed/freefeed-server.git"
   },
   "dependencies": {
+    "@koa/cors": "~4.0.0",
     "@koa/router": "~12.0.0",
     "ajv": "~8.11.2",
     "ajv-formats": "~2.1.1",
