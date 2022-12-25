@@ -15,7 +15,10 @@ export const originMiddleware = async (ctx, next) => {
       'Authorization',
     ].join(', '),
   );
-  ctx.response.set('Access-Control-Expose-Headers', 'Date, X-Freefeed-Server');
+  ctx.response.set(
+    'Access-Control-Expose-Headers',
+    ['Date', 'X-Freefeed-Server', 'Freefeed-API-Version'].join(', '),
+  );
 
   await next();
 };

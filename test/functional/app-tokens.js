@@ -15,6 +15,7 @@ import {
 } from '../../app/models/auth-tokens/app-tokens-scopes';
 import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 import { createRouter } from '../../app/routes';
+import { normalizeRoutePath } from '../../app/models/auth-tokens/AppTokenV1';
 
 import {
   performJSONRequest,
@@ -35,7 +36,9 @@ const expect = unexpected.clone().use(freefeedAssertions);
 describe('Routes coverage', () => {
   const router = createRouter();
   const allRoutes = uniq(
-    router.stack.map((l) => l.methods.map((m) => `${m === 'HEAD' ? 'GET' : m} ${l.path}`)).flat(),
+    router.stack
+      .map((l) => l.methods.map((m) => `${m === 'HEAD' ? 'GET' : m} ${normalizeRoutePath(l.path)}`))
+      .flat(),
   );
   const allScopedRoutes = uniq(
     [alwaysAllowedRoutes, alwaysDisallowedRoutes, appTokensScopes.map((s) => s.routes)].flat(2),

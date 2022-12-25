@@ -72,6 +72,8 @@ export class DbAdapter {
 
   database: Knex & CommonDBHelpers & TrxDBHelpers;
 
+  now(): Promise<string>;
+
   // Subscription requests
   getUserSubscriptionPendingRequestsIds(userId: UUID): Promise<UUID[]>;
   deleteSubscriptionRequest(toUserId: UUID, fromUserId: UUID): Promise<void>;

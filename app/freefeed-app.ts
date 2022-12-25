@@ -20,6 +20,7 @@ import { maintenanceCheck } from './support/maintenance';
 import { reportError } from './support/exceptions';
 import { normalizeInputStrings } from './controllers/middlewares/normalize-input';
 import { AppContext } from './support/types';
+import { apiVersionMiddleware } from './setup/initializers/api-version';
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -48,6 +49,7 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
     );
     this.use(passport.initialize());
     this.use(originMiddleware);
+    this.use(apiVersionMiddleware);
     this.use(
       methodOverride((req) => {
         if (req.body && typeof req.body === 'object' && '_method' in req.body) {

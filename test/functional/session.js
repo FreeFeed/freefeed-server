@@ -223,9 +223,11 @@ describe('SessionController', () => {
         authHeaders(oldToken),
       );
 
+      const nowDate = new Date(await dbAdapter.now());
+
       // Make the old token stale
       const updatedAt = new Date(
-        Date.now() - 1000 * (config.authSessions.reissueGraceIntervalSec + 10),
+        nowDate.getTime() - 1000 * (config.authSessions.reissueGraceIntervalSec + 10),
       );
       await dbAdapter.updateAuthSession(session.id, { updatedAt });
 
