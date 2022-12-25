@@ -29,6 +29,8 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
+import { authRequired } from './controllers/middlewares';
+import { adminOnly, moderatorOnly } from './controllers/middlewares/admin-only';
 import { rateLimiterMiddleware } from './support/rateLimiter';
 
 export default function (app) {
@@ -88,6 +90,20 @@ export function createRouter() {
 
   const router = new Router();
   router.use('/v([1-9]\\d*)', publicRouter.routes(), publicRouter.allowedMethods());
+
+  {
+    const adminRouter = new Router();
+    adminRouter.use(authRequired);
+    adminRouter.use(adminOnly);
+    router.use('/api/admin', adminRouter.routes(), adminRouter.allowedMethods());
+  }
+
+  {
+    const moderatorRouter = new Router();
+    moderatorRouter.use(authRequired);
+    moderatorRouter.use(moderatorOnly);
+    router.use('/api/moderator', moderatorRouter.routes(), moderatorRouter.allowedMethods());
+  }
 
   return router;
 }
