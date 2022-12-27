@@ -12,6 +12,8 @@ import {
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
 import { AdminAction, AdminRole } from '../../models/admins';
+import { InvitationCreationCriterion } from '../types/invitations';
+import { RefusalReason } from '../../models/invitations';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -330,4 +332,8 @@ export class DbAdapter {
     groupNames: string[],
   ): Promise<[UUID]>;
   useInvitation(secureId: UUID): Promise<void>;
+  canUserCreateInvitation(
+    userId: UUID,
+    criteria: InvitationCreationCriterion[],
+  ): Promise<RefusalReason | null>;
 }

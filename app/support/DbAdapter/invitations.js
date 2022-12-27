@@ -1,5 +1,7 @@
 import validator from 'validator';
 
+import { TOO_OFTEN, TOO_SOON } from '../../models/invitations';
+
 ///////////////////////////////////////////////////
 // Invitations
 ///////////////////////////////////////////////////
@@ -39,6 +41,72 @@ const invitationsTrait = (superClass) =>
         'UPDATE invitations SET registrations_count = registrations_count + 1 where secure_id=?;',
         [secureId],
       );
+    }
+
+    /**
+     * @typedef {import('../types').UUID} UUID
+     * @typedef {import('../types/invitations').InvitationCreationCriterion} InvitationCreationCriterion
+     * @typedef {import('../../models/invitations').RefusalReason} RefusalReason
+     *
+     * @param {UUID} userId
+     * @param {InvitationCreationCriterion[]} criteria
+     * @returns {Promise<RefusalReason | null>}
+     */
+    async canUserCreateInvitation(userId, criteria) {
+      const intId = await this.database.getOne(`select id from users where uid = :userId`, {
+        userId,
+      });
+
+      const results = await Promise.all(
+        criteria.map(async ([kind, args]) => {
+          switch (kind) {
+            case 'minAccountAge':
+              return (await this.database.getOne(
+                `select created_at > now() - :age::interval from users where uid = :userId`,
+                { age: args.age, userId },
+              ))
+                ? TOO_SOON
+                : null;
+            case 'minPostsCreated':
+              return (await this.database.getOne(
+                `select not exists(
+                            select 1 from posts where user_id = :userId limit 1 offset :count - 1
+                         )`,
+                { count: args.count, userId },
+              ))
+                ? TOO_SOON
+                : null;
+            case 'minCommentsFromOthers':
+              return (await this.database.getOne(
+                `select not exists(
+                              select 1 from
+                                comments c
+                                join posts p on p.uid = c.post_id
+                              where p.user_id = :userId and c.user_id <> :userId
+                              limit 1 offset :count - 1
+                           )`,
+                { count: args.count, userId },
+              ))
+                ? TOO_SOON
+                : null;
+            case 'maxInvitesCreated':
+              return (await this.database.getOne(
+                `select exists(
+                  select 1 from invitations where 
+                    created_at > now() - :dur::interval and author = :intId
+                    limit 1 offset :count - 1
+               )`,
+                { count: args.count, dur: args.interval, intId },
+              ))
+                ? TOO_OFTEN
+                : null;
+            default:
+              return null;
+          }
+        }),
+      );
+
+      return results.find(Boolean) ?? null;
     }
   };
 

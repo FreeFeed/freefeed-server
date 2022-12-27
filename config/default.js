@@ -439,4 +439,16 @@ config.rateLimit = {
   },
 };
 
+config.invitations = {
+  // On what conditions user can create invitations?
+  // Use ISO8601 Duration format for time intervals.
+  canCreateIf: [
+    // [ "minAccountAge", { age: "P15D" } ],
+    // [ "maxInvitesCreated", { count: 3, interval: "P1D" } ],
+    // [ "maxInvitesCreated", { count: 60, interval: "P30D" } ],
+    // [ "minPostsCreated", { count: 5 } ],
+    // [ "minCommentsFromOthers", { count: 5 } ],
+  ],
+};
+
 module.exports = config;
