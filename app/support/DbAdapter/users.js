@@ -590,6 +590,23 @@ const usersTrait = (superClass) =>
         )
         .then((rows) => camelizeKeys(rows));
     }
+
+    async getUserSysPrefs(userId, key, defaultValue) {
+      const v = await this.database.getOne(
+        `select jsonb_extract_path(sys_preferences, :key)::text from users where uid = :userId`,
+        { key, userId },
+      );
+      return v !== null ? JSON.parse(v) : defaultValue;
+    }
+
+    async setUserSysPrefs(userId, key, value) {
+      await this.database.raw(
+        `update users 
+          set sys_preferences = jsonb_set(coalesce(sys_preferences, '{}'::jsonb), :path, :value)
+          where uid = :userId`,
+        { path: [key], value: JSON.stringify(value), userId },
+      );
+    }
   };
 
 export default usersTrait;

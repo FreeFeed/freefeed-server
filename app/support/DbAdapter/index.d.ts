@@ -148,6 +148,10 @@ export class DbAdapter {
   getPostsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
   getCommentsIdsByIntIds(intIds: number[]): Promise<{ id: number; uid: UUID }[]>;
 
+  // System preferences
+  getUserSysPrefs<T>(userId: UUID, key: string, defaultValue: T): Promise<T>;
+  setUserSysPrefs<T>(userId: UUID, key: string, value: T): Promise<void>;
+
   // Freeze
   freezeUser(userId: UUID, freezeTime: number | string): Promise<void>;
   userFrozenUntil(userId: UUID): Promise<Date | null>;
