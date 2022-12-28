@@ -143,6 +143,7 @@ declare module 'config' {
     ianaTimeZone: string;
 
     invitations: {
+      requiredForSignUp: boolean;
       canCreateIf: InvitationCreationCriterion[];
     };
   };

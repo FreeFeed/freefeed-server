@@ -440,6 +440,8 @@ config.rateLimit = {
 };
 
 config.invitations = {
+  requiredForSignUp: false, // When enabled, also turns off multiple-use invitations
+
   // On what conditions user can create invitations?
   // Use ISO8601 Duration format for time intervals.
   canCreateIf: [

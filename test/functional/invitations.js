@@ -6,7 +6,7 @@ import unexpected from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub } from '../../app/models';
+import { PubSub, dbAdapter } from '../../app/models';
 
 import {
   banUser,
@@ -18,6 +18,9 @@ import {
   createInvitation,
   getInvitation,
   getUserEvents,
+  withModifiedAppConfig,
+  performJSONRequest,
+  authHeaders,
 } from './functional_test_helper';
 import * as schema from './schemaV2-helper';
 
@@ -35,7 +38,7 @@ describe('Invitations', () => {
     describe('#createInvitation', () => {
       it('should reject unauthenticated users', async () => {
         const res = await createInvitation();
-        expect(res, 'to be an API error', 403, 'Unauthorized');
+        expect(res, 'to be an API error', 401, 'Unauthorized');
       });
 
       describe('for authenticated users', () => {
@@ -196,6 +199,61 @@ describe('Invitations', () => {
             };
             const res = await createInvitation(luna, invitation);
             expect(res, 'to be an invitation response');
+          });
+        });
+
+        describe('Invitation required for sign-up', () => {
+          withModifiedAppConfig({ invitations: { requiredForSignUp: true } });
+
+          const invitation = {
+            message: 'Welcome to Freefeed!',
+            lang: 'en',
+            singleUse: false,
+            users: [],
+            groups: [],
+          };
+
+          it(`should not allow to create multi-use invitation`, async () => {
+            const resp = await performJSONRequest(
+              'POST',
+              '/v2/invitations',
+              invitation,
+              authHeaders(luna),
+            );
+
+            expect(resp, 'to satisfy', { __httpCode: 422 });
+          });
+
+          it(`should allow to create single-use invitation`, async () => {
+            const resp = await performJSONRequest(
+              'POST',
+              '/v2/invitations',
+              { ...invitation, singleUse: true },
+              authHeaders(luna),
+            );
+
+            expect(resp, 'to satisfy', { __httpCode: 200 });
+          });
+        });
+
+        describe('Invitations disabled for Luna', () => {
+          beforeEach(() => dbAdapter.setInvitesDisabledForUser(luna.user.id, true));
+
+          it(`should not allow to create invitation`, async () => {
+            const resp = await performJSONRequest(
+              'POST',
+              '/v2/invitations',
+              {
+                message: 'Welcome to Freefeed!',
+                lang: 'en',
+                singleUse: true,
+                users: [],
+                groups: [],
+              },
+              authHeaders(luna),
+            );
+
+            expect(resp, 'to satisfy', { __httpCode: 403 });
           });
         });
       });
