@@ -340,4 +340,5 @@ export class DbAdapter {
     userId: UUID,
     criteria: InvitationCreationCriterion[],
   ): Promise<RefusalReason | null>;
+  setInvitesDisabledForUser(userId: UUID, isDisabled: boolean): Promise<void>;
 }

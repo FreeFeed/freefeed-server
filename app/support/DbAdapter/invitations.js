@@ -1,6 +1,6 @@
 import validator from 'validator';
 
-import { TOO_OFTEN, TOO_SOON } from '../../models/invitations';
+import { DENIED, TOO_OFTEN, TOO_SOON } from '../../models/invitations';
 
 ///////////////////////////////////////////////////
 // Invitations
@@ -53,9 +53,14 @@ const invitationsTrait = (superClass) =>
      * @returns {Promise<RefusalReason | null>}
      */
     async canUserCreateInvitation(userId, criteria) {
-      const intId = await this.database.getOne(`select id from users where uid = :userId`, {
-        userId,
-      });
+      const [intId, invitesDisabled] = await Promise.all([
+        this.database.getOne(`select id from users where uid = :userId`, { userId }),
+        this.getUserSysPrefs(userId, 'invitesDisabled', false),
+      ]);
+
+      if (invitesDisabled) {
+        return DENIED;
+      }
 
       const results = await Promise.all(
         criteria.map(async ([kind, args]) => {
@@ -107,6 +112,10 @@ const invitationsTrait = (superClass) =>
       );
 
       return results.find(Boolean) ?? null;
+    }
+
+    async setInvitesDisabledForUser(userId, isDisabled) {
+      await this.setUserSysPrefs(userId, 'invitesDisabled', isDisabled);
     }
   };
 

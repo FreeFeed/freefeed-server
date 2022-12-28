@@ -4,7 +4,7 @@ import expect from 'unexpected';
 
 import cleanDB from '../../../dbCleaner';
 import { User, dbAdapter, Comment } from '../../../../app/models';
-import { TOO_OFTEN, TOO_SOON } from '../../../../app/models/invitations';
+import { DENIED, TOO_OFTEN, TOO_SOON } from '../../../../app/models/invitations';
 
 /**
  * @typedef {import('../../../../app/models').Post} Post
@@ -150,6 +150,16 @@ describe('Invitations DB trait', () => {
         );
         const result = await dbAdapter.canUserCreateInvitation(luna.id, criteria);
         expect(result, 'to be null');
+      });
+    });
+
+    describe('Disable invites', () => {
+      before(() => dbAdapter.setInvitesDisabledForUser(luna.id, true));
+      after(() => dbAdapter.setInvitesDisabledForUser(luna.id, true));
+
+      it(`should not allow to user with disabled invitations to create new invite`, async () => {
+        const result = await dbAdapter.canUserCreateInvitation(luna.id, []);
+        expect(result, 'to be', DENIED);
       });
     });
   });
