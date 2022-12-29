@@ -59,6 +59,8 @@ export default class UsersController {
         throw new TooManyRequestsException('New user registrations are temporarily suspended');
       }
 
+      const { config } = ctx;
+
       const params = {
         username: ctx.request.body.username,
         screenName: ctx.request.body.screenName,
@@ -92,12 +94,29 @@ export default class UsersController {
       }
 
       const invitationId = ctx.request.body.invitation;
+      /** @type {import('../../../support/DbAdapter').InvitationRecord|null} */
       let invitation;
 
       if (invitationId) {
         invitation = await dbAdapter.getInvitation(invitationId);
         invitation = await validateInvitationAndSelectUsers(invitation, invitationId);
         params.invitationId = invitation.id;
+      }
+
+      if (config.invitations.requiredForSignUp) {
+        if (!invitation) {
+          throw new ValidationException('Invitation required');
+        }
+
+        if (!invitation.single_use) {
+          throw new ValidationException('Only single-use invitation is accepted');
+        }
+
+        const inviteAuthor = await dbAdapter.getUserByIntId(invitation.author);
+
+        if (await dbAdapter.isInvitesDisabledForUser(inviteAuthor.id)) {
+          throw new ValidationException('This invitation is not active');
+        }
       }
 
       const user = new User(params);

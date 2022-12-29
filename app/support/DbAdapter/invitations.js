@@ -55,7 +55,7 @@ const invitationsTrait = (superClass) =>
     async canUserCreateInvitation(userId, criteria) {
       const [intId, invitesDisabled] = await Promise.all([
         this.database.getOne(`select id from users where uid = :userId`, { userId }),
-        this.getUserSysPrefs(userId, 'invitesDisabled', false),
+        this.isInvitesDisabledForUser(userId),
       ]);
 
       if (invitesDisabled) {
@@ -112,6 +112,10 @@ const invitationsTrait = (superClass) =>
       );
 
       return results.find(Boolean) ?? null;
+    }
+
+    isInvitesDisabledForUser(userId) {
+      return this.getUserSysPrefs(userId, 'invitesDisabled', false);
     }
 
     async setInvitesDisabledForUser(userId, isDisabled) {
