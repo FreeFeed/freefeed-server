@@ -29,6 +29,7 @@ export const alwaysDisallowedRoutes = [
   'PUT /vN/archives/activities',
   'GET /vN/archives-stats',
   // Invitations
+  'GET /vN/invitations/info',
   'GET /vN/invitations/:secureId',
   'POST /vN/invitations',
   // App tokens

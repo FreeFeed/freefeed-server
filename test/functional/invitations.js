@@ -7,6 +7,7 @@ import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
 import { PubSub, dbAdapter } from '../../app/models';
+import { DENIED } from '../../app/models/invitations';
 
 import {
   banUser,
@@ -21,6 +22,7 @@ import {
   withModifiedAppConfig,
   performJSONRequest,
   authHeaders,
+  createTestUser,
 } from './functional_test_helper';
 import * as schema from './schemaV2-helper';
 
@@ -619,6 +621,72 @@ describe('Invitations', () => {
                 event_type: 'invitation_used',
               });
             });
+          });
+        });
+      });
+    });
+
+    describe('#invitationsInfo', () => {
+      let luna;
+
+      beforeEach(async () => {
+        luna = await createTestUser('luna');
+      });
+
+      it('should not return invitations info to anonymous', async () => {
+        const resp = await performJSONRequest('GET', '/v2/invitations/info');
+        expect(resp, 'to satisfy', { __httpCode: 401 });
+      });
+
+      it('should return invitations info for Luna', async () => {
+        const resp = await performJSONRequest(
+          'GET',
+          '/v2/invitations/info',
+          null,
+          authHeaders(luna),
+        );
+        expect(resp, 'to satisfy', {
+          canCreateNew: true,
+          singleUseOnly: false,
+          reasonNotCreate: null,
+        });
+      });
+
+      describe('Invites required for registration', () => {
+        withModifiedAppConfig({ invitations: { requiredForSignUp: true } });
+
+        it('should return invitations info with singleUseOnly = true', async () => {
+          const resp = await performJSONRequest(
+            'GET',
+            '/v2/invitations/info',
+            null,
+            authHeaders(luna),
+          );
+          expect(resp, 'to satisfy', {
+            canCreateNew: true,
+            singleUseOnly: true,
+            reasonNotCreate: null,
+          });
+        });
+      });
+
+      describe('Invites is blocked for Luna', () => {
+        beforeEach(() => dbAdapter.setInvitesDisabledForUser(luna.user.id, true));
+
+        it('should return disabled invitations info for Luna', async () => {
+          const resp = await performJSONRequest(
+            'GET',
+            '/v2/invitations/info',
+            null,
+            authHeaders(luna),
+          );
+          expect(resp, 'to satisfy', {
+            canCreateNew: false,
+            singleUseOnly: false,
+            reasonNotCreate: {
+              code: DENIED,
+              message: expect.it('to be a string'),
+            },
           });
         });
       });

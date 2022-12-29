@@ -12,6 +12,10 @@ import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { authRequired } from '../../middlewares';
 import { TOO_OFTEN, TOO_SOON } from '../../../models/invitations';
 
+/**
+ * @typedef {import('../../../support/types').Ctx} Ctx
+ */
+
 export default class InvitationsController {
   static async getInvitation(ctx) {
     const invitation = await dbAdapter.getInvitation(ctx.params.secureId);
@@ -35,9 +39,9 @@ export default class InvitationsController {
     };
   }
 
-  static createInvitation = compose([
+  static invitationsInfo = compose([
     authRequired(),
-    /** @param {import('../../../support/types').Ctx} ctx */
+    /** @param {Ctx} ctx */
     async (ctx) => {
       const {
         state: { user },
@@ -49,25 +53,52 @@ export default class InvitationsController {
         config.invitations.canCreateIf,
       );
 
+      ctx.body = {
+        canCreateNew: reason === null,
+        singleUseOnly: config.invitations.requiredForSignUp,
+        reasonNotCreate: reason ? { code: reason, message: '' } : null,
+      };
+
       if (reason !== null) {
         switch (reason) {
           case TOO_OFTEN:
-            throw new TooManyRequestsException(
-              'You create invitations too often. Please try again later.',
-            );
+            ctx.body.reasonNotCreate.message =
+              'You create invitations too often. Please try again later.';
+            break;
           case TOO_SOON:
-            throw new ForbiddenException(
-              'You cannot create invitations because your account was created recently or is not active enough.',
-            );
+            ctx.body.reasonNotCreate.message =
+              'You cannot create invitations because your account was created recently or is not active enough.';
+            break;
           default:
-            throw new ForbiddenException('The ability to create invitations is disabled for you.');
+            ctx.body.reasonNotCreate.message =
+              'The ability to create invitations is disabled for you.';
+        }
+      }
+    },
+  ]);
+
+  static createInvitation = compose([
+    authRequired(),
+    /** @param {Ctx} ctx */
+    async (ctx) => {
+      const { user } = ctx.state;
+
+      await InvitationsController.invitationsInfo(ctx);
+
+      if (!ctx.body.canCreateNew) {
+        const { code, message } = ctx.body.reasonNotCreate;
+
+        if (code === TOO_OFTEN) {
+          throw new TooManyRequestsException(message);
+        } else {
+          throw new ForbiddenException(message);
         }
       }
 
       await validateInvitation(ctx.request.body);
 
-      if (config.invitations.requiredForSignUp && !ctx.request.body.singleUse) {
-        throw new ValidationException('Only single use invitations is allowed.');
+      if (ctx.body.singleUseOnly && !ctx.request.body.singleUse) {
+        throw new ValidationException('Only single-use invitations are allowed.');
       }
 
       ctx.params.secureId = await user.createInvitation(ctx.request.body);
