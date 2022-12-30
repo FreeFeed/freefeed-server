@@ -3,7 +3,6 @@
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
-import { dbAdapter } from '../../app/models';
 
 import {
   authHeaders,
@@ -101,7 +100,7 @@ describe('User registration by invites', () => {
       });
 
       describe('Invites was disabled for Luna', () => {
-        beforeEach(() => dbAdapter.setInvitesDisabledForUser(luna.user.id, true));
+        beforeEach(() => luna.user.setInvitesDisabled(true));
 
         it('should not allow to register with invite', async () => {
           const resp = await await performJSONRequest('POST', '/v1/users', {

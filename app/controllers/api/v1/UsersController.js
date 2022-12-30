@@ -114,7 +114,7 @@ export default class UsersController {
 
         const inviteAuthor = await dbAdapter.getUserByIntId(invitation.author);
 
-        if (await dbAdapter.isInvitesDisabledForUser(inviteAuthor.id)) {
+        if (await inviteAuthor.isInvitesDisabled()) {
           throw new ValidationException('This invitation is not active');
         }
       }

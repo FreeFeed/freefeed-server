@@ -167,7 +167,7 @@ function disableInvites(doDisable) {
       throw new Error(`This operation is only applicable to users`);
     }
 
-    await dbAdapter.setInvitesDisabledForUser(doDisable);
+    await account.setInvitesDisabled(doDisable);
 
     if (doDisable) {
       process.stdout.write(`Done! Invitations disabled.\n\n`);
@@ -209,7 +209,7 @@ async function loadAccount(username) {
     const upTo = await account.frozenUntil();
     process.stdout.write(`Frozen:  ${upTo ? `up to ${upTo.toISOString()}` : 'no'}\n`);
 
-    const invitesDisabled = await dbAdapter.isInvitesDisabledForUser(account.id);
+    const invitesDisabled = await account.isInvitesDisabled();
     process.stdout.write(`Invites: ${invitesDisabled ? 'disabled' : 'enabled'}\n`);
   }
 

@@ -154,8 +154,8 @@ describe('Invitations DB trait', () => {
     });
 
     describe('Disable invites', () => {
-      before(() => dbAdapter.setInvitesDisabledForUser(luna.id, true));
-      after(() => dbAdapter.setInvitesDisabledForUser(luna.id, true));
+      before(() => luna.setInvitesDisabled(true));
+      after(() => luna.setInvitesDisabled(false));
 
       it(`should not allow to user with disabled invitations to create new invite`, async () => {
         const result = await dbAdapter.canUserCreateInvitation(luna.id, []);

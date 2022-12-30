@@ -86,6 +86,8 @@ export class User {
     users: string[];
     groups: string[];
   }): Promise<UUID>;
+  isInvitesDisabled(): Promise<boolean>;
+  setInvitesDisabled(isDisabled: boolean): Promise<void>;
 }
 
 export class Group {

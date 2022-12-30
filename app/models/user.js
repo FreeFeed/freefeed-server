@@ -1359,5 +1359,13 @@ export function addModel(dbAdapter) {
       );
       return invitationId;
     }
+
+    isInvitesDisabled() {
+      return dbAdapter.isInvitesDisabledForUser(this.id);
+    }
+
+    setInvitesDisabled(isDisabled) {
+      return dbAdapter.setInvitesDisabledForUser(this.id, isDisabled);
+    }
   };
 }

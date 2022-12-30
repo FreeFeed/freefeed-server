@@ -6,7 +6,7 @@ import unexpected from 'unexpected';
 import cleanDB from '../dbCleaner';
 import { getSingleton } from '../../app/app';
 import { DummyPublisher } from '../../app/pubsub';
-import { PubSub, dbAdapter } from '../../app/models';
+import { PubSub } from '../../app/models';
 import { DENIED } from '../../app/models/invitations';
 
 import {
@@ -239,7 +239,7 @@ describe('Invitations', () => {
         });
 
         describe('Invitations disabled for Luna', () => {
-          beforeEach(() => dbAdapter.setInvitesDisabledForUser(luna.user.id, true));
+          beforeEach(() => luna.user.setInvitesDisabled(true));
 
           it(`should not allow to create invitation`, async () => {
             const resp = await performJSONRequest(
@@ -671,7 +671,7 @@ describe('Invitations', () => {
       });
 
       describe('Invites is blocked for Luna', () => {
-        beforeEach(() => dbAdapter.setInvitesDisabledForUser(luna.user.id, true));
+        beforeEach(() => luna.user.setInvitesDisabled(true));
 
         it('should return disabled invitations info for Luna', async () => {
           const resp = await performJSONRequest(
