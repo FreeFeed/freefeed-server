@@ -38,6 +38,7 @@
     "@koa/router": "~12.0.0",
     "ajv": "~8.11.2",
     "ajv-formats": "~2.1.1",
+    "async-ratelimiter": "^1.3.5",
     "await-lock": "~2.2.2",
     "aws-sdk": "^2.1277.0",
     "bcrypt": "~5.1.0",

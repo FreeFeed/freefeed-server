@@ -1792,6 +1792,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"async-ratelimiter@npm:^1.3.5":
+  version: 1.3.5
+  resolution: "async-ratelimiter@npm:1.3.5"
+  checksum: 405b305c1bbc07bacbb1b94246de8bc47a5b3ee59a8c1521c7f364471357b44321434e0f48e2bc497bc5c26eb0a55dc631034070b81089b2418eb326a888d2d6
+  languageName: node
+  linkType: hard
+
 "async@npm:3.2.3":
   version: 3.2.3
   resolution: "async@npm:3.2.3"
@@ -4998,6 +5005,7 @@ __metadata:
     "@typescript-eslint/parser": ~5.47.0
     ajv: ~8.11.2
     ajv-formats: ~2.1.1
+    async-ratelimiter: ^1.3.5
     await-lock: ~2.2.2
     aws-sdk: ^2.1277.0
     bcrypt: ~5.1.0

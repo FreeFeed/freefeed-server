@@ -418,4 +418,16 @@ config.emailVerification = {
   },
 };
 
+config.rateLimit = {
+  enabled: false,
+  anonymous: {
+    duration: 60 * 1000, // milliseconds
+    maxRequests: 100,
+  },
+  authenticated: {
+    duration: 60 * 1000, // milliseconds
+    maxRequests: 200,
+  },
+};
+
 module.exports = config;
