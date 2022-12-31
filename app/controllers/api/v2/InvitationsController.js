@@ -24,6 +24,12 @@ export default class InvitationsController {
       throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
     }
 
+    const invAuthor = await dbAdapter.getUserByIntId(invitation.author);
+
+    if (await invAuthor.isInvitesDisabled()) {
+      throw new NotFoundException(`Can't find invitation '${ctx.params.secureId}'`);
+    }
+
     const invitationUsers = await serializeInvitationUsers(
       invitation.recommendations.users,
       invitation.recommendations.groups,

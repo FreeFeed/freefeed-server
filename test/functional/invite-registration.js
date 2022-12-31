@@ -102,6 +102,11 @@ describe('User registration by invites', () => {
       describe('Invites was disabled for Luna', () => {
         beforeEach(() => luna.user.setInvitesDisabled(true));
 
+        it('should not return invite', async () => {
+          const resp = await await performJSONRequest('GET', `/v2/invitations/${invitation}`);
+          expect(resp, 'to satisfy', { __httpCode: 404 });
+        });
+
         it('should not allow to register with invite', async () => {
           const resp = await await performJSONRequest('POST', '/v1/users', {
             username: 'mars',
