@@ -470,6 +470,7 @@ export const serverInfoResponse = {
     description: expect.it('to be a number'),
   },
   registrationRequiresInvite: expect.it('to be a boolean'),
+  multiUseInvitesEnabled: expect.it('to be a boolean'),
 };
 
 export const externalProfile = {

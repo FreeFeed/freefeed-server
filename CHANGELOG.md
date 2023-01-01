@@ -56,8 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Registration without invites is not allowed;
     - Multi-use invites are not not allowed.
   - API changes:
-    - `GET /v2/server-info` method returns new _registrationRequiresInvite_
-      boolean field.
+    - `GET /v2/server-info` method returns new _registrationRequiresInvite_ and
+      _multiUseInvitesEnabled_ boolean fields.
     - `GET /v2/users/:userName` method returns new _invitedBy_ field. The value
       is either _null_ or the name of the user who invited it.
     - New method `GET /v2/invitations/info` returns invitations creation

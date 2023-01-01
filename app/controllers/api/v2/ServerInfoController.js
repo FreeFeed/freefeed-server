@@ -30,5 +30,6 @@ export async function serverInfo(ctx) {
     },
     emailVerificationEnabled: config.emailVerification.enabled,
     registrationRequiresInvite: config.invitations.requiredForSignUp,
+    multiUseInvitesEnabled: !config.invitations.requiredForSignUp,
   };
 }
