@@ -6,7 +6,7 @@
   "version": "2.6.0",
   "private": true,
   "scripts": {
-    "start": "yarn babel index.js",
+    "start": "cross-env TZ=UTC yarn babel index.js",
     "travis": "run-s -c typecheck test lint",
     "test": "run-s typecheck reset-test-db test-rollback mocha",
     "coverage": "run-s reset-test-db nyc",
@@ -18,7 +18,7 @@
     "reset-test-db": "run-s \"babel bin/clean_test_db.js\" && knex --env test migrate:latest",
     "test-rollback": "knex --env test migrate:rollback && knex --env test migrate:latest",
     "test-just": "cross-env NODE_ENV=test FRFS_SECRET=test-secret mocha",
-    "mocha": "run-s \"test-just -b test/unit test/integration test/functional test/cleanup.js\"",
+    "mocha": "cross-env TZ=UTC run-s \"test-just -b test/unit test/integration test/functional test/cleanup.js\"",
     "console": "yarn babel bin/console",
     "nyc": "nyc yarn mocha",
     "data_transfer": "yarn babel bin/data_transfer",
