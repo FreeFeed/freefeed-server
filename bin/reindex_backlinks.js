@@ -6,6 +6,7 @@ import { program } from 'commander';
 
 import { dbAdapter } from '../app/models';
 import { extractUUIDs } from '../app/support/backlinks';
+import { delay } from '../app/support/timers';
 
 // Reindex baclinks in posts and comments.
 // Usage: yarn babel bin/reindex_backlinks.js --help
@@ -15,21 +16,27 @@ const ZERO_UID = '00000000-00000000-00000000-00000000';
 const statusFile = path.join(__dirname, '../tmp/reindex_backlinks.json');
 
 program
-  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), '1000')
-  .option('--delay <delay>', 'delay between batches, seconds', (v) => parseInt(v, 10), '1')
-  .option('--retries <count>', 'count of retries in case of failure', (v) => parseInt(v, 10), '10')
+  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), 1000)
+  .option('--delay <delay>', 'delay between batches, seconds', (v) => parseInt(v, 10), 1)
+  .option('--retries <count>', 'count of retries in case of failure', (v) => parseInt(v, 10), 10)
   .option('--timeout <timeout>', 'timeout of transaction in PostgreSQL syntax', '1min')
   .option('--restart', 'start indexing from the beginning and drop the existing backlinks');
 program.parse(process.argv);
 
-const { batchSize, delay, retries, timeout } = program;
+const [batchSize, delaySec, retries, timeout, restart] = [
+  program.getOptionValue('batchSize'),
+  program.getOptionValue('delay'),
+  program.getOptionValue('retries'),
+  program.getOptionValue('timeout'),
+  program.getOptionValue('restart'),
+];
 
-if (!isFinite(batchSize) || !isFinite(delay)) {
+if (!isFinite(batchSize) || !isFinite(delaySec)) {
   process.stderr.write(`⛔ Invalid program option\n`);
   program.help();
 }
 
-process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delay}\n`);
+process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delaySec}\n`);
 process.stdout.write(`Status file: ${statusFile}\n`);
 process.stdout.write(`\n`);
 
@@ -38,7 +45,7 @@ process.stdout.write(`\n`);
     let lastUID = ZERO_UID;
     let [table] = allTables;
 
-    if (!program.restart) {
+    if (!restart) {
       try {
         const statusText = await fs.readFile(statusFile, { encoding: 'utf8' });
         ({ lastUID, table } = JSON.parse(statusText));
@@ -164,7 +171,7 @@ process.stdout.write(`\n`);
             }
           }
 
-          await delay(1000 * delay);
+          await delay(1000 * delaySec);
         }
       }
 
