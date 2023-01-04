@@ -119,6 +119,18 @@ declare module 'config' {
         limitPerIP: { count: number; interval: number };
       };
     };
+
+    rateLimit: {
+      enabled: boolean;
+      anonymous: {
+        duration: number;
+        maxRequests: number;
+      };
+      authenticated: {
+        duration: number;
+        maxRequests: number;
+      };
+    };
   };
 
   const c: Config;

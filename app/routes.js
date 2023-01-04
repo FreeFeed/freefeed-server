@@ -28,6 +28,7 @@ import ServerInfoRoute from './routes/api/v2/ServerInfo';
 import ExtAuthRoute from './routes/api/v2/ExtAuth';
 import { withAuthToken } from './controllers/middlewares/with-auth-token';
 import { apiNotFoundMiddleware } from './setup/initializers/api-not-found';
+import { rateLimiterMiddleware } from './support/rateLimiter';
 
 export default function (app) {
   const router = createRouter();
@@ -54,6 +55,8 @@ export function createRouter() {
 
   // [at least optionally] authenticated routes
   router.use(withAuthToken);
+
+  router.use(rateLimiterMiddleware);
 
   SessionRoute(router);
 
