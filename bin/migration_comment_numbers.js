@@ -5,6 +5,7 @@ import path from 'path';
 import { program } from 'commander';
 
 import { dbAdapter } from '../app/models';
+import { delay } from '../app/support/timers';
 
 // Add sequential numbers to comments.
 // Usage: yarn babel bin/migration_comment_numbers.js --help
@@ -13,19 +14,23 @@ const ZERO_UID = '00000000-00000000-00000000-00000000';
 const statusFile = path.join(__dirname, '../tmp/migration_comment_numbers.json');
 
 program
-  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), '1000')
-  .option('--delay <delay>', 'delay between batches, milliseconds', (v) => parseInt(v, 10), '100')
+  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), 1000)
+  .option('--delay <delay>', 'delay between batches, milliseconds', (v) => parseInt(v, 10), 100)
   .option('--restart', 'start process from the beginning');
 program.parse(process.argv);
 
-const { batchSize, delay } = program;
+const [batchSize, delayMsec, restart] = [
+  program.getOptionValue('batchSize'),
+  program.getOptionValue('delay'),
+  program.getOptionValue('restart'),
+];
 
-if (!isFinite(batchSize) || !isFinite(delay)) {
+if (!isFinite(batchSize) || !isFinite(delayMsec)) {
   process.stderr.write(`⛔ Invalid program option\n`);
   program.help();
 }
 
-process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delay} ms\n`);
+process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delayMsec} ms\n`);
 process.stdout.write(`Status file: ${statusFile}\n`);
 process.stdout.write(`\n`);
 
@@ -33,7 +38,7 @@ process.stdout.write(`\n`);
   try {
     let lastUID = ZERO_UID;
 
-    if (!program.restart) {
+    if (!restart) {
       try {
         const statusText = await fs.readFile(statusFile, { encoding: 'utf8' });
         ({ lastUID } = JSON.parse(statusText));
@@ -95,6 +100,7 @@ process.stdout.write(`\n`);
       );
 
       await saveStatus(lastUID);
+      await delay(delayMsec);
     }
 
     process.stdout.write(`All done.\n`);

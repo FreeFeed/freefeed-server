@@ -73,11 +73,14 @@ function setGoneStatus(newStatus) {
   return async function (username, cmd) {
     const account = await loadAccount(username);
 
+    const doItNow = cmd.getOptionValue('now');
+    const doItForce = cmd.getOptionValue('force');
+
     if (!account.isUser()) {
       throw new Error(`This operation is only applicable to users`);
     }
 
-    if (newStatus === GONE_COOLDOWN && cmd.now) {
+    if (newStatus === GONE_COOLDOWN && doItNow) {
       newStatus = GONE_DELETION;
     }
 
@@ -86,7 +89,7 @@ function setGoneStatus(newStatus) {
     }
 
     if (newStatus === null) {
-      if (!account.isResumable && !cmd.force) {
+      if (!account.isResumable && !doItForce) {
         throw new Error(
           `The account in ${goneStatusName(account.goneStatus)} status cannot be resumed`,
         );
