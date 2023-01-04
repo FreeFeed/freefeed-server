@@ -4,6 +4,7 @@ import { program } from 'commander';
 
 import { dbAdapter } from '../app/models';
 import { normalizeEmail } from '../app/support/email-norm';
+import { delay } from '../app/support/timers';
 
 // Normalize all user's emails
 // Usage: yarn babel bin/normalize_emails.js --help
@@ -11,18 +12,21 @@ import { normalizeEmail } from '../app/support/email-norm';
 const ZERO_UID = '00000000-00000000-00000000-00000000';
 
 program
-  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), '1000')
-  .option('--delay <delay>', 'delay between batches, seconds', (v) => parseInt(v, 10), '1');
+  .option('--batch-size <batch size>', 'batch size', (v) => parseInt(v, 10), 1000)
+  .option('--delay <delay>', 'delay between batches, seconds', (v) => parseInt(v, 10), 1);
 program.parse(process.argv);
 
-const { batchSize, delay } = program;
+const [batchSize, delaySec] = [
+  program.getOptionValue('batchSize'),
+  program.getOptionValue('delay'),
+];
 
-if (!isFinite(batchSize) || !isFinite(delay)) {
+if (!isFinite(batchSize) || !isFinite(delaySec)) {
   process.stderr.write(`⛔ Invalid program option\n`);
   program.help();
 }
 
-process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delay}\n`);
+process.stdout.write(`Running with batch size of ${batchSize} and delay of ${delaySec}\n`);
 process.stdout.write(`\n`);
 
 (async () => {
@@ -55,7 +59,7 @@ process.stdout.write(`\n`);
       const percent = (parseInt(lastUID.substr(0, 2), 16) * 100) >> 8;
       process.stdout.write(`\tprocessed ${percent}% of total\n`);
 
-      await delay(1000 * delay);
+      await delay(1000 * delaySec);
     }
 
     process.stdout.write(`All users were processed.\n`);
