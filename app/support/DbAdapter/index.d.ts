@@ -146,6 +146,8 @@ export class DbAdapter {
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
+  getGroupsWithDisabledBans(userId: UUID, groupIds: UUID[]): Promise<UUID[]>;
+  disableBansInGroup(userId: UUID, groupId: UUID, doDisable: boolean): Promise<boolean>;
 
   // Posts
   getPostById(id: UUID): Promise<Post | null>;

@@ -113,6 +113,33 @@ const bansTrait = (superClass) =>
         })
         .delete();
     }
+
+    async getGroupsWithDisabledBans(userId, groupIds) {
+      return await this.database.getCol(
+        `select group_id from groups_without_bans
+          where user_id = :userId and group_id = any(:groupIds)`,
+        { userId, groupIds },
+      );
+    }
+
+    async disableBansInGroup(userId, groupId, doDisable) {
+      if (doDisable) {
+        return !!(await this.database.getOne(
+          `insert into groups_without_bans
+            (user_id, group_id) values (:userId, :groupId)
+            on conflict do nothing
+            returning true`,
+          { userId, groupId },
+        ));
+      }
+
+      return !!(await this.database.getOne(
+        `delete from groups_without_bans
+          where (user_id, group_id) = (:userId, :groupId)
+          returning true`,
+        { userId, groupId },
+      ));
+    }
   };
 
 export default bansTrait;

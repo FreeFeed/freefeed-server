@@ -173,6 +173,8 @@ export const appTokensScopes = [
       'GET /vN/timelines/home/:feedId',
       'GET /vN/timelines/home/subscriptions',
       'PATCH /vN/timelines/home',
+      'POST /vN/groups/:groupName/disableBans',
+      'POST /vN/groups/:groupName/enableBans',
     ],
   },
   {

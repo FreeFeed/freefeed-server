@@ -5,6 +5,7 @@ import { dbAdapter } from '../../../models';
 import { serializeUsersByIds } from '../../../serializers/v2/user';
 import { ForbiddenException } from '../../../support/exceptions';
 import { authRequired, targetUserRequired } from '../../middlewares';
+import UsersController from '../v1/UsersController';
 
 export default class GroupsController {
   static async managedGroups(ctx) {
@@ -125,4 +126,19 @@ export default class GroupsController {
       ctx.body = { blockedUsers, users };
     },
   ]);
+
+  static disableBans = (doDisable) =>
+    compose([
+      authRequired(),
+      targetUserRequired({ groupName: 'group' }),
+      async (ctx) => {
+        const { user, group } = ctx.state;
+
+        await dbAdapter.disableBansInGroup(user.id, group.id, doDisable);
+
+        // Show group info via UsersController.show
+        ctx.params.username = group.username;
+        await UsersController.show(ctx);
+      },
+    ]);
 }
