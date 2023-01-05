@@ -6,10 +6,13 @@ import { camelizeKeys } from 'humps';
 
 import { User, Group, Comment } from '../../models';
 import { normalizeEmail } from '../email-norm';
+import { List } from '../open-lists';
 
 import { initObject, prepareModelPayload } from './utils';
 
-/** @typedef {import('../types').UUID} UUID */
+/**
+ * @typedef {import('../types').UUID} UUID
+ */
 
 const usersTrait = (superClass) =>
   class extends superClass {
@@ -459,28 +462,39 @@ const usersTrait = (superClass) =>
     }
 
     /**
-     * Returns UIDs of users who cah see any of
-     * the given feeds. It is assumed that feeds
-     * are private 'Posts' or 'Directs' feeds.
+     * Returns List of UIDs of users who cah see any of the given feeds. Only
+     * 'Posts' or 'Directs' feeds are counts.
      *
      * @param {number[]} feedIntIds
-     * @return {string[]}
+     * @return {List<UUID>}
      */
-    async getUsersWhoCanSeePrivateFeeds(feedIntIds) {
-      const { rows } = await this.database.raw(
+    async getUsersWhoCanSeeFeeds(feedIntIds) {
+      const hasNotPrivate = await this.database.getOne(
+        `select exists (
+          select 1 
+          from feeds f join users u on u.uid = f.user_id
+          where f.name = 'Posts' and f.id = any(:feedIntIds) and not u.is_private
+          )`,
+        { feedIntIds },
+      );
+
+      if (hasNotPrivate) {
+        return List.everything();
+      }
+
+      return await this.database.getCol(
         `
       -- Feed owners always can see these feeds
-      select user_id from feeds where id = any(:feedIntIds)
+      select user_id from feeds where id = any(:feedIntIds) and (name = 'Posts' or name = 'Directs')
       union
       -- Users who subscribed to feeds
       select s.user_id from
         subscriptions s
         join feeds f on f.uid = s.feed_id
-      where f.id = any(:feedIntIds)
+      where f.id = any(:feedIntIds) and (f.name = 'Posts' or f.name = 'Directs')
       `,
         { feedIntIds },
       );
-      return _.uniq(_.map(rows, 'user_id'));
     }
 
     async getNotificationsDigestRecipients() {

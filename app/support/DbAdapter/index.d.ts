@@ -12,6 +12,7 @@ import {
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
 import { AdminAction, AdminRole } from '../../models/admins';
+import { List } from '../open-lists';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -146,7 +147,7 @@ export class DbAdapter {
 
   // Bans
   getUserBansIds(id: UUID): Promise<UUID[]>;
-  getGroupsWithDisabledBans(userId: UUID, groupIds: UUID[]): Promise<UUID[]>;
+  getGroupsWithDisabledBans(userId: UUID, groupIds?: UUID[]): Promise<UUID[]>;
   disableBansInGroup(userId: UUID, groupId: UUID, doDisable: boolean): Promise<boolean>;
 
   // Posts
@@ -184,6 +185,14 @@ export class DbAdapter {
   getAllUserNamedFeed(userId: UUID, feedName: string): Promise<Timeline[]>;
   getUserNamedFeed(userId: UUID, feedName: string): Promise<Nullable<Timeline>>;
   getTimelinesByIntIds(intIds: number[]): Promise<Timeline[]>;
+
+  // Visibility
+  postsVisibilitySQL(
+    viewerId?: UUID,
+    options?: { postsTable: string; postAuthorsTable: string },
+  ): Promise<string>;
+  isPostVisibleForViewer(postId: UUID, viewerId?: UUID): Promise<boolean>;
+  getUsersWhoCanSeePost(postProps: { authorId: UUID; destFeeds: number[] }): Promise<List<UUID>>;
 
   // App tokens
   createAppToken(token: AppTokenCreateParams): Promise<AppTokenV1>;

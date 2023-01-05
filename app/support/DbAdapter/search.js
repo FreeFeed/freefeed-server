@@ -155,18 +155,9 @@ const searchTrait = (superClass) =>
       // Are we using the 'comments' table?
       const useCommentsTable = inAllCommentsSQL !== 'true' || inCommentsSQL !== 'true';
 
-      const [
-        // Private feeds viewer can read
-        visiblePrivateFeedIntIds,
-        // Users who banned viewer or banned by viewer (viewer should not see their posts)
-        bannedUsersIds,
-        // Users banned by viewer (for comments)
-        bannedByViewer,
-      ] = await Promise.all([
-        viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
-        viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
-        viewerId && useCommentsTable ? await this.getUserBansIds(viewerId) : [],
-      ]);
+      // Users banned by viewer (for comments)
+      const bannedByViewer =
+        viewerId && useCommentsTable ? await this.getUserBansIds(viewerId) : [];
 
       // Additional restrictions for comments
       const commentsRestrictionSQL = useCommentsTable
@@ -177,19 +168,7 @@ const searchTrait = (superClass) =>
         : 'true';
 
       // Additional restrictions for posts
-      const postsRestrictionsSQL = andJoin([
-        // Privacy
-        viewerId
-          ? pgFormat(
-              `(not p.is_private or p.destination_feed_ids && %L)`,
-              `{${visiblePrivateFeedIntIds.join(',')}}`,
-            )
-          : 'not p.is_protected',
-        // Bans
-        sqlNotIn('p.user_id', bannedUsersIds),
-        // Gone post's authors
-        'u.gone_status is null',
-      ]);
+      const postsRestrictionsSQL = await this.postsVisibilitySQL(viewerId);
 
       // Now we buid full query
       const postsPart = andJoin([

@@ -33,29 +33,7 @@ const timelinesPostsTrait = (superClass) =>
     }) {
       withLocalBumps = withLocalBumps && !!viewerId && sort === 'bumped';
 
-      const [
-        // Private feeds viewer can read
-        visiblePrivateFeedIntIds,
-        // Users who banned viewer or banned by viewer (viewer should not see their posts)
-        bannedUsersIds,
-      ] = await Promise.all([
-        viewerId ? this.getVisiblePrivateFeedIntIds(viewerId) : [],
-        viewerId ? this.getUsersBansOrWasBannedBy(viewerId) : [],
-      ]);
-
-      const restrictionsSQL = andJoin([
-        // Privacy
-        viewerId
-          ? orJoin([
-              'not p.is_private',
-              sqlIntarrayIn('p.destination_feed_ids', visiblePrivateFeedIntIds),
-            ])
-          : 'not p.is_protected',
-        // Bans
-        sqlNotIn('p.user_id', bannedUsersIds),
-        // Gone post's authors
-        'u.gone_status is null',
-      ]);
+      const restrictionsSQL = await this.postsVisibilitySQL(viewerId);
 
       /**
        * PostgreSQL is not very good dealing with queries like

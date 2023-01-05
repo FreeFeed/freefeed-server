@@ -114,7 +114,14 @@ const bansTrait = (superClass) =>
         .delete();
     }
 
-    async getGroupsWithDisabledBans(userId, groupIds) {
+    async getGroupsWithDisabledBans(userId, groupIds = null) {
+      if (!groupIds) {
+        return await this.database.getCol(
+          `select group_id from groups_without_bans where user_id = :userId`,
+          { userId },
+        );
+      }
+
       return await this.database.getCol(
         `select group_id from groups_without_bans
           where user_id = :userId and group_id = any(:groupIds)`,
