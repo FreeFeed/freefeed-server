@@ -26,7 +26,7 @@ The bans condition (AND-joined):
   the viewer *is admin* and had disabled bans.
 
 ### In code
-The post visibility rules calculates in several places:
+The post visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, postsVisibilitySQL function. This
   function makes SQL filter to select only visible posts.
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeePost function. This

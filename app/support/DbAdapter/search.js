@@ -170,7 +170,7 @@ const searchTrait = (superClass) =>
       // Additional restrictions for posts
       const postsRestrictionsSQL = await this.postsVisibilitySQL(viewerId);
 
-      // Now we buid full query
+      // Now we building the full query
       const postsPart = andJoin([
         inAllPostsSQL,
         // inPostsSQL, // Using as CTE (see fullSQL below)
