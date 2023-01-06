@@ -129,6 +129,21 @@ const bansTrait = (superClass) =>
       );
     }
 
+    getPostsToGroupsWithDisabledBans(userId, postIds) {
+      if (!userId) {
+        return [];
+      }
+
+      return this.database.getCol(
+        `select p.uid from
+            posts p
+            join feeds f on array[f.id] && p.destination_feed_ids and f.name = 'Posts'
+            join groups_without_bans g on f.user_id = g.group_id
+          where g.user_id = :userId and p.uid = any(:postIds)`,
+        { userId, postIds },
+      );
+    }
+
     async disableBansInGroup(userId, groupId, doDisable) {
       if (doDisable) {
         return !!(await this.database.getOne(

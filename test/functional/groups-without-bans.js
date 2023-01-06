@@ -8,6 +8,7 @@ import {
   authHeaders,
   banUser,
   createAndReturnPostToFeed,
+  createCommentAsync,
   createGroupAsync,
   createTestUsers,
   performJSONRequest,
@@ -67,95 +68,189 @@ describe('Groups without bans', () => {
     });
   });
 
-  describe('Venus wrote posts to Selenites and Celestials groups', () => {
-    let postFormVenusToSelenites;
-    let postFormVenusToCelestials;
-    let postFormVenusToSelenitesAndCelestials;
+  describe('Venus create posts and comments to Selenites and Celestials groups', () => {
+    let postFromVenusToSelenites;
+    let postFromVenusToCelestials;
+    let postFromVenusToSelenitesAndCelestials;
+    let postFromMarsToSelenites;
+    let postFromMarsToCelestials;
+    let postFromMarsToSelenitesAndCelestials;
     beforeEach(async () => {
-      [postFormVenusToSelenites, postFormVenusToCelestials, postFormVenusToSelenitesAndCelestials] =
-        await Promise.all([
-          createAndReturnPostToFeed(selenites, venus, 'Post from Venus to Selenites'),
-          createAndReturnPostToFeed(celestials, venus, 'Post from Venus to Celestials'),
-          createAndReturnPostToFeed(
-            [selenites, celestials],
-            venus,
-            'Post from Venus to Selenites and Celestials',
-          ),
-        ]);
+      [
+        postFromVenusToSelenites,
+        postFromVenusToCelestials,
+        postFromVenusToSelenitesAndCelestials,
+        postFromMarsToSelenites,
+        postFromMarsToCelestials,
+        postFromMarsToSelenitesAndCelestials,
+      ] = await Promise.all([
+        createAndReturnPostToFeed(selenites, venus, 'Post from Venus to Selenites'),
+        createAndReturnPostToFeed(celestials, venus, 'Post from Venus to Celestials'),
+        createAndReturnPostToFeed(
+          [selenites, celestials],
+          venus,
+          'Post from Venus to Selenites and Celestials',
+        ),
+        createAndReturnPostToFeed(selenites, mars, 'Post from Mars to Selenites'),
+        createAndReturnPostToFeed(celestials, mars, 'Post from Mars to Celestials'),
+        createAndReturnPostToFeed(
+          [selenites, celestials],
+          mars,
+          'Post from Mars to Selenites and Celestials',
+        ),
+      ]);
+
+      await Promise.all([
+        createCommentAsync(
+          venus,
+          postFromMarsToSelenites.id,
+          'Comment from Venus to Mars in Selenites',
+        ),
+        createCommentAsync(
+          venus,
+          postFromMarsToCelestials.id,
+          'Comment from Venus to Mars in Celestials',
+        ),
+        createCommentAsync(
+          venus,
+          postFromMarsToSelenitesAndCelestials.id,
+          'Comment from Venus to Mars in Selenites and Celestials',
+        ),
+      ]);
     });
 
     describe('Jupiter should see posts from banned Venus in Selenites group', () => {
       beforeEach(() => Promise.all([banUser(jupiter, venus), setBansDisabled(selenites, jupiter)]));
 
-      it(`should not see to Celestials group only`, () =>
-        shouldNotSeePost(postFormVenusToCelestials, jupiter));
+      it(`should not see post to Celestials group only`, () =>
+        shouldNotSeePost(postFromVenusToCelestials, jupiter));
 
       it(`should see post to Selenites group only`, () =>
-        shouldSeePost(postFormVenusToSelenites, jupiter));
+        shouldSeePost(postFromVenusToSelenites, jupiter));
 
       it(`should see post to Selenites and Celestial groups`, () =>
-        shouldSeePost(postFormVenusToSelenitesAndCelestials, jupiter));
+        shouldSeePost(postFromVenusToSelenitesAndCelestials, jupiter));
 
       it(`should read all posts from Venus in Selenites groups`, () =>
         shouldReadFeed(
           selenites.username,
-          [postFormVenusToSelenites, postFormVenusToSelenitesAndCelestials],
+          [
+            postFromVenusToSelenites,
+            postFromVenusToSelenitesAndCelestials,
+            postFromMarsToSelenites,
+            postFromMarsToSelenitesAndCelestials,
+          ],
           jupiter,
         ));
 
       it(`should read only one post from Venus in Celestials groups`, () =>
-        shouldReadFeed(celestials.username, [postFormVenusToSelenitesAndCelestials], jupiter));
+        shouldReadFeed(
+          celestials.username,
+          [
+            postFromVenusToSelenitesAndCelestials,
+            postFromMarsToCelestials,
+            postFromMarsToSelenitesAndCelestials,
+          ],
+          jupiter,
+        ));
 
       it(`should find posts 'from:venus' only from Selenites group`, () =>
         shouldFindPosts(
           'from:venus',
-          [postFormVenusToSelenites, postFormVenusToSelenitesAndCelestials],
+          [postFromVenusToSelenites, postFromVenusToSelenitesAndCelestials],
           jupiter,
         ));
 
       it(`should find posts with 'in-body:venus' only from Selenites group`, () =>
         shouldFindPosts(
-          'venus',
-          [postFormVenusToSelenites, postFormVenusToSelenitesAndCelestials],
+          'in-body:venus',
+          [postFromVenusToSelenites, postFromVenusToSelenitesAndCelestials],
           jupiter,
         ));
+
+      describe('Comments', () => {
+        it(`should see Venus comment in post to Selenites`, async () => {
+          const resp = await shouldSeePost(postFromMarsToSelenites, jupiter);
+          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+        });
+
+        it(`should see Venus comment in post to Selenites and Celestials`, async () => {
+          const resp = await shouldSeePost(postFromMarsToSelenitesAndCelestials, jupiter);
+          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+        });
+
+        it(`should not see Venus comment in post to Celestials`, async () => {
+          const resp = await shouldSeePost(postFromMarsToCelestials, jupiter);
+          expect(resp.comments, 'to satisfy', []);
+        });
+      });
     });
 
     describe('Luna (as admin) should see posts in Selenites group from Venus who banned her', () => {
       beforeEach(() => Promise.all([banUser(venus, luna), setBansDisabled(selenites, luna)]));
 
-      it(`should not see to Celestials group only`, () =>
-        shouldNotSeePost(postFormVenusToCelestials, luna));
+      it(`should not see post to Celestials group only`, () =>
+        shouldNotSeePost(postFromVenusToCelestials, luna));
 
       it(`should see post to Selenites group only`, () =>
-        shouldSeePost(postFormVenusToSelenites, luna));
+        shouldSeePost(postFromVenusToSelenites, luna));
 
       it(`should see post to Selenites and Celestial groups`, () =>
-        shouldSeePost(postFormVenusToSelenitesAndCelestials, luna));
+        shouldSeePost(postFromVenusToSelenitesAndCelestials, luna));
 
       it(`should read all posts from Venus in Selenites groups`, () =>
         shouldReadFeed(
           selenites.username,
-          [postFormVenusToSelenites, postFormVenusToSelenitesAndCelestials],
+          [
+            postFromVenusToSelenites,
+            postFromVenusToSelenitesAndCelestials,
+            postFromMarsToSelenites,
+            postFromMarsToSelenitesAndCelestials,
+          ],
           luna,
         ));
 
       it(`should read only one post from Venus in Celestials groups`, () =>
-        shouldReadFeed(celestials.username, [postFormVenusToSelenitesAndCelestials], luna));
+        shouldReadFeed(
+          celestials.username,
+          [
+            postFromVenusToSelenitesAndCelestials,
+            postFromMarsToCelestials,
+            postFromMarsToSelenitesAndCelestials,
+          ],
+          luna,
+        ));
 
       it(`should find posts 'from:venus' only from Selenites group`, () =>
         shouldFindPosts(
           'from:venus',
-          [postFormVenusToSelenites, postFormVenusToSelenitesAndCelestials],
+          [postFromVenusToSelenites, postFromVenusToSelenitesAndCelestials],
           luna,
         ));
 
       it(`should find posts with 'in-body:venus' only from Selenites group`, () =>
         shouldFindPosts(
-          'venus',
-          [postFormVenusToSelenites, postFormVenusToSelenitesAndCelestials],
+          'in-body:venus',
+          [postFromVenusToSelenites, postFromVenusToSelenitesAndCelestials],
           luna,
         ));
+
+      describe('Comments', () => {
+        it(`should see Venus comment in post to Selenites`, async () => {
+          const resp = await shouldSeePost(postFromMarsToSelenites, luna);
+          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+        });
+
+        it(`should see Venus comment in post to Selenites and Celestials`, async () => {
+          const resp = await shouldSeePost(postFromMarsToSelenitesAndCelestials, luna);
+          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+        });
+
+        it(`should also see Venus comment in post to Celestials because of bans asymmetry`, async () => {
+          const resp = await shouldSeePost(postFromMarsToCelestials, luna);
+          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+        });
+      });
     });
   });
 });
@@ -165,6 +260,7 @@ describe('Groups without bans', () => {
 async function shouldSeePost(post, viewer = null) {
   const resp = await performJSONRequest('GET', `/v2/posts/${post.id}`, null, authHeaders(viewer));
   expect(resp, 'to satisfy', { __httpCode: 200 });
+  return resp;
 }
 
 async function shouldNotSeePost(post, viewer = null) {
@@ -179,6 +275,7 @@ async function shouldFindPosts(query, posts, viewer = null) {
     null,
     authHeaders(viewer),
   );
+  expect(resp, 'to satisfy', { __httpCode: 200 });
   expect(
     resp.posts,
     'when sorted by',
@@ -195,6 +292,7 @@ async function shouldReadFeed(feedName, posts, viewer = null) {
     null,
     authHeaders(viewer),
   );
+  expect(resp, 'to satisfy', { __httpCode: 200 });
   expect(
     resp.posts,
     'when sorted by',

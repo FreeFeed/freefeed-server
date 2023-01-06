@@ -31,3 +31,21 @@ The post visibility rules calculates in the following places:
   function makes SQL filter to select only visible posts.
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeePost function. This
   function returns list of users (IDs) who can see the given post.
+
+## Comment
+
+Comment to the given post is not visible for viewer if the post is not visible.
+
+Comment is visible when:
+* The comment author is not banned by viewer OR post is published to a group
+where the viewer had disabled bans. Thus, all comments in groups with disabled
+bans are visible.
+
+If the post is visible but the comment is not, the comment may appear as a stub
+(with hideType = HIDDEN_BANNED). It depends on *hideCommentsOfTypes* field of
+viewer properties.
+
+### In code
+The post visibility rules calculates in the following places:
+* app/support/DbAdapter/timelines-posts.js, getPostsWithStuffByIds function.
+  This function selects proper comments and other stuff by the given postIds.

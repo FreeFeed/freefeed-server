@@ -7,7 +7,7 @@ import { List } from '../open-lists';
 import { COMMENT_FIELDS, initCommentObject } from './comments';
 import { ATTACHMENT_FIELDS, initAttachmentObject } from './attachments';
 import { POST_FIELDS, initPostObject } from './posts';
-import { sqlIn, sqlIntarrayIn, sqlNotIn, andJoin, orJoin } from './utils';
+import { sqlIn, sqlIntarrayIn, sqlNotIn, andJoin, orJoin, sqlNot } from './utils';
 
 ///////////////////////////////////////////////////
 // Posts Select to fill timeline
@@ -324,25 +324,30 @@ const timelinesPostsTrait = (superClass) =>
         uniqPostsIds,
       );
 
-      const [bannedUsersIds, friendsIds, postsData, attData, { rows: destData }] =
-        await Promise.all([
-          viewerId ? this.getUserBansIds(viewerId) : [],
-          viewerId ? this.getUserFriendIds(viewerId) : [],
-          this.database
-            .select('a.old_url as friendfeed_url', ...postFields)
-            .from('posts as p')
-            .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id')
-            .whereIn('p.uid', uniqPostsIds),
-          this.database
-            .select(...attFields)
-            .from('attachments')
-            .orderBy('ord', 'asc')
-            .orderBy('created_at', 'asc')
-            .whereIn('post_id', uniqPostsIds),
-          this.database.raw(destinationsSQL),
-        ]);
-
-      const nobodyIsBanned = bannedUsersIds.length === 0;
+      const [
+        bannedUsersIds,
+        friendsIds,
+        postsData,
+        attData,
+        destData,
+        postsToGroupsWithDisabledBans,
+      ] = await Promise.all([
+        viewerId ? this.getUserBansIds(viewerId) : [],
+        viewerId ? this.getUserFriendIds(viewerId) : [],
+        this.database
+          .select('a.old_url as friendfeed_url', ...postFields)
+          .from('posts as p')
+          .leftJoin('archive_post_names as a', 'p.uid', 'a.post_id')
+          .whereIn('p.uid', uniqPostsIds),
+        this.database
+          .select(...attFields)
+          .from('attachments')
+          .orderBy('ord', 'asc')
+          .orderBy('created_at', 'asc')
+          .whereIn('post_id', uniqPostsIds),
+        this.database.getAll(destinationsSQL),
+        this.getPostsToGroupsWithDisabledBans(viewerId, uniqPostsIds),
+      ]);
 
       const allLikesSQL = `
       select
@@ -374,29 +379,38 @@ const timelinesPostsTrait = (superClass) =>
       group by post_id, count 
     `;
 
-      // Don't show comments that viewer don't want to see
-      let hideCommentsSQL = 'true';
-
-      if (params.hiddenCommentTypes.length > 0) {
-        if (params.hiddenCommentTypes.includes(Comment.HIDDEN_BANNED) && !nobodyIsBanned) {
-          hideCommentsSQL = sqlNotIn('user_id', bannedUsersIds);
-        }
-
-        const ht = params.hiddenCommentTypes.filter(
-          (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
-        );
-
-        if (ht.length > 0) {
-          hideCommentsSQL += ` and ${(sqlNotIn('hide_type'), ht)}`;
-        }
-      }
-
       const viewerIntId = viewerId ? await this._getUserIntIdByUUID(viewerId) : null;
 
+      const excludeBannedComments = params.hiddenCommentTypes.includes(Comment.HIDDEN_BANNED);
+      const otherExcludedTypes = params.hiddenCommentTypes.filter(
+        (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
+      );
+
+      let bannedSQL;
+
+      if (postsToGroupsWithDisabledBans.length === uniqPostsIds.length) {
+        // All comments are visible (all banned ones are filtered or visible)
+        bannedSQL = 'false';
+      } else if (postsToGroupsWithDisabledBans.length === 0) {
+        // No posts with disabled bans
+        bannedSQL = sqlIn('user_id', bannedUsersIds);
+      } else {
+        bannedSQL = andJoin([
+          sqlIn('user_id', bannedUsersIds),
+          sqlNotIn('post_id', postsToGroupsWithDisabledBans),
+        ]);
+      }
+
+      const commentFilterSQL = andJoin([
+        sqlIn('post_id', uniqPostsIds),
+        excludeBannedComments ? sqlNot(bannedSQL) : 'true',
+        sqlNotIn('hide_type', otherExcludedTypes),
+      ]);
+
       const allCommentsSQL = pgFormat(
-        `
-      select
+        `select
         ${commentFields.join(', ')},
+        ${bannedSQL} as hide_as_banned,
         rank() over (partition by post_id order by created_at, id),
         count(*) over (partition by post_id),
         (select coalesce(count(*), 0) from 
@@ -411,8 +425,7 @@ const timelinesPostsTrait = (superClass) =>
             and cl.user_id = %L
         ) as has_own_like
       from comments
-      where ${sqlIn('post_id', uniqPostsIds)} and (${hideCommentsSQL})
-    `,
+      where ${commentFilterSQL}`,
         viewerIntId,
       );
 
@@ -421,7 +434,7 @@ const timelinesPostsTrait = (superClass) =>
         : ``;
       const commentsSQL = `
       with comments as (${allCommentsSQL})
-      select ${commentFields.join(', ')}, count, c_likes, has_own_like from comments
+      select ${commentFields.join(', ')}, count, c_likes, has_own_like, hide_as_banned from comments
       ${foldCommentsSql}
       order by created_at, id
     `;
@@ -470,7 +483,7 @@ const timelinesPostsTrait = (superClass) =>
       }
 
       for (const comm of commentsData) {
-        if (!nobodyIsBanned && bannedUsersIds.includes(comm.user_id)) {
+        if (comm.hide_as_banned) {
           comm.user_id = null;
           comm.hide_type = Comment.HIDDEN_BANNED;
           comm.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
