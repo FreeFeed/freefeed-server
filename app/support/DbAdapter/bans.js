@@ -144,6 +144,23 @@ const bansTrait = (superClass) =>
       );
     }
 
+    async getUsersWithDisabledBansInGroups(groupIds) {
+      return groupIds.length > 0
+        ? await this.database.getAll(
+            `select
+                gb.user_id,
+                a.user_id is not null as is_admin
+            from
+                groups_without_bans gb 
+                left join group_admins a on
+                  (a.group_id, a.user_id) = (gb.group_id, gb.user_id)
+            where
+                a.group_id = any(:groupIds)`,
+            { groupIds },
+          )
+        : [];
+    }
+
     async disableBansInGroup(userId, groupId, doDisable) {
       if (doDisable) {
         return !!(await this.database.getOne(

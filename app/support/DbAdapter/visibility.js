@@ -134,26 +134,12 @@ const visibilityTrait = (superClass) =>
         bannedByAuthor,
         // Users who banned author
         authorBannedBy,
+        usersDisabledBans,
       ] = await Promise.all([
         this.getUserBansIds(authorId),
         this.getUserIdsWhoBannedUser(authorId),
+        this.getUsersWithDisabledBansInGroups(groups),
       ]);
-
-      const usersDisabledBans =
-        groups.length > 0
-          ? await this.database.getAll(
-              `select
-              gb.user_id,
-              a.user_id is not null as is_admin
-          from
-              groups_without_bans gb 
-              left join group_admins a on
-                (a.group_id, a.user_id) = (gb.group_id, gb.user_id)
-            where
-              a.group_id = any(:groups)`,
-              { groups },
-            )
-          : [];
 
       // Users who choose to see banned posts in any of post group
       const allWhoDisabledBans = usersDisabledBans.map((r) => r.user_id);
@@ -162,8 +148,7 @@ const visibilityTrait = (superClass) =>
         .filter((r) => r.is_admin)
         .map((r) => r.user_id);
 
-      const allExceptBanned = List.difference(
-        List.everything(),
+      const allExceptBanned = List.inverse(
         List.union(
           List.difference(authorBannedBy, allWhoDisabledBans),
           List.difference(bannedByAuthor, adminsWhoDisabledBans),
@@ -173,6 +158,50 @@ const visibilityTrait = (superClass) =>
       const privacyAllowed = await this.getUsersWhoCanSeeFeeds(destFeeds);
 
       return List.intersection(privacyAllowed, allExceptBanned);
+    }
+
+    /**
+     * List (as in support/open-lists) of users that can see the given comment.
+     * This method doesn't received commentId because it can be called after the
+     * actual comment deletion, but with saved comment properties.
+     *
+     * See doc/visibility-rules.md for the visibility rules.
+     */
+    async getUsersWhoCanSeeComment({ postId, authorId: commentAuthor }) {
+      const { user_id: postAuthor, destination_feed_ids: postDestFeeds } =
+        await this.database.getRow(
+          `select
+            user_id, destination_feed_ids
+          from posts
+            where uid = :postId`,
+          { postId },
+        );
+
+      const postViewers = await this.getUsersWhoCanSeePost({
+        authorId: postAuthor,
+        destFeeds: postDestFeeds,
+      });
+
+      const postGroups = await this.database.getCol(
+        `select u.uid
+          from users u join feeds f on f.user_id = u.uid and f.name = 'Posts'
+          where u.type = 'group' and f.id = any(:postDestFeeds)`,
+        { postDestFeeds },
+      );
+
+      const [
+        // Users who banned comment author
+        authorBannedBy,
+        usersDisabledBans,
+      ] = await Promise.all([
+        this.getUserIdsWhoBannedUser(commentAuthor),
+        this.getUsersWithDisabledBansInGroups(postGroups),
+      ]);
+
+      return List.intersection(
+        postViewers,
+        List.inverse(List.difference(authorBannedBy, usersDisabledBans)),
+      );
     }
 
     /**

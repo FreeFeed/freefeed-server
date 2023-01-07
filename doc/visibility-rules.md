@@ -49,3 +49,5 @@ viewer properties.
 The post visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, notBannedCommentsSQL function. This makes
   SQL filter to select non-banned comments.
+* app/support/DbAdapter/visibility.js, getUsersWhoCanSeeComment function. This
+  function returns list of users (IDs) who can see the given comment.
