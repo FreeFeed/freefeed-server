@@ -16,7 +16,7 @@ import {
 import { List } from '../open-lists';
 import { Comment } from '../../models';
 
-import { sqlIn, sqlNotIn, sqlIntarrayIn, andJoin, orJoin } from './utils';
+import { sqlIn, sqlIntarrayIn, andJoin, orJoin } from './utils';
 
 ///////////////////////////////////////////////////
 // Search
@@ -155,17 +155,16 @@ const searchTrait = (superClass) =>
       // Are we using the 'comments' table?
       const useCommentsTable = inAllCommentsSQL !== 'true' || inCommentsSQL !== 'true';
 
-      // Users banned by viewer (for comments)
-      const bannedByViewer =
-        viewerId && useCommentsTable ? await this.getUserBansIds(viewerId) : [];
-
       // Additional restrictions for comments
-      const commentsRestrictionSQL = useCommentsTable
-        ? andJoin([
-            pgFormat('c.hide_type=%L', Comment.VISIBLE),
-            sqlNotIn('c.user_id', bannedByViewer),
-          ])
-        : 'true';
+      let commentsRestrictionSQL = 'true';
+
+      if (useCommentsTable) {
+        const notBannedCommentsSQL = await this.notBannedCommentsSQL(viewerId);
+        commentsRestrictionSQL = andJoin([
+          pgFormat('c.hide_type=%L', Comment.VISIBLE),
+          notBannedCommentsSQL,
+        ]);
+      }
 
       // Additional restrictions for posts
       const postsRestrictionsSQL = await this.postsVisibilitySQL(viewerId);

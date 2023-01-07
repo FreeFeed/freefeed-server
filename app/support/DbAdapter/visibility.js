@@ -72,6 +72,27 @@ const visibilityTrait = (superClass) =>
       ]);
     }
 
+    async notBannedCommentsSQL(viewerId = null, { postsTable = 'p', commentsTable = 'c' } = {}) {
+      if (!viewerId) {
+        return 'true';
+      }
+
+      const [bannedByViewer, feedsWithDisabledBans] = await Promise.all([
+        this.getUserBansIds(viewerId),
+        this.database.getCol(
+          `select f.id from 
+                feeds f join groups_without_bans g on f.user_id = g.group_id and f.name = 'Posts'
+                where g.user_id = :viewerId`,
+          { viewerId },
+        ),
+      ]);
+
+      return orJoin([
+        sqlNotIn(`${commentsTable}.user_id`, bannedByViewer),
+        sqlIntarrayIn(`${postsTable}.destination_feed_ids`, feedsWithDisabledBans),
+      ]);
+    }
+
     async isPostVisibleForViewer(postId, viewerId = null) {
       const visibilitySQL = await this.postsVisibilitySQL(viewerId);
       return await this.database.getOne(

@@ -47,5 +47,5 @@ viewer properties.
 
 ### In code
 The post visibility rules calculates in the following places:
-* app/support/DbAdapter/timelines-posts.js, getPostsWithStuffByIds function.
-  This function selects proper comments and other stuff by the given postIds.
+* app/support/DbAdapter/visibility.js, notBannedCommentsSQL function. This makes
+  SQL filter to select non-banned comments.

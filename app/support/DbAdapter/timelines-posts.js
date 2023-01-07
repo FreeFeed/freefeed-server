@@ -324,14 +324,7 @@ const timelinesPostsTrait = (superClass) =>
         uniqPostsIds,
       );
 
-      const [
-        bannedUsersIds,
-        friendsIds,
-        postsData,
-        attData,
-        destData,
-        postsToGroupsWithDisabledBans,
-      ] = await Promise.all([
+      const [bannedUsersIds, friendsIds, postsData, attData, destData] = await Promise.all([
         viewerId ? this.getUserBansIds(viewerId) : [],
         viewerId ? this.getUserFriendIds(viewerId) : [],
         this.database
@@ -346,7 +339,6 @@ const timelinesPostsTrait = (superClass) =>
           .orderBy('created_at', 'asc')
           .whereIn('post_id', uniqPostsIds),
         this.database.getAll(destinationsSQL),
-        this.getPostsToGroupsWithDisabledBans(viewerId, uniqPostsIds),
       ]);
 
       const allLikesSQL = `
@@ -386,45 +378,33 @@ const timelinesPostsTrait = (superClass) =>
         (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
       );
 
-      let bannedSQL;
-
-      if (postsToGroupsWithDisabledBans.length === uniqPostsIds.length) {
-        // All comments are visible (all banned ones are filtered or visible)
-        bannedSQL = 'false';
-      } else if (postsToGroupsWithDisabledBans.length === 0) {
-        // No posts with disabled bans
-        bannedSQL = sqlIn('user_id', bannedUsersIds);
-      } else {
-        bannedSQL = andJoin([
-          sqlIn('user_id', bannedUsersIds),
-          sqlNotIn('post_id', postsToGroupsWithDisabledBans),
-        ]);
-      }
+      const notBannedCommentsSQL = await this.notBannedCommentsSQL(viewerId);
+      const bannedSQL = sqlNot(notBannedCommentsSQL);
 
       const commentFilterSQL = andJoin([
-        sqlIn('post_id', uniqPostsIds),
+        sqlIn('c.post_id', uniqPostsIds),
         excludeBannedComments ? sqlNot(bannedSQL) : 'true',
-        sqlNotIn('hide_type', otherExcludedTypes),
+        sqlNotIn('c.hide_type', otherExcludedTypes),
       ]);
 
       const allCommentsSQL = pgFormat(
         `select
-        ${commentFields.join(', ')},
+        ${commentFields.map((f) => `c.${f}`).join(', ')},
         ${bannedSQL} as hide_as_banned,
-        rank() over (partition by post_id order by created_at, id),
-        count(*) over (partition by post_id),
+        rank() over (partition by c.post_id order by c.created_at, c.id),
+        count(*) over (partition by c.post_id),
         (select coalesce(count(*), 0) from 
           comment_likes cl
           join users u on cl.user_id = u.id
-          where cl.comment_id = comments.id
+          where cl.comment_id = c.id
             and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
             and u.gone_status is null
         ) as c_likes,
         (select true from comment_likes cl
-          where cl.comment_id = comments.id
+          where cl.comment_id = c.id
             and cl.user_id = %L
         ) as has_own_like
-      from comments
+      from comments c join posts p on p.uid = c.post_id
       where ${commentFilterSQL}`,
         viewerIntId,
       );

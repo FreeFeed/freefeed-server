@@ -179,6 +179,13 @@ describe('Groups without bans', () => {
           const resp = await shouldSeePost(postFromMarsToCelestials, jupiter);
           expect(resp.comments, 'to satisfy', []);
         });
+
+        it(`should find posts with 'in-comment:venus' only from Selenites group`, () =>
+          shouldFindPosts(
+            'in-comment:venus',
+            [postFromMarsToSelenites, postFromMarsToSelenitesAndCelestials],
+            jupiter,
+          ));
       });
     });
 
@@ -247,6 +254,17 @@ describe('Groups without bans', () => {
           const resp = await shouldSeePost(postFromMarsToCelestials, luna);
           expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
         });
+
+        it(`should find all posts with 'in-comment:venus' because of bans asymmetry`, () =>
+          shouldFindPosts(
+            'in-comment:venus',
+            [
+              postFromMarsToSelenites,
+              postFromMarsToSelenitesAndCelestials,
+              postFromMarsToCelestials,
+            ],
+            luna,
+          ));
       });
     });
   });
