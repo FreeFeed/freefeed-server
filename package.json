@@ -70,6 +70,7 @@
     "koa-methodoverride": "2.0.0",
     "koa-morgan": "1.0.1",
     "koa-passport": "~5.0.0",
+    "koa-requestid": "^2.1.0",
     "koa-response-time": "~2.1.0",
     "koa-static": "~5.0.0",
     "lodash": "~4.17.21",

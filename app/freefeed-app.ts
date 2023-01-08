@@ -11,6 +11,7 @@ import passport from 'koa-passport';
 import conditional from 'koa-conditional-get';
 import etag from 'koa-etag';
 import koaStatic from 'koa-static';
+import requestId from 'koa-requestid';
 
 import { version as serverVersion } from '../package.json';
 
@@ -90,6 +91,8 @@ class FreefeedApp extends Application<DefaultState, AppContext> {
     this.use(koaStatic(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
     this.use(maintenanceCheck);
+
+    this.use(requestId({ expose: 'X-Request-Id', header: false, query: false }));
 
     this.use(async (ctx, next) => {
       try {
