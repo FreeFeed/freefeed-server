@@ -78,6 +78,10 @@ const defaultStats = {
  * @returns {Promise<Array>}
  */
 export async function serializeUsersByIds(userIds, viewerId = null, withAdmins = true) {
+  if (userIds.length === 0) {
+    return [];
+  }
+
   let allUserIds = uniq(userIds);
   const adminsAssoc = await dbAdapter.getGroupsAdministratorsIds(userIds, viewerId);
 

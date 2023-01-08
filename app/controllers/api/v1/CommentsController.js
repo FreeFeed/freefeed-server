@@ -155,28 +155,7 @@ export async function getById(ctx) {
     throw new ForbiddenException('You can not see this comment');
   }
 
-  const [sComment, isBanned] = await Promise.all([
-    serializeCommentFull(comment, user?.id),
-    dbAdapter.isCommentBannedForViewer(commentId, user?.id),
-  ]);
-
-  if (isBanned) {
-    sComment.comments.likes = 0;
-    sComment.comments.hasOwnLike = false;
-
-    sComment.comments.hideType = Comment.HIDDEN_BANNED;
-    sComment.comments.body = Comment.hiddenBody(Comment.HIDDEN_BANNED);
-    sComment.comments.createdBy = null;
-    sComment.users = sComment.users.filter((u) => u.id !== comment.userId);
-    sComment.admins = sComment.admins.filter((u) => u.id !== comment.userId);
-  } else {
-    const [commentLikesData = { c_likes: 0, has_own_like: false }] =
-      await dbAdapter.getLikesInfoForComments([comment.id], user?.id);
-    sComment.comments.likes = parseInt(commentLikesData.c_likes);
-    sComment.comments.hasOwnLike = commentLikesData.has_own_like;
-  }
-
-  ctx.body = sComment;
+  ctx.body = await serializeCommentFull(comment, user?.id);
 }
 
 export async function getBySeqNumber(ctx) {
