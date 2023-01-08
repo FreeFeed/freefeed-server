@@ -18,6 +18,7 @@ const baseContext = {
   config: {
     rateLimit: {
       enabled: true,
+      allowlist: [],
       anonymous: {
         duration: DURATION,
         maxRequests: MAX_ANONYMOUS_REQUESTS,
@@ -38,6 +39,20 @@ const next: Next = async () => {};
 describe('Rate limiter', () => {
   it('should allow too many requests if rate limiter is disabled', () => {
     const ctx = merge({}, baseContext, { config: { rateLimit: { enabled: false } } });
+
+    const requests = [];
+
+    for (let i = 0; i < MAX_ANONYMOUS_REQUESTS + 1; i++) {
+      requests.push(rateLimiterMiddleware(ctx, next));
+    }
+
+    return expect(Promise.all(requests), 'to be fulfilled');
+  });
+
+  it('should allow too many requests if client is allowlisted', () => {
+    const ctx = merge({}, baseContext, {
+      config: { rateLimit: { enabled: true, allowlist: ['127.0.0.1'] } },
+    });
 
     const requests = [];
 

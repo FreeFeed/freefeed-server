@@ -21,6 +21,7 @@ const rateLimiter = new RateLimiter({
 export async function rateLimiterMiddleware(ctx: Context, next: Next) {
   const authTokenType = ctx.state.authJWTPayload?.type || 'anonymous';
   const requestId = ctx.state.id;
+  const requestMethod = ctx.request.method;
 
   let clientId, rateLimiterConfig;
 
@@ -32,30 +33,38 @@ export async function rateLimiterMiddleware(ctx: Context, next: Next) {
     rateLimiterConfig = ctx.config.rateLimit.anonymous;
   }
 
-  const requestTags = { method: ctx.request.method, auth: authTokenType, clientId };
+  const requestTags = { method: requestMethod, auth: authTokenType, clientId };
   monitor.increment('requests', 1, requestTags);
 
   debug(
-    `${requestId}: ${ctx.request.method} ${ctx.request.originalUrl} request from ${clientId} (${authTokenType})`,
+    `${requestId}: ${requestMethod} ${ctx.request.originalUrl} request from ${clientId} (${authTokenType})`,
   );
 
   if (ctx.config.rateLimit.enabled) {
-    const limit = await rateLimiter.get({
-      id: clientId,
-      max: rateLimiterConfig.maxRequests,
-      duration: rateLimiterConfig.duration,
-    });
-
-    debug(
-      `${requestId}: Remaining tokens: ${limit.remaining}, max ${rateLimiterConfig.maxRequests}`,
-    );
-
-    if (!limit.remaining) {
-      monitor.increment('requests-rate-limited', 1, requestTags);
-      debug(`${requestId}: Request blocked`);
-      throw new TooManyRequestsException('Slow down');
+    if (ctx.config.rateLimit.allowlist.includes(clientId)) {
+      debug(`${requestId}: Client allowlisted, request allowed`);
     } else {
-      debug(`${requestId}: Request allowed`);
+      const duration =
+        rateLimiterConfig.methodOverrides?.[requestMethod]?.duration || rateLimiterConfig.duration;
+      const maxRequests =
+        rateLimiterConfig.methodOverrides?.[requestMethod]?.maxRequests ||
+        rateLimiterConfig.maxRequests;
+
+      const limit = await rateLimiter.get({
+        id: clientId,
+        max: maxRequests,
+        duration,
+      });
+
+      debug(`${requestId}: Remaining requests: ${limit.remaining}, max ${limit.total}`);
+
+      if (!limit.remaining) {
+        monitor.increment('requests-rate-limited', 1, requestTags);
+        debug(`${requestId}: Client blocked until ${limit.reset}, request denied`);
+        throw new TooManyRequestsException('Slow down');
+      } else {
+        debug(`${requestId}: Request allowed`);
+      }
     }
   } else {
     debug(`${requestId}: Rate limiter not enabled`);
