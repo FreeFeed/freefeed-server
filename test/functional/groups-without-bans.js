@@ -11,6 +11,7 @@ import {
   createCommentAsync,
   createGroupAsync,
   createTestUsers,
+  like,
   performJSONRequest,
   unbanUser,
 } from './functional_test_helper';
@@ -109,6 +110,9 @@ describe('Groups without bans', () => {
           postFromMarsToSelenitesAndCelestials.id,
           'Comment from Venus to Mars in Selenites and Celestials',
         ),
+        like(postFromMarsToSelenites.id, venus.authToken),
+        like(postFromMarsToCelestials.id, venus.authToken),
+        like(postFromMarsToSelenitesAndCelestials.id, venus.authToken),
       ]);
     });
 
@@ -164,20 +168,23 @@ describe('Groups without bans', () => {
           jupiter,
         ));
 
-      describe('Comments', () => {
-        it(`should see Venus comment in post to Selenites`, async () => {
+      describe('Comments and likes', () => {
+        it(`should see Venus comment and like in post to Selenites`, async () => {
           const resp = await shouldSeePost(postFromMarsToSelenites, jupiter);
           expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.posts.likes, 'to satisfy', [venus.user.id]);
         });
 
-        it(`should see Venus comment in post to Selenites and Celestials`, async () => {
+        it(`should see Venus comment and like in post to Selenites and Celestials`, async () => {
           const resp = await shouldSeePost(postFromMarsToSelenitesAndCelestials, jupiter);
           expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.posts.likes, 'to satisfy', [venus.user.id]);
         });
 
-        it(`should not see Venus comment in post to Celestials`, async () => {
+        it(`should not see Venus comment and like in post to Celestials`, async () => {
           const resp = await shouldSeePost(postFromMarsToCelestials, jupiter);
           expect(resp.comments, 'to satisfy', []);
+          expect(resp.posts.likes, 'to satisfy', []);
         });
 
         it(`should find posts with 'in-comment:venus' only from Selenites group`, () =>

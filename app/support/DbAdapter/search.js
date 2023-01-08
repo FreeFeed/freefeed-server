@@ -159,10 +159,10 @@ const searchTrait = (superClass) =>
       let commentsRestrictionSQL = 'true';
 
       if (useCommentsTable) {
-        const notBannedCommentsSQL = await this.notBannedCommentsSQL(viewerId);
+        const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerId);
         commentsRestrictionSQL = andJoin([
           pgFormat('c.hide_type=%L', Comment.VISIBLE),
-          notBannedCommentsSQL,
+          notBannedSQLFabric('c'),
         ]);
       }
 

@@ -72,9 +72,15 @@ const visibilityTrait = (superClass) =>
       ]);
     }
 
-    async notBannedCommentsSQL(viewerId = null, { postsTable = 'p', commentsTable = 'c' } = {}) {
+    /**
+     * A fabric of SQL that filters comments, likes and other actions using bans
+     * and privates visibility rules.
+     *
+     * See doc/visibility-rules.md for the rules details.
+     */
+    async notBannedActionsSQLFabric(viewerId = null) {
       if (!viewerId) {
-        return 'true';
+        return () => 'true';
       }
 
       const [bannedByViewer, feedsWithDisabledBans] = await Promise.all([
@@ -87,10 +93,11 @@ const visibilityTrait = (superClass) =>
         ),
       ]);
 
-      return orJoin([
-        sqlNotIn(`${commentsTable}.user_id`, bannedByViewer),
-        sqlIntarrayIn(`${postsTable}.destination_feed_ids`, feedsWithDisabledBans),
-      ]);
+      return (actionsTable, postsTable = 'p') =>
+        orJoin([
+          sqlNotIn(`${actionsTable}.user_id`, bannedByViewer),
+          sqlIntarrayIn(`${postsTable}.destination_feed_ids`, feedsWithDisabledBans),
+        ]);
     }
 
     async isPostVisibleForViewer(postId, viewerId = null) {
@@ -106,13 +113,13 @@ const visibilityTrait = (superClass) =>
     }
 
     async isCommentBannedForViewer(commentId, viewerId = null) {
-      const notBannedSQL = await this.notBannedCommentsSQL(viewerId);
+      const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerId);
       return await this.database.getOne(
         `select exists(
             select 1 from 
               comments c
               join posts p on p.uid = c.post_id
-              where c.uid = :commentId and ${sqlNot(notBannedSQL)}
+              where c.uid = :commentId and ${sqlNot(notBannedSQLFabric('c'))}
           )`,
         { commentId },
       );

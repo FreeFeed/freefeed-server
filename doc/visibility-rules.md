@@ -3,7 +3,7 @@
 This document describes an algorithm that determines whether a given user
 (*viewer*) can see a particular content: post, comment, like, comment like.
 
-## Post
+## Posts
 
 Post is not visible to anyone when its author is in any *gone status*.
 
@@ -32,14 +32,15 @@ The post visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeePost function. This
   function returns list of users (IDs) who can see the given post.
 
-## Comment
+## Comments and Likes
 
-Comment to the given post is not visible for viewer if the post is not visible.
+Comment/like to the given post is not visible for viewer if the post is not
+visible.
 
-Comment is visible when:
-* The comment author is not banned by viewer OR post is published to a group
-where the viewer had disabled bans. Thus, all comments in groups with disabled
-bans are visible.
+Comment/like is visible when:
+* The comment/like author is not banned by viewer OR post is published to a
+group where the viewer had disabled bans. Thus, all comments/likes in groups
+with disabled bans are visible.
 
 If the post is visible but the comment is not, the comment may appear as a stub
 (with hideType = HIDDEN_BANNED). It depends on *hideCommentsOfTypes* field of
@@ -47,8 +48,8 @@ viewer properties.
 
 ### In code
 The post visibility rules calculates in the following places:
-* app/support/DbAdapter/visibility.js, notBannedCommentsSQL function. This makes
-  SQL filter to select non-banned comments.
+* app/support/DbAdapter/visibility.js, notBannedSQLFabric function. This makes
+  SQL filter fabric to select non-banned comments/likes.
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeeComment function. This
   function returns list of users (IDs) who can see the given comment.
 * app/support/DbAdapter/visibility.js, isCommentBannedForViewer function. This

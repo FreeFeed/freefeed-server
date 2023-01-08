@@ -341,6 +341,8 @@ const timelinesPostsTrait = (superClass) =>
         this.database.getAll(destinationsSQL),
       ]);
 
+      const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerId);
+
       const allLikesSQL = `
       select
       l.post_id, l.user_id,
@@ -353,8 +355,9 @@ const timelinesPostsTrait = (superClass) =>
         count(*) over (partition by l.post_id) 
       from likes l
           join users u on l.user_id = u.uid
+          join posts p on l.post_id = p.uid
       where ${sqlIn('l.post_id', uniqPostsIds)} 
-        and ${sqlNotIn('l.user_id', bannedUsersIds)}
+        and ${notBannedSQLFabric('l')}
         and u.gone_status is null`;
 
       const foldLikesSql = params.foldLikes
@@ -378,19 +381,18 @@ const timelinesPostsTrait = (superClass) =>
         (t) => t !== Comment.HIDDEN_BANNED && t !== Comment.VISIBLE,
       );
 
-      const notBannedCommentsSQL = await this.notBannedCommentsSQL(viewerId);
-      const bannedSQL = sqlNot(notBannedCommentsSQL);
+      const bannedCommentsSQL = sqlNot(notBannedSQLFabric('c'));
 
       const commentFilterSQL = andJoin([
         sqlIn('c.post_id', uniqPostsIds),
-        excludeBannedComments ? sqlNot(bannedSQL) : 'true',
+        excludeBannedComments ? sqlNot(bannedCommentsSQL) : 'true',
         sqlNotIn('c.hide_type', otherExcludedTypes),
       ]);
 
       const allCommentsSQL = pgFormat(
         `select
         ${commentFields.map((f) => `c.${f}`).join(', ')},
-        ${bannedSQL} as hide_as_banned,
+        ${bannedCommentsSQL} as hide_as_banned,
         rank() over (partition by c.post_id order by c.created_at, c.id),
         count(*) over (partition by c.post_id),
         (select coalesce(count(*), 0) from 
