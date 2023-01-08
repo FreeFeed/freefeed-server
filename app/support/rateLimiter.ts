@@ -2,11 +2,17 @@ import monitor from 'monitor-dog'; // search keyword: datadog
 import { Context, Next } from 'koa';
 import RateLimiter from 'async-ratelimiter';
 import Redis from 'ioredis';
+import config from 'config';
 
 import { TooManyRequestsException } from './exceptions';
 
+const options = {
+  host: config.redis.host,
+  port: config.redis.port,
+  db: config.database,
+};
 const rateLimiter = new RateLimiter({
-  db: new Redis(),
+  db: new Redis(options),
 });
 
 export async function rateLimiterMiddleware(ctx: Context, next: Next) {
