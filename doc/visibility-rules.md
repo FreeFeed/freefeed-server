@@ -32,15 +32,16 @@ The post visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeePost function. This
   function returns list of users (IDs) who can see the given post.
 
-## Comments and Likes
+## Comments, Likes and Comment likes
 
-Comment/like to the given post is not visible for viewer if the post is not
-visible.
+Comments, Likes and Comment likes (hereinafter "actions") shares the same logic.
 
-Comment/like is visible when:
-* The comment/like author is not banned by viewer OR post is published to a
-group where the viewer had disabled bans. Thus, all comments/likes in groups
-with disabled bans are visible.
+Actions on the given post is not visible for viewer if the post is not visible.
+
+Action is visible when:
+* The action author is not banned by viewer OR post is published to a group
+where the viewer had disabled bans. Thus, all actions in groups with disabled
+bans are visible.
 
 If the post is visible but the comment is not, the comment may appear as a stub
 (with hideType = HIDDEN_BANNED). It depends on *hideCommentsOfTypes* field of
@@ -49,7 +50,7 @@ viewer properties.
 ### In code
 The post visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, notBannedSQLFabric function. This makes
-  SQL filter fabric to select non-banned comments/likes.
+  SQL filter fabric to select non-banned actions.
 * app/support/DbAdapter/visibility.js, getUsersWhoCanSeeComment function. This
   function returns list of users (IDs) who can see the given comment.
 * app/support/DbAdapter/visibility.js, isCommentBannedForViewer function. This

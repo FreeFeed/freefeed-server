@@ -84,7 +84,12 @@ const visibilityTrait = (superClass) =>
       }
 
       const [bannedByViewer, feedsWithDisabledBans] = await Promise.all([
-        this.getUserBansIds(viewerId),
+        this.database.getAll(
+          `select u.id, u.uid from
+            bans b join users u on banned_user_id = u.uid
+            where b.user_id = :viewerId`,
+          { viewerId },
+        ),
         this.database.getCol(
           `select f.id from 
                 feeds f join groups_without_bans g on f.user_id = g.group_id and f.name = 'Posts'
@@ -93,9 +98,12 @@ const visibilityTrait = (superClass) =>
         ),
       ]);
 
-      return (actionsTable, postsTable = 'p') =>
+      return (actionsTable, postsTable = 'p', useIntBanIds = false) =>
         orJoin([
-          sqlNotIn(`${actionsTable}.user_id`, bannedByViewer),
+          sqlNotIn(
+            `${actionsTable}.user_id`,
+            bannedByViewer.map((r) => r[useIntBanIds ? 'id' : 'uid']),
+          ),
           sqlIntarrayIn(`${postsTable}.destination_feed_ids`, feedsWithDisabledBans),
         ]);
     }

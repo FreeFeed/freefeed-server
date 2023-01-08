@@ -324,8 +324,7 @@ const timelinesPostsTrait = (superClass) =>
         uniqPostsIds,
       );
 
-      const [bannedUsersIds, friendsIds, postsData, attData, destData] = await Promise.all([
-        viewerId ? this.getUserBansIds(viewerId) : [],
+      const [friendsIds, postsData, attData, destData] = await Promise.all([
         viewerId ? this.getUserFriendIds(viewerId) : [],
         this.database
           .select('a.old_url as friendfeed_url', ...postFields)
@@ -399,7 +398,7 @@ const timelinesPostsTrait = (superClass) =>
           comment_likes cl
           join users u on cl.user_id = u.id
           where cl.comment_id = c.id
-            and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+            and ${notBannedSQLFabric('cl', 'p', true)}
             and u.gone_status is null
         ) as c_likes,
         (select true from comment_likes cl

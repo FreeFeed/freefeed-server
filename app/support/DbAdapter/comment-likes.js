@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import pgFormat from 'pg-format';
 
-import { sqlIn, sqlNotIn } from './utils';
+import { sqlIn } from './utils';
 
 ///////////////////////////////////////////////////
 // Comment likes
@@ -37,39 +37,30 @@ const commentLikesTrait = (superClass) =>
       return [commentId, userId];
     }
 
-    async getCommentLikesWithoutBannedUsers(commentIntId, viewerUserUUID = null) {
-      let query = this.database
-        .select('users.uid as userId', 'comment_likes.created_at as createdAt')
-        .from('comment_likes')
-        .innerJoin('users', 'users.id', 'comment_likes.user_id')
-        .orderBy('comment_likes.created_at', 'desc')
-        .where('comment_likes.comment_id', commentIntId)
-        .whereNull('users.gone_status');
+    async getCommentLikesWithoutBannedUsers(commentIntId, viewerId = null) {
+      const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerId);
 
-      if (viewerUserUUID) {
-        const subquery = this.database('bans')
-          .select('banned_user_id')
-          .where('user_id', viewerUserUUID);
-        query = query.where('users.uid', 'not in', subquery);
-      }
-
-      let commentLikesData = await query;
-
-      if (viewerUserUUID) {
-        commentLikesData = commentLikesData.sort((a, b) => {
-          if (a.userId == viewerUserUUID) {
-            return -1;
-          }
-
-          if (b.userId == viewerUserUUID) {
-            return 1;
-          }
-
-          return 0;
-        });
-      }
-
-      return commentLikesData;
+      return (
+        this.database
+          .getAll(
+            `select u.uid as user_id, cl.created_at as created_at
+        from
+          comment_likes cl
+          join users u on u.id = cl.user_id
+          join comments c on c.id = cl.comment_id
+          join posts p on c.post_id = p.uid
+        where
+          cl.comment_id = :commentIntId
+          and ${notBannedSQLFabric('cl', 'p', true)}
+          and u.gone_status is null
+        order by
+          u.uid = :viewerId desc,
+          cl.created_at desc`,
+            { commentIntId, viewerId },
+          )
+          // Convert result keys to camelCase
+          .then((rows) => rows.map((r) => _.mapKeys(r, (_v, k) => _.camelCase(k))))
+      );
     }
 
     async hasUserLikedComment(commentUUID, userUUID) {
@@ -99,24 +90,23 @@ const commentLikesTrait = (superClass) =>
         return [];
       }
 
-      const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
       const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
+      const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerUUID);
 
       const commentLikesSQL = pgFormat(
-        `
-        select uid,
+        `select c.uid,
             (select coalesce(count(*), '0') from comment_likes cl
               join users u on cl.user_id = u.id
-              where cl.comment_id = comments.id
-                and cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+              where cl.comment_id = c.id
+                and ${notBannedSQLFabric('cl', 'p', true)}
                 and u.gone_status is null
             ) as c_likes,
             (select count(*) = 1 from comment_likes cl
-              where cl.comment_id = comments.id
+              where cl.comment_id = c.id
                 and cl.user_id = %L
             ) as has_own_like
-        from comments
-        where ${sqlIn('uid', commentsUUIDs)} and ${sqlNotIn('user_id', bannedUsersIds)}`,
+        from comments c join posts p on p.uid = c.post_id
+        where ${sqlIn('c.uid', commentsUUIDs)} and ${notBannedSQLFabric('c')}`,
         viewerIntId,
       );
 
@@ -129,27 +119,29 @@ const commentLikesTrait = (superClass) =>
         return [];
       }
 
-      const bannedUsersIds = viewerUUID ? await this.getUserBansIds(viewerUUID) : [];
       const viewerIntId = viewerUUID ? await this._getUserIntIdByUUID(viewerUUID) : null;
 
+      const notBannedSQLFabric = await this.notBannedActionsSQLFabric(viewerUUID);
+
       const commentLikesSQL = pgFormat(
-        `
-        select  p.uid,
+        `select p.uid,
               (select count(cl.*)
                 from comment_likes cl
                   join comments c on c.id = cl.comment_id
                   join users u on cl.user_id = u.id
-                where c.post_id = p.uid and
-                      ${sqlNotIn('c.user_id', bannedUsersIds)} and
-                      cl.user_id not in (select id from users where ${sqlIn('uid', bannedUsersIds)})
+                where 
+                      c.post_id = p.uid 
+                      and ${notBannedSQLFabric('c')}
+                      and ${notBannedSQLFabric('cl', 'p', true)}
                       and u.gone_status is null
               ) as post_c_likes_count,
               (select count(cl.*)
                 from comment_likes cl join comments c
                   on c.id = cl.comment_id
-                where c.post_id = p.uid and
-                      ${sqlNotIn('c.user_id', bannedUsersIds)} and
-                      cl.user_id = %L
+                where
+                      c.post_id = p.uid
+                      and ${notBannedSQLFabric('c')}
+                      and cl.user_id = %L
               ) as own_c_likes_count
         from
           posts p
@@ -157,8 +149,7 @@ const commentLikesTrait = (superClass) =>
         viewerIntId,
       );
 
-      const { rows: postsCommentLikes } = await this.database.raw(commentLikesSQL);
-      return postsCommentLikes;
+      return await this.database.getAll(commentLikesSQL);
     }
   };
 

@@ -12,6 +12,7 @@ import {
   createGroupAsync,
   createTestUsers,
   like,
+  likeComment,
   performJSONRequest,
   unbanUser,
 } from './functional_test_helper';
@@ -114,6 +115,29 @@ describe('Groups without bans', () => {
         like(postFromMarsToCelestials.id, venus.authToken),
         like(postFromMarsToSelenitesAndCelestials.id, venus.authToken),
       ]);
+
+      const marsCommentsResps = await Promise.all(
+        [
+          createCommentAsync(
+            mars,
+            postFromMarsToSelenites.id,
+            'Comment from Mars to Mars in Selenites',
+          ),
+          createCommentAsync(
+            mars,
+            postFromMarsToCelestials.id,
+            'Comment from Mars to Mars in Celestials',
+          ),
+          createCommentAsync(
+            mars,
+            postFromMarsToSelenitesAndCelestials.id,
+            'Comment from Mars to Mars in Selenites and Celestials',
+          ),
+        ].map((p) => p.then((r) => r.json())),
+      );
+
+      // Venus likes Mars'es comments
+      marsCommentsResps.map((r) => likeComment(r.comments.id, venus));
     });
 
     describe('Jupiter should see posts from banned Venus in Selenites group', () => {
@@ -169,21 +193,27 @@ describe('Groups without bans', () => {
         ));
 
       describe('Comments and likes', () => {
-        it(`should see Venus comment and like in post to Selenites`, async () => {
+        it(`should see Venus comment, like and clike in post to Selenites`, async () => {
           const resp = await shouldSeePost(postFromMarsToSelenites, jupiter);
-          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.comments, 'to satisfy', [
+            { createdBy: venus.user.id },
+            { createdBy: mars.user.id, likes: 1 },
+          ]);
           expect(resp.posts.likes, 'to satisfy', [venus.user.id]);
         });
 
-        it(`should see Venus comment and like in post to Selenites and Celestials`, async () => {
+        it(`should see Venus comment, like and clike in post to Selenites and Celestials`, async () => {
           const resp = await shouldSeePost(postFromMarsToSelenitesAndCelestials, jupiter);
-          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.comments, 'to satisfy', [
+            { createdBy: venus.user.id },
+            { createdBy: mars.user.id, likes: 1 },
+          ]);
           expect(resp.posts.likes, 'to satisfy', [venus.user.id]);
         });
 
-        it(`should not see Venus comment and like in post to Celestials`, async () => {
+        it(`should not see Venus comment, like and clike in post to Celestials`, async () => {
           const resp = await shouldSeePost(postFromMarsToCelestials, jupiter);
-          expect(resp.comments, 'to satisfy', []);
+          expect(resp.comments, 'to satisfy', [{ createdBy: mars.user.id, likes: 0 }]);
           expect(resp.posts.likes, 'to satisfy', []);
         });
 
@@ -264,17 +294,26 @@ describe('Groups without bans', () => {
       describe('Comments', () => {
         it(`should see Venus comment in post to Selenites`, async () => {
           const resp = await shouldSeePost(postFromMarsToSelenites, luna);
-          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.comments, 'to satisfy', [
+            { createdBy: venus.user.id },
+            { createdBy: mars.user.id },
+          ]);
         });
 
         it(`should see Venus comment in post to Selenites and Celestials`, async () => {
           const resp = await shouldSeePost(postFromMarsToSelenitesAndCelestials, luna);
-          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.comments, 'to satisfy', [
+            { createdBy: venus.user.id },
+            { createdBy: mars.user.id },
+          ]);
         });
 
         it(`should also see Venus comment in post to Celestials because of bans asymmetry`, async () => {
           const resp = await shouldSeePost(postFromMarsToCelestials, luna);
-          expect(resp.comments, 'to satisfy', [{ createdBy: venus.user.id }]);
+          expect(resp.comments, 'to satisfy', [
+            { createdBy: venus.user.id },
+            { createdBy: mars.user.id },
+          ]);
         });
 
         it(`should find all posts with 'in-comment:venus' because of bans asymmetry`, () =>
