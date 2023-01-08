@@ -3,8 +3,11 @@ import { Context, Next } from 'koa';
 import RateLimiter from 'async-ratelimiter';
 import Redis from 'ioredis';
 import config from 'config';
+import createDebug from 'debug';
 
 import { TooManyRequestsException } from './exceptions';
+
+const debug = createDebug('freefeed:rateLimiter');
 
 const options = {
   host: config.redis.host,
@@ -17,25 +20,45 @@ const rateLimiter = new RateLimiter({
 
 export async function rateLimiterMiddleware(ctx: Context, next: Next) {
   const authTokenType = ctx.state.authJWTPayload?.type || 'anonymous';
-  monitor.increment('requests', 1, { method: ctx.request.method, auth: authTokenType });
+  const requestId = ctx.state.id;
+
+  let clientId, rateLimiterConfig;
+
+  if (ctx.state.authToken?.userId) {
+    clientId = ctx.state.authToken.userId;
+    rateLimiterConfig = ctx.config.rateLimit.authenticated;
+  } else {
+    clientId = ctx.ip;
+    rateLimiterConfig = ctx.config.rateLimit.anonymous;
+  }
+
+  const requestTags = { method: ctx.request.method, auth: authTokenType, clientId };
+  monitor.increment('requests', 1, requestTags);
+
+  debug(
+    `${requestId}: ${ctx.request.method} ${ctx.request.originalUrl} request from ${clientId} (${authTokenType})`,
+  );
 
   if (ctx.config.rateLimit.enabled) {
-    let id, maxRequests, duration;
+    const limit = await rateLimiter.get({
+      id: clientId,
+      max: rateLimiterConfig.maxRequests,
+      duration: rateLimiterConfig.duration,
+    });
 
-    if (ctx.state.authToken?.userId) {
-      id = ctx.state.authToken.userId;
-      ({ maxRequests, duration } = ctx.config.rateLimit.authenticated);
-    } else {
-      id = ctx.ip;
-      ({ maxRequests, duration } = ctx.config.rateLimit.anonymous);
-    }
-
-    const limit = await rateLimiter.get({ id, max: maxRequests, duration });
+    debug(
+      `${requestId}: Remaining tokens: ${limit.remaining}, max ${rateLimiterConfig.maxRequests}`,
+    );
 
     if (!limit.remaining) {
-      monitor.increment('requests-rate-limited', 1, { id });
+      monitor.increment('requests-rate-limited', 1, requestTags);
+      debug(`${requestId}: Request blocked`);
       throw new TooManyRequestsException('Slow down');
+    } else {
+      debug(`${requestId}: Request allowed`);
     }
+  } else {
+    debug(`${requestId}: Rate limiter not enabled`);
   }
 
   await next();
