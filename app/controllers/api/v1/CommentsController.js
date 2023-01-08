@@ -155,11 +155,12 @@ export async function getById(ctx) {
     throw new ForbiddenException('You can not see this comment');
   }
 
-  const viewerBans = user ? await dbAdapter.getUserBansIds(user.id) : [];
+  const [sComment, isBanned] = await Promise.all([
+    serializeCommentFull(comment, user?.id),
+    dbAdapter.isCommentBannedForViewer(commentId, user?.id),
+  ]);
 
-  const sComment = await serializeCommentFull(comment, user?.id);
-
-  if (viewerBans.includes(comment.userId)) {
+  if (isBanned) {
     sComment.comments.likes = 0;
     sComment.comments.hasOwnLike = false;
 

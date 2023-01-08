@@ -2,7 +2,7 @@ import { intersection } from 'lodash';
 
 import { List } from '../open-lists';
 
-import { andJoin, orJoin, sqlIntarrayIn, sqlNotIn } from './utils';
+import { andJoin, orJoin, sqlIntarrayIn, sqlNot, sqlNotIn } from './utils';
 
 const visibilityTrait = (superClass) =>
   class extends superClass {
@@ -102,6 +102,19 @@ const visibilityTrait = (superClass) =>
               where p.uid = :postId and ${visibilitySQL}
           )`,
         { postId },
+      );
+    }
+
+    async isCommentBannedForViewer(commentId, viewerId = null) {
+      const notBannedSQL = await this.notBannedCommentsSQL(viewerId);
+      return await this.database.getOne(
+        `select exists(
+            select 1 from 
+              comments c
+              join posts p on p.uid = c.post_id
+              where c.uid = :commentId and ${sqlNot(notBannedSQL)}
+          )`,
+        { commentId },
       );
     }
 

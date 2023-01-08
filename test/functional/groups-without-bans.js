@@ -186,6 +186,21 @@ describe('Groups without bans', () => {
             [postFromMarsToSelenites, postFromMarsToSelenitesAndCelestials],
             jupiter,
           ));
+
+        it(`should fetch single Venus comment in post to Selenites`, async () => {
+          const resp = await shouldSeeComment(postFromMarsToSelenites, 1, jupiter);
+          expect(resp.comments, 'to satisfy', { createdBy: venus.user.id, hideType: 0 });
+        });
+
+        it(`should fetch single Venus comment in post to Selenites and Celestials`, async () => {
+          const resp = await shouldSeeComment(postFromMarsToSelenitesAndCelestials, 1, jupiter);
+          expect(resp.comments, 'to satisfy', { createdBy: venus.user.id, hideType: 0 });
+        });
+
+        it(`should fetch single see Venus comment as hidden in post to Celestials`, async () => {
+          const resp = await shouldSeeComment(postFromMarsToCelestials, 1, jupiter);
+          expect(resp.comments, 'to satisfy', { createdBy: null, hideType: 2 });
+        });
       });
     });
 
@@ -281,6 +296,17 @@ async function shouldSeePost(post, viewer = null) {
 async function shouldNotSeePost(post, viewer = null) {
   const resp = await performJSONRequest('GET', `/v2/posts/${post.id}`, null, authHeaders(viewer));
   expect(resp, 'to satisfy', { __httpCode: expect.it('to be within', 400, 499) });
+}
+
+async function shouldSeeComment(post, commentNum, viewer = null) {
+  const resp = await performJSONRequest(
+    'GET',
+    `/v2/posts/${post.id}/comments/${commentNum}`,
+    null,
+    authHeaders(viewer),
+  );
+  expect(resp, 'to satisfy', { __httpCode: 200 });
+  return resp;
 }
 
 async function shouldFindPosts(query, posts, viewer = null) {
