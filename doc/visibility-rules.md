@@ -56,3 +56,4 @@ The post visibility rules calculates in the following places:
 * app/support/DbAdapter/visibility.js, isCommentBannedForViewer function. This
   function returns true if comment is banned (and should be hidden) for the
   given viewer.
+* app/pubsub-listener.js, broadcastMessage function checks access for actions.

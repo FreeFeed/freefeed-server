@@ -352,7 +352,17 @@ export default class PubsubListener {
       destSockets = destSockets.filter((s) => userIds.includes(s.userId));
     }
 
+    // See doc/visibility-rules.md for details
     const bansMap = await dbAdapter.getUsersBansIdsMap(userIds);
+
+    let usersDisabledBans = [];
+
+    if (post) {
+      const postGroups = await dbAdapter.getPostGroups(post.id);
+      usersDisabledBans = await dbAdapter
+        .getUsersWithDisabledBansInGroups(postGroups.map((g) => g.id))
+        .then((us) => us.map((u) => u.user_id));
+    }
 
     await Promise.all(
       destSockets.map(async (socket) => {
@@ -363,7 +373,7 @@ export default class PubsubListener {
 
         // Bans
         if (post && userId) {
-          const banIds = bansMap.get(userId) || [];
+          const banIds = (!usersDisabledBans.includes(userId) && bansMap.get(userId)) || [];
 
           if (
             (type === eventNames.COMMENT_UPDATED && banIds.includes(data.comments.createdBy)) ||

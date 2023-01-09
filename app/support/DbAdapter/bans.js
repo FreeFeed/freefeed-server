@@ -155,7 +155,7 @@ const bansTrait = (superClass) =>
                 left join group_admins a on
                   (a.group_id, a.user_id) = (gb.group_id, gb.user_id)
             where
-                a.group_id = any(:groupIds)`,
+                gb.group_id = any(:groupIds)`,
             { groupIds },
           )
         : [];

@@ -1,8 +1,11 @@
 /* eslint-env node, mocha */
-/* global $pg_database */
+/* global $database, $pg_database */
 import expect from 'unexpected';
 
 import cleanDB from '../dbCleaner';
+import { getSingleton } from '../../app/app';
+import { PubSub, dbAdapter } from '../../app/models';
+import { PubSubAdapter } from '../../app/support/PubSubAdapter';
 
 import {
   authHeaders,
@@ -11,17 +14,29 @@ import {
   createCommentAsync,
   createGroupAsync,
   createTestUsers,
+  deletePostAsync,
   like,
   likeComment,
   performJSONRequest,
+  removeCommentAsync,
   unbanUser,
 } from './functional_test_helper';
+import Session from './realtime-session';
 
 describe('Groups without bans', () => {
   let luna, mars, venus, jupiter;
   let selenites, celestials;
 
   before(() => cleanDB($pg_database));
+
+  let appPort;
+
+  before(async () => {
+    const app = await getSingleton();
+    appPort = app.context.config.port;
+    const pubsubAdapter = new PubSubAdapter($database);
+    PubSub.setPublisher(pubsubAdapter);
+  });
 
   before(async () => {
     [luna, mars, venus, jupiter] = await createTestUsers(['luna', 'mars', 'venus', 'jupiter']);
@@ -239,6 +254,78 @@ describe('Groups without bans', () => {
           expect(resp.comments, 'to satisfy', { createdBy: null, hideType: 2 });
         });
       });
+
+      describe('Realtime', () => {
+        let session, selenitesFeed, celestialsFeed;
+        before(async () => {
+          session = await Session.create(appPort, 'Jupiter session');
+          await session.sendAsync('auth', { authToken: jupiter.authToken });
+
+          [selenitesFeed, celestialsFeed] = await Promise.all([
+            dbAdapter.getUserNamedFeed(selenites.group.id, 'Posts'),
+            dbAdapter.getUserNamedFeed(celestials.group.id, 'Posts'),
+          ]);
+
+          await session.sendAsync('subscribe', { timeline: [selenitesFeed.id, celestialsFeed.id] });
+        });
+        after(() => session.disconnect());
+
+        it(`should get 'post:new' when Venus writes a post to Selenites`, async () => {
+          const test = session.receiveWhile('post:new', async () => {
+            const post = await createAndReturnPostToFeed(selenites, venus, 'Hello');
+            await deletePostAsync(venus, post.id);
+          });
+          await expect(test, 'to be fulfilled with', { posts: { createdBy: venus.user.id } });
+        });
+
+        it(`should get 'post:new' when Venus writes a post to Selenites and Celestials`, async () => {
+          const test = session.receiveWhile('post:new', async () => {
+            const post = await createAndReturnPostToFeed([selenites, celestials], venus, 'Hello');
+            await deletePostAsync(venus, post.id);
+          });
+          await expect(test, 'to be fulfilled with', { posts: { createdBy: venus.user.id } });
+        });
+
+        it(`should not get 'post:new' when Venus writes a post to Selenites and Celestials`, async () => {
+          const test = session.notReceiveWhile('post:new', async () => {
+            const post = await createAndReturnPostToFeed([celestials], venus, 'Hello');
+            await deletePostAsync(venus, post.id);
+          });
+          await expect(test, 'to be fulfilled');
+        });
+
+        it(`should get 'comment:new' when Venus writes a comment in Selenites`, async () => {
+          const test = session.receiveWhile('comment:new', async () => {
+            const resp = await createCommentAsync(venus, postFromMarsToSelenites.id, 'Hello').then(
+              (r) => r.json(),
+            );
+            await removeCommentAsync(venus, resp.comments.id);
+          });
+          await expect(test, 'to be fulfilled with', { comments: { createdBy: venus.user.id } });
+        });
+
+        it(`should get 'comment:new' when Venus writes a comment in Selenites and Celestials`, async () => {
+          const test = session.receiveWhile('comment:new', async () => {
+            const resp = await createCommentAsync(
+              venus,
+              postFromMarsToSelenitesAndCelestials.id,
+              'Hello',
+            ).then((r) => r.json());
+            await removeCommentAsync(venus, resp.comments.id);
+          });
+          await expect(test, 'to be fulfilled with', { comments: { createdBy: venus.user.id } });
+        });
+
+        it(`should not get 'comment:new' when Venus writes a comment in Celestials`, async () => {
+          const test = session.notReceiveWhile('comment:new', async () => {
+            const resp = await createCommentAsync(venus, postFromMarsToCelestials.id, 'Hello').then(
+              (r) => r.json(),
+            );
+            await removeCommentAsync(venus, resp.comments.id);
+          });
+          await expect(test, 'to be fulfilled');
+        });
+      });
     });
 
     describe('Luna (as admin) should see posts in Selenites group from Venus who banned her', () => {
@@ -326,6 +413,46 @@ describe('Groups without bans', () => {
             ],
             luna,
           ));
+      });
+
+      describe('Realtime', () => {
+        let session, selenitesFeed, celestialsFeed;
+        before(async () => {
+          session = await Session.create(appPort, 'Luna session');
+          await session.sendAsync('auth', { authToken: luna.authToken });
+
+          [selenitesFeed, celestialsFeed] = await Promise.all([
+            dbAdapter.getUserNamedFeed(selenites.group.id, 'Posts'),
+            dbAdapter.getUserNamedFeed(celestials.group.id, 'Posts'),
+          ]);
+
+          await session.sendAsync('subscribe', { timeline: [selenitesFeed.id, celestialsFeed.id] });
+        });
+        after(() => session.disconnect());
+
+        it(`should get 'post:new' when Venus writes a post to Selenites`, async () => {
+          const test = session.receiveWhile('post:new', async () => {
+            const post = await createAndReturnPostToFeed(selenites, venus, 'Hello');
+            await deletePostAsync(venus, post.id);
+          });
+          await expect(test, 'to be fulfilled with', { posts: { createdBy: venus.user.id } });
+        });
+
+        it(`should get 'post:new' when Venus writes a post to Selenites and Celestials`, async () => {
+          const test = session.receiveWhile('post:new', async () => {
+            const post = await createAndReturnPostToFeed([selenites, celestials], venus, 'Hello');
+            await deletePostAsync(venus, post.id);
+          });
+          await expect(test, 'to be fulfilled with', { posts: { createdBy: venus.user.id } });
+        });
+
+        it(`should not get 'post:new' when Venus writes a post to Selenites and Celestials`, async () => {
+          const test = session.notReceiveWhile('post:new', async () => {
+            const post = await createAndReturnPostToFeed([celestials], venus, 'Hello');
+            await deletePostAsync(venus, post.id);
+          });
+          await expect(test, 'to be fulfilled');
+        });
       });
     });
   });
