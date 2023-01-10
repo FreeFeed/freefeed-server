@@ -15,9 +15,11 @@ import {
   createGroupAsync,
   createTestUsers,
   deletePostAsync,
+  demoteFromAdmin,
   like,
   likeComment,
   performJSONRequest,
+  promoteToAdmin,
   removeCommentAsync,
   unbanUser,
 } from './functional_test_helper';
@@ -47,7 +49,7 @@ describe('Groups without bans', () => {
   });
 
   describe('Enable/disable bans', () => {
-    it(`should return 'disable_bans' in 'youCan' for Mars`, async () => {
+    it(`should return 'disable_bans' in 'youCan' for Mars in Selenites`, async () => {
       const resp = await performJSONRequest(
         'GET',
         `/v1/users/${selenites.username}`,
@@ -75,6 +77,42 @@ describe('Groups without bans', () => {
         authHeaders(mars),
       );
       expect(resp.users.youCan, 'to contain', 'disable_bans');
+    });
+
+    it(`should return 'undisable_bans' in 'youCan' for Mars (as admin) in Celestials`, async () => {
+      const resp = await performJSONRequest(
+        'GET',
+        `/v1/users/${celestials.username}`,
+        null,
+        authHeaders(mars),
+      );
+      expect(resp.users.youCan, 'to contain', 'undisable_bans');
+    });
+
+    describe('New admin promotion', () => {
+      after(() => setBansDisabled(celestials, jupiter, false));
+
+      it(`should disable bans for new Celestial admin, Jupiter`, async () => {
+        await promoteToAdmin(celestials, mars, jupiter);
+        const resp = await performJSONRequest(
+          'GET',
+          `/v1/users/${celestials.username}`,
+          null,
+          authHeaders(jupiter),
+        );
+        expect(resp.users.youCan, 'to contain', 'undisable_bans');
+      });
+
+      it(`should keep disabled bans when Jupiter demotes from admins`, async () => {
+        await demoteFromAdmin(celestials, mars, jupiter);
+        const resp = await performJSONRequest(
+          'GET',
+          `/v1/users/${celestials.username}`,
+          null,
+          authHeaders(jupiter),
+        );
+        expect(resp.users.youCan, 'to contain', 'undisable_bans');
+      });
     });
   });
 
@@ -329,8 +367,8 @@ describe('Groups without bans', () => {
     });
 
     describe('Luna (as admin) should see posts in Selenites group from Venus who banned her', () => {
-      before(() => Promise.all([banUser(venus, luna), setBansDisabled(selenites, luna)]));
-      after(() => Promise.all([unbanUser(venus, luna), setBansDisabled(selenites, luna, false)]));
+      before(() => banUser(venus, luna));
+      after(() => unbanUser(venus, luna));
 
       it(`should not see post to Celestials group only`, () =>
         shouldNotSeePost(postFromVenusToCelestials, luna));

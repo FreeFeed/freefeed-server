@@ -166,8 +166,9 @@ export function addModel(dbAdapter) {
       return await owner.subscribeTo(this, { noEvents: true });
     }
 
-    addAdministrator(feedId) {
-      return dbAdapter.addAdministratorToGroup(this.id, feedId);
+    async addAdministrator(adminId) {
+      await dbAdapter.addAdministratorToGroup(this.id, adminId);
+      await dbAdapter.disableBansInGroup(adminId, this.id, true);
     }
 
     async removeAdministrator(feedId) {
