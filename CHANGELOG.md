@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.6.0] - Not released
 ### Added
+- Users can now disable bans in certain groups. One can disable bans in any
+  group, no need to be an admin or even a member of the group.
+
+  If user disabled bans in some group then:
+  - He can see posts, comments, likes and comment likes in this group from users
+    he banned.
+  - If he is the administrator of this group, he can see posts in this group
+    from users who have banned him.
+
+  There is a new file, _doc/visibility-rules.md_, with description of this
+  algorithm.
+  
+  When a user becomes a group administrator (by creating a group or being
+  promoted by another user), the bans in that group are disabled for him. He can
+  enable bans back manually.
+
+  API changes:
+  - New methods `POST /groups/:groupName/disableBans` and `POST
+    /groups/:groupName/enableBans`;
+  - 'youCan' field of serialized group can have value 'disable_bans' or
+    'undisable_bans';
+  - There are two new events in user notifications: 'bans_in_group_disabled' and
+    'bans_in_group_enabled'.
 - Administrative API. This API (with `/api/admin` prefix) is not a part of
   official and supported/versioned server API.
 
