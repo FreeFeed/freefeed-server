@@ -9,7 +9,7 @@ import { NotFoundException } from '../../../support/exceptions';
 
 const EVENT_GROUPS = {
   mentions: ['mention_in_post', 'mention_in_comment', 'mention_comment_to'],
-  bans: ['banned_user', 'unbanned_user'],
+  bans: ['banned_user', 'unbanned_user', 'bans_in_group_disabled', 'bans_in_group_enabled'],
   subscriptions: [
     'user_subscribed',
     'subscription_requested',

@@ -42,6 +42,9 @@ export const EVENT_TYPES = {
 
   BLOCKED_IN_GROUP: 'blocked_in_group',
   UNBLOCKED_IN_GROUP: 'unblocked_in_group',
+
+  BANS_IN_GROUP_DISABLED: 'bans_in_group_disabled',
+  BANS_IN_GROUP_ENABLED: 'bans_in_group_enabled',
 } as const;
 
 export type T_EVENT_TYPE = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];

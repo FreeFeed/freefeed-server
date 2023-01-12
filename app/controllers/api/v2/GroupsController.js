@@ -134,7 +134,11 @@ export default class GroupsController {
       async (ctx) => {
         const { user, group } = ctx.state;
 
-        await dbAdapter.disableBansInGroup(user.id, group.id, doDisable);
+        if (doDisable) {
+          await group.disableBansFor(user.id);
+        } else {
+          await group.enableBansFor(user.id);
+        }
 
         // Show group info via UsersController.show
         ctx.params.username = group.username;

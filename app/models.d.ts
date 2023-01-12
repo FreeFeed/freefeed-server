@@ -91,7 +91,7 @@ export class Group {
   isUser(): false;
   getAdministrators(): Promise<User[]>;
   getActiveAdministrators(): Promise<User[]>;
-  addAdministrator(adminId: UUID): Promise<void>;
+  addAdministrator(adminId: UUID, initiatorId?: UUID): Promise<void>;
   getPostsTimeline(): Promise<Timeline | null>;
   getPostsTimelineId(): Promise<UUID | null>;
 

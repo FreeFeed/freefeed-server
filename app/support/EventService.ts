@@ -529,6 +529,38 @@ export class EventService {
     );
   }
 
+  static async onBansInGroupDisabled(group: Group, userId: UUID, initiatorId: UUID) {
+    const [user, initiator] = await dbAdapter.getFeedOwnersByIds([userId, initiatorId]);
+
+    if (!user || !initiator) {
+      return;
+    }
+
+    await createEvent(
+      user.intId,
+      EVENT_TYPES.BANS_IN_GROUP_DISABLED,
+      initiator.intId,
+      user.intId,
+      group.intId,
+    );
+  }
+
+  static async onBansInGroupEnabled(group: Group, userId: UUID, initiatorId: UUID) {
+    const [user, initiator] = await dbAdapter.getFeedOwnersByIds([userId, initiatorId]);
+
+    if (!user || !initiator) {
+      return;
+    }
+
+    await createEvent(
+      user.intId,
+      EVENT_TYPES.BANS_IN_GROUP_ENABLED,
+      initiator.intId,
+      user.intId,
+      group.intId,
+    );
+  }
+
   ////////////////////////////////////////////
 
   static async _processDirectMessagesForPost(

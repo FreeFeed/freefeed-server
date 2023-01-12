@@ -349,6 +349,20 @@ const notificationTemplates = {
 
     return `${adminHTML} unblocked ${victimHTML} in group ${groupLink}`;
   },
+
+  bans_in_group_disabled: (eventData) => {
+    const isSelf = eventData.recipient.id === eventData.creator.id;
+    return `${isSelf ? makeUserLink(eventData.creator) : 'You'} disabled the bans ${
+      isSelf ? 'for yourself' : 'for you'
+    } in group ${makeUserLink(eventData.group)}`;
+  },
+
+  bans_in_group_enabled: (eventData) => {
+    const isSelf = eventData.recipient.id === eventData.creator.id;
+    return `${isSelf ? makeUserLink(eventData.creator) : 'You'} enabled the bans ${
+      isSelf ? 'for yourself' : 'for you'
+    } in group ${makeUserLink(eventData.group)}`;
+  },
 };
 
 function makeUserLink(user) {
