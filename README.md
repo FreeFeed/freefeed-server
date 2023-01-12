@@ -55,10 +55,11 @@ The default configuration is defined in `config/default.js` file. The `config/te
 
 ## Testing
 
-```
-createdb -O freefeed freefeed_test
-yarn test
-```
+1. Create a Postgres database `freefeed_test`:
+   - `createdb -O freefeed freefeed_test` if you're using local Postgres
+   - open a terminal to Docker container, run Postgres CLI (`psql -U freefeed`), create a database `create database freefeed_test`
+   - or use any other appropriate method such as pgAdmin
+1. `yarn test`
 
 ## Testing docker image
 
