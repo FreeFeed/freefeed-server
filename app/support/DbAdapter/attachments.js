@@ -18,7 +18,7 @@ const attachmentsTrait = (superClass) =>
         ATTACHMENT_COLUMNS_MAPPING,
       );
       const res = await this.database('attachments').returning('uid').insert(preparedPayload);
-      return res[0];
+      return res[0].uid;
     }
 
     async getAttachmentById(id) {
