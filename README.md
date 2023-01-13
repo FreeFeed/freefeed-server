@@ -78,6 +78,10 @@ docker login docker.pkg.github.com -u USERNAME -p TOKEN
 make push
 ```
 
+## Database migrations
+
+If you're getting errors related to database structure or relations, run `yarn knex --env production migrate:latest` to run migrations
+
 ## Contribute
 
 1. [How to contribute](https://freefeed.net/dev)
