@@ -1,5 +1,8 @@
 declare module 'unexpected' {
-  type Expect = (subj: any, assertion: string, ...args: any[]) => Promise<void>;
+  interface Expect {
+    (subj: any, assertion: string, ...args: any[]): Promise<void>;
+    it(assertion: string, ...args: any[]): Promise<void>;
+  }
 
   const expect: Expect;
   export = expect;

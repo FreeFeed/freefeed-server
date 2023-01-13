@@ -1,30 +1,24 @@
 import { type Context, type Next } from 'koa';
+import { intersection } from 'lodash';
 
 import { dbAdapter, type User } from '../../models';
 import { ForbiddenException } from '../../support/exceptions';
+import { AdminRole } from '../../models/admins';
 
-export async function adminOnly(ctx: Context, next: Next) {
-  const { user }: { user: User } = ctx.state;
+export function adminRolesRequired(...roles: AdminRole[]) {
+  return async (ctx: Context, next: Next) => {
+    const { user }: { user: User } = ctx.state;
+    const userRoles = await dbAdapter.getUserAdminRoles(user.id);
 
-  const isAdmin = await dbAdapter.userIsAdmin(user.id);
+    if (roles.length === 0) {
+      // When roles.length === 0 we need ANY admin role
+      if (userRoles.length === 0) {
+        throw new ForbiddenException();
+      }
+    } else if (intersection(roles, userRoles).length === 0) {
+      throw new ForbiddenException();
+    }
 
-  if (!isAdmin) {
-    throw new ForbiddenException();
-  }
-
-  await next();
-  return;
-}
-
-export async function moderatorOnly(ctx: Context, next: Next) {
-  const { user }: { user: User } = ctx.state;
-
-  const isModerator = await dbAdapter.userIsModerator(user.id);
-
-  if (!isModerator) {
-    throw new ForbiddenException();
-  }
-
-  await next();
-  return;
+    await next();
+  };
 }

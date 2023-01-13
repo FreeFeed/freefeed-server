@@ -1038,6 +1038,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/koa__router@npm:~12.0.0":
+  version: 12.0.0
+  resolution: "@types/koa__router@npm:12.0.0"
+  dependencies:
+    "@types/koa": "*"
+  checksum: ebfee772f7a9c5ff5e296a24443eb2c288fa2e5b8c60afbb460b41f0bd0d68c8a722fff5984eef7b7d90d057fe6f556171695ea83e2cdbeef3e2462f73c362b7
+  languageName: node
+  linkType: hard
+
 "@types/lodash@npm:~4.14.191":
   version: 4.14.191
   resolution: "@types/lodash@npm:4.14.191"
@@ -4734,6 +4743,7 @@ __metadata:
     "@types/koa-passport": ~4.0.3
     "@types/koa-response-time": ~2.1.2
     "@types/koa-static": ~4.0.2
+    "@types/koa__router": ~12.0.0
     "@types/lodash": ~4.14.191
     "@types/mocha": ~10.0.1
     "@types/n3": ~1.10.4

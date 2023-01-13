@@ -4,11 +4,20 @@ export const up =
   // language=PostgreSQL
   (knex: Knex) =>
     knex.schema.raw(`
-      CREATE TABLE administrators (
-        user_id UUID NOT NULL PRIMARY KEY
-          REFERENCES USERS (uid) ON DELETE CASCADE ON UPDATE CASCADE,
-        is_admin BOOLEAN DEFAULT FALSE,
-        is_moderator BOOLEAN DEFAULT FALSE
+      CREATE TABLE admin_roles (
+        role text NOT NULL PRIMARY KEY
+      );
+
+      -- Initial roles
+      INSERT INTO admin_roles (role) VALUES ('administrator'), ('moderator');
+
+      CREATE TABLE admin_users_roles (
+        user_id UUID NOT NULL
+          REFERENCES users (uid) ON DELETE CASCADE ON UPDATE CASCADE,
+        role text NOT NULL
+          REFERENCES admin_roles (role) ON DELETE RESTRICT ON UPDATE CASCADE,
+
+        PRIMARY KEY (user_id, role)
       );
       
       CREATE TABLE administrators_actions (
@@ -37,5 +46,7 @@ export const down = (knex: Knex) =>
     DROP TRIGGER no_update_or_delete_t ON administrators_actions;
     DROP FUNCTION administrators_actions_abort_tf;
     DROP TABLE administrators_actions;
+    DROP TABLE administrators_roles_links;
+    DROP TABLE administrators_roles;
     DROP TABLE administrators;
   `);

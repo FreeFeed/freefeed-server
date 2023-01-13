@@ -11,6 +11,7 @@ import {
 } from '../../models/auth-tokens/types';
 import { SessionTokenV1 } from '../../models/auth-tokens';
 import { T_EVENT_TYPE } from '../EventTypes';
+import { AdminRole } from '../../models/admins';
 
 type QueryBindings = readonly Knex.RawBinding[] | Knex.ValueDict | Knex.RawBinding;
 
@@ -270,6 +271,13 @@ export class DbAdapter {
   cleanOldEmailVerificationCodes(): Promise<void>;
 
   // Admin-related methods
-  userIsAdmin(user_id: UUID): Promise<boolean>;
-  userIsModerator(user_id: UUID): Promise<boolean>;
+  getUserAdminRoles(userId: UUID): Promise<AdminRole[]>;
+  getUsersAdminRolesAssoc(userIds: UUID[]): Promise<{ [id: UUID]: AdminRole[] }>;
+  setUserAdminRole(
+    userId: UUID,
+    role: AdminRole,
+    doSet?: boolean,
+    flags?: { YES_I_WANT_TO_SET_ADMIN_FOR_TEST_ONLY: boolean },
+  ): Promise<void>;
+  getUsersWithAdminRoles(): Promise<UUID[]>;
 }
