@@ -10,6 +10,8 @@ export default function cleanDB(knex: Knex) {
       declare
         row record;
       begin
+        -- Temp. turn off all triggers
+        set session_replication_role = replica;
         for row in 
           select tablename from pg_tables
             where schemaname = 'public' 
@@ -17,7 +19,8 @@ export default function cleanDB(knex: Knex) {
         loop
           execute format('delete from %I', row.tablename);
         end loop;
-      end
+        set session_replication_role = default;
+        end
     $$;
   `,
   );
