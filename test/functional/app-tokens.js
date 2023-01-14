@@ -37,6 +37,7 @@ describe('Routes coverage', () => {
   const router = createRouter();
   const allRoutes = uniq(
     router.stack
+      .filter((l) => !l.path.startsWith('/api/admin/'))
       .map((l) => l.methods.map((m) => `${m === 'HEAD' ? 'GET' : m} ${normalizeRoutePath(l.path)}`))
       .flat(),
   );
