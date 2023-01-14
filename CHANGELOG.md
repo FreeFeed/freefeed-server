@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.6.0] - Not released
+### Added
+- Administrative API. This API (with `/api/admin` prefix) is not a part of
+  official and supported/versioned server API.
+
+  Some users can have administrative roles:
+  *administrator* and/or *moderator*. The *administrator* role can be assigned
+  only by site operator with manual access to database. *Administrators* can
+  appoint *moderators*. *Moderators* can perform some site management actions,
+  for now it is the freeze-related actions.
+
+  The following methods have been added:
+  - Allowed for any administrative user:
+    - `GET /api/admin/whoami` — info about user himself, in particular, the
+      roles he has.
+    - `GET /api/admin/journal` — journal of all administrative actions.
+  - Allowed for *administrators* only:
+    - `GET /api/admin/members` — list of all administrative users.
+    - `POST /api/admin/members/:username/promote` — gives user a *moderator*
+      role.
+    - `POST /api/admin/members/:username/demote` — removes *moderator* role from
+      user.
+  - Allowed for *moderators* only:
+    - `GET /api/admin/users/frozen` — list of users who are currently frozen.
+    - `POST /api/admin/users/:username/freeze` — freeze user until a certain
+      time.
+    - `POST /api/admin/users/:username/unfreeze` — unfreeze user.
 
 ## [2.5.2] - 2023-01-04
 ### Fixed
